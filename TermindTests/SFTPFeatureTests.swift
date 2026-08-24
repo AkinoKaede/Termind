@@ -174,6 +174,44 @@ struct SFTPFeatureTests {
     }
 
     @Test
+    func directoryRefreshReconcilesRowsAndSelection() async {
+        let retained = remoteFile(path: "/home/retained.txt", kind: .file)
+        let removed = remoteFile(path: "/home/removed.txt", kind: .file)
+        let client = SnapshotSFTPClient(
+            responses: [.success([retained, removed]), .success([retained])]
+        )
+        let sftpSession = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/home", client: client,
+            configuration: testConfiguration
+        )
+
+        await sftpSession.reload(silently: true)
+        sftpSession.selection = [retained.id, removed.id]
+        await sftpSession.reload(silently: true)
+
+        #expect(sftpSession.files == [retained])
+        #expect(sftpSession.selection == [retained.id])
+    }
+
+    @Test
+    func filteringPrunesSelectionThatIsNotRepresentedByTheTable() async {
+        let visible = remoteFile(path: "/home/visible.txt", kind: .file)
+        let hidden = remoteFile(path: "/home/hidden.log", kind: .file)
+        let client = SnapshotSFTPClient(responses: [.success([visible, hidden])])
+        let sftpSession = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/home", client: client,
+            configuration: testConfiguration
+        )
+
+        await sftpSession.reload(silently: true)
+        sftpSession.selection = [hidden.id]
+        sftpSession.query = "visible"
+
+        #expect(sftpSession.filteredFiles == [visible])
+        #expect(sftpSession.selection.isEmpty)
+    }
+
+    @Test
     func automaticRefreshRepeatsUntilDisconnect() async {
         let client = SnapshotSFTPClient(responses: [.success([])])
         let sftpSession = SFTPSessionModel(

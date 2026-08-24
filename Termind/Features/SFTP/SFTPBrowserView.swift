@@ -242,7 +242,13 @@ struct SFTPBrowserView: View {
 
     @ViewBuilder
     private var browserContent: some View {
-        Group {
+        // Keep the AppKit-backed Table mounted while its rows, selection, and
+        // connection state change. Removing it during an outline-view update
+        // leaves orphan NSTableRowViews whose AttributeGraph subgraph has
+        // already been dismantled ("precondition failure: no subgraph").
+        ZStack {
+            fileTable
+
             if sftpSession.status == .disconnected, !sftpSession.connectionJourney.isPresented {
                 VStack(spacing: Metrics.Space.l) {
                     Image(systemName: "folder.badge.questionmark")
@@ -252,12 +258,13 @@ struct SFTPBrowserView: View {
                         .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.background)
             } else if sftpSession.files.isEmpty, sftpSession.isLoading {
                 centeredState("Loading", symbol: "arrow.triangle.2.circlepath", progress: true)
+                    .background(.background)
             } else if sftpSession.files.isEmpty, sftpSession.status == .connected {
                 centeredState("This folder is empty", symbol: "folder", progress: false)
-            } else {
-                fileTable
+                    .background(.background)
             }
         }
         .onDrop(

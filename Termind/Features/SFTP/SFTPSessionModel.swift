@@ -1,5 +1,27 @@
 import Foundation
 
+/// State consumed by SwiftUI's macOS `Table` must change as one value.
+///
+/// `Table` is backed by `NSOutlineView`. Publishing its rows, filter, and
+/// selection independently can briefly leave the outline view selecting an ID
+/// whose row has already become an orphan. On macOS that can make SwiftUI ask
+/// AttributeGraph for the orphan row's dismantled subgraph and trap with
+/// "precondition failure: no subgraph".
+private struct SFTPDirectoryPresentation {
+    var files: [RemoteFile] = []
+    var selection: Set<RemoteFile.ID> = []
+    var query = ""
+
+    var filteredFiles: [RemoteFile] {
+        guard !query.isEmpty else { return files }
+        return files.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    mutating func reconcileSelection() {
+        selection.formIntersection(Set(filteredFiles.map(\.id)))
+    }
+}
+
 @Observable
 final class SFTPSessionModel: Identifiable {
     struct PreparedJob {
@@ -46,9 +68,26 @@ final class SFTPSessionModel: Identifiable {
     var pathText: String
     private(set) var backHistory: [String] = []
     private(set) var forwardHistory: [String] = []
-    var selection: Set<RemoteFile.ID> = []
-    var query = ""
-    private(set) var files: [RemoteFile] = []
+    private var directoryPresentation = SFTPDirectoryPresentation()
+    var selection: Set<RemoteFile.ID> {
+        get { directoryPresentation.selection }
+        set {
+            var presentation = directoryPresentation
+            presentation.selection = newValue
+            presentation.reconcileSelection()
+            directoryPresentation = presentation
+        }
+    }
+    var query: String {
+        get { directoryPresentation.query }
+        set {
+            var presentation = directoryPresentation
+            presentation.query = newValue
+            presentation.reconcileSelection()
+            directoryPresentation = presentation
+        }
+    }
+    var files: [RemoteFile] { directoryPresentation.files }
     private(set) var status: ConnectionStatus = .disconnected {
         didSet {
             statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
@@ -115,8 +154,7 @@ final class SFTPSessionModel: Identifiable {
         pendingRemoteCopyBatch?.conflictCount ?? pendingBatch?.conflictCount ?? 0
     }
     var filteredFiles: [RemoteFile] {
-        guard !query.isEmpty else { return files }
-        return files.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        directoryPresentation.filteredFiles
     }
     var selectedFiles: [RemoteFile] {
         files.filter { selection.contains($0.id) }
@@ -318,7 +356,7 @@ final class SFTPSessionModel: Identifiable {
         usesEphemeralCredentials = false
         status = .disconnected
         connectionJourney.hide()
-        files = []
+        replaceDirectoryContents(with: [])
         Task { [id] in
             await transferCoordinator?.cancelTransfers(usingBorrowedConnection: id)
             await client?.disconnect()
@@ -502,8 +540,7 @@ final class SFTPSessionModel: Identifiable {
         do {
             let snapshot = try await client.listDirectory(at: requestedPath)
             guard status == .connected, path == requestedPath else { return }
-            files = snapshot
-            selection.formIntersection(Set(snapshot.map(\.id)))
+            replaceDirectoryContents(with: snapshot)
             hint =
                 snapshot.count == 1
                 ? String(localized: "1 item") : String(localized: "\(snapshot.count) items")
@@ -538,6 +575,15 @@ final class SFTPSessionModel: Identifiable {
                 await self.reload(silently: true)
             }
         }
+    }
+
+    /// Publishes rows and their valid selection in one observable mutation so
+    /// SwiftUI never receives an intermediate table state.
+    private func replaceDirectoryContents(with files: [RemoteFile]) {
+        var presentation = directoryPresentation
+        presentation.files = files
+        presentation.reconcileSelection()
+        directoryPresentation = presentation
     }
 
     func scheduleSilentRefresh(after delay: Duration = .milliseconds(250)) {
