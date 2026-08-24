@@ -1,0 +1,185 @@
+import SwiftUI
+
+enum TermindSearchFieldDensity {
+    case compact, regular, prominent
+}
+
+struct TermindSearchField: View {
+    @Binding var text: String
+    let prompt: LocalizedStringKey
+    var density: TermindSearchFieldDensity = .regular
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.s) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField(prompt, text: $text)
+                .textFieldStyle(.plain)
+                .font(density == .prominent ? .title3 : .body)
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Clear search"))
+            }
+        }
+        .padding(.horizontal, horizontalPadding)
+        .padding(.vertical, verticalPadding)
+        .background(
+            .thinMaterial,
+            in: .rect(cornerRadius: density == .prominent ? Metrics.Radius.large : Metrics.Radius.medium)
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: density == .prominent ? Metrics.Radius.large : Metrics.Radius.medium
+            )
+            .strokeBorder(.quaternary.opacity(0.8))
+        }
+    }
+
+    private var horizontalPadding: CGFloat {
+        density == .prominent ? Metrics.Space.l : Metrics.Space.s
+    }
+
+    private var verticalPadding: CGFloat {
+        switch density {
+        case .compact: Metrics.Space.xs
+        case .regular: Metrics.Space.s
+        case .prominent: Metrics.Space.m
+        }
+    }
+}
+
+struct SheetScaffold<Header: View, Content: View, Footer: View>: View {
+    @ViewBuilder let header: Header
+    @ViewBuilder let content: Content
+    @ViewBuilder let footer: Footer
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+                .frame(maxWidth: .infinity)
+                .background(.bar)
+            Divider().opacity(0.7)
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.background)
+            Divider().opacity(0.7)
+            footer
+                .background(.bar)
+        }
+    }
+}
+
+struct ManagedChooserHeader: View {
+    let title: LocalizedStringKey
+    let symbol: String
+    let prompt: LocalizedStringKey
+    @Binding var query: String
+    var aboveSearch: AnyView? = nil
+    var onSubmit: () -> Void = {}
+    var moveCursor: (Int) -> KeyPress.Result = { _ in .ignored }
+    var toggleCursor: () -> KeyPress.Result = { .ignored }
+
+    @FocusState private var searchFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            Label(title, systemImage: symbol)
+                .font(.headline)
+                .labelStyle(.titleOnly)
+
+            if let aboveSearch {
+                aboveSearch
+            }
+
+            HStack(spacing: Metrics.Space.s) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(prompt, text: $query)
+                    .textFieldStyle(.plain)
+                    .focused($searchFocused)
+                    .onSubmit(onSubmit)
+                    .onKeyPress(.upArrow) { moveCursor(-1) }
+                    .onKeyPress(.downArrow) { moveCursor(1) }
+                    .onKeyPress(.space, action: toggleCursor)
+
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                        searchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Clear search"))
+                }
+            }
+            .padding(Metrics.Space.s)
+            .background(
+                .quaternary.opacity(0.5),
+                in: .rect(cornerRadius: Metrics.Radius.medium)
+            )
+        }
+        .padding(Metrics.Space.xl)
+        .onAppear { searchFocused = true }
+    }
+}
+
+struct SelectableRow<Content: View, Trailing: View>: View {
+    let isCursor: Bool
+    let isSelected: Bool
+    var isEnabled = true
+    @ViewBuilder let content: Content
+    @ViewBuilder let trailing: Trailing
+
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.m) {
+            content
+            Spacer(minLength: Metrics.Space.s)
+            trailing
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Metrics.Space.m)
+        .padding(.vertical, Metrics.Space.s)
+        .background(fill, in: .rect(cornerRadius: Metrics.Radius.medium))
+        .overlay(alignment: .leading) {
+            if isCursor {
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: 2.5)
+                    .padding(.vertical, Metrics.Space.xs)
+            }
+        }
+        .contentShape(.rect(cornerRadius: Metrics.Radius.medium))
+        .onHover { isHovering = $0 && isEnabled }
+        .opacity(isEnabled ? 1 : 0.55)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    private var fill: Color {
+        if isCursor { return Color.accentColor.opacity(0.11) }
+        if isSelected { return Color.primary.opacity(0.075) }
+        if isHovering { return Color.primary.opacity(0.045) }
+        return .clear
+    }
+}
+
+extension SelectableRow where Trailing == EmptyView {
+    init(
+        isCursor: Bool, isSelected: Bool, isEnabled: Bool = true,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(
+            isCursor: isCursor, isSelected: isSelected, isEnabled: isEnabled,
+            content: content, trailing: { EmptyView() }
+        )
+    }
+}

@@ -1,0 +1,477 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		TRMD00000000000000100001 /* CSSH2 in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100011 /* CSSH2 */; };
+		TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
+		TRMD00000000000000100003 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
+		TRMD00000000000000100004 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100014 /* OpenSSL */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		TRMD00000000000000020090 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = TRMD00000000000000000050;
+			remoteInfo = Termind;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		TRMD00000000000000020001 /* TermindTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermindTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		TRMD00000000000000000011 /* Exceptions for "Termind" folder in "Termind" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = TRMD00000000000000000050 /* Termind */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		TRMD00000000000000000010 /* Termind */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				TRMD00000000000000000011 /* Exceptions for "Termind" folder in "Termind" target */,
+			);
+			path = Termind;
+			sourceTree = "<group>";
+		};
+		TRMD00000000000000020010 /* TermindTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TermindTests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		TRMD00000000000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				TRMD00000000000000100001 /* CSSH2 in Frameworks */,
+				TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */,
+				TRMD00000000000000100003 /* GhosttyTheme in Frameworks */,
+				TRMD00000000000000100004 /* OpenSSL in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TRMD00000000000000020020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		TRMD00000000000000000030 = {
+			isa = PBXGroup;
+			children = (
+				TRMD00000000000000000010 /* Termind */,
+				TRMD00000000000000020010 /* TermindTests */,
+				TRMD00000000000000000040 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		TRMD00000000000000000040 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				TRMD00000000000000000001 /* Termind.app */,
+				TRMD00000000000000020001 /* TermindTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		TRMD00000000000000000050 /* Termind */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TRMD00000000000000000060 /* Build configuration list for PBXNativeTarget "Termind" */;
+			buildPhases = (
+				TRMD00000000000000000070 /* Sources */,
+				TRMD00000000000000000020 /* Frameworks */,
+				TRMD00000000000000000080 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				TRMD00000000000000000010 /* Termind */,
+			);
+			name = Termind;
+			packageProductDependencies = (
+				TRMD00000000000000100011 /* CSSH2 */,
+				TRMD00000000000000100012 /* GhosttyTerminal */,
+				TRMD00000000000000100013 /* GhosttyTheme */,
+				TRMD00000000000000100014 /* OpenSSL */,
+			);
+			productName = Termind;
+			productReference = TRMD00000000000000000001 /* Termind.app */;
+			productType = "com.apple.product-type.application";
+		};
+		TRMD00000000000000020050 /* TermindTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TRMD00000000000000020060 /* Build configuration list for PBXNativeTarget "TermindTests" */;
+			buildPhases = (
+				TRMD00000000000000020070 /* Sources */,
+				TRMD00000000000000020020 /* Frameworks */,
+				TRMD00000000000000020080 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				TRMD00000000000000020091 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				TRMD00000000000000020010 /* TermindTests */,
+			);
+			name = TermindTests;
+			packageProductDependencies = (
+			);
+			productName = TermindTests;
+			productReference = TRMD00000000000000020001 /* TermindTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		TRMD00000000000000000090 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					TRMD00000000000000000050 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					TRMD00000000000000020050 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = TRMD00000000000000000050;
+					};
+				};
+			};
+			buildConfigurationList = TRMD000000000000000000A0 /* Build configuration list for PBXProject "Termind" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = TRMD00000000000000000030;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */,
+				TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
+				TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = TRMD00000000000000000040 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				TRMD00000000000000000050 /* Termind */,
+				TRMD00000000000000020050 /* TermindTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		TRMD00000000000000000080 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TRMD00000000000000020080 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		TRMD00000000000000000070 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TRMD00000000000000020070 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		TRMD00000000000000020091 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = TRMD00000000000000000050 /* Termind */;
+			targetProxy = TRMD00000000000000020090 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		TRMD000000000000000000B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		TRMD000000000000000000C0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		TRMD000000000000000000D0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Termind/Termind.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Termind/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		TRMD000000000000000000E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Termind/Termind.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Termind/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		TRMD000000000000000200D0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termind.app/Contents/MacOS/Termind";
+			};
+			name = Debug;
+		};
+		TRMD000000000000000200E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termind.app/Contents/MacOS/Termind";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		TRMD00000000000000000060 /* Build configuration list for PBXNativeTarget "Termind" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TRMD000000000000000000D0 /* Debug */,
+				TRMD000000000000000000E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TRMD000000000000000000A0 /* Build configuration list for PBXProject "Termind" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TRMD000000000000000000B0 /* Debug */,
+				TRMD000000000000000000C0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TRMD00000000000000020060 /* Build configuration list for PBXNativeTarget "TermindTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TRMD000000000000000200D0 /* Debug */,
+				TRMD000000000000000200E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/libssh2-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.3;
+			};
+		};
+		TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/libghostty-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.0;
+			};
+		};
+		TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/openssl-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.6.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		TRMD00000000000000100011 /* CSSH2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */;
+			productName = CSSH2;
+		};
+		TRMD00000000000000100012 /* GhosttyTerminal */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */;
+			productName = GhosttyTerminal;
+		};
+		TRMD00000000000000100013 /* GhosttyTheme */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */;
+			productName = GhosttyTheme;
+		};
+		TRMD00000000000000100014 /* OpenSSL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */;
+			productName = OpenSSL;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = TRMD00000000000000000090 /* Project object */;
+}

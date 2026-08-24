@@ -1,0 +1,911 @@
+import Foundation
+
+enum SFTPSessionOpenPlacement: Equatable {
+    case newTab
+    case currentWorkspace
+}
+
+/// The state of one window: its tabs, which is selected, and whether the AI
+/// Context Panel is showing.
+///
+/// One of these per window rather than one per app, so two windows can hold
+/// different sets of tabs. Menu commands reach the right instance through
+/// `FocusedValues.window`.
+@Observable
+final class WindowModel {
+    var tabs: [Workspace] = []
+    /// The top-level shell has two pinned entries followed by dynamic SSH/SFTP
+    /// Workspaces. This is the single source of truth for tab selection.
+    var selectedTopLevelTab: TopLevelTab = .vault
+    var vaultDestination: VaultDestination = .hosts
+    let chatLibrary: ChatLibraryModel
+    let contextPanel = WindowContextPanelState()
+    let presentations = WindowPresentationState()
+    let dragState = WorkspaceDragState()
+    var connectionCoordinator: RemoteConnectionCoordinator? {
+        didSet {
+            guard let connectionCoordinator else { return }
+            for tab in tabs {
+                tab.configureConnections(using: connectionCoordinator)
+            }
+        }
+    }
+
+    /// What is being dragged right now, from the tab bar or from a pane.
+    ///
+    /// Held on the model because every drop target has to decide things *during*
+    /// the drag: whether to draw itself without the thing in flight, where a
+    /// ghost slot should open, and whether the drop will move a pane or fold in
+    /// a whole tab. The pasteboard payload resolves asynchronously, one drop too
+    /// late to answer any of them.
+    ///
+    /// A drag released over nothing leaves this set. That is harmless — nothing
+    /// moves without a `performDrop` — and the next drag overwrites it.
+    var dragging: DragPayload? {
+        get { dragState.payload }
+        set { dragState.payload = newValue }
+    }
+
+    /// Ordered selection saved for a manager page.
+    func detailSelection(for page: VaultPage) -> [ContextPanelDetailID] {
+        contextPanel.selection(for: page)
+    }
+
+    /// Replaces a page selection, removing duplicates and ids belonging to a
+    /// different page while keeping the first occurrence of each item.
+    func setDetailSelection(_ details: [ContextPanelDetailID], for page: VaultPage) {
+        contextPanel.setSelection(details, for: page)
+    }
+
+    func selectDetail(_ detail: ContextPanelDetailID, on page: VaultPage) {
+        contextPanel.select(detail, on: page)
+    }
+
+    /// Shift-click semantics: selected items retain their order; a newly added
+    /// item is appended at the point the user selected it.
+    func toggleDetail(_ detail: ContextPanelDetailID, on page: VaultPage) {
+        contextPanel.toggle(detail, on: page)
+    }
+
+    func clearDetailSelection(for page: VaultPage) {
+        contextPanel.clearSelection(for: page)
+    }
+
+    /// The selection that belongs to the content currently in front. Manager
+    /// pages use their remembered selection; work attached to a host describes
+    /// that host without overwriting the Hosts page selection.
+    var activeDetailSelection: [ContextPanelDetailID] {
+        if selectedTopLevelTab == .vault, let page = vaultDestination.page {
+            return contextPanel.selection(for: page)
+        }
+        return contextPanel.activeDetails(for: selectedTab?.focusedPane)
+    }
+
+    func showSnippetDetails(_ id: Snippet.ID) {
+        guard let pane = selectedTab?.focusedPane, pane.sshSession != nil else { return }
+        contextPanel.show(.snippet(id), scopedTo: pane)
+    }
+
+    func clearContextPanelDetailOverride() {
+        contextPanel.clearOverride()
+    }
+
+    /// Resolves the active ids against live store data without mutating the
+    /// remembered selection. This makes deletion safe even before the next
+    /// pruning pass runs.
+    func activeDetailSelection(in store: HostStore) -> [ContextPanelDetailID] {
+        activeDetailSelection.filter(Self.availableContextPanelDetails(in: store).contains)
+    }
+
+    /// Removes records deleted out from under a remembered selection.
+    func pruneDetailSelections(in store: HostStore) {
+        contextPanel.pruneSelections(available: Self.availableContextPanelDetails(in: store))
+    }
+
+    private static func availableContextPanelDetails(in store: HostStore) -> Set<ContextPanelDetailID> {
+        Set(store.hosts.map { .host($0.id) })
+            .union(store.keys.map { .key($0.id) })
+            .union(store.identities.map { .identity($0.id) })
+            .union(store.snippets.map { .snippet($0.id) })
+    }
+
+    /// The Context Panel serves two jobs that both want the right-hand column: the
+    /// AI thread, and the details of whatever is selected in the sidebar. A
+    /// segmented control beats two panels — the window only has room for one.
+    typealias ContextPanelMode = WindowContextPanelState.Mode
+
+    var showsContextPanel: Bool {
+        get { contextPanel.isPresented }
+        set { contextPanel.isPresented = newValue }
+    }
+
+    var contextPanelMode: ContextPanelMode {
+        get { contextPanel.mode }
+        set { contextPanel.mode = newValue }
+    }
+
+    var hostChooser: HostChooserPurpose? {
+        get { presentations.hostChooser }
+        set { presentations.hostChooser = newValue }
+    }
+
+    var isQuickOpenPresented: Bool {
+        get { presentations.isQuickOpenPresented }
+        set { presentations.isQuickOpenPresented = newValue }
+    }
+
+    /// Closed tabs, most recent last. ⇧⌘T pops from here. The Workspace retains
+    /// its layout, names, and conversation, while `prepareForReopen` replaces
+    /// terminal models because a dead SSH channel cannot be revived.
+    private var reopenStack: [Workspace] = []
+
+    init(
+        tabs: [Workspace] = [],
+        vaultDestination: VaultDestination = .hosts,
+        chatLibrary: ChatLibraryModel = ChatLibraryModel()
+    ) {
+        self.tabs = tabs
+        self.vaultDestination = vaultDestination
+        self.chatLibrary = chatLibrary
+        selectedTopLevelTab = tabs.first.map { .workspace($0.id) } ?? .vault
+        for tab in tabs {
+            tab.lifecycleRouter = self
+        }
+    }
+
+    // MARK: - Selection
+
+    var selectedTab: Workspace? {
+        guard case .workspace(let selectedTabID) = selectedTopLevelTab else { return nil }
+        return tabs.first { $0.id == selectedTabID }
+    }
+
+    var selectedTabID: Workspace.ID? {
+        get {
+            guard case .workspace(let id) = selectedTopLevelTab else { return nil }
+            return id
+        }
+        set {
+            selectedTopLevelTab = newValue.map(TopLevelTab.workspace) ?? .vault
+        }
+    }
+
+    var selectedIndex: Int? {
+        guard let selectedTabID else { return nil }
+        return tabs.firstIndex { $0.id == selectedTabID }
+    }
+
+    /// The only pane that application-wide find commands may touch. A Workspace
+    /// can contain several terminals, so routing to "any session in the tab"
+    /// would make ⌘F search a buffer other than the one under the caret.
+    var focusedSSHSession: SSHSessionModel? {
+        return selectedTab?.focusedPane.sshSession
+    }
+
+    var canFindInTerminal: Bool { focusedSSHSession != nil }
+
+    func presentTerminalFind() {
+        focusedSSHSession?.presentFind()
+    }
+
+    func navigateTerminalFind(_ direction: TerminalFindDirection) {
+        focusedSSHSession?.presentFindAndNavigate(direction)
+    }
+
+    /// The tab whose content the detail column shows.
+    ///
+    /// The selected one, except while the selected one is the thing being
+    /// dragged. Merging is done by dropping a tab into a Workspace's pane area,
+    /// and a tab cannot be dropped into itself — so leaving it on screen would
+    /// point the app's one merge gesture at the only target that refuses it.
+    /// It steps aside to the next tab, or the previous one when there is no
+    /// next: strictly adjacent, and only when that neighbour is somewhere a tab
+    /// could actually land.
+    ///
+    /// Derived rather than a real selection change, the same way
+    /// `TabContentView.displayedLayout` draws a Workspace without the pane in
+    /// flight. Nothing is committed, so every way a drag can end — a reorder, a
+    /// merge, a cancel, a release outside the window that no delegate ever hears
+    /// about — puts the view back by itself. Storing it would mean an unwind path
+    /// for each of those, and the last one has no callback to unwind from.
+    var displayedTab: Workspace? {
+        guard case .workspace(let id)? = dragging,
+            id == selectedTabID,
+            let index = tabs.firstIndex(where: { $0.id == id }),
+            tabs[index].isCombinable
+        else { return selectedTab }
+        for neighbour in [index + 1, index - 1] where tabs.indices.contains(neighbour) {
+            if tabs[neighbour].acceptsMerge { return tabs[neighbour] }
+        }
+        return selectedTab
+    }
+
+    var isEmpty: Bool { tabs.isEmpty }
+
+    /// Every pane of a given kind, with the Workspace holding it.
+    ///
+    /// The sidebar lists *panes*, not tabs. A Workspace can be mixed — a shell
+    /// beside a file browser — and it belongs under both Sessions and File
+    /// Transfers rather than under whichever half had focus last. Filing the
+    /// whole tab by its focused pane meant a row that changed sections as you
+    /// clicked around inside it, which is the one way a list of what is open can
+    /// be worse than no list.
+    ///
+    /// It also means a Workspace with three shells gets three rows, which is the
+    /// point of naming panes — see `Pane.customTitle`.
+    func panes(ofKind kind: PaneKind) -> [PaneRef] {
+        tabs.flatMap { workspace in
+            workspace.panes
+                .filter { $0.kind == kind }
+                .map { PaneRef(workspace: workspace, pane: $0) }
+        }
+    }
+
+    /// Shells on a host — what the sidebar lists under "Sessions", and what
+    /// "Close All Sessions" acts on.
+    ///
+    /// Deliberately narrower than "not a page": a host editor is a form, a chat
+    /// is a conversation, and a host's tunnels are a setting on that host. None
+    /// of them is an SSH session no matter how it got opened.
+    var sshSessionPanes: [PaneRef] { panes(ofKind: .sshSession) }
+
+    /// One host's file browser, per open browser. The queue page is not among
+    /// them: it is a page, so its `kind` is `.page`, and it lives in Manage.
+    var sftpSessionPanes: [PaneRef] { panes(ofKind: .sftpSession) }
+
+    var sessionPanes: [PaneRef] {
+        tabs.flatMap { workspace in
+            workspace.panes.compactMap { pane in
+                guard pane.kind == .sshSession || pane.kind == .sftpSession else { return nil }
+                return PaneRef(workspace: workspace, pane: pane)
+            }
+        }
+    }
+
+    var canReopen: Bool { !reopenStack.isEmpty }
+
+    /// The most recently opened SSH session, with the tab holding it.
+    ///
+    /// The Snippets page is itself the front tab when a snippet is inserted, so
+    /// "the session" cannot mean "the front tab". Most-recent is the best
+    /// answer available at P0; once sessions are real this becomes the last
+    /// *focused* one.
+    private var lastSSHSession: (tab: Workspace, sshSession: SSHSessionModel)? {
+        for tab in tabs.reversed() {
+            for pane in tab.panes.reversed() {
+                if let sshSession = pane.sshSession {
+                    return (tab, sshSession)
+                }
+            }
+        }
+        return nil
+    }
+
+    var hasSSHSession: Bool { lastSSHSession != nil }
+
+    /// Types a command onto a session's prompt and brings that tab forward.
+    ///
+    /// It never sends the command — pressing Return stays the user's decision,
+    /// the same rule the AI command cards follow. Returns `false` when there is
+    /// no session to type into, so the caller can fall back to the pasteboard.
+    ///
+    /// Through `Workspace.deliver` rather than straight at the session, so a
+    /// snippet inserted into a broadcasting Workspace lands in every shell in
+    /// it. Every route text takes into a prompt goes through that one door.
+    @discardableResult
+    func insertIntoSSHSession(_ command: String) -> Bool {
+        guard let (tab, sshSession) = lastSSHSession else { return false }
+        tab.deliver(command, from: sshSession)
+        select(tab.id)
+        return true
+    }
+
+    func select(_ id: Workspace.ID) {
+        guard tabs.contains(where: { $0.id == id }) else { return }
+        selectedTopLevelTab = .workspace(id)
+        tabs.first { $0.id == id }?.markRead()
+    }
+
+    func selectVault() {
+        selectedTopLevelTab = .vault
+    }
+
+    func selectChat(_ id: ConversationModel.ID? = nil) {
+        if let id { chatLibrary.select(id) }
+        if chatLibrary.selectedConversation == nil { chatLibrary.createConversation() }
+        selectedTopLevelTab = .chat
+    }
+
+    /// ⌘1 is Vault, ⌘2 is Chat, and dynamic Workspaces start at ⌘3.
+    func select(index: Int) {
+        let topLevelTabs = allTopLevelTabs
+        guard topLevelTabs.indices.contains(index) else { return }
+        selectedTopLevelTab = topLevelTabs[index]
+    }
+
+    func selectNext() {
+        let topLevelTabs = allTopLevelTabs
+        guard let index = topLevelTabs.firstIndex(of: selectedTopLevelTab) else {
+            selectedTopLevelTab = .vault
+            return
+        }
+        selectedTopLevelTab = topLevelTabs[(index + 1) % topLevelTabs.count]
+    }
+
+    func selectPrevious() {
+        let topLevelTabs = allTopLevelTabs
+        guard let index = topLevelTabs.firstIndex(of: selectedTopLevelTab) else {
+            selectedTopLevelTab = .vault
+            return
+        }
+        selectedTopLevelTab = topLevelTabs[(index - 1 + topLevelTabs.count) % topLevelTabs.count]
+    }
+
+    private var allTopLevelTabs: [TopLevelTab] {
+        [.vault, .chat] + tabs.map { .workspace($0.id) }
+    }
+
+    // MARK: - Opening
+
+    @discardableResult
+    func open(_ tab: Workspace, select shouldSelect: Bool = true) -> Workspace {
+        tab.lifecycleRouter = self
+        if let connectionCoordinator {
+            tab.configureConnections(using: connectionCoordinator)
+        }
+        tabs.append(tab)
+        if shouldSelect { select(tab.id) }
+        return tab
+    }
+
+    /// Opens a route inside the pinned Vault tab.
+    func openPage(_ page: VaultPage) {
+        vaultDestination = VaultDestination(page: page)
+        selectedTopLevelTab = .vault
+    }
+
+    @discardableResult
+    func openSSHSession(host: Host, usernameHint: String? = nil) -> Workspace {
+        let tab = Workspace.sshSession(host: host, usernameHint: usernameHint)
+        numberPane(tab.focusedPane)
+        return open(tab)
+    }
+
+    /// Batch Startup's second verb: every host becomes a pane of one Workspace,
+    /// tiled into a grid rather than opened as a tab each.
+    ///
+    /// Returns nil for a target that cannot be a Workspace pane — only SSH and
+    /// SFTP sessions can, which is the same rule `PaneKind.isCombinable`
+    /// enforces everywhere else.
+    @discardableResult
+    func openWorkspace(_ hosts: [Host], as target: HostOpenTarget) -> Workspace? {
+        let panes: [Pane] = hosts.compactMap { host in
+            switch target {
+            case .sshSession: .sshSession(host: host)
+            case .sftpSession: .sftpSession(host: host)
+            }
+        }
+        guard let first = panes.first, let layout = SplitNode.tiled(panes) else { return nil }
+
+        let workspace = Workspace(pane: first)
+        workspace.layout = layout
+        workspace.focusedPaneID = first.id
+        open(workspace)
+
+        // After the append, not before: `numberPane` reads the indices of panes
+        // already in `tabs`, and one that is not there yet is invisible to it.
+        // Numbering the batch against itself is safe because ticked hosts are
+        // distinct, so the same-host filter excludes every sibling — what it
+        // does catch is a pane already open on one of these machines.
+        panes.forEach(numberPane)
+        return workspace
+    }
+
+    /// Opens every target of one Snippet as visible SSH panes. SSH session and
+    /// Workspace titles keep their ordinary host-derived defaults; each pane
+    /// submits the same command independently after login.
+    @discardableResult
+    func openSnippetWorkspace(hosts: [Host], command: String) -> Workspace? {
+        let panes = hosts.map { Pane.sshSession(host: $0, initialCommand: command) }
+        guard let first = panes.first, let layout = SplitNode.tiled(panes) else { return nil }
+
+        let workspace = Workspace(pane: first)
+        workspace.layout = layout
+        workspace.focusedPaneID = first.id
+        open(workspace)
+        panes.forEach(numberPane)
+        return workspace
+    }
+
+    @discardableResult
+    func openChat() -> ConversationModel {
+        let conversation = chatLibrary.createConversation()
+        selectedTopLevelTab = .chat
+        return conversation
+    }
+
+    /// One machine's SFTP browser, listed in the sidebar under "Sessions".
+    ///
+    /// A caller with a terminal working directory can override the host's saved
+    /// initial path for this browser only. Opening in the current Workspace is
+    /// an explicit layout choice and always places the browser to the right of
+    /// the focused shell.
+    @discardableResult
+    func openSFTPSession(
+        host: Host,
+        initialPath: String? = nil,
+        placement: SFTPSessionOpenPlacement = .newTab
+    ) -> Workspace {
+        let pane = Pane.sftpSession(host: host, initialPath: initialPath)
+        numberPane(pane)
+
+        if placement == .currentWorkspace,
+            let tab = selectedTab,
+            tab.focusedPane.sshSession != nil
+        {
+            tab.splitFocusedPane(axis: .horizontal, with: pane)
+            return tab
+        }
+
+        return open(Workspace(pane: pane))
+    }
+
+    /// Opens the host editor, reusing the tab that already holds one for the
+    /// same host — and "no host" counts as a host here, so New Host twice means
+    /// "show me the New Host form" rather than handing back a second empty copy
+    /// of it. The same reasoning as `openPage`, and the same reason two of them
+    /// were worth avoiding: a half-typed form is easier to find again than to
+    /// tell apart from its twin in the tab bar.
+    func openHostEditor(host: Host?) {
+        vaultDestination = .hostEditor(host?.id)
+        selectedTopLevelTab = .vault
+    }
+
+    func closeManagement() {
+        openPage(.hosts)
+    }
+
+    // MARK: - Combining
+
+    /// Folds every pane of `source` into `target` beside a named pane, on a named
+    /// side, and closes the source tab.
+    ///
+    /// The one merge gesture in the app: drag a tab out of the strip and drop it
+    /// on the edge of a pane. Which edge you let go over is which side the panes
+    /// land on, so the preview rectangle and the result are the same shape. The
+    /// tab strip itself merges nothing — a tab dropped there reorders, and a pane
+    /// dropped there becomes its own tab.
+    ///
+    /// A Workspace is built only from things already open. There used to be a
+    /// "Connect in Split" that welded a host you had never opened onto whatever
+    /// tab happened to be front; combining is a rearrangement of what is on
+    /// screen, and nothing connects as a side effect of a layout change.
+    ///
+    /// The source's own thread goes with it. A Workspace has one thread of its
+    /// own, and silently keeping the wrong one is worse than continuing the
+    /// survivor's — which is the one still in front of you. A *chat pane's*
+    /// thread is not the tab's and travels with the pane, so folding a chat into
+    /// a Workspace brings its conversation along intact.
+    func merge(
+        _ source: Workspace.ID,
+        into target: Workspace.ID,
+        beside paneID: Pane.ID,
+        axis: SplitAxis,
+        side: SplitSide
+    ) {
+        guard source != target,
+            let sourceTab = tabs.first(where: { $0.id == source }),
+            let targetTab = tabs.first(where: { $0.id == target }),
+            sourceTab.isCombinable,
+            let targetPane = targetTab.layout.pane(paneID),
+            targetPane.isCombinable
+        else { return }
+        targetTab.layout = targetTab.layout.splitting(
+            paneID,
+            axis: axis,
+            side: side,
+            with: sourceTab.layout
+        )
+        targetTab.focusedPaneID = sourceTab.layout.firstPane.id
+        tabs.removeAll { $0.id == source }
+        select(target)
+    }
+
+    /// The same fold, into a specific empty slot rather than beside the focused
+    /// pane — what dropping onto an `EmptyPaneView` does.
+    func fill(_ slot: Pane.ID, in target: Workspace.ID, withPanesOf source: Workspace.ID) {
+        guard source != target,
+            let sourceTab = tabs.first(where: { $0.id == source }),
+            let targetTab = tabs.first(where: { $0.id == target }),
+            sourceTab.isCombinable,
+            targetTab.layout.pane(slot)?.isEmptySlot == true
+        else { return }
+        targetTab.replacePane(slot, with: sourceTab.layout)
+        tabs.removeAll { $0.id == source }
+        select(target)
+    }
+
+    // MARK: - Rearranging panes
+
+    /// Moves one pane beside another, inside the Workspace they share.
+    ///
+    /// Panes do not cross Workspaces. Getting a pane into a different one is two
+    /// deliberate moves — drop it on the tab strip so it becomes a tab, then drag
+    /// that tab into the target's pane area — rather than one gesture a few
+    /// pixels from a gesture that means something else. `PaneView.acceptsDrop`
+    /// enforces the same-Workspace rule at the other end.
+    ///
+    /// Lifted out before it is placed. That is safe because the target is never
+    /// the pane being moved (the caller's own guard), so it always survives the
+    /// removal — and doing it in this order means the pane is never in the tree
+    /// twice, which matters because both copies would share one id and `removing`
+    /// would take out the wrong one.
+    ///
+    /// Closes the source tab when the move emptied it.
+    func movePane(_ paneID: Pane.ID, beside target: Pane.ID, axis: SplitAxis, side: SplitSide) {
+        guard paneID != target, let pane = pane(paneID) else { return }
+        detach(paneID)
+        guard let targetTab = tab(holding: target) else { return }
+        targetTab.layout = targetTab.layout.splitting(target, axis: axis, side: side, with: pane)
+        targetTab.focusedPaneID = paneID
+        select(targetTab.id)
+    }
+
+    /// The same move, into an unfilled slot, which the pane replaces.
+    func movePane(_ paneID: Pane.ID, into slot: Pane.ID) {
+        guard paneID != slot, let pane = pane(paneID) else { return }
+        detach(paneID)
+        guard let targetTab = tab(holding: slot) else { return }
+        targetTab.layout = targetTab.layout.replacing(slot, with: .leaf(pane))
+        targetTab.focusedPaneID = paneID
+        select(targetTab.id)
+    }
+
+    /// Lifts a pane out into a tab of its own at `index`, or at the end of the
+    /// strip when there is none.
+    ///
+    /// What dropping a pane on the tab strip does — anywhere on it. The strip
+    /// takes a pane to mean one thing only, so there is no zone to aim for and no
+    /// second outcome a few pixels away.
+    ///
+    /// The inverse of `merge`: a Workspace can be taken apart the way it was put
+    /// together. The new tab gets its own conversation — the thread stays with
+    /// the Workspace that held it, the same choice `duplicateSelectedInNewTab`
+    /// makes, because carrying it along would hand one thread's context to two
+    /// tabs that no longer share a screen.
+    ///
+    /// A no-op for a pane that is already alone in its tab: there is nothing to
+    /// detach it from, and doing it anyway would be a reorder wearing the wrong
+    /// name. That also means the lift never removes a tab, so an index worked out
+    /// before the call is still the right one after it.
+    @discardableResult
+    func detachPane(_ paneID: Pane.ID, at index: Int? = nil) -> Workspace? {
+        guard let pane = pane(paneID),
+            let source = tab(holding: paneID),
+            source.panes.count > 1
+        else { return nil }
+        detach(paneID)
+
+        let workspace = Workspace(pane: pane)
+        workspace.lifecycleRouter = self
+        tabs.insert(workspace, at: min(index ?? tabs.count, tabs.count))
+        select(workspace.id)
+        return workspace
+    }
+
+    /// Takes a pane out of whatever holds it, closing that tab if it was the
+    /// last one there.
+    private func detach(_ paneID: Pane.ID) {
+        guard let tab = tab(holding: paneID) else { return }
+        if !tab.closePane(paneID) {
+            removeTabForMove(tab.id)
+        }
+    }
+
+    /// Removes an emptied source tab while its pane is being moved. This is not
+    /// a close: the same live session is about to be inserted elsewhere.
+    private func removeTabForMove(_ id: Workspace.ID) {
+        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        tabs.remove(at: index)
+        if selectedTabID == id {
+            selectedTopLevelTab =
+                tabs.indices.contains(index)
+                ? .workspace(tabs[index].id)
+                : tabs.last.map { .workspace($0.id) } ?? .chat
+        }
+    }
+
+    func pane(_ id: Pane.ID) -> Pane? {
+        tabs.lazy.compactMap { $0.layout.pane(id) }.first
+    }
+
+    func tab(holding paneID: Pane.ID) -> Workspace? {
+        tabs.first { $0.layout.pane(paneID) != nil }
+    }
+
+    // MARK: - Splitting and duplicating
+
+    /// Whether Split and Duplicate have anything to act on.
+    ///
+    /// Both come down to the same question — is the focused pane something that
+    /// belongs in a Workspace — so both read the same predicate. Carving a slot
+    /// beside a manager page, or a second copy of a hole, are results nobody
+    /// asked for; better a disabled menu item than a command that quietly does
+    /// nothing. See `PaneKind.isCombinable`.
+    var canSplitSelected: Bool {
+        selectedTab?.focusedPane.isCombinable ?? false
+    }
+
+    var canDuplicateSelected: Bool { canSplitSelected }
+
+    /// Whether ⌘B has a group to act on — see `Workspace.canBroadcast`.
+    var canBroadcastSelected: Bool { selectedTab?.canBroadcast ?? false }
+
+    /// Carves an empty slot beside the focused pane, for something already open
+    /// to be dragged into. Deliberately not a connection: choosing a layout and
+    /// choosing a machine are two decisions, and only one of them was asked for.
+    func splitSelected(axis: SplitAxis) {
+        guard let tab = selectedTab, canSplitSelected else { return }
+        tab.splitFocusedPane(axis: axis, with: Pane(.empty))
+    }
+
+    /// Copies the focused pane beside itself, keeping its kind — a second shell
+    /// on the same host, a second browser on the same machine.
+    func duplicateSelected(axis: SplitAxis) {
+        guard let tab = selectedTab, let copy = copyOfFocusedPane() else { return }
+        tab.splitFocusedPane(axis: axis, with: copy)
+    }
+
+    /// The same copy, in a tab of its own — for when the second shell is a
+    /// separate job rather than something to watch side by side.
+    ///
+    /// Pane-level, and named so, because the sidebar's rows are panes: "Duplicate
+    /// in New Tab" on a row that names one shell has to mean that shell, even
+    /// when it lives in a Workspace with two others.
+    func duplicatePaneInNewTab() {
+        guard let copy = copyOfFocusedPane() else { return }
+        open(Workspace(pane: copy))
+    }
+
+    /// Tab-level: a Workspace is copied whole — same layout, same divider
+    /// positions, fresh panes — and anything else copies its one pane.
+    ///
+    /// The scope follows the surface. This is what the *tab* menu and the menu
+    /// bar call, and both of those point at a tab; a right-click on a Workspace
+    /// points at no particular pane, so duplicating whichever one the caret was
+    /// last in would be a coin toss dressed as a command. `duplicatePaneInNewTab`
+    /// is the pane-level twin, for the sidebar.
+    ///
+    /// The copy is the arrangement and nothing else. Names do not come along —
+    /// two tabs called "prod cluster" is a collision, not a copy, the same
+    /// reasoning `Pane.copy` gives — and neither does `broadcastsInput`: a
+    /// duplicate that arrived already broadcasting would send the first thing
+    /// typed into it to shells nobody switched it on for.
+    func duplicateSelectedInNewTab() {
+        guard let tab = selectedTab else { return }
+        guard tab.isSplit else { return duplicatePaneInNewTab() }
+        guard let layout = tab.layout.copied() else { return }
+
+        let workspace = Workspace(pane: layout.firstPane)
+        workspace.layout = layout
+        workspace.focusedPaneID = layout.firstPane.id
+        open(workspace)
+        // After the append, for the reason `openWorkspace` gives: `numberPane`
+        // reads the panes already in `tabs`, and one that is not there yet is
+        // invisible to it.
+        layout.panes.forEach(numberPane)
+    }
+
+    /// Gives `pane` the lowest number not currently in use by a pane of the same
+    /// kind on the same host, so a second shell on web-01 reads "web-01 (1)".
+    ///
+    /// Lowest-free rather than highest-plus-one: closing "web-01 (1)" and opening
+    /// another gives that name back instead of skipping to (3), and the panes
+    /// that stayed open never renumber.
+    ///
+    /// Scoped to same kind *and* same host. An SSH session and an SFTP session
+    /// on web-01 already have different symbols in Sessions, so numbering across
+    /// them would answer a question nobody asked.
+    private func numberPane(_ pane: Pane) {
+        guard let hostID = pane.hostID else { return }
+        let taken = Set(
+            panes(ofKind: pane.kind)
+                .filter { $0.pane.hostID == hostID && $0.pane !== pane }
+                .map(\.pane.duplicateIndex)
+        )
+        var index = 0
+        while taken.contains(index) { index += 1 }
+        pane.duplicateIndex = index
+    }
+
+    /// An unfilled slot is not something to make a second of, so this is
+    /// narrower than `Pane.copy` — which does copy one, because a Workspace
+    /// duplicated whole should arrive with the same hole in it.
+    private func copyOfFocusedPane() -> Pane? {
+        guard let source = selectedTab?.focusedPane, source.isCombinable,
+            let copy = source.copy()
+        else { return nil }
+        numberPane(copy)
+        return copy
+    }
+
+    // MARK: - Closing
+
+    func close(_ id: Workspace.ID) {
+        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        let removed = tabs.remove(at: index)
+        removed.disconnectConnections()
+        reopenStack.append(removed)
+        if reopenStack.count > 10 { reopenStack.removeFirst() }
+
+        if selectedTabID == id {
+            // Select the neighbour that visually takes its place.
+            selectedTopLevelTab =
+                tabs.indices.contains(index)
+                ? .workspace(tabs[index].id)
+                : tabs.last.map { .workspace($0.id) } ?? .chat
+        }
+    }
+
+    /// ⌘W: closes the focused *pane* when the tab is split, otherwise the tab.
+    /// This matches how every split-capable terminal behaves, and is why
+    /// `closePane` reports whether the tab survived.
+    func closeSelected() {
+        guard let tab = selectedTab else { return }
+        if tab.isSplit {
+            tab.focusedPane.disconnectConnection()
+            if !tab.closePane(tab.focusedPaneID) {
+                close(tab.id)
+            }
+        } else {
+            close(tab.id)
+        }
+    }
+
+    func closeOthers(than id: Workspace.ID) {
+        for tab in tabs where tab.id != id {
+            tab.disconnectConnections()
+            reopenStack.append(tab)
+        }
+        tabs.removeAll { $0.id != id }
+        selectedTabID = id
+    }
+
+    func closeAll() {
+        for tab in tabs { tab.disconnectConnections() }
+        reopenStack.append(contentsOf: tabs)
+        tabs.removeAll()
+        selectedTopLevelTab = .vault
+    }
+
+    /// Closes one pane, and the Workspace with it when that was the last one.
+    ///
+    /// The sidebar's rows are panes, so its Close acts on a pane — closing the
+    /// whole Workspace because you dismissed one of its three shells would take
+    /// two things you did not point at.
+    func closePane(_ paneID: Pane.ID) {
+        guard let tab = tabs.first(where: { $0.layout.pane(paneID) != nil }) else { return }
+        tab.layout.pane(paneID)?.disconnectConnection()
+        if !tab.closePane(paneID) {
+            close(tab.id)
+        }
+    }
+
+    /// Closes every SSH and SFTP session pane, leaving manager pages open. No
+    /// confirmation: ⇧⌘T reopens the panes, while closing them disconnects the
+    /// active connections.
+    func closeAllSessions() {
+        for ref in sessionPanes {
+            closePane(ref.pane.id)
+        }
+    }
+
+    func closeWorkspaces(for hostID: Host.ID) {
+        let paneIDs = tabs.flatMap(\.panes).filter { $0.hostID == hostID }.map(\.id)
+        for paneID in paneIDs { closePane(paneID) }
+        if case .hostEditor(let editingID) = vaultDestination,
+            editingID == hostID
+        {
+            openPage(.hosts)
+        }
+    }
+
+    func reopenLastClosed() {
+        guard let tab = reopenStack.popLast() else { return }
+        tab.prepareForReopen()
+        open(tab)
+    }
+
+    // MARK: - Reordering
+
+    func move(from source: IndexSet, to destination: Int) {
+        tabs.move(fromOffsets: source, toOffset: destination)
+    }
+
+    /// Drag-reorder in the tab bar: puts `id` at `index` in the strip *as the
+    /// strip is currently drawn*, which mid-drag is the strip without this tab
+    /// in it — see `TabBarView.displayedTabs`.
+    ///
+    /// Remove-then-insert rather than `move(fromOffsets:toOffset:)`. The index
+    /// comes from where the ghost was standing, and the ghost stands in a list
+    /// this tab has already left; the offset form would read it as an index into
+    /// the list that still contains it, and land one place short of the preview
+    /// every time the tab moved rightwards.
+    func move(_ id: Workspace.ID, to index: Int) {
+        guard let from = tabs.firstIndex(where: { $0.id == id }) else { return }
+        let tab = tabs.remove(at: from)
+        tabs.insert(tab, at: min(max(index, 0), tabs.count))
+    }
+
+    /// A tab with one pane *is* that pane, so its name lives on the pane — one
+    /// store rather than two kept in step. Only a Workspace names itself,
+    /// because only a Workspace is a thing separate from what it contains.
+    ///
+    /// Manager pages, forms and a host's tunnels refuse outright — see
+    /// `Workspace.isRenameable`. The guard is here as well as in the menu so the
+    /// rule is a property of the model rather than of one view remembering to
+    /// ask.
+    func rename(_ id: Workspace.ID, to title: String) {
+        guard let tab = tabs.first(where: { $0.id == id }), tab.isRenameable else { return }
+        if tab.isSplit {
+            tab.customTitle = Self.cleaned(title)
+        } else {
+            tab.focusedPane.customTitle = Self.cleaned(title)
+        }
+    }
+
+    /// Panes are renamed from their sidebar row. Empty clears the name rather
+    /// than setting a blank one, so there is one way back to the derived title
+    /// and it is the obvious one.
+    func rename(pane id: Pane.ID, to title: String) {
+        guard let pane = tabs.lazy.compactMap({ $0.layout.pane(id) }).first else { return }
+        pane.customTitle = Self.cleaned(title)
+    }
+
+    private static func cleaned(_ title: String) -> String? {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+extension WindowModel: WorkspaceLifecycleRouting {
+    func workspace(_ workspace: Workspace, closePaneAfterSSHSessionExit paneID: Pane.ID) {
+        guard tabs.contains(where: { $0 === workspace }),
+            workspace.layout.pane(paneID) != nil
+        else { return }
+        closePane(paneID)
+    }
+}
+
+// MARK: - Dragging
+
+/// What a drag in the tab bar or the pane area is carrying.
+///
+/// Two cases because the same drop target answers both: dropping a *tab* on a
+/// pane folds that whole Workspace in, while dropping a *pane* moves just that
+/// one out of wherever it was.
+nonisolated enum DragPayload: Hashable, Sendable {
+    case workspace(UUID)
+    case pane(UUID)
+
+    nonisolated var isLayoutPayload: Bool { true }
+}
+
+// MARK: - Sidebar rows
+
+/// One pane, with the Workspace holding it — what a sidebar row is.
+///
+/// A pair rather than a back-pointer on `Pane`: a pane does not otherwise need
+/// to know which tab owns it, and a reference cycle for the sake of the sidebar
+/// would be paying in the model for something the view can compute.
+struct PaneRef: Identifiable {
+    let workspace: Workspace
+    let pane: Pane
+
+    var id: Pane.ID { pane.id }
+
+    /// True when this pane shares its Workspace with others, which is when the
+    /// row needs to say so — otherwise every row would carry a badge that means
+    /// nothing.
+    var isInWorkspace: Bool { workspace.isSplit }
+}
