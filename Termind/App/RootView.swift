@@ -10,6 +10,13 @@ struct RootView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var window: WindowModel
     @State private var hostsPageState = HostsPageState()
+    /// The last usable width reported by whichever sidebar is mounted.
+    ///
+    /// Keeping this at the window shell lets the pinned tabs track both the
+    /// Vault split view and the shared contextual sidebar. A hidden sidebar can
+    /// briefly report zero while it leaves the layout; that value is rejected
+    /// by `recordSidebarWidth` so the tab strip keeps the user's last width.
+    @State private var sidebarWidth = Metrics.Sidebar.ideal
 
     init(window: WindowModel = WindowModel()) {
         _window = State(initialValue: window)
@@ -20,7 +27,7 @@ struct RootView: View {
         @Bindable var presentations = window.presentations
 
         VStack(spacing: 0) {
-            TabBarView()
+            TabBarView(pinnedTabStripWidth: sidebarWidth)
             Divider()
             splitContent
             if window.selectedTab != nil {
@@ -97,6 +104,11 @@ struct RootView: View {
                         ideal: Metrics.Sidebar.ideal,
                         max: Metrics.Sidebar.max
                     )
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.width
+                    } action: {
+                        recordSidebarWidth($0)
+                    }
             } detail: {
                 detail
                     .frame(
@@ -117,6 +129,18 @@ struct RootView: View {
                 ideal: Metrics.Sidebar.ideal,
                 max: Metrics.Sidebar.max
             )
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.width
+            } action: {
+                recordSidebarWidth($0)
+            }
+    }
+
+    private func recordSidebarWidth(_ measuredWidth: CGFloat) {
+        sidebarWidth = PinnedTopLevelTabSizing.resolvedSidebarWidth(
+            current: sidebarWidth,
+            measured: measuredWidth
+        )
     }
 
     private var vaultWorkspace: some View {

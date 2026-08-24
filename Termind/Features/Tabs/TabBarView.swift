@@ -24,6 +24,10 @@ struct TabBarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
+    /// The two pinned tabs together occupy the current sidebar width, keeping
+    /// their trailing divider aligned with the split view below.
+    let pinnedTabStripWidth: CGFloat
+
     /// Where the ghost slot is standing, as an index into `displayedTabs`.
     /// Nil whenever the pointer is not over the strip.
     @State private var ghostIndex: Int?
@@ -125,15 +129,21 @@ struct TabBarView: View {
     /// `performDrop`, so the source remains in its transient hidden state. A
     /// drop on this edge means the same thing as the first insertion slot.
     private var leadingStrip: some View {
-        HStack(spacing: 0) {
+        let pinnedTabWidth = PinnedTopLevelTabSizing.tabWidth(
+            sidebarWidth: pinnedTabStripWidth
+        )
+
+        return HStack(spacing: 0) {
             PinnedTopLevelTabItem(
                 title: "Vault", symbol: "lock.square.stack",
                 isSelected: window.selectedTopLevelTab == .vault,
+                width: pinnedTabWidth,
                 action: window.selectVault
             )
             PinnedTopLevelTabItem(
                 title: "Assistant", symbol: "sparkles",
                 isSelected: window.selectedTopLevelTab == .assistant,
+                width: pinnedTabWidth,
                 action: { window.selectAssistant() }
             )
             Divider()
@@ -436,6 +446,7 @@ private struct PinnedTopLevelTabItem: View {
     let title: LocalizedStringKey
     let symbol: String
     let isSelected: Bool
+    let width: CGFloat
     let action: () -> Void
 
     @State private var isHovering = false
@@ -451,7 +462,7 @@ private struct PinnedTopLevelTabItem: View {
             }
             .foregroundStyle(isSelected ? .primary : .secondary)
             .padding(.horizontal, Metrics.Space.m)
-            .frame(width: 112)
+            .frame(width: width)
             .frame(maxHeight: .infinity)
             .contentShape(.rect)
         }
