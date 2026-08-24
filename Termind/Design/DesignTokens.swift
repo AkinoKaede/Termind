@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Central layout constants. Kept as plain numbers rather than a theme object
 /// because none of these need to vary at runtime — only the terminal palette does.
-enum Metrics {
+nonisolated enum Metrics {
     /// 4pt base grid. Use these instead of literals so density stays consistent.
     enum Space {
         static let xxs: CGFloat = 2
@@ -41,7 +41,12 @@ enum Metrics {
 
     enum TabBar {
         static let height: CGFloat = 34
-        static let minTabWidth: CGFloat = 120
+        /// A titled tab never becomes narrower than this. The selected
+        /// Workspace keeps this floor while its neighbours continue down to
+        /// `compactTabWidth`.
+        static let titledTabMinWidth: CGFloat = 120
+        /// Icon + one spacing unit + the status/close slot + horizontal padding.
+        static let compactTabWidth: CGFloat = 48
         static let maxTabWidth: CGFloat = 240
         static let iconSize: CGFloat = 12
     }

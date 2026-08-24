@@ -30,6 +30,9 @@ struct TabBarView: View {
     /// Each tab's frame in the strip's coordinate space, which is how a pointer
     /// position becomes an insertion index. Reported by `TabItemView`.
     @State private var tabFrames: [Workspace.ID: CGRect] = [:]
+    /// The viewport left between the pinned navigation and trailing actions.
+    /// Content may become wider than this once every tab reaches its floor.
+    @State private var availableTabStripWidth: CGFloat = 0
 
     /// Named so the tabs and the drop delegate measure against the same origin.
     ///
@@ -61,6 +64,7 @@ struct TabBarView: View {
                                 // neighbour temporarily becomes the merge target
                                 // and should look active too.
                                 isSelected: tab.id == window.displayedTab?.id,
+                                width: width(for: tab),
                                 frame: binding(for: tab)
                             )
                             .id(tab.id)
@@ -77,6 +81,11 @@ struct TabBarView: View {
                     .animation(Motion.tabSwitch, value: ghostIndex)
                 }
                 .coordinateSpace(.named(Self.stripSpace))
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.width
+                } action: {
+                    availableTabStripWidth = $0
+                }
                 // On the ScrollView rather than its content, so the target spans
                 // the whole strip — including the gap past the last tab, which
                 // is where a pane goes to become the last tab.
@@ -91,6 +100,12 @@ struct TabBarView: View {
                 .onChange(of: window.selectedTabID) { _, id in
                     guard let id else { return }
                     withAnimation(Motion.tabSwitch) { proxy.scrollTo(id) }
+                }
+                .onChange(of: availableTabStripWidth) {
+                    scrollSelectedIntoView(using: proxy)
+                }
+                .onChange(of: window.tabs.count) {
+                    scrollSelectedIntoView(using: proxy)
                 }
             }
 
@@ -141,6 +156,54 @@ struct TabBarView: View {
         return window.tabs.filter { $0.id != id }
     }
 
+    /// Stable per-identity widths for the real tabs. A drag source keeps its
+    /// allocation even while its view is collapsed to zero, and the ghost takes
+    /// that width at the insertion point. Existing tabs therefore never move on
+    /// the leading side of the pointer merely because a ghost appeared.
+    private var tabWidths: [CGFloat] {
+        return WorkspaceTabSizing.widths(
+            availableWidth: availableTabStripWidth,
+            tabCount: window.tabs.count,
+            selectedIndex: window.selectedIndex
+        )
+    }
+
+    private func width(for tab: Workspace) -> CGFloat {
+        guard let index = window.tabs.firstIndex(where: { $0.id == tab.id }),
+            tabWidths.indices.contains(index)
+        else {
+            return Metrics.TabBar.compactTabWidth
+        }
+        return tabWidths[index]
+    }
+
+    private var ghostWidth: CGFloat {
+        switch window.dragging {
+        case .workspace(let id):
+            guard let tab = window.tabs.first(where: { $0.id == id }) else {
+                return Metrics.TabBar.titledTabMinWidth
+            }
+            return width(for: tab)
+        case .pane:
+            let widths = WorkspaceTabSizing.widths(
+                availableWidth: availableTabStripWidth,
+                tabCount: window.tabs.count + 1,
+                selectedIndex: window.selectedIndex
+            )
+            return widths.last ?? Metrics.TabBar.titledTabMinWidth
+        case nil:
+            return Metrics.TabBar.titledTabMinWidth
+        }
+    }
+
+    private func scrollSelectedIntoView(using proxy: ScrollViewProxy) {
+        guard let id = window.selectedTabID else { return }
+        Task { @MainActor in
+            await Task.yield()
+            withAnimation(Motion.tabSwitch) { proxy.scrollTo(id) }
+        }
+    }
+
     private var draggedWorkspaceID: Workspace.ID? {
         guard case .workspace(let id)? = window.dragging else { return nil }
         return id
@@ -180,14 +243,16 @@ struct TabBarView: View {
             HStack(spacing: Metrics.Space.s) {
                 Image(systemName: symbol)
                     .font(.system(size: Metrics.TabBar.iconSize))
-                Text(title)
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
-                Spacer(minLength: 0)
+                if ghostWidth > Metrics.TabBar.compactTabWidth {
+                    Text(title)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
             }
             .foregroundStyle(Color.accentColor)
             .padding(.horizontal, Metrics.Space.m)
-            .frame(width: Metrics.TabBar.minTabWidth)
+            .frame(width: ghostWidth)
             .frame(maxHeight: .infinity)
             .background(Color.accentColor.opacity(0.12))
             .overlay {

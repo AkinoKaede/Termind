@@ -24,6 +24,7 @@ import SwiftUI
 struct TabItemView: View {
     let tab: Workspace
     let isSelected: Bool
+    let width: CGFloat
     /// Written back so `TabBarView` can turn a pointer position into an
     /// insertion index without asking each tab whether the drag is over it.
     @Binding var frame: CGRect
@@ -42,27 +43,26 @@ struct TabItemView: View {
                 .font(.system(size: Metrics.TabBar.iconSize))
                 .foregroundStyle(isSelected ? .primary : .secondary)
 
-            if isRenaming {
-                TextField("Tab Name", text: $draftTitle)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11, weight: .medium))
-                    .focused($titleFieldFocused)
-                    .onSubmit(commitRename)
-                    .onExitCommand { isRenaming = false }
-            } else {
-                titleStack
-            }
+            if !isCompact {
+                if isRenaming {
+                    TextField("Tab Name", text: $draftTitle)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 11, weight: .medium))
+                        .focused($titleFieldFocused)
+                        .onSubmit(commitRename)
+                        .onExitCommand { isRenaming = false }
+                } else {
+                    titleStack
+                }
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
 
             trailingControl
         }
         .padding(.horizontal, Metrics.Space.m)
-        .frame(
-            minWidth: Metrics.TabBar.minTabWidth,
-            maxWidth: Metrics.TabBar.maxTabWidth,
-            maxHeight: .infinity
-        )
+        .frame(width: width)
+        .frame(maxHeight: .infinity)
         .background(background)
         .overlay(alignment: .leading) {
             Rectangle()
@@ -89,10 +89,15 @@ struct TabItemView: View {
             frame = $0
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(tab.title(in: app.hosts)))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
     // MARK: - Pieces
+
+    private var isCompact: Bool {
+        width <= Metrics.TabBar.compactTabWidth
+    }
 
     private var titleStack: some View {
         VStack(alignment: .leading, spacing: 0) {
