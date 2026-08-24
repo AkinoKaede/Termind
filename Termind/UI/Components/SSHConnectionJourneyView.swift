@@ -15,6 +15,9 @@ struct SSHConnectionJourneyView: View {
     var retry: () -> Void
     var cancel: () -> Void
     var askAI: (() -> Void)?
+    var reconnectState: ReconnectState? = nil
+    var retryReconnectNow: (() -> Void)? = nil
+    var stopReconnecting: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -78,7 +81,7 @@ struct SSHConnectionJourneyView: View {
                     .font(.title3.weight(.semibold))
                     .lineLimit(1)
                 Text(
-                    "\(journey.purpose == .sshSession ? "SSH" : "SFTP") \(journey.destination?.address ?? "")"
+                    headerDetail
                 )
                 .font(.callout.monospaced())
                 .foregroundStyle(.secondary)
@@ -165,6 +168,12 @@ struct SSHConnectionJourneyView: View {
                 message: message, retry: retry, cancel: cancel,
                 copyLogs: copyLogs, askAI: askAI
             )
+        } else if journey.mode == .reconnection, let reconnectState {
+            JourneyReconnectStatus(
+                state: reconnectState,
+                retryNow: retryReconnectNow ?? retry,
+                stop: stopReconnecting ?? cancel
+            )
         } else {
             HStack(spacing: 9) {
                 Image(systemName: statusSymbol)
@@ -221,6 +230,15 @@ struct SSHConnectionJourneyView: View {
         }
     }
 
+    private var headerDetail: String {
+        let protocolName = journey.purpose == .sshSession ? "SSH" : "SFTP"
+        let address = journey.destination?.address ?? ""
+        if journey.mode == .reconnection {
+            return String(localized: "Reconnecting \(protocolName) · \(address)")
+        }
+        return "\(protocolName) \(address)"
+    }
+
     private var statusSymbol: String {
         switch journey.phase {
         case .succeeded: "checkmark.circle.fill"
@@ -274,6 +292,51 @@ struct SSHConnectionJourneyView: View {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(journey.plainTextLog, forType: .string)
         #endif
+    }
+}
+
+private struct JourneyReconnectStatus: View {
+    let state: ReconnectState
+    let retryNow: () -> Void
+    let stop: () -> Void
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            VStack(spacing: 12) {
+                HStack(spacing: 9) {
+                    Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                        .foregroundStyle(.blue)
+                    Text(statusText(at: context.date))
+                        .font(.headline)
+                }
+
+                Text(state.lastError)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .textSelection(.enabled)
+
+                HStack(spacing: 10) {
+                    Button("Retry Now", action: retryNow)
+                        .buttonStyle(.borderedProminent)
+                    Button("Stop Reconnecting", role: .cancel, action: stop)
+                        .buttonStyle(.bordered)
+                }
+                .controlSize(.large)
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func statusText(at date: Date) -> String {
+        let seconds = max(0, Int(ceil(state.nextRetry.timeIntervalSince(date))))
+        if seconds == 0 {
+            return String(localized: "Reconnect attempt \(state.attempt)…")
+        }
+        return String(
+            localized: "Reconnect attempt \(state.attempt) · retrying in \(seconds)s"
+        )
     }
 }
 

@@ -28,6 +28,22 @@ struct SSHConnectionJourneyTests {
     }
 
     @Test
+    func reconnectUsesTheSameJourneyInReconnectMode() {
+        let destination = Host(name: "Production", host: "prod.example")
+        let journey = SSHConnectionJourney()
+
+        journey.begin(
+            host: destination, route: [destination],
+            purpose: .sshSession, username: "deploy", mode: .reconnection
+        )
+
+        #expect(journey.mode == .reconnection)
+        #expect(journey.phase == .connecting)
+        #expect(journey.isPresented)
+        #expect(journey.plainTextLog.contains("Reconnecting SSH session"))
+    }
+
+    @Test
     func authenticationCheckpointAppearsOnlyWhenRequested() {
         let destination = Host(name: "Server", host: "server.example")
         let journey = SSHConnectionJourney()

@@ -68,7 +68,10 @@ struct SFTPBrowserView: View {
                         cancelConnection()
                     },
                     retry: { sftpSession.connect(using: app.hosts) },
-                    cancel: cancelConnection
+                    cancel: cancelConnection,
+                    reconnectState: sftpSession.reconnectState,
+                    retryReconnectNow: sftpSession.retryReconnectNow,
+                    stopReconnecting: sftpSession.stopReconnecting
                 )
                 .zIndex(10)
             }
@@ -413,10 +416,12 @@ struct SFTPBrowserView: View {
                 renameTarget = file
                 renameName = file.name
             }
+            .disabled(!sftpSession.allowsRemoteMutations)
         }
         Button(targets.count == 1 ? "Delete" : "Delete \(targets.count) Items", role: .destructive) {
             deleteTargets = targets
         }
+        .disabled(!sftpSession.allowsRemoteMutations)
         Divider()
         Button("New Folder") { newFolderPresented = true }
             .disabled(sftpSession.status != .connected)

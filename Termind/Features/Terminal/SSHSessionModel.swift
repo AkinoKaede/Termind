@@ -184,6 +184,9 @@ final class SSHSessionModel: Identifiable {
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
     private var connectionAttemptID: UUID?
+    private let reconnectController = SessionReconnectController()
+    private var hasConnectedOnce = false
+    private var isRecoveringConnection = false
     private var workingDirectoryObservation: AnyCancellable?
     /// The exact authenticated route used by the live terminal, retained only
     /// in memory so a drop can open an independent SFTP connection without
@@ -210,6 +213,8 @@ final class SSHSessionModel: Identifiable {
     }
     private var pendingInitialCommand: PendingInitialCommand?
     private var commandExcludedFromHistory: String?
+
+    var reconnectState: ReconnectState? { reconnectController.state }
 
     convenience init(hostID: Host.ID, title: String, initialCommand: String? = nil) {
         self.init(
@@ -267,7 +272,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     init(
-        host: Host, usernameHint: String?, initialCommand: String?,
+        host: Host, usernameHint: String? = nil, initialCommand: String?,
         recordsInitialCommandInHistory: Bool
     ) {
         self.transientHost = host
@@ -375,6 +380,11 @@ final class SSHSessionModel: Identifiable {
     }
 
     func connect(using store: HostStore) {
+        startConnection(using: store)
+    }
+
+    private func startConnection(using store: HostStore) {
+        let reconnecting = hasConnectedOnce && isRecoveringConnection
         workingDirectory = nil
         shellIntegrationAvailable = false
         transferConfiguration = nil
@@ -385,6 +395,8 @@ final class SSHSessionModel: Identifiable {
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
         guard let host = store.host(hostID) ?? transientHost else {
+            reconnectController.stop()
+            isRecoveringConnection = false
             pendingInitialCommand = nil
             connectionAttemptID = nil
             status = .failed(String(localized: "The host is no longer available."))
@@ -399,7 +411,8 @@ final class SSHSessionModel: Identifiable {
             ?? identity?.username
             ?? usernameHint
         connectionJourney.begin(
-            host: host, route: route, purpose: .sshSession, username: username
+            host: host, route: route, purpose: .sshSession, username: username,
+            mode: reconnecting ? .reconnection : .connection
         )
         guard let username, !username.trimmingCharacters(in: .whitespaces).isEmpty else {
             requestAuthentication(
@@ -487,7 +500,7 @@ final class SSHSessionModel: Identifiable {
                 let id = sshError.routeHostID,
                 let jump = store.host(id)
             {
-                status = .connecting
+                status = reconnecting ? .reconnecting : .connecting
                 connectionTask = Task { [weak self] in
                     await self?.discoverHostKey(
                         for: jump, using: store, attemptID: attemptID
@@ -514,14 +527,15 @@ final class SSHSessionModel: Identifiable {
             }
             pendingInitialCommand = nil
             connectionAttemptID = nil
-            status = .failed(error.localizedDescription)
-            connectionJourney.fail(error.localizedDescription, at: routeHostID(from: error))
+            handleConnectionAttemptFailure(
+                error, store: store, reconnecting: reconnecting
+            )
             return
         }
 
         pendingHostKey = nil
         connectionTask?.cancel()
-        status = .connecting
+        status = reconnecting ? .reconnecting : .connecting
         connectionTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -605,9 +619,9 @@ final class SSHSessionModel: Identifiable {
                             ? .serverChallenge : .localIdentity
                     )
                 } else {
-                    pendingInitialCommand = nil
-                    status = .failed(error.localizedDescription)
-                    connectionJourney.fail(error.localizedDescription, at: routeHostID(from: error))
+                    handleConnectionAttemptFailure(
+                        error, store: store, reconnecting: reconnecting
+                    )
                 }
             }
         }
@@ -738,12 +752,32 @@ final class SSHSessionModel: Identifiable {
         suppliedAuthentications.removeAll()
         temporaryHostKeys.removeAll()
         connectionAttemptID = nil
+        reconnectController.stop()
+        hasConnectedOnce = false
+        isRecoveringConnection = false
         connectionTask?.cancel()
         connectionTask = nil
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
         status = .disconnected
         connectionJourney.hide()
+    }
+
+    func retryReconnectNow() {
+        reconnectController.retryNow()
+    }
+
+    func stopReconnecting() {
+        guard let reconnectState else { return }
+        reconnectController.stop()
+        isRecoveringConnection = false
+        connectionAttemptID = nil
+        connectionTask?.cancel()
+        connectionTask = nil
+        if let ssh { Task { await ssh.disconnect() } }
+        ssh = nil
+        status = .failed(reconnectState.lastError)
+        connectionJourney.fail(reconnectState.lastError)
     }
 
     func applyAppearance(_ preferences: TerminalAppearancePreferences) {
@@ -777,6 +811,8 @@ final class SSHSessionModel: Identifiable {
         proxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
         attemptID: UUID
     ) async throws {
+        let wasReconnecting = isRecoveringConnection
+        let presentsConnectionJourney = connectionJourney.isPresented
         let configuration = SSHConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.port, username: username,
             credentials: credentials, expectedHostKeys: expectedHostKeys,
@@ -822,8 +858,21 @@ final class SSHSessionModel: Identifiable {
             transferConfiguration = configuration
             suppliedAuthentications.removeAll()
             temporaryHostKeys.removeAll()
+            let initialConnection = !hasConnectedOnce
+            hasConnectedOnce = true
+            isRecoveringConnection = false
+            reconnectController.markConnected(initial: initialConnection)
             status = .connected
-            connectionJourney.succeed()
+            if presentsConnectionJourney {
+                connectionJourney.succeed()
+            } else {
+                connectionJourney.hide()
+            }
+            if wasReconnecting {
+                appendTerminalNotice(
+                    String(localized: "Reconnected; a new remote shell has started.")
+                )
+            }
             submitPendingInitialCommand()
         } catch {
             await actor.disconnect()
@@ -845,11 +894,69 @@ final class SSHSessionModel: Identifiable {
         ssh = nil
         switch result {
         case .success:
+            reconnectController.stop()
+            hasConnectedOnce = false
+            isRecoveringConnection = false
             status = .disconnected
             inputRouter?.closeSSHSessionPane(afterExit: self)
         case .failure(let error):
-            status = .failed(error.localizedDescription)
+            beginAutomaticReconnect(after: error.localizedDescription)
         }
+    }
+
+    private func handleConnectionAttemptFailure(
+        _ error: any Error, store: HostStore, reconnecting: Bool
+    ) {
+        connectionAttemptID = nil
+        if hasConnectedOnce || reconnecting {
+            scheduleReconnect(after: error.localizedDescription, using: store)
+        } else {
+            pendingInitialCommand = nil
+            status = .failed(error.localizedDescription)
+            connectionJourney.fail(
+                error.localizedDescription, at: routeHostID(from: error)
+            )
+        }
+    }
+
+    private func beginAutomaticReconnect(after message: String) {
+        guard hasConnectedOnce, let store = statusStore else {
+            status = .failed(message)
+            return
+        }
+        appendTerminalNotice(String(localized: "Connection lost; reconnecting…"))
+        isRecoveringConnection = true
+        scheduleReconnect(after: message, using: store)
+    }
+
+    private func scheduleReconnect(after message: String, using store: HostStore) {
+        isRecoveringConnection = true
+        connectionAttemptID = nil
+        connectionTask?.cancel()
+        connectionTask = nil
+        if let ssh { Task { await ssh.disconnect() } }
+        ssh = nil
+        transferConfiguration = nil
+        shellIntegrationAvailable = false
+        status = .reconnecting
+        presentReconnectJourney(using: store)
+        reconnectController.schedule(after: message) { [weak self, weak store] in
+            guard let self, let store else { return }
+            self.startConnection(using: store)
+        }
+    }
+
+    private func presentReconnectJourney(using store: HostStore) {
+        guard let host = store.host(hostID) ?? transientHost else { return }
+        connectionJourney.begin(
+            host: host, route: store.route(for: host), purpose: .sshSession,
+            username: store.identity(for: host)?.username ?? usernameHint,
+            mode: .reconnection
+        )
+    }
+
+    private func appendTerminalNotice(_ message: String) {
+        terminalBackend.receive(Data("\r\n\u{001B}[2m[Termind] \(message)\u{001B}[0m\r\n".utf8))
     }
 
     private func requestAuthentication(
@@ -858,6 +965,7 @@ final class SSHSessionModel: Identifiable {
         requiresPassphrase: Bool = false,
         mode: SSHAuthenticationPrompt.Mode = .localIdentity
     ) {
+        reconnectController.pauseForUserInteraction()
         suppliedAuthentications[host.id] = nil
         pendingAuthentication = SSHAuthenticationPrompt(
             host: host, username: username,
@@ -917,14 +1025,19 @@ final class SSHSessionModel: Identifiable {
         } catch {
             guard connectionAttemptID == attemptID else { return }
             connectionAttemptID = nil
-            status = .failed(error.localizedDescription)
-            connectionJourney.fail(error.localizedDescription, at: host.id)
+            if hasConnectedOnce {
+                scheduleReconnect(after: error.localizedDescription, using: store)
+            } else {
+                status = .failed(error.localizedDescription)
+                connectionJourney.fail(error.localizedDescription, at: host.id)
+            }
         }
     }
 
     private func presentHostKeyPrompt(
         _ observation: SSHHostKeyObservation, kind: SSHHostKeyPrompt.Kind, hostID: Host.ID
     ) {
+        reconnectController.pauseForUserInteraction()
         pendingHostKey = SSHHostKeyPrompt(observation: observation, kind: kind)
         pendingHostKeyHostID = hostID
         connectionAttemptID = nil

@@ -46,6 +46,11 @@ nonisolated struct SSHAuthenticationSubmission: Sendable {
 /// a completed path backwards.
 @Observable
 final class SSHConnectionJourney {
+    enum Mode: Equatable {
+        case connection
+        case reconnection
+    }
+
     enum Phase: Equatable {
         case hidden
         case connecting
@@ -72,6 +77,7 @@ final class SSHConnectionJourney {
     }
 
     private(set) var purpose: SSHConnectionPurpose = .sshSession
+    private(set) var mode: Mode = .connection
     private(set) var endpoints: [SSHConnectionEndpoint] = []
     private(set) var phase: Phase = .hidden
     private(set) var activeEndpointIndex = 0
@@ -87,7 +93,10 @@ final class SSHConnectionJourney {
     var isPresented: Bool { phase != .hidden }
     var destination: SSHConnectionEndpoint? { endpoints.last }
 
-    func begin(host: Host, route: [Host], purpose: SSHConnectionPurpose, username: String?) {
+    func begin(
+        host: Host, route: [Host], purpose: SSHConnectionPurpose,
+        username: String?, mode: Mode = .connection
+    ) {
         completionTask?.cancel()
         let nextEndpoints =
             [
@@ -113,6 +122,7 @@ final class SSHConnectionJourney {
         let retainedLogVisibility = continuesJourney && showsLogs
 
         self.purpose = purpose
+        self.mode = mode
         endpoints = nextEndpoints
         phase = .connecting
         activeEndpointIndex = retainedCompletedEndpoint
@@ -122,9 +132,10 @@ final class SSHConnectionJourney {
         waitsForLocalIdentity = false
         logs = retainedLogs
         showsLogs = retainedLogVisibility
+        let action = mode == .reconnection ? "Reconnecting " : "Starting "
         log(
             endpoint: endpoints.first?.name ?? String(localized: "This Mac"),
-            message: "Starting "
+            message: action
                 + (purpose == .sshSession ? "SSH session" : "SFTP session")
                 + " connection to " + host.name
         )

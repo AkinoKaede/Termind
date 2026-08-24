@@ -117,7 +117,10 @@ struct TerminalPlaceholderView: View {
                                 log: sshSession.connectionJourney.plainTextLog
                             )
                         }
-                    }
+                    },
+                    reconnectState: sshSession.reconnectState,
+                    retryReconnectNow: sshSession.retryReconnectNow,
+                    stopReconnecting: sshSession.stopReconnecting
                 )
                 .zIndex(10)
             }

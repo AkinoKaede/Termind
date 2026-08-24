@@ -192,6 +192,51 @@ struct SFTPFeatureTests {
     }
 
     @Test
+    func connectionLossStartsReconnectWithoutClearingDirectorySnapshot() async {
+        let host = Host(name: "Files", host: "files.example")
+        let existing = remoteFile(path: "/home/existing.txt", kind: .file)
+        let client = SnapshotSFTPClient(
+            responses: [.success([existing]), .connectionLost]
+        )
+        let store = HostStore(hosts: [host])
+        let sftpSession = SFTPSessionModel(
+            hostID: host.id, initialPath: "/home", client: client,
+            configuration: testConfiguration
+        )
+        sftpSession.bindStatus(to: store)
+
+        await sftpSession.reload()
+        await sftpSession.reload(silently: true)
+
+        #expect(sftpSession.status == .reconnecting)
+        #expect(sftpSession.reconnectState?.attempt == 1)
+        #expect(sftpSession.connectionJourney.mode == .reconnection)
+        #expect(sftpSession.connectionJourney.isPresented)
+        #expect(sftpSession.files == [existing])
+        #expect(sftpSession.path == "/home")
+        sftpSession.disconnect()
+    }
+
+    @Test
+    func ordinarySFTPFailureDoesNotStartReconnect() async {
+        let host = Host(name: "Files", host: "files.example")
+        let client = SnapshotSFTPClient(responses: [.failure])
+        let store = HostStore(hosts: [host])
+        let sftpSession = SFTPSessionModel(
+            hostID: host.id, initialPath: "/home", client: client,
+            configuration: testConfiguration
+        )
+        sftpSession.bindStatus(to: store)
+
+        await sftpSession.reload()
+
+        #expect(sftpSession.status == .connected)
+        #expect(sftpSession.reconnectState == nil)
+        #expect(sftpSession.operationError == "Refresh failed")
+        sftpSession.disconnect()
+    }
+
+    @Test
     func successfulUploadRefreshesTheVisibleDirectory() async throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -348,6 +393,9 @@ struct SFTPFeatureTests {
 
         store.setConnectionStatus(.disconnected, connectionID: sshSessionID, hostID: hostID)
         #expect(store.status(of: hostID) == .connecting)
+
+        store.setConnectionStatus(.reconnecting, connectionID: sftpSessionID, hostID: hostID)
+        #expect(store.status(of: hostID) == .reconnecting)
 
         store.setConnectionStatus(.connected, connectionID: sftpSessionID, hostID: hostID)
         #expect(store.status(of: hostID) == .connected)
@@ -761,6 +809,7 @@ private actor SnapshotSFTPClient: SFTPClientProtocol {
     enum Response: Sendable {
         case success([RemoteFile])
         case failure
+        case connectionLost
     }
 
     private var responses: [Response]
@@ -780,6 +829,7 @@ private actor SnapshotSFTPClient: SFTPClientProtocol {
         switch response {
         case .success(let files): return files
         case .failure: throw SFTPError.operation("Refresh failed")
+        case .connectionLost: throw SFTPError.connectionLost("Network lost")
         }
     }
     func attributes(at path: String) async throws -> RemoteFile? { nil }

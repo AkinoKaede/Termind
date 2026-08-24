@@ -62,6 +62,11 @@ nonisolated protocol SFTPClientProtocol: Sendable {
         using configuration: SSHConnectionConfiguration,
         progress: SSHRouteProgressHandler?
     ) async throws
+    func connect(
+        using configuration: SSHConnectionConfiguration,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws
     func disconnect() async
     func homeDirectory() async throws -> String
     func listDirectory(at path: String) async throws -> [RemoteFile]
@@ -92,6 +97,14 @@ nonisolated protocol SFTPClientProtocol: Sendable {
 }
 
 nonisolated extension SFTPClientProtocol {
+    func connect(
+        using configuration: SSHConnectionConfiguration,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
+        try await connect(using: configuration, progress: progress)
+    }
+
     func copyFile(
         from sourcePath: String,
         to destinationPath: String,
@@ -107,6 +120,7 @@ nonisolated extension SFTPClientProtocol {
 
 nonisolated enum SFTPError: LocalizedError, Sendable {
     case notConnected
+    case connectionLost(String)
     case cancelled
     case localFile(String)
     case operation(String)
@@ -114,6 +128,7 @@ nonisolated enum SFTPError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .notConnected: String(localized: "The SFTP connection is not available.")
+        case .connectionLost(let message): message
         case .cancelled: String(localized: "Transfer cancelled.")
         case .localFile(let message), .operation(let message): message
         }
@@ -128,6 +143,17 @@ actor SFTPClient: SFTPClientProtocol {
         progress: SSHRouteProgressHandler? = nil
     ) async throws {
         try await worker.connect(using: configuration, progress: progress)
+    }
+
+    func connect(
+        using configuration: SSHConnectionConfiguration,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
+        try await worker.connect(
+            using: configuration, progress: progress,
+            connectionFailure: connectionFailure
+        )
     }
 
     func disconnect() async { await worker.disconnect() }
@@ -271,12 +297,15 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     private var session: OpaquePointer?
     private var sftp: OpaquePointer?
     private var keepaliveTimer: (any DispatchSourceTimer)?
+    private var connectionFailure: (@Sendable (String) -> Void)?
+    private var didReportConnectionFailure = false
 
     deinit { cleanup() }
 
     func connect(
         using configuration: SSHConnectionConfiguration,
-        progress: SSHRouteProgressHandler?
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)? = nil
     ) async throws {
         try await perform {
             self.cleanup()
@@ -313,6 +342,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 throw SSHSessionWorker.sessionError(session, prefix: "Unable to start SFTP")
             }
             self.sftp = sftp
+            self.connectionFailure = connectionFailure
+            self.didReportConnectionFailure = false
             self.startKeepalive(for: session)
         }
     }
@@ -718,7 +749,21 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
 
     private func error(_ prefix: String) -> SFTPError {
         guard let sftp else { return .operation(prefix) }
-        return .operation("\(prefix): SFTP error \(libssh2_sftp_last_error(sftp))")
+        let sftpCode = libssh2_sftp_last_error(sftp)
+        let sessionCode = session.map(libssh2_session_last_errno) ?? 0
+        let message = "\(prefix): SFTP error \(sftpCode)"
+        let lostSFTPCodes = [
+            UInt(LIBSSH2_FX_NO_CONNECTION), UInt(LIBSSH2_FX_CONNECTION_LOST),
+        ]
+        let lostSessionCodes = [
+            LIBSSH2_ERROR_SOCKET_SEND, LIBSSH2_ERROR_SOCKET_RECV,
+            LIBSSH2_ERROR_TIMEOUT, LIBSSH2_ERROR_CHANNEL_CLOSED,
+        ]
+        if lostSFTPCodes.contains(sftpCode) || lostSessionCodes.contains(sessionCode) {
+            reportConnectionFailure(message)
+            return .connectionLost(message)
+        }
+        return .operation(message)
     }
 
     private func cleanup() {
@@ -732,6 +777,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         }
         routeTransport?.close()
         routeTransport = nil
+        connectionFailure = nil
+        didReportConnectionFailure = false
     }
 
     private func startKeepalive(for session: OpaquePointer) {
@@ -741,10 +788,22 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         timer.setEventHandler { [weak self] in
             guard let self, self.session == session else { return }
             var secondsToNext: Int32 = 0
-            _ = libssh2_keepalive_send(session, &secondsToNext)
+            let result = libssh2_keepalive_send(session, &secondsToNext)
+            if result < 0, result != LIBSSH2_ERROR_EAGAIN {
+                let error = SSHSessionWorker.sessionError(
+                    session, prefix: "SFTP keepalive failed"
+                )
+                self.reportConnectionFailure(error.localizedDescription)
+            }
         }
         keepaliveTimer = timer
         timer.resume()
+    }
+
+    private func reportConnectionFailure(_ message: String) {
+        guard !didReportConnectionFailure else { return }
+        didReportConnectionFailure = true
+        connectionFailure?(message)
     }
 
     private func perform<T: Sendable>(_ operation: @escaping @Sendable () throws -> T) async throws -> T {

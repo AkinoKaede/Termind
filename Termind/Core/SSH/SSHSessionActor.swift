@@ -1087,7 +1087,12 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
 
         var next = Int32(0)
-        _ = libssh2_keepalive_send(session, &next)
+        let keepalive = libssh2_keepalive_send(session, &next)
+        if keepalive < 0, keepalive != LIBSSH2_ERROR_EAGAIN {
+            reportExit(.failure(Self.sessionError(session, prefix: "SSH keepalive failed")))
+            cleanup()
+            return
+        }
         if libssh2_channel_eof(channel) == 1 {
             let status = libssh2_channel_get_exit_status(channel)
             reportExit(.success(status))

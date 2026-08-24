@@ -74,6 +74,9 @@ final class SFTPSessionModel: Identifiable {
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
     private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
     private var connectionAttemptID: UUID?
+    private let reconnectController = SessionReconnectController()
+    private var hasConnectedOnce = false
+    private var isRecoveringConnection = false
     private var operationCancellation: TransferCancellationToken?
     private weak var statusStore: HostStore?
     private weak var transferCoordinator: SFTPTransferCoordinator?
@@ -99,7 +102,11 @@ final class SFTPSessionModel: Identifiable {
         self.didResolveInitialPath = !configuredPath.isEmpty
         self.automaticRefreshInterval = automaticRefreshInterval
         if client != nil { status = .connected }
+        if client != nil { hasConnectedOnce = true }
     }
+
+    var reconnectState: ReconnectState? { reconnectController.state }
+    var allowsRemoteMutations: Bool { status == .connected }
 
     var canGoBack: Bool { !backHistory.isEmpty }
     var canGoForward: Bool { !forwardHistory.isEmpty }
@@ -132,9 +139,16 @@ final class SFTPSessionModel: Identifiable {
     }
 
     func connect(using store: HostStore) {
+        startConnection(using: store)
+    }
+
+    private func startConnection(using store: HostStore) {
+        let reconnecting = hasConnectedOnce && isRecoveringConnection
         bindStatus(to: store)
         connectionTask?.cancel()
         guard let host = store.host(hostID) else {
+            reconnectController.stop()
+            isRecoveringConnection = false
             let message = String(localized: "The host is no longer available.")
             status = .failed(message)
             connectionJourney.fail(message)
@@ -146,10 +160,16 @@ final class SFTPSessionModel: Identifiable {
         let suppliedAuthentication = suppliedAuthentications[host.id]
         connectionJourney.begin(
             host: host, route: route, purpose: .sftpSession,
-            username: suppliedAuthentication?.username ?? store.identity(for: host)?.username
+            username: suppliedAuthentication?.username ?? store.identity(for: host)?.username,
+            mode: reconnecting ? .reconnection : .connection
         )
-        status = .connecting
-        hint = String(localized: "Connecting")
+        if reconnecting, usesEphemeralCredentials, suppliedAuthentication == nil {
+            requestAuthentication(host: host, store: store)
+            return
+        }
+        status = reconnecting ? .reconnecting : .connecting
+        hint = reconnecting
+            ? String(localized: "Reconnecting") : String(localized: "Connecting")
         connectionTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -190,7 +210,12 @@ final class SFTPSessionModel: Identifiable {
                 }
                 let coordinator = self.connectionCoordinator ?? RemoteConnectionCoordinator()
                 let client = try await coordinator.connectSFTP(
-                    using: configuration, progress: progressHandler(attemptID: attemptID)
+                    using: configuration, progress: progressHandler(attemptID: attemptID),
+                    connectionFailure: { [weak self] message in
+                        Task { @MainActor in
+                            self?.handleConnectionFailure(message, attemptID: attemptID)
+                        }
+                    }
                 )
                 try Task.checkCancellation()
                 try await self.resolveInitialPathIfNeeded(using: client)
@@ -200,12 +225,22 @@ final class SFTPSessionModel: Identifiable {
                 self.suppliedAuthentications.removeAll()
                 self.temporaryHostKeys.removeAll()
                 self.pendingAuthentication = nil
+                let initialConnection = !self.hasConnectedOnce
+                let presentsConnectionJourney = self.connectionJourney.isPresented
+                self.hasConnectedOnce = true
+                self.isRecoveringConnection = false
+                self.reconnectController.markConnected(initial: initialConnection)
                 self.status = .connected
-                self.connectionJourney.succeed()
+                if presentsConnectionJourney {
+                    self.connectionJourney.succeed()
+                } else {
+                    self.connectionJourney.hide()
+                }
                 self.hint = ""
                 await self.reload()
                 self.startAutomaticRefresh()
             } catch is CancellationError {
+                guard self.connectionAttemptID == attemptID else { return }
                 self.status = .disconnected
             } catch TermindSSHError.untrustedHost {
                 await self.discoverHostKey(host: host, store: store)
@@ -238,11 +273,15 @@ final class SFTPSessionModel: Identifiable {
                         ? .serverChallenge : .localIdentity
                 )
             } catch {
-                self.status = .failed(error.localizedDescription)
-                self.hint = error.localizedDescription
-                self.connectionJourney.fail(
-                    error.localizedDescription, at: self.routeHostID(from: error)
-                )
+                if self.hasConnectedOnce || reconnecting {
+                    self.scheduleReconnect(after: error.localizedDescription, using: store)
+                } else {
+                    self.status = .failed(error.localizedDescription)
+                    self.hint = error.localizedDescription
+                    self.connectionJourney.fail(
+                        error.localizedDescription, at: self.routeHostID(from: error)
+                    )
+                }
             }
         }
     }
@@ -265,6 +304,9 @@ final class SFTPSessionModel: Identifiable {
         connectionTask?.cancel()
         connectionTask = nil
         connectionAttemptID = nil
+        reconnectController.stop()
+        hasConnectedOnce = false
+        isRecoveringConnection = false
         automaticRefreshTask?.cancel()
         automaticRefreshTask = nil
         uploadRefreshTask?.cancel()
@@ -281,6 +323,28 @@ final class SFTPSessionModel: Identifiable {
             await transferCoordinator?.cancelTransfers(usingBorrowedConnection: id)
             await client?.disconnect()
         }
+    }
+
+    func retryReconnectNow() {
+        reconnectController.retryNow()
+    }
+
+    func stopReconnecting() {
+        guard let reconnectState else { return }
+        reconnectController.stop()
+        isRecoveringConnection = false
+        connectionAttemptID = nil
+        connectionTask?.cancel()
+        connectionTask = nil
+        automaticRefreshTask?.cancel()
+        automaticRefreshTask = nil
+        let client = client
+        self.client = nil
+        configuration = nil
+        status = .failed(reconnectState.lastError)
+        hint = reconnectState.lastError
+        connectionJourney.fail(reconnectState.lastError)
+        Task { await client?.disconnect() }
     }
 
     func resolveInitialPathIfNeeded(using client: any SFTPClientProtocol) async throws {
@@ -384,6 +448,8 @@ final class SFTPSessionModel: Identifiable {
     }
 
     func cancelAuthentication() {
+        reconnectController.stop()
+        isRecoveringConnection = false
         pendingAuthentication = nil
         status = .disconnected
         connectionJourney.hide()
@@ -441,6 +507,20 @@ final class SFTPSessionModel: Identifiable {
             hint =
                 snapshot.count == 1
                 ? String(localized: "1 item") : String(localized: "\(snapshot.count) items")
+        } catch let error as SFTPError {
+            if case .connectionLost(let message) = error {
+                handleConnectionFailure(message, attemptID: connectionAttemptID)
+                return
+            }
+            if case .notConnected = error {
+                handleConnectionFailure(
+                    error.localizedDescription, attemptID: connectionAttemptID
+                )
+                return
+            }
+            guard !silently else { return }
+            operationError = error.localizedDescription
+            hint = error.localizedDescription
         } catch {
             guard !silently else { return }
             operationError = error.localizedDescription
@@ -1050,16 +1130,24 @@ final class SFTPSessionModel: Identifiable {
             }
             pendingHostKey = SSHHostKeyPrompt(observation: observation, kind: kind)
             pendingHostKeyHostID = host.id
+            reconnectController.pauseForUserInteraction()
             connectionJourney.waitForHostKey(
                 at: host.id, fingerprint: observation.fingerprint
             )
-        } catch { status = .failed(error.localizedDescription) }
+        } catch {
+            if hasConnectedOnce {
+                scheduleReconnect(after: error.localizedDescription, using: store)
+            } else {
+                status = .failed(error.localizedDescription)
+            }
+        }
     }
 
     private func requestAuthentication(
         host: Host, store: HostStore, failure: String? = nil,
         mode: SSHAuthenticationPrompt.Mode = .localIdentity
     ) {
+        reconnectController.pauseForUserInteraction()
         suppliedAuthentications[host.id] = nil
         let identity = store.identity(for: host)
         pendingAuthentication = SSHAuthenticationPrompt(
@@ -1088,6 +1176,43 @@ final class SFTPSessionModel: Identifiable {
 
     private func routeHostID(from error: any Error) -> Host.ID? {
         (error as? TermindSSHError)?.routeHostID
+    }
+
+    private func handleConnectionFailure(_ message: String, attemptID: UUID?) {
+        guard hasConnectedOnce, connectionAttemptID == attemptID,
+            let store = statusStore
+        else { return }
+        scheduleReconnect(after: message, using: store)
+    }
+
+    private func scheduleReconnect(after message: String, using store: HostStore) {
+        isRecoveringConnection = true
+        connectionAttemptID = nil
+        connectionTask?.cancel()
+        connectionTask = nil
+        automaticRefreshTask?.cancel()
+        automaticRefreshTask = nil
+        uploadRefreshTask?.cancel()
+        uploadRefreshTask = nil
+        let client = client
+        self.client = nil
+        configuration = nil
+        status = .reconnecting
+        hint = String(localized: "Reconnecting")
+        presentReconnectJourney(using: store)
+        reconnectController.schedule(after: message) { [weak self, weak store] in
+            guard let self, let store else { return }
+            self.startConnection(using: store)
+        }
+        Task { await client?.disconnect() }
+    }
+
+    private func presentReconnectJourney(using store: HostStore) {
+        guard let host = store.host(hostID) else { return }
+        connectionJourney.begin(
+            host: host, route: store.route(for: host), purpose: .sftpSession,
+            username: store.identity(for: host)?.username, mode: .reconnection
+        )
     }
 
     private func deleteRecursively(

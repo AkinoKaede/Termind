@@ -18,11 +18,15 @@ nonisolated final class RemoteConnectionCoordinator: Sendable {
 
     func connectSFTP(
         using configuration: SSHConnectionConfiguration,
-        progress: SSHRouteProgressHandler? = nil
+        progress: SSHRouteProgressHandler? = nil,
+        connectionFailure: (@Sendable (String) -> Void)? = nil
     ) async throws -> any SFTPClientProtocol {
         let client = makeSFTPClient()
         do {
-            try await client.connect(using: configuration, progress: progress)
+            try await client.connect(
+                using: configuration, progress: progress,
+                connectionFailure: connectionFailure
+            )
             return client
         } catch {
             await client.disconnect()

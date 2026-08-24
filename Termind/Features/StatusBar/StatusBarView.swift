@@ -65,6 +65,7 @@ struct StatusBarView: View {
     private var connection: some View {
         let status =
             sshSession?.status
+            ?? sftpSession?.status
             ?? pane?.hostID.map { app.hosts.status(of: $0) }
             ?? .disconnected
 
