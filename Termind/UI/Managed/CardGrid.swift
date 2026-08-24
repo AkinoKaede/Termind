@@ -13,24 +13,80 @@ struct CardMarqueeSelection {
 }
 
 private enum CardSelectionCoordinateSpace {
-    static let name = "Termind.CardSelection"
+    nonisolated static let name = "Termind.CardSelection"
 }
 
-private struct CardFramePreferenceKey: PreferenceKey {
-    static var defaultValue: [AnyHashable: CGRect] = [:]
+/// Geometry used only by pointer gestures does not belong in SwiftUI state.
+/// Publishing every card through a preference and then assigning the aggregate
+/// to `@State` makes scrolling a layout feedback loop: moving a lazy-grid cell
+/// changes the preference, the state write redraws the page, and the preference
+/// is evaluated again in the same display frame. A page-owned reference keeps
+/// the latest hit-test geometry without invalidating layout.
+private final class CardGeometryStore {
+    private var cardFrames: [AnyHashable: (reporter: UUID, frame: CGRect)] = [:]
+    private var cardIDsByReporter: [UUID: AnyHashable] = [:]
+    private var latestCardFrames: [UUID: CGRect] = [:]
+    private var interactiveFrames: [UUID: CGRect] = [:]
 
-    static func reduce(
-        value: inout [AnyHashable: CGRect], nextValue: () -> [AnyHashable: CGRect]
-    ) {
-        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    func updateCardFrame(_ frame: CGRect, id: AnyHashable?, reporter: UUID) {
+        latestCardFrames[reporter] = frame
+        updateCardID(id, reporter: reporter)
+    }
+
+    func updateCardID(_ id: AnyHashable?, reporter: UUID) {
+        if let previousID = cardIDsByReporter[reporter], previousID != id,
+            cardFrames[previousID]?.reporter == reporter
+        {
+            cardFrames.removeValue(forKey: previousID)
+        }
+
+        guard let id, let frame = latestCardFrames[reporter] else {
+            cardIDsByReporter.removeValue(forKey: reporter)
+            return
+        }
+        cardIDsByReporter[reporter] = id
+        cardFrames[id] = (reporter, frame)
+    }
+
+    func removeCardFrame(reporter: UUID) {
+        latestCardFrames.removeValue(forKey: reporter)
+        guard let id = cardIDsByReporter.removeValue(forKey: reporter) else { return }
+        if cardFrames[id]?.reporter == reporter {
+            cardFrames.removeValue(forKey: id)
+        }
+    }
+
+    func updateInteractiveFrame(_ frame: CGRect, reporter: UUID) {
+        interactiveFrames[reporter] = frame
+    }
+
+    func removeInteractiveFrame(reporter: UUID) {
+        interactiveFrames.removeValue(forKey: reporter)
+    }
+
+    func card(at point: CGPoint) -> Bool {
+        cardFrames.values.contains { $0.frame.insetBy(dx: -1, dy: -1).contains(point) }
+    }
+
+    func interactiveChrome(at point: CGPoint) -> Bool {
+        interactiveFrames.values.contains {
+            $0.insetBy(dx: -1, dy: -1).contains(point)
+        }
+    }
+
+    func cardIDs(intersecting rect: CGRect) -> Set<AnyHashable> {
+        Set(cardFrames.compactMap { id, value in value.frame.intersects(rect) ? id : nil })
     }
 }
 
-private struct CardInteractiveFramePreferenceKey: PreferenceKey {
-    static var defaultValue: [CGRect] = []
+private struct CardGeometryStoreKey: EnvironmentKey {
+    static let defaultValue: CardGeometryStore? = nil
+}
 
-    static func reduce(value: inout [CGRect], nextValue: () -> [CGRect]) {
-        value.append(contentsOf: nextValue())
+private extension EnvironmentValues {
+    var cardGeometryStore: CardGeometryStore? {
+        get { self[CardGeometryStoreKey.self] }
+        set { self[CardGeometryStoreKey.self] = newValue }
     }
 }
 
@@ -60,8 +116,7 @@ struct CardPage<Content: View>: View {
     var supportsMarqueeSelection = true
     @ViewBuilder var content: Content
 
-    @State private var cardFrames: [AnyHashable: CGRect] = [:]
-    @State private var interactiveFrames: [CGRect] = []
+    @State private var geometryStore = CardGeometryStore()
     @State private var marqueeStart: CGPoint?
     @State private var marqueeCurrent: CGPoint?
     @State private var marqueeBase: Set<AnyHashable> = []
@@ -97,10 +152,9 @@ struct CardPage<Content: View>: View {
             }
             .padding(Metrics.Space.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .environment(\.cardGeometryStore, geometryStore)
         }
         .coordinateSpace(name: CardSelectionCoordinateSpace.name)
-        .onPreferenceChange(CardFramePreferenceKey.self) { cardFrames = $0 }
-        .onPreferenceChange(CardInteractiveFramePreferenceKey.self) { interactiveFrames = $0 }
         .simultaneousGesture(backgroundTapGesture)
     }
 
@@ -111,12 +165,8 @@ struct CardPage<Content: View>: View {
         SpatialTapGesture(coordinateSpace: .named(CardSelectionCoordinateSpace.name))
             .onEnded { value in
                 guard let marqueeSelection else { return }
-                let hitCard = cardFrames.values.contains {
-                    $0.insetBy(dx: -1, dy: -1).contains(value.location)
-                }
-                let hitInteractiveChrome = interactiveFrames.contains {
-                    $0.insetBy(dx: -1, dy: -1).contains(value.location)
-                }
+                let hitCard = geometryStore.card(at: value.location)
+                let hitInteractiveChrome = geometryStore.interactiveChrome(at: value.location)
                 if !hitCard && !hitInteractiveChrome { marqueeSelection.update([]) }
             }
     }
@@ -133,20 +183,14 @@ struct CardPage<Content: View>: View {
                     marqueeExtendsSelection = Self.shiftIsPressed
                     // A card drag belongs to the card. Marquee selection starts
                     // only in the page's empty space, matching Finder.
-                    dragStartedOnCard = cardFrames.values.contains {
-                        $0.insetBy(dx: -1, dy: -1).contains(value.startLocation)
-                    }
+                    dragStartedOnCard = geometryStore.card(at: value.startLocation)
                 }
 
                 guard !dragStartedOnCard else { return }
                 marqueeCurrent = value.location
                 guard let marqueeRect else { return }
 
-                let enclosed = Set(
-                    cardFrames.compactMap { id, frame in
-                        frame.intersects(marqueeRect) ? id : nil
-                    }
-                )
+                let enclosed = geometryStore.cardIDs(intersecting: marqueeRect)
                 marqueeSelection.update(
                     marqueeExtendsSelection ? marqueeBase.union(enclosed) : enclosed
                 )
@@ -252,14 +296,7 @@ struct CardSectionHeader: View {
         .background(fill, in: .rect(cornerRadius: Metrics.Radius.medium))
         .contentShape(.rect(cornerRadius: Metrics.Radius.medium))
         .onTapGesture { select?() }
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: CardInteractiveFramePreferenceKey.self,
-                    value: [proxy.frame(in: .named(CardSelectionCoordinateSpace.name))]
-                )
-            }
-        }
+        .cardInteractiveFrame()
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [])
@@ -284,15 +321,45 @@ struct CardSectionHeader: View {
 /// A click on one should perform that control, not also look like a click on
 /// empty space and clear the page selection.
 private struct CardInteractiveFrameModifier: ViewModifier {
+    @Environment(\.cardGeometryStore) private var geometryStore
+    @State private var reporterID = UUID()
+
     func body(content: Content) -> some View {
-        content.background {
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: CardInteractiveFramePreferenceKey.self,
-                    value: [proxy.frame(in: .named(CardSelectionCoordinateSpace.name))]
+        content
+            .onGeometryChange(for: CGRect.self) {
+                $0.frame(in: .named(CardSelectionCoordinateSpace.name))
+            } action: { frame in
+                geometryStore?.updateInteractiveFrame(frame, reporter: reporterID)
+            }
+            .onDisappear {
+                geometryStore?.removeInteractiveFrame(reporter: reporterID)
+            }
+    }
+}
+
+private struct CardFrameModifier: ViewModifier {
+    let selectionID: AnyHashable?
+
+    @Environment(\.cardGeometryStore) private var geometryStore
+    @State private var reporterID = UUID()
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGRect.self) {
+                $0.frame(in: .named(CardSelectionCoordinateSpace.name))
+            } action: { newFrame in
+                geometryStore?.updateCardFrame(
+                    newFrame,
+                    id: selectionID,
+                    reporter: reporterID
                 )
             }
-        }
+            .onChange(of: selectionID) {
+                geometryStore?.updateCardID(selectionID, reporter: reporterID)
+            }
+            .onDisappear {
+                geometryStore?.removeCardFrame(reporter: reporterID)
+            }
     }
 }
 
@@ -376,20 +443,7 @@ struct CardTile<Content: View>: View {
                 activate()
                 return .handled
             }
-            .background {
-                if let selectionID {
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: CardFramePreferenceKey.self,
-                            value: [
-                                selectionID: proxy.frame(
-                                    in: .named(CardSelectionCoordinateSpace.name)
-                                )
-                            ]
-                        )
-                    }
-                }
-            }
+            .modifier(CardFrameModifier(selectionID: selectionID))
             .onHover { isHovering = $0 }
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isButton)

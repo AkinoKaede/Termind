@@ -1,35 +1,9 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct KeyExportRequest: Identifiable {
-    let id = UUID()
-    let keys: [SSHKeyRef]
-}
-
 @Observable
 final class KeychainPageState {
-    enum SheetRoute: Identifiable {
-        case newIdentity
-        case generateKey
-        case importKey(PendingKeyImport)
-        case renameKey(SSHKeyRef)
-        case export(KeyExportRequest)
-        case editIdentity(Identity)
-
-        var id: String {
-            switch self {
-            case .newIdentity: "new-identity"
-            case .generateKey: "generate-key"
-            case .importKey(let pending): "import-key-\(pending.id)"
-            case .renameKey(let key): "rename-key-\(key.id)"
-            case .export(let request): "export-\(request.id)"
-            case .editIdentity(let identity): "edit-identity-\(identity.id)"
-            }
-        }
-    }
-
     var query = ""
-    var sheet: SheetRoute?
     var isImportingFile = false
     var errorMessage: String?
 }
@@ -154,7 +128,9 @@ struct KeychainPageView: ManagedCardPage {
                 extendSelection: context.extendSelection,
                 actionKeys: context.actionItems.compactMap(\.key),
                 actionIdentities: context.actionItems.compactMap(\.identity),
-                rename: { state.sheet = .renameKey(key) },
+                rename: {
+                    window.openVaultWork(.renameKey(key.id), on: .keychain)
+                },
                 export: { requestExport(context.actionItems.compactMap(\.key)) },
                 delete: {
                     delete(
@@ -171,7 +147,9 @@ struct KeychainPageView: ManagedCardPage {
                 extendSelection: context.extendSelection,
                 actionKeys: context.actionItems.compactMap(\.key),
                 actionIdentities: context.actionItems.compactMap(\.identity),
-                edit: { state.sheet = .editIdentity(identity) },
+                edit: {
+                    window.openVaultWork(.identityEditor(identity.id), on: .keychain)
+                },
                 delete: {
                     delete(
                         keys: context.actionItems.compactMap(\.key),
@@ -206,7 +184,9 @@ struct KeychainPageView: ManagedCardPage {
         case .keys:
             AddCardTile(title: "Import Key") { state.isImportingFile = true }
         case .identities:
-            AddCardTile(title: "New Identity") { state.sheet = .newIdentity }
+            AddCardTile(title: "New Identity") {
+                window.openVaultWork(.identityEditor(nil), on: .keychain)
+            }
         }
     }
 
@@ -227,7 +207,7 @@ struct KeychainPageView: ManagedCardPage {
 
     private func requestExport(_ keys: [SSHKeyRef]) {
         guard !keys.isEmpty else { return }
-        state.sheet = .export(KeyExportRequest(keys: keys))
+        window.openVaultWork(.exportKeys(keys.map(\.id)), on: .keychain)
     }
 
     /// Identities go first so deleting a mixed selection never leaves a host
@@ -258,8 +238,17 @@ struct KeychainPageView: ManagedCardPage {
             prompt: "Filter keys and identities"
         ) {
             Button("Import Key") { state.isImportingFile = true }
-            Button("Generate Key") { state.sheet = .generateKey }
-            Button("New Identity") { state.sheet = .newIdentity }
+            Button("Generate Key") {
+                window.openVaultWork(.generateKey, on: .keychain)
+            }
+            Button("New Identity") {
+                window.openVaultWork(.identityEditor(nil), on: .keychain)
+            }
+            if let error = state.errorMessage {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .lineLimit(1)
+            }
         }
     }
 
@@ -282,9 +271,13 @@ struct KeychainPageView: ManagedCardPage {
         } actions: {
             // The only door out of the empty state that opens yet: an identity
             // can be a username and a password, which needs no key material.
-            Button("New Identity") { state.sheet = .newIdentity }
+            Button("New Identity") {
+                window.openVaultWork(.identityEditor(nil), on: .keychain)
+            }
             Button("Import Key") { state.isImportingFile = true }
-            Button("Generate Key") { state.sheet = .generateKey }
+            Button("Generate Key") {
+                window.openVaultWork(.generateKey, on: .keychain)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -297,98 +290,10 @@ struct KeychainPageView: ManagedCardPage {
         KeychainPagePresentation(
             state: state,
             actions: KeychainPagePresentation.Actions(
-                saveIdentity: { identity, passwordUpdate in
-                    try app.hosts.upsert(identity, passwordUpdate: passwordUpdate)
-                    select(.identity(identity.id))
-                },
-                generate: { label, generation, passphrase, cipher, rounds, savePassphrase, storage, presence in
-                    generateKey(
-                        label: label, generation: generation, passphrase: passphrase,
-                        cipher: cipher, rounds: rounds, savePassphrase: savePassphrase,
-                        storage: storage, requiresUserPresence: presence
-                    )
-                },
-                importKey: { pending, label, passphrase, savePassphrase, storage in
-                    importKey(
-                        pending, label: label, passphrase: passphrase,
-                        savePassphrase: savePassphrase, storage: storage
-                    )
-                },
-                renameKey: { key, label in
-                    var updated = key
-                    updated.label = label
-                    do {
-                        try app.hosts.upsert(updated)
-                        select(.key(updated.id))
-                    } catch {
-                        state.errorMessage = error.localizedDescription
-                    }
-                },
                 receiveImportedFiles: receiveImportedFiles,
                 pruneSelection: { window.pruneDetailSelections(in: app.hosts) }
             )
         )
-    }
-
-    private func generateKey(
-        label: String, generation: SSHKeyMaterial.Generation, passphrase: String?,
-        cipher: SSHKeyMaterial.Cipher, rounds: Int, savePassphrase: Bool,
-        storage: KeyStorage, requiresUserPresence: Bool
-    ) {
-        let comment = "termind@\(ProcessInfo.processInfo.hostName)"
-        Task {
-            do {
-                if storage == .secureEnclave {
-                    let material = try await Task.detached(priority: .userInitiated) {
-                        try SecureEnclaveKey.generate(
-                            comment: comment, requiresUserPresence: requiresUserPresence
-                        )
-                    }.value
-                    let trimmedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let key = SSHKeyRef(
-                        label: trimmedLabel.isEmpty ? "Secure Enclave" : trimmedLabel,
-                        algorithm: .ecdsa256,
-                        publicKey: material.publicKey, fingerprint: material.fingerprint,
-                        credentialRef: "termind.key.\(UUID().uuidString)",
-                        storage: .secureEnclave, keySize: 256, hasPassphrase: false,
-                        storesPassphrase: false,
-                        requiresUserPresence: requiresUserPresence, createdAt: Date()
-                    )
-                    try app.hosts.upsert(key, credential: .secureEnclave(material.credential))
-                    select(.key(key.id))
-                    return
-                }
-                let material = try await Task.detached(priority: .userInitiated) {
-                    try SSHKeyMaterial.generate(
-                        generation, comment: comment, passphrase: passphrase,
-                        cipher: cipher, rounds: rounds
-                    )
-                }.value
-                let trimmedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
-                let key = SSHKeyRef(
-                    label: trimmedLabel.isEmpty ? material.algorithm.typeName : trimmedLabel,
-                    algorithm: material.algorithm,
-                    publicKey: material.publicKey, fingerprint: material.fingerprint,
-                    credentialRef: "termind.key.\(UUID().uuidString)",
-                    storage: storage, keySize: material.keySize,
-                    hasPassphrase: passphrase != nil,
-                    storesPassphrase: passphrase != nil && savePassphrase,
-                    createdAt: Date()
-                )
-                try app.hosts.upsert(
-                    key,
-                    credential: .software(
-                        SSHPrivateKeySecret(
-                            privateKey: material.privateKey,
-                            passphrase: savePassphrase ? passphrase : nil
-                        )
-                    )
-                )
-                select(.key(key.id))
-            } catch {
-                state.errorMessage = error.localizedDescription
-            }
-        }
     }
 
     private func receiveImportedFiles(_ result: Result<[URL], any Error>) {
@@ -404,71 +309,24 @@ struct KeychainPageView: ManagedCardPage {
                         NSLocalizedDescriptionKey: String(localized: "Select an OpenSSH or PEM private key.")
                     ])
             }
-            state.sheet = .importKey(
-                PendingKeyImport(
-                    label: url.deletingPathExtension().lastPathComponent,
-                    privateKey: privateKey
-                )
+            window.openVaultWork(
+                .importKey(
+                    PendingKeyImport(
+                        label: url.deletingPathExtension().lastPathComponent,
+                        privateKey: privateKey
+                    )
+                ),
+                on: .keychain
             )
         } catch {
             state.errorMessage = error.localizedDescription
         }
     }
 
-    private func importKey(
-        _ pending: PendingKeyImport, label: String, passphrase: String?,
-        savePassphrase: Bool, storage: KeyStorage
-    ) {
-        let privateKey = pending.privateKey
-        state.sheet = nil
-        Task {
-            do {
-                let material = try await Task.detached(priority: .userInitiated) {
-                    try SSHKeyMaterial.inspect(
-                        privateKey: privateKey, passphrase: passphrase, comment: label
-                    )
-                }.value
-                let trimmedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
-                let key = SSHKeyRef(
-                    label: trimmedLabel.isEmpty ? material.algorithm.typeName : trimmedLabel,
-                    algorithm: material.algorithm,
-                    publicKey: material.publicKey, fingerprint: material.fingerprint,
-                    credentialRef: "termind.key.\(UUID().uuidString)",
-                    storage: storage, keySize: material.keySize,
-                    hasPassphrase: passphrase != nil,
-                    storesPassphrase: passphrase != nil && savePassphrase,
-                    createdAt: Date()
-                )
-                try app.hosts.upsert(
-                    key,
-                    credential: .software(
-                        SSHPrivateKeySecret(
-                            privateKey: privateKey,
-                            passphrase: savePassphrase ? passphrase : nil
-                        )
-                    )
-                )
-                select(.key(key.id))
-            } catch {
-                state.errorMessage = error.localizedDescription
-            }
-        }
-    }
-
 }
 
 struct KeychainPagePresentation: ManagedCardPresentationModifier {
-    typealias GenerateAction = (
-        String, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int, Bool,
-        KeyStorage, Bool
-    ) -> Void
-    typealias ImportAction = (PendingKeyImport, String, String?, Bool, KeyStorage) -> Void
-
     struct Actions {
-        let saveIdentity: (Identity, IdentityPasswordUpdate) throws -> Void
-        let generate: GenerateAction
-        let importKey: ImportAction
-        let renameKey: (SSHKeyRef, String) -> Void
         let receiveImportedFiles: (Result<[URL], any Error>) -> Void
         let pruneSelection: () -> Void
     }
@@ -479,63 +337,76 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
     func body(content: Content) -> some View {
         @Bindable var state = state
         content
-            .sheet(item: $state.sheet, content: sheetContent)
             .fileImporter(
                 isPresented: $state.isImportingFile,
                 allowedContentTypes: [.data, .plainText],
                 allowsMultipleSelection: false,
                 onCompletion: actions.receiveImportedFiles
             )
-            .alert(
-                "Key Error",
-                isPresented: Binding(
-                    get: { state.errorMessage != nil },
-                    set: { if !$0 { state.errorMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) { state.errorMessage = nil }
-            } message: {
-                Text(state.errorMessage ?? "")
-            }
             .onAppear(perform: actions.pruneSelection)
-    }
-
-    @ViewBuilder
-    private func sheetContent(_ route: KeychainPageState.SheetRoute) -> some View {
-        switch route {
-        case .newIdentity:
-            NewIdentitySheet(create: actions.saveIdentity)
-        case .generateKey:
-            GenerateKeySheet(generate: actions.generate)
-        case .importKey(let pending):
-            KeyImportSheet(pending: pending) { label, passphrase, saves, storage in
-                actions.importKey(pending, label, passphrase, saves, storage)
-            }
-        case .renameKey(let key):
-            RenameKeySheet(key: key) { actions.renameKey(key, $0) }
-        case .export(let request):
-            ExportKeyToHostsSheet(keys: request.keys)
-        case .editIdentity(let identity):
-            NewIdentitySheet(identity: identity, create: actions.saveIdentity)
-        }
     }
 }
 
-struct PendingKeyImport: Identifiable {
+nonisolated struct PendingKeyImport: Identifiable, Hashable, Sendable {
     let id = UUID()
     var label: String
     var privateKey: String
 }
 
+struct KeychainImportDetail: View {
+    let pending: PendingKeyImport
+
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        KeyImportSheet(pending: pending, save: importKey, close: window.closeVaultWork)
+    }
+
+    private func importKey(
+        _ label: String, _ passphrase: String?, _ savePassphrase: Bool,
+        _ storage: KeyStorage
+    ) async throws -> SSHKeyRef {
+        let privateKey = pending.privateKey
+        let material = try await Task.detached(priority: .userInitiated) {
+            try SSHKeyMaterial.inspect(
+                privateKey: privateKey, passphrase: passphrase, comment: label
+            )
+        }.value
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = SSHKeyRef(
+            label: trimmed.isEmpty ? material.algorithm.typeName : trimmed,
+            algorithm: material.algorithm, publicKey: material.publicKey,
+            fingerprint: material.fingerprint,
+            credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
+            keySize: material.keySize, hasPassphrase: passphrase != nil,
+            storesPassphrase: passphrase != nil && savePassphrase, createdAt: Date()
+        )
+        try app.hosts.upsert(
+            key,
+            credential: .software(
+                SSHPrivateKeySecret(
+                    privateKey: privateKey,
+                    passphrase: savePassphrase ? passphrase : nil
+                )
+            )
+        )
+        window.selectDetail(.key(key.id), on: .keychain)
+        return key
+    }
+}
+
 private struct KeyImportSheet: View {
     let pending: PendingKeyImport
-    let save: (String, String?, Bool, KeyStorage) -> Void
+    let save: (String, String?, Bool, KeyStorage) async throws -> SSHKeyRef
+    let close: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @State private var label: String
     @State private var storage = KeyStorage.localKeychain
     @State private var passphrase = ""
     @State private var savePassphrase = false
+    @State private var isWorking = false
+    @State private var errorMessage: String?
 
     private let availableStorage: [KeyStorage] = [
         .localKeychain,
@@ -544,15 +415,17 @@ private struct KeyImportSheet: View {
 
     init(
         pending: PendingKeyImport,
-        save: @escaping (String, String?, Bool, KeyStorage) -> Void
+        save: @escaping (String, String?, Bool, KeyStorage) async throws -> SSHKeyRef,
+        close: @escaping () -> Void
     ) {
         self.pending = pending
         self.save = save
+        self.close = close
         _label = State(initialValue: pending.label)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VaultDetailScaffold(title: "Import Key", symbol: "square.and.arrow.down", close: close) {
             Form {
                 TextField("Name", text: $label, prompt: Text("Defaults to key type"))
                 Picker("Store in", selection: $storage) {
@@ -561,7 +434,7 @@ private struct KeyImportSheet: View {
                     }
                 }
                 SecureField("Passphrase", text: $passphrase, prompt: Text("If protected"))
-                Toggle("Save passphrase", isOn: $savePassphrase)
+                Toggle("Save Passphrase", isOn: $savePassphrase)
                     .disabled(passphrase.isEmpty)
                     .onChange(of: passphrase) { _, value in
                         if value.isEmpty { savePassphrase = false }
@@ -570,23 +443,99 @@ private struct KeyImportSheet: View {
                     "Choose a private-key file. Termind derives its public key and fingerprint. If you don't save the passphrase, Termind asks for it when needed."
                 )
                 .font(.caption).foregroundStyle(.secondary)
+                if let errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
             }
             .formStyle(.grouped)
+        } footer: {
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                if isWorking { ProgressView().controlSize(.small) }
+                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Button("Import") {
-                    save(
-                        label, passphrase.isEmpty ? nil : passphrase,
-                        savePassphrase, storage
-                    )
-                    dismiss()
+                    Task { await commit() }
                 }
                 .keyboardShortcut(.defaultAction)
+                .disabled(isWorking)
             }
             .padding()
         }
-        .frame(width: Metrics.CreateSheet.width)
+    }
+
+    @MainActor
+    private func commit() async {
+        isWorking = true
+        errorMessage = nil
+        do {
+            _ = try await save(
+                label, passphrase.isEmpty ? nil : passphrase, savePassphrase, storage
+            )
+            close()
+        } catch {
+            errorMessage = error.localizedDescription
+            isWorking = false
+        }
+    }
+}
+
+struct KeychainGenerateDetail: View {
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        GenerateKeySheet(generate: generate, close: window.closeVaultWork)
+    }
+
+    private func generate(
+        label: String, generation: SSHKeyMaterial.Generation, passphrase: String?,
+        cipher: SSHKeyMaterial.Cipher, rounds: Int, savePassphrase: Bool,
+        storage: KeyStorage, requiresUserPresence: Bool
+    ) async throws -> SSHKeyRef {
+        let comment = "termind@\(ProcessInfo.processInfo.hostName)"
+        let key: SSHKeyRef
+        if storage == .secureEnclave {
+            let material = try await Task.detached(priority: .userInitiated) {
+                try SecureEnclaveKey.generate(
+                    comment: comment, requiresUserPresence: requiresUserPresence
+                )
+            }.value
+            key = SSHKeyRef(
+                label: label, algorithm: .ecdsa256, publicKey: material.publicKey,
+                fingerprint: material.fingerprint,
+                credentialRef: "termind.key.\(UUID().uuidString)",
+                storage: .secureEnclave, keySize: 256, hasPassphrase: false,
+                storesPassphrase: false, requiresUserPresence: requiresUserPresence,
+                createdAt: Date()
+            )
+            try app.hosts.upsert(key, credential: .secureEnclave(material.credential))
+        } else {
+            let material = try await Task.detached(priority: .userInitiated) {
+                try SSHKeyMaterial.generate(
+                    generation, comment: comment, passphrase: passphrase,
+                    cipher: cipher, rounds: rounds
+                )
+            }.value
+            key = SSHKeyRef(
+                label: label, algorithm: material.algorithm,
+                publicKey: material.publicKey, fingerprint: material.fingerprint,
+                credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
+                keySize: material.keySize, hasPassphrase: passphrase != nil,
+                storesPassphrase: passphrase != nil && savePassphrase, createdAt: Date()
+            )
+            try app.hosts.upsert(
+                key,
+                credential: .software(
+                    SSHPrivateKeySecret(
+                        privateKey: material.privateKey,
+                        passphrase: savePassphrase ? passphrase : nil
+                    )
+                )
+            )
+        }
+        window.selectDetail(.key(key.id), on: .keychain)
+        return key
     }
 }
 
@@ -603,9 +552,9 @@ private struct GenerateKeySheet: View {
         (
             String, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int, Bool,
             KeyStorage, Bool
-        ) -> Void
+        ) async throws -> SSHKeyRef
+    let close: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @State private var label = ""
     @State private var storage = KeyStorage.localKeychain
     @State private var kind = Kind.ed25519
@@ -617,6 +566,8 @@ private struct GenerateKeySheet: View {
     @State private var rounds = 100
     @State private var savePassphrase = false
     @State private var requiresUserPresence = false
+    @State private var isWorking = false
+    @State private var errorMessage: String?
 
     private let availableStorage: [KeyStorage] = [
         .localKeychain,
@@ -638,7 +589,7 @@ private struct GenerateKeySheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VaultDetailScaffold(title: "Generate Key", symbol: "key.fill", close: close) {
             Form {
                 TextField("Name", text: $label, prompt: Text(defaultName))
                 Picker("Store in", selection: $storage) {
@@ -650,8 +601,8 @@ private struct GenerateKeySheet: View {
                 }
                 if storage == .secureEnclave {
                     LabeledContent("Algorithm", value: "ECDSA")
-                    LabeledContent("Elliptic curve", value: "NIST P-256")
-                    Toggle("Require authentication", isOn: $requiresUserPresence)
+                    LabeledContent("Elliptic Curve", value: "NIST P-256")
+                    Toggle("Require Authentication", isOn: $requiresUserPresence)
                     Text(
                         "The private key cannot leave the Secure Enclave. Authentication uses Touch ID or this Mac's password when required."
                     )
@@ -662,13 +613,13 @@ private struct GenerateKeySheet: View {
                         ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
                     }
                     if kind == .ecdsa {
-                        Picker("Elliptic curve", selection: $curveBits) {
+                        Picker("Elliptic Curve", selection: $curveBits) {
                             Text("NIST P-256").tag(256)
                             Text("NIST P-384").tag(384)
                             Text("NIST P-521").tag(521)
                         }
                     } else if kind == .rsa {
-                        Picker("Key size", selection: $rsaBits) {
+                        Picker("Key Size", selection: $rsaBits) {
                             Text("2048 bit").tag(2048)
                             Text("3072 bit").tag(3072)
                             Text("4096 bit").tag(4096)
@@ -678,7 +629,7 @@ private struct GenerateKeySheet: View {
                         .onChange(of: passphrase) { _, value in
                             if value.isEmpty { savePassphrase = false }
                         }
-                    SecureField("Confirm passphrase", text: $confirmation)
+                    SecureField("Confirm Passphrase", text: $confirmation)
                         .disabled(passphrase.isEmpty)
                     if !passphrase.isEmpty {
                         Picker("Cipher", selection: $cipher) {
@@ -687,7 +638,7 @@ private struct GenerateKeySheet: View {
                             }
                         }
                         TextField("Rounds", value: $rounds, format: .number)
-                        Toggle("Save passphrase", isOn: $savePassphrase)
+                        Toggle("Save Passphrase", isOn: $savePassphrase)
                     }
                     if !passwordsMatch {
                         Text("Passphrases do not match.")
@@ -702,30 +653,46 @@ private struct GenerateKeySheet: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
+                if let errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
             }
             .formStyle(.grouped)
+        } footer: {
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                if isWorking { ProgressView().controlSize(.small) }
+                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Button("Generate") {
-                    generate(
-                        resolvedLabel,
-                        generation,
-                        storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
-                        cipher, rounds, savePassphrase,
-                        storage, storage == .secureEnclave && requiresUserPresence
-                    )
-                    dismiss()
+                    Task { await commit() }
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(
-                    (storage != .secureEnclave && (!passwordsMatch || (!passphrase.isEmpty && rounds <= 0)))
+                    isWorking || (storage != .secureEnclave && (!passwordsMatch || (!passphrase.isEmpty && rounds <= 0)))
                         || (storage == .secureEnclave && !SecureEnclaveKey.isAvailable)
                 )
             }
             .padding()
         }
-        .frame(width: Metrics.CreateSheet.width)
+    }
+
+    @MainActor
+    private func commit() async {
+        isWorking = true
+        errorMessage = nil
+        do {
+            _ = try await generate(
+                resolvedLabel, generation,
+                storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
+                cipher, rounds, savePassphrase, storage,
+                storage == .secureEnclave && requiresUserPresence
+            )
+            close()
+        } catch {
+            errorMessage = error.localizedDescription
+            isWorking = false
+        }
     }
 
     private var resolvedLabel: String {
@@ -738,42 +705,83 @@ private struct GenerateKeySheet: View {
     }
 }
 
+struct KeychainRenameDetail: View {
+    let keyID: SSHKeyRef.ID
+
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+
+    @ViewBuilder
+    var body: some View {
+        if let key = app.hosts.key(keyID) {
+            RenameKeySheet(key: key, save: save, close: window.closeVaultWork)
+        } else {
+            ContentUnavailableView("Key Unavailable", systemImage: "key.slash")
+        }
+    }
+
+    private func save(_ label: String) throws {
+        guard var key = app.hosts.key(keyID) else { return }
+        key.label = label
+        try app.hosts.upsert(key)
+        window.selectDetail(.key(key.id), on: .keychain)
+    }
+}
+
 struct RenameKeySheet: View {
     let key: SSHKeyRef
-    let save: (String) -> Void
+    let save: (String) throws -> Void
+    var requestedClose: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @State private var label: String
+    @State private var errorMessage: String?
 
-    init(key: SSHKeyRef, save: @escaping (String) -> Void) {
+    init(
+        key: SSHKeyRef, save: @escaping (String) throws -> Void,
+        close: (() -> Void)? = nil
+    ) {
         self.key = key
         self.save = save
+        requestedClose = close
         _label = State(initialValue: key.label)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VaultDetailScaffold(title: "Rename Key", symbol: "pencil", close: close) {
             Form {
                 TextField("Name", text: $label)
                 Text(key.fingerprint)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                if let errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
             }
             .formStyle(.grouped)
+        } footer: {
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Button("Save") {
-                    save(label.trimmingCharacters(in: .whitespacesAndNewlines))
-                    dismiss()
+                    do {
+                        try save(label.trimmingCharacters(in: .whitespacesAndNewlines))
+                        close()
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding()
         }
-        .frame(width: Metrics.CreateSheet.width)
+    }
+
+    private func close() {
+        if let requestedClose { requestedClose() } else { dismiss() }
     }
 }
 
@@ -792,6 +800,7 @@ struct ExportKeyToHostsSheet: View {
     let keys: [SSHKeyRef]
 
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
     @Environment(\.dismiss) private var dismiss
 
     @State private var chooser = ManagedChooserState<Host.ID>(mode: .multiple)
@@ -810,14 +819,15 @@ struct ExportKeyToHostsSheet: View {
     private var isFinished: Bool { !states.isEmpty && !isExporting }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            content
-            Divider()
+        VaultDetailScaffold(title: "Export to Hosts", symbol: "square.and.arrow.up", close: close) {
+            VStack(spacing: 0) {
+                header
+                Divider().opacity(0.7)
+                content
+            }
+        } footer: {
             footer
         }
-        .frame(width: 500, height: 460)
         .onAppear { searchFocused = true }
         .onChange(of: chooser.query) {
             chooser.queryDidChange(
@@ -981,7 +991,7 @@ struct ExportKeyToHostsSheet: View {
 
             Spacer()
 
-            Button(isFinished ? "Done" : "Cancel") { dismiss() }
+            Button(isFinished ? "Done" : "Cancel", action: close)
                 .keyboardShortcut(.cancelAction)
                 .disabled(isExporting)
 
@@ -993,6 +1003,14 @@ struct ExportKeyToHostsSheet: View {
             }
         }
         .padding(Metrics.Space.l)
+    }
+
+    private func close() {
+        if window.selectedTopLevelTab == .vault {
+            window.closeVaultWork()
+        } else {
+            dismiss()
+        }
     }
 
     private var allEligibleChecked: Bool {

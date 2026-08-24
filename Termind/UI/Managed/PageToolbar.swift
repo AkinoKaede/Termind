@@ -3,12 +3,13 @@ import SwiftUI
 /// The strip at the top of a manager page: a filter field on the left, the
 /// page's own actions on the right.
 ///
-/// A `safeAreaInset` rather than window-toolbar items, because these controls
+/// A page-local strip rather than window-toolbar items, because these controls
 /// belong to the *page*. Pages are ordinary tabs here, so anything put in the
 /// window toolbar would still be sitting there when the front tab is a terminal.
 struct PageToolbar<Accessory: View, Actions: View>: View {
     @Binding var query: String
     var prompt: LocalizedStringKey
+    var searchFocused: FocusState<Bool>.Binding?
     /// Sits immediately right of the filter field, for a page that narrows its
     /// list by something the field cannot express — the Hosts page's tag
     /// filter. Next to the field rather than over with the actions on purpose:
@@ -30,7 +31,10 @@ struct PageToolbar<Accessory: View, Actions: View>: View {
     }
 
     private var filterField: some View {
-        TermindSearchField(text: $query, prompt: prompt, density: .compact)
+        TermindSearchField(
+            text: $query, prompt: prompt, density: .compact,
+            externalFocus: searchFocused
+        )
             .frame(maxWidth: 240)
     }
 }
@@ -41,9 +45,13 @@ extension PageToolbar where Accessory == EmptyView {
     init(
         query: Binding<String>,
         prompt: LocalizedStringKey,
+        searchFocused: FocusState<Bool>.Binding? = nil,
         @ViewBuilder actions: () -> Actions
     ) {
-        self.init(query: query, prompt: prompt, accessory: { EmptyView() }, actions: actions)
+        self.init(
+            query: query, prompt: prompt, searchFocused: searchFocused,
+            accessory: { EmptyView() }, actions: actions
+        )
     }
 }
 

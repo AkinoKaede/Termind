@@ -38,8 +38,7 @@ struct StatusBarView: View {
                 }
 
                 if let sftpSession, sftpSession.status == .connected {
-                    item("folder", sftpSession.path)
-                        .help(Text("Current SFTP path"))
+                    sftpDirectoryButton(sftpSession.path)
                 }
             }
 
@@ -107,9 +106,34 @@ struct StatusBarView: View {
         }
     }
 
-    private func openInSFTP(_ path: String, placement: SFTPSessionOpenPlacement) {
+    private func sftpDirectoryButton(_ path: String) -> some View {
+        Button {
+            openInSSH(path, placement: .newTab)
+        } label: {
+            item("folder", path)
+        }
+        .buttonStyle(.plain)
+        .help(Text("Open in SSH"))
+        .accessibilityLabel(Text("Open in SSH"))
+        .contextMenu {
+            Menu("Open in SSH") {
+                Button("New Tab") { openInSSH(path, placement: .newTab) }
+                Button("Current Workspace") {
+                    openInSSH(path, placement: .currentWorkspace)
+                }
+            }
+            Button("Copy Path") { copyToPasteboard(path) }
+        }
+    }
+
+    private func openInSFTP(_ path: String, placement: SessionOpenPlacement) {
         guard let host else { return }
         window.openSFTPSession(host: host, initialPath: path, placement: placement)
+    }
+
+    private func openInSSH(_ path: String, placement: SessionOpenPlacement) {
+        guard let host else { return }
+        window.openSSHSession(host: host, initialPath: path, placement: placement)
     }
 }
 

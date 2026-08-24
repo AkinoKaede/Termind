@@ -90,9 +90,8 @@ protocol ManagedCardPage: View {
     var managedSelection: ManagedCardSelection<Item.ID> { get }
     var managedCapabilities: ManagedCardCapabilities<SectionID, Item.ID> { get }
     var isManagedSourceEmpty: Bool { get }
-    /// Whether the renderer should reserve and draw the bottom safe-area inset.
-    /// An absent footnote must skip the modifier entirely: an inset containing
-    /// `EmptyView` can collapse a nested `ScrollView`'s drawable region on macOS.
+    /// Whether the renderer should reserve and draw the page's bottom footnote.
+    /// An absent footnote takes no space in the shared vertical page chrome.
     var showsManagedFootnote: Bool { get }
     var managedPresentation: Presentation { get }
 
@@ -210,23 +209,30 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
 
     @ViewBuilder
     var body: some View {
-        let page = Group {
-            if isSourceEmpty {
-                emptyState()
-            } else if !hasVisibleContent {
-                noResultsState()
-            } else {
-                collection
+        VStack(spacing: 0) {
+            // Keep page chrome outside the conditional content. A toolbar in a
+            // safe-area inset inherits the intrinsic height of `No Results` on
+            // macOS; when a query changes the content branch, the inset jumps
+            // to the middle of the page and SwiftUI recreates its TextField,
+            // dropping keyboard focus after the first unmatched character.
+            toolbar()
+
+            Group {
+                if isSourceEmpty {
+                    emptyState()
+                } else if !hasVisibleContent {
+                    noResultsState()
+                } else {
+                    collection
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if showsFootnote {
+                footnote()
             }
         }
         .background(.background)
-        .safeAreaInset(edge: .top, spacing: 0) { toolbar() }
-
-        if showsFootnote {
-            page.safeAreaInset(edge: .bottom, spacing: 0) { footnote() }
-        } else {
-            page
-        }
     }
 
     private var hasVisibleContent: Bool {

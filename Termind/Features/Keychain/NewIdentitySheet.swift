@@ -55,6 +55,7 @@ struct NewIdentitySheet: View {
     let existing: Identity?
     let configuration: IdentityEditorConfiguration
     let create: (Identity, IdentityPasswordUpdate) throws -> Void
+    var requestedClose: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -69,39 +70,32 @@ struct NewIdentitySheet: View {
     init(
         identity: Identity? = nil,
         configuration: IdentityEditorConfiguration = .standard,
-        create: @escaping (Identity, IdentityPasswordUpdate) throws -> Void
+        create: @escaping (Identity, IdentityPasswordUpdate) throws -> Void,
+        close: (() -> Void)? = nil
     ) {
         existing = identity
         self.configuration = configuration
         self.create = create
+        requestedClose = close
         _name = State(initialValue: identity?.name ?? "")
         _username = State(initialValue: identity?.username ?? "")
         _keyID = State(initialValue: identity?.keyID)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
+        VaultDetailScaffold(
+            title: existing == nil ? configuration.newTitle : configuration.editTitle,
+            symbol: "person.badge.key.fill", close: close,
+            closeLabel: requestedClose == nil ? "Back" : "Close",
+            closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"
+        ) {
             form
-            Divider()
+        } footer: {
             footer
         }
-        .frame(width: Metrics.CreateSheet.width)
     }
 
     // MARK: - Pieces
-
-    private var header: some View {
-        Label(
-            existing == nil ? configuration.newTitle : configuration.editTitle,
-            systemImage: "person.badge.key.fill"
-        )
-        .font(.headline)
-        .labelStyle(.titleOnly)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Metrics.Space.xl)
-    }
 
     private var form: some View {
         Form {
@@ -159,7 +153,7 @@ struct NewIdentitySheet: View {
         HStack {
             Spacer()
 
-            Button("Cancel") { dismiss() }
+            Button("Cancel", action: close)
                 .keyboardShortcut(.cancelAction)
 
             Button(existing == nil ? "Add" : "Save", action: add)
@@ -167,16 +161,12 @@ struct NewIdentitySheet: View {
                 .disabled(!isValid)
         }
         .padding(Metrics.Space.l)
-        .alert(
-            "Unable to Save Identity",
-            isPresented: Binding(
-                get: { saveError != nil },
-                set: { if !$0 { saveError = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { saveError = nil }
-        } message: {
-            Text(saveError ?? "")
+        .overlay(alignment: .leading) {
+            if let saveError {
+                Label(saveError, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
         }
     }
 
@@ -226,6 +216,10 @@ struct NewIdentitySheet: View {
         return existing == nil ? .remove : .keep
     }
 
+    private func close() {
+        if let requestedClose { requestedClose() } else { dismiss() }
+    }
+
     private var isValid: Bool {
         configuration.accepts(
             username: username, password: password,
@@ -250,7 +244,7 @@ struct NewIdentitySheet: View {
         )
         do {
             try create(identity, passwordUpdate)
-            dismiss()
+            close()
         } catch {
             saveError = error.localizedDescription
         }

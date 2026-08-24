@@ -7,7 +7,15 @@ import Testing
 @MainActor
 struct WindowStateTests {
     @Test
-    func pinnedVaultAndChatPrecedeDynamicWorkspaces() {
+    func newWindowStartsOnWelcome() {
+        let window = WindowModel()
+
+        #expect(window.selectedTopLevelTab == .vault)
+        #expect(window.vaultDestination == .welcome)
+    }
+
+    @Test
+    func pinnedVaultAndAssistantPrecedeDynamicWorkspaces() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
         let window = WindowModel(tabs: [workspace])
@@ -15,7 +23,7 @@ struct WindowStateTests {
         window.select(index: 0)
         #expect(window.selectedTopLevelTab == .vault)
         window.select(index: 1)
-        #expect(window.selectedTopLevelTab == .chat)
+        #expect(window.selectedTopLevelTab == .assistant)
         window.select(index: 2)
         #expect(window.selectedTopLevelTab == .workspace(workspace.id))
 
@@ -25,17 +33,17 @@ struct WindowStateTests {
     }
 
     @Test
-    func chatFeatureOwnsConversationLifecycleOutsideWorkspaces() {
+    func assistantFeatureOwnsConversationLifecycleOutsideWorkspaces() {
         let window = WindowModel()
-        let first = window.openChat()
-        let second = window.openChat()
+        let first = window.openAssistant()
+        let second = window.openAssistant()
 
-        #expect(window.selectedTopLevelTab == .chat)
+        #expect(window.selectedTopLevelTab == .assistant)
         #expect(window.tabs.isEmpty)
-        #expect(window.chatLibrary.conversations.map(\.id) == [second.id, first.id])
+        #expect(window.assistantLibrary.conversations.map(\.id) == [second.id, first.id])
 
-        window.chatLibrary.delete(second.id)
-        #expect(window.chatLibrary.selectedConversationID == first.id)
+        window.assistantLibrary.delete(second.id)
+        #expect(window.assistantLibrary.selectedConversationID == first.id)
     }
 
     @Test
@@ -74,9 +82,25 @@ struct WindowStateTests {
 
         window.openHostEditor(host: host)
         #expect(window.selectedTopLevelTab == .vault)
-        #expect(window.vaultDestination == .hostEditor(host.id))
+        #expect(window.vaultDestination == .hosts)
+        #expect(window.vaultWorkRoute == .hostEditor(host.id))
         window.closeSelected()
         #expect(window.tabs.map(\.id) == [workspace.id])
+    }
+
+    @Test
+    func changingVaultPageClosesRightColumnWork() {
+        let window = WindowModel(vaultDestination: .hosts)
+
+        window.openVaultWork(
+            .snippetEditor(snippetID: nil, packageID: nil), on: .snippets
+        )
+        #expect(window.vaultDestination == .snippets)
+        #expect(window.vaultWorkRoute == .snippetEditor(snippetID: nil, packageID: nil))
+
+        window.openPage(.keychain)
+        #expect(window.vaultDestination == .keychain)
+        #expect(window.vaultWorkRoute == nil)
     }
 
     @Test
@@ -124,15 +148,18 @@ struct WindowStateTests {
 
     @Test
     func featureRoutesReplaceRatherThanStack() {
-        let hosts = HostsPageState()
-        let group = HostGroup(name: "Production", parentID: nil)
-        hosts.sheet = .newGroup
-        hosts.sheet = .editGroup(group)
-        guard case .editGroup(let routedGroup) = hosts.sheet else {
-            Issue.record("Expected one active host sheet route")
-            return
-        }
-        #expect(routedGroup.id == group.id)
+        let window = WindowModel(vaultDestination: .hosts)
+        let groupID = UUID()
+        window.openVaultWork(
+            .hostGroupEditor(groupID: nil, parentID: nil), on: .hosts
+        )
+        window.openVaultWork(
+            .hostGroupEditor(groupID: groupID, parentID: nil), on: .hosts
+        )
+        #expect(
+            window.vaultWorkRoute
+                == .hostGroupEditor(groupID: groupID, parentID: nil)
+        )
 
         let snippets = SnippetsPageState()
         let batch = SnippetBatch(snippets: [])
@@ -269,6 +296,40 @@ struct WindowStateTests {
         #expect(window.tabs.count == 2)
         #expect(sshWorkspace.panes.map(\.kind) == [.sshSession, .sftpSession])
         #expect(sshWorkspace.focusedPane.sftpSession?.path == "/srv/app")
+    }
+
+    @Test
+    func sftpPathOpensSSHInANewTabOrTheCurrentWorkspace() throws {
+        let host = Host(name: "Shell", host: "shell.example")
+        let sftpWorkspace = Workspace.sftpSession(host: host, initialPath: "/configured")
+        let window = WindowModel(tabs: [sftpWorkspace])
+
+        let newTab = window.openSSHSession(
+            host: host, initialPath: "/var/log", placement: .newTab
+        )
+
+        #expect(window.tabs.count == 2)
+        #expect(window.selectedTab === newTab)
+        #expect(newTab.focusedPane.sshSession?.hostID == host.id)
+
+        window.select(sftpWorkspace.id)
+        let result = window.openSSHSession(
+            host: host, initialPath: "/srv/app", placement: .currentWorkspace
+        )
+
+        #expect(result === sftpWorkspace)
+        #expect(window.tabs.count == 2)
+        #expect(sftpWorkspace.panes.map(\.kind) == [.sftpSession, .sshSession])
+        #expect(sftpWorkspace.focusedPane.sshSession?.hostID == host.id)
+    }
+
+    @Test
+    func sshDirectoryCommandQuotesRemotePaths() {
+        #expect(
+            WindowModel.changeDirectoryCommand(for: "/srv/it's live")
+                == "cd '/srv/it'\"'\"'s live'"
+        )
+        #expect(WindowModel.changeDirectoryCommand(for: "") == nil)
     }
 
     @Test

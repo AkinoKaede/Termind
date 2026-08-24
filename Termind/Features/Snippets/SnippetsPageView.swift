@@ -1,5 +1,13 @@
 import SwiftUI
 
+struct SnippetExecutionTargetsView: View {
+    let request: SnippetHostChooserRequest
+
+    var body: some View {
+        HostChooserView(purpose: .snippet(request))
+    }
+}
+
 struct SnippetBatch: Identifiable {
     let id = UUID()
     let snippets: [Snippet]
@@ -7,22 +15,6 @@ struct SnippetBatch: Identifiable {
 
 @Observable
 final class SnippetsPageState {
-    enum SheetRoute: Identifiable {
-        case newSnippet(packageID: SnippetPackage.ID?)
-        case editSnippet(Snippet)
-        case newPackage(parentID: SnippetPackage.ID?)
-        case editPackage(SnippetPackage)
-
-        var id: String {
-            switch self {
-            case .newSnippet(let id): "new-snippet-\(id?.uuidString ?? "root")"
-            case .editSnippet(let snippet): "edit-snippet-\(snippet.id)"
-            case .newPackage(let id): "new-package-\(id?.uuidString ?? "root")"
-            case .editPackage(let package): "edit-package-\(package.id)"
-            }
-        }
-    }
-
     enum ConfirmationRoute: Identifiable {
         case deletePackage(SnippetPackage)
         case deleteSnippets(SnippetBatch)
@@ -38,7 +30,6 @@ final class SnippetsPageState {
     }
 
     var query = ""
-    var sheet: SheetRoute?
     var confirmation: ConfirmationRoute?
 }
 
@@ -174,9 +165,11 @@ struct SnippetsPageView: ManagedCardPage {
                 )
                 .contextMenu {
                     Button("New Subpackage") {
-                        state.sheet = .newPackage(parentID: package.id)
+                        openPackageEditor(packageID: nil, parentID: package.id)
                     }
-                    Button("Edit") { state.sheet = .editPackage(package) }
+                    Button("Edit") {
+                        openPackageEditor(packageID: package.id, parentID: package.parentID)
+                    }
                     Divider()
                     Button("Delete Package", role: .destructive) {
                         state.confirmation = .deletePackage(package)
@@ -210,7 +203,7 @@ struct SnippetsPageView: ManagedCardPage {
             actionSnippets: context.actionItems,
             execute: requestExecution,
             executeOnHosts: executeOnHosts,
-            edit: { state.sheet = .editSnippet(snippet) },
+            edit: { openSnippetEditor(snippetID: snippet.id, packageID: snippet.packageID) },
             duplicate: duplicate,
             delete: {
                 state.confirmation = .deleteSnippets(SnippetBatch(snippets: $0))
@@ -226,7 +219,7 @@ struct SnippetsPageView: ManagedCardPage {
     func managedSupplementaryContent(for section: SectionID) -> some View {
         if section != .results {
             AddCardTile(title: "New Snippet") {
-                state.sheet = .newSnippet(packageID: section.packageID)
+                openSnippetEditor(snippetID: nil, packageID: section.packageID)
             }
         }
     }
@@ -243,10 +236,10 @@ struct SnippetsPageView: ManagedCardPage {
                 Button("Execute on Hosts") { executeOnHosts(selected) }
             }
             Button("New Package") {
-                state.sheet = .newPackage(parentID: nil)
+                openPackageEditor(packageID: nil, parentID: nil)
             }
             Button("New Snippet") {
-                state.sheet = .newSnippet(packageID: nil)
+                openSnippetEditor(snippetID: nil, packageID: nil)
             }
         }
     }
@@ -259,10 +252,10 @@ struct SnippetsPageView: ManagedCardPage {
         } actions: {
             HStack {
                 Button("New Package") {
-                    state.sheet = .newPackage(parentID: nil)
+                    openPackageEditor(packageID: nil, parentID: nil)
                 }
                 Button("New Snippet") {
-                    state.sheet = .newSnippet(packageID: nil)
+                    openSnippetEditor(snippetID: nil, packageID: nil)
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -338,10 +331,13 @@ struct SnippetsPageView: ManagedCardPage {
     private func requestExecution(_ snippets: [Snippet]) {
         guard !snippets.isEmpty else { return }
         if snippets.contains(where: { $0.targetHostIDs.isEmpty }) {
-            window.hostChooser = .snippet(
-                SnippetHostChooserRequest(
-                    snippetIDs: snippets.map(\.id), strategy: .fillMissingTargets
-                )
+            window.openVaultWork(
+                .snippetExecutionTargets(
+                    SnippetHostChooserRequest(
+                        snippetIDs: snippets.map(\.id), strategy: .fillMissingTargets
+                    )
+                ),
+                on: .snippets
             )
             return
         }
@@ -361,10 +357,13 @@ struct SnippetsPageView: ManagedCardPage {
 
     private func executeOnHosts(_ snippets: [Snippet]) {
         guard !snippets.isEmpty else { return }
-        window.hostChooser = .snippet(
-            SnippetHostChooserRequest(
-                snippetIDs: snippets.map(\.id), strategy: .overrideAllTargets
-            )
+        window.openVaultWork(
+            .snippetExecutionTargets(
+                SnippetHostChooserRequest(
+                    snippetIDs: snippets.map(\.id), strategy: .overrideAllTargets
+                )
+            ),
+            on: .snippets
         )
     }
 
@@ -375,6 +374,22 @@ struct SnippetsPageView: ManagedCardPage {
                 .map(\.name).joined(separator: ", ")
             return "• \(snippet.body)\n  \(targets)"
         }.joined(separator: "\n")
+    }
+
+    private func openSnippetEditor(
+        snippetID: Snippet.ID?, packageID: SnippetPackage.ID?
+    ) {
+        window.openVaultWork(
+            .snippetEditor(snippetID: snippetID, packageID: packageID), on: .snippets
+        )
+    }
+
+    private func openPackageEditor(
+        packageID: SnippetPackage.ID?, parentID: SnippetPackage.ID?
+    ) {
+        window.openVaultWork(
+            .snippetPackageEditor(packageID: packageID, parentID: parentID), on: .snippets
+        )
     }
 }
 
@@ -395,7 +410,6 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
     func body(content: Content) -> some View {
         @Bindable var state = state
         content
-            .sheet(item: $state.sheet, content: sheetContent)
             .confirmationDialog(
                 confirmationTitle,
                 isPresented: Binding(
@@ -409,20 +423,6 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
             } message: {
                 confirmationMessage
             }
-    }
-
-    @ViewBuilder
-    private func sheetContent(_ route: SnippetsPageState.SheetRoute) -> some View {
-        switch route {
-        case .newSnippet(let packageID):
-            SnippetEditorSheet(packageID: packageID, save: actions.saveSnippet)
-        case .editSnippet(let snippet):
-            SnippetEditorSheet(snippet: snippet, save: actions.saveSnippet)
-        case .newPackage(let parentID):
-            SnippetPackageSheet(parentID: parentID, save: actions.savePackage)
-        case .editPackage(let package):
-            SnippetPackageSheet(package: package, save: actions.savePackage)
-        }
     }
 
     @ViewBuilder
@@ -604,8 +604,11 @@ private struct SnippetGhostCard: View {
 }
 
 struct SnippetEditorSheet: View {
+    private enum Route: Hashable { case targets }
+
     let existing: Snippet?
     let save: (Snippet) -> Void
+    var requestedClose: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -613,14 +616,16 @@ struct SnippetEditorSheet: View {
     @State private var bodyText: String
     @State private var packageID: SnippetPackage.ID?
     @State private var targets: Set<Host.ID>
-    @State private var isChoosingTargets = false
+    @State private var path: [Route] = []
 
     init(
         snippet: Snippet? = nil, packageID: SnippetPackage.ID? = nil,
-        save: @escaping (Snippet) -> Void
+        save: @escaping (Snippet) -> Void,
+        close: (() -> Void)? = nil
     ) {
         existing = snippet
         self.save = save
+        requestedClose = close
         _title = State(initialValue: snippet?.title ?? "")
         _bodyText = State(initialValue: snippet?.body ?? "")
         _packageID = State(initialValue: snippet?.packageID ?? packageID)
@@ -628,12 +633,22 @@ struct SnippetEditorSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(existing == nil ? "New Snippet" : "Edit Snippet")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Metrics.Space.xl)
-            Divider()
+        NavigationStack(path: $path) {
+            editor
+                .navigationDestination(for: Route.self) { route in
+                    switch route {
+                    case .targets:
+                        SnippetTargetPickerSheet(selected: targets) { targets = $0 }
+                    }
+                }
+        }
+    }
+
+    private var editor: some View {
+        VaultDetailScaffold(
+            title: existing == nil ? "New Snippet" : "Edit Snippet",
+            symbol: "text.badge.plus", close: close
+        ) {
             Form {
                 Section {
                     TextField("Name", text: $title)
@@ -690,7 +705,7 @@ struct SnippetEditorSheet: View {
                         Text("Targets")
                         Spacer()
                         Button {
-                            isChoosingTargets = true
+                            path.append(.targets)
                         } label: {
                             Label("Add Hosts", systemImage: "plus")
                         }
@@ -699,19 +714,15 @@ struct SnippetEditorSheet: View {
                 }
             }
             .formStyle(.grouped)
-            Divider()
+        } footer: {
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Button(existing == nil ? "Add" : "Save", action: commit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(trimmedTitle.isEmpty || trimmedBody.isEmpty)
             }
             .padding(Metrics.Space.l)
-        }
-        .frame(width: 520, height: 620)
-        .sheet(isPresented: $isChoosingTargets) {
-            SnippetTargetPickerSheet(selected: targets) { targets = $0 }
         }
     }
 
@@ -728,6 +739,10 @@ struct SnippetEditorSheet: View {
         app.hosts.searchHosts("").filter { targets.contains($0.id) }
     }
 
+    private func close() {
+        if let requestedClose { requestedClose() } else { dismiss() }
+    }
+
     private func commit() {
         let orderedTargets = app.hosts.searchHosts("").filter { targets.contains($0.id) }.map(\.id)
         save(
@@ -737,7 +752,7 @@ struct SnippetEditorSheet: View {
                 sortIndex: existing?.sortIndex ?? 0
             )
         )
-        dismiss()
+        close()
     }
 }
 
@@ -764,14 +779,18 @@ private struct SnippetTargetPickerSheet: View {
     }
 
     var body: some View {
-        SheetScaffold {
-            header
-        } content: {
-            content
+        VaultDetailScaffold(
+            title: "Add Hosts", symbol: "server.rack", close: { dismiss() },
+            closeLabel: "Back", closeSymbol: "chevron.backward"
+        ) {
+            VStack(spacing: 0) {
+                header
+                Divider().opacity(0.7)
+                content
+            }
         } footer: {
             footer
         }
-        .frame(width: Metrics.HostPicker.width, height: Metrics.HostPicker.height)
         .onAppear {
             let available = Set(app.hosts.hosts.map(\.id))
             chooser.selected = initialSelection.intersection(available)
@@ -881,9 +900,10 @@ private struct SnippetTargetPickerSheet: View {
     }
 }
 
-private struct SnippetPackageSheet: View {
+struct SnippetPackageSheet: View {
     let existing: SnippetPackage?
     let save: (SnippetPackage) -> Void
+    var requestedClose: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -892,21 +912,21 @@ private struct SnippetPackageSheet: View {
 
     init(
         package: SnippetPackage? = nil, parentID: SnippetPackage.ID? = nil,
-        save: @escaping (SnippetPackage) -> Void
+        save: @escaping (SnippetPackage) -> Void,
+        close: (() -> Void)? = nil
     ) {
         existing = package
         self.save = save
+        requestedClose = close
         _name = State(initialValue: package?.name ?? "")
         _parentID = State(initialValue: package?.parentID ?? parentID)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(existing == nil ? "New Package" : "Edit Package")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Metrics.Space.xl)
-            Divider()
+        VaultDetailScaffold(
+            title: existing == nil ? "New Package" : "Edit Package",
+            symbol: "folder.fill", close: close
+        ) {
             Form {
                 TextField("Name", text: $name)
                 Picker("Inside", selection: $parentID) {
@@ -917,20 +937,23 @@ private struct SnippetPackageSheet: View {
                 }
             }
             .formStyle(.grouped)
-            Divider()
+        } footer: {
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Button(existing == nil ? "Add" : "Save", action: commit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(trimmedName.isEmpty)
             }
             .padding(Metrics.Space.l)
         }
-        .frame(width: Metrics.CreateSheet.width)
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private func close() {
+        if let requestedClose { requestedClose() } else { dismiss() }
+    }
 
     private var parentChoices: [(package: SnippetPackage, path: String)] {
         let forbidden: Set<SnippetPackage.ID>
@@ -956,7 +979,7 @@ private struct SnippetPackageSheet: View {
                 isExpanded: existing?.isExpanded ?? true
             )
         )
-        dismiss()
+        close()
     }
 }
 

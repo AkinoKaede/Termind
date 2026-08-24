@@ -72,6 +72,7 @@ struct TagFilterButton: View {
                     }
                 }
                 .padding(.horizontal, Metrics.Space.s)
+                .padding(.bottom, Metrics.Space.s)
             }
             .frame(maxHeight: Metrics.TagFilter.maxListHeight)
 

@@ -137,6 +137,18 @@ enum Metrics {
         static let maxListHeight: CGFloat = 420
     }
 
+    enum VaultContent {
+        static let min: CGFloat = 420
+        static let ideal: CGFloat = 680
+        static let max: CGFloat = 1_000
+    }
+
+    enum VaultDetail {
+        static let min: CGFloat = 340
+        static let ideal: CGFloat = 460
+        static let max: CGFloat = 720
+    }
+
     enum Window {
         /// The detail column's own floor, applied to the detail `VStack` itself.
         ///

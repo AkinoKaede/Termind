@@ -2,18 +2,6 @@ import SwiftUI
 
 @Observable
 final class HostsPageState {
-    enum SheetRoute: Identifiable {
-        case newGroup
-        case editGroup(HostGroup)
-
-        var id: String {
-            switch self {
-            case .newGroup: "new-group"
-            case .editGroup(let group): "edit-group-\(group.id)"
-            }
-        }
-    }
-
     enum ConfirmationRoute: Identifiable {
         case deleteGroup(HostGroup)
         case deleteTag(String)
@@ -29,7 +17,6 @@ final class HostsPageState {
     var query = ""
     var selectedGroupID: HostGroup.ID?
     var selectedTags: Set<String> = []
-    var sheet: SheetRoute?
     var confirmation: ConfirmationRoute?
 }
 
@@ -62,7 +49,12 @@ struct HostsPageView: ManagedCardPage {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    @State private var state = HostsPageState()
+    let state: HostsPageState
+    @FocusState private var searchFocused: Bool
+
+    init(state: HostsPageState = HostsPageState()) {
+        self.state = state
+    }
     /// A plain click replaces the window-scoped selection; Shift-click and a
     /// background marquee extend it. Keeping it on `WindowModel` lets the page
     /// restore the same cards when its tab becomes current again.
@@ -198,7 +190,7 @@ struct HostsPageView: ManagedCardPage {
                 isDropTarget: isDropTarget
             )
             .contextMenu {
-                Button("Edit") { state.sheet = .editGroup(group) }
+                Button("Edit") { editGroup(group) }
                 Divider()
                 Button("Delete Group", role: .destructive) { requestDelete(group) }
             }
@@ -237,7 +229,7 @@ struct HostsPageView: ManagedCardPage {
     func managedSupplementaryContent(for section: SectionID) -> some View {
         if section == .ungrouped || sections.count == 1 {
             AddCardTile(title: "New Host") {
-                window.openHostEditor(host: nil)
+                openHostEditor(nil)
             }
         }
     }
@@ -318,7 +310,8 @@ struct HostsPageView: ManagedCardPage {
     func managedToolbar() -> some View {
         PageToolbar(
             query: Binding(get: { state.query }, set: { state.query = $0 }),
-            prompt: "Filter hosts"
+            prompt: "Filter hosts",
+            searchFocused: $searchFocused
         ) {
             TagFilterButton(
                 tags: app.hosts.hostTags,
@@ -352,20 +345,22 @@ struct HostsPageView: ManagedCardPage {
                 HostConnectMenu(hosts: selectedHosts)
                     .menuStyle(.button)
                 if selectedHosts.count == 1, let host = selectedHosts.first {
-                    Button("Edit") { window.openHostEditor(host: host) }
+                    Button("Edit") { openHostEditor(host) }
                 }
             }
             // The same slot, for the other kind of selection — the two can never
             // both be set, so the toolbar only ever offers one set of verbs.
             if let group = state.selectedGroupID.flatMap({ app.hosts.group($0) }) {
-                Button("Edit Group") { state.sheet = .editGroup(group) }
+                Button("Edit Group") { editGroup(group) }
                 Button("Delete Group", role: .destructive) { requestDelete(group) }
             }
             // Groups are made here rather than only in the host editor: filing
             // is what this page is for, and a folder should not have to wait on
             // a host to exist.
-            Button("New Group") { state.sheet = .newGroup }
-            Button("New Host") { window.openHostEditor(host: nil) }
+            Button("New Group") {
+                openWork(.hostGroupEditor(groupID: nil, parentID: nil))
+            }
+            Button("New Host") { openHostEditor(nil) }
         }
     }
 
@@ -375,7 +370,7 @@ struct HostsPageView: ManagedCardPage {
         } description: {
             Text("Save a host here, or enter user@host on the Welcome page to connect once.")
         } actions: {
-            Button("New Host") { window.openHostEditor(host: nil) }
+            Button("New Host") { openHostEditor(nil) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -402,24 +397,38 @@ struct HostsPageView: ManagedCardPage {
             state: state,
             actions: HostsPagePresentation.Actions(
                 store: app.hosts,
-                createGroup: { group in
-                    app.hosts.upsert(group)
-                    selectGroup(group.id)
-                },
-                editGroup: { app.hosts.upsert($0) },
                 deleteGroup: { delete($0, keepHosts: $1) },
                 deleteTag: deleteTag,
                 deletionMessage: deletionMessage
             )
         )
     }
+
+    private func editGroup(_ group: HostGroup) {
+        openWork(.hostGroupEditor(groupID: group.id, parentID: group.parentID))
+    }
+
+    private func openHostEditor(_ host: Host?) {
+        window.openHostEditor(host: host)
+        restoreSearchFocus()
+    }
+
+    private func openWork(_ route: VaultWorkRoute) {
+        window.openVaultWork(route, on: .hosts)
+        restoreSearchFocus()
+    }
+
+    private func restoreSearchFocus() {
+        Task { @MainActor in
+            await Task.yield()
+            searchFocused = true
+        }
+    }
 }
 
 struct HostsPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
         let store: HostStore
-        let createGroup: (HostGroup) -> Void
-        let editGroup: (HostGroup) -> Void
         let deleteGroup: (HostGroup, Bool) -> Void
         let deleteTag: (String) -> Void
         let deletionMessage: (HostGroup) -> String
@@ -431,14 +440,6 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
     func body(content: Content) -> some View {
         @Bindable var state = state
         content
-            .sheet(item: $state.sheet) { route in
-                switch route {
-                case .newGroup:
-                    NewGroupSheet(create: actions.createGroup)
-                case .editGroup(let group):
-                    NewGroupSheet(group: group, create: actions.editGroup)
-                }
-            }
             .confirmationDialog(
                 confirmationTitle,
                 isPresented: Binding(

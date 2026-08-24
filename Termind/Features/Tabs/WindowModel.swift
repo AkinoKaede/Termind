@@ -1,6 +1,6 @@
 import Foundation
 
-enum SFTPSessionOpenPlacement: Equatable {
+enum SessionOpenPlacement: Equatable {
     case newTab
     case currentWorkspace
 }
@@ -16,8 +16,9 @@ final class WindowModel {
     /// The top-level shell has two pinned entries followed by dynamic SSH/SFTP
     /// Workspaces. This is the single source of truth for tab selection.
     var selectedTopLevelTab: TopLevelTab = .vault
-    var vaultDestination: VaultDestination = .hosts
-    let chatLibrary: ChatLibraryModel
+    var vaultDestination: VaultDestination = .welcome
+    var vaultWorkRoute: VaultWorkRoute?
+    let assistantLibrary: AssistantLibraryModel
     let sidebar = WindowSidebarState()
     let presentations = WindowPresentationState()
     let dragState = WorkspaceDragState()
@@ -176,12 +177,12 @@ final class WindowModel {
 
     init(
         tabs: [Workspace] = [],
-        vaultDestination: VaultDestination = .hosts,
-        chatLibrary: ChatLibraryModel = ChatLibraryModel()
+        vaultDestination: VaultDestination = .welcome,
+        assistantLibrary: AssistantLibraryModel = AssistantLibraryModel()
     ) {
         self.tabs = tabs
         self.vaultDestination = vaultDestination
-        self.chatLibrary = chatLibrary
+        self.assistantLibrary = assistantLibrary
         selectedTopLevelTab = tabs.first.map { .workspace($0.id) } ?? .vault
         for tab in tabs {
             tab.lifecycleRouter = self
@@ -345,13 +346,13 @@ final class WindowModel {
         selectedTopLevelTab = .vault
     }
 
-    func selectChat(_ id: ConversationModel.ID? = nil) {
-        if let id { chatLibrary.select(id) }
-        if chatLibrary.selectedConversation == nil { chatLibrary.createConversation() }
-        selectedTopLevelTab = .chat
+    func selectAssistant(_ id: ConversationModel.ID? = nil) {
+        if let id { assistantLibrary.select(id) }
+        if assistantLibrary.selectedConversation == nil { assistantLibrary.createConversation() }
+        selectedTopLevelTab = .assistant
     }
 
-    /// ⌘1 is Vault, ⌘2 is Chat, and dynamic Workspaces start at ⌘3.
+    /// ⌘1 is Vault, ⌘2 is Assistant, and dynamic Workspaces start at ⌘3.
     func select(index: Int) {
         let topLevelTabs = allTopLevelTabs
         guard topLevelTabs.indices.contains(index) else { return }
@@ -377,7 +378,7 @@ final class WindowModel {
     }
 
     private var allTopLevelTabs: [TopLevelTab] {
-        [.vault, .chat] + tabs.map { .workspace($0.id) }
+        [.vault, .assistant] + tabs.map { .workspace($0.id) }
     }
 
     // MARK: - Opening
@@ -396,14 +397,43 @@ final class WindowModel {
     /// Opens a route inside the pinned Vault tab.
     func openPage(_ page: VaultPage) {
         vaultDestination = VaultDestination(page: page)
+        vaultWorkRoute = nil
         selectedTopLevelTab = .vault
     }
 
+    func openVaultWork(_ route: VaultWorkRoute, on page: VaultPage) {
+        vaultDestination = VaultDestination(page: page)
+        vaultWorkRoute = route
+        selectedTopLevelTab = .vault
+    }
+
+    func closeVaultWork() {
+        vaultWorkRoute = nil
+    }
+
     @discardableResult
-    func openSSHSession(host: Host, usernameHint: String? = nil) -> Workspace {
-        let tab = Workspace.sshSession(host: host, usernameHint: usernameHint)
-        numberPane(tab.focusedPane)
-        return open(tab)
+    func openSSHSession(
+        host: Host,
+        usernameHint: String? = nil,
+        initialPath: String? = nil,
+        placement: SessionOpenPlacement = .newTab
+    ) -> Workspace {
+        let pane = Pane.sshSession(
+            host: host,
+            usernameHint: usernameHint,
+            initialCommand: initialPath.flatMap(Self.changeDirectoryCommand)
+        )
+        numberPane(pane)
+
+        if placement == .currentWorkspace,
+            let tab = selectedTab,
+            tab.focusedPane.sftpSession != nil
+        {
+            tab.splitFocusedPane(axis: .horizontal, with: pane)
+            return tab
+        }
+
+        return open(Workspace(pane: pane))
     }
 
     /// Batch Startup's second verb: every host becomes a pane of one Workspace,
@@ -453,9 +483,9 @@ final class WindowModel {
     }
 
     @discardableResult
-    func openChat() -> ConversationModel {
-        let conversation = chatLibrary.createConversation()
-        selectedTopLevelTab = .chat
+    func openAssistant() -> ConversationModel {
+        let conversation = assistantLibrary.createConversation()
+        selectedTopLevelTab = .assistant
         return conversation
     }
 
@@ -469,7 +499,7 @@ final class WindowModel {
     func openSFTPSession(
         host: Host,
         initialPath: String? = nil,
-        placement: SFTPSessionOpenPlacement = .newTab
+        placement: SessionOpenPlacement = .newTab
     ) -> Workspace {
         let pane = Pane.sftpSession(host: host, initialPath: initialPath)
         numberPane(pane)
@@ -485,6 +515,15 @@ final class WindowModel {
         return open(Workspace(pane: pane))
     }
 
+    /// A one-shot directory change for a shell opened from an SFTP path.
+    /// Single-quoting keeps spaces and shell punctuation inert; embedded
+    /// apostrophes are closed, emitted literally, and reopened.
+    nonisolated static func changeDirectoryCommand(for path: String) -> String? {
+        guard !path.isEmpty else { return nil }
+        let quoted = path.replacingOccurrences(of: "'", with: "'\"'\"'")
+        return "cd '\(quoted)'"
+    }
+
     /// Opens the host editor, reusing the tab that already holds one for the
     /// same host — and "no host" counts as a host here, so New Host twice means
     /// "show me the New Host form" rather than handing back a second empty copy
@@ -492,12 +531,11 @@ final class WindowModel {
     /// were worth avoiding: a half-typed form is easier to find again than to
     /// tell apart from its twin in the tab bar.
     func openHostEditor(host: Host?) {
-        vaultDestination = .hostEditor(host?.id)
-        selectedTopLevelTab = .vault
+        openVaultWork(.hostEditor(host?.id), on: .hosts)
     }
 
     func closeManagement() {
-        openPage(.hosts)
+        closeVaultWork()
     }
 
     // MARK: - Combining
@@ -646,7 +684,7 @@ final class WindowModel {
             selectedTopLevelTab =
                 tabs.indices.contains(index)
                 ? .workspace(tabs[index].id)
-                : tabs.last.map { .workspace($0.id) } ?? .chat
+                : tabs.last.map { .workspace($0.id) } ?? .assistant
         }
     }
 
@@ -778,7 +816,7 @@ final class WindowModel {
             selectedTopLevelTab =
                 tabs.indices.contains(index)
                 ? .workspace(tabs[index].id)
-                : tabs.last.map { .workspace($0.id) } ?? .chat
+                : tabs.last.map { .workspace($0.id) } ?? .assistant
         }
     }
 
@@ -838,10 +876,10 @@ final class WindowModel {
     func closeWorkspaces(for hostID: Host.ID) {
         let paneIDs = tabs.flatMap(\.panes).filter { $0.hostID == hostID }.map(\.id)
         for paneID in paneIDs { closePane(paneID) }
-        if case .hostEditor(let editingID) = vaultDestination,
+        if case .hostEditor(let editingID) = vaultWorkRoute,
             editingID == hostID
         {
-            openPage(.hosts)
+            closeVaultWork()
         }
     }
 

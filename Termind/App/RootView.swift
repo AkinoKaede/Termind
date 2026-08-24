@@ -2,14 +2,14 @@ import SwiftUI
 
 /// One window.
 ///
-/// The tab strip is the window's top-level navigation. Vault and Chat are pinned
+/// The tab strip is the window's top-level navigation. Vault and Assistant are pinned
 /// first and second; SSH/SFTP Workspaces follow them. One stable left sidebar
 /// serves every top-level tab and swaps navigation for contextual tools in place.
 struct RootView: View {
     @Environment(AppModel.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @State private var window: WindowModel
+    @State private var hostsPageState = HostsPageState()
 
     init(window: WindowModel = WindowModel()) {
         _window = State(initialValue: window)
@@ -22,23 +22,7 @@ struct RootView: View {
         VStack(spacing: 0) {
             TabBarView()
             Divider()
-            NavigationSplitView(columnVisibility: sidebarVisibility) {
-                SidebarView(detailCatalog: .standard(store: app.hosts))
-                    .navigationSplitViewColumnWidth(
-                        min: Metrics.Sidebar.min,
-                        ideal: Metrics.Sidebar.ideal,
-                        max: Metrics.Sidebar.max
-                    )
-            } detail: {
-                detail
-                    .frame(
-                        minWidth: Metrics.Window.detailMin,
-                        maxWidth: .infinity,
-                        minHeight: Metrics.Window.minHeight,
-                        maxHeight: .infinity
-                    )
-            }
-            .navigationSplitViewStyle(.balanced)
+            splitContent
             if window.selectedTab != nil {
                 StatusBarView()
             }
@@ -49,7 +33,6 @@ struct RootView: View {
             minHeight: Metrics.Window.minHeight,
             maxHeight: .infinity
         )
-        .toolbar { toolbar }
         .toolbarBackground(WindowChrome.background(for: colorScheme), for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
         // ⌘T and every Connect entry land here. A sheet rather than a page,
@@ -91,6 +74,87 @@ struct RootView: View {
             window.selectedTab?.refreshConversationContext(in: app.hosts)
             window.reconcileSidebarMode()
         }
+    }
+
+    @ViewBuilder
+    private var splitContent: some View {
+        if window.selectedTopLevelTab == .vault {
+            // Vault itself always remains the same two-column navigation view.
+            // Its detail owns the optional work split so showing New Host does
+            // not reconstruct `VaultView` and discard an active query, selected
+            // tags, scroll position, or search-field focus.
+            NavigationSplitView {
+                vaultSidebar
+            } detail: {
+                vaultWorkspace
+            }
+            .navigationSplitViewStyle(.balanced)
+        } else {
+            NavigationSplitView(columnVisibility: sidebarVisibility) {
+                SidebarView(detailCatalog: .standard(store: app.hosts))
+                    .navigationSplitViewColumnWidth(
+                        min: Metrics.Sidebar.min,
+                        ideal: Metrics.Sidebar.ideal,
+                        max: Metrics.Sidebar.max
+                    )
+            } detail: {
+                detail
+                    .frame(
+                        minWidth: Metrics.Window.detailMin,
+                        maxWidth: .infinity,
+                        minHeight: Metrics.Window.minHeight,
+                        maxHeight: .infinity
+                    )
+            }
+            .navigationSplitViewStyle(.balanced)
+        }
+    }
+
+    private var vaultSidebar: some View {
+        VaultSidebarView()
+            .navigationSplitViewColumnWidth(
+                min: Metrics.Sidebar.min,
+                ideal: Metrics.Sidebar.ideal,
+                max: Metrics.Sidebar.max
+            )
+    }
+
+    private var vaultWorkspace: some View {
+        let showsWorkDetail = window.vaultWorkRoute != nil
+
+        return HStack(spacing: 0) {
+            VaultView(hostsPageState: hostsPageState)
+                .frame(
+                    minWidth: Metrics.VaultContent.min,
+                    idealWidth: Metrics.VaultContent.ideal,
+                    maxWidth: .infinity
+                )
+                .layoutPriority(1)
+
+            Divider()
+                .frame(width: showsWorkDetail ? 1 : 0)
+                .opacity(showsWorkDetail ? 1 : 0)
+
+            ZStack {
+                if let route = window.vaultWorkRoute {
+                    VaultWorkDetailView(route: route)
+                }
+            }
+            .frame(
+                minWidth: showsWorkDetail ? Metrics.VaultDetail.min : 0,
+                idealWidth: showsWorkDetail ? Metrics.VaultDetail.ideal : 0,
+                maxWidth: showsWorkDetail ? Metrics.VaultDetail.max : 0
+            )
+            .clipped()
+            .opacity(showsWorkDetail ? 1 : 0)
+            .allowsHitTesting(showsWorkDetail)
+            .accessibilityHidden(!showsWorkDetail)
+        }
+        .frame(
+            minWidth: Metrics.VaultContent.min,
+            maxWidth: .infinity,
+            maxHeight: .infinity
+        )
     }
 
     private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
@@ -136,8 +200,8 @@ struct RootView: View {
                 VaultView()
                     .background(Color(nsColor: .windowBackgroundColor))
                     .zIndex(2)
-            case .chat:
-                ChatView()
+            case .assistant:
+                AssistantView()
                     .background(Color(nsColor: .windowBackgroundColor))
                     .zIndex(2)
             case .workspace:
@@ -146,18 +210,4 @@ struct RootView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem {
-            Button {
-                withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
-                    window.showAssistant()
-                }
-            } label: {
-                Label("Assistant", systemImage: "sidebar.left")
-            }
-            .help(Text("Show Assistant in Sidebar — ⌥⌘I"))
-            .disabled(window.selectedTab == nil)
-        }
-    }
 }

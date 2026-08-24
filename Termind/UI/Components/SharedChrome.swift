@@ -1,5 +1,30 @@
 import SwiftUI
 
+/// A form row that opens a creation or configuration flow.
+///
+/// The full row is the hit target; the chevron communicates that the action
+/// continues elsewhere rather than taking effect immediately.
+struct FormNavigationAction: View {
+    let title: LocalizedStringKey
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Metrics.Space.m) {
+                Text(title)
+                Spacer(minLength: Metrics.Space.m)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 enum TermindSearchFieldDensity {
     case compact, regular, prominent
 }
@@ -8,6 +33,9 @@ struct TermindSearchField: View {
     @Binding var text: String
     let prompt: LocalizedStringKey
     var density: TermindSearchFieldDensity = .regular
+    var externalFocus: FocusState<Bool>.Binding?
+
+    @FocusState private var localFocus: Bool
 
     var body: some View {
         HStack(spacing: Metrics.Space.s) {
@@ -16,6 +44,7 @@ struct TermindSearchField: View {
             TextField(prompt, text: $text)
                 .textFieldStyle(.plain)
                 .font(density == .prominent ? .title3 : .body)
+                .focused(externalFocus ?? $localFocus)
             if !text.isEmpty {
                 Button {
                     text = ""
@@ -64,6 +93,48 @@ struct SheetScaffold<Header: View, Content: View, Footer: View>: View {
             header
                 .frame(maxWidth: .infinity)
                 .background(.bar)
+            Divider().opacity(0.7)
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.background)
+            Divider().opacity(0.7)
+            footer
+                .background(.bar)
+        }
+    }
+}
+
+/// The stable chrome for work performed in Vault's third column. It deliberately
+/// resembles the manager toolbars rather than a floating sheet: a clear close
+/// affordance, a quiet title, scrollable work, and actions anchored at the foot.
+struct VaultDetailScaffold<Content: View, Footer: View>: View {
+    let title: String
+    let symbol: String
+    let close: () -> Void
+    var closeLabel = "Close"
+    var closeSymbol = "xmark"
+    @ViewBuilder let content: Content
+    @ViewBuilder let footer: Footer
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: Metrics.Space.m) {
+                Button(action: close) {
+                    Label(closeLabel, systemImage: closeSymbol)
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.cancelAction)
+                .help(closeLabel)
+
+                Label(title, systemImage: symbol)
+                    .font(.headline)
+                Spacer()
+            }
+            .padding(.horizontal, Metrics.Space.l)
+            .padding(.vertical, Metrics.Space.m)
+            .background(.bar)
+
             Divider().opacity(0.7)
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

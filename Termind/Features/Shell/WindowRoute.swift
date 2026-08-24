@@ -43,7 +43,6 @@ nonisolated enum VaultDestination: Hashable, Sendable {
     case hosts
     case keychain
     case snippets
-    case hostEditor(Host.ID?)
 
     init(page: VaultPage) {
         switch page {
@@ -60,9 +59,24 @@ nonisolated enum VaultDestination: Hashable, Sendable {
         case .hosts: .hosts
         case .keychain: .keychain
         case .snippets: .snippets
-        case .hostEditor: nil
         }
     }
+}
+
+/// A deliberate task opened in Vault's third column. Card selection remains a
+/// middle-column concern; only explicit New, Edit, Export and Execute actions
+/// create a work route.
+nonisolated enum VaultWorkRoute: Hashable, Sendable {
+    case hostEditor(Host.ID?)
+    case hostGroupEditor(groupID: HostGroup.ID?, parentID: HostGroup.ID?)
+    case identityEditor(Identity.ID?)
+    case generateKey
+    case importKey(PendingKeyImport)
+    case renameKey(SSHKeyRef.ID)
+    case exportKeys([SSHKeyRef.ID])
+    case snippetEditor(snippetID: Snippet.ID?, packageID: SnippetPackage.ID?)
+    case snippetPackageEditor(packageID: SnippetPackage.ID?, parentID: SnippetPackage.ID?)
+    case snippetExecutionTargets(SnippetHostChooserRequest)
 }
 
 /// The top-level tab selection for one window. Vault and Assistant are pinned and

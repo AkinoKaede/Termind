@@ -163,7 +163,10 @@ struct HostChooserView: View {
         } footer: {
             footer
         }
-        .frame(width: 520, height: Metrics.HostPicker.height)
+        .frame(
+            width: purpose.choosesConnectionProtocol ? 520 : nil,
+            height: purpose.choosesConnectionProtocol ? Metrics.HostPicker.height : nil
+        )
         .onChange(of: chooser.query) {
             let ids = results.map(\.id)
             chooser.queryDidChange(visible: ids, enabled: Set(ids))
@@ -203,7 +206,7 @@ struct HostChooserView: View {
     }
 
     private var connectionProtocolPicker: some View {
-        Picker("Connection protocol", selection: $connectionProtocol) {
+        Picker("Connection Protocol", selection: $connectionProtocol) {
             ForEach(HostConnectionProtocol.allCases) { connectionProtocol in
                 Text(connectionProtocol.rawValue).tag(connectionProtocol)
             }
@@ -223,7 +226,7 @@ struct HostChooserView: View {
                 Text("Add a host to connect to it.")
             } actions: {
                 Button("New Host") {
-                    dismiss()
+                    close()
                     window.openHostEditor(host: nil)
                 }
             }
@@ -280,7 +283,7 @@ struct HostChooserView: View {
 
             Spacer()
 
-            Button("Cancel") { dismiss() }
+            Button("Cancel", action: close)
                 .keyboardShortcut(.cancelAction)
 
             if purpose.showsWorkspaceChoice {
@@ -361,7 +364,7 @@ struct HostChooserView: View {
         case .overrideAllTargets:
             app.execute(requestedSnippets, overrideHostIDs: ids, in: window)
         }
-        dismiss()
+        close()
     }
 
     private var snippetConfirmationMessage: String {
@@ -380,6 +383,14 @@ struct HostChooserView: View {
                 .map(\.name).joined(separator: ", ")
             return "• \(snippet.body)\n  \(targets)"
         }.joined(separator: "\n")
+    }
+
+    private func close() {
+        if case .snippet = purpose, window.selectedTopLevelTab == .vault {
+            window.closeVaultWork()
+        } else {
+            dismiss()
+        }
     }
 
     private var workspaceHelp: Text {

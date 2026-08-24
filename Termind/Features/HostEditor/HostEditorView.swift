@@ -5,6 +5,13 @@ import SwiftUI
 /// A route inside Vault rather than a dynamic tab or sheet. It edits durable
 /// connection data without entering SSH/SFTP Workspace lifecycle state.
 struct HostEditorView: View {
+    private enum Route: Hashable {
+        case identity
+        case proxyIdentity
+        case group
+        case forwarding(PortForwardingRule)
+    }
+
     let hostID: Host.ID?
 
     @Environment(AppModel.self) private var app
@@ -14,20 +21,35 @@ struct HostEditorView: View {
     @State private var draftForwardings: [PortForwardingRule] = []
     @State private var draftKnownHosts: [KnownHostEntry] = []
     @State private var originalKnownHosts: [KnownHostEntry] = []
-    @State private var isCreatingIdentity = false
-    @State private var isCreatingProxyIdentity = false
-    @State private var isCreatingGroup = false
+    @State private var path: [Route] = []
     @State private var saveError: String?
 
     var body: some View {
+        NavigationStack(path: $path) {
+            VaultDetailScaffold(
+                title: hostID == nil ? "New Host" : "Edit Host",
+                symbol: "server.rack", close: closeTab
+            ) {
+                form
+            } footer: {
+                footer
+            }
+                .navigationDestination(for: Route.self, destination: destination)
+        }
+    }
+
+    private var form: some View {
         Form {
             Section("Connection") {
                 TextField("Name", text: $draft.name, prompt: Text(draft.host))
                 TextField("Host", text: $draft.host, prompt: Text("IP address or hostname"))
                 TextField("Port", value: $draft.port, format: .number.grouping(.never))
+            }
+
+            Section("SFTP") {
                 TextField(
-                    "SFTP initial path", text: $draft.sftpSessionInitialPath,
-                    prompt: Text("Home directory")
+                    "Initial Path", text: $draft.sftpSessionInitialPath,
+                    prompt: Text("~")
                 )
                 .font(.body.monospaced())
                 Text("Leave blank for the remote home directory, or enter an absolute path.")
@@ -64,7 +86,7 @@ struct HostEditorView: View {
             }
 
             Section("Routing") {
-                Picker("Jump host", selection: $draft.jumpHostID) {
+                Picker("Jump Host", selection: $draft.jumpHostID) {
                     Text("None").tag(Host.ID?.none)
                     Divider()
                     ForEach(jumpHostSections) { section in
@@ -122,7 +144,10 @@ struct HostEditorView: View {
                 }
             }
 
-            PortForwardingEditorSection(host: draft, rules: $draftForwardings)
+            PortForwardingEditorSection(
+                host: draft, rules: $draftForwardings,
+                openEditor: { path.append(.forwarding($0)) }
+            )
 
             KnownHostsEditorSection(entries: $draftKnownHosts)
 
@@ -152,21 +177,20 @@ struct HostEditorView: View {
             if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Section("SSH Command") {
                     if let command = app.hosts.sshCommand(for: draft) {
-                        LabeledContent("OpenSSH") {
-                            HStack(spacing: Metrics.Space.s) {
-                                Text(command)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                                    .multilineTextAlignment(.trailing)
-                                Button {
-                                    copyToPasteboard(command)
-                                } label: {
-                                    Image(systemName: "doc.on.doc")
-                                }
-                                .buttonStyle(.borderless)
-                                .accessibilityLabel("Copy SSH Command")
+                        HStack(spacing: Metrics.Space.s) {
+                            Text(command)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button {
+                                copyToPasteboard(command)
+                            } label: {
+                                Image(systemName: "doc.on.doc")
                             }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Copy SSH Command")
                         }
                     } else {
                         Label(
@@ -180,26 +204,43 @@ struct HostEditorView: View {
             }
         }
         .formStyle(.grouped)
-        .safeAreaInset(edge: .bottom) { footer }
         .onAppear(perform: load)
-        .sheet(isPresented: $isCreatingIdentity) {
+    }
+
+    @ViewBuilder
+    private func destination(_ route: Route) -> some View {
+        switch route {
+        case .identity:
             NewIdentitySheet { identity, passwordUpdate in
                 try app.hosts.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.identityID = identity.id
             }
-        }
-        .sheet(isPresented: $isCreatingGroup) {
+        case .group:
             NewGroupSheet { group in
                 app.hosts.upsert(group)
                 draft.groupID = group.id
             }
-        }
-        .sheet(isPresented: $isCreatingProxyIdentity) {
+        case .proxyIdentity:
             NewIdentitySheet(configuration: .proxy) { identity, passwordUpdate in
                 try app.hosts.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.proxy?.identityID = identity.id
                 draft.proxy?.username = identity.username
             }
+        case .forwarding(let rule):
+            PortForwardingEditorSheet(
+                forwarding: rule, host: draft,
+                isNew: !draftForwardings.contains { $0.id == rule.id },
+                delete: { draftForwardings.removeAll { $0.id == rule.id } },
+                save: upsertForwardingDraft
+            )
+        }
+    }
+
+    private func upsertForwardingDraft(_ rule: PortForwardingRule) {
+        if let index = draftForwardings.firstIndex(where: { $0.id == rule.id }) {
+            draftForwardings[index] = rule
+        } else {
+            draftForwardings.append(rule)
         }
     }
 
@@ -231,7 +272,7 @@ struct HostEditorView: View {
             switch choice {
             case .unset: draft.identityID = nil
             case .existing(let id): draft.identityID = id
-            case .new: isCreatingIdentity = true
+            case .new: path.append(.identity)
             }
         }
     }
@@ -243,7 +284,7 @@ struct HostEditorView: View {
             switch choice {
             case .unset: draft.groupID = nil
             case .existing(let id): draft.groupID = id
-            case .new: isCreatingGroup = true
+            case .new: path.append(.group)
             }
         }
     }
@@ -350,7 +391,7 @@ struct HostEditorView: View {
                 guard let identity = app.hosts.identity(id) else { return }
                 draft.proxy?.username = identity.username
             case .new:
-                isCreatingProxyIdentity = true
+                path.append(.proxyIdentity)
             }
         }
     }

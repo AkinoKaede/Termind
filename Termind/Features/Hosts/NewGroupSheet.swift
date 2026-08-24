@@ -9,13 +9,27 @@ import SwiftUI
 struct NewGroupSheet: View {
     /// `nil` creates; anything else edits that group in place.
     var group: HostGroup?
+    var initialParentID: HostGroup.ID?
     let create: (HostGroup) -> Void
+    var requestedClose: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
     @State private var parentID: HostGroup.ID?
+
+    init(
+        group: HostGroup? = nil,
+        parentID: HostGroup.ID? = nil,
+        create: @escaping (HostGroup) -> Void,
+        close: (() -> Void)? = nil
+    ) {
+        self.group = group
+        initialParentID = parentID
+        self.create = create
+        requestedClose = close
+    }
 
     private var isEditing: Bool { group != nil }
 
@@ -28,26 +42,20 @@ struct NewGroupSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
+        VaultDetailScaffold(
+            title: isEditing ? "Edit Group" : "New Group",
+            symbol: "folder.fill", close: close,
+            closeLabel: requestedClose == nil ? "Back" : "Close",
+            closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"
+        ) {
             form
-            Divider()
+        } footer: {
             footer
         }
-        .frame(width: Metrics.CreateSheet.width)
         .onAppear(perform: load)
     }
 
     // MARK: - Pieces
-
-    private var header: some View {
-        Label(isEditing ? "Edit Group" : "New Group", systemImage: "folder.fill")
-            .font(.headline)
-            .labelStyle(.titleOnly)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Metrics.Space.xl)
-    }
 
     private var form: some View {
         Form {
@@ -72,7 +80,7 @@ struct NewGroupSheet: View {
         HStack {
             Spacer()
 
-            Button("Cancel") { dismiss() }
+            Button("Cancel", action: close)
                 .keyboardShortcut(.cancelAction)
 
             Button(isEditing ? "Save" : "Add", action: add)
@@ -90,10 +98,17 @@ struct NewGroupSheet: View {
         name.trimmingCharacters(in: .whitespaces)
     }
 
+    private func close() {
+        if let requestedClose { requestedClose() } else { dismiss() }
+    }
+
     private func load() {
-        guard let group else { return }
-        name = group.name
-        parentID = group.parentID
+        if let group {
+            name = group.name
+            parentID = group.parentID
+        } else {
+            parentID = initialParentID
+        }
     }
 
     /// Editing keeps the group's id, `sortIndex`, and expansion state, so
@@ -109,11 +124,11 @@ struct NewGroupSheet: View {
         } else {
             create(HostGroup(name: trimmedName, parentID: parentID))
         }
-        dismiss()
+        close()
     }
 }
 
 #Preview {
-    NewGroupSheet { _ in }
+    NewGroupSheet(create: { _ in })
         .environment(AppModel(hosts: .demo()))
 }

@@ -4,12 +4,11 @@ import SwiftUI
 struct PortForwardingEditorSection: View {
     let host: Host
     @Binding var rules: [PortForwardingRule]
+    let openEditor: (PortForwardingRule) -> Void
     @Environment(AppModel.self) private var app
-    @State private var editor: PortForwardingRule?
 
     var body: some View {
         forwardingSection
-            .sheet(item: $editor, content: forwardingSheet)
     }
 
     private var forwardingSection: some View {
@@ -19,12 +18,17 @@ struct PortForwardingEditorSection: View {
                     host: host,
                     rule: rule,
                     canToggle: app.hosts.portForwarding(rule.id) == rule,
-                    edit: { editor = rule },
+                    edit: { openEditor(rule) },
                     duplicate: { duplicate(rule) },
                     delete: { rules.removeAll { $0.id == rule.id } }
                 )
             }
-            forwardingActions
+            FormNavigationAction(title: "Add Port Forward") {
+                openEditor(PortForwardingRule(hostID: host.id))
+            }
+            if !savedRules.isEmpty {
+                forwardingActions
+            }
             Text(
                 "Forwarding uses a background SSH connection and stops when Termind quits. Save changes before starting a rule."
             )
@@ -36,41 +40,16 @@ struct PortForwardingEditorSection: View {
 
     private var forwardingActions: some View {
         HStack(spacing: Metrics.Space.m) {
-            Button("Add Port Forward") { editor = PortForwardingRule(hostID: host.id) }
             Spacer()
-            if !savedRules.isEmpty {
-                Button("Start All", action: startAll)
-                    .disabled(savedRules.allSatisfy { app.forwarding.isEnabled($0.id) })
-                Button("Stop All", action: stopAll)
-                    .disabled(savedRules.allSatisfy { !app.forwarding.isEnabled($0.id) })
-            }
+            Button("Start All", action: startAll)
+                .disabled(savedRules.allSatisfy { app.forwarding.isEnabled($0.id) })
+            Button("Stop All", action: stopAll)
+                .disabled(savedRules.allSatisfy { !app.forwarding.isEnabled($0.id) })
         }
     }
 
     private var savedRules: [PortForwardingRule] {
         rules.filter { app.hosts.portForwarding($0.id) == $0 }
-    }
-
-    private func forwardingSheet(_ rule: PortForwardingRule) -> some View {
-        PortForwardingEditorSheet(
-            forwarding: rule,
-            host: host,
-            isNew: !rules.contains { $0.id == rule.id },
-            delete: { deleteDraft(rule.id) },
-            save: upsertDraft
-        )
-    }
-
-    private func deleteDraft(_ id: PortForwardingRule.ID) {
-        rules.removeAll { $0.id == id }
-    }
-
-    private func upsertDraft(_ rule: PortForwardingRule) {
-        if let index = rules.firstIndex(where: { $0.id == rule.id }) {
-            rules[index] = rule
-        } else {
-            rules.append(rule)
-        }
     }
 
     private func duplicate(_ rule: PortForwardingRule) {
@@ -232,12 +211,11 @@ struct PortForwardingEditorSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(isNew ? "New Port Forward" : "Edit Port Forward")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Metrics.Space.xl)
-            Divider()
+        VaultDetailScaffold(
+            title: isNew ? "New Port Forward" : "Edit Port Forward",
+            symbol: "arrow.left.arrow.right", close: { dismiss() },
+            closeLabel: "Back", closeSymbol: "chevron.backward"
+        ) {
             Form {
                 Section {
                     Picker("Direction", selection: $draft.kind) {
@@ -280,12 +258,12 @@ struct PortForwardingEditorSheet: View {
                         }
                     }
                 }
-                Section("Route preview") {
+                Section("Route Preview") {
                     Text(routePreview).font(.body.monospaced()).textSelection(.enabled)
                 }
             }
             .formStyle(.grouped)
-            Divider()
+        } footer: {
             HStack {
                 if !isNew {
                     Button("Delete", role: .destructive) {
@@ -302,7 +280,6 @@ struct PortForwardingEditorSheet: View {
             }
             .padding(Metrics.Space.l)
         }
-        .frame(width: 560, height: 650)
     }
 
     private var directionHelp: String {
