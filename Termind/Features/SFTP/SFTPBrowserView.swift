@@ -19,8 +19,8 @@ struct SFTPBrowserView: View {
     @State private var renameName = ""
     @State private var deleteTargets: [RemoteFile] = []
     @State private var conflictPresented = false
-    @State private var isDropTargeted = false
     @State private var isRemoteDropTargeted = false
+    @State private var selectionAnchor: RemoteFile.ID?
     @AppStorage("termind.sftp.table.columns")
     private var columnCustomization = TableColumnCustomization<RemoteFile>()
 
@@ -258,13 +258,6 @@ struct SFTPBrowserView: View {
             }
         }
         .onDrop(
-            of: [.fileURL],
-            delegate: FileURLDropTarget(
-                isTargeted: $isDropTargeted,
-                receive: receiveDroppedURLs
-            )
-        )
-        .onDrop(
             of: [.termindSFTPItems], isTargeted: $isRemoteDropTargeted,
             perform: receiveRemoteItemProviders
         )
@@ -273,7 +266,7 @@ struct SFTPBrowserView: View {
             _ = receiveRemoteItemProviders(providers)
         }
         .overlay {
-            if isDropTargeted || isRemoteDropTargeted || isExternalFileDropTargeted {
+            if isRemoteDropTargeted || isExternalFileDropTargeted {
                 ZStack {
                     Color.accentColor.opacity(0.06)
                     RoundedRectangle(cornerRadius: Metrics.Radius.large)
@@ -296,7 +289,7 @@ struct SFTPBrowserView: View {
         }
         .animation(
             Motion.tabSwitch,
-            value: isDropTargeted || isRemoteDropTargeted || isExternalFileDropTargeted
+            value: isRemoteDropTargeted || isExternalFileDropTargeted
         )
         .onChange(of: externalFileDrop?.id) {
             guard let externalFileDrop else { return }
@@ -381,13 +374,6 @@ struct SFTPBrowserView: View {
             .customizationID("gid")
             .defaultVisibility(.hidden)
         }
-        .onDrop(
-            of: [.fileURL],
-            delegate: FileURLDropTarget(
-                isTargeted: $isDropTargeted,
-                receive: receiveDroppedURLs
-            )
-        )
         .overlay(alignment: .bottomLeading) {
             if !sftpSession.hint.isEmpty {
                 Text(sftpSession.hint)
@@ -475,11 +461,42 @@ struct SFTPBrowserView: View {
     private func nameCell<Content: View>(
         _ file: RemoteFile, @ViewBuilder content: () -> Content
     ) -> some View {
+        // The drag source makes this cell consume the table's implicit row-selection click.
         let cell = menuCell(file, content: content)
             .simultaneousGesture(
                 TapGesture(count: 2).onEnded { primaryAction(file) }
             )
+            .onTapGesture { selectFromNameCell(file) }
         cell.onDrag { remoteDragProvider(for: file) }
+    }
+
+    private func selectFromNameCell(_ file: RemoteFile) {
+        let modifiers = NSEvent.modifierFlags
+        if modifiers.contains(.shift),
+            let anchor = selectionAnchor ?? sftpSession.selection.first,
+            let anchorIndex = sftpSession.filteredFiles.firstIndex(where: { $0.id == anchor }),
+            let fileIndex = sftpSession.filteredFiles.firstIndex(where: { $0.id == file.id })
+        {
+            let bounds = min(anchorIndex, fileIndex)...max(anchorIndex, fileIndex)
+            let range = Set(sftpSession.filteredFiles[bounds].map(\.id))
+            if modifiers.contains(.command) {
+                sftpSession.selection.formUnion(range)
+            } else {
+                sftpSession.selection = range
+            }
+            return
+        }
+
+        selectionAnchor = file.id
+        if modifiers.contains(.command) {
+            if sftpSession.selection.contains(file.id) {
+                sftpSession.selection.remove(file.id)
+            } else {
+                sftpSession.selection.insert(file.id)
+            }
+        } else {
+            sftpSession.selection = [file.id]
+        }
     }
 
     private func remoteDragProvider(for file: RemoteFile) -> NSItemProvider {

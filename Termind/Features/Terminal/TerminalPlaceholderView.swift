@@ -37,7 +37,6 @@ struct TerminalPlaceholderView: View {
     @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
     @Environment(AppModel.self) private var app
     @FocusState private var terminalFocused: Bool
-    @State private var isUploadDropTargeted = false
     @State private var pendingUploadSession: SFTPSessionModel?
     @State private var pendingUploadItemCount = 0
     @State private var uploadConflictPresented = false
@@ -81,7 +80,7 @@ struct TerminalPlaceholderView: View {
                 .padding(Metrics.Space.l)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            if isUploadDropTargeted || isExternalFileDropTargeted {
+            if isExternalFileDropTargeted {
                 uploadTargetOverlay
                     .zIndex(8)
                     .transition(.opacity)
@@ -127,18 +126,11 @@ struct TerminalPlaceholderView: View {
         .animation(Motion.panel, value: sshSession.find.isPresented)
         .animation(
             Motion.tabSwitch,
-            value: isUploadDropTargeted || isExternalFileDropTargeted
+            value: isExternalFileDropTargeted
         )
         .animation(Motion.panel, value: uploadNotice)
         .background(terminalBackground)
         .overlay(alignment: .top) { terminalChrome }
-        .onDrop(
-            of: [.fileURL],
-            delegate: FileURLDropTarget(
-                isTargeted: $isUploadDropTargeted,
-                receive: receiveDroppedURLs
-            )
-        )
         .onAppear {
             // The mounted view is the final source of truth after any drag,
             // merge, detach, or SwiftUI tree rebuild. Reassert the relationship

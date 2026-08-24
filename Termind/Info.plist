@@ -26,5 +26,18 @@
 	<string>AccentColor</string>
 	<key>TermindTeamIdentifier</key>
 	<string>$(DEVELOPMENT_TEAM)</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Termind SFTP Items</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.akinokaede.termind.sftp-items</string>
+		</dict>
+	</array>
 </dict>
 </plist>
