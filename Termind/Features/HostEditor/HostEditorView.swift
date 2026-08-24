@@ -21,21 +21,33 @@ struct HostEditorView: View {
     @State private var draftForwardings: [PortForwardingRule] = []
     @State private var draftKnownHosts: [KnownHostEntry] = []
     @State private var originalKnownHosts: [KnownHostEntry] = []
-    @State private var path: [Route] = []
+    @State private var route: Route?
     @State private var saveError: String?
+    @State private var didLoad = false
 
     var body: some View {
-        NavigationStack(path: $path) {
-            VaultDetailScaffold(
-                title: hostID == nil ? "New Host" : "Edit Host",
-                symbol: "server.rack", close: closeTab
-            ) {
-                form
-            } footer: {
-                footer
+        ZStack {
+            if let route {
+                destination(route)
+                    .transition(.move(edge: .trailing))
+            } else {
+                VaultDetailScaffold(
+                    title: hostID == nil ? "New Host" : "Edit Host",
+                    symbol: "server.rack", close: closeTab
+                ) {
+                    form
+                } footer: {
+                    footer
+                }
+                .transition(.move(edge: .leading))
             }
-                .navigationDestination(for: Route.self, destination: destination)
         }
+        // Keep nested editors inside the Host work column. A NavigationStack
+        // here is promoted by macOS into the enclosing NavigationSplitView's
+        // detail, which makes its destination cover the Hosts collection too.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
+        .animation(.snappy(duration: 0.2), value: route)
     }
 
     private var form: some View {
@@ -146,7 +158,7 @@ struct HostEditorView: View {
 
             PortForwardingEditorSection(
                 host: draft, rules: $draftForwardings,
-                openEditor: { path.append(.forwarding($0)) }
+                openEditor: { route = .forwarding($0) }
             )
 
             KnownHostsEditorSection(entries: $draftKnownHosts)
@@ -204,24 +216,25 @@ struct HostEditorView: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear(perform: load)
+        .onAppear(perform: loadOnce)
     }
 
     @ViewBuilder
     private func destination(_ route: Route) -> some View {
         switch route {
         case .identity:
-            NewIdentitySheet { identity, passwordUpdate in
+            NewIdentitySheet(back: closeNestedEditor) { identity, passwordUpdate in
                 try app.hosts.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.identityID = identity.id
             }
         case .group:
-            NewGroupSheet { group in
+            NewGroupSheet(back: closeNestedEditor) { group in
                 app.hosts.upsert(group)
                 draft.groupID = group.id
             }
         case .proxyIdentity:
-            NewIdentitySheet(configuration: .proxy) { identity, passwordUpdate in
+            NewIdentitySheet(configuration: .proxy, back: closeNestedEditor) {
+                identity, passwordUpdate in
                 try app.hosts.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.proxy?.identityID = identity.id
                 draft.proxy?.username = identity.username
@@ -230,10 +243,15 @@ struct HostEditorView: View {
             PortForwardingEditorSheet(
                 forwarding: rule, host: draft,
                 isNew: !draftForwardings.contains { $0.id == rule.id },
+                back: closeNestedEditor,
                 delete: { draftForwardings.removeAll { $0.id == rule.id } },
                 save: upsertForwardingDraft
             )
         }
+    }
+
+    private func closeNestedEditor() {
+        route = nil
     }
 
     private func upsertForwardingDraft(_ rule: PortForwardingRule) {
@@ -272,7 +290,7 @@ struct HostEditorView: View {
             switch choice {
             case .unset: draft.identityID = nil
             case .existing(let id): draft.identityID = id
-            case .new: path.append(.identity)
+            case .new: route = .identity
             }
         }
     }
@@ -284,7 +302,7 @@ struct HostEditorView: View {
             switch choice {
             case .unset: draft.groupID = nil
             case .existing(let id): draft.groupID = id
-            case .new: path.append(.group)
+            case .new: route = .group
             }
         }
     }
@@ -391,7 +409,7 @@ struct HostEditorView: View {
                 guard let identity = app.hosts.identity(id) else { return }
                 draft.proxy?.username = identity.username
             case .new:
-                path.append(.proxyIdentity)
+                route = .proxyIdentity
             }
         }
     }
@@ -457,6 +475,12 @@ struct HostEditorView: View {
         draftForwardings = app.hosts.portForwardings(for: hostID)
         originalKnownHosts = app.hosts.knownHosts(for: existing)
         draftKnownHosts = originalKnownHosts
+    }
+
+    private func loadOnce() {
+        guard !didLoad else { return }
+        didLoad = true
+        load()
     }
 
     /// No tag bookkeeping here: `TagField` writes chips straight into

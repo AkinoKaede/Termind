@@ -56,6 +56,7 @@ struct NewIdentitySheet: View {
     let configuration: IdentityEditorConfiguration
     let create: (Identity, IdentityPasswordUpdate) throws -> Void
     var requestedClose: (() -> Void)?
+    var requestedBack: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -70,6 +71,7 @@ struct NewIdentitySheet: View {
     init(
         identity: Identity? = nil,
         configuration: IdentityEditorConfiguration = .standard,
+        back: (() -> Void)? = nil,
         create: @escaping (Identity, IdentityPasswordUpdate) throws -> Void,
         close: (() -> Void)? = nil
     ) {
@@ -77,6 +79,7 @@ struct NewIdentitySheet: View {
         self.configuration = configuration
         self.create = create
         requestedClose = close
+        requestedBack = back
         _name = State(initialValue: identity?.name ?? "")
         _username = State(initialValue: identity?.username ?? "")
         _keyID = State(initialValue: identity?.keyID)
@@ -217,7 +220,9 @@ struct NewIdentitySheet: View {
     }
 
     private func close() {
-        if let requestedClose { requestedClose() } else { dismiss() }
+        if let requestedBack { requestedBack() }
+        else if let requestedClose { requestedClose() }
+        else { dismiss() }
     }
 
     private var isValid: Bool {

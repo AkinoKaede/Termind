@@ -12,6 +12,7 @@ struct NewGroupSheet: View {
     var initialParentID: HostGroup.ID?
     let create: (HostGroup) -> Void
     var requestedClose: (() -> Void)?
+    var requestedBack: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -22,6 +23,7 @@ struct NewGroupSheet: View {
     init(
         group: HostGroup? = nil,
         parentID: HostGroup.ID? = nil,
+        back: (() -> Void)? = nil,
         create: @escaping (HostGroup) -> Void,
         close: (() -> Void)? = nil
     ) {
@@ -29,6 +31,7 @@ struct NewGroupSheet: View {
         initialParentID = parentID
         self.create = create
         requestedClose = close
+        requestedBack = back
     }
 
     private var isEditing: Bool { group != nil }
@@ -99,7 +102,9 @@ struct NewGroupSheet: View {
     }
 
     private func close() {
-        if let requestedClose { requestedClose() } else { dismiss() }
+        if let requestedBack { requestedBack() }
+        else if let requestedClose { requestedClose() }
+        else { dismiss() }
     }
 
     private func load() {

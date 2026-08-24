@@ -182,11 +182,11 @@ private struct HostForwardingContextMenu: View {
 struct PortForwardingEditorSheet: View {
     let host: Host
     let isNew: Bool
+    let back: () -> Void
     let delete: () -> Void
     let save: (PortForwardingRule) -> Void
 
     @Environment(AppModel.self) private var app
-    @Environment(\.dismiss) private var dismiss
     @State private var draft: PortForwardingRule
     @State private var bindPortDraft: String
     @State private var targetHostDraft: String
@@ -195,11 +195,13 @@ struct PortForwardingEditorSheet: View {
 
     init(
         forwarding: PortForwardingRule, host: Host, isNew: Bool,
+        back: @escaping () -> Void,
         delete: @escaping () -> Void,
         save: @escaping (PortForwardingRule) -> Void
     ) {
         self.host = host
         self.isNew = isNew
+        self.back = back
         self.delete = delete
         self.save = save
         _draft = State(initialValue: forwarding)
@@ -213,7 +215,7 @@ struct PortForwardingEditorSheet: View {
     var body: some View {
         VaultDetailScaffold(
             title: isNew ? "New Port Forward" : "Edit Port Forward",
-            symbol: "arrow.left.arrow.right", close: { dismiss() },
+            symbol: "arrow.left.arrow.right", close: back,
             closeLabel: "Back", closeSymbol: "chevron.backward"
         ) {
             Form {
@@ -268,11 +270,11 @@ struct PortForwardingEditorSheet: View {
                 if !isNew {
                     Button("Delete", role: .destructive) {
                         delete()
-                        dismiss()
+                        back()
                     }
                 }
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Cancel", action: back).keyboardShortcut(.cancelAction)
                 Button("Save") { commit() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
@@ -355,6 +357,6 @@ struct PortForwardingEditorSheet: View {
             ? nil : targetHostDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         draft.targetPort = draft.kind == .dynamic ? nil : parsedTargetPort
         save(draft)
-        dismiss()
+        back()
     }
 }
