@@ -117,7 +117,8 @@ enum Metrics {
     /// reading width of its own — a `Form` stretched across a 1600pt display puts
     /// the label and its control at opposite ends of the desk.
     enum SettingsPage {
-        static let width: CGFloat = 720
+        static let sidebarWidth: CGFloat = 208
+        static let contentWidth: CGFloat = 720
     }
 
     /// The Hosts page's tag filter popover. Narrow because it holds one word per

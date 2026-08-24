@@ -9,36 +9,14 @@ final class MCPServerEditorSession {
         case failed(String)
     }
 
-    private struct Snapshot {
-        var server: MCPServer
-        var token: String
-    }
-
     var token = ""
     var connection: ConnectionState = .idle
-    private var snapshot: Snapshot?
+    private var didBegin = false
 
     func begin(with server: MCPServer, in store: AIStore) {
-        guard snapshot == nil else { return }
+        guard !didBegin else { return }
+        didBegin = true
         token = store.secret(for: server.credentialRef) ?? ""
-        snapshot = Snapshot(server: server, token: token)
-    }
-
-    func rollback(current: MCPServer?, in store: AIStore, isNew: Bool) {
-        guard let snapshot else { return }
-        if isNew {
-            store.delete(serverID: snapshot.server.id)
-            return
-        }
-        if let current, current.credentialRef != snapshot.server.credentialRef {
-            store.setSecret(nil, for: current.credentialRef)
-        }
-        store.upsert(snapshot.server)
-        store.setSecret(
-            snapshot.token.isEmpty ? nil : snapshot.token,
-            for: snapshot.server.credentialRef
-        )
-        store.setMCPStatus(.disconnected, for: snapshot.server.id)
     }
 }
 
@@ -55,16 +33,13 @@ final class MCPServerEditorSession {
 /// the model can also talk to is precisely where that premise would spring a
 /// leak if approval were opt-in.
 ///
-/// Edits write straight through, so Cancel undoes rather than discards — the
-/// same contract as `ModelProviderEditorSheet`, for the same reason.
-struct MCPServerEditorSheet: View {
+/// Edits write straight through and the page returns to the MCP list in place.
+struct MCPServerEditorPage: View {
     let serverID: MCPServer.ID
-    /// True only when Add Server made this row, so Cancel removes it rather
-    /// than restoring the empty shell it started as.
-    var isNew: Bool = false
+    let back: () -> Void
+    let deleted: () -> Void
 
     @Environment(AppModel.self) private var app
-    @Environment(\.dismiss) private var dismiss
 
     @State private var session = MCPServerEditorSession()
 
@@ -73,71 +48,37 @@ struct MCPServerEditorSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             if let server {
-                header(server)
+                SettingsDetailHeader(
+                    backLabel: "MCP",
+                    title: server.name.isEmpty ? String(localized: "Server") : server.name,
+                    subtitle: server.negotiatedVersion.isEmpty ? server.url : "MCP \(server.negotiatedVersion)",
+                    back: back,
+                    trailing: AnyView(StatusDot(status: app.ai.mcpStatus(of: serverID)))
+                )
                 Divider()
                 Form {
                     connectionSection(server)
                     credentialSection
                     headersSection(server)
                     toolsSection(server)
+                    Section {
+                        Button("Delete Server", role: .destructive) {
+                            app.ai.delete(serverID: serverID)
+                            deleted()
+                        }
+                    }
                 }
                 .formStyle(.grouped)
-                Divider()
-                footer
+                .frame(maxWidth: Metrics.SettingsPage.contentWidth)
+                .frame(maxWidth: .infinity)
             } else {
                 ContentUnavailableView("Server Deleted", systemImage: "trash")
             }
         }
-        .frame(width: Metrics.EditorSheet.width, height: Metrics.EditorSheet.height)
         .onAppear {
             guard let server else { return }
             session.begin(with: server, in: app.ai)
         }
-    }
-
-    // MARK: - Chrome
-
-    private func header(_ server: MCPServer) -> some View {
-        HStack(spacing: Metrics.Space.m) {
-            CardIcon(symbol: "wrench.and.screwdriver.fill", tint: .purple)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(server.name.isEmpty ? String(localized: "Server") : server.name)
-                    .font(.headline)
-                    .lineLimit(1)
-                if !server.negotiatedVersion.isEmpty {
-                    Text("MCP \(server.negotiatedVersion)")
-                        .font(.caption2.monospaced())
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            Spacer(minLength: Metrics.Space.m)
-            StatusDot(status: app.ai.mcpStatus(of: serverID))
-        }
-        .padding(Metrics.Space.xl)
-    }
-
-    private var footer: some View {
-        HStack(spacing: Metrics.Space.m) {
-            Button("Delete Server", role: .destructive) {
-                app.ai.delete(serverID: serverID)
-                dismiss()
-            }
-            Spacer(minLength: Metrics.Space.m)
-
-            Button("Cancel", action: revert)
-                .keyboardShortcut(.cancelAction)
-
-            Button("Done") { dismiss() }
-                .keyboardShortcut(.defaultAction)
-        }
-        .padding(Metrics.Space.l)
-    }
-
-    /// Undoes everything this sheet did, then closes. A discovered tool list is
-    /// part of that: connecting is an edit like any other here.
-    private func revert() {
-        defer { dismiss() }
-        session.rollback(current: server, in: app.ai, isNew: isNew)
     }
 
     // MARK: - Sections
@@ -200,7 +141,7 @@ struct MCPServerEditorSheet: View {
     private var credentialSection: some View {
         Section {
             SecureField(
-                "Bearer token",
+                "Bearer Token",
                 text: Binding(get: { session.token }, set: { session.token = $0 }),
                 prompt: Text("Optional")
             )
@@ -238,7 +179,7 @@ struct MCPServerEditorSheet: View {
                 .labelsHidden()
             }
 
-            Button("Add Header") { addHeader() }
+            FormNavigationAction(title: "Add Header", action: addHeader)
         } header: {
             Text("Custom Headers")
         } footer: {
@@ -265,7 +206,7 @@ struct MCPServerEditorSheet: View {
         } footer: {
             if !server.tools.isEmpty {
                 Text(
-                    "With Ask first on, you approve each call. Turn it off only for trusted, read-only tools."
+                    "With Ask First on, you approve each call. Turn it off only for trusted, read-only tools."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -356,7 +297,7 @@ struct MCPServerEditorSheet: View {
 
 /// One discovered tool, with its two switches.
 ///
-/// "Ask first" rather than "Requires approval": the label describes what will
+/// "Ask First" rather than "Requires Approval": the label describes what will
 /// happen to you, not the internal state. The same reason the inline suggestion
 /// overlay says Insert and Run rather than naming a risk level.
 private struct ToolRow: View {
@@ -388,7 +329,7 @@ private struct ToolRow: View {
                 .controlSize(.mini)
                 .fixedSize()
 
-            Toggle("Ask first", isOn: asksFirst)
+            Toggle("Ask First", isOn: asksFirst)
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .fixedSize()

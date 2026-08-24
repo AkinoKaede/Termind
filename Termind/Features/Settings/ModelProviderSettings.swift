@@ -9,28 +9,24 @@ import SwiftUI
 /// worse thing.
 struct ModelProviderSettings: View {
     @Environment(AppModel.self) private var app
-
-    /// Which provider's editor is up. Carries the id rather than a `Bool` so
-    /// SwiftUI rebuilds the sheet per provider instead of restoring the last
-    /// one's fields — the same reason `WindowModel.hostChooser` is an item.
-    @State private var editing: EditingModelProvider?
+    let edit: (ModelProvider.ID, Bool) -> Void
 
     private var modelProviders: [ModelProvider] { app.ai.modelProviders }
 
     var body: some View {
         Section("Model Providers") {
             ForEach(modelProviders) { provider in
-                ModelProviderRow(provider: provider) { editing = EditingModelProvider(id: provider.id) }
+                ModelProviderRow(provider: provider) { edit(provider.id, false) }
             }
 
-            Button("Add Provider") {
+            FormNavigationAction(title: "Add Provider") {
                 // Created immediately rather than assembled inside the sheet, so
                 // there is one code path for "new" and "edit" and no half-built
                 // provider living in a view's `@State`. Cancelling takes it back
                 // out again — which is what `isNew` below is for.
                 let provider = ModelProvider(name: String(localized: "New Provider"))
                 app.ai.upsert(provider)
-                editing = EditingModelProvider(id: provider.id, isNew: true)
+                edit(provider.id, true)
             }
 
             Text(
@@ -39,9 +35,6 @@ struct ModelProviderSettings: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-        }
-        .sheet(item: $editing) { editing in
-            ModelProviderEditorSheet(modelProviderID: editing.id, isNew: editing.isNew)
         }
     }
 }
@@ -109,33 +102,18 @@ private struct ModelProviderRow: View {
     /// The two facts that decide whether this row can do anything: does it have
     /// a credential, and does it know any models.
     ///
-    /// "No key" is orange rather than red — an unfinished provider is a normal
+    /// "No Key" is orange rather than red — an unfinished provider is a normal
     /// state on the way to a finished one, not an error.
     @ViewBuilder
     private var chips: some View {
         CardChip(text: provider.kind.displayName)
 
         if !provider.hasCredential {
-            CardChip(text: String(localized: "No key"), symbol: "exclamationmark.circle", tint: .orange)
+            CardChip(text: String(localized: "No Key"), symbol: "exclamationmark.circle", tint: .orange)
         } else if provider.models.isEmpty {
-            CardChip(text: String(localized: "No models"), symbol: "questionmark.circle")
+            CardChip(text: String(localized: "No Models"), symbol: "questionmark.circle")
         } else {
             CardChip(text: "\(provider.models.count)", symbol: "cube")
         }
     }
-}
-
-// MARK: - Sheet presentation
-
-/// What `.sheet(item:)` carries.
-///
-/// A wrapper rather than a retroactive `UUID: Identifiable` conformance:
-/// `UUID` belongs to Foundation and `Identifiable` to the standard library, so
-/// conforming one to the other here would be a claim the whole app is stuck
-/// with — and one Foundation could invalidate by making it itself.
-private struct EditingModelProvider: Identifiable {
-    var id: ModelProvider.ID
-    /// True only when the row was made by Add Model Provider, so Cancel knows the
-    /// difference between undoing edits and undoing the row itself.
-    var isNew = false
 }

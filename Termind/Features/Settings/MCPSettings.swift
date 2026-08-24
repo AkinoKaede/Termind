@@ -8,19 +8,18 @@ import SwiftUI
 /// reasonable thing to wonder for a while.
 struct MCPSettings: View {
     @Environment(AppModel.self) private var app
-
-    @State private var editing: EditingServer?
+    let edit: (MCPServer.ID, Bool) -> Void
 
     var body: some View {
         Section {
             ForEach(app.ai.mcpServers) { server in
-                MCPServerRow(server: server) { editing = EditingServer(id: server.id) }
+                MCPServerRow(server: server) { edit(server.id, false) }
             }
 
-            Button("Add Server") {
+            FormNavigationAction(title: "Add Server") {
                 let server = MCPServer(name: String(localized: "New Server"))
                 app.ai.upsert(server)
-                editing = EditingServer(id: server.id, isNew: true)
+                edit(server.id, true)
             }
 
             Text(
@@ -31,9 +30,6 @@ struct MCPSettings: View {
             .fixedSize(horizontal: false, vertical: true)
         } header: {
             Text("MCP")
-        }
-        .sheet(item: $editing) { editing in
-            MCPServerEditorSheet(serverID: editing.id, isNew: editing.isNew)
         }
     }
 }
@@ -64,7 +60,7 @@ private struct MCPServerRow: View {
             CardChip(text: server.transport.displayName)
 
             if server.tools.isEmpty {
-                CardChip(text: String(localized: "Not connected"), symbol: "questionmark.circle")
+                CardChip(text: String(localized: "Not Connected"), symbol: "questionmark.circle")
             } else {
                 CardChip(text: "\(server.enabledTools.count)/\(server.tools.count)", symbol: "wrench.and.screwdriver")
             }
@@ -94,13 +90,4 @@ private struct MCPServerRow: View {
             set: { app.ai.setServerEnabled($0, for: server.id) }
         )
     }
-}
-
-/// What `.sheet(item:)` carries. See `EditingModelProvider` for why this is a
-/// wrapper rather than a retroactive conformance on `UUID`.
-private struct EditingServer: Identifiable {
-    var id: MCPServer.ID
-    /// True only when the row was made by Add Server, so Cancel knows the
-    /// difference between undoing edits and undoing the row itself.
-    var isNew = false
 }

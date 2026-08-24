@@ -64,7 +64,7 @@ struct TermindApp: App {
             SettingsPageView()
                 .environment(app)
                 .modelContainer(modelContainer)
-                .frame(minWidth: 680, minHeight: 620)
+                .frame(minWidth: 920, minHeight: 640)
         }
     }
 }

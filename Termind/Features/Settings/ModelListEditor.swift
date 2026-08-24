@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The models column of `ModelProviderEditorSheet`: a checkable list, and an
-/// details column for whichever row is selected.
+/// A provider's full-width models page: a checkable list and details for the
+/// selected row.
 ///
 /// Master–detail inside the sheet rather than a second sheet on top of the
 /// first. macOS handles stacked modals badly, and the thing being edited here is
@@ -31,6 +31,7 @@ struct ModelListEditor: View {
     }
 
     let modelProviderID: ModelProvider.ID
+    let back: () -> Void
 
     @Environment(AppModel.self) private var app
 
@@ -48,11 +49,28 @@ struct ModelListEditor: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
+            SettingsDetailHeader(
+                backLabel: state.isChoosing ? "Models" : "Provider",
+                title: state.isChoosing ? String(localized: "Add Models") : String(localized: "Models"),
+                subtitle: provider?.name,
+                back: {
+                    if state.isChoosing { state.isChoosing = false } else { back() }
+                }
+            )
             Divider()
-            list
-            Divider()
-            detail
+            if state.isChoosing {
+                candidatePicker
+            } else {
+                VStack(spacing: 0) {
+                    toolbar
+                    Divider()
+                    list
+                    Divider()
+                    detail
+                }
+                .frame(maxWidth: Metrics.SettingsPage.contentWidth)
+                .frame(maxWidth: .infinity)
+            }
         }
         .background(.background)
     }
@@ -81,12 +99,6 @@ struct ModelListEditor: View {
                 Button("Fetch", action: fetchModels)
                     .disabled(provider?.canFetchModels != true || state.fetch == .running)
                     .help(fetchHelp)
-                    .popover(
-                        isPresented: Binding(
-                            get: { state.isChoosing }, set: { state.isChoosing = $0 }
-                        ),
-                        arrowEdge: .bottom
-                    ) { candidatePicker }
 
                 Button("Add") { state.isAdding = true }
 
@@ -109,22 +121,28 @@ struct ModelListEditor: View {
             }
             .controlSize(.small)
 
+            if state.isAdding {
+                HStack(spacing: Metrics.Space.s) {
+                    TextField(
+                        "Exact model ID, such as gpt-5.4",
+                        text: Binding(get: { state.newModelID }, set: { state.newModelID = $0 })
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(addModel)
+
+                    Button("Cancel") {
+                        state.newModelID = ""
+                        state.isAdding = false
+                    }
+                    Button("Add", action: addModel)
+                        .disabled(state.newModelID.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .controlSize(.small)
+            }
+
             status
         }
         .padding(Metrics.Space.l)
-        .alert(
-            "Add Model",
-            isPresented: Binding(get: { state.isAdding }, set: { state.isAdding = $0 })
-        ) {
-            TextField(
-                "Model id",
-                text: Binding(get: { state.newModelID }, set: { state.newModelID = $0 })
-            )
-            Button("Cancel", role: .cancel) { state.newModelID = "" }
-            Button("Add", action: addModel)
-        } message: {
-            Text("Enter the exact model ID expected by the endpoint, such as gpt-5.4.")
-        }
     }
 
     private var filterField: some View {
@@ -236,7 +254,7 @@ struct ModelListEditor: View {
         if models.isEmpty {
             VStack(spacing: Metrics.Space.s) {
                 Spacer()
-                Text(provider?.models.isEmpty == true ? "No models yet" : "No match")
+                Text(provider?.models.isEmpty == true ? "No Models Yet" : "No Match")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 if provider?.models.isEmpty == true {
@@ -317,11 +335,11 @@ struct ModelListEditor: View {
 
                     HStack(spacing: Metrics.Space.m) {
                         limitField("Context", model: model, keyPath: \.contextLength)
-                        limitField("Max output", model: model, keyPath: \.maxOutputTokens)
+                        limitField("Max Output", model: model, keyPath: \.maxOutputTokens)
                     }
 
                     if model.origin == .manual {
-                        Text("Added manually")
+                        Text("Added Manually")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -522,6 +540,7 @@ struct ModelListEditor: View {
         guard !id.isEmpty else { return }
         app.ai.addModel(ModelInference.fill(AIModel(id: id)), to: modelProviderID)
         state.selection = id
+        state.isAdding = false
     }
 
     private func deleteChecked() {
@@ -599,8 +618,15 @@ private struct CandidatePicker: View {
     }
 
     var body: some View {
-        SheetScaffold { header } content: { list } footer: { footer }
-        .frame(width: 420, height: 460)
+        VStack(spacing: 0) {
+            header
+            Divider()
+            list
+            Divider()
+            footer
+        }
+        .frame(maxWidth: Metrics.SettingsPage.contentWidth)
+        .frame(maxWidth: .infinity)
         .onChange(of: chooser.query) {
             chooser.queryDidChange(
                 visible: filtered.map(\.id), enabled: Set(selectable.map(\.id))
@@ -613,7 +639,7 @@ private struct CandidatePicker: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            Text("\(candidates.count) models offered")
+            Text("\(candidates.count) Models Offered")
                 .font(.headline)
             Text("Select the models you want to add. You can fetch the rest later.")
                 .font(.caption)

@@ -3,75 +3,32 @@ import UniformTypeIdentifiers
 
 @Observable
 final class ModelProviderEditorSession {
-    private struct Snapshot {
-        var provider: ModelProvider
-        var key: String
-        var serviceAccount: String
-    }
-
     var secret = ""
     var serviceAccountJSON = ""
     var isImporting = false
     var importError: String?
-    private var snapshot: Snapshot?
+    private var didBegin = false
 
     func begin(with provider: ModelProvider, in store: AIStore) {
-        guard snapshot == nil else { return }
+        guard !didBegin else { return }
+        didBegin = true
         secret = store.secret(for: provider.credentialRef) ?? ""
         serviceAccountJSON = store.secret(for: provider.vertex.credentialRef) ?? ""
-        snapshot = Snapshot(
-            provider: provider, key: secret, serviceAccount: serviceAccountJSON
-        )
-    }
-
-    func rollback(current: ModelProvider?, in store: AIStore, isNew: Bool) {
-        guard let snapshot else { return }
-        if isNew {
-            store.delete(modelProviderID: snapshot.provider.id)
-            return
-        }
-        if let current {
-            if current.credentialRef != snapshot.provider.credentialRef {
-                store.setSecret(nil, for: current.credentialRef)
-            }
-            if current.vertex.credentialRef != snapshot.provider.vertex.credentialRef {
-                store.setSecret(nil, for: current.vertex.credentialRef)
-            }
-        }
-        store.upsert(snapshot.provider)
-        store.setSecret(
-            snapshot.key.isEmpty ? nil : snapshot.key,
-            for: snapshot.provider.credentialRef
-        )
-        store.setSecret(
-            snapshot.serviceAccount.isEmpty ? nil : snapshot.serviceAccount,
-            for: snapshot.provider.vertex.credentialRef
-        )
     }
 }
 
 /// Everything about one model provider: where it points, what it authenticates with,
 /// and which models it offers.
 ///
-/// Edits are written to the store as they are made rather than gathered and
-/// applied on Done: the model list is edited here too, and a Fetch whose result
-/// only landed on Done would be a button that appeared to do nothing.
-///
-/// Cancel therefore has to undo rather than discard. The provider and its
-/// secrets are snapshotted on appear and put back if Cancel is pressed — and a
-/// provider that only exists because Add Model Provider made it is removed outright,
-/// so backing out of a mistyped provider leaves no half-built row behind. A
-/// button labelled Cancel that only closed the window would be a lie, and the
-/// one place it would be found out is after somebody fetched eighty models by
-/// accident.
-///
-/// The sheet is wider and taller than `CreateSheet` because it holds a form and
-/// a list at once. See `Metrics.EditorSheet`.
-struct ModelProviderEditorSheet: View {
+/// Edits write through immediately. Models live on the next page, keeping both
+/// jobs full-width and giving each a stable Back path instead of opening a sheet.
+struct ModelProviderEditorPage: View {
     let modelProviderID: ModelProvider.ID
+    let back: () -> Void
+    let showModels: () -> Void
+    let deleted: () -> Void
 
     @Environment(AppModel.self) private var app
-    @Environment(\.dismiss) private var dismiss
 
     /// The API key as typed. Held here rather than read back out of the store,
     /// because the store hands out secrets through one accessor and a
@@ -81,74 +38,22 @@ struct ModelProviderEditorSheet: View {
 
     private var provider: ModelProvider? { app.ai.modelProvider(modelProviderID) }
 
-    /// Whether this sheet is looking at a provider that was created to be
-    /// filled in. Cancel deletes one of those rather than restoring it to the
-    /// empty shell it started as.
-    var isNew: Bool = false
-
     var body: some View {
         VStack(spacing: 0) {
             if let provider {
-                header(provider)
+                SettingsDetailHeader(
+                    backLabel: "Providers",
+                    title: provider.name.isEmpty ? String(localized: "Model Provider") : provider.name,
+                    subtitle: provider.resolvedBaseURL,
+                    back: back
+                )
                 Divider()
-                HStack(spacing: 0) {
-                    settings(provider)
-                    Divider()
-                    ModelListEditor(modelProviderID: modelProviderID)
-                        .frame(width: Metrics.EditorSheet.listWidth)
-                }
-                Divider()
-                footer(provider)
+                settings(provider)
             } else {
-                // The provider was deleted from under the sheet — by the delete
-                // button below, which dismisses, or in another window.
                 ContentUnavailableView("Provider Deleted", systemImage: "trash")
             }
         }
-        .frame(width: Metrics.EditorSheet.width, height: Metrics.EditorSheet.height)
         .onAppear(perform: loadSecrets)
-    }
-
-    // MARK: - Chrome
-
-    private func header(_ provider: ModelProvider) -> some View {
-        HStack(spacing: Metrics.Space.m) {
-            CardIcon(symbol: provider.kind.symbol)
-            Text(provider.name.isEmpty ? String(localized: "Model Provider") : provider.name)
-                .font(.headline)
-                .lineLimit(1)
-            Spacer(minLength: Metrics.Space.m)
-        }
-        .padding(Metrics.Space.xl)
-    }
-
-    private func footer(_ provider: ModelProvider) -> some View {
-        HStack(spacing: Metrics.Space.m) {
-            Button("Delete Provider", role: .destructive) {
-                app.ai.delete(modelProviderID: modelProviderID)
-                dismiss()
-            }
-            .help(deleteHelp)
-
-            // Spelled out beside the button rather than hidden behind a
-            // confirmation, so the cost is visible before the click instead of
-            // after it. Same job `KeyCard`'s dependent count does.
-            if !brokenRoles.isEmpty {
-                Text(brokenRolesSummary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: Metrics.Space.m)
-
-            Button("Cancel", action: revert)
-                .keyboardShortcut(.cancelAction)
-
-            Button("Done") { dismiss() }
-                .keyboardShortcut(.defaultAction)
-        }
-        .padding(Metrics.Space.l)
     }
 
     private var brokenRoles: [AIRole] {
@@ -171,7 +76,7 @@ struct ModelProviderEditorSheet: View {
             Section {
                 TextField("Name", text: binding(\.name))
 
-                Picker("API type", selection: binding(\.kind)) {
+                Picker("API Type", selection: binding(\.kind)) {
                     ForEach(ModelProviderKind.allCases) { Text($0.displayName).tag($0) }
                 }
             }
@@ -194,8 +99,38 @@ struct ModelProviderEditorSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
             }
+
+            Section("Models") {
+                Button(action: showModels) {
+                    HStack {
+                        Label("Manage Models", systemImage: "cube")
+                        Spacer()
+                        Text(provider.models.count, format: .number)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            Section {
+                Button("Delete Provider", role: .destructive) {
+                    app.ai.delete(modelProviderID: modelProviderID)
+                    deleted()
+                }
+                .help(deleteHelp)
+
+                if !brokenRoles.isEmpty {
+                    Text(brokenRolesSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .formStyle(.grouped)
+        .frame(maxWidth: Metrics.SettingsPage.contentWidth)
         .frame(maxWidth: .infinity)
     }
 
@@ -216,7 +151,7 @@ struct ModelProviderEditorSheet: View {
             )
 
             TextField(
-                "API path",
+                "API Path",
                 text: binding(\.apiPath),
                 prompt: Text(provider.kind.defaultAPIPath(usesResponsesAPI: provider.usesResponsesAPI))
             )
@@ -250,7 +185,7 @@ struct ModelProviderEditorSheet: View {
     private func credentialSection(_ provider: ModelProvider) -> some View {
         Section {
             SecureField(
-                "API key",
+                "API Key",
                 text: Binding(
                     get: { session.secret }, set: { session.secret = $0 }
                 ),
@@ -294,7 +229,7 @@ struct ModelProviderEditorSheet: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                LabeledContent("Service account") {
+                LabeledContent("Service Account") {
                     Text(provider.vertex.clientEmail)
                         .font(.caption.monospaced())
                         .lineLimit(1)
@@ -340,12 +275,6 @@ struct ModelProviderEditorSheet: View {
     private func loadSecrets() {
         guard let provider else { return }
         session.begin(with: provider, in: app.ai)
-    }
-
-    /// Undoes everything this sheet did, then closes.
-    private func revert() {
-        defer { dismiss() }
-        session.rollback(current: provider, in: app.ai, isNew: isNew)
     }
 
     /// Mints a reference the first time something is typed, and clears the

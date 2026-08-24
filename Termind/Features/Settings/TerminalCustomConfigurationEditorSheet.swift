@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Sendable {
+nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashable, Sendable {
     case light
     case dark
 
@@ -22,36 +22,53 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Sendab
     }
 }
 
-struct TerminalCustomConfigurationEditorSheet: View {
+struct TerminalCustomConfigurationEditorPage: View {
     let scheme: TerminalCustomConfigurationScheme
+    let back: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @State private var content = ""
     @State private var isImporting = false
     @State private var importError: String?
     @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            SettingsDetailHeader(
+                backLabel: "Appearance",
+                title: scheme.title,
+                subtitle: String(localized: "Changes save automatically"),
+                back: {
+                    saveNow()
+                    back()
+                },
+                trailing: AnyView(Button("Import from File") { isImporting = true })
+            )
+            Divider()
+
+            if let importError {
+                HStack(spacing: Metrics.Space.m) {
+                    Label(importError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button { self.importError = nil } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Dismiss error"))
+                }
+                .padding(.horizontal, Metrics.Space.xl)
+                .padding(.vertical, Metrics.Space.s)
+                .background(Color.orange.opacity(0.08))
+                Divider()
+            }
+
             TextEditor(text: $content)
                 .font(.system(.body, design: .monospaced))
                 .textContentType(.none)
                 .autocorrectionDisabled()
                 .padding(Metrics.Space.m)
-                .navigationTitle(scheme.title)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Import from File") { isImporting = true }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            saveNow()
-                            dismiss()
-                        }
-                    }
-                }
         }
-        .frame(minWidth: 680, minHeight: 480)
         .onAppear {
             content = UserDefaults.standard.string(forKey: scheme.settingsKey) ?? ""
         }
@@ -73,17 +90,6 @@ struct TerminalCustomConfigurationEditorSheet: View {
             } catch {
                 importError = error.localizedDescription
             }
-        }
-        .alert(
-            "Import Failed",
-            isPresented: Binding(
-                get: { importError != nil },
-                set: { if !$0 { importError = nil } }
-            )
-        ) {
-            Button("OK") { importError = nil }
-        } message: {
-            Text(importError ?? "")
         }
     }
 
