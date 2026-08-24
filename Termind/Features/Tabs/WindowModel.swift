@@ -361,7 +361,6 @@ final class WindowModel {
 
     func selectAssistant(_ id: ConversationModel.ID? = nil) {
         if let id { assistantLibrary.select(id) }
-        if assistantLibrary.selectedConversation == nil { assistantLibrary.createConversation() }
         selectedTopLevelTab = .assistant
     }
 

@@ -47,6 +47,17 @@ struct WindowStateTests {
     }
 
     @Test
+    func selectingAssistantDoesNotCreateAConversation() {
+        let window = WindowModel()
+
+        window.selectAssistant()
+
+        #expect(window.selectedTopLevelTab == .assistant)
+        #expect(window.assistantLibrary.conversations.isEmpty)
+        #expect(window.assistantLibrary.selectedConversation == nil)
+    }
+
+    @Test
     func vaultRoutesNeverBecomeWorkspaceTabs() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
