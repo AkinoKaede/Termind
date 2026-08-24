@@ -314,6 +314,10 @@ extension Workspace {
         for pane in panes { pane.configureConnections(using: coordinator) }
     }
 
+    func configureCommandHistory(using store: CommandHistoryStore) {
+        for pane in panes { pane.configureCommandHistory(using: store) }
+    }
+
     /// A host is required: there is no local terminal to open without one.
     static func sshSession(host: Host, usernameHint: String? = nil) -> Workspace {
         Workspace(pane: .sshSession(host: host, usernameHint: usernameHint))

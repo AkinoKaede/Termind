@@ -18,6 +18,8 @@ struct ShellIntegrationBootstrapTests {
         let command = try #require(probeUpdate.command)
         let commandText = String(decoding: command, as: UTF8.self)
         #expect(commandText.contains("file://localhost%s"))
+        #expect(commandText.contains("TermindCommand=ABC123"))
+        #expect(commandText.contains("PROMPT_COMMAND"))
         #expect(!commandText.contains("$HOSTNAME"))
         #expect(!commandText.contains("kitty-shell-cwd"))
         #expect(probeUpdate.visibleOutput == nil)
@@ -52,6 +54,12 @@ struct ShellIntegrationBootstrapTests {
         #expect(!text.contains("$HOST"))
         #expect(!text.contains("hostname"))
         #expect(!text.contains("kitty-shell-cwd"))
+        #expect(text.contains("TermindCommand=SHELL"))
+        if shell == "zsh" {
+            #expect(text.contains("add-zsh-hook preexec"))
+        } else {
+            #expect(text.contains("fish_preexec"))
+        }
     }
 
     @Test

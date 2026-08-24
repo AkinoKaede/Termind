@@ -30,6 +30,12 @@ final class WindowModel {
             }
         }
     }
+    weak var commandHistoryStore: CommandHistoryStore? {
+        didSet {
+            guard let commandHistoryStore else { return }
+            for tab in tabs { tab.configureCommandHistory(using: commandHistoryStore) }
+        }
+    }
 
     /// What is being dragged right now, from the tab bar or from a pane.
     ///
@@ -142,6 +148,13 @@ final class WindowModel {
                 hasFocusedSSHSession: focusedSSHSession != nil
             )
         }
+    }
+
+    func isSidebarModeEnabled(_ mode: SidebarMode) -> Bool {
+        sidebar.isModeEnabled(
+            mode, for: selectedTopLevelTab,
+            hasFocusedSSHSession: focusedSSHSession != nil
+        )
     }
 
     func reconcileSidebarMode() {
@@ -389,6 +402,9 @@ final class WindowModel {
         if let connectionCoordinator {
             tab.configureConnections(using: connectionCoordinator)
         }
+        if let commandHistoryStore {
+            tab.configureCommandHistory(using: commandHistoryStore)
+        }
         tabs.append(tab)
         if shouldSelect { select(tab.id) }
         return tab
@@ -421,7 +437,8 @@ final class WindowModel {
         let pane = Pane.sshSession(
             host: host,
             usernameHint: usernameHint,
-            initialCommand: initialPath.flatMap(Self.changeDirectoryCommand)
+            initialCommand: initialPath.flatMap(Self.changeDirectoryCommand),
+            recordsInitialCommandInHistory: initialPath == nil
         )
         numberPane(pane)
 

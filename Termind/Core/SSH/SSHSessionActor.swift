@@ -160,6 +160,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         var command: Data?
         var visibleOutput: Data?
         var isComplete = false
+        var integrationInstalled = false
     }
 
     private enum Phase: Sendable {
@@ -315,7 +316,10 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         var visible = preservedOutput
         visible.append(Data(buffer[buffer.index(after: lineEnd)...]))
         finish()
-        return Update(visibleOutput: visible, isComplete: true)
+        return Update(
+            visibleOutput: visible, isComplete: true,
+            integrationInstalled: true
+        )
     }
 
     private mutating func scanForLateProbe(now: UInt64) -> Update {
@@ -421,13 +425,13 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         switch shell {
         case "bash":
             command =
-                " __termind_uri_path() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; __termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_uri_path \"$PWD\")\"; }; if [[ $(builtin declare -p PROMPT_COMMAND 2>/dev/null) == \"declare -a \"* ]]; then PROMPT_COMMAND+=(__termind_report_cwd); else PROMPT_COMMAND=\"${PROMPT_COMMAND:+$PROMPT_COMMAND; }__termind_report_cwd\"; fi; \(marker); __termind_report_cwd\n"
+                " __termind_encode() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; __termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; __termind_report_command() { builtin local current=$HISTCMD cmd; if (( current > ${__termind_last_histcmd:-0} )); then cmd=\"$(builtin fc -ln -0)\"; cmd=\"${cmd#\"${cmd%%[![:space:]]*}\"}\"; [[ -n \"$cmd\" ]] && builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$cmd\")\"; __termind_last_histcmd=$current; fi; }; __termind_last_histcmd=$HISTCMD; if [[ $(builtin declare -p PROMPT_COMMAND 2>/dev/null) == \"declare -a \"* ]]; then PROMPT_COMMAND+=(__termind_report_command __termind_report_cwd); else PROMPT_COMMAND=\"${PROMPT_COMMAND:+$PROMPT_COMMAND; }__termind_report_command; __termind_report_cwd\"; fi; \(marker); __termind_report_cwd\n"
         case "zsh":
             command =
-                " function __termind_uri_path { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_uri_path \"$PWD\")\"; }; autoload -Uz add-zsh-hook; add-zsh-hook precmd __termind_report_cwd; add-zsh-hook chpwd __termind_report_cwd; \(marker); __termind_report_cwd\n"
+                " function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; }; autoload -Uz add-zsh-hook; add-zsh-hook preexec __termind_report_command; add-zsh-hook precmd __termind_report_cwd; add-zsh-hook chpwd __termind_report_cwd; \(marker); __termind_report_cwd\n"
         case "fish":
             command =
-                " function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_cwd\n"
+                " function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); end; printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_cwd\n"
         default:
             return nil
         }
@@ -435,14 +439,103 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     }
 }
 
+/// Removes authenticated command-report OSC sequences before output reaches
+/// Ghostty and emits their decoded payloads separately. The session token makes
+/// ordinary OSC output in a remote program ineligible to forge local history.
+nonisolated struct RemoteCommandEventFilter: Sendable {
+    nonisolated struct Update: Sendable {
+        var visibleOutput = Data()
+        var commands: [String] = []
+    }
+
+    private let prefix: Data
+    private var buffer = Data()
+
+    init(token: String) {
+        prefix = Data("\u{1B}]777;TermindCommand=\(token);".utf8)
+    }
+
+    mutating func receive(_ data: Data) -> Update {
+        buffer.append(data)
+        var update = Update()
+        while let marker = buffer.range(of: prefix) {
+            if marker.lowerBound > buffer.startIndex {
+                update.visibleOutput.append(buffer[..<marker.lowerBound])
+            }
+            guard let end = buffer[marker.upperBound...].firstIndex(of: 0x07) else {
+                buffer = Data(buffer[marker.lowerBound...])
+                return update
+            }
+            let payload = Data(buffer[marker.upperBound..<end])
+            if let command = Self.decodePercentEncoded(payload), !command.isEmpty {
+                update.commands.append(command)
+            }
+            buffer = Data(buffer[buffer.index(after: end)...])
+        }
+
+        let retained = longestSuffixMatchingPrefix()
+        let visibleEnd = buffer.index(buffer.endIndex, offsetBy: -retained)
+        update.visibleOutput.append(buffer[..<visibleEnd])
+        buffer = Data(buffer[visibleEnd...])
+        return update
+    }
+
+    private func longestSuffixMatchingPrefix() -> Int {
+        guard !buffer.isEmpty, prefix.count > 1 else { return 0 }
+        for count in stride(from: min(buffer.count, prefix.count - 1), through: 1, by: -1) {
+            if buffer.suffix(count).elementsEqual(prefix.prefix(count)) { return count }
+        }
+        return 0
+    }
+
+    private static func decodePercentEncoded(_ data: Data) -> String? {
+        let bytes = Array(data)
+        var decoded: [UInt8] = []
+        decoded.reserveCapacity(bytes.count)
+        var index = 0
+        while index < bytes.count {
+            if bytes[index] == 0x25, index + 2 < bytes.count,
+                let high = hex(bytes[index + 1]), let low = hex(bytes[index + 2])
+            {
+                decoded.append(high << 4 | low)
+                index += 3
+            } else {
+                decoded.append(bytes[index])
+                index += 1
+            }
+        }
+        return String(data: Data(decoded), encoding: .utf8)
+    }
+
+    private static func hex(_ byte: UInt8) -> UInt8? {
+        switch byte {
+        case 0x30...0x39: byte - 0x30
+        case 0x41...0x46: byte - 0x41 + 10
+        case 0x61...0x66: byte - 0x61 + 10
+        default: nil
+        }
+    }
+}
+
+nonisolated enum SSHShellIntegrationEvent: Sendable {
+    case available
+    case command(String)
+}
+
 actor SSHSessionActor {
     typealias OutputHandler = @Sendable (Data) -> Void
     typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
+    typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
 
     private let worker: SSHSessionWorker
 
-    init(output: @escaping OutputHandler, exit: @escaping ExitHandler) {
-        worker = SSHSessionWorker(output: output, exit: exit)
+    init(
+        output: @escaping OutputHandler, exit: @escaping ExitHandler,
+        shellIntegration: @escaping ShellIntegrationHandler = { _ in }
+    ) {
+        worker = SSHSessionWorker(
+            output: output, exit: exit, shellIntegrationHandler: shellIntegration
+        )
     }
 
     static func discoverHostKey(
@@ -517,6 +610,7 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.session")
     private let output: SSHSessionActor.OutputHandler
     private let exit: SSHSessionActor.ExitHandler
+    private let shellIntegrationHandler: SSHSessionActor.ShellIntegrationHandler
 
     private var socket: Int32 = -1
     private var routeTransport: SSHRoutedSocket?
@@ -525,12 +619,18 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private var pumpTimer: (any DispatchSourceTimer)?
     private var pendingWrites = Data()
     private var shellIntegration: RemoteShellIntegrationBootstrap?
+    private var commandEventFilter: RemoteCommandEventFilter?
     private var didReportExit = false
 
-    init(output: @escaping SSHSessionActor.OutputHandler, exit: @escaping SSHSessionActor.ExitHandler) {
+    init(
+        output: @escaping SSHSessionActor.OutputHandler,
+        exit: @escaping SSHSessionActor.ExitHandler,
+        shellIntegrationHandler: @escaping SSHSessionActor.ShellIntegrationHandler
+    ) {
         _ = Self.initialization
         self.output = output
         self.exit = exit
+        self.shellIntegrationHandler = shellIntegrationHandler
     }
 
     static func discoverHostKey(
@@ -764,6 +864,7 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
                     if shellIntegrationEnabled {
                         let bootstrap = RemoteShellIntegrationBootstrap()
                         pendingWrites.append(bootstrap.startCommand)
+                        commandEventFilter = RemoteCommandEventFilter(token: bootstrap.token)
                         shellIntegration = bootstrap
                     }
                     startPump()
@@ -1002,7 +1103,7 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
     private func deliverOutput(_ data: Data) {
         guard var integration = shellIntegration else {
-            output(data)
+            deliverIntegratedOutput(data)
             return
         }
         let update = integration.receive(data)
@@ -1016,8 +1117,24 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         if let command = update.command {
             pendingWrites.append(command)
         }
+        if update.integrationInstalled {
+            shellIntegrationHandler(.available)
+        }
         if let visibleOutput = update.visibleOutput, !visibleOutput.isEmpty {
-            output(visibleOutput)
+            deliverIntegratedOutput(visibleOutput)
+        }
+    }
+
+    private func deliverIntegratedOutput(_ data: Data) {
+        guard var commandEventFilter else {
+            output(data)
+            return
+        }
+        let update = commandEventFilter.receive(data)
+        self.commandEventFilter = commandEventFilter
+        if !update.visibleOutput.isEmpty { output(update.visibleOutput) }
+        for command in update.commands {
+            shellIntegrationHandler(.command(command))
         }
     }
 
@@ -1026,6 +1143,7 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         pumpTimer = nil
         pendingWrites.removeAll(keepingCapacity: false)
         shellIntegration = nil
+        commandEventFilter = nil
         if let channel {
             _ = libssh2_channel_send_eof(channel)
             _ = libssh2_channel_close(channel)

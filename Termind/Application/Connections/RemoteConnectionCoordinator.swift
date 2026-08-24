@@ -6,9 +6,12 @@ import Foundation
 nonisolated final class RemoteConnectionCoordinator: Sendable {
     func makeSSHSession(
         output: @escaping SSHSessionActor.OutputHandler,
-        exit: @escaping SSHSessionActor.ExitHandler
+        exit: @escaping SSHSessionActor.ExitHandler,
+        shellIntegration: @escaping SSHSessionActor.ShellIntegrationHandler = { _ in }
     ) -> SSHSessionActor {
-        SSHSessionActor(output: output, exit: exit)
+        SSHSessionActor(
+            output: output, exit: exit, shellIntegration: shellIntegration
+        )
     }
 
     func makeSFTPClient() -> any SFTPClientProtocol { SFTPClient() }

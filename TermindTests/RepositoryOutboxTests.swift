@@ -53,7 +53,7 @@ struct RepositoryOutboxTests {
             try context.save()
         }
 
-        let schema = Schema(versionedSchema: TermindSchemaV2.self)
+        let schema = Schema(versionedSchema: TermindSchemaV3.self)
         let configuration = ModelConfiguration(
             "Migration", schema: schema, url: storeURL
         )
@@ -82,6 +82,7 @@ struct RepositoryOutboxTests {
         #expect(try context.fetch(FetchDescriptor<PersistentOutboxJob>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentPendingDeletion>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentDatabaseMetadata>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<PersistentCommandHistoryEntry>()).isEmpty)
     }
 
     @Test
@@ -114,6 +115,11 @@ struct RepositoryOutboxTests {
         context.insert(PersistentHost(dependent))
         context.insert(PersistentSnippet(snippet))
         context.insert(PersistentPortForwardingRule(rule))
+        context.insert(
+            PersistentCommandHistoryEntry(
+                CommandHistoryEntry(hostID: doomed.id, command: "uptime")
+            )
+        )
         try context.save()
         let repository = SwiftDataHostRepository(context: context)
 
@@ -147,6 +153,7 @@ struct RepositoryOutboxTests {
                 == [dependent.id]
         )
         #expect(try context.fetch(FetchDescriptor<PersistentPortForwardingRule>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<PersistentCommandHistoryEntry>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentPendingDeletion>()).isEmpty)
     }
 

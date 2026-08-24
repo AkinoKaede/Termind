@@ -49,7 +49,7 @@ nonisolated struct ContextPanelDetailID: Hashable, Sendable, Identifiable {
 @Observable
 final class WindowSidebarState {
     nonisolated enum Mode: String, Hashable, Sendable, CaseIterable, Identifiable {
-        case navigation, assistant, snippets, details
+        case navigation, assistant, snippets, history, details
 
         nonisolated var id: String { rawValue }
 
@@ -58,7 +58,18 @@ final class WindowSidebarState {
             case .navigation: "Navigation"
             case .assistant: "Assistant"
             case .snippets: "Snippets"
+            case .history: "History"
             case .details: "Details"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .navigation: "sidebar.left"
+            case .assistant: "sparkles"
+            case .snippets: "text.badge.plus"
+            case .history: "clock.arrow.circlepath"
+            case .details: "info.circle"
             }
         }
     }
@@ -82,10 +93,23 @@ final class WindowSidebarState {
         case .assistant:
             [.navigation]
         case .workspace:
-            hasFocusedSSHSession
-                ? [.assistant, .snippets, .details]
-                : [.assistant, .details]
+            [.assistant, .snippets, .history, .details]
         }
+    }
+
+    func isModeEnabled(
+        _ mode: Mode, for topLevelTab: TopLevelTab,
+        hasFocusedSSHSession: Bool
+    ) -> Bool {
+        guard availableModes(
+            for: topLevelTab, hasFocusedSSHSession: hasFocusedSSHSession
+        ).contains(mode) else { return false }
+        if case .workspace = topLevelTab,
+            (mode == .snippets || mode == .history)
+        {
+            return hasFocusedSSHSession
+        }
+        return true
     }
 
     func mode(
@@ -105,8 +129,13 @@ final class WindowSidebarState {
         case .workspace(let id):
             stored = workspaceModes[id] ?? .assistant
         }
-        if available.contains(stored) { return stored }
-        if stored == .snippets, available.contains(.details) { return .details }
+        if available.contains(stored), isModeEnabled(
+            stored, for: topLevelTab,
+            hasFocusedSSHSession: hasFocusedSSHSession
+        ) { return stored }
+        if (stored == .snippets || stored == .history), available.contains(.assistant) {
+            return .assistant
+        }
         return available[0]
     }
 
@@ -115,10 +144,10 @@ final class WindowSidebarState {
         for topLevelTab: TopLevelTab,
         hasFocusedSSHSession: Bool
     ) {
-        guard availableModes(
-            for: topLevelTab,
+        guard isModeEnabled(
+            mode, for: topLevelTab,
             hasFocusedSSHSession: hasFocusedSSHSession
-        ).contains(mode) else { return }
+        ) else { return }
 
         switch topLevelTab {
         case .vault:
@@ -130,7 +159,7 @@ final class WindowSidebarState {
         }
     }
 
-    /// Commits a compatibility fallback, such as Snippets -> Details when an
+    /// Commits a compatibility fallback, such as Snippets -> Assistant when an
     /// SFTP pane takes focus, so returning to SSH does not resurrect a mode the
     /// user has already been moved away from.
     func reconcileMode(

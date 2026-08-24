@@ -110,6 +110,10 @@ final class SwiftDataHostRepository: HostRepository {
             snippet.targetHostIDs.removeAll { $0 == hostID }
         }
         for rule in try forwardingRules(for: hostID) { context.delete(rule) }
+        try context.delete(
+            model: PersistentCommandHistoryEntry.self,
+            where: #Predicate { $0.hostID == hostID }
+        )
         try commitMutation()
     }
 

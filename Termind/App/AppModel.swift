@@ -48,6 +48,7 @@ final class AppModel {
     }
 
     let hosts: HostStore
+    let commandHistory: CommandHistoryStore
     /// Repository-backed projection used by newly migrated features. HostStore
     /// remains temporarily available until all legacy features have moved.
     let hostLibrary: HostLibraryModel
@@ -67,11 +68,13 @@ final class AppModel {
 
     init(
         hosts: HostStore, ai: AIStore = AIStore(),
+        commandHistory: CommandHistoryStore = CommandHistoryStore(),
         dependencies: AppDependencies? = nil
     ) {
         let dependencies = dependencies ?? .legacy(hosts: hosts)
         let connectionCoordinator = dependencies.connectionCoordinator
         self.hosts = hosts
+        self.commandHistory = commandHistory
         connections = connectionCoordinator
         hostRepository = dependencies.hostRepository
         hostLibrary = HostLibraryModel(repository: dependencies.hostRepository)
@@ -129,11 +132,13 @@ final class AppModel {
     func registerWindow(_ window: WindowModel) {
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
+        window.commandHistoryStore = commandHistory
     }
 
     func requestHostDeletion(_ hostID: Host.ID) {
         do {
             try hostRepository.requestHostDeletion(hostID)
+            commandHistory.clear(for: hostID)
             hosts.projectHostDeletion(hostID)
         } catch {
             hosts.reportStorageError(error)

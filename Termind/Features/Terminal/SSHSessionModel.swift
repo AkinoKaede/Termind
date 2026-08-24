@@ -141,6 +141,9 @@ final class SSHSessionModel: Identifiable {
     }
     var latencyMilliseconds: Int?
     var hasUnreadOutput: Bool = false
+    /// History for an unsaved Quick Connect destination. Saved Hosts use the
+    /// app-wide CommandHistoryStore instead so every window sees the same list.
+    private(set) var transientCommandHistory: [CommandHistoryEntry] = []
 
     /// Find stays with this terminal's scrollback. Closing the bar ends Ghostty's
     /// highlights but deliberately retains the query, matching VS Code when ⌘F
@@ -176,6 +179,7 @@ final class SSHSessionModel: Identifiable {
     #endif
     private let terminalBackend: InMemoryTerminalSession
     private weak var statusStore: HostStore?
+    weak var commandHistoryStore: CommandHistoryStore?
     private var ssh: SSHSessionActor?
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
@@ -196,15 +200,35 @@ final class SSHSessionModel: Identifiable {
     /// Injection point for routing tests. Production sessions leave this nil
     /// and write to their SSH actor as before.
     var inputSink: ((Data) -> Void)?
-    /// A Snippet-launched sshSession submits this once, after the first successful
+    /// A caller-supplied command submitted once after the first successful
     /// connection. Authentication and host-key prompts keep it alive; failure,
     /// cancellation, or an explicit disconnect consumes it without running.
-    private var pendingInitialCommand: String?
+    /// Commands generated solely to synchronize an SFTP path opt out of History.
+    private struct PendingInitialCommand {
+        var command: String
+        var recordsInHistory: Bool
+    }
+    private var pendingInitialCommand: PendingInitialCommand?
+    private var commandExcludedFromHistory: String?
 
-    init(hostID: Host.ID, title: String, initialCommand: String? = nil) {
+    convenience init(hostID: Host.ID, title: String, initialCommand: String? = nil) {
+        self.init(
+            hostID: hostID, title: title, initialCommand: initialCommand,
+            recordsInitialCommandInHistory: true
+        )
+    }
+
+    init(
+        hostID: Host.ID, title: String, initialCommand: String?,
+        recordsInitialCommandInHistory: Bool
+    ) {
         self.hostID = hostID
         self.title = title
-        self.pendingInitialCommand = initialCommand
+        self.pendingInitialCommand = initialCommand.map {
+            PendingInitialCommand(
+                command: $0, recordsInHistory: recordsInitialCommandInHistory
+            )
+        }
         let relay = SSHSessionRelay()
         let backend = InMemoryTerminalSession(
             write: { data in
@@ -235,12 +259,26 @@ final class SSHSessionModel: Identifiable {
         observeWorkingDirectory(from: state, through: relay)
     }
 
-    init(host: Host, usernameHint: String? = nil, initialCommand: String? = nil) {
+    convenience init(host: Host, usernameHint: String? = nil, initialCommand: String? = nil) {
+        self.init(
+            host: host, usernameHint: usernameHint, initialCommand: initialCommand,
+            recordsInitialCommandInHistory: true
+        )
+    }
+
+    init(
+        host: Host, usernameHint: String?, initialCommand: String?,
+        recordsInitialCommandInHistory: Bool
+    ) {
         self.transientHost = host
         self.usernameHint = usernameHint
         self.hostID = host.id
         self.title = host.name
-        self.pendingInitialCommand = initialCommand
+        self.pendingInitialCommand = initialCommand.map {
+            PendingInitialCommand(
+                command: $0, recordsInHistory: recordsInitialCommandInHistory
+            )
+        }
         let relay = SSHSessionRelay()
         let backend = InMemoryTerminalSession(
             write: { data in
@@ -338,7 +376,9 @@ final class SSHSessionModel: Identifiable {
 
     func connect(using store: HostStore) {
         workingDirectory = nil
+        shellIntegrationAvailable = false
         transferConfiguration = nil
+        commandExcludedFromHistory = nil
         statusStore = store
         let attemptID = UUID()
         connectionAttemptID = attemptID
@@ -691,6 +731,7 @@ final class SSHSessionModel: Identifiable {
         workingDirectory = nil
         transferConfiguration = nil
         pendingInitialCommand = nil
+        commandExcludedFromHistory = nil
         pendingAuthentication = nil
         pendingHostKey = nil
         pendingHostKeyHostID = nil
@@ -749,6 +790,17 @@ final class SSHSessionModel: Identifiable {
                     guard let self, self.connectionAttemptID == attemptID else { return }
                     self.handleRemoteExit(result)
                 }
+            },
+            shellIntegration: { [weak self] event in
+                Task { @MainActor in
+                    guard let self else { return }
+                    switch event {
+                    case .available:
+                        self.shellIntegrationAvailable = true
+                    case .command(let command):
+                        self.recordExecutedCommand(command)
+                    }
+                }
             }
         )
         ssh = actor
@@ -772,10 +824,7 @@ final class SSHSessionModel: Identifiable {
             temporaryHostKeys.removeAll()
             status = .connected
             connectionJourney.succeed()
-            if let command = pendingInitialCommand {
-                pendingInitialCommand = nil
-                insert(command, submit: true)
-            }
+            submitPendingInitialCommand()
         } catch {
             await actor.disconnect()
             if ssh === actor { ssh = nil }
@@ -790,6 +839,7 @@ final class SSHSessionModel: Identifiable {
     /// Workspace instead; transport failures remain visible for reconnection.
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
         workingDirectory = nil
+        shellIntegrationAvailable = false
         transferConfiguration = nil
         connectionAttemptID = nil
         ssh = nil
@@ -888,6 +938,7 @@ final class SSHSessionModel: Identifiable {
         let host = transientHost ?? Host(id: hostID, name: title, host: title)
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
         copy.connectionCoordinator = connectionCoordinator
+        copy.commandHistoryStore = commandHistoryStore
         return copy
     }
 
@@ -940,6 +991,45 @@ final class SSHSessionModel: Identifiable {
 
     func dismissSuggestion() {
         inlineSuggestion = nil
+    }
+
+    /// Submits the one-shot startup command. Keeping the History exclusion next
+    /// to the write ensures it is armed only when the command actually runs.
+    func submitPendingInitialCommand() {
+        guard let initialCommand = pendingInitialCommand else { return }
+        pendingInitialCommand = nil
+        if !initialCommand.recordsInHistory {
+            commandExcludedFromHistory = initialCommand.command
+        }
+        insert(initialCommand.command, submit: true)
+    }
+
+    func recordExecutedCommand(_ command: String) {
+        guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        if command == commandExcludedFromHistory {
+            commandExcludedFromHistory = nil
+            return
+        }
+        if statusStore?.host(hostID) != nil {
+            commandHistoryStore?.record(command, for: hostID)
+        } else {
+            transientCommandHistory.insert(
+                CommandHistoryEntry(hostID: hostID, command: command), at: 0
+            )
+            if transientCommandHistory.count > CommandHistoryStore.perHostLimit {
+                transientCommandHistory.removeLast(
+                    transientCommandHistory.count - CommandHistoryStore.perHostLimit
+                )
+            }
+        }
+    }
+
+    func deleteTransientHistory(_ id: CommandHistoryEntry.ID) {
+        transientCommandHistory.removeAll { $0.id == id }
+    }
+
+    func clearTransientHistory() {
+        transientCommandHistory.removeAll()
     }
 }
 

@@ -28,6 +28,7 @@ struct TermindApp: App {
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,
+                    commandHistory: CommandHistoryStore(modelContext: container.mainContext),
                     dependencies: AppDependencies(
                         hostRepository: repository,
                         outboxRunner: outboxRunner

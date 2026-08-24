@@ -1,8 +1,9 @@
+import AppKit
 import SwiftUI
 
 /// The window's one left-hand column.
 ///
-/// Navigation, assistant, snippets and contextual details replace one another
+/// Navigation, assistant, snippets, history and contextual details replace one another
 /// inside a stable container, so changing tools never closes or resizes the
 /// sidebar. The available modes follow the selected top-level tab.
 struct SidebarView: View {
@@ -16,13 +17,11 @@ struct SidebarView: View {
 
         VStack(spacing: 0) {
             if window.availableSidebarModes.count > 1 {
-                Picker("", selection: $window.sidebarMode) {
+                HStack(spacing: Metrics.Space.xs) {
                     ForEach(window.availableSidebarModes) { mode in
-                        Text(mode.label).tag(mode)
+                        sidebarModeButton(mode)
                     }
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
                 .padding(Metrics.Space.m)
 
                 Divider()
@@ -35,6 +34,8 @@ struct SidebarView: View {
                 assistant
             case .snippets:
                 SSHSessionSnippetsSidebar()
+            case .history:
+                SSHSessionHistorySidebar()
             case .details:
                 DetailSidebarView(
                     details: activeDetails(available: availableDetails),
@@ -62,6 +63,30 @@ struct SidebarView: View {
     }
 
     private var focusedPaneID: Pane.ID? { window.selectedTab?.focusedPaneID }
+
+    private func sidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
+        let isSelected = window.sidebarMode == mode
+        let isEnabled = window.isSidebarModeEnabled(mode)
+        return Button {
+            window.sidebarMode = mode
+        } label: {
+            Image(systemName: mode.symbol)
+                .font(.callout.weight(.medium))
+                .frame(maxWidth: .infinity, minHeight: 28)
+                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                .background(
+                    isSelected ? Color.accentColor.opacity(0.14) : Color.clear,
+                    in: .rect(cornerRadius: Metrics.Radius.small)
+                )
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.38)
+        .help(Text(mode.label))
+        .accessibilityLabel(Text(mode.label))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
 
     @ViewBuilder
     private var navigation: some View {
@@ -115,7 +140,7 @@ private struct SSHSessionSnippetsSidebar: View {
         VStack(spacing: 0) {
             TermindSearchField(text: $query, prompt: "Search Snippets", density: .compact)
                 .padding(.horizontal, Metrics.Space.m)
-                .padding(.bottom, Metrics.Space.s)
+                .padding(.vertical, Metrics.Space.s)
 
             if displayedSnippets.isEmpty {
                 ContentUnavailableView.search(text: query)
@@ -178,7 +203,6 @@ private struct SSHSessionSnippetsSidebar: View {
                     Button("Execute") { execute(snippet) }
                     Divider()
                     Button("Copy") { copyToPasteboard(snippet.body) }
-                    Button("Show Details") { window.showSnippetDetails(snippet.id) }
                     Button("Edit") { snippetToEdit = snippet }
                 }
         }
@@ -224,6 +248,346 @@ private struct SSHSessionSnippetsSidebar: View {
         guard let tab = window.selectedTab, let sshSession = tab.focusedPane.sshSession else { return }
         tab.deliver(snippet.body, from: sshSession, submit: true)
         destructiveSnippet = nil
+    }
+}
+
+// MARK: - Session History
+
+private struct SSHSessionHistorySidebar: View {
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+
+    @State private var query = ""
+    @State private var destructiveEntry: CommandHistoryEntry?
+    @State private var confirmsClear = false
+    @State private var namingEntryID: CommandHistoryEntry.ID?
+    @State private var snippetName = ""
+
+    private var sshSession: SSHSessionModel? {
+        window.selectedTab?.focusedPane.sshSession
+    }
+
+    private var isSavedHost: Bool {
+        guard let hostID = sshSession?.hostID else { return false }
+        return app.hosts.host(hostID) != nil
+    }
+
+    private var allEntries: [CommandHistoryEntry] {
+        guard let sshSession else { return [] }
+        _ = app.commandHistory.revision
+        if isSavedHost {
+            return app.commandHistory.entries(for: sshSession.hostID, matching: query)
+        }
+        let entries = sshSession.transientCommandHistory
+        guard !query.isEmpty else { return entries }
+        return entries.filter { $0.command.localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TermindSearchField(text: $query, prompt: "Search History", density: .compact)
+                .padding(.horizontal, Metrics.Space.m)
+                .padding(.vertical, Metrics.Space.s)
+
+            if allEntries.isEmpty {
+                emptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    Section(query.isEmpty ? "Recent" : "Results") {
+                        ForEach(allEntries) { entry in
+                            historyRow(entry)
+                        }
+                    }
+                }
+                .listStyle(.sidebar)
+            }
+
+            if sshSession?.status.isLive == true,
+                sshSession?.shellIntegrationAvailable == false
+            {
+                Text("This session is not recording history. Enable Shell Integration and use bash, zsh, or fish.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Metrics.Space.m)
+                    .padding(.vertical, Metrics.Space.s)
+            }
+
+            Divider()
+            HStack(spacing: Metrics.Space.s) {
+                Text("Click to insert · Double-click to execute")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Button("Clear", role: .destructive) { confirmsClear = true }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .disabled(historyIsEmpty)
+            }
+            .padding(.horizontal, Metrics.Space.m)
+            .padding(.vertical, Metrics.Space.s)
+        }
+        .confirmationDialog(
+            "Clear command history for this Host?",
+            isPresented: $confirmsClear,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive, action: clearHistory)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes all saved commands for the current Host.")
+        }
+        .confirmationDialog(
+            "Execute a destructive command?",
+            isPresented: Binding(
+                get: { destructiveEntry != nil },
+                set: { if !$0 { destructiveEntry = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: destructiveEntry
+        ) { entry in
+            Button("Execute", role: .destructive) { executeNow(entry) }
+            Button("Cancel", role: .cancel) { destructiveEntry = nil }
+        } message: { entry in
+            let assessment = CommandRiskClassifier.assess(entry.command)
+            Text(([entry.command] + assessment.reasons).joined(separator: "\n"))
+        }
+    }
+
+    @ViewBuilder
+    private func historyRow(_ entry: CommandHistoryEntry) -> some View {
+        if namingEntryID == entry.id {
+            VStack(alignment: .leading, spacing: 3) {
+                SidebarInlineTextField(
+                    text: $snippetName,
+                    prompt: "Snippet Name",
+                    onSubmit: { saveSnippet(from: entry) },
+                    onCancel: cancelSnippetNaming
+                )
+                .frame(height: 18)
+                .padding(.horizontal, Metrics.Space.s)
+                .padding(.vertical, 4)
+                .background(
+                    Color.primary.opacity(0.055),
+                    in: .rect(cornerRadius: Metrics.Radius.small)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: Metrics.Radius.small)
+                        .strokeBorder(Color.accentColor.opacity(0.55))
+                }
+                Text(entry.command)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.vertical, 2)
+        } else {
+            CommandHistoryRow(entry: entry, delete: { delete(entry) })
+                .contentShape(.rect)
+                .onTapGesture(count: 2) { execute(entry) }
+                .onTapGesture { insert(entry) }
+                .contextMenu {
+                    Button("Copy") { copyToPasteboard(entry.command) }
+                    Button("Save as Snippet") { beginSnippetNaming(entry) }
+                    Divider()
+                    Button("Clear History", role: .destructive) { confirmsClear = true }
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if !query.isEmpty {
+            ContentUnavailableView.search(text: query)
+        } else {
+            ContentUnavailableView(
+                "No Command History", systemImage: "clock.arrow.circlepath",
+                description: Text("Commands confirmed by the remote shell appear here.")
+            )
+        }
+    }
+
+    private var historyIsEmpty: Bool {
+        guard let sshSession else { return true }
+        if isSavedHost {
+            return app.commandHistory.entries(for: sshSession.hostID).isEmpty
+        }
+        return sshSession.transientCommandHistory.isEmpty
+    }
+
+    private func insert(_ entry: CommandHistoryEntry) {
+        guard let tab = window.selectedTab, let sshSession = tab.focusedPane.sshSession else { return }
+        tab.deliver(entry.command, from: sshSession)
+    }
+
+    private func execute(_ entry: CommandHistoryEntry) {
+        if CommandRiskClassifier.assess(entry.command).requiresSecondConfirmation {
+            destructiveEntry = entry
+        } else {
+            executeNow(entry)
+        }
+    }
+
+    private func executeNow(_ entry: CommandHistoryEntry) {
+        guard let tab = window.selectedTab, let sshSession = tab.focusedPane.sshSession else { return }
+        tab.deliver(entry.command, from: sshSession, submit: true)
+        destructiveEntry = nil
+    }
+
+    private func delete(_ entry: CommandHistoryEntry) {
+        if isSavedHost {
+            app.commandHistory.delete(entry.id)
+        } else {
+            sshSession?.deleteTransientHistory(entry.id)
+        }
+    }
+
+    private func clearHistory() {
+        guard let sshSession else { return }
+        if isSavedHost {
+            app.commandHistory.clear(for: sshSession.hostID)
+        } else {
+            sshSession.clearTransientHistory()
+        }
+    }
+
+    private func beginSnippetNaming(_ entry: CommandHistoryEntry) {
+        snippetName = ""
+        namingEntryID = entry.id
+    }
+
+    private func cancelSnippetNaming() {
+        namingEntryID = nil
+        snippetName = ""
+    }
+
+    private func saveSnippet(from entry: CommandHistoryEntry) {
+        let name = snippetName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        app.hosts.upsert(Snippet(title: name, body: entry.command))
+        cancelSnippetNaming()
+    }
+}
+
+private struct CommandHistoryRow: View {
+    let entry: CommandHistoryEntry
+    let delete: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.s) {
+            Text(entry.command)
+                .font(.caption.monospaced())
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            ZStack {
+                if isHovering {
+                    Button(action: delete) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18, height: 18)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Delete from History")
+                    .accessibilityLabel("Delete from History")
+                } else {
+                    RiskBadge(
+                        assessment: CommandRiskClassifier.assess(entry.command),
+                        compact: true
+                    )
+                }
+            }
+            .frame(width: 18, height: 18, alignment: .center)
+        }
+        .padding(.vertical, 2)
+        .onHover { isHovering = $0 }
+        .help(Text(entry.command))
+    }
+}
+
+/// A native borderless field whose editor remains transparent inside a Sidebar
+/// list. SwiftUI's focused `TextField` paints an opaque control background here,
+/// which looks like a white strip in light mode and ignores the row material.
+private struct SidebarInlineTextField: NSViewRepresentable {
+    @Binding var text: String
+    let prompt: String
+    let onSubmit: () -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit, onCancel: onCancel)
+    }
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField()
+        field.delegate = context.coordinator
+        field.target = context.coordinator
+        field.action = #selector(Coordinator.submit)
+        field.stringValue = text
+        field.placeholderString = prompt
+        field.isBezeled = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.font = NSFont.preferredFont(forTextStyle: .body)
+        field.lineBreakMode = .byTruncatingTail
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        context.coordinator.requestFocus(for: field)
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        if field.stringValue != text {
+            field.stringValue = text
+        }
+    }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        private var text: Binding<String>
+        private let onSubmit: () -> Void
+        private let onCancel: () -> Void
+        private var didRequestFocus = false
+
+        init(
+            text: Binding<String>,
+            onSubmit: @escaping () -> Void,
+            onCancel: @escaping () -> Void
+        ) {
+            self.text = text
+            self.onSubmit = onSubmit
+            self.onCancel = onCancel
+        }
+
+        func requestFocus(for field: NSTextField) {
+            guard !didRequestFocus else { return }
+            didRequestFocus = true
+            DispatchQueue.main.async {
+                field.window?.makeFirstResponder(field)
+            }
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField else { return }
+            text.wrappedValue = field.stringValue
+        }
+
+        func control(
+            _ control: NSControl,
+            textView: NSTextView,
+            doCommandBy commandSelector: Selector
+        ) -> Bool {
+            guard commandSelector == #selector(NSResponder.cancelOperation(_:)) else {
+                return false
+            }
+            onCancel()
+            return true
+        }
+
+        @objc func submit() {
+            onSubmit()
+        }
     }
 }
 

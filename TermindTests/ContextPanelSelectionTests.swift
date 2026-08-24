@@ -115,7 +115,8 @@ struct ContextPanelSelectionTests {
         let workspace = Workspace.sshSession(host: host)
         let window = WindowModel(tabs: [workspace])
 
-        #expect(window.availableSidebarModes == [.assistant, .snippets, .details])
+        #expect(window.availableSidebarModes == [.assistant, .snippets, .history, .details])
+        #expect(window.isSidebarModeEnabled(.history))
 
         window.selectVault()
         #expect(window.availableSidebarModes == [.navigation, .details])
@@ -146,17 +147,33 @@ struct ContextPanelSelectionTests {
     }
 
     @Test
-    func unavailableSnippetsModeCommitsDetailsFallback() {
+    func unavailableCommandModesCommitAssistantFallback() {
         let workspaceID = UUID()
         let state = WindowSidebarState()
 
-        state.setMode(.snippets, for: .workspace(workspaceID), hasFocusedSSHSession: true)
-        state.reconcileMode(for: .workspace(workspaceID), hasFocusedSSHSession: false)
+        for mode in [WindowSidebarState.Mode.snippets, .history] {
+            state.setMode(mode, for: .workspace(workspaceID), hasFocusedSSHSession: true)
+            state.reconcileMode(for: .workspace(workspaceID), hasFocusedSSHSession: false)
 
-        #expect(
-            state.mode(for: .workspace(workspaceID), hasFocusedSSHSession: true)
-                == .details
+            #expect(
+                state.mode(for: .workspace(workspaceID), hasFocusedSSHSession: true)
+                    == .assistant
+            )
+        }
+    }
+
+    @Test
+    func sftpKeepsFourStableIconsButDisablesCommandTools() {
+        let workspace = Workspace.sftpSession(
+            host: Host(name: "Files", host: "files.example")
         )
+        let window = WindowModel(tabs: [workspace])
+
+        #expect(window.availableSidebarModes == [.assistant, .snippets, .history, .details])
+        #expect(window.isSidebarModeEnabled(.assistant))
+        #expect(!window.isSidebarModeEnabled(.snippets))
+        #expect(!window.isSidebarModeEnabled(.history))
+        #expect(window.isSidebarModeEnabled(.details))
     }
 
     @Test

@@ -433,7 +433,7 @@ private struct TerminalSettings: View {
             }
             Section("Terminal") {
                 Toggle("Shell Integration", isOn: $shellIntegration)
-                Text("Keeps the remote working directory current in the status bar and assistant context.")
+                Text("Keeps the remote working directory current and records commands confirmed by supported shells.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

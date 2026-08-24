@@ -117,6 +117,11 @@ final class Pane: Identifiable {
         }
     }
 
+    func configureCommandHistory(using store: CommandHistoryStore) {
+        guard case .sshSession(let session) = content else { return }
+        session.commandHistoryStore = store
+    }
+
     var kind: PaneKind {
         switch content {
         case .sftpSession: .sftpSession
@@ -302,8 +307,19 @@ extension Pane {
     static func sshSession(
         host: Host, usernameHint: String? = nil, initialCommand: String? = nil
     ) -> Pane {
+        sshSession(
+            host: host, usernameHint: usernameHint, initialCommand: initialCommand,
+            recordsInitialCommandInHistory: true
+        )
+    }
+
+    static func sshSession(
+        host: Host, usernameHint: String?, initialCommand: String?,
+        recordsInitialCommandInHistory: Bool
+    ) -> Pane {
         let sshSession = SSHSessionModel(
-            host: host, usernameHint: usernameHint, initialCommand: initialCommand
+            host: host, usernameHint: usernameHint, initialCommand: initialCommand,
+            recordsInitialCommandInHistory: recordsInitialCommandInHistory
         )
         sshSession.status = .connecting
         return Pane(.sshSession(sshSession))
