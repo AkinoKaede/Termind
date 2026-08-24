@@ -5,8 +5,7 @@ enum SFTPSessionOpenPlacement: Equatable {
     case currentWorkspace
 }
 
-/// The state of one window: its tabs, which is selected, and whether the AI
-/// Context Panel is showing.
+/// The state of one window: its tabs, selection, and shared left sidebar.
 ///
 /// One of these per window rather than one per app, so two windows can hold
 /// different sets of tabs. Menu commands reach the right instance through
@@ -19,7 +18,7 @@ final class WindowModel {
     var selectedTopLevelTab: TopLevelTab = .vault
     var vaultDestination: VaultDestination = .hosts
     let chatLibrary: ChatLibraryModel
-    let contextPanel = WindowContextPanelState()
+    let sidebar = WindowSidebarState()
     let presentations = WindowPresentationState()
     let dragState = WorkspaceDragState()
     var connectionCoordinator: RemoteConnectionCoordinator? {
@@ -48,27 +47,27 @@ final class WindowModel {
 
     /// Ordered selection saved for a manager page.
     func detailSelection(for page: VaultPage) -> [ContextPanelDetailID] {
-        contextPanel.selection(for: page)
+        sidebar.selection(for: page)
     }
 
     /// Replaces a page selection, removing duplicates and ids belonging to a
     /// different page while keeping the first occurrence of each item.
     func setDetailSelection(_ details: [ContextPanelDetailID], for page: VaultPage) {
-        contextPanel.setSelection(details, for: page)
+        sidebar.setSelection(details, for: page)
     }
 
     func selectDetail(_ detail: ContextPanelDetailID, on page: VaultPage) {
-        contextPanel.select(detail, on: page)
+        sidebar.select(detail, on: page)
     }
 
     /// Shift-click semantics: selected items retain their order; a newly added
     /// item is appended at the point the user selected it.
     func toggleDetail(_ detail: ContextPanelDetailID, on page: VaultPage) {
-        contextPanel.toggle(detail, on: page)
+        sidebar.toggle(detail, on: page)
     }
 
     func clearDetailSelection(for page: VaultPage) {
-        contextPanel.clearSelection(for: page)
+        sidebar.clearSelection(for: page)
     }
 
     /// The selection that belongs to the content currently in front. Manager
@@ -76,18 +75,23 @@ final class WindowModel {
     /// that host without overwriting the Hosts page selection.
     var activeDetailSelection: [ContextPanelDetailID] {
         if selectedTopLevelTab == .vault, let page = vaultDestination.page {
-            return contextPanel.selection(for: page)
+            return sidebar.selection(for: page)
         }
-        return contextPanel.activeDetails(for: selectedTab?.focusedPane)
+        return sidebar.activeDetails(for: selectedTab?.focusedPane)
     }
 
     func showSnippetDetails(_ id: Snippet.ID) {
-        guard let pane = selectedTab?.focusedPane, pane.sshSession != nil else { return }
-        contextPanel.show(.snippet(id), scopedTo: pane)
+        guard let tab = selectedTab, tab.focusedPane.sshSession != nil else { return }
+        sidebar.show(.snippet(id), scopedTo: tab.focusedPane)
+        sidebar.setMode(
+            .details,
+            for: .workspace(tab.id),
+            hasFocusedSSHSession: true
+        )
     }
 
-    func clearContextPanelDetailOverride() {
-        contextPanel.clearOverride()
+    func clearSidebarDetailOverride() {
+        sidebar.clearOverride()
     }
 
     /// Resolves the active ids against live store data without mutating the
@@ -99,7 +103,7 @@ final class WindowModel {
 
     /// Removes records deleted out from under a remembered selection.
     func pruneDetailSelections(in store: HostStore) {
-        contextPanel.pruneSelections(available: Self.availableContextPanelDetails(in: store))
+        sidebar.pruneSelections(available: Self.availableContextPanelDetails(in: store))
     }
 
     private static func availableContextPanelDetails(in store: HostStore) -> Set<ContextPanelDetailID> {
@@ -109,19 +113,50 @@ final class WindowModel {
             .union(store.snippets.map { .snippet($0.id) })
     }
 
-    /// The Context Panel serves two jobs that both want the right-hand column: the
-    /// AI thread, and the details of whatever is selected in the sidebar. A
-    /// segmented control beats two panels — the window only has room for one.
-    typealias ContextPanelMode = WindowContextPanelState.Mode
+    typealias SidebarMode = WindowSidebarState.Mode
 
-    var showsContextPanel: Bool {
-        get { contextPanel.isPresented }
-        set { contextPanel.isPresented = newValue }
+    var showsSidebar: Bool {
+        get { sidebar.isPresented }
+        set { sidebar.isPresented = newValue }
     }
 
-    var contextPanelMode: ContextPanelMode {
-        get { contextPanel.mode }
-        set { contextPanel.mode = newValue }
+    var availableSidebarModes: [SidebarMode] {
+        sidebar.availableModes(
+            for: selectedTopLevelTab,
+            hasFocusedSSHSession: focusedSSHSession != nil
+        )
+    }
+
+    var sidebarMode: SidebarMode {
+        get {
+            sidebar.mode(
+                for: selectedTopLevelTab,
+                hasFocusedSSHSession: focusedSSHSession != nil
+            )
+        }
+        set {
+            sidebar.setMode(
+                newValue,
+                for: selectedTopLevelTab,
+                hasFocusedSSHSession: focusedSSHSession != nil
+            )
+        }
+    }
+
+    func reconcileSidebarMode() {
+        sidebar.reconcileMode(
+            for: selectedTopLevelTab,
+            hasFocusedSSHSession: focusedSSHSession != nil
+        )
+    }
+
+    /// Opens the shared column and selects the current Workspace's assistant.
+    /// Repeating the command is intentionally idempotent; hiding the column is
+    /// the native Toggle Sidebar command's job.
+    func showAssistant() {
+        guard selectedTab != nil else { return }
+        sidebar.isPresented = true
+        sidebarMode = .assistant
     }
 
     var hostChooser: HostChooserPurpose? {

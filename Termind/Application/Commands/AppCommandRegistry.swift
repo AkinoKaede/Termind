@@ -3,13 +3,13 @@ import Foundation
 nonisolated enum AppCommandTarget: Hashable, Sendable {
     case vaultPage(VaultPage)
     case vault
-    case chat
+    case assistant
     case settings
     case workspace(Workspace.ID)
     case connectHost(Host.ID, HostOpenTarget)
     case newChat
     case newHost
-    case toggleContextPanel
+    case showAssistant
 }
 
 nonisolated struct AppCommandDescriptor: Identifiable, Hashable, Sendable {
@@ -37,7 +37,7 @@ final class AppCommandRegistry {
         fixedCommands + vaultCommands
             + window.tabs.map { workspaceCommand($0, store: app.hosts) }
             + app.hosts.searchHosts("").flatMap(hostCommands)
-            + actionCommands
+            + actionCommands(canShowAssistant: window.selectedTab != nil)
     }
 
     func perform(
@@ -49,8 +49,8 @@ final class AppCommandRegistry {
             window.openPage(page)
         case .vault:
             window.selectVault()
-        case .chat:
-            window.selectChat()
+        case .assistant:
+            window.selectAssistant()
         case .settings:
             openSettings()
         case .workspace(let id):
@@ -59,11 +59,11 @@ final class AppCommandRegistry {
             guard let host = app.hosts.host(id) else { return }
             app.open(host, as: target, in: window)
         case .newChat:
-            window.openChat()
+            window.openAssistant()
         case .newHost:
             window.openHostEditor(host: nil)
-        case .toggleContextPanel:
-            window.showsContextPanel.toggle()
+        case .showAssistant:
+            window.showAssistant()
         }
     }
 
@@ -75,9 +75,9 @@ final class AppCommandRegistry {
                 keywords: ["hosts", "keys", "snippets"], target: .vault
             ),
             AppCommandDescriptor(
-                id: "fixed.chat", title: String(localized: "Chat"),
+                id: "fixed.assistant", title: String(localized: "Assistant"),
                 subtitle: String(localized: "Pinned Tab"), symbol: "sparkles",
-                keywords: ["assistant", "conversations"], target: .chat
+                keywords: ["chat", "conversations"], target: .assistant
             ),
             AppCommandDescriptor(
                 id: "fixed.settings", title: String(localized: "Settings"),
@@ -135,8 +135,8 @@ final class AppCommandRegistry {
         ]
     }
 
-    private var actionCommands: [AppCommandDescriptor] {
-        [
+    private func actionCommands(canShowAssistant: Bool) -> [AppCommandDescriptor] {
+        var commands = [
             AppCommandDescriptor(
                 id: "action.new-chat", title: String(localized: "New Chat"),
                 subtitle: String(localized: "Action"), symbol: "plus.bubble",
@@ -147,11 +147,14 @@ final class AppCommandRegistry {
                 subtitle: String(localized: "Action"), symbol: "plus.rectangle",
                 keywords: ["server", "add"], target: .newHost
             ),
-            AppCommandDescriptor(
-                id: "action.context-panel", title: String(localized: "Toggle Context Panel"),
-                subtitle: String(localized: "Action"), symbol: "sidebar.right",
-                keywords: ["context panel", "assistant", "details"], target: .toggleContextPanel
-            ),
         ]
+        if canShowAssistant {
+            commands.append(AppCommandDescriptor(
+                id: "action.show-assistant", title: String(localized: "Show Assistant in Sidebar"),
+                subtitle: String(localized: "Action"), symbol: "sidebar.left",
+                keywords: ["sidebar", "assistant", "context", "details"], target: .showAssistant
+            ))
+        }
+        return commands
     }
 }

@@ -3,8 +3,8 @@ import SwiftUI
 /// One window.
 ///
 /// The tab strip is the window's top-level navigation. Vault and Chat are pinned
-/// first and second; SSH/SFTP Workspaces follow them. Vault and Chat own their
-/// own internal sidebars, leaving Workspace content full width.
+/// first and second; SSH/SFTP Workspaces follow them. One stable left sidebar
+/// serves every top-level tab and swaps navigation for contextual tools in place.
 struct RootView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -22,7 +22,23 @@ struct RootView: View {
         VStack(spacing: 0) {
             TabBarView()
             Divider()
-            detail
+            NavigationSplitView(columnVisibility: sidebarVisibility) {
+                SidebarView(detailCatalog: .standard(store: app.hosts))
+                    .navigationSplitViewColumnWidth(
+                        min: Metrics.Sidebar.min,
+                        ideal: Metrics.Sidebar.ideal,
+                        max: Metrics.Sidebar.max
+                    )
+            } detail: {
+                detail
+                    .frame(
+                        minWidth: Metrics.Window.detailMin,
+                        maxWidth: .infinity,
+                        minHeight: Metrics.Window.minHeight,
+                        maxHeight: .infinity
+                    )
+            }
+            .navigationSplitViewStyle(.balanced)
             if window.selectedTab != nil {
                 StatusBarView()
             }
@@ -33,14 +49,6 @@ struct RootView: View {
             minHeight: Metrics.Window.minHeight,
             maxHeight: .infinity
         )
-        .inspector(
-            isPresented: Binding(
-                get: { window.selectedTab != nil && window.showsContextPanel },
-                set: { window.showsContextPanel = $0 }
-            )
-        ) {
-            ContextPanelView(detailCatalog: .standard(store: app.hosts))
-        }
         .toolbar { toolbar }
         .toolbarBackground(WindowChrome.background(for: colorScheme), for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
@@ -75,12 +83,21 @@ struct RootView: View {
         .focusedSceneValue(\.window, window)
         .onChange(of: window.selectedTabID) {
             window.selectedTab?.refreshConversationContext(in: app.hosts)
+            window.reconcileSidebarMode()
         }
         .onAppear {
             window.connectionCoordinator = app.connections
             app.registerWindow(window)
             window.selectedTab?.refreshConversationContext(in: app.hosts)
+            window.reconcileSidebarMode()
         }
+    }
+
+    private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
+        Binding(
+            get: { window.showsSidebar ? .all : .detailOnly },
+            set: { window.showsSidebar = $0 != .detailOnly }
+        )
     }
 
     /// Every open tab stays mounted so a Ghostty native view is hidden rather
@@ -134,12 +151,12 @@ struct RootView: View {
         ToolbarItem {
             Button {
                 withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
-                    window.showsContextPanel.toggle()
+                    window.showAssistant()
                 }
             } label: {
-                Label("Context Panel", systemImage: "sidebar.right")
+                Label("Assistant", systemImage: "sidebar.left")
             }
-            .help(Text("Toggle assistant — ⌥⌘I"))
+            .help(Text("Show Assistant in Sidebar — ⌥⌘I"))
             .disabled(window.selectedTab == nil)
         }
     }

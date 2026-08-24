@@ -43,7 +43,7 @@ struct TabItemView: View {
                 .foregroundStyle(isSelected ? .primary : .secondary)
 
             if isRenaming {
-                TextField("Tab name", text: $draftTitle)
+                TextField("Tab Name", text: $draftTitle)
                     .textFieldStyle(.plain)
                     .font(.system(size: 11, weight: .medium))
                     .focused($titleFieldFocused)

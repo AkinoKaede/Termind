@@ -149,7 +149,7 @@ final class SSHSessionModel: Identifiable {
 
     /// Whether the remote shell accepted OSC 133 integration. When false the
     /// inline suggestion overlay stays hidden — it has no way to know where the
-    /// prompt is — and the AI Context Panel is the only surface. This flag exists
+    /// prompt is — and the Assistant sidebar is the only surface. This flag exists
     /// from P0 so the degraded path is never an afterthought.
     var shellIntegrationAvailable: Bool = false
 

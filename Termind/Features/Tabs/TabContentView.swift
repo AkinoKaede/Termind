@@ -453,7 +453,7 @@ private struct PaneView: View {
                 .foregroundStyle(.secondary)
 
             if isRenaming {
-                TextField("Pane name", text: $draftTitle)
+                TextField("Pane Name", text: $draftTitle)
                     .textFieldStyle(.plain)
                     .font(.system(size: 11, weight: .medium))
                     .focused($titleFieldFocused)
@@ -681,8 +681,7 @@ struct WelcomeView: View {
         HStack(spacing: Metrics.Space.l) {
             Button("Connect") { app.connect(in: window) }
             Button("Batch Startup") { app.batchStartup(in: window) }
-            Button("New Chat") { window.openChat() }
-            Button("New Host") { window.openHostEditor(host: nil) }
+            Button("New Chat") { window.openAssistant() }
         }
     }
 

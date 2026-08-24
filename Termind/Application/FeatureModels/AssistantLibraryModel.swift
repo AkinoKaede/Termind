@@ -1,12 +1,12 @@
 import Foundation
 
-/// Window-local navigation state for the fixed Chat tab.
+/// Window-local navigation state for the fixed Assistant tab.
 ///
 /// Conversations are no longer panes inside SSH/SFTP Workspaces. The model is
 /// deliberately a separate feature boundary so persistence can later move to a
-/// ChatRepository without teaching WindowModel about message storage.
+/// conversation repository without teaching WindowModel about message storage.
 @Observable
-final class ChatLibraryModel {
+final class AssistantLibraryModel {
     private(set) var conversations: [ConversationModel]
     var selectedConversationID: ConversationModel.ID?
 

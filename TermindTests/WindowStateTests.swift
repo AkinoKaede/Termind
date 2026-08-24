@@ -114,11 +114,11 @@ struct WindowStateTests {
         let window = WindowModel(tabs: [first, second])
         window.selectedTabID = first.id
 
-        window.contextPanel.show(.snippet(UUID()), scopedTo: first.focusedPane)
+        window.sidebar.show(.snippet(UUID()), scopedTo: first.focusedPane)
         #expect(window.activeDetailSelection.first?.kind == ContextPanelDetailID.Kind.snippet)
 
         window.selectedTabID = second.id
-        window.contextPanel.focusedPaneDidChange(to: second.focusedPane)
+        window.sidebar.focusedPaneDidChange(to: second.focusedPane)
         #expect(window.activeDetailSelection == [.host(secondHost.id)])
     }
 

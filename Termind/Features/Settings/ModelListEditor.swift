@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The models column of `ModelProviderEditorSheet`: a checkable list, and an
-/// Context Panel for whichever row is selected.
+/// details column for whichever row is selected.
 ///
 /// Master–detail inside the sheet rather than a second sheet on top of the
 /// first. macOS handles stacked modals badly, and the thing being edited here is

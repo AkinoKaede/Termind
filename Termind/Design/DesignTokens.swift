@@ -21,12 +21,12 @@ enum Metrics {
     }
 
     enum Sidebar {
-        /// The sidebar is a page navigator now, not a data list — the widest
-        /// thing in it is "Port Forwarding" plus a badge, so it can be narrower
-        /// than it was and still never truncate.
-        static let min: CGFloat = 180
-        static let ideal: CGFloat = 216
-        static let max: CGFloat = 300
+        /// One shared column must be comfortable both as a compact navigator
+        /// and as a complete assistant transcript. Because the container never
+        /// changes, a user-resized width survives every mode and tab switch.
+        static let min: CGFloat = 260
+        static let ideal: CGFloat = 320
+        static let max: CGFloat = 520
         /// Color stripe on the leading edge of a host row.
         static let stripeWidth: CGFloat = 2.5
         static let statusDot: CGFloat = 7
@@ -128,12 +128,6 @@ enum Metrics {
         static let maxListHeight: CGFloat = 260
     }
 
-    enum ContextPanel {
-        static let min: CGFloat = 260
-        static let ideal: CGFloat = 320
-        static let max: CGFloat = 520
-    }
-
     enum StatusBar {
         static let height: CGFloat = 22
     }
@@ -150,7 +144,7 @@ enum Metrics {
         /// `NavigationSplitView` in a `.frame` takes the width negotiation away
         /// from the split view, which then lays out at the sum of its columns'
         /// ideal widths and centres that inside the window — clipping the
-        /// sidebar on the left and the Context Panel on the right. The window
+        /// sidebar on the left. The window
         /// minimum comes from `.windowResizability(.contentMinSize)` instead,
         /// which reads these three floors through the view tree.
         static let detailMin: CGFloat = 320

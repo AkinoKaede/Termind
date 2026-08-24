@@ -57,8 +57,8 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
 }
 
 /// One AI conversation. Session-scoped instances belong to a Workspace's
-/// context panel; standalone instances belong to `ChatLibraryModel` and appear
-/// in the fixed Chat tab.
+/// context panel; standalone instances belong to `AssistantLibraryModel` and
+/// appear in the fixed Assistant tab.
 @Observable
 final class ConversationModel: Identifiable {
     let id = UUID()

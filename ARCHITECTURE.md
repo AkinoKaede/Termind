@@ -23,14 +23,14 @@ services and durable outbox handlers.
 
 - Repository snapshots are application-wide and shared by every window.
 - A window owns one top-level shell, quick-open, and context-panel state.
-- The shell always starts with two pinned routes: `Vault`, then `Chat`. Dynamic
+- The shell always starts with two pinned routes: `Vault`, then `Assistant`. Dynamic
   tabs after them are SSH/SFTP Workspaces only.
 - Vault owns its navigation column, including quick-connect Recents, and routes
   for Hosts, Keychain, Snippets, Welcome, and Host Editor. These routes never
   enter the Workspace deck.
 - Known Hosts management belongs to the Host Editor draft for both new and
   existing Hosts. Context-panel Host details are read-only.
-- Chat owns its conversation list through `ChatLibraryModel`; conversations are
+- Assistant owns its conversation list through `AssistantLibraryModel`; conversations are
   not panes and do not participate in Workspace drag, split, close, or reconnect
   lifecycles.
 - A workspace owns only SSH/SFTP panes plus its session-scoped assistant

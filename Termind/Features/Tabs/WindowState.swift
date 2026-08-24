@@ -41,17 +41,21 @@ nonisolated struct ContextPanelDetailID: Hashable, Sendable, Identifiable {
     var snippetID: Snippet.ID? { kind == Kind.snippet ? rawID : nil }
 }
 
-/// ContextPanel state has window lifetime but no knowledge of HostStore or SwiftUI
-/// detail views.  Availability and rendering are supplied by the catalog.
+/// The one left sidebar's window-lifetime state.
+///
+/// Navigation and contextual tools share a physical column, but their mode is
+/// remembered at the scope where it makes sense: one choice for Vault and one
+/// for each Workspace. Assistant always uses its conversation navigator.
 @Observable
-final class WindowContextPanelState {
+final class WindowSidebarState {
     nonisolated enum Mode: String, Hashable, Sendable, CaseIterable, Identifiable {
-        case assistant, snippets, details
+        case navigation, assistant, snippets, details
 
         nonisolated var id: String { rawValue }
 
         var label: LocalizedStringKey {
             switch self {
+            case .navigation: "Navigation"
             case .assistant: "Assistant"
             case .snippets: "Snippets"
             case .details: "Details"
@@ -59,12 +63,90 @@ final class WindowContextPanelState {
         }
     }
 
-    var isPresented = false
-    var mode: Mode = .assistant
+    var isPresented = true
+
+    private var vaultMode: Mode = .navigation
+    private var workspaceModes: [Workspace.ID: Mode] = [:]
 
     private var selections: [VaultPage: [ContextPanelDetailID]] = [:]
     private var detailOverride: ContextPanelDetailID?
     private var detailOverridePaneID: Pane.ID?
+
+    func availableModes(
+        for topLevelTab: TopLevelTab,
+        hasFocusedSSHSession: Bool
+    ) -> [Mode] {
+        switch topLevelTab {
+        case .vault:
+            [.navigation, .details]
+        case .assistant:
+            [.navigation]
+        case .workspace:
+            hasFocusedSSHSession
+                ? [.assistant, .snippets, .details]
+                : [.assistant, .details]
+        }
+    }
+
+    func mode(
+        for topLevelTab: TopLevelTab,
+        hasFocusedSSHSession: Bool
+    ) -> Mode {
+        let available = availableModes(
+            for: topLevelTab,
+            hasFocusedSSHSession: hasFocusedSSHSession
+        )
+        let stored: Mode
+        switch topLevelTab {
+        case .vault:
+            stored = vaultMode
+        case .assistant:
+            stored = .navigation
+        case .workspace(let id):
+            stored = workspaceModes[id] ?? .assistant
+        }
+        if available.contains(stored) { return stored }
+        if stored == .snippets, available.contains(.details) { return .details }
+        return available[0]
+    }
+
+    func setMode(
+        _ mode: Mode,
+        for topLevelTab: TopLevelTab,
+        hasFocusedSSHSession: Bool
+    ) {
+        guard availableModes(
+            for: topLevelTab,
+            hasFocusedSSHSession: hasFocusedSSHSession
+        ).contains(mode) else { return }
+
+        switch topLevelTab {
+        case .vault:
+            vaultMode = mode
+        case .assistant:
+            break
+        case .workspace(let id):
+            workspaceModes[id] = mode
+        }
+    }
+
+    /// Commits a compatibility fallback, such as Snippets -> Details when an
+    /// SFTP pane takes focus, so returning to SSH does not resurrect a mode the
+    /// user has already been moved away from.
+    func reconcileMode(
+        for topLevelTab: TopLevelTab,
+        hasFocusedSSHSession: Bool
+    ) {
+        let resolved = mode(
+            for: topLevelTab,
+            hasFocusedSSHSession: hasFocusedSSHSession
+        )
+        setMode(
+            resolved,
+            for: topLevelTab,
+            hasFocusedSSHSession: hasFocusedSSHSession
+        )
+    }
 
     func selection(for page: VaultPage) -> [ContextPanelDetailID] {
         selections[page] ?? []
@@ -75,7 +157,7 @@ final class WindowContextPanelState {
         selections[page] = details.filter {
             $0.belongs(to: page) && seen.insert($0).inserted
         }
-        if selections[page]?.isEmpty == false { mode = .details }
+        if selections[page]?.isEmpty == false { vaultMode = .details }
     }
 
     func select(_ detail: ContextPanelDetailID, on page: VaultPage) {
@@ -107,7 +189,6 @@ final class WindowContextPanelState {
     func show(_ detail: ContextPanelDetailID, scopedTo pane: Pane) {
         detailOverride = detail
         detailOverridePaneID = pane.id
-        mode = .details
     }
 
     func focusedPaneDidChange(to pane: Pane?) {

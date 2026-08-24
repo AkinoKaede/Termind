@@ -40,7 +40,7 @@ private struct CardInteractiveFramePreferenceKey: PreferenceKey {
 /// Cards rather than a table because these pages answer "which one do I want",
 /// not "sort these by column". A card can show a name, an address, a status dot,
 /// and two lines of detail in the space a table spends on one column, it reflows
-/// instead of truncating when the Context Panel opens, and it gives the primary
+/// instead of truncating when the Sidebar widens, and it gives the primary
 /// action — connect, insert, start — somewhere obvious to live.
 ///
 /// The outer stack is deliberately *not* lazy, and turning it back into a
@@ -303,7 +303,7 @@ extension View {
 }
 
 /// The grid itself. Adaptive columns, so the same page works at 600pt with the
-/// Context Panel open and at 1600pt on an external display.
+/// Sidebar widened and at 1600pt on an external display.
 struct CardGrid<Content: View>: View {
     @ViewBuilder var content: Content
 

@@ -140,7 +140,7 @@ struct CommandCardView: View {
     /// the one pane, or every shell in the Workspace when broadcast is on.
     ///
     /// The focused pane first, falling back to the Workspace's first shell for a
-    /// card clicked while a file browser has focus. The Context Panel's context
+    /// card clicked while a file browser has focus. The Assistant sidebar's context
     /// chips already describe the focused pane, so the command it suggested
     /// should land in the shell it was talking about.
     ///

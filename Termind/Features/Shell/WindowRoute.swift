@@ -65,10 +65,10 @@ nonisolated enum VaultDestination: Hashable, Sendable {
     }
 }
 
-/// The top-level tab selection for one window. Vault and Chat are pinned and
+/// The top-level tab selection for one window. Vault and Assistant are pinned and
 /// therefore have no close lifecycle; only Workspace entries are dynamic.
 nonisolated enum TopLevelTab: Hashable, Sendable {
     case vault
-    case chat
+    case assistant
     case workspace(Workspace.ID)
 }

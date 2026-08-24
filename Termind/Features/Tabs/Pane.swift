@@ -194,7 +194,7 @@ final class Pane: Identifiable {
     }
 
     /// The host this pane is attached to, if any — drives the status bar and the
-    /// AI Context Panel's default context chips.
+    /// Assistant sidebar's default context chips.
     var hostID: Host.ID? {
         switch content {
         case .sshSession(let sshSession): sshSession.hostID

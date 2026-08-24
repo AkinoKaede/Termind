@@ -20,7 +20,7 @@ protocol WorkspaceLifecycleRouting: AnyObject {
 ///
 /// The conversation is owned here rather than globally. That is what makes
 /// "talk to the AI from the terminal" work — switching tabs switches the
-/// Context Panel's thread, and the context it carries (host, cwd, recent output)
+/// Assistant sidebar's thread, and the context it carries (host, cwd, recent output)
 /// follows automatically instead of having to be re-selected. Within a tab it
 /// follows the focused pane too, so a Workspace holding a chat shows that chat's
 /// thread rather than a second one beside it — see `conversation`.
@@ -254,7 +254,7 @@ final class Workspace: Identifiable {
         if !canBroadcast { broadcastsInput = false }
     }
 
-    /// Keeps the Context Panel's pinned chips in step with the focused pane, so the
+    /// Keeps the Assistant sidebar's pinned chips in step with the focused pane, so the
     /// user can always see which host and directory are being sent.
     func refreshConversationContext(in store: HostStore) {
         let hostName = focusedPane.hostID.flatMap { store.host($0)?.name }
@@ -284,7 +284,7 @@ extension Workspace: SSHSessionInputRouting {
 
     /// A background pane may keep reporting OSC 7 while another split has
     /// focus. Only the focused shell is allowed to change the context that the
-    /// Context Panel says will be sent.
+    /// Assistant sidebar says will be sent.
     func sshSession(
         _ sshSession: SSHSessionModel,
         didChangeWorkingDirectory workingDirectory: String?

@@ -1,14 +1,13 @@
 import SwiftUI
 
-/// The right-hand column.
+/// The window's one left-hand column.
 ///
-/// It shows the conversation belonging to the *selected tab*, which is what makes
-/// "talk to the AI from the terminal" work without a separate mode: the thread,
-/// its history, and its context chips follow whichever sshSession is in front.
-struct ContextPanelView: View {
+/// Navigation, assistant, snippets and contextual details replace one another
+/// inside a stable container, so changing tools never closes or resizes the
+/// sidebar. The available modes follow the selected top-level tab.
+struct SidebarView: View {
     let detailCatalog: ContextPanelDetailCatalog
 
-    @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
     var body: some View {
@@ -16,24 +15,28 @@ struct ContextPanelView: View {
         let availableDetails = detailCatalog.availableIDs
 
         VStack(spacing: 0) {
-            Picker("", selection: $window.contextPanelMode) {
-                ForEach(availableContextPanelModes) { mode in
-                    Text(mode.label).tag(mode)
+            if window.availableSidebarModes.count > 1 {
+                Picker("", selection: $window.sidebarMode) {
+                    ForEach(window.availableSidebarModes) { mode in
+                        Text(mode.label).tag(mode)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .padding(Metrics.Space.m)
+
+                Divider()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(Metrics.Space.m)
 
-            Divider()
-
-            switch window.contextPanelMode {
+            switch window.sidebarMode {
+            case .navigation:
+                navigation
             case .assistant:
                 assistant
             case .snippets:
-                SSHSessionSnippetsContextPanel()
+                SSHSessionSnippetsSidebar()
             case .details:
-                DetailContextPanelView(
+                DetailSidebarView(
                     details: activeDetails(available: availableDetails),
                     catalog: detailCatalog,
                     page: window.selectedTopLevelTab == .vault
@@ -46,28 +49,30 @@ struct ContextPanelView: View {
         // picker floats in the middle of the column instead of sitting under the
         // toolbar.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .inspectorColumnWidth(
-            min: Metrics.ContextPanel.min,
-            ideal: Metrics.ContextPanel.ideal,
-            max: Metrics.ContextPanel.max
-        )
         .onChange(of: availableDetails, initial: true) {
-            window.contextPanel.pruneSelections(available: availableDetails)
+            window.sidebar.pruneSelections(available: availableDetails)
         }
         .onChange(of: focusedPaneID, initial: true) {
-            window.contextPanel.focusedPaneDidChange(to: window.selectedTab?.focusedPane)
-            if window.focusedSSHSession == nil, window.contextPanelMode == .snippets {
-                window.contextPanelMode = .details
-            }
+            window.sidebar.focusedPaneDidChange(to: window.selectedTab?.focusedPane)
+            window.reconcileSidebarMode()
+        }
+        .onChange(of: window.selectedTopLevelTab, initial: true) {
+            window.reconcileSidebarMode()
         }
     }
 
     private var focusedPaneID: Pane.ID? { window.selectedTab?.focusedPaneID }
 
-    private var availableContextPanelModes: [WindowModel.ContextPanelMode] {
-        window.focusedSSHSession == nil
-            ? [.assistant, .details]
-            : [.assistant, .snippets, .details]
+    @ViewBuilder
+    private var navigation: some View {
+        switch window.selectedTopLevelTab {
+        case .vault:
+            VaultSidebarView()
+        case .assistant:
+            AssistantSidebarView()
+        case .workspace:
+            EmptyView()
+        }
     }
 
     private func activeDetails(
@@ -87,7 +92,7 @@ struct ContextPanelView: View {
                 description: Text("Open a tab to start a conversation about it.")
             )
             // `ContentUnavailableView` has a wide intrinsic width; unclamped, it
-            // pushes the Context Panel past its ideal and squeezes the other columns.
+            // would otherwise push the shared Sidebar past its ideal width.
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
@@ -98,7 +103,7 @@ struct ContextPanelView: View {
 /// The compact command shelf shown only while a terminal pane has focus.
 /// Commands are sent straight to that pane, deliberately bypassing Workspace
 /// broadcast and the snippet's saved Targets.
-private struct SSHSessionSnippetsContextPanel: View {
+private struct SSHSessionSnippetsSidebar: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
@@ -246,7 +251,7 @@ private struct SSHSessionSnippetRow: View {
 
 /// A conversation rendered as chips + transcript + composer.
 ///
-/// Shared by the Context Panel and the full-tab chat so the two can never drift; only
+/// Shared by the session Assistant sidebar and full Assistant tab so the two can never drift; only
 /// the padding and the provider header differ.
 struct ConversationView: View {
     let conversation: ConversationModel
@@ -383,10 +388,10 @@ private struct ModelProviderBar: View {
 
 // MARK: - Details
 
-/// The Context Panel's second job: describe every selected object without inventing
+/// The Sidebar's Details mode describes every selected object without inventing
 /// a primary item. Disclosure groups keep a large selection scannable while
 /// still allowing several records to be read side by side.
-struct DetailContextPanelView: View {
+struct DetailSidebarView: View {
     let details: [ContextPanelDetailID]
     let catalog: ContextPanelDetailCatalog
     let page: VaultPage?
@@ -492,7 +497,7 @@ struct HostDetailContent: View {
                         .multilineTextAlignment(.trailing)
                 }
             }
-            LabeledContent("Last used") {
+            LabeledContent("Last Used") {
                 Text(
                     host.lastUsedAt.map { $0.formatted(.relative(presentation: .named)) }
                         ?? String(localized: "Never"))
@@ -665,7 +670,7 @@ struct IdentityDetailContent: View {
                     Text("Not configured").foregroundStyle(.secondary)
                 }
             }
-            LabeledContent("Last used") {
+            LabeledContent("Last Used") {
                 Text(
                     identity.lastUsedAt.map { $0.formatted(.relative(presentation: .named)) }
                         ?? String(localized: "Never"))

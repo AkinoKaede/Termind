@@ -17,13 +17,17 @@ struct TermindCommands: Commands {
     @FocusedValue(\.window) private var window
 
     var body: some Commands {
-        CommandGroup(after: .newItem) {
+        CommandGroup(replacing: .newItem) {
+            // Keep Quick Open inside the replacement group. Placing it in a
+            // separate group after `.newItem` makes SwiftUI discard it when
+            // this replacement is merged into the final File menu, leaving
+            // no menu item (and therefore no working Command-P shortcut).
             Button("Quick Open") { window?.isQuickOpenPresented = true }
                 .keyboardShortcut("p")
                 .disabled(window == nil)
-        }
 
-        CommandGroup(replacing: .newItem) {
+            Divider()
+
             // Both of these act on the host selected on the Hosts page, and fall
             // back to that page when there is none — see `AppModel.newTab`.
             //
@@ -35,7 +39,7 @@ struct TermindCommands: Commands {
                 app.connect(in: window)
             }
             .keyboardShortcut("t")
-            Button("New Chat") { window?.openChat() }
+            Button("New Chat") { window?.openAssistant() }
                 .keyboardShortcut("t", modifiers: [.command, .option])
 
             Divider()
@@ -107,10 +111,10 @@ struct TermindCommands: Commands {
         // shortcuts for P2/P4, and P2 can put them wherever the real commands
         // end up.
         CommandGroup(after: .sidebar) {
-            Button("Toggle Context Panel") {
+            Button("Show Assistant in Sidebar") {
                 guard let window else { return }
                 withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
-                    window.showsContextPanel.toggle()
+                    window.showAssistant()
                 }
             }
             .keyboardShortcut("i", modifiers: [.command, .option])
@@ -157,7 +161,7 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(replacing: .help) {
-            Link("Termind on GitHub", destination: URL(string: "https://github.com/AkinoKaede/vela")!)
+            Link("Termind on GitHub", destination: URL(string: "https://github.com/AkinoKaede/termind")!)
         }
     }
 }

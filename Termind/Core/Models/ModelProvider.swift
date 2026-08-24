@@ -390,7 +390,7 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .chat:
-            String(localized: "Used for chat, tools, and the Context Panel.")
+            String(localized: "Used for chat, tools, and the Assistant sidebar.")
         case .inline:
             String(localized: "Suggests one command above the terminal prompt. Choose a fast model.")
         // Names two models outright. This one runs on every command Approve for

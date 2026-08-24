@@ -40,17 +40,7 @@ struct TabBarView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            PinnedTopLevelTabItem(
-                title: "Vault", symbol: "lock.square.stack",
-                isSelected: window.selectedTopLevelTab == .vault,
-                action: window.selectVault
-            )
-            PinnedTopLevelTabItem(
-                title: "Chat", symbol: "sparkles",
-                isSelected: window.selectedTopLevelTab == .chat,
-                action: { window.selectChat() }
-            )
-            Divider()
+            leadingStrip
 
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -111,6 +101,29 @@ struct TabBarView: View {
         }
         .frame(height: Metrics.TabBar.height)
         .background(.regularMaterial)
+    }
+
+    /// The fixed tabs are also the leading edge of the reorderable strip.
+    ///
+    /// The scrolling drop target starts after Vault and Assistant. Without a sibling
+    /// target here, releasing a Workspace over either fixed tab never reaches a
+    /// `performDrop`, so the source remains in its transient hidden state. A
+    /// drop on this edge means the same thing as the first insertion slot.
+    private var leadingStrip: some View {
+        HStack(spacing: 0) {
+            PinnedTopLevelTabItem(
+                title: "Vault", symbol: "lock.square.stack",
+                isSelected: window.selectedTopLevelTab == .vault,
+                action: window.selectVault
+            )
+            PinnedTopLevelTabItem(
+                title: "Assistant", symbol: "sparkles",
+                isSelected: window.selectedTopLevelTab == .assistant,
+                action: { window.selectAssistant() }
+            )
+            Divider()
+        }
+        .onDrop(of: [.text], delegate: LeadingStripDropDelegate(window: window))
     }
 
     /// The strip drawn without the tab in flight, the same way
@@ -248,6 +261,31 @@ struct TabBarView: View {
         }
     }
 
+    /// Completes a layout drag released to the left of the scrolling tabs.
+    /// Keeping this as a sibling of `StripDropDelegate` avoids an ancestor drop
+    /// target competing with valid drops inside the scrolling strip.
+    private struct LeadingStripDropDelegate: DropDelegate {
+        let window: WindowModel
+
+        func validateDrop(info: DropInfo) -> Bool {
+            window.dragging?.isLayoutPayload == true
+        }
+
+        func dropUpdated(info: DropInfo) -> DropProposal? {
+            DropProposal(operation: .move)
+        }
+
+        func performDrop(info: DropInfo) -> Bool {
+            switch window.dragging {
+            case .pane(let id): window.detachPane(id, at: 0)
+            case .workspace(let id): window.move(id, to: 0)
+            case nil: return false
+            }
+            window.dragging = nil
+            return true
+        }
+    }
+
     private var newTabMenu: some View {
         Menu {
             // No keyboard shortcuts here — TermindCommands owns them, and declaring
@@ -255,7 +293,7 @@ struct TabBarView: View {
             // Same order as the File menu, so the two lists of the same four
             // verbs cannot be read as two different lists.
             Button("Connect") { app.connect(in: window) }
-            Button("New Chat") { window.openChat() }
+            Button("New Chat") { window.openAssistant() }
             Button("New Host") { window.openHostEditor(host: nil) }
 
             let recents = app.hosts.recents(limit: 5)
@@ -302,9 +340,9 @@ struct TabBarView: View {
                 Label("Vault", systemImage: "lock.square.stack")
             }
             Button {
-                window.selectChat()
+                window.selectAssistant()
             } label: {
-                Label("Chat", systemImage: "sparkles")
+                Label("Assistant", systemImage: "sparkles")
             }
             if !window.tabs.isEmpty { Divider() }
             ForEach(window.tabs) { tab in

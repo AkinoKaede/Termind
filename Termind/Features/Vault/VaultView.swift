@@ -1,47 +1,30 @@
 import SwiftUI
 
-/// The first, pinned top-level tab. All durable connection assets live behind
-/// its own navigation column so SSH/SFTP Workspaces do not carry app navigation.
-struct VaultView: View {
+/// Vault's navigation mode inside the window's one shared sidebar.
+struct VaultSidebarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @AppStorage(SettingsKey.compactSidebar) private var compactSidebar = false
     @AppStorage(SettingsKey.showRecents) private var showRecents = true
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                Section("Vault") {
-                    row(.welcome)
-                    row(.hosts, count: app.hostLibrary.hosts.count)
-                    row(.keychain, count: app.hosts.keys.count + app.hosts.identities.count)
-                    row(.snippets, count: app.hosts.snippets.count)
-                }
+        List {
+            Section("Vault") {
+                row(.welcome)
+                row(.hosts, count: app.hostLibrary.hosts.count)
+                row(.keychain, count: app.hosts.keys.count + app.hosts.identities.count)
+                row(.snippets, count: app.hosts.snippets.count)
+            }
 
-                if showRecents, !recentHosts.isEmpty {
-                    Section("Recents") {
-                        ForEach(recentHosts) { host in
-                            recentRow(host)
-                        }
+            if showRecents, !recentHosts.isEmpty {
+                Section("Recents") {
+                    ForEach(recentHosts) { host in
+                        recentRow(host)
                     }
                 }
-
             }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(
-                min: Metrics.Sidebar.min,
-                ideal: Metrics.Sidebar.ideal,
-                max: Metrics.Sidebar.max
-            )
-        } detail: {
-            destination
-                .frame(
-                    minWidth: Metrics.Window.detailMin,
-                    maxWidth: .infinity,
-                    minHeight: Metrics.Window.minHeight,
-                    maxHeight: .infinity
-                )
         }
+        .listStyle(.sidebar)
     }
 
     private func row(_ page: VaultPage, count: Int = 0) -> some View {
@@ -100,6 +83,18 @@ struct VaultView: View {
         }
         .help(Text("Quick Connect to \(app.hosts.loginAddress(for: host))"))
         .accessibilityHint("Quick Connect with SSH")
+    }
+
+}
+
+/// The first pinned tab's main content. Its navigator is mounted by the
+/// window-level split view and remains alive while top-level tabs change.
+struct VaultView: View {
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        destination
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder

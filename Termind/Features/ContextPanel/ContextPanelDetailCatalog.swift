@@ -20,7 +20,7 @@ protocol ContextPanelDetailProvider {
     func presentation(for id: ContextPanelDetailID) -> ContextPanelDetailPresentation?
 }
 
-/// Type-erased at the feature boundary so DetailContextPanelView never imports or
+/// Type-erased at the feature boundary so DetailSidebarView never imports or
 /// switches over Host, Keychain, or Snippet models.
 struct AnyContextPanelDetailProvider: ContextPanelDetailProvider {
     let kind: String

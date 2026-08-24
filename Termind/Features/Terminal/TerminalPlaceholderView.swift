@@ -388,7 +388,7 @@ struct TerminalPlaceholderView: View {
         #endif
     }
 
-    /// Hands the failure to the Context Panel as a draft rather than sending it —
+    /// Hands the failure to the Assistant sidebar as a draft rather than sending it —
     /// the user still decides what leaves the machine.
     private func askAI(about message: String, log: String) {
         let conversation = workspace.conversation

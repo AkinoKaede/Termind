@@ -119,7 +119,7 @@ final class AIStore {
     /// Its own choice if it made one, and whatever `.chat` resolves to if it did
     /// not. A conversation is left unset rather than assigned a model on
     /// creation, so this is the only place that difference has to be understood
-    /// — the Context Panel's model menu, the composer's caption, and the status bar
+    /// — the Assistant sidebar's model menu, the composer's caption, and the status bar
     /// all ask here instead of each reimplementing the fallback slightly
     /// differently.
     func resolve(conversation model: AIModelRef?) -> (provider: ModelProvider, model: AIModel)? {

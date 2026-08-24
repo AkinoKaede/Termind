@@ -38,7 +38,7 @@ nonisolated struct QuickConnectTarget: Hashable, Sendable {
 /// for opening them.
 ///
 /// Everything the user can have in a *different* state in a second window —
-/// tabs, sidebar selection, search text, Context Panel visibility — lives on
+/// tabs, sidebar selection, search text, Sidebar visibility — lives on
 /// `WindowModel` instead.
 @Observable
 final class AppModel {

@@ -44,7 +44,7 @@ struct TermindApp: App {
     #endif
 
     /// Workspace windows share app data, while each keeps its own pinned
-    /// Vault/Chat navigation and dynamic Workspace tabs.
+    /// Vault/Assistant navigation and dynamic Workspace tabs.
     var body: some Scene {
         WindowGroup {
             RootView()

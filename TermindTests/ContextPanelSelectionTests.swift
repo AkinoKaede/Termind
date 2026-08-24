@@ -18,7 +18,7 @@ struct ContextPanelSelectionTests {
         let window = WindowModel()
         let first = UUID()
         let second = UUID()
-        window.showsContextPanel = false
+        window.showsSidebar = false
 
         window.setDetailSelection(
             [.host(first), .host(second), .host(first), .key(UUID())],
@@ -26,8 +26,8 @@ struct ContextPanelSelectionTests {
         )
 
         #expect(window.detailSelection(for: .hosts) == [.host(first), .host(second)])
-        #expect(window.contextPanelMode == .details)
-        #expect(!window.showsContextPanel)
+        #expect(window.sidebarMode == .details)
+        #expect(!window.showsSidebar)
     }
 
     @Test
@@ -107,5 +107,87 @@ struct ContextPanelSelectionTests {
             window.detailSelection(for: .keychain)
                 == [.key(key.id), .identity(identity.id)]
         )
+    }
+
+    @Test
+    func sidebarModesAdaptToTheSelectedTopLevelContent() {
+        let host = Host(name: "SSH", host: "ssh.example")
+        let workspace = Workspace.sshSession(host: host)
+        let window = WindowModel(tabs: [workspace])
+
+        #expect(window.availableSidebarModes == [.assistant, .snippets, .details])
+
+        window.selectVault()
+        #expect(window.availableSidebarModes == [.navigation, .details])
+
+        window.selectAssistant()
+        #expect(window.availableSidebarModes == [.navigation])
+        #expect(window.sidebarMode == .navigation)
+    }
+
+    @Test
+    func vaultAndEachWorkspaceRememberTheirOwnMode() {
+        let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
+        let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
+        let window = WindowModel(tabs: [first, second])
+
+        window.sidebarMode = .details
+        window.select(second.id)
+        window.sidebarMode = .snippets
+        window.selectVault()
+        window.sidebarMode = .details
+
+        window.select(first.id)
+        #expect(window.sidebarMode == .details)
+        window.select(second.id)
+        #expect(window.sidebarMode == .snippets)
+        window.selectVault()
+        #expect(window.sidebarMode == .details)
+    }
+
+    @Test
+    func unavailableSnippetsModeCommitsDetailsFallback() {
+        let workspaceID = UUID()
+        let state = WindowSidebarState()
+
+        state.setMode(.snippets, for: .workspace(workspaceID), hasFocusedSSHSession: true)
+        state.reconcileMode(for: .workspace(workspaceID), hasFocusedSSHSession: false)
+
+        #expect(
+            state.mode(for: .workspace(workspaceID), hasFocusedSSHSession: true)
+                == .details
+        )
+    }
+
+    @Test
+    func showAssistantIsIdempotentAndOpensSidebar() {
+        let workspace = Workspace.sftpSession(
+            host: Host(name: "Files", host: "files.example")
+        )
+        let window = WindowModel(tabs: [workspace])
+        window.showsSidebar = false
+        window.sidebarMode = .details
+
+        window.showAssistant()
+        window.showAssistant()
+
+        #expect(window.showsSidebar)
+        #expect(window.sidebarMode == .assistant)
+    }
+
+    @Test
+    func topLevelSwitchDoesNotChangeSidebarVisibility() {
+        let workspace = Workspace.sshSession(host: Host(name: "SSH", host: "ssh.example"))
+        let window = WindowModel(tabs: [workspace])
+
+        window.showsSidebar = false
+        window.selectVault()
+        window.selectAssistant()
+        window.select(workspace.id)
+        #expect(!window.showsSidebar)
+
+        window.showsSidebar = true
+        window.selectVault()
+        #expect(window.showsSidebar)
     }
 }

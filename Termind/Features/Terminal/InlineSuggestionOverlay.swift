@@ -5,7 +5,7 @@ import SwiftUI
 /// It only appears when the remote shell reported OSC 133 markers — without them
 /// there is no way to know where the prompt is, and a floating box in the middle
 /// of `top` output would be worse than nothing. `canShowInlineSuggestions` gates
-/// this, and the degraded path (Context Panel only) is the default, not the fallback.
+/// this, and the degraded path (Assistant sidebar only) is the default, not the fallback.
 struct InlineSuggestionOverlay: View {
     let suggestion: SuggestedCommand
     let sshSession: SSHSessionModel
