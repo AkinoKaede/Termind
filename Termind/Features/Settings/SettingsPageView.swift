@@ -220,15 +220,20 @@ private struct SettingsSidebar: View {
 
             ForEach(sections) { section in
                 Button { select(section) } label: {
-                    Label(section.title, systemImage: section.symbol)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Metrics.Space.m)
-                        .padding(.vertical, Metrics.Space.s)
-                        .background(
-                            Highlight.fill(isSelected: selection == section),
-                            in: .rect(cornerRadius: Metrics.Radius.medium)
-                        )
-                        .contentShape(.rect)
+                    HStack(spacing: Metrics.Space.s) {
+                        Image(systemName: section.symbol)
+                            .frame(width: Metrics.Sidebar.rowIcon)
+                            .accessibilityHidden(true)
+                        Text(section.title)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Metrics.Space.m)
+                    .padding(.vertical, Metrics.Space.s)
+                    .background(
+                        Highlight.fill(isSelected: selection == section),
+                        in: .rect(cornerRadius: Metrics.Radius.medium)
+                    )
+                    .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selection == section ? .isSelected : [])
