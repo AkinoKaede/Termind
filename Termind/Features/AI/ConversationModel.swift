@@ -56,6 +56,57 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
     var isStreaming: Bool = false
 }
 
+/// How much deliberate reasoning a conversation asks for.
+///
+/// Providers expose different subsets today. The composer deliberately offers
+/// the complete scale so the state shape is stable when per-model capability
+/// configuration arrives; P3 will be responsible for mapping it onto each
+/// provider's request format.
+nonisolated enum ReasoningEffort: String, Codable, Sendable, CaseIterable, Identifiable {
+    case off, minimal, low, medium, high, xHigh, max
+
+    nonisolated var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .off: String(localized: "Off")
+        case .minimal: String(localized: "Minimal")
+        case .low: String(localized: "Low")
+        case .medium: String(localized: "Medium")
+        case .high: String(localized: "High")
+        case .xHigh: String(localized: "XHigh")
+        case .max: String(localized: "Max")
+        }
+    }
+}
+
+/// The approval posture selected for one conversation.
+///
+/// This turn-level state does not yet alter command or MCP execution. Keeping
+/// it separate from those existing approval gates prevents a UI choice from
+/// silently weakening either one before the agent execution pipeline exists.
+nonisolated enum ChatPermissionMode: String, Codable, Sendable, CaseIterable, Identifiable {
+    case askForApproval, approveForMe, fullAccess
+
+    nonisolated var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .askForApproval: String(localized: "Ask for approval")
+        case .approveForMe: String(localized: "Approve for me")
+        case .fullAccess: String(localized: "Full access")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .askForApproval: "hand.raised"
+        case .approveForMe: "checkmark.shield"
+        case .fullAccess: "lock.open"
+        }
+    }
+}
+
 /// One AI conversation. Session-scoped instances belong to a Workspace's
 /// context panel; standalone instances belong to `AssistantLibraryModel` and
 /// appear in the fixed Assistant tab.
@@ -66,6 +117,15 @@ final class ConversationModel: Identifiable {
     var contextChips: [ContextChip] = []
     var draft: String = ""
     var isStreaming: Bool = false
+
+    /// Per-conversation reasoning state. Request-body mapping arrives with the
+    /// streaming client; until then this is intentionally UI state only.
+    var reasoningEffort: ReasoningEffort = .medium
+
+    /// An explicit choice for this conversation. `nil` follows the app-wide
+    /// last selection through `AIStore.resolve(conversation:)`, the same shape
+    /// used by `model` below.
+    var permissionMode: ChatPermissionMode?
 
     /// The model this conversation was told to use, if it was told.
     ///

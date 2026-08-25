@@ -12,49 +12,13 @@ struct ContextChipsView: View {
     let conversation: ConversationModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            HStack {
-                Text("Context")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("~\(conversation.estimatedContextTokens) tokens")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                addMenu
-            }
-
-            FlowLayout(spacing: Metrics.Space.xs) {
-                ForEach(conversation.contextChips) { chip in
-                    ChipView(chip: chip) { conversation.removeChip(chip.id) }
-                }
+        FlowLayout(spacing: Metrics.Space.xs) {
+            ForEach(conversation.contextChips) { chip in
+                ChipView(chip: chip) { conversation.removeChip(chip.id) }
             }
         }
-        .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.m)
-    }
-
-    private var addMenu: some View {
-        Menu {
-            Button("Last 200 Lines") {
-                conversation.addChip(
-                    ContextChip(kind: .output, label: String(localized: "Last 200 lines"), approximateTokens: 1_450)
-                )
-            }
-            Button("Terminal Selection") {
-                conversation.addChip(
-                    ContextChip(kind: .selection, label: String(localized: "Selection"), approximateTokens: 120)
-                )
-            }
-            Button("File") {}
-                .disabled(true)
-        } label: {
-            Image(systemName: "plus.circle")
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help(Text("Attach context"))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Attached session information"))
     }
 }
 
@@ -81,7 +45,7 @@ private struct ChipView: View {
         .padding(.horizontal, Metrics.Space.s)
         .padding(.vertical, 3)
         .background(.quaternary.opacity(0.5), in: .capsule)
-        .help(Text(chip.isRemovable ? "Remove from context" : "Always included"))
+        .help(Text(chip.isRemovable ? "Remove attachment" : "Always included"))
     }
 }
 
@@ -120,7 +84,11 @@ struct FlowLayout: Layout {
         var x: CGFloat = 0
 
         for (index, subview) in subviews.enumerated() {
-            let size = subview.sizeThatFits(.unspecified)
+            let naturalSize = subview.sizeThatFits(.unspecified)
+            // A cwd can be wider than the compact 260pt Assistant sidebar.
+            // Place it with a bounded proposal so the chip truncates instead of
+            // pushing the composer controls off screen.
+            let size = CGSize(width: min(naturalSize.width, width), height: naturalSize.height)
             if x + size.width > width, !current.items.isEmpty {
                 rows.append(current)
                 current = Row(y: current.y + current.height + spacing, height: 0, items: [])
@@ -182,16 +150,34 @@ struct ComposerView: View {
     let conversation: ConversationModel
 
     @Environment(AppModel.self) private var app
+    @Environment(\.openSettings) private var openSettings
     @FocusState private var isFocused: Bool
 
+    private var resolved: (provider: ModelProvider, model: AIModel)? {
+        app.ai.resolve(conversation: conversation.model)
+    }
+
+    private var modelProviders: [ModelProvider] {
+        app.ai.enabledModelProviders.filter { !$0.chatModels.isEmpty }
+    }
+
     private var resolvedModelLabel: String {
-        app.ai.resolve(conversation: conversation.model)?.model.label ?? String(localized: "No model")
+        resolved?.model.label ?? String(localized: "No model")
+    }
+
+    private var resolvedPermissionMode: ChatPermissionMode {
+        app.ai.resolve(conversation: conversation.permissionMode)
     }
 
     var body: some View {
         @Bindable var conversation = conversation
 
-        VStack(spacing: Metrics.Space.s) {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            if !conversation.contextChips.isEmpty {
+                ContextChipsView(conversation: conversation)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
             TextEditor(text: $conversation.draft)
                 .font(.callout)
                 .scrollContentBackground(.hidden)
@@ -209,12 +195,12 @@ struct ComposerView: View {
                 }
 
             HStack(spacing: Metrics.Space.s) {
-                // Resolved the same way `ModelProviderBar` resolves it — an unset
-                // conversation shows the Chat role's answer rather than a blank.
-                Text(resolvedModelLabel)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Spacer()
+                ViewThatFits(in: .horizontal) {
+                    composerMenus(compact: false)
+                    composerMenus(compact: true)
+                }
+                .frame(maxWidth: .infinity)
+
                 Button {
                     conversation.sendDraft()
                 } label: {
@@ -230,5 +216,159 @@ struct ComposerView: View {
         }
         .padding(Metrics.Space.l)
         .background(.bar)
+    }
+
+    private func composerMenus(compact: Bool) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            permissionMenu(compact: compact)
+            Spacer(minLength: Metrics.Space.s)
+            modelAndThinkingMenu(compact: compact)
+        }
+    }
+
+    private func permissionMenu(compact: Bool) -> some View {
+        Menu {
+            ForEach(ChatPermissionMode.allCases) { mode in
+                Button {
+                    conversation.permissionMode = mode
+                    app.ai.select(mode)
+                } label: {
+                    selectionLabel(mode.displayName, isSelected: mode == resolvedPermissionMode)
+                }
+            }
+        } label: {
+            if compact {
+                Image(systemName: resolvedPermissionMode.symbol)
+                    .font(.caption)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(permissionTint)
+            } else {
+                HStack(spacing: Metrics.Space.xs) {
+                    Image(systemName: resolvedPermissionMode.symbol)
+                        .symbolRenderingMode(.monochrome)
+                    Text(resolvedPermissionMode.displayName)
+                }
+                    .font(.caption2)
+                    .foregroundStyle(permissionTint)
+                    .lineLimit(1)
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(compact ? .hidden : .visible)
+        .tint(permissionTint)
+        .fixedSize()
+        .help(Text("Permission: \(resolvedPermissionMode.displayName)"))
+        .accessibilityLabel(Text("Permission, \(resolvedPermissionMode.displayName)"))
+    }
+
+    private var permissionTint: Color {
+        resolvedPermissionMode == .fullAccess ? .red : .secondary
+    }
+
+    private func modelAndThinkingMenu(compact: Bool) -> some View {
+        Menu {
+            Menu("Model") {
+                if modelProviders.isEmpty {
+                    Text("No models configured")
+                        .disabled(true)
+                    Divider()
+                } else {
+                    ForEach(modelProviders) { provider in
+                        Section(provider.name) {
+                            ForEach(provider.chatModels) { model in
+                                Button {
+                                    select(model, on: provider)
+                                } label: {
+                                    selectionLabel(
+                                        model.label,
+                                        isSelected: isSelected(model, on: provider)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Divider()
+                }
+                Button("Configure Model Providers") { openSettings() }
+            }
+
+            if resolved != nil {
+                Menu("Thinking") {
+                    ForEach(ReasoningEffort.allCases) { effort in
+                        Button {
+                            conversation.reasoningEffort = effort
+                        } label: {
+                            selectionLabel(
+                                effort.displayName,
+                                isSelected: effort == conversation.reasoningEffort
+                            )
+                        }
+                    }
+                }
+            }
+        } label: {
+            if compact {
+                Image(systemName: "sparkles")
+                    .font(.caption)
+            } else {
+                HStack(spacing: Metrics.Space.xs) {
+                    Image(systemName: "sparkles")
+                        .font(.caption2)
+                    Text(modelAndThinkingLabel)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .font(.caption)
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(compact ? .hidden : .visible)
+        .foregroundStyle(.secondary)
+        .fixedSize()
+        .help(Text(modelAndThinkingHelp))
+        .accessibilityLabel(Text(modelAndThinkingAccessibilityLabel))
+    }
+
+    private var modelAndThinkingLabel: String {
+        guard resolved != nil else { return resolvedModelLabel }
+        return "\(resolvedModelLabel) · \(conversation.reasoningEffort.displayName)"
+    }
+
+    private var modelAndThinkingAccessibilityLabel: String {
+        guard resolved != nil else { return String(localized: "Model, no model configured") }
+        return String(
+            localized: "Model \(resolvedModelLabel), thinking \(conversation.reasoningEffort.displayName)"
+        )
+    }
+
+    private var modelAndThinkingHelp: String {
+        if let resolved {
+            return String(
+                localized:
+                    "\(resolved.model.label) through \(resolved.provider.name) · \(conversation.reasoningEffort.displayName) thinking"
+            )
+        }
+        return String(localized: "No model configured")
+    }
+
+    private func isSelected(_ model: AIModel, on provider: ModelProvider) -> Bool {
+        resolved?.provider.id == provider.id && resolved?.model.id == model.id
+    }
+
+    /// Sets this conversation's model and records the same choice as the
+    /// app-wide fallback for conversations that have not chosen one.
+    private func select(_ model: AIModel, on provider: ModelProvider) {
+        let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
+        conversation.model = ref
+        app.ai.select(ref)
+    }
+
+    @ViewBuilder
+    private func selectionLabel(_ title: String, isSelected: Bool) -> some View {
+        if isSelected {
+            Label(title, systemImage: "checkmark")
+        } else {
+            Text(title)
+        }
     }
 }

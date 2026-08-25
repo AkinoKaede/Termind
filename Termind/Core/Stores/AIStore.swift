@@ -26,6 +26,11 @@ final class AIStore {
     /// never overrides a decision the user made in Settings.
     private(set) var lastSelectedModel: AIModelRef?
 
+    /// The approval posture new and otherwise-unset conversations follow.
+    /// Session-only, like `lastSelectedModel`; persistence arrives when this
+    /// store moves off its P0 in-memory backing.
+    private(set) var lastSelectedPermissionMode: ChatPermissionMode
+
     /// Live MCP connection state, keyed by server.
     ///
     /// Here rather than on `MCPServer` for the same reason `HostStore.statuses`
@@ -45,12 +50,14 @@ final class AIStore {
         modelProviders: [ModelProvider] = [],
         mcpServers: [MCPServer] = [],
         roles: [AIRole: AIModelRef] = [:],
+        lastSelectedPermissionMode: ChatPermissionMode = .askForApproval,
         keychain: KeychainSecretStore = KeychainSecretStore(),
         persistsSecrets: Bool = true
     ) {
         self.modelProviders = modelProviders
         self.mcpServers = mcpServers
         self.roles = roles
+        self.lastSelectedPermissionMode = lastSelectedPermissionMode
         self.keychain = keychain
         self.persistsSecrets = persistsSecrets
     }
@@ -125,6 +132,12 @@ final class AIStore {
     func resolve(conversation model: AIModelRef?) -> (provider: ModelProvider, model: AIModel)? {
         if let model, let hit = lookup(model) { return hit }
         return resolve(.chat)
+    }
+
+    /// An explicit conversation choice wins; otherwise the app-wide latest
+    /// choice is the default. The latter begins at the safest posture.
+    func resolve(conversation permissionMode: ChatPermissionMode?) -> ChatPermissionMode {
+        permissionMode ?? lastSelectedPermissionMode
     }
 
     /// Whether a role is showing an explicit choice or following the chain.
@@ -316,6 +329,12 @@ final class AIStore {
     /// default without overwriting anything the user set in Settings.
     func select(_ ref: AIModelRef) {
         lastSelectedModel = ref
+    }
+
+    /// Records a composer permission choice for subsequent unset conversations.
+    /// It does not alter command or MCP execution policy.
+    func select(_ permissionMode: ChatPermissionMode) {
+        lastSelectedPermissionMode = permissionMode
     }
 
     // MARK: - MCP writes

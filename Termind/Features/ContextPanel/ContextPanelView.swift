@@ -623,10 +623,6 @@ struct ConversationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ModelProviderBar(conversation: conversation)
-            Divider()
-            ContextChipsView(conversation: conversation)
-            Divider()
             transcript
             Divider()
             ComposerView(conversation: conversation)
@@ -661,92 +657,13 @@ struct ConversationView: View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
             Text("Ask About This Session")
                 .font(.headline)
-            Text(
-                "Only the context shown above is sent. Select terminal output and press ⌃⌘A to add it."
-            )
+            Text("Only the chips above the prompt are sent.")
             .font(.callout)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         }
         .padding(Metrics.Space.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-/// Which endpoint the key is being spent against. Shown on every conversation
-/// because with BYOK the user is the one paying, and "which model answered this"
-/// is not a detail to bury in settings.
-private struct ModelProviderBar: View {
-    let conversation: ConversationModel
-
-    @Environment(AppModel.self) private var app
-    @Environment(\.openSettings) private var openSettings
-
-    /// The conversation's own choice, or whatever the Chat role currently
-    /// resolves to. Resolved on every draw rather than cached, so a model
-    /// deleted in Settings stops being displayed here immediately instead of
-    /// naming something that no longer exists.
-    private var resolved: (provider: ModelProvider, model: AIModel)? {
-        app.ai.resolve(conversation: conversation.model)
-    }
-
-    private var modelProviders: [ModelProvider] {
-        app.ai.enabledModelProviders.filter { !$0.chatModels.isEmpty }
-    }
-
-    var body: some View {
-        HStack(spacing: Metrics.Space.s) {
-            Menu {
-                ForEach(modelProviders) { provider in
-                    Section(provider.name) {
-                        ForEach(provider.chatModels) { model in
-                            Button(model.label) { select(model, on: provider) }
-                        }
-                    }
-                }
-                if !modelProviders.isEmpty { Divider() }
-                Button("Configure Model Providers") { openSettings() }
-            } label: {
-                HStack(spacing: Metrics.Space.xs) {
-                    Image(systemName: "sparkles")
-                    Text(resolved?.model.label ?? String(localized: "No model")).lineLimit(1)
-                }
-                .font(.caption)
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-
-            Spacer()
-
-            if let provider = resolved?.provider {
-                Text(provider.name)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .truncationMode(.head)
-                    // The name here, the address in the tooltip. Two providers
-                    // of the same kind are told apart by what the user called
-                    // them — "Work OpenAI" answers "whose key is this" at a
-                    // glance, where `api.openai.com` does not.
-                    .help(Text("Requests go from this Mac directly to \(provider.resolvedBaseURL)"))
-            }
-        }
-        .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.s)
-    }
-
-    /// Sets this conversation's model, and records the choice as the app-wide
-    /// default.
-    ///
-    /// Both, deliberately. Picking a model here is the most common way anyone
-    /// will ever choose one — far more common than opening Settings — so it
-    /// would be strange for the next new conversation to forget it. `select`
-    /// feeds the resolution chain without overwriting an explicit Chat role, so
-    /// a decision made in Settings still wins.
-    private func select(_ model: AIModel, on provider: ModelProvider) {
-        let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
-        conversation.model = ref
-        app.ai.select(ref)
     }
 }
 
