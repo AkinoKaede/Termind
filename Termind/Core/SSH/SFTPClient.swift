@@ -29,6 +29,12 @@ nonisolated struct RemoteFile: Identifiable, Hashable, Sendable {
     var isDirectory: Bool { kind == .directory }
     var isSymbolicLink: Bool { kind == .symbolicLink }
 
+    var permissionMode: UInt32 { permissions & 0o7777 }
+
+    var octalPermissionDescription: String {
+        String(format: "%04o", permissionMode)
+    }
+
     var permissionDescription: String {
         let type: Character = switch kind {
         case .file: "-"
@@ -71,6 +77,7 @@ nonisolated protocol SFTPClientProtocol: Sendable {
     func homeDirectory() async throws -> String
     func listDirectory(at path: String) async throws -> [RemoteFile]
     func attributes(at path: String) async throws -> RemoteFile?
+    func setPermissions(at path: String, to permissions: UInt32) async throws
     func createDirectory(at path: String) async throws
     func rename(from source: String, to destination: String, overwrite: Bool) async throws
     func removeFile(at path: String) async throws
@@ -168,6 +175,10 @@ actor SFTPClient: SFTPClientProtocol {
 
     func attributes(at path: String) async throws -> RemoteFile? {
         try await worker.attributes(at: path)
+    }
+
+    func setPermissions(at path: String, to permissions: UInt32) async throws {
+        try await worker.setPermissions(at: path, to: permissions)
     }
 
     func createDirectory(at path: String) async throws {
@@ -419,6 +430,24 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
             }
             if libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE { return nil }
             throw self.error("Unable to inspect \(path)")
+        }
+    }
+
+    func setPermissions(at path: String, to permissions: UInt32) async throws {
+        try await perform {
+            let sftp = try self.requireSFTP()
+            var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+            attributes.flags = UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS)
+            attributes.permissions = UInt(permissions & 0o7777)
+            let result = path.withCString {
+                libssh2_sftp_stat_ex(
+                    sftp, $0, UInt32(path.utf8.count),
+                    Int32(LIBSSH2_SFTP_SETSTAT), &attributes
+                )
+            }
+            guard result == 0 else {
+                throw self.error("Unable to change permissions for \(path)")
+            }
         }
     }
 

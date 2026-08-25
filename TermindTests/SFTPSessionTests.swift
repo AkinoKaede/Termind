@@ -118,6 +118,7 @@ private actor LifecycleSFTPClient: SFTPClientProtocol {
     func homeDirectory() async throws -> String { "/home/test" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
     func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws {}
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}

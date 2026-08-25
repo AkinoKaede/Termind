@@ -112,10 +112,77 @@ struct SFTPFeatureTests {
     func remoteFileExposesUnixPermissions() {
         let file = RemoteFile(
             path: "/tmp/tool", name: "tool", kind: .file, size: 12,
-            modifiedAt: nil, permissions: 0o754, ownerUID: 501, ownerGID: 20
+            modifiedAt: nil, permissions: 0o100754, ownerUID: 501, ownerGID: 20
         )
         #expect(file.permissionDescription == "-rwxr-xr--")
+        #expect(file.permissionMode == 0o754)
+        #expect(file.octalPermissionDescription == "0754")
         #expect(file.id == "/tmp/tool")
+    }
+
+    @Test
+    func permissionDraftValidatesAndNormalizesOctalInput() {
+        var draft = SFTPPermissionDraft(permissions: 0o1004755)
+        #expect(draft.text == "4755")
+        #expect(draft.mode == 0o4755)
+        #expect(!draft.canSave)
+
+        let rejectedInvalidDigits = draft.accept("4888")
+        #expect(!rejectedInvalidDigits)
+        #expect(draft.text == "4755")
+        let acceptedEmptyDraft = draft.accept("")
+        #expect(acceptedEmptyDraft)
+        #expect(draft.parsedMode == nil)
+        #expect(!draft.canSave)
+        let acceptedShortMode = draft.accept("640")
+        #expect(acceptedShortMode)
+        #expect(draft.parsedMode == 0o640)
+        draft.normalizeText()
+        #expect(draft.text == "0640")
+        #expect(draft.canSave)
+    }
+
+    @Test
+    func permissionDraftSwitchesPreserveSpecialBits() {
+        var draft = SFTPPermissionDraft(permissions: 0o4755)
+        draft.set(0o020, enabled: true)
+        #expect(draft.text == "4775")
+        draft.set(0o100, enabled: false)
+        #expect(draft.text == "4675")
+        #expect(draft.mode & 0o7000 == 0o4000)
+    }
+
+    @Test
+    func permissionUpdateWritesModeAndRefreshesDirectory() async {
+        let file = remoteFile(path: "/home/tool", kind: .file)
+        let client = PermissionSFTPClient(file: file)
+        let sftpSession = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/home", client: client,
+            configuration: testConfiguration
+        )
+
+        let saved = await sftpSession.updatePermissions(for: file, to: 0o104755)
+
+        #expect(saved)
+        #expect(await client.lastPermissionUpdate == .init(path: "/home/tool", mode: 0o4755))
+        #expect(sftpSession.files.first?.permissionMode == 0o4755)
+        #expect(sftpSession.operationError == nil)
+    }
+
+    @Test
+    func permissionUpdateFailureKeepsEditorOpenThroughFalseResult() async {
+        let file = remoteFile(path: "/home/tool", kind: .file)
+        let client = PermissionSFTPClient(file: file, rejectsUpdate: true)
+        let sftpSession = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/home", client: client,
+            configuration: testConfiguration
+        )
+
+        let saved = await sftpSession.updatePermissions(for: file, to: 0o755)
+
+        #expect(!saved)
+        #expect(sftpSession.files.isEmpty)
+        #expect(sftpSession.operationError == "Permission denied")
     }
 
     @Test
@@ -735,6 +802,51 @@ private actor SFTPTransferClientGate {
     }
 }
 
+private actor PermissionSFTPClient: SFTPClientProtocol {
+    struct PermissionUpdate: Equatable, Sendable {
+        var path: String
+        var mode: UInt32
+    }
+
+    private var file: RemoteFile
+    private let rejectsUpdate: Bool
+    private(set) var lastPermissionUpdate: PermissionUpdate?
+
+    init(file: RemoteFile, rejectsUpdate: Bool = false) {
+        self.file = file
+        self.rejectsUpdate = rejectsUpdate
+    }
+
+    func connect(
+        using configuration: SSHConnectionConfiguration,
+        progress: SSHRouteProgressHandler?
+    ) async throws {}
+    func disconnect() async {}
+    func homeDirectory() async throws -> String { "/home" }
+    func listDirectory(at path: String) async throws -> [RemoteFile] { [file] }
+    func attributes(at path: String) async throws -> RemoteFile? { file }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {
+        guard !rejectsUpdate else { throw SFTPError.operation("Permission denied") }
+        let mode = permissions & 0o7777
+        lastPermissionUpdate = PermissionUpdate(path: path, mode: mode)
+        file.permissions = (file.permissions & ~UInt32(0o7777)) | mode
+    }
+    func createDirectory(at path: String) async throws {}
+    func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
+    func removeFile(at path: String) async throws {}
+    func removeDirectory(at path: String) async throws {}
+    func uploadFile(
+        from localURL: URL, to remotePath: String, overwrite: Bool,
+        cancellation: TransferCancellationToken,
+        progress: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
+    func downloadFile(
+        from remotePath: String, to localURL: URL, overwrite: Bool,
+        cancellation: TransferCancellationToken,
+        progress: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
+}
+
 private actor FakeSFTPTransferClient: SFTPClientProtocol {
     let gate: SFTPTransferClientGate
     private var host = ""
@@ -747,6 +859,7 @@ private actor FakeSFTPTransferClient: SFTPClientProtocol {
     func homeDirectory() async throws -> String { "/Users/test" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
     func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws {}
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}
@@ -777,6 +890,7 @@ private actor BorrowedSFTPTransferClient: SFTPClientProtocol {
     func homeDirectory() async throws -> String { "/home" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
     func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws {}
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}
@@ -827,6 +941,7 @@ private actor ManifestSFTPClient: SFTPClientProtocol {
         }
         return entries[path]
     }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws { createdDirectories.append(path) }
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}
@@ -871,6 +986,7 @@ private actor SnapshotSFTPClient: SFTPClientProtocol {
         }
     }
     func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws {}
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}
@@ -896,6 +1012,7 @@ private actor WritingSFTPClient: SFTPClientProtocol {
     func homeDirectory() async throws -> String { "/home" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
     func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws {}
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}
@@ -929,6 +1046,7 @@ private actor TreeSFTPClient: SFTPClientProtocol {
     func homeDirectory() async throws -> String { "/home" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { listings[path] ?? [] }
     func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws {}
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}
@@ -965,6 +1083,7 @@ private actor RemoteCopyTrackingClient: SFTPClientProtocol {
     func homeDirectory() async throws -> String { "/home" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
     func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws {}
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws {}

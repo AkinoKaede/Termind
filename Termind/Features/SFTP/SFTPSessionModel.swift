@@ -620,6 +620,22 @@ final class SFTPSessionModel: Identifiable {
         } catch { operationError = error.localizedDescription }
     }
 
+    @discardableResult
+    func updatePermissions(for file: RemoteFile, to permissions: UInt32) async -> Bool {
+        guard status == .connected, let client else {
+            operationError = String(localized: "The SFTP connection is not available.")
+            return false
+        }
+        do {
+            try await client.setPermissions(at: file.path, to: permissions & 0o7777)
+            await reload()
+            return true
+        } catch {
+            operationError = error.localizedDescription
+            return false
+        }
+    }
+
     func delete(_ file: RemoteFile) async {
         await delete([file])
     }

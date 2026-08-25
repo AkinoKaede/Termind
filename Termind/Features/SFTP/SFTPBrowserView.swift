@@ -17,6 +17,7 @@ struct SFTPBrowserView: View {
     @State private var newFolderName = ""
     @State private var renameTarget: RemoteFile?
     @State private var renameName = ""
+    @State private var permissionTarget: RemoteFile?
     @State private var deleteTargets: [RemoteFile] = []
     @State private var conflictPresented = false
     @State private var isRemoteDropTargeted = false
@@ -109,6 +110,11 @@ struct SFTPBrowserView: View {
                 let name = renameName
                 renameTarget = nil
                 Task { await sftpSession.rename(target, to: name) }
+            }
+        }
+        .sheet(item: $permissionTarget) { file in
+            SFTPEditPermissionsSheet(file: file) { permissions in
+                await sftpSession.updatePermissions(for: file, to: permissions)
             }
         }
         .confirmationDialog(
@@ -359,26 +365,6 @@ struct SFTPBrowserView: View {
             }
             .width(min: 90, ideal: 110)
             .customizationID("permissions")
-            TableColumn("UID") { file in
-                menuCell(file) {
-                    Text(file.ownerUID.formatted())
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .width(min: 55, ideal: 70)
-            .customizationID("uid")
-            .defaultVisibility(.hidden)
-            TableColumn("GID") { file in
-                menuCell(file) {
-                    Text(file.ownerGID.formatted())
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .width(min: 55, ideal: 70)
-            .customizationID("gid")
-            .defaultVisibility(.hidden)
         }
         .overlay(alignment: .bottomLeading) {
             if !sftpSession.hint.isEmpty {
@@ -420,6 +406,10 @@ struct SFTPBrowserView: View {
                 renameName = file.name
             }
             .disabled(!sftpSession.allowsRemoteMutations)
+            if file.kind == .file || file.kind == .directory {
+                Button("Edit Permissions") { permissionTarget = file }
+                    .disabled(!sftpSession.allowsRemoteMutations)
+            }
         }
         Button(targets.count == 1 ? "Delete" : "Delete \(targets.count) Items", role: .destructive) {
             deleteTargets = targets
@@ -708,6 +698,167 @@ struct SFTPBrowserView: View {
             } else {
                 await sftpSession.enqueuePending(policy: policy, coordinator: app.sftpTransfers)
             }
+        }
+    }
+}
+
+private struct SFTPEditPermissionsSheet: View {
+    private struct AccessRow: Identifiable {
+        let title: String
+        let read: UInt32
+        let write: UInt32
+        let execute: UInt32
+
+        var id: UInt32 { read }
+    }
+
+    let file: RemoteFile
+    let save: (UInt32) async -> Bool
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var modeFieldFocused: Bool
+    @State private var draft: SFTPPermissionDraft
+    @State private var isSaving = false
+
+    private let accessRows = [
+        AccessRow(title: "Owner", read: 0o400, write: 0o200, execute: 0o100),
+        AccessRow(title: "Group", read: 0o040, write: 0o020, execute: 0o010),
+        AccessRow(title: "Others", read: 0o004, write: 0o002, execute: 0o001),
+    ]
+
+    init(file: RemoteFile, save: @escaping (UInt32) async -> Bool) {
+        self.file = file
+        self.save = save
+        _draft = State(initialValue: SFTPPermissionDraft(permissions: file.permissions))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: Metrics.Space.xxl) {
+                Label("Edit Permissions", systemImage: "lock.shield")
+                    .font(.title2.weight(.semibold))
+
+                HStack(spacing: Metrics.Space.l) {
+                    Text(file.path)
+                        .font(.body.monospaced())
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .help(file.path)
+                    Spacer(minLength: Metrics.Space.xl)
+                    TextField("Mode", text: modeText)
+                        .labelsHidden()
+                        .font(.body.monospacedDigit())
+                        .multilineTextAlignment(.trailing)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 68)
+                        .focused($modeFieldFocused)
+                        .accessibilityLabel("Octal permissions")
+                }
+
+                permissionGrid
+
+                VStack(alignment: .leading, spacing: Metrics.Space.m) {
+                    Text("Ownership").font(.headline)
+                    ownershipRow("UID", value: file.ownerUID)
+                    Divider()
+                    ownershipRow("GID", value: file.ownerGID)
+                }
+            }
+            .padding(Metrics.Space.xxl)
+
+            Divider()
+
+            HStack(spacing: Metrics.Space.m) {
+                Spacer()
+                if isSaving { ProgressView().controlSize(.small) }
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                    .disabled(isSaving)
+                Button("Save") { Task { await commit() } }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!draft.canSave || isSaving)
+            }
+            .padding(.horizontal, Metrics.Space.xxl)
+            .padding(.vertical, Metrics.Space.l)
+            .background(.bar)
+        }
+        .frame(width: 520)
+        .disabled(isSaving)
+        .onChange(of: modeFieldFocused) { _, focused in
+            if !focused { draft.normalizeText() }
+        }
+    }
+
+    private var modeText: Binding<String> {
+        Binding(
+            get: { draft.text },
+            set: { _ = draft.accept($0) }
+        )
+    }
+
+    private var permissionGrid: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            Text("File Access").font(.headline)
+            Grid(horizontalSpacing: Metrics.Space.xxl, verticalSpacing: Metrics.Space.l) {
+                GridRow {
+                    Color.clear.frame(width: 72, height: 1)
+                    Text("Read")
+                    Text("Write")
+                    Text("Execute")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+                ForEach(accessRows) { row in
+                    GridRow {
+                        Text(row.title)
+                            .frame(width: 72, alignment: .leading)
+                            .foregroundStyle(.secondary)
+                        permissionToggle(row.read, label: "\(row.title) read")
+                        permissionToggle(row.write, label: "\(row.title) write")
+                        permissionToggle(row.execute, label: "\(row.title) execute")
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Metrics.Space.s)
+        }
+    }
+
+    private func permissionToggle(_ permission: UInt32, label: String) -> some View {
+        Toggle(
+            label,
+            isOn: Binding(
+                get: { draft.contains(permission) },
+                set: { draft.set(permission, enabled: $0) }
+            )
+        )
+        .labelsHidden()
+        .toggleStyle(.switch)
+        .controlSize(.small)
+        .accessibilityLabel(label)
+    }
+
+    private func ownershipRow(_ label: LocalizedStringKey, value: UInt32) -> some View {
+        HStack {
+            Text(label).foregroundStyle(.secondary)
+            Spacer()
+            Text(value.formatted())
+                .font(.body.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, Metrics.Space.xs)
+    }
+
+    @MainActor
+    private func commit() async {
+        guard let permissions = draft.parsedMode, draft.canSave else { return }
+        modeFieldFocused = false
+        isSaving = true
+        if await save(permissions) {
+            dismiss()
+        } else {
+            isSaving = false
         }
     }
 }
