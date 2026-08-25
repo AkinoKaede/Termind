@@ -3,12 +3,12 @@ import SwiftUI
 
 // MARK: - Context chips
 
-/// The row of chips showing exactly what will be sent to the LLM endpoint.
+/// The row of user-visible attachments sent to the LLM endpoint.
 ///
 /// This is the trust surface of the whole feature. BYOK means the user's own key
-/// pays for — and is exposed to — whatever we upload, so the rule is that nothing
-/// leaves the machine unless it is visible here. Host and directory are pinned;
-/// everything else the user added by hand can be taken back off.
+/// pays for — and is exposed to — whatever we upload. Host and directory are
+/// pinned; everything else the user added by hand can be taken back off. The
+/// setting-disclosed, token-sanitized Shell Integration environment is not a chip.
 struct ContextChipsView: View {
     let conversation: ConversationModel
 

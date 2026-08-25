@@ -421,7 +421,8 @@ final class WindowModel {
         let conversation = sidebarAssistantConversation ?? sidebar.assistantDraft
         conversation.syncDefaultChips(
             hostName: hostName,
-            workingDirectory: tab.focusedPane.workingDirectory
+            workingDirectory: tab.focusedPane.workingDirectory,
+            remoteSystemInfo: tab.focusedPane.remoteSystemInfo
         )
     }
 

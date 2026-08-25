@@ -148,7 +148,13 @@ struct BroadcastInputTests {
         let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
         focus(firstSSHSession, in: workspace)
         try await Task.sleep(for: .milliseconds(20))
-        prepareForCommandComposer(firstSSHSession, cwd: "/srv/app", shell: "zsh")
+        let systemInfo = RemoteSystemInfo(
+            distributionID: "debian", distributionVersion: "13",
+            kernelName: "Linux", kernelRelease: "6.12.0", architecture: "x86_64"
+        )
+        prepareForCommandComposer(
+            firstSSHSession, cwd: "/srv/app", shell: "zsh", systemInfo: systemInfo
+        )
         var firstWrites: [Data] = []
         var secondWrites: [Data] = []
         firstSSHSession.inputSink = { data in
@@ -166,7 +172,10 @@ struct BroadcastInputTests {
         try await waitUntil { workspace.commandComposerState == .inserted(targetCount: 1) }
 
         #expect(composer.contexts == [
-            .init(draft: "show hidden files", shell: "zsh", cwd: "/srv/app")
+            .init(
+                draft: "show hidden files", shell: "zsh", cwd: "/srv/app",
+                remoteSystemInfo: systemInfo
+            )
         ])
         #expect(firstWrites.first == Data("\u{1B}[777;1~".utf8))
         let replacement = try #require(firstWrites.last)
@@ -368,11 +377,14 @@ struct BroadcastInputTests {
     #endif
 
     private func prepareForCommandComposer(
-        _ sshSession: SSHSessionModel, cwd: String, shell: String
+        _ sshSession: SSHSessionModel, cwd: String, shell: String,
+        systemInfo: RemoteSystemInfo? = nil
     ) {
         sshSession.status = .connected
         sshSession.workingDirectory = cwd
-        sshSession.receiveShellIntegrationEvent(.available(shell: shell))
+        sshSession.receiveShellIntegrationEvent(
+            .available(shell: shell, systemInfo: systemInfo)
+        )
         sshSession.receiveShellIntegrationEvent(.promptReady)
     }
 

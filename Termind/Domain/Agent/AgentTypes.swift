@@ -219,19 +219,22 @@ nonisolated struct AgentRunRequest: Sendable {
     var permissionMode: ChatPermissionMode
     var systemPrompt: String
     var priorMessages: [AgentTranscriptMessage]
+    var remoteSystemInfo: RemoteSystemInfo?
 
     init(
         conversationID: UUID,
         prompt: String,
         permissionMode: ChatPermissionMode,
         systemPrompt: String = AgentSystemPrompt.default,
-        priorMessages: [AgentTranscriptMessage] = []
+        priorMessages: [AgentTranscriptMessage] = [],
+        remoteSystemInfo: RemoteSystemInfo? = nil
     ) {
         self.conversationID = conversationID
         self.prompt = prompt
         self.permissionMode = permissionMode
         self.systemPrompt = systemPrompt
         self.priorMessages = priorMessages
+        self.remoteSystemInfo = remoteSystemInfo
     }
 }
 

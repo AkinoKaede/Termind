@@ -216,6 +216,12 @@ final class Pane: Identifiable {
         }
     }
 
+    var remoteSystemInfo: RemoteSystemInfo? {
+        guard SettingsKey.isShellIntegrationEnabled else { return nil }
+        guard case .sshSession(let sshSession) = content else { return nil }
+        return sshSession.remoteSystemInfo
+    }
+
     /// A fresh pane of the same kind on the same host — a second shell, a second
     /// browser, a second unfilled slot. Nil for anything a Workspace cannot
     /// hold, which is everything Duplicate is not offered on anyway.

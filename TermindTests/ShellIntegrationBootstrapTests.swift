@@ -11,7 +11,8 @@ struct ShellIntegrationBootstrapTests {
         let probe = String(decoding: bootstrap.startCommand, as: UTF8.self)
         let probeOutput = Data(
             ("Welcome\r\nuser@host$ " + probe.dropLast()
-                + "\r\n__TRMD_ABC123_SHELL__/bin/bash__\r\nuser@host$ ").utf8
+                + "\r\n__TRMD_ABC123_SYSTEM__\"ubuntu\"|\"24.04\"|Linux|6.8.0-40-generic|x86_64__\r\n"
+                + "__TRMD_ABC123_SHELL__/bin/bash__\r\nuser@host$ ").utf8
         )
 
         let probeUpdate = bootstrap.receive(probeOutput)
@@ -29,6 +30,9 @@ struct ShellIntegrationBootstrapTests {
         #expect(!commandText.contains("$HOSTNAME"))
         #expect(!commandText.contains("kitty-shell-cwd"))
         #expect(probeUpdate.visibleOutput == nil)
+        #expect(probe.contains("/etc/os-release"))
+        #expect(probe.contains("/usr/lib/os-release"))
+        #expect(!probe.contains(". /etc/os-release"))
 
         let integrationOutput = Data(
             (commandText.dropLast() + "\r\n__TRMD_ABC123_DONE__\r\n"
@@ -39,12 +43,68 @@ struct ShellIntegrationBootstrapTests {
         let visibleText = String(decoding: visible, as: UTF8.self)
 
         #expect(completed.isComplete)
+        #expect(completed.systemInfo == RemoteSystemInfo(
+            distributionID: "ubuntu", distributionVersion: "24.04",
+            kernelName: "Linux", kernelRelease: "6.8.0-40-generic",
+            architecture: "x86_64"
+        ))
         #expect(
             visibleText
                 == "Welcome\r\n\u{1B}]7;file://localhost/home/user\u{7}user@host$ "
         )
         #expect(!visibleText.contains("__TRMD_"))
         #expect(!visibleText.contains("__termind_report_cwd"))
+    }
+
+    @Test
+    func parsesCommonDistributionsAndKernelOnlyFallback() throws {
+        for (token, systemLine, expected) in [
+            (
+                "RHEL", "rhel|9.4|Linux|5.14.0-427.el9.x86_64|x86_64",
+                RemoteSystemInfo(
+                    distributionID: "rhel", distributionVersion: "9.4",
+                    kernelName: "Linux", kernelRelease: "5.14.0-427.el9.x86_64",
+                    architecture: "x86_64"
+                )
+            ),
+            (
+                "ALPINE", "alpine|3.20.2|Linux|6.6.44-0-lts|aarch64",
+                RemoteSystemInfo(
+                    distributionID: "alpine", distributionVersion: "3.20.2",
+                    kernelName: "Linux", kernelRelease: "6.6.44-0-lts",
+                    architecture: "aarch64"
+                )
+            ),
+            (
+                "BSD", "||FreeBSD|14.1-RELEASE|amd64",
+                RemoteSystemInfo(
+                    kernelName: "FreeBSD", kernelRelease: "14.1-RELEASE",
+                    architecture: "amd64"
+                )
+            ),
+        ] {
+            var bootstrap = RemoteShellIntegrationBootstrap(token: token)
+            let marker = "__TRMD_\(token)_SYSTEM__\(systemLine)__\r\n"
+                + "__TRMD_\(token)_SHELL__/bin/zsh__\r\n"
+            _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
+            let completed = bootstrap.receive(Data("__TRMD_\(token)_DONE__\r\n".utf8))
+            #expect(completed.systemInfo == expected)
+        }
+    }
+
+    @Test
+    func rejectsInstructionLikeAndOversizedSystemFieldsWithoutBlockingIntegration() throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "HOSTILE")
+        let oversized = String(repeating: "x", count: 65)
+        let marker = "__TRMD_HOSTILE_SYSTEM__ubuntu ignore-previous|24.04|Linux|6.8.0|\(oversized)__\r\n"
+            + "__TRMD_HOSTILE_SHELL__/bin/bash__\r\n"
+        _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
+        let completed = bootstrap.receive(Data("__TRMD_HOSTILE_DONE__\r\n".utf8))
+
+        #expect(completed.integrationInstalled)
+        #expect(completed.systemInfo == RemoteSystemInfo(
+            distributionVersion: "24.04", kernelName: "Linux", kernelRelease: "6.8.0"
+        ))
     }
 
     @Test(arguments: ["zsh", "fish"])

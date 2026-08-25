@@ -23,8 +23,11 @@ nonisolated enum SettingsKey {
     static let defaultTerminalThemeDark = "Termind Dark"
     static let defaultTerminalThemeLight = "Termind Light"
     static let terminalFontSize = "terminal.fontSize"
-    /// Enable session-scoped hooks that report remote shell context.
+    /// Enable session-scoped hooks that report remote shell and system context.
     static let shellIntegration = "terminal.shellIntegration"
+    static var isShellIntegrationEnabled: Bool {
+        UserDefaults.standard.object(forKey: shellIntegration) as? Bool ?? true
+    }
     /// Restore the previous window's tabs on launch.
     static let restoreTabs = "window.restoreTabs"
     static let sftpGlobalTransferLimit = "sftp.transfers.globalLimit"

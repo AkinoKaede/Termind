@@ -225,6 +225,38 @@ struct WindowStateTests {
     }
 
     @Test
+    func focusedSSHSystemInfoUpdatesHiddenAssistantContextAndSFTPClearsIt() {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sshSession(host: host)
+        let sshPane = workspace.focusedPane
+        let sshSession = sshPane.sshSession!
+        let window = WindowModel(tabs: [workspace])
+        window.hostStore = HostStore(hosts: [host])
+        let info = RemoteSystemInfo(
+            distributionID: "ubuntu", distributionVersion: "24.04",
+            kernelName: "Linux", kernelRelease: "6.8.0", architecture: "x86_64"
+        )
+
+        sshSession.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: info))
+
+        #expect(window.sidebar.assistantDraft.remoteSystemInfo == info)
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host])
+
+        workspace.splitFocusedPane(axis: .horizontal, with: .sftpSession(host: host))
+        #expect(window.sidebar.assistantDraft.remoteSystemInfo == nil)
+
+        workspace.focus(sshPane.id)
+        #expect(window.sidebar.assistantDraft.remoteSystemInfo == info)
+
+        sshSession.applyShellIntegrationPreference(isEnabled: false)
+        #expect(window.sidebar.assistantDraft.remoteSystemInfo == nil)
+
+        sshSession.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: info))
+        sshSession.disconnect()
+        #expect(window.sidebar.assistantDraft.remoteSystemInfo == nil)
+    }
+
+    @Test
     func vaultRoutesNeverBecomeWorkspaceTabs() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)

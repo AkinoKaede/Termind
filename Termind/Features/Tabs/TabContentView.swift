@@ -161,7 +161,10 @@ private struct CommandComposerOverlay: View {
         case .readingDraft:
             String(localized: "Reading the focused shell's edit buffer.")
         case .generating:
-            String(localized: "Only the current input, shell, and working directory are sent.")
+            String(
+                localized:
+                    "Only the current input, shell, working directory, and available system details are sent."
+            )
         case .inserted(let targetCount):
             targetCount == 1
                 ? String(localized: "Review the command before running it.")

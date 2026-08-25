@@ -292,7 +292,11 @@ final class Workspace: Identifiable {
                 ) == true else { throw CancellationError() }
 
                 self?.commandComposerState = .generating
-                let context = CommandComposerContext(draft: draft, shell: shell, cwd: cwd)
+                let context = CommandComposerContext(
+                    draft: draft, shell: shell, cwd: cwd,
+                    remoteSystemInfo: SettingsKey.isShellIntegrationEnabled
+                        ? origin.remoteSystemInfo : nil
+                )
                 let command = try await commandComposerWithTimeout {
                     try await controller.compose(context)
                 }
@@ -451,6 +455,11 @@ extension Workspace: SSHSessionInputRouting {
         _ sshSession: SSHSessionModel,
         didChangeWorkingDirectory workingDirectory: String?
     ) {
+        guard focusedPane.sshSession === sshSession else { return }
+        lifecycleRouter?.workspaceContextDidChange(self)
+    }
+
+    func sshSessionDidChangeRemoteSystemInfo(_ sshSession: SSHSessionModel) {
         guard focusedPane.sshSession === sshSession else { return }
         lifecycleRouter?.workspaceContextDidChange(self)
     }

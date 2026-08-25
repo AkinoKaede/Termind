@@ -245,7 +245,9 @@ final class AppModel {
         )
         conversation.start(runtime: runtime, request: AgentRunRequest(
             conversationID: conversation.id, prompt: userPrompt,
-            permissionMode: mode, priorMessages: conversation.pendingPriorMessages
+            permissionMode: mode, priorMessages: conversation.pendingPriorMessages,
+            remoteSystemInfo: SettingsKey.isShellIntegrationEnabled
+                ? conversation.remoteSystemInfo : nil
         ))
     }
 
@@ -263,6 +265,16 @@ final class AppModel {
                 self?.deletedAgentConversationIDs.contains($0.id) != true
             }
             window?.assistantLibrary.restore(visible)
+        }
+    }
+
+    func shellIntegrationPreferenceDidChange(isEnabled: Bool) {
+        windows = windows.filter { $0.value.value != nil }
+        for window in windows.values.compactMap(\.value) {
+            for sshSession in window.tabs.flatMap(\.panes).compactMap(\.sshSession) {
+                sshSession.applyShellIntegrationPreference(isEnabled: isEnabled)
+            }
+            window.refreshAssistantContext()
         }
     }
 

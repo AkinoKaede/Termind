@@ -125,7 +125,12 @@ struct SettingsPageView: View {
             }
         case .terminalAppearance:
             SettingsFormPage(title: "Appearance", subtitle: "Themes, custom configuration, and terminal typography.") {
-                TerminalSettings { route = .terminalConfiguration($0) }
+                TerminalSettings(
+                    editConfiguration: { route = .terminalConfiguration($0) },
+                    shellIntegrationChanged: {
+                        app.shellIntegrationPreferenceDidChange(isEnabled: $0)
+                    }
+                )
             }
         case .sftp:
             SettingsFormPage(title: "SFTP", subtitle: "Control transfer concurrency across sessions.") {
@@ -384,6 +389,7 @@ private struct SFTPSettings: View {
 
 private struct TerminalSettings: View {
     let editConfiguration: (TerminalCustomConfigurationScheme) -> Void
+    let shellIntegrationChanged: (Bool) -> Void
     @AppStorage(SettingsKey.terminalFontSize) private var fontSize = 12.0
     @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
     @AppStorage(SettingsKey.shellIntegration) private var shellIntegration = true
@@ -427,13 +433,18 @@ private struct TerminalSettings: View {
             }
             Section("Terminal") {
                 Toggle("Shell Integration", isOn: $shellIntegration)
-                Text("Keeps the remote working directory current and records commands confirmed by supported shells.")
+                Text(
+                    "Keeps the remote working directory current, records confirmed commands, and provides detected distribution, kernel, and architecture details to AI features."
+                )
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
         .onAppear {
             if TermindTerminalThemeCatalog.darkTheme(named: darkTheme) == nil { darkTheme = SettingsKey.defaultTerminalThemeDark }
             if TermindTerminalThemeCatalog.lightTheme(named: lightTheme) == nil { lightTheme = SettingsKey.defaultTerminalThemeLight }
+        }
+        .onChange(of: shellIntegration) { _, isEnabled in
+            shellIntegrationChanged(isEnabled)
         }
     }
 }

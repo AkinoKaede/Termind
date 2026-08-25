@@ -245,6 +245,9 @@ actor AgentRuntime {
         )
         activeRunID = snapshot.id
         let runID = snapshot.id
+        let effectiveSystemPrompt = [request.systemPrompt, request.remoteSystemInfo?.modelContext]
+            .compactMap { $0 }
+            .joined(separator: "\n\n")
         snapshot.messages.append(AgentTranscriptMessage(role: .user, text: request.prompt))
         emit(.runState(.running))
         await persist(snapshot)
@@ -258,7 +261,7 @@ actor AgentRuntime {
                     steering.removeAll()
                 }
                 let turn = try await assistantTurn(
-                    systemPrompt: request.systemPrompt,
+                    systemPrompt: effectiveSystemPrompt,
                     messages: snapshot.messages
                 )
                 snapshot.messages.append(turn.message)

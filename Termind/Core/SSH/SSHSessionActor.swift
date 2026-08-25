@@ -164,6 +164,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         var isComplete = false
         var integrationInstalled = false
         var shell: String?
+        var systemInfo: RemoteSystemInfo?
     }
 
     private enum Phase: Sendable {
@@ -187,14 +188,29 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     private var userDidWrite = false
     private var installationStartedLate = false
     private var detectedShell: String?
+    private var detectedSystemInfo: RemoteSystemInfo?
 
     init(
         token: String = UUID().uuidString.replacingOccurrences(of: "-", with: ""),
         now: UInt64 = DispatchTime.now().uptimeNanoseconds
     ) {
         self.token = token
+        // The POSIX helper reads os-release as inert assignment text instead of
+        // sourcing it. Its output precedes the shell marker, so a missing `sh`
+        // still leaves the original shell-only bootstrap path usable.
         startCommand = Data(
-            " printf '\\n__TRMD_%s_SHELL__%s__\\n' '\(token)' \"$SHELL\"\n".utf8
+            (
+                " command sh -c 'f=; did=; dver=; "
+                    + "[ -r /etc/os-release ] && f=/etc/os-release; "
+                    + "[ -z \"$f\" ] && [ -r /usr/lib/os-release ] && f=/usr/lib/os-release; "
+                    + "if [ -n \"$f\" ]; then while IFS= read -r line; do case \"$line\" in "
+                    + "ID=*) did=${line#ID=} ;; VERSION_ID=*) dver=${line#VERSION_ID=} ;; esac; "
+                    + "done < \"$f\"; fi; kn=$(uname -s 2>/dev/null); "
+                    + "kr=$(uname -r 2>/dev/null); ka=$(uname -m 2>/dev/null); "
+                    + "printf \"\\n__TRMD_%s_SYSTEM__%s|%s|%s|%s|%s__\\n\" "
+                    + "\"$1\" \"$did\" \"$dver\" \"$kn\" \"$kr\" \"$ka\"' sh '\(token)'; "
+                    + "printf '\\n__TRMD_%s_SHELL__%s__\\n' '\(token)' \"$SHELL\"\n"
+            ).utf8
         )
         deadline = now + Self.responseTimeout
     }
@@ -296,6 +312,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         )
         let shell = shellPath.split(separator: "/").last.map(String.init)?.lowercased()
         detectedShell = shell
+        detectedSystemInfo = parseSystemInfo(in: buffer)
         let suffix = Data(buffer[buffer.index(after: lineEnd)...])
         buffer.removeAll(keepingCapacity: false)
 
@@ -323,8 +340,43 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         finish()
         return Update(
             visibleOutput: visible, isComplete: true,
-            integrationInstalled: true, shell: detectedShell
+            integrationInstalled: true, shell: detectedShell,
+            systemInfo: detectedSystemInfo
         )
+    }
+
+    private func parseSystemInfo(in data: Data) -> RemoteSystemInfo? {
+        let prefix = Data("__TRMD_\(token)_SYSTEM__".utf8)
+        guard let prefixRange = data.range(of: prefix),
+            let lineEnd = data[prefixRange.upperBound...].firstIndex(of: 0x0A)
+        else { return nil }
+
+        var payload = Data(data[prefixRange.upperBound..<lineEnd])
+        if payload.last == 0x0D { payload.removeLast() }
+        guard payload.count >= 2, payload.suffix(2).elementsEqual(Data("__".utf8))
+        else { return nil }
+        payload.removeLast(2)
+        let fields = String(decoding: payload, as: UTF8.self).split(
+            separator: "|", maxSplits: 4, omittingEmptySubsequences: false
+        )
+        guard fields.count == 5 else { return nil }
+        let values = fields.map { normalizedOSReleaseValue(String($0)) }
+        let info = RemoteSystemInfo(
+            distributionID: values[0], distributionVersion: values[1],
+            kernelName: values[2], kernelRelease: values[3], architecture: values[4]
+        )
+        return info.isEmpty ? nil : info
+    }
+
+    private func normalizedOSReleaseValue(_ raw: String) -> String? {
+        guard !raw.isEmpty else { return nil }
+        if raw.count >= 2,
+            (raw.first == "\"" && raw.last == "\""
+                || raw.first == "'" && raw.last == "'")
+        {
+            return String(raw.dropFirst().dropLast())
+        }
+        return raw
     }
 
     private mutating func scanForLateProbe(now: UInt64) -> Update {
@@ -388,7 +440,9 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         if let following = update.visibleOutput { combined.append(following) }
         return Update(
             command: update.command, visibleOutput: combined,
-            isComplete: update.isComplete
+            isComplete: update.isComplete,
+            integrationInstalled: update.integrationInstalled,
+            shell: update.shell, systemInfo: update.systemInfo
         )
     }
 
@@ -556,7 +610,7 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
 }
 
 nonisolated enum SSHShellIntegrationEvent: Sendable {
-    case available(shell: String)
+    case available(shell: String, systemInfo: RemoteSystemInfo?)
     case promptReady
     case commandStarted(String)
     case draft(String)
@@ -1398,7 +1452,9 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
             pendingWrites.append(command)
         }
         if update.integrationInstalled {
-            shellIntegrationHandler(.available(shell: update.shell ?? "unknown"))
+            shellIntegrationHandler(.available(
+                shell: update.shell ?? "unknown", systemInfo: update.systemInfo
+            ))
         }
         if let visibleOutput = update.visibleOutput, !visibleOutput.isEmpty {
             deliverIntegratedOutput(visibleOutput)

@@ -13,12 +13,11 @@ nonisolated struct SuggestedCommand: Identifiable, Hashable, Sendable {
     }
 }
 
-/// One piece of context the user has agreed to send to the LLM endpoint.
+/// One user-facing piece of context attached to an LLM conversation.
 ///
-/// BYOK means the user's own key pays for and is exposed to whatever we upload,
-/// so the rule is: nothing leaves the machine unless it is visible as a chip.
-/// Only host name and cwd are attached by default; output, selections, and file
-/// contents must be added explicitly.
+/// Output, selections, and file contents must be added explicitly. Shell
+/// Integration's narrow OS/kernel metadata is the sole hidden exception; it is
+/// transient, token-sanitized, and disclosed by the setting that enables it.
 nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     nonisolated enum Kind: Hashable, Sendable {
         case host, directory, output, selection, file
@@ -137,6 +136,9 @@ final class ConversationModel: Identifiable {
     let id: UUID
     var messages: [ChatMessage] = []
     var contextChips: [ContextChip] = []
+    /// Hidden, transient session metadata governed by Shell Integration. It is
+    /// never represented in the visible transcript or persisted conversation.
+    private(set) var remoteSystemInfo: RemoteSystemInfo?
     var draft: String = ""
     var isStreaming: Bool = false
     var runState: AgentRunState = .idle
@@ -460,7 +462,11 @@ final class ConversationModel: Identifiable {
 
     /// Seeds the two chips that are always attached, so the user can see the
     /// baseline rather than having to infer it.
-    func syncDefaultChips(hostName: String?, workingDirectory: String?) {
+    func syncDefaultChips(
+        hostName: String?, workingDirectory: String?,
+        remoteSystemInfo: RemoteSystemInfo? = nil
+    ) {
+        self.remoteSystemInfo = remoteSystemInfo
         contextChips.removeAll { !$0.isRemovable }
         var defaults: [ContextChip] = []
         if let hostName {

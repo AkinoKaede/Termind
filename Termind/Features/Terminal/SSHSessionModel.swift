@@ -76,6 +76,7 @@ protocol SSHSessionInputRouting: AnyObject {
         _ sshSession: SSHSessionModel,
         didChangeWorkingDirectory workingDirectory: String?
     )
+    func sshSessionDidChangeRemoteSystemInfo(_ sshSession: SSHSessionModel)
     func closeSSHSessionPane(afterExit sshSession: SSHSessionModel)
 }
 
@@ -173,6 +174,12 @@ final class SSHSessionModel: Identifiable {
     /// Whether the remote shell accepted OSC 133 integration.
     var shellIntegrationAvailable: Bool = false
     private(set) var integratedShell: String?
+    private(set) var remoteSystemInfo: RemoteSystemInfo? {
+        didSet {
+            guard remoteSystemInfo != oldValue else { return }
+            inputRouter?.sshSessionDidChangeRemoteSystemInfo(self)
+        }
+    }
     private(set) var isShellPromptReady = false
     private(set) var commandComposerRevision: UInt64 = 0
     private struct PendingDraftRequest {
@@ -483,12 +490,18 @@ final class SSHSessionModel: Identifiable {
 
     private func resetCommandComposerShellState() {
         integratedShell = nil
+        remoteSystemInfo = nil
         isShellPromptReady = false
         shellIntegrationAvailable = false
         if let request = pendingDraftRequest {
             failDraftRequest(id: request.id, with: TerminalDraftError.unavailable)
         }
         invalidateCommandComposition()
+    }
+
+    func applyShellIntegrationPreference(isEnabled: Bool) {
+        guard !isEnabled else { return }
+        remoteSystemInfo = nil
     }
 
     private static let supportedComposerShells: Set<String> = ["bash", "zsh", "fish"]
@@ -1016,9 +1029,7 @@ final class SSHSessionModel: Identifiable {
                 credentials: configuration.credentials,
                 expectedHostKeys: configuration.expectedHostKeys,
                 proxy: configuration.proxy, jumps: configuration.jumps,
-                shellIntegrationEnabled:
-                    UserDefaults.standard.object(forKey: SettingsKey.shellIntegration) as? Bool
-                    ?? true,
+                shellIntegrationEnabled: SettingsKey.isShellIntegrationEnabled,
                 columns: latestViewport.columns, rows: latestViewport.rows,
                 progress: progressHandler(attemptID: attemptID)
             )
@@ -1286,8 +1297,9 @@ final class SSHSessionModel: Identifiable {
 
     func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
         switch event {
-        case .available(let shell):
+        case .available(let shell, let systemInfo):
             integratedShell = shell
+            remoteSystemInfo = systemInfo
             isShellPromptReady = false
             shellIntegrationAvailable = true
             invalidateCommandComposition()

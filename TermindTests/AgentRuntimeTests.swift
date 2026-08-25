@@ -68,8 +68,79 @@ private struct CapturingAgentModel: AgentModelStreaming {
     }
 }
 
+private struct RecordingScriptedAgentModel: AgentModelStreaming {
+    let turns: [[AgentModelStreamEvent]]
+    let requests: RequestRecorder
+    let counter = ScriptedAgentModel.Counter()
+
+    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                await requests.append(request)
+                let index = await counter.next()
+                for event in turns[min(index, turns.count - 1)] { continuation.yield(event) }
+                continuation.finish()
+            }
+        }
+    }
+}
+
 @Suite
 struct AgentRuntimeTests {
+    @Test
+    func remoteSystemInfoIsStableAcrossToolTurnsAndExcludedFromTranscript() async {
+        let requests = RequestRecorder()
+        let model = RecordingScriptedAgentModel(
+            turns: [
+                [
+                    .toolCallSnapshot(
+                        id: "inspect", providerItemID: nil, name: "inspect",
+                        arguments: "{}"
+                    ),
+                    .finished(.toolCalls),
+                ],
+                [.textDelta("done"), .finished(.completed)],
+            ],
+            requests: requests
+        )
+        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
+            name: "inspect", summary: "inspect",
+            inputSchema: .object([
+                "type": .string("object"), "properties": .object([:]),
+                "required": .array([]), "additionalProperties": .bool(false),
+            ]),
+            target: .local, safety: .locallyReadOnly
+        )) { invocation, _ in
+            AgentToolResult(callID: invocation.call.id, content: "ok")
+        }
+        let runtime = AgentRuntime(
+            model: model, tools: [tool],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+        )
+        let info = RemoteSystemInfo(
+            distributionID: "alpine", distributionVersion: "3.20.2",
+            kernelName: "Linux", kernelRelease: "6.6.44-0-lts",
+            architecture: "aarch64"
+        )
+
+        for await _ in await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "inspect", permissionMode: .askForApproval,
+            remoteSystemInfo: info
+        )) {}
+
+        let captured = await requests.values
+        #expect(captured.count == 2)
+        #expect(captured.allSatisfy {
+            $0.systemPrompt.contains("distribution_id: alpine")
+                && $0.systemPrompt.contains("kernel_release: 6.6.44-0-lts")
+                && $0.systemPrompt.contains("architecture: aarch64")
+        })
+        #expect(captured.allSatisfy { request in
+            request.messages.allSatisfy { !$0.text.contains("distribution_id:") }
+        })
+        #expect(captured.first?.messages.first?.text == "inspect")
+    }
+
     @Test
     func toolsExecuteInSourceOrderAndResultsReturnToTheModel() async {
         let model = ScriptedAgentModel(turns: [
