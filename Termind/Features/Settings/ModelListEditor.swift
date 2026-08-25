@@ -277,8 +277,12 @@ struct ModelListEditor: View {
                             isSelected: state.selection == model.id,
                             isChecked: state.checked.contains(model.id),
                             result: state.results[model.id],
+                            canTest: provider?.hasCredential == true && !state.isTesting,
                             select: { state.selection = model.id },
-                            check: { toggleCheck(model.id) }
+                            check: { toggleCheck(model.id) },
+                            edit: { state.selection = model.id },
+                            test: { testModels([model]) },
+                            delete: { deleteModels([model.id]) }
                         )
                     }
                 }
@@ -306,10 +310,9 @@ struct ModelListEditor: View {
         if let model = selected {
             ScrollView {
                 VStack(alignment: .leading, spacing: Metrics.Space.l) {
-                    // No delete here. Removing is a toolbar verb driven by the
-                    // ticks, like Test — a second destructive button acting on a
-                    // *different* selection than the one beside it is how the
-                    // wrong model gets deleted.
+                    // No delete here. Removing is available from the toolbar for
+                    // checked models and from a row's context menu for that row;
+                    // neither can be confused with this pane's current contents.
                     HStack(spacing: Metrics.Space.s) {
                         Text(model.id)
                             .font(.caption.monospaced())
@@ -629,10 +632,16 @@ struct ModelListEditor: View {
     /// working setup into a page of red.
     private func testChecked() {
         guard let provider else { return }
+        testModels(provider.models.filter { state.checked.contains($0.id) })
+    }
+
+    private func testModels(_ targets: [AIModel]) {
+        guard let provider, provider.hasCredential, !state.isTesting, !targets.isEmpty else {
+            return
+        }
         let secret = app.ai.secret(for: provider.credentialRef) ?? ""
         let vertexSecret = app.ai.secret(for: provider.vertex.credentialRef) ?? ""
         let credential = provider.usesVertex && provider.kind == .google ? vertexSecret : secret
-        let targets = provider.models.filter { state.checked.contains($0.id) }
 
         state.isTesting = true
         for model in targets {
@@ -640,11 +649,23 @@ struct ModelListEditor: View {
         }
         Task {
             for model in targets {
+                guard app.ai.modelProvider(modelProviderID)?.model(model.id) != nil else {
+                    state.results[model.id] = nil
+                    continue
+                }
                 state.results[model.id] = .running
                 do {
                     let result = try await ChatProbe().run(model: model, on: provider, secret: credential)
+                    guard app.ai.modelProvider(modelProviderID)?.model(model.id) != nil else {
+                        state.results[model.id] = nil
+                        continue
+                    }
                     state.results[model.id] = .passed(result.summary)
                 } catch {
+                    guard app.ai.modelProvider(modelProviderID)?.model(model.id) != nil else {
+                        state.results[model.id] = nil
+                        continue
+                    }
                     state.results[model.id] = .failed(error.localizedDescription)
                 }
             }
@@ -677,9 +698,12 @@ struct ModelListEditor: View {
     }
 
     private func deleteChecked() {
-        let doomed = state.checked
+        deleteModels(state.checked)
+    }
+
+    private func deleteModels(_ doomed: Set<String>) {
         app.ai.removeModels(doomed, from: modelProviderID)
-        state.checked.removeAll()
+        state.checked.subtract(doomed)
         for id in doomed { state.results[id] = nil }
         if let selection = state.selection, doomed.contains(selection) {
             state.selection = nil
@@ -900,8 +924,12 @@ private struct ModelRow: View {
     let isSelected: Bool
     let isChecked: Bool
     let result: ModelListEditor.TestResult?
+    let canTest: Bool
     let select: () -> Void
     let check: () -> Void
+    let edit: () -> Void
+    let test: () -> Void
+    let delete: () -> Void
 
     @State private var isHovering = false
 
@@ -945,6 +973,13 @@ private struct ModelRow: View {
         .contentShape(.rect)
         .onTapGesture(perform: select)
         .onHover { isHovering = $0 }
+        .contextMenu {
+            Button("Edit", action: edit)
+            Button("Test", action: test)
+                .disabled(!canTest)
+            Divider()
+            Button("Delete", role: .destructive, action: delete)
+        }
         .help(Text(result?.message ?? model.id))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)

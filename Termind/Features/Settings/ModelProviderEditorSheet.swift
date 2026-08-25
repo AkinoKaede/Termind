@@ -111,6 +111,8 @@ struct ModelProviderEditorPage: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.tertiary)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
             }
