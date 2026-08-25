@@ -298,8 +298,7 @@ struct MCPServerEditorPage: View {
 /// One discovered tool, with its two switches.
 ///
 /// "Ask First" rather than "Requires Approval": the label describes what will
-/// happen to you, not the internal state. The same reason the inline suggestion
-/// overlay says Insert and Run rather than naming a risk level.
+/// happen to you, not the internal state.
 private struct ToolRow: View {
     let tool: MCPTool
     let serverID: MCPServer.ID

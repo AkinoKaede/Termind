@@ -163,7 +163,6 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         var visibleOutput: Data?
         var isComplete = false
         var integrationInstalled = false
-        var shell: String?
     }
 
     private enum Phase: Sendable {
@@ -323,7 +322,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         finish()
         return Update(
             visibleOutput: visible, isComplete: true,
-            integrationInstalled: true, shell: detectedShell
+            integrationInstalled: true
         )
     }
 
@@ -430,13 +429,13 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         switch shell {
         case "bash":
             command =
-                " __termind_encode() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; __termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; __termind_report_prompt() { builtin local status=$? cwd; cwd=$(__termind_encode \"$PWD\"); __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token);%s;%s\\a' \"$cwd\" \"$status\"; }; __termind_report_command() { builtin local current=$HISTCMD cmd; [[ -n \"${__termind_busy:-}\" ]] && return; if (( current > ${__termind_last_histcmd:-0} )); then __termind_busy=1; cmd=\"$(builtin fc -ln -0)\"; cmd=\"${cmd#\"${cmd%%[![:space:]]*}\"}\"; __termind_last_histcmd=$current; [[ -n \"$cmd\" ]] && builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$cmd\")\"; unset __termind_busy; fi; }; __termind_last_histcmd=$HISTCMD; trap '__termind_report_command' DEBUG; if [[ $(builtin declare -p PROMPT_COMMAND 2>/dev/null) == \"declare -a \"* ]]; then PROMPT_COMMAND=(__termind_report_prompt \"${PROMPT_COMMAND[@]}\"); else PROMPT_COMMAND=\"__termind_report_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}\"; fi; \(marker); __termind_report_prompt\n"
+                " __termind_encode() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; __termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; __termind_report_command() { builtin local current=$HISTCMD cmd; [[ -n \"${__termind_busy:-}\" ]] && return; if (( current > ${__termind_last_histcmd:-0} )); then __termind_busy=1; cmd=\"$(builtin fc -ln -0)\"; cmd=\"${cmd#\"${cmd%%[![:space:]]*}\"}\"; __termind_last_histcmd=$current; [[ -n \"$cmd\" ]] && builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$cmd\")\"; unset __termind_busy; fi; }; __termind_last_histcmd=$HISTCMD; trap '__termind_report_command' DEBUG; if [[ $(builtin declare -p PROMPT_COMMAND 2>/dev/null) == \"declare -a \"* ]]; then PROMPT_COMMAND=(__termind_report_cwd \"${PROMPT_COMMAND[@]}\"); else PROMPT_COMMAND=\"__termind_report_cwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}\"; fi; \(marker); __termind_report_cwd\n"
         case "zsh":
             command =
-                " function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; }; function __termind_report_prompt { builtin local status=$? cwd=$(__termind_encode \"$PWD\"); __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token);%s;%s\\a' \"$cwd\" \"$status\"; }; autoload -Uz add-zsh-hook; add-zsh-hook preexec __termind_report_command; add-zsh-hook precmd __termind_report_prompt; add-zsh-hook chpwd __termind_report_cwd; \(marker); __termind_report_prompt\n"
+                " function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; }; autoload -Uz add-zsh-hook; add-zsh-hook preexec __termind_report_command; add-zsh-hook precmd __termind_report_cwd; add-zsh-hook chpwd __termind_report_cwd; \(marker); __termind_report_cwd\n"
         case "fish":
             command =
-                " function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); end; function __termind_report_prompt --on-event fish_prompt; set -l last_status $status; set -l cwd (string escape --style=url $PWD); __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token);%s;%s\\a' $cwd $last_status; end; printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token);%s;0\\a' (string escape --style=url $PWD)\n"
+                " function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); end; function __termind_refresh_cwd --on-event fish_prompt; __termind_report_cwd; end; printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_cwd\n"
         default:
             return nil
         }
@@ -448,31 +447,22 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 /// Ghostty and emits their decoded payloads separately. The session token makes
 /// ordinary OSC output in a remote program ineligible to forge local history.
 nonisolated struct RemoteCommandEventFilter: Sendable {
-    nonisolated struct Prompt: Hashable, Sendable {
-        var cwd: String
-        var previousExitCode: Int?
-    }
-
     nonisolated struct Update: Sendable {
         var visibleOutput = Data()
         var commands: [String] = []
-        var prompts: [Prompt] = []
     }
 
     private let commandPrefix: Data
-    private let promptPrefix: Data
     private var buffer = Data()
 
     init(token: String) {
         commandPrefix = Data("\u{1B}]777;TermindCommand=\(token);".utf8)
-        promptPrefix = Data("\u{1B}]777;TermindPrompt=\(token);".utf8)
     }
 
     mutating func receive(_ data: Data) -> Update {
         buffer.append(data)
         var update = Update()
-        while let match = earliestMarker() {
-            let marker = match.range
+        while let marker = buffer.range(of: commandPrefix) {
             if marker.lowerBound > buffer.startIndex {
                 update.visibleOutput.append(buffer[..<marker.lowerBound])
             }
@@ -481,20 +471,8 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
                 return update
             }
             let payload = Data(buffer[marker.upperBound..<end])
-            switch match.kind {
-            case .command:
-                if let command = Self.decodePercentEncoded(payload), !command.isEmpty {
-                    update.commands.append(command)
-                }
-            case .prompt:
-                if let separator = payload.lastIndex(of: 0x3B),
-                    let cwd = Self.decodePercentEncoded(Data(payload[..<separator])),
-                    !cwd.isEmpty
-                {
-                    let statusStart = payload.index(after: separator)
-                    let status = Int(String(decoding: payload[statusStart...], as: UTF8.self))
-                    update.prompts.append(Prompt(cwd: cwd, previousExitCode: status))
-                }
+            if let command = Self.decodePercentEncoded(payload), !command.isEmpty {
+                update.commands.append(command)
             }
             buffer = Data(buffer[buffer.index(after: end)...])
         }
@@ -507,7 +485,7 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
     }
 
     private func longestSuffixMatchingPrefix() -> Int {
-        let prefixes = [commandPrefix, promptPrefix]
+        let prefixes = [commandPrefix]
         guard !buffer.isEmpty else { return 0 }
         let maximum = prefixes.map(\.count).max() ?? 0
         guard maximum > 1 else { return 0 }
@@ -517,16 +495,6 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
             }) { return count }
         }
         return 0
-    }
-
-    private enum MarkerKind { case command, prompt }
-
-    private func earliestMarker() -> (range: Range<Data.Index>, kind: MarkerKind)? {
-        let candidates: [(Range<Data.Index>, MarkerKind)] = [
-            buffer.range(of: commandPrefix).map { ($0, .command) },
-            buffer.range(of: promptPrefix).map { ($0, .prompt) },
-        ].compactMap { $0 }
-        return candidates.min { $0.0.lowerBound < $1.0.lowerBound }
     }
 
     private static func decodePercentEncoded(_ data: Data) -> String? {
@@ -559,9 +527,8 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
 }
 
 nonisolated enum SSHShellIntegrationEvent: Sendable {
-    case available(shell: String)
+    case available
     case commandStarted(String)
-    case promptReady(cwd: String, previousExitCode: Int?)
 }
 
 nonisolated struct SSHExecResult: Hashable, Sendable {
@@ -1400,7 +1367,7 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
             pendingWrites.append(command)
         }
         if update.integrationInstalled {
-            shellIntegrationHandler(.available(shell: update.shell ?? "unknown"))
+            shellIntegrationHandler(.available)
         }
         if let visibleOutput = update.visibleOutput, !visibleOutput.isEmpty {
             deliverIntegratedOutput(visibleOutput)
@@ -1417,11 +1384,6 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         if !update.visibleOutput.isEmpty { output(update.visibleOutput) }
         for command in update.commands {
             shellIntegrationHandler(.commandStarted(command))
-        }
-        for prompt in update.prompts {
-            shellIntegrationHandler(.promptReady(
-                cwd: prompt.cwd, previousExitCode: prompt.previousExitCode
-            ))
         }
     }
 

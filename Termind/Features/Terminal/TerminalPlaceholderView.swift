@@ -70,16 +70,6 @@ struct TerminalPlaceholderView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             terminalSurface
-            if sshSession.canShowInlineSuggestions, let suggestion = sshSession.inlineSuggestion {
-                InlineSuggestionOverlay(
-                    suggestion: suggestion,
-                    sshSession: sshSession,
-                    workspace: workspace
-                )
-                .padding(Metrics.Space.l)
-                .zIndex(4)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
             if isExternalFileDropTargeted {
                 uploadTargetOverlay
                     .zIndex(8)
@@ -125,7 +115,6 @@ struct TerminalPlaceholderView: View {
                 .zIndex(10)
             }
         }
-        .animation(Motion.panel, value: sshSession.inlineSuggestion)
         .animation(Motion.panel, value: sshSession.find.isPresented)
         .animation(
             Motion.tabSwitch,

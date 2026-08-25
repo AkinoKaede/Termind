@@ -63,7 +63,6 @@ final class AppModel {
     /// machines you connect to, this one about endpoints you spend a key at.
     /// See `AIStore`.
     let ai: AIStore
-    let inlineSuggestions: InlineSuggestionController
     /// One app-wide microphone owner. Keeping this above individual composers
     /// prevents two windows from installing competing audio taps.
     let speechTranscription: SpeechTranscriptionCoordinator
@@ -98,7 +97,6 @@ final class AppModel {
             clientFactory: { connectionCoordinator.makeSFTPClient() }
         )
         self.ai = ai
-        inlineSuggestions = InlineSuggestionController(ai: ai)
         self.speechTranscription =
             speechTranscription
             ?? SpeechTranscriptionCoordinator(service: AppleSpeechTranscriptionService())
@@ -247,7 +245,6 @@ final class AppModel {
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
         window.commandHistoryStore = commandHistory
-        window.inlineSuggestionController = inlineSuggestions
         window.assistantConversationDeletionHandler = { [weak self] id in
             self?.deleteAgentConversation(id)
         }

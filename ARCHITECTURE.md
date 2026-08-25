@@ -74,18 +74,3 @@ Agent conversations, runs, visible messages, tool calls/results, and reviews are
 stored in SwiftData after truncation and redaction. Launch marks unfinished runs
 `interrupted`; history is restored but remote actions are never resumed or
 replayed.
-
-## Inline suggestions
-
-Inline Suggestion is a separate actor service, not an Agent run. Token-authenticated
-bash, zsh, and fish hooks emit `commandStarted` and `promptReady(cwd, status)`;
-Termind never guesses prompt state from terminal output. At most one request is
-active per SSH session, and input, paste, command start, cwd change, a newer
-prompt, connection switch, disconnect, or reconnect invalidates the generation.
-
-The Inline model receives only host display information, cwd, shell, previous
-exit code, and up to eight recent commands. It receives no scrollback, output,
-selection, file data, password, or Agent result. A strict JSON parser accepts one
-control-free command. The result lives only in `SSHSessionModel.inlineSuggestion`:
-Tab/Return/Escape remain user actions, and only locally proven read-only commands
-may use the opt-in Return-to-run behavior.

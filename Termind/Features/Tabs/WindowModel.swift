@@ -36,14 +36,6 @@ final class WindowModel {
             for tab in tabs { tab.configureCommandHistory(using: commandHistoryStore) }
         }
     }
-    var inlineSuggestionController: InlineSuggestionController? {
-        didSet {
-            guard let inlineSuggestionController else { return }
-            for tab in tabs {
-                tab.configureInlineSuggestions(using: inlineSuggestionController)
-            }
-        }
-    }
     var assistantConversationDeletionHandler: ((ConversationModel.ID) -> Void)?
     var hostStore: HostStore? {
         didSet { refreshAssistantContext() }
@@ -466,9 +458,6 @@ final class WindowModel {
         }
         if let commandHistoryStore {
             tab.configureCommandHistory(using: commandHistoryStore)
-        }
-        if let inlineSuggestionController {
-            tab.configureInlineSuggestions(using: inlineSuggestionController)
         }
         tabs.append(tab)
         if shouldSelect { select(tab.id) }

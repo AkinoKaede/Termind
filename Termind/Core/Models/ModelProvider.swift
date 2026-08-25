@@ -390,12 +390,11 @@ nonisolated struct AIModelRef: Hashable, Codable, Sendable {
 /// *materially different* model, not by being a different prompt — titling a
 /// conversation and summarising a thread both want "whatever the chat model is,
 /// but cheaper", which is a decision the chat picker already expresses. Roles
-/// that only ever get set to the same thing are four pickers pretending to be a
+/// that only ever get set to the same thing are multiple pickers pretending to be a
 /// choice.
 ///
-/// What is left is three jobs with genuinely different requirements: one that
-/// holds a conversation, one that has to answer before you finish typing, and
-/// one whose whole value is being a *second opinion*.
+/// What is left is two jobs with genuinely different requirements: one that
+/// holds a conversation and one whose whole value is being a *second opinion*.
 ///
 /// None of them is required — see `AIStore.resolve(_:)`.
 nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
@@ -404,7 +403,6 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
     /// which model should be behind it, and splitting them would ask the user a
     /// question that has one answer.
     case chat
-    case inline
     case securityReview
 
     nonisolated var id: String { rawValue }
@@ -414,7 +412,6 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
         // Just "Chat", though it covers agent turns too. A label reading
         // "Chat & Agent" implies a second setting exists somewhere.
         case .chat: String(localized: "Chat")
-        case .inline: String(localized: "Inline Suggestion")
         case .securityReview: String(localized: "Security Review")
         }
     }
@@ -423,8 +420,6 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
         switch self {
         case .chat:
             String(localized: "Used for chat, tools, and the Assistant sidebar.")
-        case .inline:
-            String(localized: "Suggests one command above the terminal prompt. Choose a fast model.")
         // Names two models outright. This one runs on every command Approve for
         // Me would execute, so it sits in the latency path — a deliberate
         // reasoning model here makes the feature feel broken even when it

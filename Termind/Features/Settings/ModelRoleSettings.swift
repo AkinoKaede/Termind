@@ -2,15 +2,9 @@ import SwiftUI
 
 /// The "Model Roles" section: which model answers which job.
 ///
-/// Four pickers, and none of them has to be touched. Naming a conversation is a
-/// dozen tokens and wants the cheapest model available; the conversation itself
-/// is what the expensive one is for. Under BYOK that difference is the user's
-/// own money, which is what makes the distinction worth a control instead of a
-/// hardcoded choice.
-///
 /// Chat reads **Automatic** when unset, and says underneath what that currently
 /// resolves to — a default you cannot see is indistinguishable from a bug. The
-/// other three read **Same as Chat**, which is what they actually do.
+/// other role reads **Same as Chat**, which is what it actually does.
 struct ModelRoleSettings: View {
     @Environment(AppModel.self) private var app
 
@@ -81,10 +75,9 @@ private struct RolePicker: View {
     /// acceptable default: without it, a user with three providers has no way to
     /// know which key the assistant is about to spend.
     ///
-    /// Only Chat gets the suffix. The other three already say "Same as Chat" in
-    /// the picker, and repeating the resolved model on each of them put the same
-    /// sentence on screen four times — which reads as four separate facts rather
-    /// than one, and buries the row that is actually deciding.
+    /// Only Chat gets the suffix. The other role already says "Same as Chat" in
+    /// the picker, so repeating the resolved model would bury the row that is
+    /// actually deciding.
     private var caption: String {
         guard role == .chat, app.ai.assignment(for: .chat) == nil,
             let resolved = app.ai.resolve(.chat)

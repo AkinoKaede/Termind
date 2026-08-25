@@ -26,9 +26,8 @@ struct TabContentView: View {
     /// Broadcast has a home already — the button on every shell's pane header,
     /// which sits next to the panes it reaches and shows its own state. A menu
     /// item would be a second copy of a control that is visible whenever it is
-    /// usable, so the shortcut is registered the way `InlineSuggestionOverlay`
-    /// registers ⏎/⇥/⎋: a zero-size button that exists only to own a key
-    /// equivalent while this tab is on screen.
+    /// usable, so the shortcut is registered as a zero-size button that exists
+    /// only to own a key equivalent while this tab is on screen.
     ///
     /// Disabled when there is nothing to broadcast to, so the key falls through
     /// rather than flipping a switch with one wire on it.

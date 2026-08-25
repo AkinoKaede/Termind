@@ -4,7 +4,7 @@ import SwiftUI
 enum SettingsSection: String, CaseIterable, Identifiable {
     case app, startup, sidebar
     case terminalAppearance, sftp
-    case aiGeneral, providers, modelRoles, mcp
+    case providers, modelRoles, mcp
     case iCloud
 
     var id: String { rawValue }
@@ -16,7 +16,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sidebar: "Sidebar"
         case .terminalAppearance: "Appearance"
         case .sftp: "SFTP"
-        case .aiGeneral: "General"
         case .providers: "Providers"
         case .modelRoles: "Model Roles"
         case .mcp: "MCP"
@@ -31,7 +30,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sidebar: "sidebar.left"
         case .terminalAppearance: "terminal"
         case .sftp: "arrow.up.arrow.down"
-        case .aiGeneral: "sparkles"
         case .providers: "network"
         case .modelRoles: "person.2.badge.gearshape"
         case .mcp: "wrench.and.screwdriver"
@@ -133,10 +131,6 @@ struct SettingsPageView: View {
             SettingsFormPage(title: "SFTP", subtitle: "Control transfer concurrency across sessions.") {
                 SFTPSettings()
             }
-        case .aiGeneral:
-            SettingsFormPage(title: "AI General", subtitle: "Control how assistant suggestions behave.") {
-                AIBehaviorSettings()
-            }
         case .providers:
             SettingsCollectionPage(title: "Providers", subtitle: "Endpoints and credentials used by the assistant.") {
                 ModelProviderSettings { id, isNew in
@@ -201,7 +195,7 @@ private struct SettingsSidebar: View {
             LazyVStack(alignment: .leading, spacing: Metrics.Space.xl) {
                 group("GENERAL", sections: [.app, .startup, .sidebar])
                 group("TERMINAL", sections: [.terminalAppearance, .sftp])
-                group("AI", sections: [.aiGeneral, .providers, .modelRoles, .mcp])
+                group("AI", sections: [.providers, .modelRoles, .mcp])
                 group("iCloud", sections: [.iCloud])
             }
             .padding(.horizontal, Metrics.Space.m)
@@ -440,22 +434,6 @@ private struct TerminalSettings: View {
         .onAppear {
             if TermindTerminalThemeCatalog.darkTheme(named: darkTheme) == nil { darkTheme = SettingsKey.defaultTerminalThemeDark }
             if TermindTerminalThemeCatalog.lightTheme(named: lightTheme) == nil { lightTheme = SettingsKey.defaultTerminalThemeLight }
-        }
-    }
-}
-
-private struct AIBehaviorSettings: View {
-    @AppStorage(SettingsKey.inlineSuggestionsEnabled) private var inlineSuggestionsEnabled = true
-    @AppStorage(SettingsKey.allowOneClickSafeCommands) private var allowOneClickSafe = false
-    var body: some View {
-        Section("Suggestions") {
-            Toggle("Inline Suggestions", isOn: $inlineSuggestionsEnabled)
-            Text("After each trusted shell prompt, Termind sends only the host display information, working directory, shell, previous exit code, and a small recent-command list to the Inline model. Model usage may incur provider charges.")
-                .font(.caption).foregroundStyle(.secondary)
-            Toggle("Run Read-Only Suggestions with ⏎", isOn: $allowOneClickSafe)
-                .disabled(!inlineSuggestionsEnabled)
-            Text("Commands that write, delete, or escalate still require a click. Destructive commands also require confirmation.")
-                .font(.caption).foregroundStyle(.secondary)
         }
     }
 }

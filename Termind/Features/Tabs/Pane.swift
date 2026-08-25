@@ -122,11 +122,6 @@ final class Pane: Identifiable {
         session.commandHistoryStore = store
     }
 
-    func configureInlineSuggestions(using controller: InlineSuggestionController) {
-        guard case .sshSession(let session) = content else { return }
-        session.inlineSuggestionController = controller
-    }
-
     var kind: PaneKind {
         switch content {
         case .sftpSession: .sftpSession

@@ -274,7 +274,6 @@ extension Workspace: SSHSessionInputRouting {
 
         let targets = broadcastsInput && sessions.count > 1 ? sessions : [origin]
         for sshSession in targets {
-            sshSession.cancelInlineSuggestion()
             sshSession.writeInputDirectly(data)
         }
     }
@@ -313,10 +312,6 @@ extension Workspace {
 
     func configureCommandHistory(using store: CommandHistoryStore) {
         for pane in panes { pane.configureCommandHistory(using: store) }
-    }
-
-    func configureInlineSuggestions(using controller: InlineSuggestionController) {
-        for pane in panes { pane.configureInlineSuggestions(using: controller) }
     }
 
     /// A host is required: there is no local terminal to open without one.
