@@ -415,7 +415,7 @@ struct HostEditorView: View {
     }
 
     private var proxyIdentities: [Identity] {
-        app.hosts.identities.filter(\.isProxyEligible)
+        app.hosts.identities.filter(app.hosts.isProxyEligibleOnThisDevice)
     }
 
     private var footer: some View {

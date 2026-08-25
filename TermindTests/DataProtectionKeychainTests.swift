@@ -6,6 +6,28 @@ import Testing
 @Suite(.serialized)
 struct DataProtectionKeychainTests {
     @Test
+    func persistedStorageNamesUseThisDevice() {
+        #expect(KeyStorage.thisDevice.rawValue == "thisDevice")
+        #expect(PasswordStorage.thisDevice.rawValue == "thisDevice")
+        #expect(KeyStorage(rawValue: "local" + "Keychain") == nil)
+        #expect(Identity(name: "", username: "").passwordStorage == .iCloudKeychain)
+        #expect(SSHKeyRef(label: "").storage == .iCloudKeychain)
+    }
+
+    @Test(arguments: [PasswordStorage.thisDevice, .iCloudKeychain])
+    func identityPasswordRoundTripUsesExactStorageClass(
+        _ storage: PasswordStorage
+    ) throws {
+        let keychain = KeychainSecretStore()
+        let reference = "termind.password.\(UUID().uuidString)"
+        defer { try? keychain.removePassword(reference, storage: storage) }
+
+        try keychain.setString("secret", for: reference, storage: storage)
+        #expect(try keychain.string(for: reference, storage: storage) == "secret")
+        let other: PasswordStorage = storage == .thisDevice ? .iCloudKeychain : .thisDevice
+        #expect(try keychain.string(for: reference, storage: other) == nil)
+    }
+    @Test
     func aiSecretsSurviveAcrossStoreInstances() {
         let reference = "termind.ai.test.\(UUID().uuidString)"
         let writer = AIStore()
@@ -19,7 +41,7 @@ struct DataProtectionKeychainTests {
         #expect(reader.secretStorageError == nil)
     }
 
-    @Test(arguments: [KeyStorage.localKeychain, .iCloudKeychain])
+    @Test(arguments: [KeyStorage.thisDevice, .iCloudKeychain])
     func softwareKeyRoundTripUsesExactStorageClass(_ storage: KeyStorage) throws {
         let keychain = KeychainSecretStore()
         let reference = "termind.key.\(UUID().uuidString)"

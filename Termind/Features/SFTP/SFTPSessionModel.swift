@@ -211,6 +211,20 @@ final class SFTPSessionModel: Identifiable {
             username: suppliedAuthentication?.username ?? store.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection
         )
+        if let passphraseHost = route.first(where: { routeHost in
+            guard let submission = suppliedAuthentications[routeHost.id],
+                submission.passphrase == nil,
+                let keyID = submission.keyID,
+                let key = store.key(keyID)
+            else { return false }
+            return key.requiresPassphraseEntry
+        }) {
+            requestAuthentication(
+                host: passphraseHost, store: store,
+                requiresPassphrase: true, preserveSubmission: true
+            )
+            return
+        }
         if reconnecting, usesEphemeralCredentials, suppliedAuthentication == nil {
             requestAuthentication(host: host, store: store)
             return
@@ -232,7 +246,7 @@ final class SFTPSessionModel: Identifiable {
                     {
                         credentials.append(
                             stored.sshCredential(
-                                publicKey: key.publicKey,
+                                publicKey: key.publicKey, certificate: key.certificate,
                                 passphraseOverride: suppliedAuthentication.passphrase
                             ))
                     }
@@ -314,11 +328,18 @@ final class SFTPSessionModel: Identifiable {
                 } else {
                     authenticationHost = host
                 }
+                let submitted = self.suppliedAuthentications[authenticationHost.id]
+                let retryNeedsPassphrase = submitted?.passphrase == nil
+                    && (submitted?.keyID ?? store.identity(for: authenticationHost)?.keyID)
+                        .flatMap { store.key($0) }?.requiresPassphraseEntry == true
+                let returnsToIdentity = submitted?.passphrase != nil
                 self.requestAuthentication(
                     host: authenticationHost, store: store,
                     failure: error.localizedDescription,
-                    mode: error.isServerAuthenticationChallenge
-                        ? .serverChallenge : .localIdentity
+                    mode: !returnsToIdentity && error.isServerAuthenticationChallenge
+                        ? .serverChallenge : .localIdentity,
+                    requiresPassphrase: retryNeedsPassphrase,
+                    preserveSubmission: retryNeedsPassphrase && submitted != nil
                 )
             } catch {
                 if self.hasConnectedOnce || reconnecting {
@@ -437,6 +458,18 @@ final class SFTPSessionModel: Identifiable {
             var host = store.host(prompt.host.id)
         else { return }
 
+        if prompt.requiresPassphrase,
+            var staged = suppliedAuthentications[host.id]
+        {
+            guard let passphrase, !passphrase.isEmpty else { return }
+            staged.passphrase = passphrase
+            suppliedAuthentications[host.id] = staged
+            pendingAuthentication = nil
+            connectionJourney.resume()
+            connect(using: store)
+            return
+        }
+
         let selectedIdentity = identityID.flatMap { store.identity($0) }
         let submittedUsername = (selectedIdentity?.username ?? username)
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -456,7 +489,8 @@ final class SFTPSessionModel: Identifiable {
 
         suppliedAuthentications[host.id] = SSHAuthenticationSubmission(
             username: submittedUsername, password: submittedPassword,
-            passphrase: passphrase, keyID: submittedKeyID
+            passphrase: passphrase, keyID: submittedKeyID,
+            identityID: selectedIdentity?.id
         )
         usesEphemeralCredentials =
             !save
@@ -466,6 +500,19 @@ final class SFTPSessionModel: Identifiable {
         connectionJourney.resume()
         if save {
             if let selectedIdentity {
+                if let password {
+                    do {
+                        try store.upsert(
+                            selectedIdentity, passwordUpdate: .replace(password)
+                        )
+                    } catch {
+                        operationError = error.localizedDescription
+                        requestAuthentication(
+                            host: host, store: store, failure: error.localizedDescription
+                        )
+                        return
+                    }
+                }
                 host.identityID = selectedIdentity.id
                 store.upsert(host)
                 connect(using: store)
@@ -475,6 +522,7 @@ final class SFTPSessionModel: Identifiable {
             let identity = Identity(
                 id: existing?.id ?? UUID(), name: existing?.name ?? submittedUsername,
                 username: submittedUsername, credentialRef: existing?.credentialRef ?? "",
+                passwordStorage: existing?.passwordStorage ?? .iCloudKeychain,
                 keyID: submittedKeyID, notes: existing?.notes ?? "",
                 lastUsedAt: existing?.lastUsedAt
             )
@@ -499,6 +547,7 @@ final class SFTPSessionModel: Identifiable {
         reconnectController.stop()
         isRecoveringConnection = false
         pendingAuthentication = nil
+        suppliedAuthentications.removeAll()
         status = .disconnected
         connectionJourney.hide()
     }
@@ -1217,21 +1266,35 @@ final class SFTPSessionModel: Identifiable {
 
     private func requestAuthentication(
         host: Host, store: HostStore, failure: String? = nil,
-        mode: SSHAuthenticationPrompt.Mode = .localIdentity
+        mode: SSHAuthenticationPrompt.Mode = .localIdentity,
+        requiresPassphrase: Bool? = nil,
+        preserveSubmission: Bool = false
     ) {
         reconnectController.pauseForUserInteraction()
-        suppliedAuthentications[host.id] = nil
+        if !preserveSubmission { suppliedAuthentications[host.id] = nil }
         let identity = store.identity(for: host)
+        let submission = suppliedAuthentications[host.id]
+        let selectedKeyID = submission?.keyID ?? identity?.keyID
+        let username = submission?.username ?? identity?.username ?? ""
+        let needsPassphrase = requiresPassphrase
+            ?? (!username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && selectedKeyID.flatMap { store.key($0) }?.requiresPassphraseEntry == true)
         pendingAuthentication = SSHAuthenticationPrompt(
-            host: host, username: identity?.username ?? "", selectedKeyID: identity?.keyID,
+            host: host, selectedIdentityID: submission?.identityID ?? identity?.id,
+            username: username,
+            selectedKeyID: selectedKeyID,
             failureMessage: failure,
-            requiresPassphrase: identity?.keyID.flatMap { store.key($0) }?.requiresPassphraseEntry == true,
+            requiresPassphrase: needsPassphrase,
             mode: mode
         )
         status = .disconnected
         switch mode {
         case .localIdentity:
-            connectionJourney.waitForLocalIdentity(at: host.id, failure: failure)
+            if pendingAuthentication?.requiresPassphrase == true {
+                connectionJourney.waitForLocalPassphrase(at: host.id, failure: failure)
+            } else {
+                connectionJourney.waitForLocalIdentity(at: host.id, failure: failure)
+            }
         case .serverChallenge:
             connectionJourney.waitForAuthentication(at: host.id, failure: failure)
         }

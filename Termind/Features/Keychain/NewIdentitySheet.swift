@@ -64,6 +64,7 @@ struct NewIdentitySheet: View {
     @State private var name: String
     @State private var username: String
     @State private var password = ""
+    @State private var passwordStorage: PasswordStorage
     @State private var keyID: SSHKeyRef.ID?
     @State private var removesPassword = false
     @State private var saveError: String?
@@ -82,6 +83,7 @@ struct NewIdentitySheet: View {
         requestedBack = back
         _name = State(initialValue: identity?.name ?? "")
         _username = State(initialValue: identity?.username ?? "")
+        _passwordStorage = State(initialValue: identity?.passwordStorage ?? .iCloudKeychain)
         _keyID = State(initialValue: identity?.keyID)
     }
 
@@ -135,6 +137,12 @@ struct NewIdentitySheet: View {
                     }
                 }
 
+                Picker("Store password in", selection: $passwordStorage) {
+                    ForEach(PasswordStorage.allCases) { storage in
+                        Label(storage.displayName, systemImage: storage.symbol).tag(storage)
+                    }
+                }
+
                 if configuration.showsKey {
                     Picker("Key", selection: $keyID) {
                         Text("None").tag(SSHKeyRef.ID?.none)
@@ -183,9 +191,10 @@ struct NewIdentitySheet: View {
 
     private var passwordPrompt: String {
         if removesPassword { return String(localized: "Will be cleared") }
-        if existing?.usesPassword == true {
+        if hasAvailablePassword {
             return String(localized: "Leave blank to keep")
         }
+        if existing?.usesPassword == true { return String(localized: "Not available on this Mac") }
         return configuration.requiresPassword
             ? String(localized: "Required")
             : String(localized: "Optional")
@@ -195,7 +204,7 @@ struct NewIdentitySheet: View {
         if removesPassword {
             return String(localized: "The saved password will be cleared when you save.")
         }
-        if existing?.usesPassword == true {
+        if hasAvailablePassword {
             return String(
                 localized:
                     "Leave blank to keep the saved password, or enter a replacement."
@@ -213,6 +222,11 @@ struct NewIdentitySheet: View {
         )
     }
 
+    private var hasAvailablePassword: Bool {
+        guard let existing else { return false }
+        return app.hosts.passwordAvailability(for: existing) == .available
+    }
+
     private var passwordUpdate: IdentityPasswordUpdate {
         if removesPassword { return .remove }
         if !password.isEmpty { return .replace(password) }
@@ -228,7 +242,7 @@ struct NewIdentitySheet: View {
     private var isValid: Bool {
         configuration.accepts(
             username: username, password: password,
-            hasSavedPassword: existing?.usesPassword == true,
+            hasSavedPassword: hasAvailablePassword,
             removesPassword: removesPassword
         )
     }
@@ -243,6 +257,7 @@ struct NewIdentitySheet: View {
             name: trimmedName.isEmpty ? trimmedUsername : trimmedName,
             username: trimmedUsername,
             credentialRef: existing?.credentialRef ?? "",
+            passwordStorage: passwordStorage,
             keyID: configuration.showsKey ? keyID : nil,
             notes: existing?.notes ?? "",
             lastUsedAt: existing?.lastUsedAt

@@ -230,32 +230,16 @@ private struct ContextPanelDetailTitle: View {
 
 private struct KeyContextPanelDetailView: View {
     let key: SSHKeyRef
-    @Environment(AppModel.self) private var app
-    @State private var isRenaming = false
+    @Environment(WindowModel.self) private var window
     @State private var isExporting = false
-    @State private var error: String?
 
     var body: some View {
         KeyDetailContent(
-            key: key, rename: { isRenaming = true }, export: { isExporting = true }
+            key: key,
+            edit: { window.openVaultWork(.editKey(key.id), on: .keychain) },
+            export: { isExporting = true }
         )
-        .sheet(isPresented: $isRenaming) {
-            RenameKeySheet(key: key) { label in
-                var updated = key
-                updated.label = label
-                do { try app.hosts.upsert(updated) } catch { self.error = error.localizedDescription }
-            }
-        }
         .sheet(isPresented: $isExporting) { ExportKeyToHostsSheet(keys: [key]) }
-        .alert("Key Error", isPresented: errorPresented) {
-            Button("OK", role: .cancel) { error = nil }
-        } message: {
-            Text(error ?? "")
-        }
-    }
-
-    private var errorPresented: Binding<Bool> {
-        Binding(get: { error != nil }, set: { if !$0 { error = nil } })
     }
 }
 

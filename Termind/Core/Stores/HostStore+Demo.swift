@@ -22,7 +22,7 @@ extension HostStore {
             label: "Work (no sync)", algorithm: .ecdsa256,
             fingerprint: "SHA256:3tBn8xLpQ2wZ7yKvR1mHcE9dS4fJ6uA0gT5iNqOxVbY",
             credentialRef: "termind.key.work",
-            storage: .localKeychain
+            storage: .thisDevice
         )
 
         // Built before the hosts, because a host now references its login by id.

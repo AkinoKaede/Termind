@@ -76,6 +76,62 @@ final class HostStore {
         self.keychain = keychain
     }
 
+    /// Passphrases saved by older builds are removed from the Keychain in place.
+    /// `storesPassphrase` doubles as a durable retry marker: a failed item remains
+    /// true and is attempted again on the next launch.
+    private func clearLegacySavedKeyPassphrases() {
+        let snapshot = keys
+        var changed = false
+        var migrationFailure: String?
+
+        for index in keys.indices where keys[index].storesPassphrase {
+            let key = keys[index]
+            do {
+                guard let credential = try keyCredential(for: key) else {
+                    keys[index].storesPassphrase = false
+                    changed = true
+                    continue
+                }
+                switch credential {
+                case .software(let secret):
+                    if secret.passphrase != nil {
+                        try keychain.setKeyCredential(
+                            .software(
+                                SSHPrivateKeySecret(
+                                    privateKey: secret.privateKey, passphrase: nil
+                                )
+                            ),
+                            for: key.credentialRef, storage: key.storage
+                        )
+                    }
+                    keys[index].storesPassphrase = false
+                    changed = true
+                case .secureEnclave:
+                    keys[index].storesPassphrase = false
+                    changed = true
+                }
+            } catch {
+                migrationFailure = migrationFailure ?? error.localizedDescription
+            }
+        }
+
+        if changed, !persistCore() {
+            keys = snapshot
+        }
+        if let migrationFailure { storageError = migrationFailure }
+    }
+
+    private static func withoutSavedPassphrase(
+        _ credential: StoredSSHKeyCredential
+    ) -> StoredSSHKeyCredential {
+        switch credential {
+        case .software(let secret):
+            .software(SSHPrivateKeySecret(privateKey: secret.privateKey, passphrase: nil))
+        case .secureEnclave:
+            credential
+        }
+    }
+
     convenience init(modelContext: ModelContext, keychain: KeychainSecretStore = KeychainSecretStore()) {
         self.init(keychain: keychain)
         let persistence = HostPersistence(context: modelContext)
@@ -94,6 +150,7 @@ final class HostStore {
             snippets = loaded.snippets.sorted { $0.sortIndex < $1.sortIndex }
             snippetPackages = loaded.snippetPackages
             portForwardings = loaded.portForwardings
+            clearLegacySavedKeyPassphrases()
         } catch {
             storageError = error.localizedDescription
         }
@@ -287,8 +344,11 @@ final class HostStore {
         guard !identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return String(localized: "No username")
         }
-        let hasUsableKeyReference = identity.keyID.flatMap { key($0) } != nil
-        guard identity.usesPassword || hasUsableKeyReference else {
+        let hasAvailablePassword = passwordAvailability(for: identity) == .available
+        let hasUsableKey = identity.keyID.flatMap { key($0) }.map {
+            keyAvailability(for: $0) == .available
+        } == true
+        guard hasAvailablePassword || hasUsableKey else {
             return String(localized: "No saved credential")
         }
         let knownHosts = knownHosts(for: host)
@@ -449,7 +509,7 @@ final class HostStore {
         {
             credentials.append(
                 stored.sshCredential(
-                    publicKey: key.publicKey,
+                    publicKey: key.publicKey, certificate: key.certificate,
                     passphraseOverride: submission.passphrase
                 )
             )
@@ -499,7 +559,9 @@ final class HostStore {
                             requiredPassphraseKeyID = key.id
                         } else {
                             credentials.append(
-                                credential.sshCredential(publicKey: key.publicKey)
+                                credential.sshCredential(
+                                    publicKey: key.publicKey, certificate: key.certificate
+                                )
                             )
                         }
                     } else {
@@ -944,20 +1006,32 @@ final class HostStore {
     /// which prevents a cleared Identity from making its former Keychain item
     /// unreachable.
     func upsert(_ identity: Identity, passwordUpdate: IdentityPasswordUpdate) throws {
-        let previousReference =
-            self.identity(identity.id)?.credentialRef
-            ?? identity.credentialRef
+        let previousIdentity = self.identity(identity.id)
+        let previousReference = previousIdentity?.credentialRef ?? identity.credentialRef
+        let previousStorage = previousIdentity?.passwordStorage ?? identity.passwordStorage
         var updated = identity
 
         let oldPassword =
             previousReference.isEmpty
-            ? nil : try keychain.string(for: previousReference)
+            ? nil : try keychain.string(for: previousReference, storage: previousStorage)
         let identitySnapshot = identities
         let hostSnapshot = hosts
+        var wroteDestination = false
         do {
             switch passwordUpdate {
             case .keep:
                 updated.credentialRef = previousReference
+                if previousStorage != updated.passwordStorage, !previousReference.isEmpty {
+                    guard let oldPassword else {
+                        throw TermindSSHError.library(
+                            String(localized: "The saved password is unavailable on this Mac. Enter it again before changing storage.")
+                        )
+                    }
+                    try keychain.setString(
+                        oldPassword, for: previousReference, storage: updated.passwordStorage
+                    )
+                    wroteDestination = true
+                }
             case .replace(let password):
                 guard !password.isEmpty else {
                     throw TermindSSHError.library(
@@ -968,12 +1042,10 @@ final class HostStore {
                     previousReference.isEmpty
                     ? "termind.password.\(UUID().uuidString)"
                     : previousReference
-                try keychain.setString(password, for: reference)
+                try keychain.setString(password, for: reference, storage: updated.passwordStorage)
+                wroteDestination = true
                 updated.credentialRef = reference
             case .remove:
-                if !previousReference.isEmpty {
-                    try keychain.removePassword(previousReference)
-                }
                 updated.credentialRef = ""
             }
             storageError = nil
@@ -986,10 +1058,16 @@ final class HostStore {
             identities = identitySnapshot
             hosts = hostSnapshot
             do {
-                if let oldPassword {
-                    try keychain.setString(oldPassword, for: previousReference)
-                } else if !updated.credentialRef.isEmpty {
-                    try keychain.removePassword(updated.credentialRef)
+                if wroteDestination {
+                    if updated.passwordStorage == previousStorage, let oldPassword {
+                        try keychain.setString(
+                            oldPassword, for: previousReference, storage: previousStorage
+                        )
+                    } else if !updated.credentialRef.isEmpty {
+                        try keychain.removePassword(
+                            updated.credentialRef, storage: updated.passwordStorage
+                        )
+                    }
                 }
             } catch {
                 storageError = String(
@@ -999,6 +1077,21 @@ final class HostStore {
             throw TermindSSHError.library(
                 storageError ?? String(localized: "The identity could not be saved.")
             )
+        }
+
+        let removesPrevious =
+            !previousReference.isEmpty
+            && (updated.credentialRef.isEmpty || previousStorage != updated.passwordStorage)
+        if removesPrevious {
+            do {
+                try keychain.removePassword(previousReference, storage: previousStorage)
+            } catch {
+                // The newly committed destination stays authoritative. Retaining
+                // the source is safer than rolling a successful save backward.
+                storageError = String(
+                    localized: "The password was saved, but its previous Keychain copy could not be removed: \(error.localizedDescription)"
+                )
+            }
         }
     }
 
@@ -1017,7 +1110,22 @@ final class HostStore {
     /// must remain distinguishable from an Identity that has no password.
     func passwordCredential(for identity: Identity) throws -> String? {
         guard identity.usesPassword else { return nil }
-        return try keychain.string(for: identity.credentialRef)
+        return try keychain.string(
+            for: identity.credentialRef, storage: identity.passwordStorage
+        )
+    }
+
+    func passwordAvailability(for identity: Identity) -> SecretAvailability {
+        guard identity.usesPassword else { return .notConfigured }
+        do {
+            return try passwordCredential(for: identity) == nil ? .missing : .available
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    func isProxyEligibleOnThisDevice(_ identity: Identity) -> Bool {
+        identity.isProxyEligible && passwordAvailability(for: identity) == .available
     }
 
     /// Removes an identity, along with the password it was the only way to
@@ -1030,8 +1138,12 @@ final class HostStore {
         do {
             password =
                 identity.credentialRef.isEmpty
-                ? nil : try keychain.string(for: identity.credentialRef)
-            try keychain.removePassword(identity.credentialRef)
+                ? nil : try keychain.string(
+                    for: identity.credentialRef, storage: identity.passwordStorage
+                )
+            try keychain.removePassword(
+                identity.credentialRef, storage: identity.passwordStorage
+            )
         } catch {
             storageError = error.localizedDescription
             return false
@@ -1050,7 +1162,12 @@ final class HostStore {
             identities = identitySnapshot
             hosts = hostSnapshot
             if let password {
-                do { try keychain.setString(password, for: identity.credentialRef) } catch {
+                do {
+                    try keychain.setString(
+                        password, for: identity.credentialRef,
+                        storage: identity.passwordStorage
+                    )
+                } catch {
                     storageError = String(
                         localized: "The database save and Keychain rollback both failed: \(error.localizedDescription)"
                     )
@@ -1063,11 +1180,33 @@ final class HostStore {
 
     func upsert(_ key: SSHKeyRef, credential: StoredSSHKeyCredential? = nil) throws {
         let previousKey = self.key(key.id)
-        let previousCredential = try previousKey.flatMap { try keyCredential(for: $0) }
+        if key.storage == .secureEnclave, !key.certificate.isEmpty {
+            throw TermindSSHError.library(
+                String(localized: "Secure Enclave keys cannot store an SSH certificate.")
+            )
+        }
+        if !key.certificate.isEmpty {
+            _ = try SSHUserCertificate.parse(key.certificate, matching: key.publicKey)
+        }
         let keySnapshot = keys
-        if let credential {
+        let changesLocation = previousKey.map {
+            $0.storage != key.storage || $0.credentialRef != key.credentialRef
+        } ?? false
+        if changesLocation,
+            previousKey?.storage == .secureEnclave || key.storage == .secureEnclave
+        {
+            throw TermindSSHError.library(
+                String(localized: "Secure Enclave keys cannot be moved to another storage location.")
+            )
+        }
+        let previousCredential = try (credential != nil || changesLocation)
+            ? previousKey.flatMap { try keyCredential(for: $0) }
+            : nil
+        let destinationCredential = credential ?? (changesLocation ? previousCredential : nil)
+        let sanitizedCredential = destinationCredential.map(Self.withoutSavedPassphrase)
+        if let sanitizedCredential {
             try keychain.setKeyCredential(
-                credential, for: key.credentialRef, storage: key.storage
+                sanitizedCredential, for: key.credentialRef, storage: key.storage
             )
         }
         if let index = keys.firstIndex(where: { $0.id == key.id }) {
@@ -1082,19 +1221,16 @@ final class HostStore {
         guard persistCore() else {
             keys = keySnapshot
             do {
-                if let previousKey, let previousCredential {
+                if changesLocation, sanitizedCredential != nil {
+                    try keychain.removeKeyCredential(
+                        key.credentialRef, storage: key.storage
+                    )
+                } else if sanitizedCredential != nil, let previousKey, let previousCredential {
                     try keychain.setKeyCredential(
                         previousCredential, for: previousKey.credentialRef,
                         storage: previousKey.storage
                     )
-                    if previousKey.credentialRef != key.credentialRef
-                        || previousKey.storage != key.storage
-                    {
-                        try keychain.removeKeyCredential(
-                            key.credentialRef, storage: key.storage
-                        )
-                    }
-                } else if credential != nil {
+                } else if sanitizedCredential != nil {
                     try keychain.removeKeyCredential(key.credentialRef, storage: key.storage)
                 }
             } catch {
@@ -1105,6 +1241,18 @@ final class HostStore {
             throw TermindSSHError.library(
                 storageError ?? String(localized: "The key could not be saved.")
             )
+        }
+
+        if changesLocation, let previousKey {
+            do {
+                try keychain.removeKeyCredential(
+                    previousKey.credentialRef, storage: previousKey.storage
+                )
+            } catch {
+                storageError = String(
+                    localized: "The key was saved, but its previous Keychain copy could not be removed: \(error.localizedDescription)"
+                )
+            }
         }
     }
 
@@ -1133,6 +1281,14 @@ final class HostStore {
 
     func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential? {
         try keychain.keyCredential(for: key.credentialRef, storage: key.storage)
+    }
+
+    func keyAvailability(for key: SSHKeyRef) -> SecretAvailability {
+        do {
+            return try keyCredential(for: key) == nil ? .missing : .available
+        } catch {
+            return .failed(error.localizedDescription)
+        }
     }
 
     func delete(keyID: SSHKeyRef.ID) throws {

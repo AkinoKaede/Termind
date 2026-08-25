@@ -39,6 +39,7 @@ nonisolated struct SSHAuthenticationSubmission: Sendable {
     var password: String?
     var passphrase: String?
     var keyID: SSHKeyRef.ID?
+    var identityID: Identity.ID? = nil
 }
 
 /// UI-facing state for one SSH attempt. The transport emits facts; this model
@@ -64,6 +65,11 @@ final class SSHConnectionJourney {
         case hostKey
     }
 
+    enum LocalRequirement: Equatable {
+        case identity
+        case passphrase
+    }
+
     struct Checkpoint: Equatable {
         var endpointIndex: Int
         var kind: CheckpointKind
@@ -84,7 +90,7 @@ final class SSHConnectionJourney {
     private(set) var completedEndpointIndex = 0
     private(set) var checkpoint: Checkpoint?
     private(set) var completedCheckpoints: [Int: CheckpointKind] = [:]
-    private(set) var waitsForLocalIdentity = false
+    private(set) var localRequirement: LocalRequirement?
     private(set) var logs: [LogEntry] = []
     var showsLogs = false
 
@@ -92,6 +98,8 @@ final class SSHConnectionJourney {
 
     var isPresented: Bool { phase != .hidden }
     var destination: SSHConnectionEndpoint? { endpoints.last }
+    var waitsForLocalIdentity: Bool { localRequirement == .identity }
+    var waitsForLocalPassphrase: Bool { localRequirement == .passphrase }
 
     func begin(
         host: Host, route: [Host], purpose: SSHConnectionPurpose,
@@ -129,7 +137,7 @@ final class SSHConnectionJourney {
         completedEndpointIndex = retainedCompletedEndpoint
         checkpoint = nil
         completedCheckpoints = retainedCheckpoints
-        waitsForLocalIdentity = false
+        localRequirement = nil
         logs = retainedLogs
         showsLogs = retainedLogVisibility
         let action = mode == .reconnection ? "Reconnecting " : "Starting "
@@ -192,11 +200,24 @@ final class SSHConnectionJourney {
         activeEndpointIndex = 0
         completedEndpointIndex = 0
         checkpoint = nil
-        waitsForLocalIdentity = true
+        localRequirement = .identity
         phase = .waiting
         log(
             endpoint: endpoints[index].name,
             message: failure ?? String(localized: "Waiting for an Identity")
+        )
+    }
+
+    func waitForLocalPassphrase(at hostID: Host.ID, failure: String? = nil) {
+        guard let index = endpoints.firstIndex(where: { $0.hostID == hostID }) else { return }
+        activeEndpointIndex = 0
+        completedEndpointIndex = 0
+        checkpoint = nil
+        localRequirement = .passphrase
+        phase = .waiting
+        log(
+            endpoint: endpoints[index].name,
+            message: failure ?? String(localized: "Waiting for a Passphrase")
         )
     }
 
@@ -210,7 +231,7 @@ final class SSHConnectionJourney {
     func resume() {
         guard phase == .waiting else { return }
         phase = .connecting
-        waitsForLocalIdentity = false
+        localRequirement = nil
         if let checkpoint {
             log(endpoint: endpoints[checkpoint.endpointIndex].name, message: String(localized: "Continuing connection"))
             completedCheckpoints[checkpoint.endpointIndex] = checkpoint.kind
@@ -221,7 +242,7 @@ final class SSHConnectionJourney {
     func succeed() {
         guard !endpoints.isEmpty else { return }
         checkpoint = nil
-        waitsForLocalIdentity = false
+        localRequirement = nil
         completedEndpointIndex = endpoints.count - 1
         activeEndpointIndex = endpoints.count - 1
         phase = .succeeded
@@ -237,7 +258,7 @@ final class SSHConnectionJourney {
     func fail(_ message: String, at hostID: Host.ID? = nil) {
         completionTask?.cancel()
         checkpoint = nil
-        waitsForLocalIdentity = false
+        localRequirement = nil
         if let hostID,
             let index = endpoints.firstIndex(where: { $0.hostID == hostID })
         {
@@ -254,7 +275,7 @@ final class SSHConnectionJourney {
         completionTask?.cancel()
         checkpoint = nil
         completedCheckpoints = [:]
-        waitsForLocalIdentity = false
+        localRequirement = nil
         phase = .hidden
     }
 
@@ -274,7 +295,7 @@ final class SSHConnectionJourney {
         guard let index = endpoints.firstIndex(where: { $0.hostID == hostID }) else { return }
         activeEndpointIndex = index
         checkpoint = Checkpoint(endpointIndex: index, kind: kind)
-        waitsForLocalIdentity = false
+        localRequirement = nil
         phase = .waiting
         log(endpoint: endpoints[index].name, message: message)
     }

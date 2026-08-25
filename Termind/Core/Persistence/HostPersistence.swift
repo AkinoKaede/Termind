@@ -148,90 +148,164 @@ final class PersistentSnippet {
     }
 }
 
-@Model
-final class PersistentIdentity {
-    @Attribute(.unique) var id: UUID = UUID()
-    var name = ""
-    var username = ""
-    var credentialRef = ""
-    var keyID: UUID?
-    var notes = ""
-    var lastUsedAt: Date?
-    var sortIndex = 0.0
+// The V3 and V4 versions of these two models intentionally live in their
+// schema namespaces. Reusing the live model type for an older VersionedSchema
+// changes that older schema's checksum whenever a field is added and makes a
+// staged migration impossible.
+enum TermindSchemaV3Models {
+    @Model
+    final class PersistentIdentity {
+        @Attribute(.unique) var id: UUID = UUID()
+        var name = ""
+        var username = ""
+        var credentialRef = ""
+        var keyID: UUID?
+        var notes = ""
+        var lastUsedAt: Date?
+        var sortIndex = 0.0
 
-    init(_ value: Identity) {
-        id = value.id
-        apply(value)
+        init(_ value: Identity) {
+            id = value.id
+            name = value.name
+            username = value.username
+            credentialRef = value.credentialRef
+            keyID = value.keyID
+            notes = value.notes
+            lastUsedAt = value.lastUsedAt
+            sortIndex = value.sortIndex
+        }
     }
 
-    func apply(_ value: Identity) {
-        name = value.name
-        username = value.username
-        credentialRef = value.credentialRef
-        keyID = value.keyID
-        notes = value.notes
-        lastUsedAt = value.lastUsedAt
-        sortIndex = value.sortIndex
+    @Model
+    final class PersistentSSHKey {
+        @Attribute(.unique) var id: UUID = UUID()
+        var label = ""
+        var algorithm = SSHKeyAlgorithm.ed25519.rawValue
+        var publicKey = ""
+        var fingerprint = ""
+        var credentialRef = ""
+        var storage = "local" + "Keychain"
+        var keySize: Int?
+        var hasPassphrase = false
+        var storesPassphrase = false
+        var requiresUserPresence = false
+        var createdAt = Date(timeIntervalSince1970: 0)
+        var sortIndex = 0.0
+
+        init(_ value: SSHKeyRef) {
+            id = value.id
+            label = value.label
+            algorithm = value.algorithm.rawValue
+            publicKey = value.publicKey
+            fingerprint = value.fingerprint
+            credentialRef = value.credentialRef
+            storage = value.storage.rawValue
+            keySize = value.keySize
+            hasPassphrase = value.hasPassphrase
+            storesPassphrase = value.storesPassphrase
+            requiresUserPresence = value.requiresUserPresence
+            createdAt = value.createdAt
+            sortIndex = value.sortIndex
+        }
+    }
+}
+
+enum TermindSchemaV4Models {
+    @Model
+    final class PersistentIdentity {
+        @Attribute(.unique) var id: UUID = UUID()
+        var name = ""
+        var username = ""
+        var credentialRef = ""
+        /// Rows created by older versions must continue to resolve the
+        /// local-only Keychain item they already own.
+        var passwordStorage = PasswordStorage.thisDevice.rawValue
+        var keyID: UUID?
+        var notes = ""
+        var lastUsedAt: Date?
+        var sortIndex = 0.0
+
+        init(_ value: Identity) {
+            id = value.id
+            apply(value)
+        }
+
+        func apply(_ value: Identity) {
+            name = value.name
+            username = value.username
+            credentialRef = value.credentialRef
+            passwordStorage = value.passwordStorage.rawValue
+            keyID = value.keyID
+            notes = value.notes
+            lastUsedAt = value.lastUsedAt
+            sortIndex = value.sortIndex
+        }
+
+        var value: Identity {
+            Identity(
+                id: id, name: name, username: username, credentialRef: credentialRef,
+                passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .thisDevice,
+                keyID: keyID, notes: notes, lastUsedAt: lastUsedAt, sortIndex: sortIndex
+            )
+        }
     }
 
-    var value: Identity {
-        Identity(
-            id: id, name: name, username: username, credentialRef: credentialRef,
-            keyID: keyID, notes: notes, lastUsedAt: lastUsedAt, sortIndex: sortIndex
-        )
+    @Model
+    final class PersistentSSHKey {
+        @Attribute(.unique) var id: UUID = UUID()
+        var label = ""
+        var algorithm = SSHKeyAlgorithm.ed25519.rawValue
+        var publicKey = ""
+        var certificate = ""
+        var fingerprint = ""
+        var credentialRef = ""
+        var storage = KeyStorage.thisDevice.rawValue
+        var keySize: Int?
+        var hasPassphrase = false
+        var storesPassphrase = false
+        var requiresUserPresence = false
+        var createdAt = Date(timeIntervalSince1970: 0)
+        var sortIndex = 0.0
+
+        init(_ value: SSHKeyRef) {
+            id = value.id
+            apply(value)
+        }
+
+        func apply(_ value: SSHKeyRef) {
+            label = value.label
+            algorithm = value.algorithm.rawValue
+            publicKey = value.publicKey
+            certificate = value.certificate
+            fingerprint = value.fingerprint
+            credentialRef = value.credentialRef
+            storage = value.storage.rawValue
+            keySize = value.keySize
+            hasPassphrase = value.hasPassphrase
+            storesPassphrase = value.storesPassphrase
+            requiresUserPresence = value.requiresUserPresence
+            createdAt = value.createdAt
+            sortIndex = value.sortIndex
+        }
+
+        var value: SSHKeyRef {
+            SSHKeyRef(
+                id: id, label: label,
+                algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
+                publicKey: publicKey, certificate: certificate, fingerprint: fingerprint,
+                credentialRef: credentialRef,
+                storage: KeyStorage(rawValue: storage) ?? .thisDevice,
+                keySize: keySize, hasPassphrase: hasPassphrase,
+                storesPassphrase: storesPassphrase,
+                requiresUserPresence: requiresUserPresence, createdAt: createdAt,
+                sortIndex: sortIndex
+            )
+        }
     }
 }
 
-@Model
-final class PersistentSSHKey {
-    @Attribute(.unique) var id: UUID = UUID()
-    var label = ""
-    var algorithm = SSHKeyAlgorithm.ed25519.rawValue
-    var publicKey = ""
-    var fingerprint = ""
-    var credentialRef = ""
-    var storage = KeyStorage.localKeychain.rawValue
-    var keySize: Int?
-    var hasPassphrase = false
-    var storesPassphrase = false
-    var requiresUserPresence = false
-    var createdAt = Date(timeIntervalSince1970: 0)
-    var sortIndex = 0.0
-
-    init(_ value: SSHKeyRef) {
-        id = value.id
-        apply(value)
-    }
-
-    func apply(_ value: SSHKeyRef) {
-        label = value.label
-        algorithm = value.algorithm.rawValue
-        publicKey = value.publicKey
-        fingerprint = value.fingerprint
-        credentialRef = value.credentialRef
-        storage = value.storage.rawValue
-        keySize = value.keySize
-        hasPassphrase = value.hasPassphrase
-        storesPassphrase = value.storesPassphrase
-        requiresUserPresence = value.requiresUserPresence
-        createdAt = value.createdAt
-        sortIndex = value.sortIndex
-    }
-
-    var value: SSHKeyRef {
-        SSHKeyRef(
-            id: id, label: label,
-            algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
-            publicKey: publicKey, fingerprint: fingerprint,
-            credentialRef: credentialRef,
-            storage: KeyStorage(rawValue: storage) ?? .localKeychain,
-            keySize: keySize, hasPassphrase: hasPassphrase,
-            storesPassphrase: storesPassphrase,
-            requiresUserPresence: requiresUserPresence, createdAt: createdAt,
-            sortIndex: sortIndex
-        )
-    }
-}
+typealias PersistentIdentity = TermindSchemaV4Models.PersistentIdentity
+typealias PersistentSSHKey = TermindSchemaV4Models.PersistentSSHKey
 
 @Model
 final class PersistentKnownHost {
@@ -306,7 +380,8 @@ enum TermindSchemaV1: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         [
             PersistentHost.self, PersistentHostGroup.self,
-            PersistentIdentity.self, PersistentSSHKey.self,
+            TermindSchemaV3Models.PersistentIdentity.self,
+            TermindSchemaV3Models.PersistentSSHKey.self,
             PersistentKnownHost.self, PersistentSnippetPackage.self,
             PersistentSnippet.self, PersistentPortForwardingRule.self,
         ]
@@ -331,9 +406,22 @@ enum TermindSchemaV3: VersionedSchema {
     }
 }
 
+enum TermindSchemaV4: VersionedSchema {
+    static let versionIdentifier = Schema.Version(4, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV3.models.filter {
+            $0 != TermindSchemaV3Models.PersistentIdentity.self
+                && $0 != TermindSchemaV3Models.PersistentSSHKey.self
+        } + [PersistentIdentity.self, PersistentSSHKey.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self]
+        [
+            TermindSchemaV1.self, TermindSchemaV2.self,
+            TermindSchemaV3.self, TermindSchemaV4.self,
+        ]
     }
 
     static var stages: [MigrationStage] {
@@ -345,6 +433,23 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: TermindSchemaV2.self,
                 toVersion: TermindSchemaV3.self
+            ),
+            .custom(
+                fromVersion: TermindSchemaV3.self,
+                toVersion: TermindSchemaV4.self,
+                willMigrate: nil,
+                didMigrate: { context in
+                    let legacyStorage = "local" + "Keychain"
+                    let keys = try context.fetch(FetchDescriptor<PersistentSSHKey>())
+                    for key in keys where key.storage == legacyStorage {
+                        key.storage = KeyStorage.thisDevice.rawValue
+                    }
+                    let identities = try context.fetch(FetchDescriptor<PersistentIdentity>())
+                    for identity in identities where identity.passwordStorage == legacyStorage {
+                        identity.passwordStorage = PasswordStorage.thisDevice.rawValue
+                    }
+                    try context.save()
+                }
             )
         ]
     }
@@ -352,7 +457,7 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV3.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV4.self)
 
     let context: ModelContext
 

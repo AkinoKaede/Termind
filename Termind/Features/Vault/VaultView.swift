@@ -145,10 +145,10 @@ struct VaultWorkDetailView: View {
             )
         case .generateKey:
             KeychainGenerateDetail()
-        case .importKey(let pending):
-            KeychainImportDetail(pending: pending)
-        case .renameKey(let id):
-            KeychainRenameDetail(keyID: id)
+        case .importKey:
+            KeychainImportDetail()
+        case .editKey(let id):
+            KeychainEditDetail(keyID: id)
         case .exportKeys(let ids):
             ExportKeyToHostsSheet(keys: ids.compactMap(app.hosts.key))
         case .snippetEditor(let snippetID, let packageID):

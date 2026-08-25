@@ -4,7 +4,6 @@ import UniformTypeIdentifiers
 @Observable
 final class KeychainPageState {
     var query = ""
-    var isImportingFile = false
     var errorMessage: String?
 }
 
@@ -17,9 +16,8 @@ final class KeychainPageState {
 /// the database box, and copying the key twice to say that would be a lie about
 /// how many keys you have.
 ///
-/// The private half of a key is never loaded into this process's view layer,
-/// which is why there is no "reveal" action anywhere on this page and why the
-/// footnote says so out loud.
+/// Private material is loaded only by the explicit Import/Edit work surfaces;
+/// cards and selection details continue to operate on public metadata.
 struct KeychainPageView: ManagedCardPage {
     nonisolated enum SectionID: Hashable {
         case keys
@@ -128,8 +126,8 @@ struct KeychainPageView: ManagedCardPage {
                 extendSelection: context.extendSelection,
                 actionKeys: context.actionItems.compactMap(\.key),
                 actionIdentities: context.actionItems.compactMap(\.identity),
-                rename: {
-                    window.openVaultWork(.renameKey(key.id), on: .keychain)
+                edit: {
+                    window.openVaultWork(.editKey(key.id), on: .keychain)
                 },
                 export: { requestExport(context.actionItems.compactMap(\.key)) },
                 delete: {
@@ -166,7 +164,7 @@ struct KeychainPageView: ManagedCardPage {
         case .key(let key):
             KeyCard(
                 key: key, isSelected: false, select: {}, extendSelection: {},
-                actionKeys: [], actionIdentities: [], rename: {}, export: {}, delete: {}
+                actionKeys: [], actionIdentities: [], edit: {}, export: {}, delete: {}
             )
             .allowsHitTesting(false)
         case .identity(let identity):
@@ -182,7 +180,9 @@ struct KeychainPageView: ManagedCardPage {
     func managedSupplementaryContent(for section: SectionID) -> some View {
         switch section {
         case .keys:
-            AddCardTile(title: "Import Key") { state.isImportingFile = true }
+            AddCardTile(title: "Import Key") {
+                window.openVaultWork(.importKey, on: .keychain)
+            }
         case .identities:
             AddCardTile(title: "New Identity") {
                 window.openVaultWork(.identityEditor(nil), on: .keychain)
@@ -237,7 +237,9 @@ struct KeychainPageView: ManagedCardPage {
             query: Binding(get: { state.query }, set: { state.query = $0 }),
             prompt: "Filter keys and identities"
         ) {
-            Button("Import Key") { state.isImportingFile = true }
+            Button("Import Key") {
+                window.openVaultWork(.importKey, on: .keychain)
+            }
             Button("Generate Key") {
                 window.openVaultWork(.generateKey, on: .keychain)
             }
@@ -274,7 +276,9 @@ struct KeychainPageView: ManagedCardPage {
             Button("New Identity") {
                 window.openVaultWork(.identityEditor(nil), on: .keychain)
             }
-            Button("Import Key") { state.isImportingFile = true }
+            Button("Import Key") {
+                window.openVaultWork(.importKey, on: .keychain)
+            }
             Button("Generate Key") {
                 window.openVaultWork(.generateKey, on: .keychain)
             }
@@ -290,44 +294,15 @@ struct KeychainPageView: ManagedCardPage {
         KeychainPagePresentation(
             state: state,
             actions: KeychainPagePresentation.Actions(
-                receiveImportedFiles: receiveImportedFiles,
                 pruneSelection: { window.pruneDetailSelections(in: app.hosts) }
             )
         )
-    }
-
-    private func receiveImportedFiles(_ result: Result<[URL], any Error>) {
-        do {
-            guard let url = try result.get().first else { return }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            let privateKey = try String(contentsOf: url, encoding: .utf8)
-            guard privateKey.contains("PRIVATE KEY") else {
-                throw CocoaError(
-                    .fileReadCorruptFile,
-                    userInfo: [
-                        NSLocalizedDescriptionKey: String(localized: "Select an OpenSSH or PEM private key.")
-                    ])
-            }
-            window.openVaultWork(
-                .importKey(
-                    PendingKeyImport(
-                        label: url.deletingPathExtension().lastPathComponent,
-                        privateKey: privateKey
-                    )
-                ),
-                on: .keychain
-            )
-        } catch {
-            state.errorMessage = error.localizedDescription
-        }
     }
 
 }
 
 struct KeychainPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
-        let receiveImportedFiles: (Result<[URL], any Error>) -> Void
         let pruneSelection: () -> Void
     }
 
@@ -337,58 +312,37 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
     func body(content: Content) -> some View {
         @Bindable var state = state
         content
-            .fileImporter(
-                isPresented: $state.isImportingFile,
-                allowedContentTypes: [.data, .plainText],
-                allowsMultipleSelection: false,
-                onCompletion: actions.receiveImportedFiles
-            )
             .onAppear(perform: actions.pruneSelection)
     }
 }
 
-nonisolated struct PendingKeyImport: Identifiable, Hashable, Sendable {
-    let id = UUID()
-    var label: String
-    var privateKey: String
-}
-
 struct KeychainImportDetail: View {
-    let pending: PendingKeyImport
-
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
     var body: some View {
-        KeyImportSheet(pending: pending, save: importKey, close: window.closeVaultWork)
+        SoftwareKeyEditor(
+            title: "Import Key", symbol: "square.and.arrow.down",
+            close: window.closeVaultWork, save: save
+        )
     }
 
-    private func importKey(
-        _ label: String, _ passphrase: String?, _ savePassphrase: Bool,
-        _ storage: KeyStorage
+    private func save(
+        name: String, storage: KeyStorage, privateKey: String,
+        passphrase: String?, certificate: String, material: SSHKeyMaterial
     ) async throws -> SSHKeyRef {
-        let privateKey = pending.privateKey
-        let material = try await Task.detached(priority: .userInitiated) {
-            try SSHKeyMaterial.inspect(
-                privateKey: privateKey, passphrase: passphrase, comment: label
-            )
-        }.value
-        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
         let key = SSHKeyRef(
-            label: trimmed.isEmpty ? material.algorithm.typeName : trimmed,
+            label: name.isEmpty ? material.algorithm.typeName : name,
             algorithm: material.algorithm, publicKey: material.publicKey,
-            fingerprint: material.fingerprint,
+            certificate: certificate, fingerprint: material.fingerprint,
             credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
             keySize: material.keySize, hasPassphrase: passphrase != nil,
-            storesPassphrase: passphrase != nil && savePassphrase, createdAt: Date()
+            storesPassphrase: false, createdAt: Date()
         )
         try app.hosts.upsert(
             key,
             credential: .software(
-                SSHPrivateKeySecret(
-                    privateKey: privateKey,
-                    passphrase: savePassphrase ? passphrase : nil
-                )
+                SSHPrivateKeySecret(privateKey: privateKey, passphrase: nil)
             )
         )
         window.selectDetail(.key(key.id), on: .keychain)
@@ -396,72 +350,147 @@ struct KeychainImportDetail: View {
     }
 }
 
-private struct KeyImportSheet: View {
-    let pending: PendingKeyImport
-    let save: (String, String?, Bool, KeyStorage) async throws -> SSHKeyRef
+private struct SoftwareKeyEditor: View {
+    let existing: SSHKeyRef?
+    let title: String
+    let symbol: String
     let close: () -> Void
+    let loadPrivateKey: (() throws -> String)?
+    let save:
+        (
+            _ name: String, _ storage: KeyStorage, _ privateKey: String,
+            _ passphrase: String?, _ certificate: String, _ material: SSHKeyMaterial
+        ) async throws -> SSHKeyRef
 
-    @State private var label: String
-    @State private var storage = KeyStorage.localKeychain
+    @State private var name: String
+    @State private var storage: KeyStorage
+    @State private var privateKey = ""
+    @State private var originalPrivateKey = ""
     @State private var passphrase = ""
-    @State private var savePassphrase = false
+    @State private var certificate: String
+    @State private var material: SSHKeyMaterial?
+    @State private var isLoading: Bool
+    @State private var isChoosingFile = false
     @State private var isWorking = false
     @State private var errorMessage: String?
 
-    private let availableStorage: [KeyStorage] = [
-        .localKeychain,
-        .iCloudKeychain,
-    ]
-
     init(
-        pending: PendingKeyImport,
-        save: @escaping (String, String?, Bool, KeyStorage) async throws -> SSHKeyRef,
-        close: @escaping () -> Void
+        existing: SSHKeyRef? = nil, title: String,
+        symbol: String, close: @escaping () -> Void,
+        loadPrivateKey: (() throws -> String)? = nil,
+        save: @escaping (
+            String, KeyStorage, String, String?, String, SSHKeyMaterial
+        ) async throws -> SSHKeyRef
     ) {
-        self.pending = pending
-        self.save = save
+        self.existing = existing
+        self.title = title
+        self.symbol = symbol
         self.close = close
-        _label = State(initialValue: pending.label)
+        self.loadPrivateKey = loadPrivateKey
+        self.save = save
+        _name = State(initialValue: existing?.label ?? "")
+        _storage = State(initialValue: existing?.storage ?? .iCloudKeychain)
+        _certificate = State(initialValue: existing?.certificate ?? "")
+        _isLoading = State(initialValue: loadPrivateKey != nil)
     }
 
     var body: some View {
-        VaultDetailScaffold(title: "Import Key", symbol: "square.and.arrow.down", close: close) {
-            Form {
-                TextField("Name", text: $label, prompt: Text("Defaults to key type"))
-                Picker("Store in", selection: $storage) {
-                    ForEach(availableStorage) { location in
-                        Text(location.displayName).tag(location)
+        VaultDetailScaffold(title: title, symbol: symbol, close: close) {
+            if isLoading {
+                ProgressView("Loading private key…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Form {
+                    if let errorMessage {
+                        Section {
+                            Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
+                    Section("Key") {
+                        TextField("Name", text: $name, prompt: Text("Defaults to key type"))
+                        Picker("Store in", selection: $storage) {
+                            Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloudKeychain)
+                            Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
+                        }
+                    }
+
+                    Section("Private Key") {
+                        HStack {
+                            Text("Private Key")
+                            Spacer()
+                            Button("Choose File…") { isChoosingFile = true }
+                                .controlSize(.small)
+                        }
+                        TextEditor(text: $privateKey)
+                            .font(.caption.monospaced())
+                            .frame(minHeight: 150)
+                            .accessibilityLabel("Private Key")
+                        SecureField("Passphrase", text: $passphrase, prompt: Text("Optional"))
+                    }
+
+                    Section("Public Key") {
+                        Text(publicKeyDisplay)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(material == nil ? .secondary : .primary)
+                            .textSelection(.enabled)
+                    }
+
+                    Section("Certificate") {
+                        TextEditor(text: $certificate)
+                            .font(.caption.monospaced())
+                            .frame(minHeight: 110)
+                            .overlay(alignment: .topLeading) {
+                                if certificate.isEmpty {
+                                    Text("Certificate (optional)")
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.tertiary)
+                                        .padding(.top, 8).padding(.leading, 5)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                        if let warning = certificateWarning {
+                            Label(warning, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                        if let existing, let material,
+                            material.publicKey != existing.publicKey
+                        {
+                            Label(
+                                "Replacing this private key changes its public key. Hosts using the old key may reject the next connection.",
+                                systemImage: "arrow.triangle.2.circlepath"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        }
                     }
                 }
-                SecureField("Passphrase", text: $passphrase, prompt: Text("If protected"))
-                Toggle("Save Passphrase", isOn: $savePassphrase)
-                    .disabled(passphrase.isEmpty)
-                    .onChange(of: passphrase) { _, value in
-                        if value.isEmpty { savePassphrase = false }
-                    }
-                Text(
-                    "Choose a private-key file. Termind derives its public key and fingerprint. If you don't save the passphrase, Termind asks for it when needed."
-                )
-                .font(.caption).foregroundStyle(.secondary)
-                if let errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
+                .formStyle(.grouped)
             }
-            .formStyle(.grouped)
         } footer: {
             HStack {
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
                 Button("Cancel", action: close).keyboardShortcut(.cancelAction)
-                Button("Import") {
+                Button(existing == nil ? "Import" : "Save") {
                     Task { await commit() }
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(isWorking)
+                .disabled(isWorking || isLoading || privateKey.isEmpty)
             }
             .padding()
         }
+        .fileImporter(
+            isPresented: $isChoosingFile, allowedContentTypes: [.data, .plainText],
+            allowsMultipleSelection: true, onCompletion: receiveFiles
+        )
+        .dropDestination(for: URL.self) { urls, _ in
+            receive(urls: urls)
+        }
+        .task { load() }
+        .task(id: validationToken) { await derivePublicMaterial() }
     }
 
     @MainActor
@@ -469,13 +498,126 @@ private struct KeyImportSheet: View {
         isWorking = true
         errorMessage = nil
         do {
+            let passphrase = passphrase.isEmpty ? nil : passphrase
+            let inspected: SSHKeyMaterial
+            if let existing, privateKey == originalPrivateKey {
+                inspected = SSHKeyMaterial(
+                    privateKey: privateKey, publicKey: existing.publicKey,
+                    algorithm: existing.algorithm, fingerprint: existing.fingerprint,
+                    keySize: existing.keySize
+                )
+            } else {
+                let keyText = privateKey
+                let comment = name
+                inspected = try await Task.detached(priority: .userInitiated) {
+                    try SSHKeyMaterial.inspect(
+                        privateKey: keyText, passphrase: passphrase, comment: comment
+                    )
+                }.value
+            }
+            let normalizedCertificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalizedCertificate.isEmpty {
+                _ = try SSHUserCertificate.parse(
+                    normalizedCertificate, matching: inspected.publicKey
+                )
+            }
             _ = try await save(
-                label, passphrase.isEmpty ? nil : passphrase, savePassphrase, storage
+                name.trimmingCharacters(in: .whitespacesAndNewlines), storage,
+                privateKey, passphrase, normalizedCertificate, inspected
             )
             close()
         } catch {
             errorMessage = error.localizedDescription
             isWorking = false
+        }
+    }
+
+    private var validationToken: String { privateKey + "\u{0}" + passphrase }
+
+    private var publicKeyDisplay: String {
+        material?.publicKey ?? existing?.publicKey ?? String(localized: "Derived from the private key")
+    }
+
+    private var certificateWarning: String? {
+        guard !certificate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        do {
+            return try SSHUserCertificate.parse(
+                certificate, matching: material?.publicKey ?? existing?.publicKey
+            ).validityWarning
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func load() {
+        guard isLoading else { return }
+        do {
+            privateKey = try loadPrivateKey?() ?? ""
+            originalPrivateKey = privateKey
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func derivePublicMaterial() async {
+        guard !privateKey.isEmpty else {
+            material = nil
+            return
+        }
+        do {
+            try await Task.sleep(for: .milliseconds(250))
+            let privateKey = privateKey
+            let passphrase = passphrase.isEmpty ? nil : passphrase
+            let comment = name
+            material = try await Task.detached(priority: .utility) {
+                try SSHKeyMaterial.inspect(
+                    privateKey: privateKey, passphrase: passphrase, comment: comment
+                )
+            }.value
+        } catch is CancellationError {
+        } catch {
+            material = nil
+        }
+    }
+
+    private func receiveFiles(_ result: Result<[URL], any Error>) {
+        do {
+            _ = receive(urls: try result.get())
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    private func receive(urls: [URL]) -> Bool {
+        do {
+            guard !urls.isEmpty else { return false }
+            var found = false
+            for url in urls {
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                let text = try String(contentsOf: url, encoding: .utf8)
+                if text.contains("PRIVATE KEY") {
+                    privateKey = text
+                    if name.isEmpty { name = url.deletingPathExtension().lastPathComponent }
+                    found = true
+                } else if text.contains("-cert-v01@openssh.com") {
+                    certificate = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    found = true
+                } else {
+                    throw CocoaError(
+                        .fileReadCorruptFile,
+                        userInfo: [NSLocalizedDescriptionKey: String(localized: "Choose a private key or OpenSSH user certificate file.")]
+                    )
+                }
+            }
+            errorMessage = nil
+            return found
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 }
@@ -490,8 +632,8 @@ struct KeychainGenerateDetail: View {
 
     private func generate(
         label: String, generation: SSHKeyMaterial.Generation, passphrase: String?,
-        cipher: SSHKeyMaterial.Cipher, rounds: Int, savePassphrase: Bool,
-        storage: KeyStorage, requiresUserPresence: Bool
+        cipher: SSHKeyMaterial.Cipher, rounds: Int, storage: KeyStorage,
+        requiresUserPresence: Bool
     ) async throws -> SSHKeyRef {
         let comment = "termind@\(ProcessInfo.processInfo.hostName)"
         let key: SSHKeyRef
@@ -522,15 +664,12 @@ struct KeychainGenerateDetail: View {
                 publicKey: material.publicKey, fingerprint: material.fingerprint,
                 credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
                 keySize: material.keySize, hasPassphrase: passphrase != nil,
-                storesPassphrase: passphrase != nil && savePassphrase, createdAt: Date()
+                storesPassphrase: false, createdAt: Date()
             )
             try app.hosts.upsert(
                 key,
                 credential: .software(
-                    SSHPrivateKeySecret(
-                        privateKey: material.privateKey,
-                        passphrase: savePassphrase ? passphrase : nil
-                    )
+                    SSHPrivateKeySecret(privateKey: material.privateKey, passphrase: nil)
                 )
             )
         }
@@ -550,13 +689,13 @@ private struct GenerateKeySheet: View {
 
     let generate:
         (
-            String, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int, Bool,
+            String, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int,
             KeyStorage, Bool
         ) async throws -> SSHKeyRef
     let close: () -> Void
 
     @State private var label = ""
-    @State private var storage = KeyStorage.localKeychain
+    @State private var storage = KeyStorage.iCloudKeychain
     @State private var kind = Kind.ed25519
     @State private var curveBits = 256
     @State private var rsaBits = 3072
@@ -564,13 +703,12 @@ private struct GenerateKeySheet: View {
     @State private var confirmation = ""
     @State private var cipher = SSHKeyMaterial.Cipher.aes256
     @State private var rounds = 100
-    @State private var savePassphrase = false
     @State private var requiresUserPresence = false
     @State private var isWorking = false
     @State private var errorMessage: String?
 
     private let availableStorage: [KeyStorage] = [
-        .localKeychain,
+        .thisDevice,
         .iCloudKeychain,
         .secureEnclave,
     ]
@@ -594,7 +732,7 @@ private struct GenerateKeySheet: View {
                 TextField("Name", text: $label, prompt: Text(defaultName))
                 Picker("Store in", selection: $storage) {
                     ForEach(availableStorage) { location in
-                        Text(location.displayName)
+                        Label(location.displayName, systemImage: location.symbol)
                             .tag(location)
                             .disabled(location == .secureEnclave && !SecureEnclaveKey.isAvailable)
                     }
@@ -626,9 +764,6 @@ private struct GenerateKeySheet: View {
                         }
                     }
                     SecureField("Passphrase", text: $passphrase, prompt: Text("Optional"))
-                        .onChange(of: passphrase) { _, value in
-                            if value.isEmpty { savePassphrase = false }
-                        }
                     SecureField("Confirm Passphrase", text: $confirmation)
                         .disabled(passphrase.isEmpty)
                     if !passphrase.isEmpty {
@@ -638,7 +773,6 @@ private struct GenerateKeySheet: View {
                             }
                         }
                         TextField("Rounds", value: $rounds, format: .number)
-                        Toggle("Save Passphrase", isOn: $savePassphrase)
                     }
                     if !passwordsMatch {
                         Text("Passphrases do not match.")
@@ -646,9 +780,9 @@ private struct GenerateKeySheet: View {
                             .foregroundStyle(.red)
                     }
                     Text(
-                        passphrase.isEmpty || savePassphrase
-                            ? "The generated private key is stored on this Mac."
-                            : "The private key is stored on this Mac. Termind asks for its passphrase when needed."
+                        passphrase.isEmpty
+                            ? "The generated private key is stored in the selected Keychain."
+                            : "The private key is encrypted. Termind never saves its passphrase and asks for it when needed."
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -685,7 +819,7 @@ private struct GenerateKeySheet: View {
             _ = try await generate(
                 resolvedLabel, generation,
                 storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
-                cipher, rounds, savePassphrase, storage,
+                cipher, rounds, storage,
                 storage == .secureEnclave && requiresUserPresence
             )
             close()
@@ -705,7 +839,7 @@ private struct GenerateKeySheet: View {
     }
 }
 
-struct KeychainRenameDetail: View {
+struct KeychainEditDetail: View {
     let keyID: SSHKeyRef.ID
 
     @Environment(AppModel.self) private var app
@@ -714,50 +848,108 @@ struct KeychainRenameDetail: View {
     @ViewBuilder
     var body: some View {
         if let key = app.hosts.key(keyID) {
-            RenameKeySheet(key: key, save: save, close: window.closeVaultWork)
+            if key.storage == .secureEnclave {
+                SecureEnclaveKeyEditor(
+                    key: key, close: window.closeVaultWork,
+                    save: { name in try saveSecureEnclave(key, name: name) }
+                )
+            } else {
+                SoftwareKeyEditor(
+                    existing: key, title: "Edit Key", symbol: "pencil",
+                    close: window.closeVaultWork,
+                    loadPrivateKey: { try loadPrivateKey(key) },
+                    save: { name, storage, privateKey, passphrase, certificate, material in
+                        try await saveSoftwareKey(
+                            key, name: name, storage: storage,
+                            privateKey: privateKey, passphrase: passphrase,
+                            certificate: certificate, material: material
+                        )
+                    }
+                )
+            }
         } else {
             ContentUnavailableView("Key Unavailable", systemImage: "key.slash")
         }
     }
 
-    private func save(_ label: String) throws {
-        guard var key = app.hosts.key(keyID) else { return }
-        key.label = label
-        try app.hosts.upsert(key)
-        window.selectDetail(.key(key.id), on: .keychain)
+    private func loadPrivateKey(_ key: SSHKeyRef) throws -> String {
+        guard case .software(let secret)? = try app.hosts.keyCredential(for: key) else {
+            throw TermindSSHError.library(
+                String(localized: "The private key is unavailable on this Mac.")
+            )
+        }
+        return secret.privateKey
+    }
+
+    private func saveSoftwareKey(
+        _ original: SSHKeyRef, name: String, storage: KeyStorage,
+        privateKey: String, passphrase: String?, certificate: String,
+        material: SSHKeyMaterial
+    ) async throws -> SSHKeyRef {
+        var updated = original
+        updated.label = name.isEmpty ? material.algorithm.typeName : name
+        updated.storage = storage
+        updated.algorithm = material.algorithm
+        updated.publicKey = material.publicKey
+        updated.certificate = certificate
+        updated.fingerprint = material.fingerprint
+        updated.keySize = material.keySize
+        let keepsOriginalPrivateKey = privateKey == (try loadPrivateKey(original))
+        updated.hasPassphrase = passphrase != nil || (keepsOriginalPrivateKey && original.hasPassphrase)
+        updated.storesPassphrase = false
+        try app.hosts.upsert(
+            updated,
+            credential: .software(
+                SSHPrivateKeySecret(privateKey: privateKey, passphrase: nil)
+            )
+        )
+        window.selectDetail(.key(updated.id), on: .keychain)
+        return updated
+    }
+
+    private func saveSecureEnclave(_ original: SSHKeyRef, name: String) throws {
+        var updated = original
+        updated.label = name
+        try app.hosts.upsert(updated)
+        window.selectDetail(.key(updated.id), on: .keychain)
     }
 }
 
-struct RenameKeySheet: View {
+private struct SecureEnclaveKeyEditor: View {
     let key: SSHKeyRef
+    let close: () -> Void
     let save: (String) throws -> Void
-    var requestedClose: (() -> Void)?
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var label: String
+    @State private var name: String
     @State private var errorMessage: String?
 
-    init(
-        key: SSHKeyRef, save: @escaping (String) throws -> Void,
-        close: (() -> Void)? = nil
-    ) {
+    init(key: SSHKeyRef, close: @escaping () -> Void, save: @escaping (String) throws -> Void) {
         self.key = key
+        self.close = close
         self.save = save
-        requestedClose = close
-        _label = State(initialValue: key.label)
+        _name = State(initialValue: key.label)
     }
 
     var body: some View {
-        VaultDetailScaffold(title: "Rename Key", symbol: "pencil", close: close) {
+        VaultDetailScaffold(title: "Edit Key", symbol: "pencil", close: close) {
             Form {
-                TextField("Name", text: $label)
-                Text(key.fingerprint)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
+                Section("Key") {
+                    TextField("Name", text: $name)
+                }
+                Section("Secure Enclave") {
+                    LabeledContent("Stored in", value: key.storage.displayName)
+                    LabeledContent("Algorithm", value: key.algorithm.displayName)
+                    LabeledContent("Fingerprint") {
+                        Text(key.fingerprint).font(.caption.monospaced()).textSelection(.enabled)
+                    }
+                    LabeledContent("Public Key") {
+                        Text(key.publicKey).font(.caption.monospaced()).textSelection(.enabled)
+                    }
+                    Text("The private key cannot leave the Secure Enclave. Only its name can be changed.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 if let errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    Section { Label(errorMessage, systemImage: "exclamationmark.triangle.fill") }
                 }
             }
             .formStyle(.grouped)
@@ -767,21 +959,15 @@ struct RenameKeySheet: View {
                 Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Button("Save") {
                     do {
-                        try save(label.trimmingCharacters(in: .whitespacesAndNewlines))
+                        try save(name.trimmingCharacters(in: .whitespacesAndNewlines))
                         close()
-                    } catch {
-                        errorMessage = error.localizedDescription
-                    }
+                    } catch { errorMessage = error.localizedDescription }
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding()
         }
-    }
-
-    private func close() {
-        if let requestedClose { requestedClose() } else { dismiss() }
     }
 }
 
@@ -1107,11 +1293,11 @@ struct ExportKeyToHostsSheet: View {
 // MARK: - Key card
 
 /// The singular actions for one key, shared by its card and ContextPanel detail.
-/// Secret material is intentionally absent: only the public key and fingerprint
-/// ever enter this view layer.
+/// Card actions never resolve secret material; Edit is the explicit boundary
+/// that loads a software key from Keychain.
 struct KeyObjectActions: View {
     let key: SSHKeyRef
-    let rename: () -> Void
+    let edit: () -> Void
     let export: () -> Void
 
     var body: some View {
@@ -1122,7 +1308,7 @@ struct KeyObjectActions: View {
         Button("Export to Hosts", action: export)
             .disabled(key.publicKey.isEmpty)
         Divider()
-        Button("Rename", action: rename)
+        Button("Edit", action: edit)
     }
 }
 
@@ -1133,7 +1319,7 @@ private struct KeyCard: View {
     let extendSelection: () -> Void
     let actionKeys: [SSHKeyRef]
     let actionIdentities: [Identity]
-    let rename: () -> Void
+    let edit: () -> Void
     let export: () -> Void
     let delete: () -> Void
 
@@ -1194,7 +1380,7 @@ private struct KeyCard: View {
                     if key.hasPassphrase {
                         CardChip(
                             text: key.storesPassphrase
-                                ? String(localized: "Passphrase Saved")
+                                ? String(localized: "Passphrase Cleanup Pending")
                                 : String(localized: "Passphrase Required"),
                             symbol: "lock.fill"
                         )
@@ -1203,6 +1389,20 @@ private struct KeyCard: View {
                         text: key.storage.displayName,
                         symbol: key.storage.symbol
                     )
+                    switch app.hosts.keyAvailability(for: key) {
+                    case .missing:
+                        CardChip(
+                            text: String(localized: "Private key missing"),
+                            symbol: "exclamationmark.triangle.fill", tint: .orange
+                        )
+                    case .failed:
+                        CardChip(
+                            text: String(localized: "Keychain unavailable"),
+                            symbol: "exclamationmark.triangle.fill", tint: .orange
+                        )
+                    case .available, .notConfigured:
+                        EmptyView()
+                    }
 
                     Spacer(minLength: Metrics.Space.xs)
 
@@ -1217,7 +1417,7 @@ private struct KeyCard: View {
         }
         .contextMenu {
             if actionKeys.count == 1, actionIdentities.isEmpty {
-                KeyObjectActions(key: key, rename: rename, export: export)
+                KeyObjectActions(key: key, edit: edit, export: export)
             } else if actionIdentities.isEmpty {
                 Button("Export to Hosts", action: export)
                     .disabled(actionKeys.isEmpty || actionKeys.contains { $0.publicKey.isEmpty })
@@ -1324,7 +1524,22 @@ private struct IdentityCard: View {
     @ViewBuilder
     private var secretChip: some View {
         if identity.usesPassword {
-            CardChip(text: String(localized: "Password"), symbol: "lock.fill")
+            switch app.hosts.passwordAvailability(for: identity) {
+            case .available:
+                CardChip(text: String(localized: "Password"), symbol: "lock.fill")
+            case .missing:
+                CardChip(
+                    text: String(localized: "Password missing"),
+                    symbol: "exclamationmark.triangle.fill", tint: .orange
+                )
+            case .failed:
+                CardChip(
+                    text: String(localized: "Password unavailable"),
+                    symbol: "exclamationmark.triangle.fill", tint: .orange
+                )
+            case .notConfigured:
+                EmptyView()
+            }
         }
 
         if identity.usesKey {

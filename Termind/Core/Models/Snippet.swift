@@ -5,7 +5,7 @@ import Foundation
 #endif
 
 nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
-    case localKeychain
+    case thisDevice
     case iCloudKeychain
     case secureEnclave
 
@@ -13,7 +13,7 @@ nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIterable, 
 
     var displayName: String {
         switch self {
-        case .localKeychain:
+        case .thisDevice:
             #if os(macOS)
                 String(localized: "This Mac")
             #elseif os(iOS)
@@ -30,7 +30,7 @@ nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIterable, 
 
     var symbol: String {
         switch self {
-        case .localKeychain: "lock.laptopcomputer"
+        case .thisDevice: "lock.laptopcomputer"
         case .iCloudKeychain: "icloud.fill"
         case .secureEnclave: "checkmark.shield.fill"
         }
@@ -104,12 +104,15 @@ nonisolated struct SSHKeyRef: Identifiable, Hashable, Sendable {
     var label: String
     var algorithm: SSHKeyAlgorithm = .ed25519
     var publicKey: String = ""
+    /// Optional OpenSSH user certificate. Certificates are public metadata;
+    /// the private key remains behind `credentialRef` in Keychain.
+    var certificate: String = ""
     var fingerprint: String = ""
     var credentialRef: String = ""
-    var storage: KeyStorage = .localKeychain
+    var storage: KeyStorage = .iCloudKeychain
     var keySize: Int?
     var hasPassphrase = false
-    /// Saving a passphrase is always explicit; new keys default to asking when used.
+    /// Legacy migration marker. New writes never retain a passphrase.
     var storesPassphrase = false
     var requiresUserPresence = false
     var createdAt: Date = Date(timeIntervalSince1970: 0)

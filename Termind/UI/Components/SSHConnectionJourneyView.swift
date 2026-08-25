@@ -133,7 +133,7 @@ struct SSHConnectionJourneyView: View {
                         purpose: journey.purpose,
                         state: endpointState(for: index),
                         showsActivity: activityEndpointIndex == index,
-                        usesLocalIdentitySymbol: index == 0 && journey.waitsForLocalIdentity,
+                        localRequirement: index == 0 ? journey.localRequirement : nil,
                         reduceMotion: reduceMotion
                     )
                     .frame(width: labelWidth, height: 92, alignment: .top)
@@ -360,7 +360,7 @@ private struct JourneyEndpointView: View {
     let purpose: SSHConnectionPurpose
     let state: JourneyVisualState
     let showsActivity: Bool
-    let usesLocalIdentitySymbol: Bool
+    let localRequirement: SSHConnectionJourney.LocalRequirement?
     let reduceMotion: Bool
 
     var body: some View {
@@ -396,7 +396,12 @@ private struct JourneyEndpointView: View {
 
     private var symbol: String {
         switch endpoint.role {
-        case .local: usesLocalIdentitySymbol ? "person.fill" : "laptopcomputer"
+        case .local:
+            switch localRequirement {
+            case .identity: "person.fill"
+            case .passphrase: "key.fill"
+            case nil: "laptopcomputer"
+            }
         case .jump: "server.rack"
         case .destination:
             purpose == .sshSession ? "apple.terminal.fill" : "folder.fill"
@@ -544,15 +549,13 @@ private struct JourneyAuthenticationCard: View {
         self.prompt = prompt
         self.submit = submit
         self.cancel = cancel
-        _identityID = State(initialValue: prompt.host.identityID)
+        _identityID = State(initialValue: prompt.selectedIdentityID)
         _username = State(initialValue: prompt.username)
         _keyID = State(initialValue: prompt.selectedKeyID)
     }
 
     private var needsPassphrase: Bool {
-        guard let keyID else { return false }
-        return app.hosts.key(keyID)?.requiresPassphraseEntry == true
-            || (prompt.requiresPassphrase && keyID == prompt.selectedKeyID)
+        prompt.requiresPassphrase
     }
 
     private var canContinue: Bool {
@@ -560,14 +563,17 @@ private struct JourneyAuthenticationCard: View {
             && (!needsPassphrase || !passphrase.isEmpty)
     }
 
+    private var title: LocalizedStringKey {
+        if needsPassphrase { return "Passphrase required" }
+        return prompt.mode == .localIdentity
+            ? "Identity required" : "Authentication required"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(
-                        prompt.mode == .localIdentity
-                            ? "Identity required" : "Authentication required"
-                    )
+                    Text(title)
                     .font(.headline)
                     Text(prompt.host.displayAddress).font(.caption.monospaced()).foregroundStyle(.secondary)
                 }
@@ -581,68 +587,69 @@ private struct JourneyAuthenticationCard: View {
             }
 
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                GridRow {
-                    Text("Identity").foregroundStyle(.secondary)
-                    fullWidthMenu(title: identityLabel) {
-                        Button {
-                            identitySelection.wrappedValue = nil
-                        } label: {
-                            selectionMenuLabel(
-                                String(localized: "Custom"), selected: identityID == nil
-                            )
-                        }
-                        if !app.hosts.identities.isEmpty { Divider() }
-                        ForEach(app.hosts.identities) { identity in
-                            Button {
-                                identitySelection.wrappedValue = identity.id
-                            } label: {
-                                selectionMenuLabel(
-                                    "\(identity.name) · \(identity.username)",
-                                    selected: identityID == identity.id
-                                )
-                            }
-                        }
-                    }
-                }
-                if identityID == nil {
-                    GridRow {
-                        Text("Username").foregroundStyle(.secondary)
-                        TextField("Username", text: usernameInput)
-                            .focused($focusedField, equals: .username)
-                    }
-                    GridRow {
-                        Text("Password").foregroundStyle(.secondary)
-                        SecureField("Optional", text: passwordInput)
-                            .focused($focusedField, equals: .password)
-                    }
-                    GridRow {
-                        Text("Key").foregroundStyle(.secondary)
-                        fullWidthMenu(title: keyLabel) {
-                            Button {
-                                keySelection.wrappedValue = nil
-                            } label: {
-                                selectionMenuLabel(
-                                    String(localized: "None"), selected: keyID == nil
-                                )
-                            }
-                            if !app.hosts.keys.isEmpty { Divider() }
-                            ForEach(app.hosts.keys) { key in
-                                Button {
-                                    keySelection.wrappedValue = key.id
-                                } label: {
-                                    selectionMenuLabel(
-                                        key.label, selected: keyID == key.id
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
                 if needsPassphrase {
                     GridRow {
                         Text("Passphrase").foregroundStyle(.secondary)
                         SecureField("Required for this connection", text: $passphrase)
                             .focused($focusedField, equals: .passphrase)
+                    }
+                } else {
+                    GridRow {
+                        Text("Identity").foregroundStyle(.secondary)
+                        fullWidthMenu(title: identityLabel) {
+                            Button {
+                                identitySelection.wrappedValue = nil
+                            } label: {
+                                selectionMenuLabel(
+                                    String(localized: "Custom"), selected: identityID == nil
+                                )
+                            }
+                            if !app.hosts.identities.isEmpty { Divider() }
+                            ForEach(app.hosts.identities) { identity in
+                                Button {
+                                    identitySelection.wrappedValue = identity.id
+                                } label: {
+                                    selectionMenuLabel(
+                                        "\(identity.name) · \(identity.username)",
+                                        selected: identityID == identity.id
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if identityID == nil {
+                        GridRow {
+                            Text("Username").foregroundStyle(.secondary)
+                            TextField("Username", text: usernameInput)
+                                .focused($focusedField, equals: .username)
+                        }
+                        GridRow {
+                            Text("Password").foregroundStyle(.secondary)
+                            SecureField("Optional", text: passwordInput)
+                                .focused($focusedField, equals: .password)
+                        }
+                        GridRow {
+                            Text("Key").foregroundStyle(.secondary)
+                            fullWidthMenu(title: keyLabel) {
+                                Button {
+                                    keySelection.wrappedValue = nil
+                                } label: {
+                                    selectionMenuLabel(
+                                        String(localized: "None"), selected: keyID == nil
+                                    )
+                                }
+                                if !app.hosts.keys.isEmpty { Divider() }
+                                ForEach(app.hosts.keys) { key in
+                                    Button {
+                                        keySelection.wrappedValue = key.id
+                                    } label: {
+                                        selectionMenuLabel(
+                                            key.label, selected: keyID == key.id
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -652,11 +659,18 @@ private struct JourneyAuthenticationCard: View {
             HStack {
                 Button("Cancel", action: cancel).keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("Continue") { commit(save: false) }.disabled(!canContinue)
-                Button("Save and Continue") { commit(save: true) }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!canContinue)
+                if needsPassphrase {
+                    Button("Continue") { commit(save: false) }
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(!canContinue)
+                } else {
+                    Button("Continue") { commit(save: false) }.disabled(!canContinue)
+                    Button("Save and Continue") { commit(save: true) }
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(!canContinue)
+                }
             }
         }
         .padding(18)
@@ -664,11 +678,17 @@ private struct JourneyAuthenticationCard: View {
         .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.separator.opacity(0.7)) }
         .onAppear {
             if identityID != nil, selectedIdentity == nil { identityID = nil }
-            if needsPassphrase {
-                focusedField = .passphrase
-            } else if identityID == nil {
-                focusedField = username.isEmpty ? .username : .password
-            }
+            updateFocusForRequirement()
+        }
+    }
+
+    private func updateFocusForRequirement() {
+        if needsPassphrase {
+            focusedField = .passphrase
+        } else if identityID == nil {
+            focusedField = username.isEmpty ? .username : .password
+        } else {
+            focusedField = nil
         }
     }
 

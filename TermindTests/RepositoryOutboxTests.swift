@@ -8,6 +8,56 @@ import Testing
 @MainActor
 struct RepositoryOutboxTests {
     @Test
+    func versionThreeStorageNamesMigrateToThisDevice() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "TermindV3Migration-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "Termind.store")
+        let identity = Identity(
+            name: "Legacy Identity", username: "legacy",
+            credentialRef: "termind.password.legacy", passwordStorage: .thisDevice
+        )
+        let key = SSHKeyRef(
+            label: "Legacy Key", publicKey: "ssh-ed25519 AAAA legacy",
+            fingerprint: "SHA256:legacy", credentialRef: "termind.key.legacy",
+            storage: .thisDevice
+        )
+
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV3.self)
+            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let context = container.mainContext
+            context.insert(TermindSchemaV3Models.PersistentIdentity(identity))
+            let persistentKey = TermindSchemaV3Models.PersistentSSHKey(key)
+            persistentKey.storage = "local" + "Keychain"
+            context.insert(persistentKey)
+            try context.save()
+        }
+
+        let schema = Schema(versionedSchema: TermindSchemaV4.self)
+        let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+        let container = try ModelContainer(
+            for: schema, migrationPlan: TermindMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let context = container.mainContext
+        let migratedIdentity = try #require(
+            context.fetch(FetchDescriptor<PersistentIdentity>()).first
+        )
+        let migratedKey = try #require(
+            context.fetch(FetchDescriptor<PersistentSSHKey>()).first
+        )
+
+        #expect(migratedIdentity.value == identity)
+        #expect(migratedIdentity.passwordStorage == PasswordStorage.thisDevice.rawValue)
+        #expect(migratedKey.value == key)
+        #expect(migratedKey.storage == KeyStorage.thisDevice.rawValue)
+        #expect(migratedKey.certificate.isEmpty)
+    }
+
+    @Test
     func versionOneStoreMigratesToCurrentSchemaWithoutLosingData() throws {
         let directory = FileManager.default.temporaryDirectory
             .appending(path: "TermindMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
@@ -17,10 +67,13 @@ struct RepositoryOutboxTests {
 
         let host = Host(name: "Production", host: "prod.example")
         let group = HostGroup(name: "Servers")
-        let identity = Identity(name: "Operator", username: "deploy")
+        let identity = Identity(
+            name: "Operator", username: "deploy", passwordStorage: .thisDevice
+        )
         let key = SSHKeyRef(
             label: "Deployment", publicKey: "ssh-ed25519 AAAA migration",
-            fingerprint: "SHA256:migration", credentialRef: "key-migration"
+            fingerprint: "SHA256:migration", credentialRef: "key-migration",
+            storage: .thisDevice
         )
         let knownHost = KnownHostEntry(
             hostname: "prod.example", algorithm: .ed25519,
@@ -44,8 +97,10 @@ struct RepositoryOutboxTests {
             let context = container.mainContext
             context.insert(PersistentHost(host))
             context.insert(PersistentHostGroup(group))
-            context.insert(PersistentIdentity(identity))
-            context.insert(PersistentSSHKey(key))
+            context.insert(TermindSchemaV3Models.PersistentIdentity(identity))
+            let persistentKey = TermindSchemaV3Models.PersistentSSHKey(key)
+            persistentKey.storage = "local" + "Keychain"
+            context.insert(persistentKey)
             context.insert(PersistentKnownHost(knownHost))
             context.insert(PersistentSnippetPackage(package))
             context.insert(PersistentSnippet(snippet))
@@ -53,7 +108,7 @@ struct RepositoryOutboxTests {
             try context.save()
         }
 
-        let schema = Schema(versionedSchema: TermindSchemaV3.self)
+        let schema = Schema(versionedSchema: TermindSchemaV4.self)
         let configuration = ModelConfiguration(
             "Migration", schema: schema, url: storeURL
         )

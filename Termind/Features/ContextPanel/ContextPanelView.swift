@@ -856,7 +856,7 @@ struct HostDetailContent: View {
 
 struct KeyDetailContent: View {
     let key: SSHKeyRef
-    let rename: () -> Void
+    let edit: () -> Void
     let export: () -> Void
 
     @Environment(AppModel.self) private var app
@@ -872,7 +872,7 @@ struct KeyDetailContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.xl) {
             Menu("Actions") {
-                KeyObjectActions(key: key, rename: rename, export: export)
+                KeyObjectActions(key: key, edit: edit, export: export)
             }
             .menuStyle(.button)
             .controlSize(.small)
@@ -885,7 +885,7 @@ struct KeyDetailContent: View {
                     !key.hasPassphrase
                         ? String(localized: "None")
                         : key.storesPassphrase
-                            ? String(localized: "Saved") : String(localized: "Required at use")
+                            ? String(localized: "Cleanup pending") : String(localized: "Required at use")
                 )
             }
             LabeledContent("Authentication") {
@@ -897,6 +897,16 @@ struct KeyDetailContent: View {
                 title: "Public Key",
                 text: key.publicKey.isEmpty ? String(localized: "Not available") : key.publicKey
             )
+            if !key.certificate.isEmpty {
+                DetailTextBlock(title: "Certificate", text: key.certificate)
+                if let certificate = try? SSHUserCertificate.parse(
+                    key.certificate, matching: key.publicKey
+                ), let warning = certificate.validityWarning {
+                    Label(warning, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
 
             DetailSection(title: "Used by Identities") {
                 if identities.isEmpty {
@@ -929,7 +939,8 @@ struct IdentityDetailContent: View {
 
             LabeledContent("Username", value: identity.username)
             LabeledContent("Password") {
-                Text(identity.usesPassword ? String(localized: "Configured") : String(localized: "Not configured"))
+                Text(passwordStatus)
+                    .foregroundStyle(passwordStatusIsWarning ? .orange : .primary)
             }
             LabeledContent("Key") {
                 if let key {
@@ -960,6 +971,22 @@ struct IdentityDetailContent: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var passwordStatus: String {
+        switch app.hosts.passwordAvailability(for: identity) {
+        case .notConfigured: String(localized: "Not configured")
+        case .available: String(localized: "Configured")
+        case .missing: String(localized: "Not available on this Mac")
+        case .failed: String(localized: "Keychain unavailable")
+        }
+    }
+
+    private var passwordStatusIsWarning: Bool {
+        switch app.hosts.passwordAvailability(for: identity) {
+        case .missing, .failed: true
+        case .notConfigured, .available: false
+        }
     }
 }
 

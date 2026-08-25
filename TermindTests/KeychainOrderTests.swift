@@ -39,7 +39,7 @@ struct KeychainOrderTests {
     }
 
     @Test
-    func renameKeepsPositionAndNewItemsAppend() throws {
+    func editingANameKeepsPositionAndNewItemsAppend() throws {
         let first = SSHKeyRef(
             label: "First", credentialRef: "termind.key.\(UUID().uuidString)", sortIndex: 0
         )

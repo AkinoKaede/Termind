@@ -414,11 +414,25 @@ final class SSHSessionModel: Identifiable {
             host: host, route: route, purpose: .sshSession, username: username,
             mode: reconnecting ? .reconnection : .connection
         )
+        if let passphraseHost = route.first(where: { routeHost in
+            guard let submission = suppliedAuthentications[routeHost.id],
+                submission.passphrase == nil,
+                let keyID = submission.keyID,
+                let key = store.key(keyID)
+            else { return false }
+            return key.requiresPassphraseEntry
+        }), let submission = suppliedAuthentications[passphraseHost.id] {
+            requestAuthentication(
+                for: passphraseHost, username: submission.username,
+                selectedKeyID: submission.keyID, requiresPassphrase: true,
+                preserveSubmission: true
+            )
+            return
+        }
         guard let username, !username.trimmingCharacters(in: .whitespaces).isEmpty else {
             requestAuthentication(
                 for: host, username: "", selectedKeyID: identity?.keyID,
-                requiresPassphrase: identity?.keyID
-                    .flatMap { store.key($0) }?.requiresPassphraseEntry == true
+                requiresPassphrase: false
             )
             return
         }
@@ -441,7 +455,7 @@ final class SSHSessionModel: Identifiable {
                         if let credential = try store.keyCredential(for: key) {
                             credentials.append(
                                 credential.sshCredential(
-                                    publicKey: key.publicKey,
+                                    publicKey: key.publicKey, certificate: key.certificate,
                                     passphraseOverride: suppliedAuthentication.passphrase
                                 )
                             )
@@ -514,14 +528,17 @@ final class SSHSessionModel: Identifiable {
                 let jump = store.host(id)
             {
                 let identity = store.identity(for: jump)
+                let submitted = suppliedAuthentications[jump.id]
+                let retryNeedsPassphrase = submitted?.passphrase == nil
+                    && (submitted?.keyID ?? identity?.keyID)
+                        .flatMap { store.key($0) }?.requiresPassphraseEntry == true
                 connectionAttemptID = nil
                 requestAuthentication(
                     for: jump, username: identity?.username ?? "",
-                    selectedKeyID: identity?.keyID,
+                    selectedKeyID: submitted?.keyID ?? identity?.keyID,
                     failureMessage: sshError.localizedDescription,
-                    requiresPassphrase:
-                        identity?.keyID.flatMap { store.key($0) }?
-                        .requiresPassphraseEntry == true
+                    requiresPassphrase: retryNeedsPassphrase,
+                    preserveSubmission: retryNeedsPassphrase && submitted != nil
                 )
                 return
             }
@@ -606,17 +623,23 @@ final class SSHSessionModel: Identifiable {
                         authenticationHost = host
                     }
                     let authenticationIdentity = store.identity(for: authenticationHost)
+                    let submitted = suppliedAuthentications[authenticationHost.id]
+                    let authenticationKeyID = submitted?.keyID
+                        ?? authenticationIdentity?.keyID ?? selectedKeyID
+                    let retryNeedsPassphrase = submitted?.passphrase == nil
+                        && authenticationKeyID.flatMap { store.key($0) }?
+                            .requiresPassphraseEntry == true
+                    let returnsToIdentity = submitted?.passphrase != nil
                     requestAuthentication(
                         for: authenticationHost,
                         username: authenticationIdentity?.username ?? username,
-                        selectedKeyID: authenticationIdentity?.keyID ?? selectedKeyID,
+                        selectedKeyID: authenticationKeyID,
                         failureMessage: (credentialFailures
                             + [sshError.localizedDescription]).joined(separator: "\n"),
-                        requiresPassphrase:
-                            selectedKeyID
-                            .flatMap { store.key($0) }?.requiresPassphraseEntry == true,
-                        mode: sshError.isServerAuthenticationChallenge
-                            ? .serverChallenge : .localIdentity
+                        requiresPassphrase: retryNeedsPassphrase,
+                        mode: !returnsToIdentity && sshError.isServerAuthenticationChallenge
+                            ? .serverChallenge : .localIdentity,
+                        preserveSubmission: retryNeedsPassphrase && submitted != nil
                     )
                 } else {
                     handleConnectionAttemptFailure(
@@ -640,6 +663,18 @@ final class SSHSessionModel: Identifiable {
             var host = store.host(prompt.host.id) ?? (prompt.host.id == hostID ? transientHost : nil)
         else { return }
 
+        if prompt.requiresPassphrase,
+            var staged = suppliedAuthentications[host.id]
+        {
+            guard let passphrase, !passphrase.isEmpty else { return }
+            staged.passphrase = passphrase
+            suppliedAuthentications[host.id] = staged
+            pendingAuthentication = nil
+            connectionJourney.resume()
+            connect(using: store)
+            return
+        }
+
         let submittedKeyID = selectedIdentity?.keyID ?? keyID
         let submittedPassword: String?
         do {
@@ -660,7 +695,8 @@ final class SSHSessionModel: Identifiable {
 
         suppliedAuthentications[host.id] = SSHAuthenticationSubmission(
             username: trimmedUsername, password: submittedPassword,
-            passphrase: passphrase, keyID: submittedKeyID
+            passphrase: passphrase, keyID: submittedKeyID,
+            identityID: selectedIdentity?.id
         )
         if host.id == hostID { usernameHint = trimmedUsername }
         pendingAuthentication = nil
@@ -668,6 +704,23 @@ final class SSHSessionModel: Identifiable {
 
         if save {
             if let selectedIdentity {
+                if let password {
+                    do {
+                        try store.upsert(
+                            selectedIdentity, passwordUpdate: .replace(password)
+                        )
+                    } catch {
+                        requestAuthentication(
+                            for: host, username: trimmedUsername,
+                            selectedKeyID: submittedKeyID,
+                            failureMessage: error.localizedDescription,
+                            requiresPassphrase:
+                                submittedKeyID
+                                .flatMap { store.key($0) }?.requiresPassphraseEntry == true
+                        )
+                        return
+                    }
+                }
                 host.identityID = selectedIdentity.id
                 store.upsert(host)
                 if host.id == hostID { transientHost = host }
@@ -680,6 +733,7 @@ final class SSHSessionModel: Identifiable {
                 name: existing?.name ?? trimmedUsername,
                 username: trimmedUsername,
                 credentialRef: existing?.credentialRef ?? "",
+                passwordStorage: existing?.passwordStorage ?? .iCloudKeychain,
                 keyID: submittedKeyID,
                 notes: existing?.notes ?? "",
                 lastUsedAt: existing?.lastUsedAt
@@ -709,6 +763,7 @@ final class SSHSessionModel: Identifiable {
 
     func cancelAuthentication() {
         pendingAuthentication = nil
+        suppliedAuthentications.removeAll()
         pendingInitialCommand = nil
         status = .disconnected
         connectionJourney.hide()
@@ -963,12 +1018,16 @@ final class SSHSessionModel: Identifiable {
         for host: Host, username: String,
         selectedKeyID: SSHKeyRef.ID?, failureMessage: String? = nil,
         requiresPassphrase: Bool = false,
-        mode: SSHAuthenticationPrompt.Mode = .localIdentity
+        mode: SSHAuthenticationPrompt.Mode = .localIdentity,
+        preserveSubmission: Bool = false
     ) {
         reconnectController.pauseForUserInteraction()
-        suppliedAuthentications[host.id] = nil
+        if !preserveSubmission { suppliedAuthentications[host.id] = nil }
         pendingAuthentication = SSHAuthenticationPrompt(
-            host: host, username: username,
+            host: host,
+            selectedIdentityID: preserveSubmission
+                ? suppliedAuthentications[host.id]?.identityID : host.identityID,
+            username: username,
             selectedKeyID: selectedKeyID,
             failureMessage: failureMessage?.isEmpty == false ? failureMessage : nil,
             requiresPassphrase: requiresPassphrase, mode: mode
@@ -976,7 +1035,15 @@ final class SSHSessionModel: Identifiable {
         status = .disconnected
         switch mode {
         case .localIdentity:
-            connectionJourney.waitForLocalIdentity(at: host.id, failure: failureMessage)
+            if requiresPassphrase {
+                connectionJourney.waitForLocalPassphrase(
+                    at: host.id, failure: failureMessage
+                )
+            } else {
+                connectionJourney.waitForLocalIdentity(
+                    at: host.id, failure: failureMessage
+                )
+            }
         case .serverChallenge:
             connectionJourney.waitForAuthentication(at: host.id, failure: failureMessage)
         }
@@ -1154,6 +1221,7 @@ nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Sendable {
 
     let id = UUID()
     var host: Host
+    var selectedIdentityID: Identity.ID? = nil
     var username: String
     var selectedKeyID: SSHKeyRef.ID?
     var failureMessage: String?

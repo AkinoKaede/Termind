@@ -1,5 +1,26 @@
 import Foundation
 
+nonisolated enum PasswordStorage: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+    case thisDevice
+    case iCloudKeychain
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .thisDevice: String(localized: "This Mac")
+        case .iCloudKeychain: String(localized: "iCloud")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .thisDevice: "lock.laptopcomputer"
+        case .iCloudKeychain: "icloud.fill"
+        }
+    }
+}
+
 /// How an Identity edit changes the password stored behind `credentialRef`.
 ///
 /// `nil` could only mean one of "keep" and "remove", which made it impossible
@@ -10,6 +31,13 @@ nonisolated enum IdentityPasswordUpdate: Hashable, Sendable {
     case keep
     case replace(String)
     case remove
+}
+
+nonisolated enum SecretAvailability: Equatable, Sendable {
+    case notConfigured
+    case available
+    case missing
+    case failed(String)
 }
 
 /// A named way of logging in: a username plus a *reference* to the secret.
@@ -35,6 +63,9 @@ nonisolated struct Identity: Identifiable, Hashable, Sendable {
     var username: String
     /// Where to look the password up. Empty means this identity has no password.
     var credentialRef: String = ""
+    /// The secret itself never enters SwiftData. This value only selects the
+    /// Data Protection Keychain class used to resolve `credentialRef`.
+    var passwordStorage: PasswordStorage = .iCloudKeychain
     /// One of the entries on the Keys list. Storing the id rather than the key
     /// means renaming or rotating a key never touches the identities that use
     /// it. `nil` means this identity has no key.

@@ -91,6 +91,32 @@ struct SSHConnectionJourneyTests {
     }
 
     @Test
+    func localRequirementTransitionsBetweenIdentityAndPassphraseSteps() {
+        let destination = Host(name: "Server", host: "server.example")
+        let journey = SSHConnectionJourney()
+        journey.begin(
+            host: destination, route: [destination],
+            purpose: .sshSession, username: "deploy"
+        )
+
+        journey.waitForLocalIdentity(at: destination.id)
+        #expect(journey.waitsForLocalIdentity)
+        #expect(!journey.waitsForLocalPassphrase)
+
+        journey.waitForLocalPassphrase(at: destination.id)
+        #expect(journey.waitsForLocalPassphrase)
+        #expect(!journey.waitsForLocalIdentity)
+        #expect(journey.plainTextLog.contains("Waiting for a Passphrase"))
+
+        journey.waitForLocalIdentity(at: destination.id)
+        #expect(journey.waitsForLocalIdentity)
+        #expect(!journey.waitsForLocalPassphrase)
+
+        journey.resume()
+        #expect(journey.localRequirement == nil)
+    }
+
+    @Test
     func authenticationPromptDistinguishesIdentityCollectionFromServerChallenge() {
         let host = Host(name: "Server", host: "server.example")
         let localPrompt = SSHAuthenticationPrompt(

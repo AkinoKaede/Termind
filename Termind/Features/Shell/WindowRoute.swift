@@ -71,8 +71,8 @@ nonisolated enum VaultWorkRoute: Hashable, Sendable {
     case hostGroupEditor(groupID: HostGroup.ID?, parentID: HostGroup.ID?)
     case identityEditor(Identity.ID?)
     case generateKey
-    case importKey(PendingKeyImport)
-    case renameKey(SSHKeyRef.ID)
+    case importKey
+    case editKey(SSHKeyRef.ID)
     case exportKeys([SSHKeyRef.ID])
     case snippetEditor(snippetID: Snippet.ID?, packageID: SnippetPackage.ID?)
     case snippetPackageEditor(packageID: SnippetPackage.ID?, parentID: SnippetPackage.ID?)

@@ -14,7 +14,7 @@ struct IdentityCredentialTests {
         let keyID = UUID()
         let original = Identity(
             id: id, name: "Deploy", username: "deploy",
-            credentialRef: reference, keyID: keyID
+            credentialRef: reference, passwordStorage: .thisDevice, keyID: keyID
         )
         let store = HostStore(identities: [original], keychain: keychain)
         defer { try? keychain.removePassword(reference) }
@@ -45,10 +45,18 @@ struct IdentityCredentialTests {
 
         try store.upsert(identity, passwordUpdate: .replace("secret"))
         let saved = try #require(store.identity(identity.id))
-        defer { try? keychain.removePassword(saved.credentialRef) }
+        defer {
+            try? keychain.removePassword(
+                saved.credentialRef, storage: saved.passwordStorage
+            )
+        }
 
         #expect(!saved.credentialRef.isEmpty)
-        #expect(try keychain.string(for: saved.credentialRef) == "secret")
+        #expect(
+            try keychain.string(
+                for: saved.credentialRef, storage: saved.passwordStorage
+            ) == "secret"
+        )
     }
 
     @Test
@@ -58,7 +66,7 @@ struct IdentityCredentialTests {
         let missingKeyReference = "termind.key.\(UUID().uuidString)"
         defer {
             try? keychain.removePassword(passwordReference)
-            try? keychain.removeKeyCredential(missingKeyReference, storage: .localKeychain)
+            try? keychain.removeKeyCredential(missingKeyReference, storage: .thisDevice)
         }
 
         let key = SSHKeyRef(
@@ -67,7 +75,8 @@ struct IdentityCredentialTests {
         )
         let identity = Identity(
             name: "Deploy", username: "deploy",
-            credentialRef: passwordReference, keyID: key.id
+            credentialRef: passwordReference, passwordStorage: .thisDevice,
+            keyID: key.id
         )
         try keychain.setString("fallback", for: passwordReference)
         let store = HostStore(keys: [key], identities: [identity], keychain: keychain)
@@ -87,7 +96,7 @@ struct IdentityCredentialTests {
     func protectedKeyWithoutSavedPassphraseRequestsItBeforeUse() throws {
         let keychain = KeychainSecretStore()
         let reference = "termind.key.\(UUID().uuidString)"
-        defer { try? keychain.removeKeyCredential(reference, storage: .localKeychain) }
+        defer { try? keychain.removeKeyCredential(reference, storage: .thisDevice) }
 
         let key = SSHKeyRef(
             label: "Protected", algorithm: .ed25519, publicKey: "ssh-ed25519 test",
@@ -98,7 +107,7 @@ struct IdentityCredentialTests {
         let store = HostStore(keys: [key], identities: [identity], keychain: keychain)
         try keychain.setKeyCredential(
             .software(SSHPrivateKeySecret(privateKey: "encrypted", passphrase: nil)),
-            for: reference, storage: .localKeychain
+            for: reference, storage: .thisDevice
         )
 
         let resolution = store.sshCredentials(for: identity)

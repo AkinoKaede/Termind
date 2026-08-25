@@ -36,13 +36,15 @@ nonisolated enum SSHCredentials: Sendable {
 
 nonisolated extension StoredSSHKeyCredential {
     func sshCredential(
-        publicKey: String, passphraseOverride: String? = nil
+        publicKey: String, certificate: String = "", passphraseOverride: String? = nil
     ) -> SSHCredentials {
         switch self {
         case .software(let secret):
             .privateKey(
                 privateKey: secret.privateKey,
-                publicKey: publicKey.isEmpty ? nil : publicKey,
+                publicKey: certificate.isEmpty
+                    ? (publicKey.isEmpty ? nil : publicKey)
+                    : certificate,
                 passphrase: passphraseOverride ?? secret.passphrase
             )
         case .secureEnclave(let credential):
