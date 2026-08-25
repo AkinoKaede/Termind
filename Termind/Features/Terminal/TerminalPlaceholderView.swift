@@ -4,9 +4,7 @@ import SwiftUI
 /// A libghostty terminal surface with Termind's connection and suggestion chrome.
 struct TerminalPlaceholderView: View {
     let sshSession: SSHSessionModel
-    /// The Workspace holding this pane — needed for two things the terminal
-    /// cannot answer alone: which conversation an error is handed to, and who
-    /// else hears what is typed here. See `Workspace.deliver`.
+    /// The Workspace holding this pane owns broadcast input routing.
     let workspace: Workspace
     /// Hidden tabs remain mounted to preserve Ghostty's surface, but stop
     /// rendering frames until they come forward again.
@@ -36,6 +34,7 @@ struct TerminalPlaceholderView: View {
     private var lightCustomConfiguration = ""
     @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
     @FocusState private var terminalFocused: Bool
     @State private var pendingUploadSession: SFTPSessionModel?
     @State private var pendingUploadItemCount = 0
@@ -394,7 +393,7 @@ struct TerminalPlaceholderView: View {
     /// Hands the failure to the Assistant sidebar as a draft rather than sending it —
     /// the user still decides what leaves the machine.
     private func askAI(about message: String, log: String) {
-        let conversation = workspace.conversation
+        let conversation = window.sidebar.assistantDraft
         conversation.addChip(
             ContextChip(kind: .output, label: String(localized: "Connection error"), approximateTokens: 40)
         )
@@ -403,6 +402,8 @@ struct TerminalPlaceholderView: View {
             localized:
                 "SSH connection failed: \(message). What should I check?\n\nConnection log:\n\(excerpt)"
         )
+        window.closeAssistantInSidebar()
+        window.showAssistant()
     }
 }
 

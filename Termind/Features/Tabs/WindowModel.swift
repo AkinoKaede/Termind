@@ -364,6 +364,36 @@ final class WindowModel {
         selectedTopLevelTab = .assistant
     }
 
+    var sidebarAssistantConversation: ConversationModel? {
+        guard let id = sidebar.assistantConversationID else { return nil }
+        return assistantLibrary.conversation(id: id)
+    }
+
+    func openAssistantInSidebar(_ id: ConversationModel.ID) {
+        guard assistantLibrary.conversation(id: id) != nil else { return }
+        sidebar.assistantConversationID = id
+    }
+
+    func closeAssistantInSidebar() {
+        sidebar.assistantConversationID = nil
+    }
+
+    func deleteAssistantConversation(_ id: ConversationModel.ID) {
+        assistantLibrary.delete(id)
+        if sidebar.assistantConversationID == id {
+            sidebar.assistantConversationID = nil
+        }
+    }
+
+    @discardableResult
+    func sendAssistantSidebarDraft() -> ConversationModel? {
+        let draft = sidebar.assistantDraft
+        guard let conversation = assistantLibrary.startConversation(draft) else { return nil }
+        sidebar.assistantConversationID = conversation.id
+        sidebar.assistantDraft = ConversationModel()
+        return conversation
+    }
+
     /// ⌘1 is Vault, ⌘2 is Assistant, and dynamic Workspaces start at ⌘3.
     func select(index: Int) {
         let topLevelTabs = allTopLevelTabs

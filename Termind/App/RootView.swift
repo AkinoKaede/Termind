@@ -79,13 +79,11 @@ struct RootView: View {
         // `guard let window` having done nothing at all.
         .focusedSceneValue(\.window, window)
         .onChange(of: window.selectedTabID) {
-            window.selectedTab?.refreshConversationContext(in: app.hosts)
             window.reconcileSidebarMode()
         }
         .onAppear {
             window.connectionCoordinator = app.connections
             app.registerWindow(window)
-            window.selectedTab?.refreshConversationContext(in: app.hosts)
             window.reconcileSidebarMode()
         }
     }

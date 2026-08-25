@@ -148,6 +148,8 @@ struct MessageView: View {
 
 struct ComposerView: View {
     let conversation: ConversationModel
+    var prompt: LocalizedStringKey = "Ask anything…"
+    var onSend: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(\.openSettings) private var openSettings
@@ -185,7 +187,7 @@ struct ComposerView: View {
                 .focused($isFocused)
                 .overlay(alignment: .topLeading) {
                     if conversation.draft.isEmpty {
-                        Text("Ask about this session…")
+                        Text(prompt)
                             .font(.callout)
                             .foregroundStyle(.tertiary)
                             .padding(.top, 8)
@@ -202,7 +204,11 @@ struct ComposerView: View {
                 .frame(maxWidth: .infinity)
 
                 Button {
-                    conversation.sendDraft()
+                    if let onSend {
+                        onSend()
+                    } else {
+                        conversation.sendDraft()
+                    }
                 } label: {
                     Label("Send", systemImage: "arrow.up.circle.fill")
                 }

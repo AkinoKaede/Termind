@@ -311,7 +311,6 @@ private struct PaneView: View {
             // anywhere in a pane puts the layout back.
             window.dragging = nil
             tab.focus(pane.id)
-            tab.refreshConversationContext(in: app.hosts)
         }
         .onGeometryChange(for: CGSize.self) {
             $0.size

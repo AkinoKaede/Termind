@@ -58,6 +58,47 @@ struct WindowStateTests {
     }
 
     @Test
+    func sidebarDraftCreatesConversationOnlyOnFirstValidSend() {
+        let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
+        let window = WindowModel(tabs: [workspace])
+
+        #expect(window.sendAssistantSidebarDraft() == nil)
+        #expect(window.assistantLibrary.conversations.isEmpty)
+
+        window.sidebar.assistantDraft.draft = "  Explain this failure.  "
+        let conversation = window.sendAssistantSidebarDraft()
+
+        #expect(conversation?.messages.map(\.text) == ["Explain this failure."])
+        #expect(window.assistantLibrary.conversations.count == 1)
+        #expect(window.assistantLibrary.conversations.first?.id == conversation?.id)
+        #expect(window.sidebarAssistantConversation?.id == conversation?.id)
+        #expect(window.selectedTopLevelTab == .workspace(workspace.id))
+        #expect(window.sidebar.assistantDraft.isEmpty)
+    }
+
+    @Test
+    func sidebarConversationNavigationIsIndependentAndDeletionReturnsHome() {
+        let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
+        let conversation = ConversationModel()
+        conversation.draft = "Hello"
+        let library = AssistantLibraryModel()
+        _ = library.startConversation(conversation)
+        let window = WindowModel(tabs: [workspace], assistantLibrary: library)
+
+        window.openAssistantInSidebar(conversation.id)
+        #expect(window.sidebarAssistantConversation?.id == conversation.id)
+        #expect(window.selectedTopLevelTab == .workspace(workspace.id))
+
+        window.closeAssistantInSidebar()
+        #expect(window.sidebarAssistantConversation == nil)
+
+        window.openAssistantInSidebar(conversation.id)
+        window.deleteAssistantConversation(conversation.id)
+        #expect(window.sidebarAssistantConversation == nil)
+        #expect(window.assistantLibrary.conversations.isEmpty)
+    }
+
+    @Test
     func vaultRoutesNeverBecomeWorkspaceTabs() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)

@@ -108,18 +108,7 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var assistant: some View {
-        if let tab = window.selectedTab {
-            ConversationView(conversation: tab.conversation, isCompact: true)
-        } else {
-            ContentUnavailableView(
-                "No Session",
-                systemImage: "sparkles",
-                description: Text("Open a tab to start a conversation about it.")
-            )
-            // `ContentUnavailableView` has a wide intrinsic width; unclamped, it
-            // would otherwise push the shared Sidebar past its ideal width.
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
+        AssistantPanelView()
     }
 }
 
@@ -655,9 +644,9 @@ struct ConversationView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Text("Ask About This Session")
+            Text("Start a Conversation")
                 .font(.headline)
-            Text("Only the chips above the prompt are sent.")
+            Text("Ask a question or describe what you want to do.")
             .font(.callout)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)

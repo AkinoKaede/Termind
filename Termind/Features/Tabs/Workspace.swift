@@ -4,8 +4,7 @@ protocol WorkspaceLifecycleRouting: AnyObject {
     func workspace(_ workspace: Workspace, closePaneAfterSSHSessionExit paneID: Pane.ID)
 }
 
-/// One tab in the tab bar: a tree of panes plus the AI conversation that belongs
-/// to them.
+/// One tab in the tab bar: a tree of panes.
 ///
 /// Called a *Workspace* once it holds more than one pane, and that is the word
 /// the UI uses — a shell beside its file browser is one thing you arranged, not
@@ -18,12 +17,6 @@ protocol WorkspaceLifecycleRouting: AnyObject {
 /// and detaches, and never combines. Nothing connects on your behalf as a side
 /// effect of arranging a layout — see `WindowModel.merge`.
 ///
-/// The conversation is owned here rather than globally. That is what makes
-/// "talk to the AI from the terminal" work — switching tabs switches the
-/// Assistant sidebar's thread, and the context it carries (host, cwd, recent output)
-/// follows automatically instead of having to be re-selected. Within a tab it
-/// follows the focused pane too, so a Workspace holding a chat shows that chat's
-/// thread rather than a second one beside it — see `conversation`.
 @Observable
 final class Workspace: Identifiable {
     let id = UUID()
@@ -34,16 +27,6 @@ final class Workspace: Identifiable {
     /// `nil` means the title tracks the focused pane.
     var customTitle: String?
     weak var lifecycleRouter: (any WorkspaceLifecycleRouting)?
-
-    /// The tab's own thread, for when the focused pane is not itself a
-    /// conversation.
-    private let ownConversation = ConversationModel()
-
-    /// The conversation on screen for this tab right now.
-    ///
-    var conversation: ConversationModel {
-        ownConversation
-    }
 
     /// Whether typing into one sshSession pane types into all of them.
     ///
@@ -254,15 +237,6 @@ final class Workspace: Identifiable {
         if !canBroadcast { broadcastsInput = false }
     }
 
-    /// Keeps the Assistant sidebar's pinned chips in step with the focused pane, so the
-    /// user can always see which host and directory are being sent.
-    func refreshConversationContext(in store: HostStore) {
-        let hostName = focusedPane.hostID.flatMap { store.host($0)?.name }
-        conversation.syncDefaultChips(
-            hostName: hostName,
-            workingDirectory: focusedPane.workingDirectory
-        )
-    }
 }
 
 extension Workspace: SSHSessionInputRouting {
@@ -280,17 +254,6 @@ extension Workspace: SSHSessionInputRouting {
         for sshSession in targets {
             sshSession.writeInputDirectly(data)
         }
-    }
-
-    /// A background pane may keep reporting OSC 7 while another split has
-    /// focus. Only the focused shell is allowed to change the context that the
-    /// Assistant sidebar says will be sent.
-    func sshSession(
-        _ sshSession: SSHSessionModel,
-        didChangeWorkingDirectory workingDirectory: String?
-    ) {
-        guard focusedPane.sshSession === sshSession else { return }
-        conversation.syncDirectoryChip(workingDirectory)
     }
 
     /// Shell EOF is a successful completion, so it closes the shell's pane.

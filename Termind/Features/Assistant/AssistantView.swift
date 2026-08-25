@@ -40,13 +40,115 @@ struct AssistantSidebarView: View {
                     )
                     .contextMenu {
                         Button("Delete", role: .destructive) {
-                            window.assistantLibrary.delete(conversation.id)
+                            window.deleteAssistantConversation(conversation.id)
                         }
                     }
                 }
             }
         }
         .listStyle(.sidebar)
+    }
+}
+
+/// The global Assistant contained entirely in a Workspace sidebar.
+///
+/// Its route is deliberately separate from the fixed Assistant tab's selection:
+/// opening a chat here never takes the user's terminal out of the foreground.
+struct AssistantPanelView: View {
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        Group {
+            if let conversation = window.sidebarAssistantConversation {
+                conversationDetail(conversation)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                landing
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+            }
+        }
+        .animation(Motion.tabSwitch, value: window.sidebar.assistantConversationID)
+    }
+
+    private var landing: some View {
+        VStack(spacing: 0) {
+            conversationList
+            Divider()
+            ComposerView(
+                conversation: window.sidebar.assistantDraft,
+                prompt: "Ask anything…",
+                onSend: { window.sendAssistantSidebarDraft() }
+            )
+        }
+    }
+
+    private var conversationList: some View {
+        List {
+            Section("Chats") {
+                ForEach(window.assistantLibrary.conversations) { conversation in
+                    Button {
+                        window.openAssistantInSidebar(conversation.id)
+                    } label: {
+                        HStack(spacing: Metrics.Space.s) {
+                            Image(systemName: "sparkles")
+                                .foregroundStyle(.tint)
+                            Text(conversation.derivedTitle)
+                                .lineLimit(1)
+                            Spacer(minLength: Metrics.Space.xs)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Delete", role: .destructive) {
+                            window.deleteAssistantConversation(conversation.id)
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .overlay {
+            if window.assistantLibrary.conversations.isEmpty {
+                ContentUnavailableView(
+                    "No Conversations",
+                    systemImage: "bubble.left.and.bubble.right",
+                    description: Text("Send a message below to start one.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private func conversationDetail(_ conversation: ConversationModel) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: Metrics.Space.s) {
+                Button {
+                    window.closeAssistantInSidebar()
+                } label: {
+                    Label("Back to Chats", systemImage: "arrow.left")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.cancelAction)
+                .help(Text("Back to Chats"))
+
+                Text(conversation.derivedTitle)
+                    .font(.headline)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Metrics.Space.m)
+            .padding(.vertical, Metrics.Space.s)
+            .background(.bar)
+
+            Divider()
+            ConversationView(conversation: conversation, isCompact: true)
+        }
     }
 }
 

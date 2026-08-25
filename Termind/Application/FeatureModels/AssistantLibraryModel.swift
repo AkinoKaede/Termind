@@ -17,12 +17,30 @@ final class AssistantLibraryModel {
 
     var selectedConversation: ConversationModel? {
         guard let selectedConversationID else { return nil }
-        return conversations.first { $0.id == selectedConversationID }
+        return conversation(id: selectedConversationID)
+    }
+
+    func conversation(id: ConversationModel.ID) -> ConversationModel? {
+        conversations.first { $0.id == id }
     }
 
     @discardableResult
     func createConversation() -> ConversationModel {
         let conversation = ConversationModel()
+        conversations.insert(conversation, at: 0)
+        selectedConversationID = conversation.id
+        return conversation
+    }
+
+    /// Promotes the sidebar's scratch conversation into history on its first
+    /// real send. Empty drafts remain ephemeral and never create blank rows.
+    @discardableResult
+    func startConversation(_ conversation: ConversationModel) -> ConversationModel? {
+        let text = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        guard !conversations.contains(where: { $0.id == conversation.id }) else { return nil }
+
+        conversation.sendDraft()
         conversations.insert(conversation, at: 0)
         selectedConversationID = conversation.id
         return conversation

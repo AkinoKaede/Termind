@@ -76,6 +76,11 @@ final class WindowSidebarState {
 
     var isPresented = true
 
+    /// Global Assistant panel navigation is independent from the selected
+    /// top-level tab. `nil` is the history + composer landing screen.
+    var assistantConversationID: ConversationModel.ID?
+    var assistantDraft = ConversationModel()
+
     private var vaultMode: Mode = .navigation
     private var workspaceModes: [Workspace.ID: Mode] = [:]
 

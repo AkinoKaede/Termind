@@ -86,10 +86,6 @@ struct SFTPBrowserView: View {
                 sftpSession.startAutomaticRefresh()
             }
         }
-        .onChange(of: sftpSession.path) {
-            guard window.selectedTab?.focusedPane.sftpSession === sftpSession else { return }
-            window.selectedTab?.refreshConversationContext(in: app.hosts)
-        }
         .alert("New Folder", isPresented: $newFolderPresented) {
             TextField("Folder Name", text: $newFolderName)
             Button("Cancel", role: .cancel) {}
