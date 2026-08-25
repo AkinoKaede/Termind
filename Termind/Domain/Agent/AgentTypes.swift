@@ -115,6 +115,9 @@ nonisolated struct AgentToolPreflight: Hashable, Sendable {
     var invocation: AgentToolInvocation
     var safety: AgentToolDescriptor.Safety
     var reasons: [String] = []
+    /// Locally established, execution-only facts. They are deliberately absent
+    /// from tool arguments, model replay, approval UI, and persistence.
+    var executionMetadata: [String: AgentJSONValue] = [:]
 }
 
 nonisolated struct AgentToolResult: Hashable, Sendable, Codable {

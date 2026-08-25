@@ -58,7 +58,13 @@ final class PersistentAgentMessage {
         self.runID = runID
         role = message.role.rawValue
         text = AgentPersistenceRedactor.visibleText(message.text)
-        toolCallsData = AgentPersistenceRedactor.encoded(message.toolCalls)
+        toolCallsData = AgentPersistenceRedactor.encoded(message.toolCalls.map { call in
+            AgentToolCall(
+                id: call.id, name: call.name,
+                arguments: AgentPersistenceRedactor.redactedJSON(call.arguments),
+                providerItemID: call.providerItemID
+            )
+        })
         toolCallID = message.toolCallID
         toolName = message.toolName
         isError = message.isError
@@ -408,29 +414,13 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
 nonisolated enum AgentPersistenceRedactor {
     private static let maximumVisibleCharacters = 262_144
-    private static let sensitiveKeys = ["password", "passwd", "secret", "token", "authorization", "api_key"]
 
     static func visibleText(_ text: String) -> String {
-        var output = String(text.prefix(maximumVisibleCharacters))
-        for key in sensitiveKeys {
-            let pattern = "(?i)(\\\"?\(key)\\\"?\\s*[:=]\\s*)(\\\"[^\\\"]*\\\"|[^\\s,}]+)"
-            output = output.replacingOccurrences(
-                of: pattern, with: "$1\"[REDACTED]\"", options: .regularExpression
-            )
-        }
-        return output
+        AgentSensitiveDataRedactor.visibleText(text, maximumCharacters: maximumVisibleCharacters)
     }
 
     static func redactedJSON(_ value: AgentJSONValue) -> AgentJSONValue {
-        switch value {
-        case .object(let object):
-            return .object(object.mapValues { redactedJSON($0) }.map { key, value in
-                (key, sensitiveKeys.contains(where: { key.lowercased().contains($0) }) ? .string("[REDACTED]") : value)
-            }.reduce(into: [:]) { $0[$1.0] = $1.1 })
-        case .array(let array): return .array(array.map(redactedJSON))
-        case .string(let string): return .string(visibleText(string))
-        default: return value
-        }
+        AgentSensitiveDataRedactor.redactedJSON(value)
     }
 
     static func encoded<T: Encodable>(_ value: T) -> Data {

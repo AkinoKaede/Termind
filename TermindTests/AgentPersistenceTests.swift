@@ -67,6 +67,56 @@ struct AgentPersistenceTests {
         )
     }
 
+    @Test
+    func fetchHeaderSecretsAreRedactedFromToolCallsAndInvocationRows() async throws {
+        let configuration = ModelConfiguration(
+            "AgentFetchHeaderRedactionTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let arguments: AgentJSONValue = .object([
+            "url": .string("https://example.test"),
+            "headers": .array([
+                .object([
+                    "name": .string("Authorization"),
+                    "value": .string("Bearer durable-secret"),
+                ]),
+                .object(["name": .string("X-Trace"), "value": .string("visible")]),
+            ]),
+        ])
+        let call = AgentToolCall(id: "fetch", name: "fetch", arguments: arguments)
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(role: .assistant, toolCalls: [call])]
+        )
+        try await repository.save(snapshot)
+        let invocation = AgentToolInvocation(runID: snapshot.id, call: call)
+        try await repository.record(
+            .toolProposed(invocation, AgentToolDescriptor(
+                name: "fetch", summary: "fetch", inputSchema: .object([:]),
+                target: .network, safety: .locallyReadOnly
+            )),
+            runID: snapshot.id
+        )
+
+        let message = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessage>()
+        ).first)
+        let invocationRow = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentToolInvocation>()
+        ).first)
+        for data in [message.toolCallsData, invocationRow.argumentsData] {
+            let stored = String(decoding: data, as: UTF8.self)
+            #expect(!stored.contains("durable-secret"))
+            #expect(stored.contains("[REDACTED]"))
+            #expect(stored.contains("visible"))
+        }
+    }
+
     /// A conversation replays its earlier turns into every later run, so a save
     /// that matched stored rows by run id re-inserted the whole history on each
     /// turn — colliding with the unique constraint and rewriting rows that were

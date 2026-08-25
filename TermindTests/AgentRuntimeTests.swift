@@ -28,6 +28,17 @@ private struct FixedReviewer: SecurityReviewing {
     func review(_ request: AgentApprovalRequest) async throws -> SecurityReviewDecision { try result.get() }
 }
 
+private actor CountingReviewer: SecurityReviewing {
+    private(set) var count = 0
+    func review(_ request: AgentApprovalRequest) async throws -> SecurityReviewDecision {
+        count += 1
+        return SecurityReviewDecision(
+            verdict: .approve, risk: .medium,
+            userAuthorization: .sufficient, reason: "approved"
+        )
+    }
+}
+
 private struct ReviewFailure: Error {}
 
 private struct HangingReviewer: SecurityReviewing {
@@ -381,6 +392,71 @@ struct AgentRuntimeTests {
         #expect(await manual.value == 1)
         #expect(await broker.authorize(request, mode: .fullAccess) == .allow)
         #expect(await manual.value == 1)
+    }
+
+    @Test
+    func executionTimeEscalationUsesTheActivePermissionModeAndReceivesPreflightMetadata() async {
+        let manual = Counter()
+        let reviewer = CountingReviewer()
+        let executions = Counter()
+
+        for mode in ChatPermissionMode.allCases {
+            let model = ScriptedAgentModel(turns: [
+                [
+                    .toolCallDelta(id: "1", name: "escalate", arguments: "{}"),
+                    .finished(.toolCalls),
+                ],
+                [.textDelta("done"), .finished(.completed)],
+            ])
+            let descriptor = AgentToolDescriptor(
+                name: "escalate", summary: "escalate",
+                inputSchema: .object([
+                    "type": .string("object"), "properties": .object([:]),
+                    "required": .array([]), "additionalProperties": .bool(false),
+                ]),
+                target: .network, safety: .locallyReadOnly
+            )
+            let tool = AnyAgentTool(
+                descriptor: descriptor,
+                preflight: { invocation in
+                    AgentToolPreflight(
+                        invocation: invocation, safety: .locallyReadOnly,
+                        executionMetadata: ["scope": .string("public")]
+                    )
+                },
+                execute: { invocation, context in
+                    #expect(context.preflightMetadata["scope"] == .string("public"))
+                    var escalation = descriptor
+                    escalation.safety = .requiresAuthorization
+                    let decision = await context.authorize(AgentApprovalRequest(
+                        invocation: invocation, descriptor: escalation,
+                        userIntent: context.userIntent,
+                        localReasons: ["redirect entered a restricted origin"]
+                    ))
+                    guard decision == .allow else {
+                        return AgentToolResult(
+                            callID: invocation.call.id, content: "denied", isError: true
+                        )
+                    }
+                    await executions.increment()
+                    return AgentToolResult(callID: invocation.call.id, content: "ok")
+                }
+            )
+            let runtime = AgentRuntime(
+                model: model, tools: [tool],
+                approval: AgentApprovalBroker(
+                    reviewer: reviewer,
+                    manualApproval: { _ in await manual.increment(); return .allow }
+                )
+            )
+            for await _ in await runtime.start(AgentRunRequest(
+                conversationID: UUID(), prompt: "follow it", permissionMode: mode
+            )) {}
+        }
+
+        #expect(await manual.value == 1)
+        #expect(await reviewer.count == 1)
+        #expect(await executions.value == 3)
     }
 
     @Test

@@ -544,23 +544,87 @@ nonisolated enum AgentBuiltInTools {
         }
     }
 
-    private static func fetch(_ fetcher: RestrictedHTTPFetcher) -> AnyAgentTool {
-        AnyAgentTool(descriptor: descriptor(
-            "fetch", "Fetch a bounded public HTTP(S) resource. Private and local networks are blocked.",
-            properties: ["url": string(max: 8_192), "method": enumeration(["GET", "HEAD"])],
-            required: ["url"], target: .network, safety: .requiresAuthorization
-        )) { invocation, _ in
-            let arguments = try Arguments(invocation)
-            let response = try await fetcher.fetch(
-                try arguments.string("url"), method: arguments.optionalString("method") ?? "GET"
-            )
-            return result(invocation, .object([
-                "url": .string(response.url.absoluteString),
-                "status": .number(Double(response.status)),
-                "headers": .object(response.headers.mapValues(AgentJSONValue.string)),
-                "body": .string(response.body), "truncated": .bool(response.truncated),
-            ]), truncated: response.truncated)
-        }
+    static func fetch(_ fetcher: RestrictedHTTPFetcher) -> AnyAgentTool {
+        let header = object(
+            properties: [
+                "name": string(max: RestrictedHTTPHeaderValidator.maximumNameBytes),
+                "value": string(max: RestrictedHTTPHeaderValidator.maximumValueBytes),
+            ],
+            required: ["name", "value"]
+        )
+        let tool = descriptor(
+            "fetch",
+            "Fetch bounded HTTP(S), including approved private-network targets. Custom headers "
+                + "follow every redirect, including cross-origin redirects, like curl -H -L.",
+            properties: [
+                "url": string(max: 8_192), "method": enumeration(["GET", "HEAD"]),
+                "headers": array(items: header, max: RestrictedHTTPHeaderValidator.maximumCount),
+            ],
+            required: ["url"], target: .network, safety: .locallyReadOnly
+        )
+        return AnyAgentTool(
+            descriptor: tool,
+            preflight: { invocation in
+                let arguments = try Arguments(invocation)
+                let url = try arguments.string("url")
+                _ = try RestrictedHTTPHeaderValidator.validate(arguments.requestHeaders())
+                guard try await fetcher.classification(for: url) == .restricted else {
+                    return AgentToolPreflight(invocation: invocation, safety: .locallyReadOnly)
+                }
+                guard let parsedURL = URL(string: url) else { throw RestrictedFetchError.invalidURL }
+                let origin = try PublicAddressValidator.origin(of: parsedURL)
+                return AgentToolPreflight(
+                    invocation: invocation,
+                    safety: .requiresAuthorization,
+                    reasons: ["The fetch target is on a private or otherwise non-public network: \(url)"],
+                    executionMetadata: ["authorized_fetch_origins": .array([.string(origin)])]
+                )
+            },
+            execute: { invocation, context in
+                let arguments = try Arguments(invocation)
+                let headers = try arguments.requestHeaders()
+                let authorizedOrigins = Set(
+                    context.preflightMetadata["authorized_fetch_origins"]?.arrayValue?
+                        .compactMap(\.stringValue) ?? []
+                )
+                let response = try await fetcher.fetch(
+                    try arguments.string("url"),
+                    method: arguments.optionalString("method") ?? "GET",
+                    headers: headers,
+                    authorizedRestrictedOrigins: authorizedOrigins,
+                    authorizeRestrictedOrigin: { url, _ in
+                        var escalation = tool
+                        escalation.safety = .requiresAuthorization
+                        var reasons = [
+                            "The fetch redirect enters a private or otherwise non-public network: "
+                                + url.absoluteString
+                        ]
+                        if !headers.isEmpty {
+                            reasons.append(
+                                "Custom headers follow this redirect, including across origins, "
+                                    + "matching curl -H -L behavior."
+                            )
+                        }
+                        let request = AgentApprovalRequest(
+                            invocation: invocation,
+                            descriptor: escalation,
+                            userIntent: context.userIntent,
+                            localReasons: reasons
+                        )
+                        switch await context.authorize(request) {
+                        case .allow: return
+                        case .deny(let reason): throw RestrictedFetchError.authorizationDenied(reason)
+                        }
+                    }
+                )
+                return result(invocation, .object([
+                    "url": .string(response.url.absoluteString),
+                    "status": .number(Double(response.status)),
+                    "headers": .object(response.headers.mapValues(AgentJSONValue.string)),
+                    "body": .string(response.body), "truncated": .bool(response.truncated),
+                ]), truncated: response.truncated)
+            }
+        )
     }
 
     private static func requestUserInput() -> AnyAgentTool {
@@ -767,6 +831,16 @@ nonisolated enum AgentBuiltInTools {
             "type": .string("array"), "items": items, "maxItems": .number(Double(max)),
         ])
     }
+
+    private static func object(
+        properties: [String: AgentJSONValue], required: [String]
+    ) -> AgentJSONValue {
+        .object([
+            "type": .string("object"), "properties": .object(properties),
+            "required": .array(required.map(AgentJSONValue.string)),
+            "additionalProperties": .bool(false),
+        ])
+    }
 }
 
 nonisolated struct Arguments: Sendable {
@@ -796,6 +870,20 @@ nonisolated struct Arguments: Sendable {
     func optionalBool(_ key: String) -> Bool? { object[key]?.boolValue }
     func optionalStrings(_ key: String) -> [String] {
         object[key]?.arrayValue?.compactMap(\.stringValue) ?? []
+    }
+
+    func requestHeaders() throws -> [RestrictedHTTPHeader] {
+        guard let value = object["headers"], value != .null else { return [] }
+        guard let rows = value.arrayValue else {
+            throw AgentToolError.invalidArguments("headers must be an array.")
+        }
+        return try rows.map { row in
+            guard let fields = row.objectValue,
+                let name = fields["name"]?.stringValue,
+                let value = fields["value"]?.stringValue
+            else { throw AgentToolError.invalidArguments("Each header requires name and value.") }
+            return RestrictedHTTPHeader(name: name, value: value)
+        }
     }
 }
 

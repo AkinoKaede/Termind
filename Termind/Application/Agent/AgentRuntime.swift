@@ -36,6 +36,8 @@ nonisolated struct AgentToolExecutionContext: Sendable {
     var userIntent: String
     var secretBroker: SecretBroker
     var userInteraction: any AgentUserInteractionHandling
+    var preflightMetadata: [String: AgentJSONValue]
+    var authorize: @Sendable (AgentApprovalRequest) async -> AgentApprovalDecision
 }
 
 nonisolated private struct EventingAgentUserInteraction: AgentUserInteractionHandling, Sendable {
@@ -519,7 +521,11 @@ actor AgentRuntime {
                         userInteraction: EventingAgentUserInteraction(
                             base: userInteraction,
                             event: { [weak self] event in await self?.emit(event) }
-                        )
+                        ),
+                        preflightMetadata: preflight.executionMetadata,
+                        authorize: { [approval] request in
+                            await approval.authorize(request, mode: mode)
+                        }
                     )
                 )
                 emit(.toolFinished(invocation, result))

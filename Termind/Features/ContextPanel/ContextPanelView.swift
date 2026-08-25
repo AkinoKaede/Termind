@@ -687,7 +687,7 @@ private struct AgentToolCardView: View {
                 Text(card.state.rawValue.capitalized)
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Text(card.invocation.call.arguments.encodedString)
+            Text(AgentSensitiveDataRedactor.redactedJSON(card.invocation.call.arguments).encodedString)
                 .font(.caption.monospaced()).textSelection(.enabled).lineLimit(8)
             if let review = card.review {
                 Label(
@@ -743,7 +743,7 @@ private struct AgentApprovalCard: View {
             if let host = request.invocation.targetHostID {
                 Text("Host: \(host.uuidString)").font(.caption).foregroundStyle(.secondary)
             }
-            Text(request.invocation.call.arguments.encodedString)
+            Text(AgentSensitiveDataRedactor.redactedJSON(request.invocation.call.arguments).encodedString)
                 .font(.caption.monospaced()).textSelection(.enabled)
             ForEach(request.localReasons, id: \.self) {
                 Text($0).font(.caption).foregroundStyle(.orange)

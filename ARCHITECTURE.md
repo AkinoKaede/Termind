@@ -56,8 +56,13 @@ dedicated SSH exec channel and file operations use run-scoped SFTP clients.
 Vault secrets are resolved behind `AgentHostResolver`. User-entered secrets are
 single-use handles bound to run, tool, host, and purpose; plaintext is passed
 directly to the executor and is excluded from model input, reviews, events,
-logs, and SwiftData. Fetch is public HTTP(S) only and revalidates DNS on every
-redirect. MCP discovery retains schemas and annotations, but remote annotations
+logs, and SwiftData. Fetch treats public HTTP(S) reads as locally read-only and
+routes private or otherwise non-public unicast targets through the active
+permission policy. DNS is revalidated on every redirect; a redirect that first
+enters a restricted origin pauses for another authorization decision. Explicit
+request headers follow every redirect, including cross-origin redirects, to
+match `curl -H -L`; sensitive values are redacted from review, UI, and durable
+history. MCP discovery retains schemas and annotations, but remote annotations
 are risk hints rather than proof of safety.
 
 The permission modes share structural validation but differ at the action gate:
@@ -68,7 +73,8 @@ The permission modes share structural validation but differ at the action gate:
   Missing credentials, timeout, transport errors, or malformed review JSON fail
   closed and are persisted as review failures.
 - Full access skips action approval and Security Review while retaining host-key,
-  secret, schema, host/path, fetch, sandbox, and tool-capability boundaries.
+  secret, schema, host/path, fetch protocol/header/address-classification,
+  sandbox, and tool-capability boundaries.
 
 Agent conversations, runs, visible messages, tool calls/results, and reviews are
 stored in SwiftData after truncation and redaction. Launch marks unfinished runs
