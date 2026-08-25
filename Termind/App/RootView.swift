@@ -10,13 +10,19 @@ struct RootView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var window: WindowModel
     @State private var hostsPageState = HostsPageState()
-    /// The last usable width reported by whichever sidebar is mounted.
+    /// The last usable leading edge reported by whichever detail column is mounted.
     ///
-    /// Keeping this at the window shell lets the pinned tabs track both the
-    /// Vault split view and the shared contextual sidebar. A hidden sidebar can
-    /// briefly report zero while it leaves the layout; that value is rejected
-    /// by `recordSidebarWidth` so the tab strip keeps the user's last width.
-    @State private var sidebarWidth = Metrics.Sidebar.ideal
+    /// The split view puts its native splitter outside the sidebar content, so
+    /// measuring that content stops short of the visual column boundary. The
+    /// detail column begins at the boundary the pinned tabs need to meet. A
+    /// hidden sidebar collapses that edge close to zero; measurements below the
+    /// split view's minimum sidebar width are rejected so the tab strip keeps
+    /// the user's last visible boundary.
+    @State private var pinnedTabStripWidth = Metrics.Sidebar.ideal
+
+    /// `nonisolated` because geometry transforms are `Sendable` closures and
+    /// this coordinate-space name is immutable, not main-actor state.
+    nonisolated private static let layoutSpace = "termind.rootLayout"
 
     init(window: WindowModel = WindowModel()) {
         _window = State(initialValue: window)
@@ -27,7 +33,7 @@ struct RootView: View {
         @Bindable var presentations = window.presentations
 
         VStack(spacing: 0) {
-            TabBarView(pinnedTabStripWidth: sidebarWidth)
+            TabBarView(pinnedTabStripWidth: pinnedTabStripWidth)
             Divider()
             splitContent
             if window.selectedTab != nil {
@@ -40,6 +46,7 @@ struct RootView: View {
             minHeight: Metrics.Window.minHeight,
             maxHeight: .infinity
         )
+        .coordinateSpace(.named(Self.layoutSpace))
         .toolbarBackground(WindowChrome.background(for: colorScheme), for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
         // ⌘T and every Connect entry land here. A sheet rather than a page,
@@ -90,10 +97,15 @@ struct RootView: View {
             // Its detail owns the optional work split so showing New Host does
             // not reconstruct `VaultView` and discard an active query, selected
             // tags, scroll position, or search-field focus.
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: sidebarVisibility) {
                 vaultSidebar
             } detail: {
                 vaultWorkspace
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.frame(in: .named(Self.layoutSpace)).minX
+                    } action: {
+                        recordPinnedTabStripWidth($0)
+                    }
             }
             .navigationSplitViewStyle(.balanced)
         } else {
@@ -104,11 +116,6 @@ struct RootView: View {
                         ideal: Metrics.Sidebar.ideal,
                         max: Metrics.Sidebar.max
                     )
-                    .onGeometryChange(for: CGFloat.self) {
-                        $0.size.width
-                    } action: {
-                        recordSidebarWidth($0)
-                    }
             } detail: {
                 detail
                     .frame(
@@ -117,6 +124,11 @@ struct RootView: View {
                         minHeight: Metrics.Window.minHeight,
                         maxHeight: .infinity
                     )
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.frame(in: .named(Self.layoutSpace)).minX
+                    } action: {
+                        recordPinnedTabStripWidth($0)
+                    }
             }
             .navigationSplitViewStyle(.balanced)
         }
@@ -129,17 +141,14 @@ struct RootView: View {
                 ideal: Metrics.Sidebar.ideal,
                 max: Metrics.Sidebar.max
             )
-            .onGeometryChange(for: CGFloat.self) {
-                $0.size.width
-            } action: {
-                recordSidebarWidth($0)
-            }
     }
 
-    private func recordSidebarWidth(_ measuredWidth: CGFloat) {
-        sidebarWidth = PinnedTopLevelTabSizing.resolvedSidebarWidth(
-            current: sidebarWidth,
-            measured: measuredWidth
+    private func recordPinnedTabStripWidth(_ measuredDetailLeadingEdge: CGFloat) {
+        pinnedTabStripWidth = PinnedTopLevelTabSizing.resolvedStripWidth(
+            current: pinnedTabStripWidth,
+            measuredDetailLeadingEdge: measuredDetailLeadingEdge,
+            isSidebarVisible: window.showsSidebar,
+            minimumSidebarWidth: Metrics.Sidebar.min
         )
     }
 

@@ -4,15 +4,29 @@ import CoreGraphics
 nonisolated enum PinnedTopLevelTabSizing {
     private static let tabCount: CGFloat = 2
 
-    /// Divides the measured sidebar equally between the two pinned tabs.
-    static func tabWidth(sidebarWidth: CGFloat) -> CGFloat {
-        sidebarWidth / tabCount
+    /// Divides the strip ending at the sidebar's trailing edge equally between
+    /// the two pinned tabs.
+    static func tabWidth(stripWidth: CGFloat) -> CGFloat {
+        stripWidth / tabCount
     }
 
-    /// Ignores transient invalid measurements produced while a sidebar leaves
-    /// the split-view layout, preserving the last width for the pinned tabs.
-    static func resolvedSidebarWidth(current: CGFloat, measured: CGFloat) -> CGFloat {
-        guard measured.isFinite, measured > 0 else { return current }
-        return measured
+    /// Ignores invalid or collapsed detail-column edges produced while a
+    /// sidebar leaves the split-view layout, preserving the last strip width.
+    /// AppKit may leave the hidden edge at a hairline rather than exactly zero,
+    /// so validity is based on the split view's existing minimum sidebar width.
+    static func resolvedStripWidth(
+        current: CGFloat,
+        measuredDetailLeadingEdge: CGFloat,
+        isSidebarVisible: Bool,
+        minimumSidebarWidth: CGFloat
+    ) -> CGFloat {
+        guard
+            isSidebarVisible,
+            measuredDetailLeadingEdge.isFinite,
+            measuredDetailLeadingEdge >= minimumSidebarWidth
+        else {
+            return current
+        }
+        return measuredDetailLeadingEdge
     }
 }

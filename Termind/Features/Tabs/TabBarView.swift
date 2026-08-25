@@ -130,7 +130,7 @@ struct TabBarView: View {
     /// drop on this edge means the same thing as the first insertion slot.
     private var leadingStrip: some View {
         let pinnedTabWidth = PinnedTopLevelTabSizing.tabWidth(
-            sidebarWidth: pinnedTabStripWidth
+            stripWidth: pinnedTabStripWidth
         )
 
         return HStack(spacing: 0) {

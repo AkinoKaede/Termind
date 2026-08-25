@@ -10,35 +10,53 @@ struct PinnedTopLevelTabSizingTests {
         (Metrics.Sidebar.ideal, Metrics.Sidebar.ideal / 2),
         (Metrics.Sidebar.max, Metrics.Sidebar.max / 2),
     ])
-    func twoPinnedTabsSplitTheSidebarWidthEqually(
-        sidebarWidth: CGFloat,
+    func twoPinnedTabsSplitAtTheSidebarTrailingEdgeEqually(
+        stripWidth: CGFloat,
         expectedTabWidth: CGFloat
     ) {
-        let tabWidth = PinnedTopLevelTabSizing.tabWidth(sidebarWidth: sidebarWidth)
+        let tabWidth = PinnedTopLevelTabSizing.tabWidth(stripWidth: stripWidth)
 
         #expect(tabWidth == expectedTabWidth)
-        #expect(tabWidth * 2 == sidebarWidth)
+        #expect(tabWidth * 2 == stripWidth)
     }
 
-    @Test(arguments: [CGFloat.zero, -.infinity, .infinity, .nan])
-    func invalidMeasurementsPreserveTheLastSidebarWidth(measuredWidth: CGFloat) {
+    @Test(arguments: [CGFloat.zero, 1, Metrics.Sidebar.min - 1, -.infinity, .infinity, .nan])
+    func invalidOrCollapsedDetailLeadingEdgesPreserveTheLastStripWidth(
+        measuredDetailLeadingEdge: CGFloat
+    ) {
         let currentWidth = Metrics.Sidebar.ideal
 
         #expect(
-            PinnedTopLevelTabSizing.resolvedSidebarWidth(
+            PinnedTopLevelTabSizing.resolvedStripWidth(
                 current: currentWidth,
-                measured: measuredWidth
+                measuredDetailLeadingEdge: measuredDetailLeadingEdge,
+                isSidebarVisible: true,
+                minimumSidebarWidth: Metrics.Sidebar.min
             ) == currentWidth
         )
     }
 
     @Test
-    func positiveMeasurementReplacesThePreviousSidebarWidth() {
+    func positiveDetailLeadingEdgeReplacesThePreviousStripWidth() {
         #expect(
-            PinnedTopLevelTabSizing.resolvedSidebarWidth(
+            PinnedTopLevelTabSizing.resolvedStripWidth(
                 current: Metrics.Sidebar.ideal,
-                measured: Metrics.Sidebar.max
-            ) == Metrics.Sidebar.max
+                measuredDetailLeadingEdge: 270.5,
+                isSidebarVisible: true,
+                minimumSidebarWidth: Metrics.Sidebar.min
+            ) == 270.5
+        )
+    }
+
+    @Test
+    func visibleAnimationMeasurementsDoNotReplaceTheLastStripWidthAfterHiding() {
+        #expect(
+            PinnedTopLevelTabSizing.resolvedStripWidth(
+                current: 400.5,
+                measuredDetailLeadingEdge: 272,
+                isSidebarVisible: false,
+                minimumSidebarWidth: Metrics.Sidebar.min
+            ) == 400.5
         )
     }
 }
