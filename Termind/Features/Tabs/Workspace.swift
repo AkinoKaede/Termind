@@ -2,6 +2,7 @@ import Foundation
 
 protocol WorkspaceLifecycleRouting: AnyObject {
     func workspace(_ workspace: Workspace, closePaneAfterSSHSessionExit paneID: Pane.ID)
+    func workspaceContextDidChange(_ workspace: Workspace)
 }
 
 /// One tab in the tab bar: a tree of panes.
@@ -23,7 +24,12 @@ final class Workspace: Identifiable {
     var layout: SplitNode {
         didSet { synchronizeInputRouters(previousLayout: oldValue) }
     }
-    var focusedPaneID: Pane.ID
+    var focusedPaneID: Pane.ID {
+        didSet {
+            guard focusedPaneID != oldValue else { return }
+            lifecycleRouter?.workspaceContextDidChange(self)
+        }
+    }
     /// `nil` means the title tracks the focused pane.
     var customTitle: String?
     weak var lifecycleRouter: (any WorkspaceLifecycleRouting)?
@@ -254,6 +260,17 @@ extension Workspace: SSHSessionInputRouting {
         for sshSession in targets {
             sshSession.writeInputDirectly(data)
         }
+    }
+
+    /// A background pane may keep reporting OSC 7 while another split has
+    /// focus. Only the focused shell is allowed to change the Context shown by
+    /// the Assistant sidebar.
+    func sshSession(
+        _ sshSession: SSHSessionModel,
+        didChangeWorkingDirectory workingDirectory: String?
+    ) {
+        guard focusedPane.sshSession === sshSession else { return }
+        lifecycleRouter?.workspaceContextDidChange(self)
     }
 
     /// Shell EOF is a successful completion, so it closes the shell's pane.

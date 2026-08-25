@@ -71,6 +71,10 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
 /// between Workspaces.
 protocol SSHSessionInputRouting: AnyObject {
     func routeInteractiveInput(_ data: Data, from origin: SSHSessionModel)
+    func sshSession(
+        _ sshSession: SSHSessionModel,
+        didChangeWorkingDirectory workingDirectory: String?
+    )
     func closeSSHSessionPane(afterExit sshSession: SSHSessionModel)
 }
 
@@ -127,7 +131,14 @@ final class SSHSessionModel: Identifiable {
             statusStore?.setSSHSessionStatus(status, sshSessionID: id, hostID: hostID)
         }
     }
-    var workingDirectory: String?
+    var workingDirectory: String? {
+        didSet {
+            guard workingDirectory != oldValue else { return }
+            inputRouter?.sshSession(
+                self, didChangeWorkingDirectory: workingDirectory
+            )
+        }
+    }
     var latencyMilliseconds: Int?
     var hasUnreadOutput: Bool = false
     /// History for an unsaved Quick Connect destination. Saved Hosts use the

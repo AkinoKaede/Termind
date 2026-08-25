@@ -99,6 +99,56 @@ struct WindowStateTests {
     }
 
     @Test
+    func assistantSidebarDraftShowsFocusedWorkspaceContext() {
+        let host = Host(name: "Files", host: "files.example")
+        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
+        let window = WindowModel(tabs: [workspace])
+
+        window.hostStore = HostStore(hosts: [host])
+
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host, .directory])
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/srv/app"])
+    }
+
+    @Test
+    func openingSidebarConversationRefreshesPinnedContextAndPreservesAttachments() {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sshSession(host: host)
+        let conversation = ConversationModel()
+        conversation.addChip(
+            ContextChip(kind: .output, label: "Connection error", approximateTokens: 40)
+        )
+        conversation.draft = "Explain this"
+        let library = AssistantLibraryModel()
+        _ = library.startConversation(conversation)
+        let window = WindowModel(tabs: [workspace], assistantLibrary: library)
+        window.hostStore = HostStore(hosts: [host])
+
+        window.openAssistantInSidebar(conversation.id)
+
+        #expect(conversation.contextChips.map(\.kind) == [.host, .output])
+        #expect(conversation.contextChips.map(\.label) == ["Server", "Connection error"])
+    }
+
+    @Test
+    func focusedSSHDirectoryChangesUpdateAssistantContext() async {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sshSession(host: host)
+        let sshSession = workspace.focusedPane.sshSession!
+        let window = WindowModel(tabs: [workspace])
+        window.hostStore = HostStore(hosts: [host])
+
+        sshSession.terminalState.terminalDidChangeWorkingDirectory("/var/log")
+        await Task.yield()
+
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host, .directory])
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Server", "/var/log"])
+
+        sshSession.disconnect()
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host])
+    }
+
+    @Test
     func vaultRoutesNeverBecomeWorkspaceTabs() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)

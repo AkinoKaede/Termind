@@ -36,6 +36,9 @@ final class WindowModel {
             for tab in tabs { tab.configureCommandHistory(using: commandHistoryStore) }
         }
     }
+    var hostStore: HostStore? {
+        didSet { refreshAssistantContext() }
+    }
 
     /// What is being dragged right now, from the tab bar or from a pane.
     ///
@@ -169,6 +172,7 @@ final class WindowModel {
     /// the native Toggle Sidebar command's job.
     func showAssistant() {
         guard selectedTab != nil else { return }
+        refreshAssistantContext()
         sidebar.isPresented = true
         sidebarMode = .assistant
     }
@@ -353,6 +357,7 @@ final class WindowModel {
         guard tabs.contains(where: { $0.id == id }) else { return }
         selectedTopLevelTab = .workspace(id)
         tabs.first { $0.id == id }?.markRead()
+        refreshAssistantContext()
     }
 
     func selectVault() {
@@ -372,10 +377,12 @@ final class WindowModel {
     func openAssistantInSidebar(_ id: ConversationModel.ID) {
         guard assistantLibrary.conversation(id: id) != nil else { return }
         sidebar.assistantConversationID = id
+        refreshAssistantContext()
     }
 
     func closeAssistantInSidebar() {
         sidebar.assistantConversationID = nil
+        refreshAssistantContext()
     }
 
     func deleteAssistantConversation(_ id: ConversationModel.ID) {
@@ -392,6 +399,19 @@ final class WindowModel {
         sidebar.assistantConversationID = conversation.id
         sidebar.assistantDraft = ConversationModel()
         return conversation
+    }
+
+    /// Pins the focused Workspace's host and directory to whichever composer is
+    /// currently visible in the Assistant sidebar. Explicit attachments remain
+    /// untouched; only the non-removable session chips are replaced.
+    func refreshAssistantContext() {
+        guard let tab = selectedTab, let hostStore else { return }
+        let hostName = tab.focusedPane.hostID.flatMap { hostStore.host($0)?.name }
+        let conversation = sidebarAssistantConversation ?? sidebar.assistantDraft
+        conversation.syncDefaultChips(
+            hostName: hostName,
+            workingDirectory: tab.focusedPane.workingDirectory
+        )
     }
 
     /// ⌘1 is Vault, ⌘2 is Assistant, and dynamic Workspaces start at ⌘3.
@@ -993,6 +1013,11 @@ extension WindowModel: WorkspaceLifecycleRouting {
             workspace.layout.pane(paneID) != nil
         else { return }
         closePane(paneID)
+    }
+
+    func workspaceContextDidChange(_ workspace: Workspace) {
+        guard selectedTab === workspace else { return }
+        refreshAssistantContext()
     }
 }
 
