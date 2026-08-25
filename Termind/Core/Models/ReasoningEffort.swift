@@ -16,7 +16,7 @@ nonisolated enum ReasoningEffort: String, Codable, Sendable, CaseIterable, Ident
         case .low: String(localized: "Low")
         case .medium: String(localized: "Medium")
         case .high: String(localized: "High")
-        case .xHigh: String(localized: "XHigh")
+        case .xHigh: String(localized: "Extra High")
         case .max: String(localized: "Max")
         }
     }

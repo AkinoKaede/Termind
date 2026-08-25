@@ -367,7 +367,7 @@ struct ModelListEditor: View {
                 .padding(Metrics.Space.l)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(height: 430)
+            .frame(height: 320)
             .controlSize(.small)
         } else {
             Text("Select a model to edit it. Use the checkboxes to test or delete models.")
