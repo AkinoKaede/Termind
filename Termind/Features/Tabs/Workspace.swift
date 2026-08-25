@@ -221,28 +221,44 @@ final class Workspace: Identifiable {
         }
     }
 
-    /// Keeps the sshSession-to-Workspace relationship correct as panes are merged,
+    /// Keeps each session-to-Workspace relationship correct as panes are merged,
     /// detached, replaced, and tiled. Removed sessions are cleared only when
     /// this Workspace still owns their route; a destination may already have
     /// claimed them during a tree rewrite.
     private func synchronizeInputRouters(previousLayout: SplitNode? = nil) {
         let currentSessions = broadcastTargets
         let currentIDs = Set(currentSessions.map(\.id))
+        let currentSFTPSessions = panes.compactMap(\.sftpSession)
+        let currentSFTPIDs = Set(currentSFTPSessions.map(\.id))
 
         if let previousLayout {
             for sshSession in previousLayout.panes.compactMap(\.sshSession)
             where !currentIDs.contains(sshSession.id) && sshSession.inputRouter === self {
                 sshSession.inputRouter = nil
             }
+            for sftpSession in previousLayout.panes.compactMap(\.sftpSession)
+            where !currentSFTPIDs.contains(sftpSession.id) && sftpSession.navigationRouter === self {
+                sftpSession.navigationRouter = nil
+            }
         }
 
         for sshSession in currentSessions {
             sshSession.inputRouter = self
         }
+        for sftpSession in currentSFTPSessions {
+            sftpSession.navigationRouter = self
+        }
 
         if !canBroadcast { broadcastsInput = false }
     }
 
+}
+
+extension Workspace: SFTPSessionNavigationRouting {
+    func sftpSession(_ sftpSession: SFTPSessionModel, didChangePath path: String) {
+        guard focusedPane.sftpSession === sftpSession else { return }
+        lifecycleRouter?.workspaceContextDidChange(self)
+    }
 }
 
 extension Workspace: SSHSessionInputRouting {

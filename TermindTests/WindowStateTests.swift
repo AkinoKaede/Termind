@@ -111,6 +111,42 @@ struct WindowStateTests {
     }
 
     @Test
+    func focusedSFTPPathChangesUpdateAssistantContext() {
+        let host = Host(name: "Files", host: "files.example")
+        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
+        let sftpSession = workspace.focusedPane.sftpSession!
+        let window = WindowModel(tabs: [workspace])
+        window.hostStore = HostStore(hosts: [host])
+
+        sftpSession.navigate(to: "/srv/releases")
+
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host, .directory])
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/srv/releases"])
+
+        sftpSession.goBack()
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/srv"])
+    }
+
+    @Test
+    func backgroundSFTPPathDoesNotReplaceFocusedPaneContext() {
+        let host = Host(name: "Files", host: "files.example")
+        let workspace = Workspace.sftpSession(host: host, initialPath: "/focused")
+        let focusedPane = workspace.focusedPane
+        workspace.splitFocusedPane(
+            axis: .horizontal,
+            with: .sftpSession(host: host, initialPath: "/background")
+        )
+        let backgroundSession = workspace.focusedPane.sftpSession!
+        workspace.focus(focusedPane.id)
+        let window = WindowModel(tabs: [workspace])
+        window.hostStore = HostStore(hosts: [host])
+
+        backgroundSession.navigate(to: "/background/changed")
+
+        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/focused"])
+    }
+
+    @Test
     func openingSidebarConversationRefreshesPinnedContextAndPreservesAttachments() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)

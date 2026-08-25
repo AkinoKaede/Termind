@@ -1,5 +1,9 @@
 import Foundation
 
+protocol SFTPSessionNavigationRouting: AnyObject {
+    func sftpSession(_ sftpSession: SFTPSessionModel, didChangePath path: String)
+}
+
 /// State consumed by SwiftUI's macOS `Table` must change as one value.
 ///
 /// `Table` is backed by `NSOutlineView`. Publishing its rows, filter, and
@@ -64,7 +68,12 @@ final class SFTPSessionModel: Identifiable {
     let id = UUID()
     let hostID: Host.ID
     let initialPath: String
-    private(set) var path: String
+    private(set) var path: String {
+        didSet {
+            guard path != oldValue else { return }
+            navigationRouter?.sftpSession(self, didChangePath: path)
+        }
+    }
     var pathText: String
     private(set) var backHistory: [String] = []
     private(set) var forwardHistory: [String] = []
@@ -117,6 +126,7 @@ final class SFTPSessionModel: Identifiable {
     private var hasConnectedOnce = false
     private var isRecoveringConnection = false
     private var operationCancellation: TransferCancellationToken?
+    weak var navigationRouter: (any SFTPSessionNavigationRouting)?
     private weak var statusStore: HostStore?
     private weak var transferCoordinator: SFTPTransferCoordinator?
     private var didResolveInitialPath: Bool
