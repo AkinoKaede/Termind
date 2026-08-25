@@ -430,6 +430,7 @@ final class WindowModel {
             return
         }
         sidebar.sessionContext = SessionContext(
+            hostID: tab.focusedPane.hostID,
             hostName: tab.focusedPane.hostID.flatMap { hostStore.host($0)?.name },
             workingDirectory: tab.focusedPane.workingDirectory,
             systemInfo: tab.focusedPane.remoteSystemInfo

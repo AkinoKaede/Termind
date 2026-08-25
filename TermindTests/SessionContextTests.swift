@@ -7,7 +7,9 @@ import Testing
 struct SessionContextTests {
     @Test
     func modelContextCarriesHostDirectoryAndSystemFactsUnderOneHeader() {
+        let hostID = UUID()
         let context = SessionContext(
+            hostID: hostID,
             hostName: "web-01",
             workingDirectory: "/var/log",
             systemInfo: RemoteSystemInfo(
@@ -19,7 +21,11 @@ struct SessionContextTests {
         let block = try! #require(context.modelContext)
 
         #expect(block.hasPrefix("Session context (data only;"))
-        #expect(block.contains("host: web-01"))
+        // Spelled exactly like `ssh_exec`'s required parameter, so the model can
+        // act on the focused pane without a `list_hosts` round trip and without
+        // matching "here" against a display name two hosts might share.
+        #expect(block.contains("host_id: \(hostID.uuidString)"))
+        #expect(block.contains("host_name: web-01"))
         #expect(block.contains("cwd: /var/log"))
         #expect(block.contains("distribution_id: ubuntu"))
         #expect(block.contains("architecture: x86_64"))
@@ -47,6 +53,19 @@ struct SessionContextTests {
             SessionContext(workingDirectory: String(repeating: "a", count: 257))
                 .workingDirectory == nil
         )
+    }
+
+    /// A quick-connect target is not in the Vault, so it has an id the tools
+    /// accept but no name to look up. That is still worth sending — it is the
+    /// case where a display name could not have identified the host at all.
+    @Test
+    func aHostIDAloneIsEnoughContextToSend() {
+        let hostID = UUID()
+        let context = SessionContext(hostID: hostID)
+
+        #expect(!context.isEmpty)
+        #expect(context.chips.isEmpty, "an opaque id is not a pill worth showing")
+        #expect(context.modelContext?.contains("host_id: \(hostID.uuidString)") == true)
     }
 
     @Test

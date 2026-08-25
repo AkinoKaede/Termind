@@ -157,7 +157,7 @@ struct AgentRuntimeTests {
                 $0.text.contains("Session context")
             }) else { return false }
             let block = request.messages[index].text
-            return block.contains("host: edge-01")
+            return block.contains("host_name: edge-01")
                 && block.contains("distribution_id: alpine")
                 && block.contains("kernel_release: 6.6.44-0-lts")
                 && block.contains("architecture: aarch64")

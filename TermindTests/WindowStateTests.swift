@@ -148,6 +148,10 @@ struct WindowStateTests {
 
         #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host, .directory])
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/srv/app"])
+        // The id the host tools require, taken from the focused pane rather than
+        // left for the model to guess from the name.
+        #expect(window.sidebar.sessionContext.hostID == workspace.focusedPane.hostID)
+        #expect(window.sidebar.sessionContext.hostID == host.id)
     }
 
     @Test
