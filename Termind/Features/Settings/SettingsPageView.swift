@@ -116,7 +116,7 @@ struct SettingsPageView: View {
     private func sectionPage(_ section: SettingsSection) -> some View {
         switch section {
         case .app:
-            SettingsFormPage(title: "App", subtitle: "About this installation.") { AppSettings() }
+            SettingsFormPage(title: "App", subtitle: "About this application.") { AppSettings() }
         case .startup:
             SettingsFormPage(title: "Startup", subtitle: "Choose what Termind restores when it opens.") {
                 StartupSettings()
