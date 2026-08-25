@@ -24,6 +24,10 @@
 	<string>public.app-category.developer-tools</string>
 	<key>NSAccentColorName</key>
 	<string>AccentColor</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Termind uses the microphone to transcribe speech into your chat draft.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online.</string>
 	<key>TermindTeamIdentifier</key>
 	<string>$(DEVELOPMENT_TEAM)</string>
 	<key>UTExportedTypeDeclarations</key>

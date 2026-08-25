@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // MARK: - Context chips
@@ -153,7 +154,9 @@ struct ComposerView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
+    @State private var draftBeforeTranscription = ""
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
         app.ai.resolve(conversation: conversation.model)
@@ -184,6 +187,18 @@ struct ComposerView: View {
         reasoningResolution?.supported.contains(where: { $0 != .off }) == true
     }
 
+    private var transcription: SpeechTranscriptionCoordinator {
+        app.speechTranscription
+    }
+
+    private var ownsTranscription: Bool {
+        transcription.isOwned(by: conversation.id)
+    }
+
+    private var showsTranscriptionControls: Bool {
+        ownsTranscription && transcription.phase != .idle
+    }
+
     var body: some View {
         @Bindable var conversation = conversation
 
@@ -209,34 +224,231 @@ struct ComposerView: View {
                     }
                 }
 
-            HStack(spacing: Metrics.Space.s) {
-                ViewThatFits(in: .horizontal) {
-                    composerMenus(compact: false)
-                    composerMenus(compact: true)
+            ZStack {
+                if showsTranscriptionControls {
+                    transcriptionControls
+                        .transition(.opacity)
+                } else {
+                    standardControls
+                        .transition(.opacity)
                 }
-                .frame(maxWidth: .infinity)
-
-                Button {
-                    if let onSend {
-                        onSend()
-                    } else {
-                        conversation.sendDraft()
-                    }
-                } label: {
-                    Label("Send", systemImage: "arrow.up.circle.fill")
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.plain)
-                .font(.title2)
-                .keyboardShortcut(.return, modifiers: .command)
-                .disabled(conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help(Text("Send — ⌘⏎"))
             }
+            // Both modes occupy the same bottom toolbar slot. Recording must
+            // never replace or vertically relocate the draft editor.
+            .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
+            .animation(Motion.panel(reduceMotion: reduceMotion), value: showsTranscriptionControls)
         }
         .padding(Metrics.Space.l)
         .background(.bar)
         .onAppear(perform: normalizeReasoningEffort)
         .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
+        .onDisappear {
+            guard transcription.isOwned(by: conversation.id) else { return }
+            conversation.draft = draftBeforeTranscription
+            transcription.cancel(ownerID: conversation.id)
+        }
+        .alert(
+            transcriptionError?.title ?? String(localized: "Transcription Failed"),
+            isPresented: transcriptionErrorPresented
+        ) {
+            if transcriptionError?.offersSystemSettings == true {
+                Button("Open System Settings") { openTranscriptionPrivacySettings() }
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let error = transcriptionError {
+                Text(error.message)
+            }
+        }
+    }
+
+    private var standardControls: some View {
+        HStack(spacing: Metrics.Space.s) {
+            ViewThatFits(in: .horizontal) {
+                composerMenus(compact: false)
+                composerMenus(compact: true)
+            }
+            .frame(maxWidth: .infinity)
+
+            transcribeButton
+            sendButton(
+                enabled: !conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                action: sendDraft
+            )
+            .keyboardShortcut(.return, modifiers: .command)
+        }
+        .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
+    }
+
+    private var transcribeButton: some View {
+        Button(action: beginTranscription) {
+            Group {
+                if ownsTranscription && transcription.isRequestingAuthorization {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "mic")
+                }
+            }
+            .frame(width: 24, height: 24)
+        }
+        .buttonStyle(.plain)
+        .contentShape(.circle)
+        .disabled(
+            !transcription.canStart(for: conversation.id)
+                || (ownsTranscription && transcription.isRequestingAuthorization)
+        )
+        .help(Text("Transcribe with Apple Speech"))
+        .accessibilityLabel(Text("Transcribe"))
+    }
+
+    @ViewBuilder
+    private var transcriptionControls: some View {
+        switch transcription.phase {
+        case .recording:
+            HStack(spacing: Metrics.Space.m) {
+                circularControl(
+                    title: "Cancel Transcription",
+                    systemImage: "xmark",
+                    action: cancelTranscription
+                )
+
+                SpeechWaveformView(
+                    samples: transcription.levelSamples,
+                    reduceMotion: reduceMotion
+                )
+                .frame(maxWidth: .infinity, minHeight: 32)
+                .accessibilityLabel(Text("Recording"))
+
+                circularControl(
+                    title: "Stop Recording",
+                    systemImage: "stop.fill",
+                    action: { transcription.stop(ownerID: conversation.id) }
+                )
+
+                sendButton(
+                    enabled: true,
+                    action: {
+                        transcription.stop(
+                            ownerID: conversation.id,
+                            sendAfterTranscription: true
+                        )
+                    }
+                )
+            }
+            .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
+        case .transcribing:
+            HStack(spacing: Metrics.Space.m) {
+                circularControl(
+                    title: "Cancel Transcription",
+                    systemImage: "xmark",
+                    action: cancelTranscription
+                )
+
+                Spacer(minLength: Metrics.Space.s)
+                Text("Transcribing")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+                Spacer(minLength: Metrics.Space.s)
+
+                ProgressView()
+                    .controlSize(.mini)
+                    .frame(width: 26, height: 26)
+                    .background(.quaternary.opacity(0.55), in: .circle)
+                    .frame(width: 32, height: 32)
+                    .accessibilityLabel(Text("Transcribing"))
+
+                sendButton(enabled: false, action: {})
+            }
+            .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
+        case .idle:
+            EmptyView()
+        }
+    }
+
+    private func sendButton(enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label("Send", systemImage: "arrow.up.circle.fill")
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.plain)
+        .font(.system(size: 26, weight: .semibold))
+        .frame(width: 32, height: 32)
+        .contentShape(.circle)
+        .disabled(!enabled)
+        .help(Text("Send — ⌘⏎"))
+    }
+
+    private func circularControl(
+        title: LocalizedStringKey,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .font(.system(size: 10, weight: .semibold))
+                .frame(width: 26, height: 26)
+                .background(.quaternary.opacity(0.55), in: .circle)
+                .frame(width: 32, height: 32)
+                .contentShape(.circle)
+        }
+        .buttonStyle(.plain)
+        .help(Text(title))
+        .accessibilityLabel(Text(title))
+    }
+
+    private var transcriptionError: SpeechTranscriptionFailure? {
+        guard transcription.errorOwnerID == conversation.id else { return nil }
+        return transcription.error
+    }
+
+    private var transcriptionErrorPresented: Binding<Bool> {
+        Binding(
+            get: { transcriptionError != nil },
+            set: { presented in
+                if !presented { transcription.dismissError(ownerID: conversation.id) }
+            }
+        )
+    }
+
+    private func beginTranscription() {
+        draftBeforeTranscription = conversation.draft
+        Task {
+            await transcription.start(ownerID: conversation.id) { transcript, shouldSend in
+                let applied = conversation.applyTranscription(
+                    transcript,
+                    sendAfterTranscription: shouldSend,
+                    send: sendDraft
+                )
+                if applied { isFocused = true }
+            }
+        }
+    }
+
+    private func cancelTranscription() {
+        conversation.draft = draftBeforeTranscription
+        transcription.cancel(ownerID: conversation.id)
+        isFocused = true
+    }
+
+    private func sendDraft() {
+        if let onSend {
+            onSend()
+        } else {
+            conversation.sendDraft()
+        }
+    }
+
+    private func openTranscriptionPrivacySettings() {
+        let anchor =
+            transcriptionError?.code == .speechPermissionDenied
+            ? "Privacy_SpeechRecognition"
+            : "Privacy_Microphone"
+        guard let url = URL(
+            string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)"
+        ) else { return }
+        NSWorkspace.shared.open(url)
     }
 
     private func composerMenus(compact: Bool) -> some View {
@@ -404,5 +616,38 @@ struct ComposerView: View {
         } else {
             Text(title)
         }
+    }
+}
+
+private struct SpeechWaveformView: View {
+    let samples: [Float]
+    let reduceMotion: Bool
+
+    private var displayedSamples: [Float] {
+        reduceMotion ? Array(repeating: 0.18, count: samples.count) : samples
+    }
+
+    var body: some View {
+        Canvas { context, size in
+            let values = displayedSamples
+            guard !values.isEmpty else { return }
+            let step = size.width / CGFloat(max(values.count - 1, 1))
+
+            for (index, rawValue) in values.enumerated() {
+                let value = CGFloat(min(max(rawValue, 0.04), 1))
+                let diameter = 2.2 + value * 3.8
+                let rect = CGRect(
+                    x: CGFloat(index) * step - diameter / 2,
+                    y: size.height / 2 - diameter / 2,
+                    width: diameter,
+                    height: diameter
+                )
+                context.fill(
+                    Path(ellipseIn: rect),
+                    with: .color(.primary.opacity(0.16 + value * 0.64))
+                )
+            }
+        }
+        .animation(reduceMotion ? nil : .linear(duration: 0.08), value: samples)
     }
 }

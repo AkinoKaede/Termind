@@ -63,13 +63,17 @@ final class AppModel {
     /// machines you connect to, this one about endpoints you spend a key at.
     /// See `AIStore`.
     let ai: AIStore
+    /// One app-wide microphone owner. Keeping this above individual composers
+    /// prevents two windows from installing competing audio taps.
+    let speechTranscription: SpeechTranscriptionCoordinator
     private let outboxRunner: OutboxRunner?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
 
     init(
         hosts: HostStore, ai: AIStore = AIStore(),
         commandHistory: CommandHistoryStore = CommandHistoryStore(),
-        dependencies: AppDependencies? = nil
+        dependencies: AppDependencies? = nil,
+        speechTranscription: SpeechTranscriptionCoordinator? = nil
     ) {
         let dependencies = dependencies ?? .legacy(hosts: hosts)
         let connectionCoordinator = dependencies.connectionCoordinator
@@ -84,6 +88,9 @@ final class AppModel {
             clientFactory: { connectionCoordinator.makeSFTPClient() }
         )
         self.ai = ai
+        self.speechTranscription =
+            speechTranscription
+            ?? SpeechTranscriptionCoordinator(service: AppleSpeechTranscriptionService())
         outboxRunner = dependencies.outboxRunner
         hosts.willDeleteHost = { [weak forwarding] _, ruleIDs in
             forwarding?.stop(ruleIDs)
@@ -156,6 +163,7 @@ final class AppModel {
     /// path runs on the main thread, so awaiting SSH/SFTP shutdown here can make
     /// ⌘Q appear hung when a peer is slow or unreachable.
     func shutdownForTermination() {
+        speechTranscription.cancelAll()
         let liveWindows = windows.values.compactMap(\.value)
         windows.removeAll()
         for window in liveWindows { window.closeAll() }

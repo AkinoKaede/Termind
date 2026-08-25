@@ -149,6 +149,30 @@ final class ConversationModel: Identifiable {
         draft = ""
     }
 
+    /// Adds a final speech-recognition result without disturbing text the user
+    /// already wrote. The callback keeps the standalone composer and the
+    /// sidebar's "promote draft to conversation" path on the same behavior.
+    @discardableResult
+    func applyTranscription(
+        _ transcript: String,
+        sendAfterTranscription: Bool,
+        send: () -> Void
+    ) -> Bool {
+        let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return false }
+
+        if draft.isEmpty {
+            draft = cleaned
+        } else if draft.last?.isWhitespace == true {
+            draft += cleaned
+        } else {
+            draft += " " + cleaned
+        }
+
+        if sendAfterTranscription { send() }
+        return true
+    }
+
     /// Seeds the two chips that are always attached, so the user can see the
     /// baseline rather than having to infer it.
     func syncDefaultChips(hostName: String?, workingDirectory: String?) {

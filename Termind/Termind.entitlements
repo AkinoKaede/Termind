@@ -4,6 +4,16 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Voice transcription in the Chat composer. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<!-- AVAudioEngine's input node reports capture diagnostics through this
+	     Apple service on current macOS releases. Without the scoped lookup the
+	     sandbox terminates the process before microphone permission is shown. -->
+	<key>com.apple.security.exception.mach-lookup.global-name</key>
+	<array>
+		<string>com.apple.audioanalyticsd</string>
+	</array>
 	<!-- Outgoing SSH / SFTP connections and LLM endpoint calls. -->
 	<key>com.apple.security.network.client</key>
 	<true/>
