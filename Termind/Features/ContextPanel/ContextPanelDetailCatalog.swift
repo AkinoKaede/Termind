@@ -260,13 +260,8 @@ private struct IdentityContextPanelDetailView: View {
 
 private struct SnippetContextPanelDetailView: View {
     let snippet: Snippet
-    @Environment(AppModel.self) private var app
-    @State private var isEditing = false
 
     var body: some View {
-        SnippetDetailContent(snippet: snippet) { isEditing = true }
-            .sheet(isPresented: $isEditing) {
-                SnippetEditorSheet(snippet: snippet) { app.hosts.upsert($0) }
-            }
+        SnippetDetailContent(snippet: snippet)
     }
 }

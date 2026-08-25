@@ -40,3 +40,52 @@ services and durable outbox handlers.
 
 Repository data is persistent truth. Runtime connection state is kept in a
 connection registry and is never persisted onto domain records.
+
+## Agent runtime and security
+
+`AgentRuntime` is an actor-owned, provider-neutral event loop. It streams one
+assistant turn, assembles and schema-validates tool calls, executes calls in
+source order, displays/persists their cards, and feeds the results into the next
+turn. OpenAI Responses, OpenAI Chat Completions, Anthropic Messages, and Gemini
+are adapters at the LLM boundary. Models without tool capability receive no
+tools. Stop cancels the active stream and actions that have not started;
+steering messages are consumed at the next turn boundary.
+
+Tools never receive a reference to the interactive PTY. Server commands use a
+dedicated SSH exec channel and file operations use run-scoped SFTP clients.
+Vault secrets are resolved behind `AgentHostResolver`. User-entered secrets are
+single-use handles bound to run, tool, host, and purpose; plaintext is passed
+directly to the executor and is excluded from model input, reviews, events,
+logs, and SwiftData. Fetch is public HTTP(S) only and revalidates DNS on every
+redirect. MCP discovery retains schemas and annotations, but remote annotations
+are risk hints rather than proof of safety.
+
+The permission modes share structural validation but differ at the action gate:
+
+- Ask for approval executes locally proven read-only calls and presents every
+  other action to the user.
+- Approve for me sends those same non-read-only actions to Security Review.
+  Missing credentials, timeout, transport errors, or malformed review JSON fail
+  closed and are persisted as review failures.
+- Full access skips action approval and Security Review while retaining host-key,
+  secret, schema, host/path, fetch, sandbox, and tool-capability boundaries.
+
+Agent conversations, runs, visible messages, tool calls/results, and reviews are
+stored in SwiftData after truncation and redaction. Launch marks unfinished runs
+`interrupted`; history is restored but remote actions are never resumed or
+replayed.
+
+## Inline suggestions
+
+Inline Suggestion is a separate actor service, not an Agent run. Token-authenticated
+bash, zsh, and fish hooks emit `commandStarted` and `promptReady(cwd, status)`;
+Termind never guesses prompt state from terminal output. At most one request is
+active per SSH session, and input, paste, command start, cwd change, a newer
+prompt, connection switch, disconnect, or reconnect invalidates the generation.
+
+The Inline model receives only host display information, cwd, shell, previous
+exit code, and up to eight recent commands. It receives no scrollback, output,
+selection, file data, password, or Agent result. A strict JSON parser accepts one
+control-free command. The result lives only in `SSHSessionModel.inlineSuggestion`:
+Tab/Return/Escape remain user actions, and only locally proven read-only commands
+may use the opt-in Return-to-run behavior.

@@ -32,7 +32,10 @@ struct TermindApp: App {
                     commandHistory: CommandHistoryStore(modelContext: container.mainContext),
                     dependencies: AppDependencies(
                         hostRepository: repository,
-                        outboxRunner: outboxRunner
+                        outboxRunner: outboxRunner,
+                        agentRunRepository: SwiftDataAgentRunRepository(
+                            context: container.mainContext
+                        )
                     )
                 )
             )

@@ -122,7 +122,6 @@ private struct SSHSessionSnippetsSidebar: View {
     @Environment(WindowModel.self) private var window
 
     @State private var query = ""
-    @State private var snippetToEdit: Snippet?
     @State private var destructiveSnippet: Snippet?
 
     var body: some View {
@@ -160,9 +159,6 @@ private struct SSHSessionSnippetsSidebar: View {
                 .foregroundStyle(.secondary)
                 .padding(.vertical, Metrics.Space.s)
         }
-        .sheet(item: $snippetToEdit) { snippet in
-            SnippetEditorSheet(snippet: snippet) { app.hosts.upsert($0) }
-        }
         .confirmationDialog(
             "Execute a destructive script?",
             isPresented: Binding(
@@ -188,11 +184,9 @@ private struct SSHSessionSnippetsSidebar: View {
                 .onTapGesture(count: 2) { execute(snippet) }
                 .onTapGesture { insert(snippet) }
                 .contextMenu {
+                    Button("Copy") { copyToPasteboard(snippet.body) }
                     Button("Insert") { insert(snippet) }
                     Button("Execute") { execute(snippet) }
-                    Divider()
-                    Button("Copy") { copyToPasteboard(snippet.body) }
-                    Button("Edit") { snippetToEdit = snippet }
                 }
         }
     }
@@ -613,6 +607,14 @@ struct ConversationView: View {
     var body: some View {
         VStack(spacing: 0) {
             transcript
+            if let approval = conversation.pendingApproval {
+                AgentApprovalCard(request: approval, conversation: conversation)
+                Divider()
+            }
+            if let input = conversation.pendingUserInput {
+                AgentUserInputCard(request: input, conversation: conversation)
+                Divider()
+            }
             Divider()
             ComposerView(conversation: conversation)
         }
@@ -629,6 +631,17 @@ struct ConversationView: View {
                             MessageView(message: message)
                                 .id(message.id)
                             Divider().opacity(0.4)
+                        }
+                        ForEach(conversation.toolCards) { card in
+                            AgentToolCardView(card: card)
+                                .id(card.id)
+                            Divider().opacity(0.4)
+                        }
+                        if conversation.runState == .interrupted {
+                            Label("This run was interrupted and was not resumed.", systemImage: "pause.circle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding()
                         }
                     }
                 }
@@ -653,6 +666,123 @@ struct ConversationView: View {
         }
         .padding(Metrics.Space.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct AgentToolCardView: View {
+    let card: AgentToolCard
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            HStack {
+                Image(systemName: symbol).foregroundStyle(tint)
+                Text(card.descriptor.name).font(.callout.weight(.semibold))
+                Spacer()
+                Text(card.state.rawValue.capitalized)
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Text(card.invocation.call.arguments.encodedString)
+                .font(.caption.monospaced()).textSelection(.enabled).lineLimit(8)
+            if let review = card.review {
+                Label(
+                    "Security Review: \(review.risk.rawValue.capitalized) — \(review.reason)",
+                    systemImage: "checkmark.shield"
+                )
+                .font(.caption).foregroundStyle(.secondary)
+            }
+            if let result = card.result {
+                Text(result.content)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(result.isError ? .red : .secondary)
+                    .textSelection(.enabled).lineLimit(12)
+                if result.isTruncated {
+                    Text("Output truncated").font(.caption2).foregroundStyle(.orange)
+                }
+            }
+        }
+        .padding(Metrics.Space.m)
+        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: Metrics.Radius.medium))
+        .padding(.horizontal, Metrics.Space.l)
+        .padding(.vertical, Metrics.Space.s)
+    }
+
+    private var symbol: String {
+        switch card.state {
+        case .reviewing: "checkmark.shield"
+        case .running: "gearshape.2"
+        case .completed: "checkmark.circle.fill"
+        case .denied, .failed: "xmark.octagon"
+        default: "wrench.and.screwdriver"
+        }
+    }
+
+    private var tint: Color {
+        switch card.state {
+        case .denied, .failed: .red
+        case .reviewing, .waitingForApproval: .orange
+        case .completed: .green
+        default: .secondary
+        }
+    }
+}
+
+private struct AgentApprovalCard: View {
+    let request: AgentApprovalRequest
+    let conversation: ConversationModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            Label("Approval required", systemImage: "hand.raised.fill").font(.headline)
+            Text(request.descriptor.name).font(.callout.weight(.semibold))
+            if let host = request.invocation.targetHostID {
+                Text("Host: \(host.uuidString)").font(.caption).foregroundStyle(.secondary)
+            }
+            Text(request.invocation.call.arguments.encodedString)
+                .font(.caption.monospaced()).textSelection(.enabled)
+            ForEach(request.localReasons, id: \.self) {
+                Text($0).font(.caption).foregroundStyle(.orange)
+            }
+            HStack {
+                Button("Deny", role: .destructive) { conversation.respondToApproval(allow: false) }
+                Spacer()
+                Button("Allow Once") { conversation.respondToApproval(allow: true) }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(Metrics.Space.l)
+        .background(.orange.opacity(0.08))
+    }
+}
+
+private struct AgentUserInputCard: View {
+    let request: AgentUserInputRequest
+    let conversation: ConversationModel
+
+    var body: some View {
+        @Bindable var conversation = conversation
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            Text(request.prompt).font(.callout.weight(.medium))
+            switch request.kind {
+            case .secret:
+                SecureField("Secret", text: $conversation.secretInputDraft)
+                    .textFieldStyle(.roundedBorder)
+            case .choice(let choices):
+                Picker("Answer", selection: $conversation.userInputDraft) {
+                    Text("Choose…").tag("")
+                    ForEach(choices, id: \.self) { Text($0).tag($0) }
+                }
+            case .text:
+                TextField("Answer", text: $conversation.userInputDraft)
+                    .textFieldStyle(.roundedBorder)
+            }
+            HStack {
+                Button("Cancel") { conversation.cancelUserInput() }
+                Spacer()
+                Button("Continue") { conversation.submitUserInput() }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(Metrics.Space.l)
     }
 }
 
@@ -992,7 +1122,6 @@ struct IdentityDetailContent: View {
 
 struct SnippetDetailContent: View {
     let snippet: Snippet
-    let edit: () -> Void
 
     @Environment(AppModel.self) private var app
 
@@ -1004,9 +1133,6 @@ struct SnippetDetailContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.xl) {
-            Button("Edit", action: edit)
-                .controlSize(.small)
-
             LabeledContent("Package", value: packagePath)
             LabeledContent("Risk") { RiskBadge(assessment: assessment) }
 

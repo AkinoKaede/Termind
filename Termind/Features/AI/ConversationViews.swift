@@ -218,10 +218,16 @@ struct ComposerView: View {
                         Text(prompt)
                             .font(.callout)
                             .foregroundStyle(.tertiary)
-                            .padding(.top, 8)
                             .padding(.leading, 5)
                             .allowsHitTesting(false)
                     }
+                }
+                .onKeyPress(.return, phases: .down) { press in
+                    guard !press.modifiers.contains(.shift) else { return .ignored }
+                    let disallowed: EventModifiers = [.control, .option]
+                    guard press.modifiers.intersection(disallowed).isEmpty else { return .ignored }
+                    sendDraft()
+                    return .handled
                 }
 
             ZStack {
@@ -271,11 +277,27 @@ struct ComposerView: View {
             .frame(maxWidth: .infinity)
 
             transcribeButton
-            sendButton(
-                enabled: !conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                action: sendDraft
-            )
-            .keyboardShortcut(.return, modifiers: .command)
+            if conversation.isStreaming {
+                sendButton(
+                    enabled: !conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    action: sendDraft
+                )
+                .help(Text("Queue message for the running agent"))
+                Button(action: conversation.stop) {
+                    Label("Stop", systemImage: "stop.circle.fill")
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .font(.system(size: 26, weight: .semibold))
+                .foregroundStyle(.red)
+                .frame(width: 32, height: 32)
+                .help(Text("Stop current run"))
+            } else {
+                sendButton(
+                    enabled: !conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    action: sendDraft
+                )
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
     }
@@ -433,10 +455,14 @@ struct ComposerView: View {
     }
 
     private func sendDraft() {
+        if conversation.isStreaming {
+            conversation.submitSteeringDraft()
+            return
+        }
         if let onSend {
             onSend()
         } else {
-            conversation.sendDraft()
+            app.sendAgentDraft(conversation)
         }
     }
 

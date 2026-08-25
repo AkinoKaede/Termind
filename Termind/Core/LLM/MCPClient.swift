@@ -7,6 +7,11 @@ nonisolated struct MCPDiscovery: Sendable {
     var tools: [MCPTool]
 }
 
+nonisolated struct MCPCallResult: Hashable, Sendable {
+    var value: AgentJSONValue
+    var isError: Bool
+}
+
 /// Connects to an MCP server and asks what tools it has.
 ///
 /// Discovery only. This runs the handshake and `tools/list`, and stops there —
@@ -62,6 +67,31 @@ nonisolated struct MCPClient: Sendable {
         }
     }
 
+    func call(
+        _ server: MCPServer, tool name: String, arguments: AgentJSONValue,
+        bearerToken: String?
+    ) async throws -> MCPCallResult {
+        guard arguments.objectValue != nil else {
+            throw MCPError.malformedResponse("tools/call arguments")
+        }
+        let trimmed = server.url.trimmingCharacters(in: .whitespaces)
+        guard let url = URL(string: trimmed), url.scheme?.hasPrefix("http") == true else {
+            throw MCPError.badURL(trimmed)
+        }
+        switch server.transport {
+        case .streamableHTTP:
+            return try await callStreamable(
+                at: url, server: server, name: name, arguments: arguments,
+                bearerToken: bearerToken
+            )
+        case .sse:
+            return try await callSSE(
+                at: url, server: server, name: name, arguments: arguments,
+                bearerToken: bearerToken
+            )
+        }
+    }
+
     // MARK: - Streamable HTTP
 
     /// POST `initialize` → POST `notifications/initialized` → POST `tools/list`.
@@ -105,6 +135,26 @@ nonisolated struct MCPClient: Sendable {
             serverName: initialize.serverInfo?.name ?? server.name,
             tools: tools
         )
+    }
+
+    private func callStreamable(
+        at url: URL, server: MCPServer, name: String, arguments: AgentJSONValue,
+        bearerToken: String?
+    ) async throws -> MCPCallResult {
+        var context = RequestContext(
+            url: url, version: Self.preferredVersion, sessionID: nil,
+            server: server, bearerToken: bearerToken
+        )
+        let initialize: InitializeResult = try await send(
+            .initialize(version: Self.preferredVersion), id: 1, context: &context
+        )
+        context.version = initialize.protocolVersion ?? Self.preferredVersion
+        try await notify(.initialized, context: context)
+        let called: ToolsCallResult = try await send(
+            .toolsCall(name: name, arguments: arguments), id: 2, context: &context
+        )
+        await endSession(context)
+        return MCPCallResult(value: called.value, isError: called.isError ?? false)
     }
 
     /// One JSON-RPC request, and its response.
@@ -241,6 +291,42 @@ nonisolated struct MCPClient: Sendable {
         )
     }
 
+    private func callSSE(
+        at url: URL, server: MCPServer, name: String, arguments: AgentJSONValue,
+        bearerToken: String?
+    ) async throws -> MCPCallResult {
+        var context = RequestContext(
+            url: url, version: Self.legacyVersion, sessionID: nil,
+            server: server, bearerToken: bearerToken
+        )
+        var streamRequest = URLRequest(url: url)
+        streamRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        context.apply(to: &streamRequest)
+        let (stream, raw) = try await session.bytes(for: streamRequest)
+        guard let http = raw as? HTTPURLResponse else { throw MCPError.notHTTP }
+        guard (200..<300).contains(http.statusCode) else {
+            throw MCPError.http(status: http.statusCode)
+        }
+        let events = LegacySSESession()
+        await events.start(SSEStream.events(from: stream))
+        defer { Task { await events.cancel() } }
+        let endpoint = try await events.endpointURL()
+        guard let postURL = URL(string: endpoint, relativeTo: url) else {
+            throw MCPError.noEndpointEvent
+        }
+        context.url = postURL.absoluteURL
+        let initialize: InitializeResult = try await exchange(
+            .initialize(version: Self.legacyVersion), id: 1, context: context, events: events
+        )
+        context.version = initialize.protocolVersion ?? Self.legacyVersion
+        try await notify(.initialized, context: context)
+        let called: ToolsCallResult = try await exchange(
+            .toolsCall(name: name, arguments: arguments), id: 2,
+            context: context, events: events
+        )
+        return MCPCallResult(value: called.value, isError: called.isError ?? false)
+    }
+
     /// POST a request, then wait for its answer to come back on the stream.
     private func exchange<Result: Decodable>(
         _ call: Call,
@@ -327,12 +413,14 @@ nonisolated private enum Call {
     case initialize(version: String)
     case initialized
     case toolsList(cursor: String?)
+    case toolsCall(name: String, arguments: AgentJSONValue)
 
     var method: String {
         switch self {
         case .initialize: "initialize"
         case .initialized: "notifications/initialized"
         case .toolsList: "tools/list"
+        case .toolsCall: "tools/call"
         }
     }
 
@@ -355,6 +443,11 @@ nonisolated private enum Call {
             object["params"] = [String: Any]()
         case .toolsList(let cursor):
             object["params"] = cursor.map { ["cursor": $0] } ?? [:]
+        case .toolsCall(let name, let arguments):
+            object["params"] = [
+                "name": name,
+                "arguments": try JSONSerialization.jsonObject(with: arguments.encodedData),
+            ]
         }
 
         return try JSONSerialization.data(withJSONObject: object)
@@ -381,11 +474,32 @@ nonisolated private struct ToolsListResult: Decodable {
         var name: String
         var title: String?
         var description: String?
+        var inputSchema: AgentJSONValue?
+        var annotations: MCPToolAnnotations?
 
         /// Arrives enabled and requiring approval. See `MCPTool`.
         func tool() -> MCPTool {
-            MCPTool(id: name, summary: description ?? title ?? "")
+            MCPTool(
+                id: name, title: title ?? "", summary: description ?? title ?? "",
+                inputSchema: inputSchema ?? .object([
+                    "type": .string("object"), "properties": .object([:])
+                ]),
+                annotations: annotations ?? MCPToolAnnotations()
+            )
         }
+    }
+}
+
+nonisolated private struct ToolsCallResult: Decodable {
+    var content: AgentJSONValue?
+    var structuredContent: AgentJSONValue?
+    var isError: Bool?
+
+    var value: AgentJSONValue {
+        .object([
+            "content": content ?? .array([]),
+            "structuredContent": structuredContent ?? .null,
+        ])
     }
 }
 

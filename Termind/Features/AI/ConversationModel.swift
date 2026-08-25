@@ -56,6 +56,19 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
     var isStreaming: Bool = false
 }
 
+nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
+    nonisolated enum State: String, Hashable, Sendable {
+        case proposed, waitingForApproval, reviewing, running, completed, denied, failed
+    }
+
+    var id: UUID { invocation.id }
+    var invocation: AgentToolInvocation
+    var descriptor: AgentToolDescriptor
+    var state: State = .proposed
+    var result: AgentToolResult?
+    var review: SecurityReviewDecision?
+}
+
 /// The approval posture selected for one conversation.
 ///
 /// This turn-level state does not yet alter command or MCP execution. Keeping
@@ -88,11 +101,21 @@ nonisolated enum ChatPermissionMode: String, Codable, Sendable, CaseIterable, Id
 /// appear in the fixed Assistant tab.
 @Observable
 final class ConversationModel: Identifiable {
-    let id = UUID()
+    let id: UUID
     var messages: [ChatMessage] = []
     var contextChips: [ContextChip] = []
     var draft: String = ""
     var isStreaming: Bool = false
+    var runState: AgentRunState = .idle
+    var toolCards: [AgentToolCard] = []
+    var pendingApproval: AgentApprovalRequest?
+    var pendingUserInput: AgentUserInputRequest?
+    var userInputDraft = ""
+    var secretInputDraft = ""
+    private var runtime: AgentRuntime?
+    private var eventTask: Task<Void, Never>?
+    private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
+    private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
 
     /// Per-conversation reasoning state, normalized against the resolved model
     /// by the composer before a request is made.
@@ -117,6 +140,15 @@ final class ConversationModel: Identifiable {
     /// nothing about where models come from.
     var model: AIModelRef?
 
+    init(
+        id: UUID = UUID(), messages: [ChatMessage] = [],
+        runState: AgentRunState = .idle
+    ) {
+        self.id = id
+        self.messages = messages
+        self.runState = runState
+    }
+
     var estimatedContextTokens: Int {
         contextChips.reduce(0) { $0 + $1.approximateTokens }
     }
@@ -140,13 +172,142 @@ final class ConversationModel: Identifiable {
         contextChips.removeAll { $0.id == id && $0.isRemovable }
     }
 
-    /// P0 stub: records the user's turn so the composer and message list can be
-    /// exercised. P3 replaces the body with a streaming `LLMClient` call.
+    /// Records a local user turn. Agent-backed composers use AppModel's runtime
+    /// path; the sidebar promotion flow uses this before starting that run.
     func sendDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         messages.append(ChatMessage(role: .user, text: text))
         draft = ""
+    }
+
+    func attach(runtime: AgentRuntime, events: AsyncStream<AgentEvent>) {
+        self.runtime = runtime
+        eventTask?.cancel()
+        eventTask = Task { [weak self] in
+            for await event in events {
+                guard let self else { return }
+                handle(event)
+            }
+        }
+    }
+
+    func stop() {
+        eventTask?.cancel()
+        eventTask = nil
+        Task { await runtime?.cancel() }
+        runtime = nil
+        isStreaming = false
+    }
+
+    func steer(_ text: String) {
+        Task { await runtime?.steer(text) }
+    }
+
+    /// Queues a visible user turn for the next model boundary without replacing
+    /// the active runtime or interrupting an in-flight tool.
+    func submitSteeringDraft() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, runtime != nil else { return }
+        messages.append(ChatMessage(role: .user, text: text))
+        draft = ""
+        steer(text)
+    }
+
+    func requestApproval(_ request: AgentApprovalRequest) async -> AgentApprovalDecision {
+        pendingApproval = request
+        runState = .waitingForApproval
+        setToolState(request.invocation.id, .waitingForApproval)
+        return await withCheckedContinuation { approvalWaiters[request.id] = $0 }
+    }
+
+    func respondToApproval(allow: Bool) {
+        guard let request = pendingApproval else { return }
+        pendingApproval = nil
+        runState = .running
+        let decision: AgentApprovalDecision = allow
+            ? .allow : .deny(String(localized: "The user denied this action."))
+        if !allow { setToolState(request.invocation.id, .denied) }
+        approvalWaiters.removeValue(forKey: request.id)?.resume(returning: decision)
+    }
+
+    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
+        pendingUserInput = request
+        userInputDraft = ""
+        secretInputDraft = ""
+        runState = .waitingForUser
+        return await withCheckedContinuation { inputWaiters[request.id] = $0 }
+    }
+
+    func submitUserInput() {
+        guard let request = pendingUserInput else { return }
+        let response: AgentUserInputResponse
+        switch request.kind {
+        case .secret: response = .secret(secretInputDraft)
+        case .text, .choice: response = .text(userInputDraft)
+        }
+        secretInputDraft = ""
+        userInputDraft = ""
+        pendingUserInput = nil
+        runState = .running
+        inputWaiters.removeValue(forKey: request.id)?.resume(returning: response)
+    }
+
+    func cancelUserInput() {
+        guard let request = pendingUserInput else { return }
+        secretInputDraft = ""
+        userInputDraft = ""
+        pendingUserInput = nil
+        inputWaiters.removeValue(forKey: request.id)?.resume(returning: .cancelled)
+    }
+
+    func handle(_ event: AgentEvent) {
+        switch event {
+        case .runState(let state):
+            runState = state
+            isStreaming = state == .running || state == .reviewing
+        case .messageStarted(let id):
+            messages.append(ChatMessage(id: id, role: .assistant, text: "", isStreaming: true))
+            isStreaming = true
+        case .messageDelta(let id, let text):
+            if let index = messages.firstIndex(where: { $0.id == id }) { messages[index].text += text }
+        case .messageFinished(let message):
+            if let index = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[index].text = message.text
+                messages[index].isStreaming = false
+            }
+        case .toolProposed(let invocation, let descriptor):
+            toolCards.append(AgentToolCard(invocation: invocation, descriptor: descriptor))
+        case .toolStarted(let invocation): setToolState(invocation.id, .running)
+        case .toolFinished(let invocation, let result):
+            if let index = toolCards.firstIndex(where: { $0.id == invocation.id }) {
+                toolCards[index].result = result
+                toolCards[index].state = result.isError ? .failed : .completed
+            }
+        case .approvalRequested(let request):
+            pendingApproval = request
+            setToolState(request.invocation.id, .waitingForApproval)
+        case .reviewStarted(let request):
+            runState = .reviewing
+            setToolState(request.invocation.id, .reviewing)
+        case .reviewFinished(let request, let decision):
+            runState = .running
+            if let index = toolCards.firstIndex(where: { $0.id == request.invocation.id }) {
+                toolCards[index].review = decision
+            }
+        case .reviewFailed(let request, _, _):
+            runState = .running
+            setToolState(request.invocation.id, .failed)
+        case .userInputRequested(let request): pendingUserInput = request
+        case .failed(let reason):
+            messages.append(ChatMessage(role: .assistant, text: reason))
+            isStreaming = false
+        }
+    }
+
+    private func setToolState(_ id: UUID, _ state: AgentToolCard.State) {
+        guard let index = toolCards.firstIndex(where: { $0.id == id }) else { return }
+        toolCards[index].state = state
     }
 
     /// Adds a final speech-recognition result without disturbing text the user
@@ -206,6 +367,8 @@ final class ConversationModel: Identifiable {
         contextChips.insert(directory, at: insertionIndex)
     }
 }
+
+extension ConversationModel: AgentUserInteractionHandling {}
 
 // MARK: - Demo data
 

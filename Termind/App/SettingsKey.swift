@@ -25,6 +25,9 @@ nonisolated enum SettingsKey {
     static let terminalFontSize = "terminal.fontSize"
     /// Enable session-scoped hooks that report remote shell context.
     static let shellIntegration = "terminal.shellIntegration"
+    /// Generate one command candidate after each authenticated prompt event.
+    /// Defaults on; accepting the candidate always remains a user action.
+    static let inlineSuggestionsEnabled = "ai.inlineSuggestions.enabled"
     /// Allow one-click execution of commands the local classifier rates `.safe`.
     /// Off by default: opting in is the user's call, not ours.
     static let allowOneClickSafeCommands = "ai.allowOneClickSafeCommands"

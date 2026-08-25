@@ -103,7 +103,12 @@ nonisolated struct MCPTool: Identifiable, Hashable, Sendable {
     /// The tool name as the server reports it. Its identity, since MCP names
     /// are unique per server.
     var id: String
+    var title: String = ""
     var summary: String = ""
+    var inputSchema: AgentJSONValue = .object([
+        "type": .string("object"), "properties": .object([:])
+    ])
+    var annotations: MCPToolAnnotations = MCPToolAnnotations()
     var isEnabled: Bool = true
     var requiresApproval: Bool = true
 
@@ -112,4 +117,14 @@ nonisolated struct MCPTool: Identifiable, Hashable, Sendable {
         let q = query.lowercased()
         return id.lowercased().contains(q) || summary.lowercased().contains(q)
     }
+}
+
+/// Hints supplied by the remote MCP server. They inform risk signals but can
+/// never prove a call safe or bypass Termind's local approval policy.
+nonisolated struct MCPToolAnnotations: Hashable, Sendable, Codable {
+    var title: String?
+    var readOnlyHint: Bool?
+    var destructiveHint: Bool?
+    var idempotentHint: Bool?
+    var openWorldHint: Bool?
 }

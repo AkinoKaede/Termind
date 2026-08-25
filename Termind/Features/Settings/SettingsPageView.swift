@@ -445,10 +445,15 @@ private struct TerminalSettings: View {
 }
 
 private struct AIBehaviorSettings: View {
+    @AppStorage(SettingsKey.inlineSuggestionsEnabled) private var inlineSuggestionsEnabled = true
     @AppStorage(SettingsKey.allowOneClickSafeCommands) private var allowOneClickSafe = false
     var body: some View {
         Section("Suggestions") {
+            Toggle("Inline Suggestions", isOn: $inlineSuggestionsEnabled)
+            Text("After each trusted shell prompt, Termind sends only the host display information, working directory, shell, previous exit code, and a small recent-command list to the Inline model. Model usage may incur provider charges.")
+                .font(.caption).foregroundStyle(.secondary)
             Toggle("Run Read-Only Suggestions with ⏎", isOn: $allowOneClickSafe)
+                .disabled(!inlineSuggestionsEnabled)
             Text("Commands that write, delete, or escalate still require a click. Destructive commands also require confirmation.")
                 .font(.caption).foregroundStyle(.secondary)
         }

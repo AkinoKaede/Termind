@@ -134,6 +134,7 @@ final class SSHSessionModel: Identifiable {
     var workingDirectory: String? {
         didSet {
             guard workingDirectory != oldValue else { return }
+            cancelInlineSuggestion()
             inputRouter?.sshSession(
                 self, didChangeWorkingDirectory: workingDirectory
             )
@@ -158,6 +159,21 @@ final class SSHSessionModel: Identifiable {
 
     /// The one command currently floating above the prompt, if any.
     var inlineSuggestion: SuggestedCommand?
+    var inlineSuggestionController: InlineSuggestionController? {
+        didSet { resumePendingInlineSuggestion() }
+    }
+    private var inlineSuggestionTask: Task<Void, Never>?
+    private var inlineSuggestionGeneration: UInt64 = 0
+    /// A prompt can arrive while the SSH actor is finishing `connect()`. Keep
+    /// the latest authenticated prompt until the session, controller, and shell
+    /// integration are all ready instead of silently losing the first request.
+    private var pendingInlineSuggestionPrompt: (
+        cwd: String, previousExitCode: Int?
+    )?
+    var hasPendingInlineSuggestionRequest: Bool {
+        pendingInlineSuggestionPrompt != nil
+    }
+    private var integratedShell = "unknown"
 
     /// Non-nil while a connection is waiting for the user to approve a first or
     /// additional server fingerprint. No credential is sent before this clears.
@@ -318,6 +334,26 @@ final class SSHSessionModel: Identifiable {
         shellIntegrationAvailable && status.isLive
     }
 
+    var agentTemporaryTarget: AgentHostTarget? {
+        guard statusStore?.host(hostID) == nil, let host = transientHost else { return nil }
+        let state: String
+        switch status {
+        case .disconnected: state = "disconnected"
+        case .connecting: state = "connecting"
+        case .connected: state = "connected"
+        case .reconnecting: state = "reconnecting"
+        case .failed: state = "failed"
+        }
+        return AgentHostTarget(
+            id: host.id, displayName: host.name, address: host.displayAddress,
+            tags: host.tags, connectionState: state, isTemporary: true
+        )
+    }
+
+    var agentConnectionConfiguration: SSHConnectionConfiguration? {
+        transferConfiguration
+    }
+
     func requestTerminalFocus() {
         #if canImport(AppKit)
             terminalViewOwner.requestFocus()
@@ -376,6 +412,7 @@ final class SSHSessionModel: Identifiable {
     /// makes broadcast possible — see `Workspace.deliver`; `submit` appends the
     /// newline that the user's own Return key would otherwise supply.
     func insert(_ text: String, submit: Bool = false) {
+        cancelInlineSuggestion()
         writeInputDirectly(Data((text + (submit ? "\r" : "")).utf8))
     }
 
@@ -384,6 +421,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func startConnection(using store: HostStore) {
+        cancelInlineSuggestion()
         let reconnecting = hasConnectedOnce && isRecoveringConnection
         workingDirectory = nil
         shellIntegrationAvailable = false
@@ -797,6 +835,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func disconnect() {
+        cancelInlineSuggestion()
         workingDirectory = nil
         transferConfiguration = nil
         pendingInitialCommand = nil
@@ -885,12 +924,7 @@ final class SSHSessionModel: Identifiable {
             shellIntegration: { [weak self] event in
                 Task { @MainActor in
                     guard let self else { return }
-                    switch event {
-                    case .available:
-                        self.shellIntegrationAvailable = true
-                    case .command(let command):
-                        self.recordExecutedCommand(command)
-                    }
+                    self.receiveShellIntegrationEvent(event)
                 }
             }
         )
@@ -929,6 +963,7 @@ final class SSHSessionModel: Identifiable {
                 )
             }
             submitPendingInitialCommand()
+            resumePendingInlineSuggestion()
         } catch {
             await actor.disconnect()
             if ssh === actor { ssh = nil }
@@ -942,6 +977,7 @@ final class SSHSessionModel: Identifiable {
     /// for Termind's retained pane model. Close the pane through its current
     /// Workspace instead; transport failures remain visible for reconnection.
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
+        cancelInlineSuggestion()
         workingDirectory = nil
         shellIntegrationAvailable = false
         transferConfiguration = nil
@@ -985,6 +1021,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func scheduleReconnect(after message: String, using store: HostStore) {
+        cancelInlineSuggestion()
         isRecoveringConnection = true
         connectionAttemptID = nil
         connectionTask?.cancel()
@@ -1119,6 +1156,7 @@ final class SSHSessionModel: Identifiable {
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
         copy.connectionCoordinator = connectionCoordinator
         copy.commandHistoryStore = commandHistoryStore
+        copy.inlineSuggestionController = inlineSuggestionController
         return copy
     }
 
@@ -1126,6 +1164,7 @@ final class SSHSessionModel: Identifiable {
     /// captured user interaction. Mouse/focus reports and protocol replies use
     /// the direct path even while Broadcast Input is enabled.
     func handleTerminalWrite(_ data: Data, isInteractiveInput: Bool) {
+        if isInteractiveInput { cancelInlineSuggestion() }
         if isInteractiveInput, let inputRouter {
             inputRouter.routeInteractiveInput(data, from: self)
         } else {
@@ -1170,7 +1209,68 @@ final class SSHSessionModel: Identifiable {
     }
 
     func dismissSuggestion() {
+        cancelInlineSuggestion()
+    }
+
+    func cancelInlineSuggestion() {
+        inlineSuggestionGeneration &+= 1
+        inlineSuggestionTask?.cancel()
+        inlineSuggestionTask = nil
         inlineSuggestion = nil
+        pendingInlineSuggestionPrompt = nil
+    }
+
+    func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
+        switch event {
+        case .available(let shell):
+            integratedShell = shell
+            shellIntegrationAvailable = true
+            resumePendingInlineSuggestion()
+        case .commandStarted(let command):
+            cancelInlineSuggestion()
+            recordExecutedCommand(command)
+        case .promptReady(let cwd, let previousExitCode):
+            workingDirectory = cwd
+            cancelInlineSuggestion()
+            pendingInlineSuggestionPrompt = (cwd, previousExitCode)
+            resumePendingInlineSuggestion()
+        }
+    }
+
+    func resumePendingInlineSuggestion() {
+        guard let prompt = pendingInlineSuggestionPrompt else { return }
+        guard shellIntegrationAvailable, status.isLive,
+            let inlineSuggestionController,
+            UserDefaults.standard.object(forKey: SettingsKey.inlineSuggestionsEnabled) as? Bool
+                ?? true
+        else { return }
+        pendingInlineSuggestionPrompt = nil
+
+        let host = statusStore?.host(hostID) ?? transientHost
+        let history = commandHistoryStore?.entries(for: hostID).map(\.command)
+            ?? transientCommandHistory.map(\.command)
+        let context = InlineSuggestionContext(
+            hostName: host?.name ?? title,
+            hostAddress: host?.displayAddress ?? title,
+            cwd: prompt.cwd,
+            shell: integratedShell,
+            previousExitCode: prompt.previousExitCode,
+            recentCommands: Array(history.prefix(8))
+        )
+        let generation = inlineSuggestionGeneration
+        let sessionID = id
+        inlineSuggestionTask = Task { [weak self, inlineSuggestionController] in
+            let suggestion = await inlineSuggestionController.suggest(
+                sessionID: sessionID, context: context
+            )
+            guard !Task.isCancelled, let self,
+                self.inlineSuggestionGeneration == generation,
+                self.status.isLive,
+                self.workingDirectory == prompt.cwd
+            else { return }
+            self.inlineSuggestion = suggestion
+            self.inlineSuggestionTask = nil
+        }
     }
 
     /// Submits the one-shot startup command. Keeping the History exclusion next

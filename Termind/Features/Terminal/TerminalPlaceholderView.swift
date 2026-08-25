@@ -77,6 +77,7 @@ struct TerminalPlaceholderView: View {
                     workspace: workspace
                 )
                 .padding(Metrics.Space.l)
+                .zIndex(4)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             if isExternalFileDropTargeted {

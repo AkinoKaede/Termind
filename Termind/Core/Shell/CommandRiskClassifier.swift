@@ -234,8 +234,30 @@ nonisolated enum CommandRiskClassifier {
                 return RiskAssessment(risk: .safe, reasons: [])
             }
             switch sub {
-            case "status", "log", "diff", "show", "branch", "remote", "fetch", "blame", "stash":
+            case "status", "log", "diff", "show", "blame":
                 return RiskAssessment(risk: .safe, reasons: [])
+            case "branch", "fetch":
+                return RiskAssessment(
+                    risk: .caution,
+                    reasons: [String(localized: "Updates or may update local Git references.")]
+                )
+            case "remote":
+                let operation = args.drop(while: { $0 != sub }).dropFirst()
+                    .first(where: { !$0.hasPrefix("-") })
+                if operation == nil || operation == "show" || operation == "get-url" {
+                    return RiskAssessment(risk: .safe, reasons: [])
+                }
+                return RiskAssessment(risk: .caution, reasons: [])
+            case "stash":
+                let operation = args.drop(while: { $0 != sub }).dropFirst()
+                    .first(where: { !$0.hasPrefix("-") })
+                if operation == "list" || operation == "show" {
+                    return RiskAssessment(risk: .safe, reasons: [])
+                }
+                return RiskAssessment(
+                    risk: .caution,
+                    reasons: [String(localized: "Changes the working tree or stash.")]
+                )
             case "push":
                 if args.contains("--force") || args.contains("-f") || args.contains("--force-with-lease") {
                     return RiskAssessment(

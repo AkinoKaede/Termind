@@ -428,11 +428,26 @@ enum TermindSchemaV5: VersionedSchema {
     }
 }
 
+enum TermindSchemaV6: VersionedSchema {
+    static let versionIdentifier = Schema.Version(6, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV5.models + [
+            PersistentAgentConversation.self,
+            PersistentAgentRun.self,
+            PersistentAgentMessage.self,
+            PersistentAgentToolInvocation.self,
+            PersistentAgentToolResult.self,
+            PersistentAgentReviewRecord.self,
+        ]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self,
             TermindSchemaV3.self, TermindSchemaV4.self, TermindSchemaV5.self,
+            TermindSchemaV6.self,
         ]
     }
 
@@ -467,13 +482,17 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV4.self,
                 toVersion: TermindSchemaV5.self
             ),
+            .lightweight(
+                fromVersion: TermindSchemaV5.self,
+                toVersion: TermindSchemaV6.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV5.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV6.self)
 
     let context: ModelContext
 

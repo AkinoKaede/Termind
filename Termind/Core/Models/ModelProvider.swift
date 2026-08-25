@@ -43,7 +43,7 @@ nonisolated enum ModelProviderKind: String, Codable, Sendable, CaseIterable, Ide
         switch self {
         case .openAI: "https://api.openai.com/v1"
         case .anthropic: "https://api.anthropic.com/v1"
-        case .google: "https://generatitermindnguage.googleapis.com/v1beta"
+        case .google: "https://generativelanguage.googleapis.com/v1beta"
         }
     }
 
@@ -432,7 +432,7 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
         case .securityReview:
             String(
                 localized:
-                    "Reviews commands before automatic approval. Choose a fast model different from Chat."
+                    "Reviews commands before automatic approval. Choose a fast model different from Chat; Same as Chat is not an independent second opinion."
             )
         }
     }

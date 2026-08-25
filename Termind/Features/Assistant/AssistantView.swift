@@ -56,6 +56,7 @@ struct AssistantSidebarView: View {
 /// opening a chat here never takes the user's terminal out of the foreground.
 struct AssistantPanelView: View {
     @Environment(WindowModel.self) private var window
+    @Environment(AppModel.self) private var app
 
     var body: some View {
         Group {
@@ -77,7 +78,11 @@ struct AssistantPanelView: View {
             ComposerView(
                 conversation: window.sidebar.assistantDraft,
                 prompt: "Ask anything…",
-                onSend: { window.sendAssistantSidebarDraft() }
+                onSend: {
+                    if let conversation = window.sendAssistantSidebarDraft() {
+                        app.startAgentRun(conversation)
+                    }
+                }
             )
         }
     }

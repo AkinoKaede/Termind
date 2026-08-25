@@ -63,11 +63,16 @@ final class AppModel {
     /// machines you connect to, this one about endpoints you spend a key at.
     /// See `AIStore`.
     let ai: AIStore
+    let inlineSuggestions: InlineSuggestionController
     /// One app-wide microphone owner. Keeping this above individual composers
     /// prevents two windows from installing competing audio taps.
     let speechTranscription: SpeechTranscriptionCoordinator
+    private let agentRunRepository: any AgentRunPersisting
+    private let agentHosts: AgentHostResolver
+    private let agentConnections: AgentConnectionPool
     private let outboxRunner: OutboxRunner?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
+    private var deletedAgentConversationIDs = Set<UUID>()
 
     init(
         hosts: HostStore, ai: AIStore = AIStore(),
@@ -80,6 +85,11 @@ final class AppModel {
         self.hosts = hosts
         self.commandHistory = commandHistory
         connections = connectionCoordinator
+        agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
+        agentHosts = AgentHostResolver(store: hosts)
+        agentConnections = AgentConnectionPool(
+            hosts: agentHosts, coordinator: connectionCoordinator
+        )
         hostRepository = dependencies.hostRepository
         hostLibrary = HostLibraryModel(repository: dependencies.hostRepository)
         forwarding = PortForwardingController(hosts: hosts)
@@ -88,10 +98,17 @@ final class AppModel {
             clientFactory: { connectionCoordinator.makeSFTPClient() }
         )
         self.ai = ai
+        inlineSuggestions = InlineSuggestionController(ai: ai)
         self.speechTranscription =
             speechTranscription
             ?? SpeechTranscriptionCoordinator(service: AppleSpeechTranscriptionService())
         outboxRunner = dependencies.outboxRunner
+        agentHosts.configureTemporaryTargets(
+            targets: { [weak self] in self?.temporaryAgentTargets() ?? [] },
+            configuration: { [weak self] hostID in
+                self?.temporaryAgentConfiguration(for: hostID)
+            }
+        )
         hosts.willDeleteHost = { [weak forwarding] _, ruleIDs in
             forwarding?.stop(ruleIDs)
         }
@@ -136,10 +153,125 @@ final class AppModel {
         }
     }
 
+    func sendAgentDraft(_ conversation: ConversationModel) {
+        let prompt = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty else { return }
+        conversation.messages.append(ChatMessage(role: .user, text: prompt))
+        conversation.draft = ""
+        startAgentRun(conversation, prompt: prompt)
+    }
+
+    func startAgentRun(_ conversation: ConversationModel, prompt: String? = nil) {
+        let userPrompt = prompt
+            ?? conversation.messages.last(where: { $0.role == .user })?.text
+            ?? ""
+        guard !userPrompt.isEmpty else { return }
+        guard let chat = ai.resolve(conversation: conversation.model) else {
+            conversation.messages.append(ChatMessage(
+                role: .assistant, text: String(localized: "No Chat model is configured.")
+            ))
+            return
+        }
+        let credentialRef = chat.provider.usesVertex && chat.provider.kind == .google
+            ? chat.provider.vertex.credentialRef : chat.provider.credentialRef
+        guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else {
+            conversation.messages.append(ChatMessage(
+                role: .assistant, text: String(localized: "The Chat model has no available credential.")
+            ))
+            return
+        }
+
+        let mode = ai.resolve(conversation: conversation.permissionMode)
+        let model = AgentProviderClient(
+            provider: chat.provider, model: chat.model, secret: secret,
+            reasoning: conversation.reasoningEffort
+        )
+        let reviewer: (any SecurityReviewing)? = {
+            guard mode == .approveForMe, let review = ai.resolve(.securityReview) else { return nil }
+            let ref = review.provider.usesVertex && review.provider.kind == .google
+                ? review.provider.vertex.credentialRef : review.provider.credentialRef
+            guard let reviewSecret = ai.secret(for: ref), !reviewSecret.isEmpty else { return nil }
+            let reasoning = SecurityReviewClient.preferredReasoning(
+                model: review.model, provider: review.provider
+            )
+            return SecurityReviewClient(model: AgentProviderClient(
+                provider: review.provider, model: review.model, secret: reviewSecret,
+                reasoning: reasoning
+            ))
+        }()
+        let approval = AgentApprovalBroker(
+            reviewer: reviewer,
+            manualApproval: { request in await conversation.requestApproval(request) },
+            event: { [agentRunRepository] event in
+                Task {
+                    if let runID = event.associatedRunID {
+                        try? await agentRunRepository.record(event, runID: runID)
+                    }
+                    await MainActor.run { conversation.handle(event) }
+                }
+            }
+        )
+
+        var tools: [AnyAgentTool] = []
+        if chat.model.abilities.contains(.toolCall) {
+            tools = AgentBuiltInTools.make(hosts: agentHosts, connections: agentConnections)
+            let servers = ai.mcpServers.filter(\.isEnabled).map { server in
+                (server: server, bearerToken: ai.secret(for: server.credentialRef))
+            }
+            tools += AgentMCPTools.make(servers: servers)
+        }
+        let runtime = AgentRuntime(
+            model: model, tools: tools, approval: approval,
+            repository: agentRunRepository, userInteraction: conversation,
+            runCleanup: { [agentConnections] runID in
+                await agentConnections.cleanup(runID: runID)
+            }
+        )
+        let prior = conversation.messages.dropLast().map { message in
+            AgentTranscriptMessage(
+                id: message.id,
+                role: message.role == .user ? .user : .assistant,
+                text: message.text
+            )
+        }
+        Task {
+            let events = await runtime.start(AgentRunRequest(
+                conversationID: conversation.id, prompt: userPrompt,
+                permissionMode: mode, priorMessages: prior
+            ))
+            await MainActor.run { conversation.attach(runtime: runtime, events: events) }
+        }
+    }
+
     func registerWindow(_ window: WindowModel) {
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
         window.commandHistoryStore = commandHistory
+        window.inlineSuggestionController = inlineSuggestions
+        window.assistantConversationDeletionHandler = { [weak self] id in
+            self?.deleteAgentConversation(id)
+        }
+        Task { [agentRunRepository, weak window, weak self] in
+            guard let restored = try? await agentRunRepository.loadConversations() else { return }
+            let visible = restored.filter {
+                self?.deletedAgentConversationIDs.contains($0.id) != true
+            }
+            window?.assistantLibrary.restore(visible)
+        }
+    }
+
+    private func deleteAgentConversation(_ id: UUID) {
+        deletedAgentConversationIDs.insert(id)
+        windows = windows.filter { $0.value.value != nil }
+        for window in windows.values.compactMap(\.value) {
+            window.assistantLibrary.delete(id)
+            if window.sidebar.assistantConversationID == id {
+                window.sidebar.assistantConversationID = nil
+            }
+        }
+        Task { [agentRunRepository] in
+            try? await agentRunRepository.deleteConversation(id)
+        }
     }
 
     func requestHostDeletion(_ hostID: Host.ID) {
@@ -157,6 +289,24 @@ final class AppModel {
         for window in windows.values.compactMap(\.value) {
             window.closeWorkspaces(for: hostID)
         }
+    }
+
+    private func temporaryAgentTargets() -> [AgentHostTarget] {
+        windows = windows.filter { $0.value.value != nil }
+        var seen = Set<UUID>()
+        return windows.values.compactMap(\.value).flatMap(\.tabs).flatMap(\.panes)
+            .compactMap(\.sshSession).compactMap(\.agentTemporaryTarget)
+            .filter { seen.insert($0.id).inserted }
+    }
+
+    private func temporaryAgentConfiguration(
+        for hostID: UUID
+    ) -> SSHConnectionConfiguration? {
+        windows = windows.filter { $0.value.value != nil }
+        return windows.values.compactMap(\.value).flatMap(\.tabs).flatMap(\.panes)
+            .compactMap(\.sshSession)
+            .first { $0.hostID == hostID && $0.agentTemporaryTarget != nil }?
+            .agentConnectionConfiguration
     }
 
     /// Starts teardown without waiting for network peers. AppKit's termination

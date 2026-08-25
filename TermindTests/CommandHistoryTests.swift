@@ -141,4 +141,18 @@ struct RemoteCommandEventFilterTests {
         #expect(update.commands.isEmpty)
         #expect(update.visibleOutput == data)
     }
+
+    @Test
+    func filtersAuthenticatedPromptWithCWDAndExitCode() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let update = filter.receive(Data(
+            "before\u{1B}]777;TermindPrompt=TOKEN;%2Fsrv%2Fapp;17\u{7}after".utf8
+        ))
+
+        #expect(update.commands.isEmpty)
+        #expect(update.prompts == [
+            RemoteCommandEventFilter.Prompt(cwd: "/srv/app", previousExitCode: 17)
+        ])
+        #expect(String(decoding: update.visibleOutput, as: UTF8.self) == "beforeafter")
+    }
 }

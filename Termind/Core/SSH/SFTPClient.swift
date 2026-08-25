@@ -77,6 +77,8 @@ nonisolated protocol SFTPClientProtocol: Sendable {
     func homeDirectory() async throws -> String
     func listDirectory(at path: String) async throws -> [RemoteFile]
     func attributes(at path: String) async throws -> RemoteFile?
+    func readFile(at path: String, maximumBytes: Int) async throws -> Data
+    func writeFile(_ data: Data, at path: String, overwrite: Bool) async throws
     func setPermissions(at path: String, to permissions: UInt32) async throws
     func createDirectory(at path: String) async throws
     func rename(from source: String, to destination: String, overwrite: Bool) async throws
@@ -110,6 +112,14 @@ nonisolated extension SFTPClientProtocol {
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
         try await connect(using: configuration, progress: progress)
+    }
+
+    func readFile(at path: String, maximumBytes: Int) async throws -> Data {
+        throw SFTPError.operation("This SFTP client does not support inline reads.")
+    }
+
+    func writeFile(_ data: Data, at path: String, overwrite: Bool) async throws {
+        throw SFTPError.operation("This SFTP client does not support inline writes.")
     }
 
     func copyFile(
@@ -175,6 +185,14 @@ actor SFTPClient: SFTPClientProtocol {
 
     func attributes(at path: String) async throws -> RemoteFile? {
         try await worker.attributes(at: path)
+    }
+
+    func readFile(at path: String, maximumBytes: Int) async throws -> Data {
+        try await worker.readFile(at: path, maximumBytes: maximumBytes)
+    }
+
+    func writeFile(_ data: Data, at path: String, overwrite: Bool) async throws {
+        try await worker.writeFile(data, at: path, overwrite: overwrite)
     }
 
     func setPermissions(at path: String, to permissions: UInt32) async throws {
@@ -430,6 +448,77 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
             }
             if libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE { return nil }
             throw self.error("Unable to inspect \(path)")
+        }
+    }
+
+    func readFile(at path: String, maximumBytes: Int) async throws -> Data {
+        try await perform {
+            guard maximumBytes > 0 else { return Data() }
+            let sftp = try self.requireSFTP()
+            guard let handle = path.withCString({
+                libssh2_sftp_open_ex(
+                    sftp, $0, UInt32(path.utf8.count), UInt(LIBSSH2_FXF_READ), 0,
+                    Int32(LIBSSH2_SFTP_OPENFILE)
+                )
+            }) else { throw self.error("Unable to open \(path)") }
+            defer { _ = libssh2_sftp_close_handle(handle) }
+            var data = Data()
+            var buffer = [CChar](repeating: 0, count: min(64 * 1024, maximumBytes + 1))
+            while data.count <= maximumBytes {
+                let wanted = min(buffer.count, maximumBytes + 1 - data.count)
+                let count = libssh2_sftp_read(handle, &buffer, wanted)
+                if count > 0 { data.append(Data(bytes: buffer, count: count)) }
+                else if count == 0 { break }
+                else { throw self.error("Unable to read \(path)") }
+            }
+            guard data.count <= maximumBytes else {
+                throw SFTPError.operation("\(path) exceeds the inline read limit of \(maximumBytes) bytes.")
+            }
+            return data
+        }
+    }
+
+    func writeFile(_ data: Data, at path: String, overwrite: Bool) async throws {
+        try await perform {
+            let sftp = try self.requireSFTP()
+            if !overwrite {
+                var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+                let exists = path.withCString {
+                    libssh2_sftp_stat_ex(
+                        sftp, $0, UInt32(path.utf8.count),
+                        Int32(LIBSSH2_SFTP_LSTAT), &attributes
+                    ) == 0
+                }
+                if exists { throw SFTPError.operation("\(path) already exists.") }
+            }
+            let temporary = path + ".termind-agent-part-" + UUID().uuidString
+            guard let handle = temporary.withCString({
+                libssh2_sftp_open_ex(
+                    sftp, $0, UInt32(temporary.utf8.count),
+                    UInt(LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC),
+                    0o600, Int32(LIBSSH2_SFTP_OPENFILE)
+                )
+            }) else { throw self.error("Unable to create \(path)") }
+            var succeeded = false
+            defer {
+                _ = libssh2_sftp_close_handle(handle)
+                if !succeeded {
+                    _ = temporary.withCString {
+                        libssh2_sftp_unlink_ex(sftp, $0, UInt32(temporary.utf8.count))
+                    }
+                }
+            }
+            try data.withUnsafeBytes { bytes in
+                guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return }
+                var offset = 0
+                while offset < bytes.count {
+                    let written = libssh2_sftp_write(handle, base.advanced(by: offset), bytes.count - offset)
+                    guard written > 0 else { throw self.error("Unable to write \(path)") }
+                    offset += written
+                }
+            }
+            try self.renameOnQueue(sftp: sftp, from: temporary, to: path, overwrite: overwrite)
+            succeeded = true
         }
     }
 

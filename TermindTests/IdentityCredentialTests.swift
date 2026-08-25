@@ -101,6 +101,7 @@ struct IdentityCredentialTests {
         let key = SSHKeyRef(
             label: "Protected", algorithm: .ed25519, publicKey: "ssh-ed25519 test",
             fingerprint: "SHA256:test", credentialRef: reference,
+            storage: .thisDevice,
             hasPassphrase: true, storesPassphrase: false
         )
         let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)

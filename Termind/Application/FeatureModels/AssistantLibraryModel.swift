@@ -53,11 +53,42 @@ final class AssistantLibraryModel {
 
     func delete(_ id: ConversationModel.ID) {
         guard let index = conversations.firstIndex(where: { $0.id == id }) else { return }
+        conversations[index].stop()
         conversations.remove(at: index)
         guard selectedConversationID == id else { return }
         selectedConversationID =
             conversations.indices.contains(index)
             ? conversations[index].id
             : conversations.first?.id
+    }
+
+    func restore(_ stored: [StoredAgentConversation]) {
+        guard conversations.isEmpty else { return }
+        conversations = stored.map { value in
+            let conversation = ConversationModel(
+                id: value.id,
+                messages: value.messages.compactMap { message in
+                    switch message.role {
+                    case .user: ChatMessage(id: message.id, role: .user, text: message.text)
+                    case .assistant: ChatMessage(id: message.id, role: .assistant, text: message.text)
+                    case .tool: nil
+                    }
+                },
+                runState: value.lastRunState
+            )
+            conversation.toolCards = value.toolCards.map { card in
+                let state: AgentToolCard.State
+                if card.result?.isError == true { state = .failed }
+                else if card.result != nil || card.state == "finished" { state = .completed }
+                else if card.state == "started" { state = .running }
+                else { state = .proposed }
+                return AgentToolCard(
+                    invocation: card.invocation, descriptor: card.descriptor,
+                    state: state, result: card.result, review: card.review
+                )
+            }
+            return conversation
+        }
+        selectedConversationID = conversations.first?.id
     }
 }
