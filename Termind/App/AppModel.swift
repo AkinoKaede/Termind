@@ -295,7 +295,11 @@ final class AppModel {
         model: AIModel, provider: ModelProvider
     ) -> (isNative: Bool, local: WebSearchClient?) {
         guard SettingsKey.isWebSearchEnabled else { return (false, nil) }
-        if provider.supportsNativeWebSearch(model: model) { return (true, nil) }
+        if SettingsKey.isBuiltInWebSearchEnabled,
+            provider.supportsNativeWebSearch(model: model)
+        {
+            return (true, nil)
+        }
         let defaults = UserDefaults.standard
         let backend = SearchBackend(
             rawValue: defaults.string(forKey: SettingsKey.webSearchBackend) ?? ""

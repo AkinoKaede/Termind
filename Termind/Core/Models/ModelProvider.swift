@@ -191,15 +191,27 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
         return !(usesVertex && kind == .google)
     }
 
-    /// Whether this endpoint accepts a *server-side* search tool in its request
-    /// body — the kind the provider runs itself and never tells the agent
-    /// runtime about.
+    /// Whether this wire protocol has anywhere to *put* a server-side search
+    /// tool. A hard fact about the request body, not a guess.
     ///
-    /// Chat Completions is excluded on purpose. OpenAI's `web_search_options`
-    /// exists there only on the two `*-search-preview` SKUs, while `.openAI` is
-    /// also every compatible gateway this app talks to — OpenRouter, DeepSeek,
-    /// Groq, Together, Ollama. Sending them an option they have never heard of
-    /// turns a working setup into a 400 for a feature nobody asked for.
+    /// Chat Completions has nowhere. OpenAI's `web_search_options` exists there
+    /// only on the two `*-search-preview` SKUs, while `.openAI` is also every
+    /// compatible gateway this app talks to — OpenRouter, DeepSeek, Groq,
+    /// Together, Ollama. Sending them an option they have never heard of turns
+    /// a working setup into a 400 for a feature nobody asked for. Nothing
+    /// overrides this, including the user, because overriding it would produce
+    /// a request with no search tool in it at all.
+    var acceptsNativeWebSearchTool: Bool {
+        switch kind {
+        case .anthropic, .google: true
+        case .openAI: usesResponsesAPI
+        }
+    }
+
+    /// Whether the *model* is one this endpoint runs search for.
+    ///
+    /// A guess, unlike `acceptsNativeWebSearchTool`, and `WebSearchMode` exists
+    /// so the user can overrule it either way.
     ///
     /// The wire protocol alone is not enough, which is the part that had to be
     /// learned. A server tool exists at the intersection of *this vendor's API*
@@ -210,22 +222,26 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
     /// has one registered — because native mode deliberately withholds the
     /// local tool — and the run reports `Unknown tool: web_search`.
     ///
-    /// So the model family has to agree with the endpoint. A Claude id on an
-    /// OpenAI-shaped endpoint means a translator sits in between, and the right
-    /// answer there is the local `web_search` tool, which works everywhere.
+    /// DeepSeek is the case that shows the rule is about *implementation*
+    /// rather than branding. It ships both shapes and implements the server
+    /// tool in each: `/responses` takes `{"type": "web_search"}` and answers
+    /// with `web_search_call` items, while `/anthropic` documents
+    /// `server_tool_use` and `web_search_tool_result` as supported content
+    /// blocks — marking `code_execution_tool_result` and `mcp_tool_use`
+    /// unsupported in the same table, so that list is real and not copied. It
+    /// is a first party on both, and reading "not Anthropic's own model" as "no
+    /// native search" would refuse a pairing that works.
     func supportsNativeWebSearch(model: AIModel) -> Bool {
-        guard model.abilities.contains(.webSearch) else { return false }
+        guard model.abilities.contains(.webSearch), acceptsNativeWebSearchTool else {
+            return false
+        }
         let id = model.id.lowercased()
         switch kind {
         case .anthropic:
-            return id.contains("claude")
+            return id.contains("claude") || id.contains("deepseek")
         case .google:
             return id.contains("gemini")
         case .openAI:
-            // DeepSeek belongs here: its `/responses` implements the identical
-            // `{"type": "web_search"}` server tool, so it is a first party for
-            // this purpose even though it is reached OpenAI-shaped.
-            guard usesResponsesAPI else { return false }
             return id.contains("gpt") || id.contains("deepseek")
                 || id.range(of: #"(^|[-_/])o[3-9]([-._/]|$)"#, options: .regularExpression) != nil
         }

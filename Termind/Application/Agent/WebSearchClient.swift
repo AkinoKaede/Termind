@@ -12,14 +12,12 @@ import Foundation
 nonisolated enum SearchBackend: String, Codable, Sendable, CaseIterable, Identifiable {
     /// Reads `bing.com/search` the way a browser would, with no account and no
     /// key. Ported from Kelivo's `BingSearchService`, down to the `b_algo`
-    /// selectors, and named "(Local)" for the same reason Kelivo names it that:
-    /// it is the user's own machine making an ordinary web request, not an API
-    /// with a contract behind it.
+    /// selectors.
     ///
-    /// The default, and reachability is why. Bing answers from mainland China;
-    /// `.duckDuckGo` does not, and a default that times out for a whole country
-    /// is not a default. Every other candidate needs a key, so this is the only
-    /// one that can be switched on out of the box everywhere.
+    /// The default, and reachability is why: it answers from networks where
+    /// `.duckDuckGo` is blocked, and a default that times out for a large part
+    /// of the world is not a default. Every other candidate needs a key, so
+    /// this is the only one that can be switched on out of the box everywhere.
     ///
     /// Its relevance is the weak point, and it is worth knowing before trusting
     /// it. Bing degrades an anonymous request to roughly first-token matching:
@@ -37,7 +35,7 @@ nonisolated enum SearchBackend: String, Codable, Sendable, CaseIterable, Identif
     /// Markedly better results than `.bing` where it is reachable: against the
     /// live endpoints, "CVE-2024-3094 xz backdoor" returns the NVD record, the
     /// CVE record and the Wikipedia article, where Bing returns none of them.
-    /// Worth switching to anywhere outside mainland China.
+    /// Worth switching to wherever the endpoint resolves.
     case duckDuckGo
     case brave
     case tavily
@@ -48,10 +46,15 @@ nonisolated enum SearchBackend: String, Codable, Sendable, CaseIterable, Identif
 
     nonisolated var id: String { rawValue }
 
+    /// "(Local)" marks the two that are not APIs: the request leaves this Mac
+    /// looking like a browser and the answer is a web page Termind reads
+    /// itself. Borrowed from Kelivo, and worth carrying because the difference
+    /// is one a user is entitled to know — no key, no contract, and it stops
+    /// working the day the markup moves.
     var displayName: String {
         switch self {
         case .bing: "Bing (Local)"
-        case .duckDuckGo: "DuckDuckGo"
+        case .duckDuckGo: "DuckDuckGo (Local)"
         case .brave: "Brave Search"
         case .tavily: "Tavily"
         case .exa: "Exa"
@@ -120,9 +123,9 @@ nonisolated enum SearchBackend: String, Codable, Sendable, CaseIterable, Identif
     var detail: String {
         switch self {
         case .bing:
-            String(localized: "No account or key, and reachable from mainland China. Results for an anonymous request are only loosely related to the query; prefer DuckDuckGo or a keyed backend where you can reach one.")
+            String(localized: "No account or key. Reachable almost anywhere, but an anonymous request comes back with only loosely related results — prefer DuckDuckGo or a keyed backend where one works for you.")
         case .duckDuckGo:
-            String(localized: "No account or key, and better results than Bing — but not reachable from mainland China.")
+            String(localized: "No account or key, and markedly better results than Bing. Not reachable from every network.")
         case .brave:
             String(localized: "Subscription token from the Brave Search API dashboard.")
         case .tavily:

@@ -12,6 +12,8 @@ struct WebSearchSettings: View {
 
     @AppStorage(SettingsKey.webSearchEnabled) private var isEnabled =
         SettingsKey.defaultWebSearchEnabled
+    @AppStorage(SettingsKey.webSearchBuiltIn) private var usesBuiltIn =
+        SettingsKey.defaultWebSearchBuiltIn
     @AppStorage(SettingsKey.webSearchBackend) private var backendID = SearchBackend.default.rawValue
     @AppStorage(SettingsKey.webSearchBaseURL) private var baseURL = ""
     @AppStorage(SettingsKey.webSearchCredentialRef) private var credentialRef = ""
@@ -39,10 +41,18 @@ struct WebSearchSettings: View {
             Section {
                 Toggle("Enable Web Search", isOn: $isEnabled)
 
+                Toggle("Prefer Built-in Web Search", isOn: $usesBuiltIn)
+                    .disabled(!isEnabled)
+
                 Text(
-                    "Models that can search on their own do so directly, and no backend below is "
-                        + "used for them. Everything else gets a web_search tool backed by the "
-                        + "backend below. Either way the assistant reads a result page with fetch."
+                    usesBuiltIn
+                        ? "Providers that run search on their own servers do it themselves, and "
+                            + "read whole pages rather than snippets. Anything else falls back to "
+                            + "the backend below. Whether an endpoint really does is inferred from "
+                            + "the model, and a gateway can make that wrong — turn this off if "
+                            + "search fails or the model reports an unknown tool."
+                        : "Every model uses the backend below, which behaves the same on every "
+                            + "endpoint."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

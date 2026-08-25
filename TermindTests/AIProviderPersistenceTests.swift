@@ -291,6 +291,41 @@ struct ModelCapabilityResolverTests {
         #expect(google.supportsNativeWebSearch(model: gemini))
     }
 
+    /// DeepSeek ships both shapes and implements the server tool in each, so
+    /// the family rule has to be about implementation rather than branding.
+    /// Reading "not Anthropic's own model" as "no native search" would refuse a
+    /// pairing that works.
+    @Test
+    func deepSeekIsAFirstPartyOnBothShapes() {
+        var model = AIModel(id: "deepseek-v4-pro")
+        model.abilities = [.toolCall, .webSearch]
+
+        // https://api.deepseek.com/anthropic — `server_tool_use` and
+        // `web_search_tool_result` are documented as supported there.
+        var anthropicShaped = ModelProvider(name: "DeepSeek via Anthropic")
+        anthropicShaped.kind = .anthropic
+        anthropicShaped.baseURL = "https://api.deepseek.com/anthropic"
+        #expect(anthropicShaped.supportsNativeWebSearch(model: model))
+
+        // https://api.deepseek.com/v1/responses — `{"type": "web_search"}`.
+        var responsesShaped = ModelProvider(name: "DeepSeek via Responses")
+        responsesShaped.baseURL = "https://api.deepseek.com/v1"
+        responsesShaped.usesResponsesAPI = true
+        #expect(responsesShaped.supportsNativeWebSearch(model: model))
+
+        // Chat Completions has no search on any shape, and the older models
+        // never get the ability in the first place.
+        var chat = ModelProvider(name: "DeepSeek Chat")
+        chat.baseURL = "https://api.deepseek.com/v1"
+        #expect(!chat.supportsNativeWebSearch(model: model))
+
+        var legacyModel = AIModel(id: "deepseek-chat")
+        legacyModel.abilities = ModelCapabilityResolver.resolve(
+            model: AIModel(id: "deepseek-chat"), provider: responsesShaped
+        ).model.abilities
+        #expect(!legacyModel.abilities.contains(.webSearch))
+    }
+
     @Test
     func searchIsNotInferredForModelsThatCannotChat() {
         let provider = ModelProvider(name: "OpenAI")

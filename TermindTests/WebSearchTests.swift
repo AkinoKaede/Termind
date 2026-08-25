@@ -359,6 +359,47 @@ struct WebSearchTests {
         #expect(with.contains { $0.descriptor.name == "web_search" })
     }
 
+    // MARK: - The built-in switch
+
+    /// The escape hatch, and the one thing it must not do is leave a model with
+    /// no search at all: turning built-in off has to hand the work to the
+    /// backend, not drop it.
+    @Test
+    func turningOffBuiltInSendsEverythingThroughTheBackend() {
+        var model = AIModel(id: "gpt-5.4")
+        model.abilities = [.toolCall, .webSearch]
+        var provider = ModelProvider(name: "OpenAI")
+        provider.usesResponsesAPI = true
+
+        // With it on, this pairing is the one case that goes native.
+        #expect(provider.supportsNativeWebSearch(model: model))
+
+        // The switch is read in `AppModel.webSearchPlan` ahead of this call, so
+        // what it guards is exactly this predicate — and the local client is
+        // keyless by default, which is what makes the fallback always there.
+        #expect(WebSearchClient(backend: .default).isConfigured)
+    }
+
+    /// Chat Completions has nowhere in the request body to put a server tool,
+    /// which is a fact about the protocol rather than a guess about the model —
+    /// so it sits on its own property and no setting overrides it.
+    @Test
+    func protocolSupportIsSeparateFromTheModelGuess() {
+        var provider = ModelProvider(name: "Gateway")
+        #expect(!provider.acceptsNativeWebSearchTool)
+
+        provider.usesResponsesAPI = true
+        #expect(provider.acceptsNativeWebSearchTool)
+
+        var anthropic = ModelProvider(name: "Anthropic")
+        anthropic.kind = .anthropic
+        #expect(anthropic.acceptsNativeWebSearchTool)
+
+        var google = ModelProvider(name: "Google")
+        google.kind = .google
+        #expect(google.acceptsNativeWebSearchTool)
+    }
+
     // MARK: - Provider-native search must stay out of the transcript
 
     /// The bug this pins produced, on the *second* request of a conversation:
