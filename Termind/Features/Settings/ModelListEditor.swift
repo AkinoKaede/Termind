@@ -310,11 +310,28 @@ struct ModelListEditor: View {
                     // ticks, like Test — a second destructive button acting on a
                     // *different* selection than the one beside it is how the
                     // wrong model gets deleted.
-                    Text(model.id)
-                        .font(.caption.monospaced())
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: Metrics.Space.s) {
+                        Text(model.id)
+                            .font(.caption.monospaced())
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+
+                        Spacer(minLength: 0)
+
+                        Button {
+                            state.selection = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 20, height: 20)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Close model details")
+                        .accessibilityLabel(Text("Close model details"))
+                    }
+                    .frame(maxWidth: .infinity)
 
                     if let result = state.results[model.id] {
                         Label(result.message, systemImage: result.symbol)
