@@ -95,6 +95,9 @@ nonisolated struct AgentToolCall: Identifiable, Hashable, Sendable, Codable {
     var id: String
     var name: String
     var arguments: AgentJSONValue
+    /// Provider-native output item ID. Responses APIs use this when replaying
+    /// the assistant tool call together with its reasoning on the next turn.
+    var providerItemID: String? = nil
 }
 
 nonisolated struct AgentToolInvocation: Identifiable, Hashable, Sendable, Codable {
@@ -150,6 +153,9 @@ nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Cod
     var toolCallID: String?
     var toolName: String?
     var isError: Bool = false
+    /// Opaque assistant output items required for an in-flight provider turn,
+    /// such as Responses API reasoning items.
+    var providerItems: [AgentJSONValue] = []
     var createdAt: Date = .now
 }
 

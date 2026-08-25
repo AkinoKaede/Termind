@@ -8,7 +8,15 @@ nonisolated struct AgentModelRequest: Sendable {
 
 nonisolated enum AgentModelStreamEvent: Sendable {
     case textDelta(String)
+    /// Authoritative complete text used by buffered/final provider responses.
+    case textSnapshot(String)
     case toolCallDelta(id: String, name: String?, arguments: String)
+    /// The authoritative completed tool call. Arguments replace, rather than
+    /// append to, the partial streaming buffer.
+    case toolCallSnapshot(
+        id: String, providerItemID: String?, name: String, arguments: String
+    )
+    case providerItem(AgentJSONValue)
     case finished(AgentStopReason)
 }
 
@@ -136,6 +144,7 @@ actor AgentRuntime {
     private struct PendingToolCall {
         var name = ""
         var arguments = ""
+        var providerItemID: String?
     }
 
     private let model: any AgentModelStreaming
@@ -233,6 +242,9 @@ actor AgentRuntime {
                 emit(.messageFinished(turn.message))
                 await persist(snapshot)
 
+                if turn.reason == .error {
+                    throw AgentRuntimeError.providerFailed
+                }
                 if turn.reason == .length, !turn.message.toolCalls.isEmpty {
                     throw AgentRuntimeError.truncatedToolCall
                 }
@@ -305,12 +317,34 @@ actor AgentRuntime {
             case .textDelta(let text):
                 message.text += text
                 emit(.messageDelta(messageID: message.id, text: text))
+            case .textSnapshot(let text):
+                // The UI is reconciled by messageFinished after the provider
+                // stream closes, so replacing here cannot duplicate deltas.
+                message.text = text
             case .toolCallDelta(let id, let name, let arguments):
                 if pending[id] == nil { order.append(id) }
                 var entry = pending[id] ?? PendingToolCall()
                 if let name { entry.name = name }
                 entry.arguments += arguments
                 pending[id] = entry
+            case .toolCallSnapshot(let id, let providerItemID, let name, let arguments):
+                if pending[id] == nil { order.append(id) }
+                pending[id] = PendingToolCall(
+                    name: name, arguments: arguments,
+                    providerItemID: providerItemID
+                )
+            case .providerItem(let item):
+                if let id = item.objectValue?["id"]?.stringValue,
+                    let index = message.providerItems.firstIndex(where: {
+                        $0.objectValue?["id"]?.stringValue == id
+                    })
+                {
+                    // `response.completed` can carry a richer final reasoning
+                    // item (notably encrypted_content) than output_item.done.
+                    message.providerItems[index] = item
+                } else {
+                    message.providerItems.append(item)
+                }
             case .finished(let reason):
                 stopReason = reason
             }
@@ -327,7 +361,8 @@ actor AgentRuntime {
                 schema["additionalProperties"]?.boolValue == false
             {
                 return AgentToolCall(
-                    id: id, name: call.name, arguments: .object([:])
+                    id: id, name: call.name, arguments: .object([:]),
+                    providerItemID: call.providerItemID
                 )
             }
             // Several OpenAI-compatible gateways stream an empty argument
@@ -339,7 +374,8 @@ actor AgentRuntime {
             do {
                 return AgentToolCall(
                     id: id, name: call.name,
-                    arguments: try AgentJSONValue.decode(data)
+                    arguments: try AgentJSONValue.decode(data),
+                    providerItemID: call.providerItemID
                 )
             } catch {
                 throw AgentRuntimeError.invalidToolArguments(tool: call.name)
@@ -434,7 +470,7 @@ actor AgentRuntime {
 
 nonisolated enum AgentRuntimeError: LocalizedError, Sendable {
     case invalidToolCall, invalidToolArguments(tool: String), truncatedToolCall
-    case toolBudgetExceeded, turnBudgetExceeded
+    case toolBudgetExceeded, turnBudgetExceeded, providerFailed
 
     var errorDescription: String? {
         switch self {
@@ -444,6 +480,7 @@ nonisolated enum AgentRuntimeError: LocalizedError, Sendable {
         case .truncatedToolCall: String(localized: "A truncated model response contained tool calls; none were executed.")
         case .toolBudgetExceeded: String(localized: "The agent reached its tool-call limit.")
         case .turnBudgetExceeded: String(localized: "The agent reached its turn limit.")
+        case .providerFailed: String(localized: "The model provider failed to complete the response.")
         }
     }
 }

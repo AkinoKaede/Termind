@@ -232,13 +232,10 @@ final class AppModel {
                 text: message.text
             )
         }
-        Task {
-            let events = await runtime.start(AgentRunRequest(
-                conversationID: conversation.id, prompt: userPrompt,
-                permissionMode: mode, priorMessages: prior
-            ))
-            await MainActor.run { conversation.attach(runtime: runtime, events: events) }
-        }
+        conversation.start(runtime: runtime, request: AgentRunRequest(
+            conversationID: conversation.id, prompt: userPrompt,
+            permissionMode: mode, priorMessages: prior
+        ))
     }
 
     func registerWindow(_ window: WindowModel) {

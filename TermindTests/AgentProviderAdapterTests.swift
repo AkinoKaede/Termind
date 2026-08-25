@@ -168,6 +168,117 @@ struct AgentProviderAdapterTests {
     }
 
     @Test
+    func openAIResponsesUsesDoneSnapshotWhenAddedHadNoArguments() {
+        var ids: [String: String] = [:]
+        var names: [String: String] = [:]
+        var sawOutput = false
+        let added = AgentProviderClient.parseResponses(
+            "response.output_item.added",
+            ["item": [
+                "type": "function_call", "id": "item-1", "call_id": "call-1",
+                "name": "fetch", "arguments": "",
+            ]],
+            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+        )
+        let done = AgentProviderClient.parseResponses(
+            "response.output_item.done",
+            ["item": [
+                "type": "function_call", "id": "item-1", "call_id": "call-1",
+                "name": "fetch", "arguments": #"{"url":"https://example.com"}"#,
+            ]],
+            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+        )
+
+        #expect(added.firstTool?.arguments == "")
+        #expect(done.firstTool?.id == "call-1")
+        #expect(done.firstTool?.name == "fetch")
+        #expect(done.firstTool?.arguments == #"{"url":"https://example.com"}"#)
+    }
+
+    @Test
+    func openAIResponsesUsesCompletedResponseAsFinalToolSnapshot() {
+        var ids: [String: String] = [:]
+        var names: [String: String] = [:]
+        var sawOutput = false
+        _ = AgentProviderClient.parseResponses(
+            "response.output_item.added",
+            ["item": [
+                "type": "function_call", "id": "item-1", "call_id": "call-1",
+                "name": "fetch", "arguments": "",
+            ]],
+            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+        )
+        let completed = AgentProviderClient.parseResponses(
+            "response.completed",
+            ["response": [
+                "object": "response", "status": "completed",
+                "output": [[
+                    "type": "function_call", "id": "item-1", "call_id": "call-1",
+                    "name": "fetch", "arguments": #"{"url":"https://example.com"}"#,
+                ]],
+            ]],
+            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+        )
+
+        #expect(completed.firstTool?.id == "call-1")
+        #expect(completed.firstTool?.arguments == #"{"url":"https://example.com"}"#)
+        #expect(completed.containsFinish == .toolCalls)
+    }
+
+    @Test
+    func openAIResponsesPreservesReasoningAndNativeFunctionItemForTheNextTurn() throws {
+        let reasoning: [String: Any] = [
+            "type": "reasoning", "id": "reasoning-1",
+            "encrypted_content": "opaque-provider-state",
+            "summary": [],
+        ]
+        var ids: [String: String] = [:]
+        var names: [String: String] = [:]
+        var sawOutput = false
+        let reasoningEvents = AgentProviderClient.parseResponses(
+            "response.output_item.done", ["item": reasoning],
+            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+        )
+        let providerItem = try #require(reasoningEvents.firstProviderItem)
+
+        var provider = ModelProvider(name: "Responses")
+        provider.usesResponsesAPI = true
+        let assistant = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: [AgentToolCall(
+                id: "call-1", name: "lookup",
+                arguments: .object(["query": .string("hosts")]),
+                providerItemID: "item-1"
+            )],
+            providerItems: [providerItem]
+        )
+        let result = AgentTranscriptMessage(
+            role: .tool, text: "host-a", toolCallID: "call-1", toolName: "lookup"
+        )
+        let body = AgentProviderClient(
+            provider: provider, model: AIModel(id: "gpt-test"), secret: "test"
+        ).body(AgentModelRequest(
+            systemPrompt: "test", messages: [assistant, result], tools: []
+        ))
+        let input = try #require(body["input"] as? [[String: Any]])
+
+        let replayedReasoning = try #require(input.first { $0["type"] as? String == "reasoning" })
+        #expect(replayedReasoning["id"] as? String == "reasoning-1")
+        #expect(replayedReasoning["encrypted_content"] as? String == "opaque-provider-state")
+
+        let functionCall = try #require(input.first { $0["type"] as? String == "function_call" })
+        #expect(functionCall["id"] as? String == "item-1")
+        #expect(functionCall["call_id"] as? String == "call-1")
+        #expect(functionCall["name"] as? String == "lookup")
+
+        let functionResult = try #require(input.first {
+            $0["type"] as? String == "function_call_output"
+        })
+        #expect(functionResult["call_id"] as? String == "call-1")
+        #expect(functionResult["output"] as? String == "host-a")
+    }
+
+    @Test
     func openAIChatRetainsCallIDAcrossChunks() {
         var ids: [Int: String] = [:]
         _ = AgentProviderClient.parseChat([
@@ -221,19 +332,35 @@ struct AgentProviderAdapterTests {
 
 private extension [AgentModelStreamEvent] {
     var firstText: String? {
-        for case .textDelta(let text) in self { return text }
+        for event in self {
+            switch event {
+            case .textDelta(let text), .textSnapshot(let text): return text
+            default: continue
+            }
+        }
         return nil
     }
 
     var firstTool: (id: String, name: String?, arguments: String)? {
-        for case .toolCallDelta(let id, let name, let arguments) in self {
-            return (id, name, arguments)
+        for event in self {
+            switch event {
+            case .toolCallDelta(let id, let name, let arguments):
+                return (id, name, arguments)
+            case .toolCallSnapshot(let id, _, let name, let arguments):
+                return (id, name, arguments)
+            default: continue
+            }
         }
         return nil
     }
 
     var containsFinish: AgentStopReason? {
         for case .finished(let reason) in self { return reason }
+        return nil
+    }
+
+    var firstProviderItem: AgentJSONValue? {
+        for case .providerItem(let item) in self { return item }
         return nil
     }
 }

@@ -204,7 +204,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         case .openAI where provider.usesResponsesAPI:
             return Self.parseResponses(
                 eventType, root, callIDs: &responseCallIDs,
-                callNames: &responseCallNames, sawOutput: &responseSawOutput
+                callNames: &responseCallNames,
+                sawOutput: &responseSawOutput
             )
         case .openAI: return Self.parseChat(root, callIDs: &chatCallIDs)
         case .anthropic:
@@ -330,19 +331,31 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         }
     }
 
+    private static func jsonValue(_ object: Any) -> AgentJSONValue? {
+        guard JSONSerialization.isValidJSONObject(object),
+            let data = try? JSONSerialization.data(withJSONObject: object)
+        else { return nil }
+        return try? AgentJSONValue.decode(data)
+    }
+
     private static func responsesMessages(_ message: AgentTranscriptMessage) -> [[String: Any]] {
         if message.role == .tool {
             return [["type": "function_call_output", "call_id": message.toolCallID ?? "", "output": message.text]]
         }
-        var rows: [[String: Any]] = []
+        var rows = message.providerItems.compactMap { foundationObject($0) as? [String: Any] }
         if !message.text.isEmpty {
             rows.append([
                 "type": "message", "role": message.role.rawValue,
                 "content": [["type": message.role == .assistant ? "output_text" : "input_text", "text": message.text]],
             ])
         }
-        rows += message.toolCalls.map {
-            ["type": "function_call", "call_id": $0.id, "name": $0.name, "arguments": $0.arguments.encodedString]
+        rows += message.toolCalls.map { call in
+            var item: [String: Any] = [
+                "type": "function_call", "call_id": call.id,
+                "name": call.name, "arguments": call.arguments.encodedString,
+            ]
+            if let providerItemID = call.providerItemID { item["id"] = providerItemID }
+            return item
         }
         return rows
     }
@@ -415,13 +428,14 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             guard let sourceID = (root["item_id"] ?? root["call_id"]) as? String else {
                 return []
             }
-            // When deltas were delivered, the completed value is only a
-            // redundant snapshot. A few compatible gateways send only `done`.
-            guard callIDs[sourceID] == nil else { return [] }
+            let id = root["call_id"] as? String ?? callIDs[sourceID] ?? sourceID
+            callIDs[sourceID] = id
+            guard let name = root["name"] as? String ?? callNames[sourceID] else {
+                return []
+            }
             sawOutput = true
-            return [.toolCallDelta(
-                id: root["call_id"] as? String ?? sourceID,
-                name: root["name"] as? String ?? callNames[sourceID],
+            return [.toolCallSnapshot(
+                id: id, providerItemID: sourceID, name: name,
                 arguments: root["arguments"] as? String ?? ""
             )]
         case "response.output_item.added":
@@ -437,23 +451,28 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 arguments: item["arguments"] as? String ?? ""
             )]
         case "response.output_item.done":
-            guard let item = root["item"] as? [String: Any],
-                item["type"] as? String == "function_call",
+            guard let item = root["item"] as? [String: Any] else { return [] }
+            if item["type"] as? String == "reasoning",
+                let value = jsonValue(item)
+            {
+                sawOutput = true
+                return [.providerItem(value)]
+            }
+            guard item["type"] as? String == "function_call",
                 let sourceID = (item["id"] ?? item["call_id"]) as? String,
-                callIDs[sourceID] == nil
+                let name = item["name"] as? String ?? callNames[sourceID]
             else { return [] }
-            let id = item["call_id"] as? String ?? sourceID
+            let id = item["call_id"] as? String ?? callIDs[sourceID] ?? sourceID
             callIDs[sourceID] = id
-            if let name = item["name"] as? String { callNames[sourceID] = name }
+            callNames[sourceID] = name
             sawOutput = true
-            return [.toolCallDelta(
-                id: id, name: item["name"] as? String,
+            return [.toolCallSnapshot(
+                id: id, providerItemID: item["id"] as? String,
+                name: name,
                 arguments: item["arguments"] as? String ?? ""
             )]
         case "response.completed":
-            if !sawOutput,
-                root["response"] is [String: Any] || root["output"] is [[String: Any]]
-            {
+            if root["response"] is [String: Any] || root["output"] is [[String: Any]] {
                 let events = parseCompletedResponses(root)
                 sawOutput = events.containsToolCall || events.containsText
                 return events
@@ -480,27 +499,32 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         else { return [] }
 
         var events: [AgentModelStreamEvent] = []
+        var completedText = ""
         for item in response["output"] as? [[String: Any]] ?? [] {
             switch item["type"] as? String {
+            case "reasoning":
+                if let value = jsonValue(item) { events.append(.providerItem(value)) }
             case "message":
                 for content in item["content"] as? [[String: Any]] ?? [] {
                     if content["type"] as? String == "output_text",
                         let text = content["text"] as? String
                     {
-                        events.append(.textDelta(text))
+                        completedText += text
                     }
                 }
             case "function_call":
                 guard let name = item["name"] as? String else { continue }
                 let id = (item["call_id"] ?? item["id"]) as? String
                     ?? UUID().uuidString
-                events.append(.toolCallDelta(
-                    id: id, name: name,
+                events.append(.toolCallSnapshot(
+                    id: id, providerItemID: item["id"] as? String,
+                    name: name,
                     arguments: item["arguments"] as? String ?? ""
                 ))
             default: continue
             }
         }
+        if !completedText.isEmpty { events.append(.textSnapshot(completedText)) }
         let status = response["status"] as? String
         let reason: AgentStopReason
         if status == "incomplete" { reason = .length }
@@ -625,11 +649,21 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
 
 nonisolated private extension Array where Element == AgentModelStreamEvent {
     var containsToolCall: Bool {
-        contains { if case .toolCallDelta = $0 { true } else { false } }
+        contains {
+            switch $0 {
+            case .toolCallDelta, .toolCallSnapshot: true
+            default: false
+            }
+        }
     }
 
     var containsText: Bool {
-        contains { if case .textDelta = $0 { true } else { false } }
+        contains {
+            switch $0 {
+            case .textDelta, .textSnapshot: true
+            default: false
+            }
+        }
     }
 }
 

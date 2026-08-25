@@ -181,10 +181,14 @@ final class ConversationModel: Identifiable {
         draft = ""
     }
 
-    func attach(runtime: AgentRuntime, events: AsyncStream<AgentEvent>) {
+    /// Takes ownership of a run before it can emit its first event. Keeping the
+    /// runtime and its consumer together prevents an immediately-completing
+    /// provider response from racing the UI attachment path.
+    func start(runtime: AgentRuntime, request: AgentRunRequest) {
         self.runtime = runtime
         eventTask?.cancel()
         eventTask = Task { [weak self] in
+            let events = await runtime.start(request)
             for await event in events {
                 guard let self else { return }
                 handle(event)
@@ -265,16 +269,33 @@ final class ConversationModel: Identifiable {
         switch event {
         case .runState(let state):
             runState = state
-            isStreaming = state == .running || state == .reviewing
+            isStreaming = state != .idle && !state.isTerminal
         case .messageStarted(let id):
-            messages.append(ChatMessage(id: id, role: .assistant, text: "", isStreaming: true))
+            if let index = messages.firstIndex(where: { $0.id == id }) {
+                messages[index].isStreaming = true
+            } else {
+                messages.append(ChatMessage(id: id, role: .assistant, text: "", isStreaming: true))
+            }
             isStreaming = true
         case .messageDelta(let id, let text):
-            if let index = messages.firstIndex(where: { $0.id == id }) { messages[index].text += text }
+            if let index = messages.firstIndex(where: { $0.id == id }) {
+                messages[index].text += text
+                messages[index].isStreaming = true
+            } else {
+                messages.append(ChatMessage(
+                    id: id, role: .assistant, text: text, isStreaming: true
+                ))
+            }
+            isStreaming = true
         case .messageFinished(let message):
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[index].text = message.text
                 messages[index].isStreaming = false
+            } else {
+                messages.append(ChatMessage(
+                    id: message.id, role: .assistant, text: message.text,
+                    isStreaming: false
+                ))
             }
         case .toolProposed(let invocation, let descriptor):
             toolCards.append(AgentToolCard(invocation: invocation, descriptor: descriptor))

@@ -49,6 +49,13 @@ private struct CapturingAgentModel: AgentModelStreaming {
             Task {
                 await requests.append(request)
                 if await counter.next() == 0 {
+                    continuation.yield(.providerItem(.object([
+                        "type": .string("reasoning"), "id": .string("reasoning-1"),
+                    ])))
+                    continuation.yield(.providerItem(.object([
+                        "type": .string("reasoning"), "id": .string("reasoning-1"),
+                        "encrypted_content": .string("final-state"),
+                    ])))
                     continuation.yield(.toolCallDelta(id: "wait", name: "wait", arguments: "{}"))
                     continuation.yield(.finished(.toolCalls))
                 } else {
@@ -130,6 +137,13 @@ struct AgentRuntimeTests {
         #expect(captured.last?.messages.contains {
             $0.role == .user && $0.text == "also inspect logs"
         } == true)
+        let providerItems = captured.last?.messages
+            .first(where: { $0.role == .assistant })?.providerItems
+        #expect(providerItems?.count == 1)
+        #expect(
+            providerItems?.first?.objectValue?["encrypted_content"]?.stringValue
+                == "final-state"
+        )
     }
 
     @Test
