@@ -120,12 +120,55 @@ nonisolated struct AgentToolPreflight: Hashable, Sendable {
     var executionMetadata: [String: AgentJSONValue] = [:]
 }
 
+/// One search the *provider* ran on its own servers, normalized out of three
+/// different vendor shapes.
+///
+/// This exists because a native search is invisible to the tool pipeline: no
+/// tool call reaches `AgentRuntime`, so nothing would be approved, recorded, or
+/// shown, and the assistant would cite pages the transcript never mentions
+/// fetching. Carrying the query back lets the runtime raise an ordinary tool
+/// card for it after the fact.
+///
+/// `results` is empty when the provider reports the search without its hits —
+/// OpenAI's `web_search_call` carries the query and puts the sources in message
+/// annotations instead. The query alone is still the part worth showing.
+nonisolated struct AgentWebSearchActivity: Hashable, Sendable, Codable {
+    nonisolated struct Source: Hashable, Sendable, Codable {
+        var title: String
+        var url: String
+    }
+
+    var query: String
+    var sources: [Source] = []
+}
+
 nonisolated struct AgentToolResult: Hashable, Sendable, Codable {
     var callID: String
     var content: String
     var isError: Bool = false
     var isTruncated: Bool = false
     var metadata: [String: AgentJSONValue] = [:]
+
+    /// Marks a result the provider produced inside its own turn.
+    static let providerNativeKey = "provider_native"
+
+    /// Whether this is a *record* of something that already happened rather
+    /// than a result the model is still owed.
+    ///
+    /// Load-bearing, not cosmetic. A provider-native web search never was a
+    /// tool call, so a transcript that carries it as one replays a
+    /// `function_call_output` / `tool_result` whose call id matches nothing —
+    /// and every provider rejects that. OpenAI answers
+    /// `No tool call found for function call output with call_id ...`, which
+    /// only surfaces on the *second* request of a conversation, because the
+    /// first is the one that puts the orphan in the history.
+    ///
+    /// Read from `metadata` rather than stored as its own property so the flag
+    /// survives persistence through the existing `metadataData` column instead
+    /// of costing a schema version.
+    var isProviderNative: Bool {
+        metadata[Self.providerNativeKey]?.boolValue == true
+    }
 }
 
 nonisolated enum AgentRunState: String, Hashable, Sendable, Codable {

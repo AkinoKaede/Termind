@@ -65,9 +65,14 @@ actor ConversationTitleService {
                 text = snapshot
             case .toolCallDelta, .toolCallSnapshot:
                 throw ConversationTitleError.invalidResponse
-            case .providerItem:
+            case .providerItem, .webSearch:
                 // Some reasoning providers require opaque output items in agent
                 // turns. This one-shot, tool-free request never replays them.
+                //
+                // A search is ignored rather than rejected for the same reason:
+                // this client never asks for one, so its only source is a
+                // gateway that searches regardless, and losing the conversation
+                // title over that would help nobody.
                 continue
             case .finished(let reason):
                 stopReason = reason

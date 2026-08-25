@@ -336,18 +336,18 @@ struct AgentProviderAdapterTests {
 
     @Test
     func anthropicRetainsNativeToolUseIDAcrossPartialJSON() {
-        var ids: [Int: String] = [:]
+        var state = AnthropicStreamState()
         let start = AgentProviderClient.parseAnthropic(
             "content_block_start",
             ["index": 1, "content_block": [
                 "type": "tool_use", "id": "toolu_123", "name": "sftp_read",
             ]],
-            callIDs: &ids
+            state: &state
         )
         let delta = AgentProviderClient.parseAnthropic(
             "content_block_delta",
             ["index": 1, "delta": ["partial_json": "{\"path\":\"/tmp\"}"]],
-            callIDs: &ids
+            state: &state
         )
         #expect(start.firstTool?.id == "toolu_123")
         #expect(delta.firstTool?.id == "toolu_123")
@@ -365,6 +365,298 @@ struct AgentProviderAdapterTests {
         ])
         #expect(events.firstTool?.name == "list_hosts")
         #expect(events.containsFinish == .toolCalls)
+    }
+
+    // MARK: - Provider-native web search
+
+    @Test
+    func nativeSearchToolIsSentOnlyWhenAsked() throws {
+        var anthropic = ModelProvider(name: "Anthropic")
+        anthropic.kind = .anthropic
+
+        let off = Self.body(anthropic, webSearch: false, tools: [Self.lookupTool])
+        let offTools = try #require(off["tools"] as? [[String: Any]])
+        #expect(offTools.count == 1)
+        #expect(!offTools.contains { $0["type"] as? String == "web_search_20250305" })
+
+        let on = Self.body(anthropic, webSearch: true, tools: [Self.lookupTool])
+        let onTools = try #require(on["tools"] as? [[String: Any]])
+        #expect(onTools.count == 2)
+        let server = try #require(onTools.first { $0["type"] as? String == "web_search_20250305" })
+        #expect(server["name"] as? String == "web_search")
+        #expect(server["max_uses"] as? Int == AgentProviderClient.nativeWebSearchMaxUses)
+    }
+
+    /// The guard that used to be skipped: `tools` was only set when the local
+    /// list was non-empty, so a chat with no tools got no search either.
+    @Test
+    func nativeSearchSurvivesAnEmptyLocalToolList() throws {
+        var anthropic = ModelProvider(name: "Anthropic")
+        anthropic.kind = .anthropic
+        let anthropicTools = try #require(
+            Self.body(anthropic, webSearch: true, tools: [])["tools"] as? [[String: Any]]
+        )
+        #expect(anthropicTools.count == 1)
+        #expect(anthropicTools[0]["type"] as? String == "web_search_20250305")
+
+        var responses = ModelProvider(name: "Responses")
+        responses.usesResponsesAPI = true
+        let responseTools = try #require(
+            Self.body(responses, webSearch: true, tools: [])["tools"] as? [[String: Any]]
+        )
+        #expect(responseTools.count == 1)
+        #expect(responseTools[0]["type"] as? String == "web_search")
+    }
+
+    /// Chat Completions is also every OpenAI-compatible gateway Termind talks
+    /// to, and an unknown tool type there is a 400 on every message.
+    @Test
+    func chatCompletionsNeverAsksForNativeSearch() throws {
+        let provider = ModelProvider(name: "Gateway")
+        var capable = AIModel(id: "gpt-5.4")
+        capable.abilities = [.toolCall, .webSearch]
+        #expect(!provider.supportsNativeWebSearch(model: capable))
+
+        let body = Self.body(provider, webSearch: true, tools: [Self.lookupTool])
+        let tools = try #require(body["tools"] as? [[String: Any]])
+        #expect(tools.count == 1)
+        #expect(tools[0]["type"] as? String == "function")
+        #expect(body["web_search_options"] == nil)
+    }
+
+    @Test
+    func googleSendsSearchAsItsOwnToolGroup() throws {
+        var provider = ModelProvider(name: "Google")
+        provider.kind = .google
+
+        let tools = try #require(
+            Self.body(provider, webSearch: true, tools: [Self.lookupTool])["tools"]
+                as? [[String: Any]]
+        )
+        // Two entries, not two keys in one entry — the arrangement Gemini
+        // rejects is `functionDeclarations` and `google_search` as siblings
+        // inside a single object.
+        #expect(tools.count == 2)
+        #expect(tools.contains { $0["functionDeclarations"] != nil })
+        #expect(tools.contains { $0["google_search"] != nil })
+        #expect(tools.allSatisfy { $0.count == 1 })
+    }
+
+    /// The regression that costs a whole turn.
+    ///
+    /// `server_tool_use` streams `input_json_delta` exactly like `tool_use`
+    /// does. Read as a tool call it produces one with an empty name, which
+    /// `AgentRuntime` rejects with `invalidToolCall` — so a single native
+    /// search would fail the entire assistant turn.
+    @Test
+    func anthropicServerToolBlocksNeverBecomeToolCalls() {
+        var state = AnthropicStreamState()
+        var events: [AgentModelStreamEvent] = []
+
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_start",
+            [
+                "index": 0,
+                "content_block": [
+                    "type": "server_tool_use", "id": "srvtoolu_1", "name": "web_search",
+                ],
+            ],
+            state: &state
+        )
+        for chunk in [#"{"query""#, #": "swift 6""#, "}"] {
+            events += AgentProviderClient.parseAnthropic(
+                "content_block_delta",
+                ["index": 0, "delta": ["type": "input_json_delta", "partial_json": chunk]],
+                state: &state
+            )
+        }
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_stop", ["index": 0], state: &state
+        )
+
+        #expect(events.firstTool == nil)
+        #expect(events.isEmpty)
+    }
+
+    @Test
+    func anthropicPairsItsSearchQueryWithItsResults() throws {
+        var state = AnthropicStreamState()
+        var events: [AgentModelStreamEvent] = []
+
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_start",
+            [
+                "index": 0,
+                "content_block": [
+                    "type": "server_tool_use", "id": "srvtoolu_1", "name": "web_search",
+                ],
+            ],
+            state: &state
+        )
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_delta",
+            [
+                "index": 0,
+                "delta": ["type": "input_json_delta", "partial_json": #"{"query": "swift 6"}"#],
+            ],
+            state: &state
+        )
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_stop", ["index": 0], state: &state
+        )
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_start",
+            [
+                "index": 1,
+                "content_block": [
+                    "type": "web_search_tool_result", "tool_use_id": "srvtoolu_1",
+                    "content": [
+                        ["type": "web_search_result", "url": "https://swift.org", "title": "Swift"]
+                    ],
+                ],
+            ],
+            state: &state
+        )
+        // The model's own text still streams normally afterwards.
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_delta",
+            ["index": 2, "delta": ["type": "text_delta", "text": "Swift 6 ships"]],
+            state: &state
+        )
+
+        let activity = try #require(events.firstWebSearch)
+        #expect(activity.query == "swift 6")
+        #expect(activity.sources.map(\.url) == ["https://swift.org"])
+        #expect(events.firstText == "Swift 6 ships")
+        #expect(events.firstTool == nil)
+    }
+
+    /// A failed search replaces the array of hits with a single error object.
+    @Test
+    func anthropicSearchErrorYieldsNoSources() throws {
+        var state = AnthropicStreamState()
+        let events = AgentProviderClient.parseAnthropic(
+            "content_block_start",
+            [
+                "index": 0,
+                "content_block": [
+                    "type": "web_search_tool_result", "tool_use_id": "srvtoolu_1",
+                    "content": ["type": "web_search_tool_result_error", "error_code": "max_uses_exceeded"],
+                ],
+            ],
+            state: &state
+        )
+        let activity = try #require(events.firstWebSearch)
+        #expect(activity.sources.isEmpty)
+    }
+
+    /// Two events for one item: the verbatim call has to go back to OpenAI next
+    /// turn, and the card wants the query, which the API would not understand.
+    @Test
+    func responsesSearchCallIsBothReplayedAndShown() throws {
+        let events = AgentProviderClient.parseResponses(
+            "response.output_item.done",
+            [
+                "item": [
+                    "type": "web_search_call", "id": "ws_1", "status": "completed",
+                    "action": ["type": "search", "query": "swift 6 release date"],
+                ]
+            ]
+        )
+
+        let activity = try #require(events.firstWebSearch)
+        #expect(activity.query == "swift 6 release date")
+        // Sources are absent on purpose: Responses reports them as
+        // `url_citation` annotations on the message, not on this item.
+        #expect(activity.sources.isEmpty)
+
+        let item = try #require(events.firstProviderItem)
+        #expect(item.objectValue?["type"]?.stringValue == "web_search_call")
+        #expect(item.objectValue?["id"]?.stringValue == "ws_1")
+        #expect(events.firstTool == nil)
+    }
+
+    @Test
+    func responsesSearchCallReplaysInTheNextRequest() throws {
+        let item = try #require(
+            AgentProviderClient.parseResponses(
+                "response.output_item.done",
+                [
+                    "item": [
+                        "type": "web_search_call", "id": "ws_1", "status": "completed",
+                        "action": ["type": "search", "query": "swift 6"],
+                    ]
+                ]
+            ).firstProviderItem
+        )
+        var provider = ModelProvider(name: "Responses")
+        provider.usesResponsesAPI = true
+        let body = AgentProviderClient(
+            provider: provider, model: AIModel(id: "gpt-test"), secret: "test"
+        ).body(AgentModelRequest(
+            systemPrompt: "test",
+            messages: [AgentTranscriptMessage(role: .assistant, providerItems: [item])],
+            tools: []
+        ))
+
+        let input = try #require(body["input"] as? [[String: Any]])
+        #expect(input.contains { $0["type"] as? String == "web_search_call" })
+    }
+
+    @Test
+    func googleGroundingMetadataBecomesOneSearchCard() throws {
+        let events = AgentProviderClient.parseGoogle([
+            "candidates": [[
+                "content": ["parts": [["text": "Swift 6 shipped."]]],
+                "groundingMetadata": [
+                    "webSearchQueries": ["swift 6 release"],
+                    "groundingChunks": [
+                        ["web": ["uri": "https://swift.org/blog", "title": "swift.org"]],
+                        ["web": ["title": "no uri"]],
+                    ],
+                ],
+                "finishReason": "STOP",
+            ]]
+        ])
+
+        let activity = try #require(events.firstWebSearch)
+        #expect(activity.query == "swift 6 release")
+        #expect(activity.sources.map(\.url) == ["https://swift.org/blog"])
+        #expect(events.firstText == "Swift 6 shipped.")
+        #expect(events.containsFinish == .completed)
+    }
+
+    /// Gemini can report grounding on a chunk that carries no `content` at all.
+    @Test
+    func googleGroundingIsReadFromAContentlessChunk() throws {
+        let events = AgentProviderClient.parseGoogle([
+            "candidates": [[
+                "groundingMetadata": ["webSearchQueries": ["swift 6"]],
+            ]]
+        ])
+        #expect(events.firstWebSearch?.query == "swift 6")
+    }
+
+    // MARK: - Helpers
+
+    private static let lookupTool = AgentToolDescriptor(
+        name: "lookup", summary: "Look something up.",
+        inputSchema: .object([
+            "type": .string("object"),
+            "properties": .object(["query": .object(["type": .string("string")])]),
+            "required": .array([.string("query")]),
+            "additionalProperties": .bool(false),
+        ]),
+        target: .local, safety: .locallyReadOnly
+    )
+
+    private static func body(
+        _ provider: ModelProvider, webSearch: Bool, tools: [AgentToolDescriptor]
+    ) -> [String: Any] {
+        AgentProviderClient(
+            provider: provider, model: AIModel(id: "model-test"), secret: "test",
+            webSearch: webSearch
+        ).body(AgentModelRequest(systemPrompt: "test", messages: [], tools: tools))
     }
 }
 
@@ -399,6 +691,11 @@ private extension [AgentModelStreamEvent] {
 
     var firstProviderItem: AgentJSONValue? {
         for case .providerItem(let item) in self { return item }
+        return nil
+    }
+
+    var firstWebSearch: AgentWebSearchActivity? {
+        for case .webSearch(let activity) in self { return activity }
         return nil
     }
 }

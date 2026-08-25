@@ -191,6 +191,46 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
         return !(usesVertex && kind == .google)
     }
 
+    /// Whether this endpoint accepts a *server-side* search tool in its request
+    /// body — the kind the provider runs itself and never tells the agent
+    /// runtime about.
+    ///
+    /// Chat Completions is excluded on purpose. OpenAI's `web_search_options`
+    /// exists there only on the two `*-search-preview` SKUs, while `.openAI` is
+    /// also every compatible gateway this app talks to — OpenRouter, DeepSeek,
+    /// Groq, Together, Ollama. Sending them an option they have never heard of
+    /// turns a working setup into a 400 for a feature nobody asked for.
+    ///
+    /// The wire protocol alone is not enough, which is the part that had to be
+    /// learned. A server tool exists at the intersection of *this vendor's API*
+    /// and *this vendor's model*, and a gateway breaks that pairing: point an
+    /// OpenAI-shaped `/responses` endpoint at Claude and it will accept
+    /// `{"type": "web_search"}` and forward it as an ordinary function
+    /// declaration. The model then calls `web_search` as a tool, nothing here
+    /// has one registered — because native mode deliberately withholds the
+    /// local tool — and the run reports `Unknown tool: web_search`.
+    ///
+    /// So the model family has to agree with the endpoint. A Claude id on an
+    /// OpenAI-shaped endpoint means a translator sits in between, and the right
+    /// answer there is the local `web_search` tool, which works everywhere.
+    func supportsNativeWebSearch(model: AIModel) -> Bool {
+        guard model.abilities.contains(.webSearch) else { return false }
+        let id = model.id.lowercased()
+        switch kind {
+        case .anthropic:
+            return id.contains("claude")
+        case .google:
+            return id.contains("gemini")
+        case .openAI:
+            // DeepSeek belongs here: its `/responses` implements the identical
+            // `{"type": "web_search"}` server tool, so it is a first party for
+            // this purpose even though it is reached OpenAI-shaped.
+            guard usesResponsesAPI else { return false }
+            return id.contains("gpt") || id.contains("deepseek")
+                || id.range(of: #"(^|[-_/])o[3-9]([-._/]|$)"#, options: .regularExpression) != nil
+        }
+    }
+
     /// What the role pickers and the conversation's model menu offer. An
     /// embedding model in a chat-model picker is noise.
     var chatModels: [AIModel] {
@@ -320,6 +360,11 @@ nonisolated struct AIModel: Identifiable, Hashable, Sendable {
 
     nonisolated enum Ability: String, Codable, Sendable, CaseIterable, Identifiable {
         case toolCall, reasoning
+        /// The provider runs the search on its own servers when asked, rather
+        /// than the model calling one of Termind's tools. Whether that offer is
+        /// actually taken up also depends on the provider kind — see
+        /// `ModelProvider.supportsNativeWebSearch`.
+        case webSearch
 
         nonisolated var id: String { rawValue }
 
@@ -327,6 +372,7 @@ nonisolated struct AIModel: Identifiable, Hashable, Sendable {
             switch self {
             case .toolCall: String(localized: "Tools")
             case .reasoning: String(localized: "Reasoning")
+            case .webSearch: String(localized: "Web Search")
             }
         }
 
@@ -334,6 +380,7 @@ nonisolated struct AIModel: Identifiable, Hashable, Sendable {
             switch self {
             case .toolCall: "wrench.and.screwdriver"
             case .reasoning: "brain"
+            case .webSearch: "magnifyingglass"
             }
         }
     }

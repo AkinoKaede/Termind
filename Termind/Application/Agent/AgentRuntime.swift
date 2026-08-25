@@ -17,6 +17,10 @@ nonisolated enum AgentModelStreamEvent: Sendable {
         id: String, providerItemID: String?, name: String, arguments: String
     )
     case providerItem(AgentJSONValue)
+    /// A search the provider ran itself. Distinct from `providerItem`, which is
+    /// the *replay* channel and must stay byte-shaped the way its provider
+    /// sent it; this one is normalized for display and is never sent back.
+    case webSearch(AgentWebSearchActivity)
     case finished(AgentStopReason)
 }
 
@@ -268,12 +272,44 @@ actor AgentRuntime {
         return result
     }
 
+    /// Drops tool results that answer no call in the same history.
+    ///
+    /// A `tool` message only means anything beside the assistant turn that
+    /// asked for it. One left on its own is rejected outright — OpenAI answers
+    /// `No tool call found for function call output with call_id ...`, and the
+    /// other two reject the equivalent — so a single orphan makes a
+    /// conversation permanently unusable rather than degrading it.
+    ///
+    /// Applied to incoming history rather than inside each provider's encoder,
+    /// which is what makes it a repair and not just a guard: `priorMessages`
+    /// seeds the snapshot that gets persisted *before* the request goes out, so
+    /// filtering here also stops a stored orphan from being written forward
+    /// into the next run.
+    ///
+    /// Messages with no call id at all are kept. Google addresses a tool result
+    /// by name rather than by id, so absence here is not evidence of an orphan.
+    static func withoutOrphanedToolResults(
+        _ messages: [AgentTranscriptMessage]
+    ) -> [AgentTranscriptMessage] {
+        let answered = Set(
+            messages.lazy
+                .filter { $0.role == .assistant }
+                .flatMap { $0.toolCalls.map(\.id) }
+        )
+        return messages.filter { message in
+            guard message.role == .tool, let id = message.toolCallID, !id.isEmpty else {
+                return true
+            }
+            return answered.contains(id)
+        }
+    }
+
     private func run(_ request: AgentRunRequest) async {
         var snapshot = AgentRunSnapshot(
             conversationID: request.conversationID,
             state: .running,
             permissionMode: request.permissionMode,
-            messages: request.priorMessages
+            messages: Self.withoutOrphanedToolResults(request.priorMessages)
         )
         activeRunID = snapshot.id
         let runID = snapshot.id
@@ -367,6 +403,54 @@ actor AgentRuntime {
         finish(runID: runID)
     }
 
+    /// Raises an ordinary tool card for a search the provider already ran.
+    ///
+    /// Proposed and finished in one breath, with no approval between, because
+    /// by the time this event exists there is nothing left to authorize — the
+    /// search happened on the provider's servers during the turn. The card is a
+    /// record rather than a gate, which is the honest thing to show and better
+    /// than an answer that cites pages the transcript never mentions reaching.
+    ///
+    /// The result content deliberately carries no `<untrusted-data>` wrapper.
+    /// That wrapper is addressed to a model, and this content is never sent to
+    /// one: it exists only for the card and for run history.
+    private func recordNativeWebSearch(_ activity: AgentWebSearchActivity) {
+        guard let runID = activeRunID else { return }
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(
+                id: "provider-web-search-\(UUID().uuidString)",
+                name: "web_search",
+                arguments: .object(["query": .string(activity.query)])
+            )
+        )
+        let descriptor = AgentToolDescriptor(
+            name: "web_search",
+            summary: String(localized: "Web search run by the model provider."),
+            inputSchema: .object([
+                "type": .string("object"),
+                "properties": .object(["query": .object(["type": .string("string")])]),
+                "required": .array([.string("query")]),
+                "additionalProperties": .bool(false),
+            ]),
+            target: .network,
+            safety: .locallyReadOnly
+        )
+        let sources = AgentJSONValue.array(activity.sources.map { source in
+            .object(["title": .string(source.title), "url": .string(source.url)])
+        })
+        emit(.toolProposed(invocation, descriptor))
+        emit(.toolFinished(invocation, AgentToolResult(
+            callID: invocation.call.id,
+            content: sources.encodedString,
+            // The flag every reader of this event needs: `callID` here names
+            // nothing the provider ever asked for, so anything that replays
+            // tool results must leave this one out. See
+            // `AgentToolResult.isProviderNative`.
+            metadata: [AgentToolResult.providerNativeKey: .bool(true)]
+        )))
+    }
+
     private func assistantTurn(
         systemPrompt: String,
         messages: [AgentTranscriptMessage]
@@ -375,6 +459,10 @@ actor AgentRuntime {
         var pending: [String: PendingToolCall] = [:]
         var order: [String] = []
         var stopReason = AgentStopReason.completed
+        // One card per distinct query. Gemini reports its grounding metadata on
+        // more than one chunk of the same stream, and a card per chunk would
+        // read as the model having searched four times for one thing.
+        var recordedSearches: Set<String> = []
         emit(.messageStarted(message.id))
 
         let request = AgentModelRequest(
@@ -415,6 +503,10 @@ actor AgentRuntime {
                     message.providerItems[index] = item
                 } else {
                     message.providerItems.append(item)
+                }
+            case .webSearch(let activity):
+                if recordedSearches.insert(activity.query).inserted {
+                    recordNativeWebSearch(activity)
                 }
             case .finished(let reason):
                 stopReason = reason

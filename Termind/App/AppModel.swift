@@ -209,9 +209,11 @@ final class AppModel {
         }
 
         let mode = ai.resolve(conversation: conversation.permissionMode)
+        let searchPlan = webSearchPlan(model: chat.model, provider: chat.provider)
         let model = AgentProviderClient(
             provider: chat.provider, model: chat.model, secret: secret,
-            reasoning: conversation.reasoningEffort
+            reasoning: conversation.reasoningEffort,
+            webSearch: searchPlan.isNative
         )
         let reviewer: (any SecurityReviewing)? = {
             guard mode == .approveForMe, let review = ai.resolve(.securityReview) else { return nil }
@@ -251,7 +253,10 @@ final class AppModel {
 
         var tools: [AnyAgentTool] = []
         if chat.model.abilities.contains(.toolCall) {
-            tools = AgentBuiltInTools.make(hosts: agentHosts, connections: agentConnections)
+            tools = AgentBuiltInTools.make(
+                hosts: agentHosts, connections: agentConnections,
+                search: searchPlan.local
+            )
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
             }
@@ -272,6 +277,39 @@ final class AppModel {
             sessionContext: context
         ))
         scheduleTitle(for: conversation)
+    }
+
+    /// Which of the two web-search paths this turn gets, resolved once so the
+    /// request body and the tool list cannot disagree.
+    ///
+    /// Native wins where it exists. It searches better than a snippet API can,
+    /// costs no second key, and needs no round trip through Termind — the model
+    /// simply knows things. What it gives up is visibility, which
+    /// `AgentRuntime.recordNativeWebSearch` buys back after the fact.
+    ///
+    /// Exactly one path is ever live. Offering both would put two tools in
+    /// front of the model for one job and leave it to guess which, and the
+    /// guess would decide whether the search shows up as a card beforehand or a
+    /// record afterwards.
+    private func webSearchPlan(
+        model: AIModel, provider: ModelProvider
+    ) -> (isNative: Bool, local: WebSearchClient?) {
+        guard SettingsKey.isWebSearchEnabled else { return (false, nil) }
+        if provider.supportsNativeWebSearch(model: model) { return (true, nil) }
+        let defaults = UserDefaults.standard
+        let backend = SearchBackend(
+            rawValue: defaults.string(forKey: SettingsKey.webSearchBackend) ?? ""
+        ) ?? .default
+        let client = WebSearchClient(
+            backend: backend,
+            baseURL: defaults.string(forKey: SettingsKey.webSearchBaseURL) ?? "",
+            apiKey: ai.secret(
+                for: defaults.string(forKey: SettingsKey.webSearchCredentialRef) ?? ""
+            ) ?? ""
+        )
+        // A keyed backend with no key registers nothing rather than a tool that
+        // fails on first use — see `AgentBuiltInTools.make(search:)`.
+        return (false, client.isConfigured ? client : nil)
     }
 
     /// Arms the one-shot summary for this conversation.

@@ -4,7 +4,7 @@ import SwiftUI
 enum SettingsSection: String, CaseIterable, Identifiable {
     case app, startup, sidebar
     case terminalAppearance, sftp
-    case providers, modelRoles, mcp
+    case providers, modelRoles, webSearch, mcp
     case iCloud
 
     var id: String { rawValue }
@@ -18,6 +18,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sftp: "SFTP"
         case .providers: "Providers"
         case .modelRoles: "Model Roles"
+        case .webSearch: "Web Search"
         case .mcp: "MCP"
         case .iCloud: "Sync"
         }
@@ -32,6 +33,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sftp: "arrow.up.arrow.down"
         case .providers: "network"
         case .modelRoles: "person.2.badge.gearshape"
+        case .webSearch: "magnifyingglass"
         case .mcp: "wrench.and.screwdriver"
         case .iCloud: "icloud"
         }
@@ -146,6 +148,13 @@ struct SettingsPageView: View {
             SettingsFormPage(title: "Model Roles", subtitle: "Choose which model handles each assistant task.") {
                 ModelRoleSettings()
             }
+        case .webSearch:
+            SettingsFormPage(
+                title: "Web Search",
+                subtitle: "How the assistant finds pages before it reads them."
+            ) {
+                WebSearchSettings()
+            }
         case .mcp:
             SettingsCollectionPage(title: "MCP", subtitle: "Remote tool servers available to the assistant.") {
                 MCPSettings { id, isNew in route = .mcpServer(id, isNew: isNew) }
@@ -200,7 +209,7 @@ private struct SettingsSidebar: View {
             LazyVStack(alignment: .leading, spacing: Metrics.Space.xl) {
                 group("GENERAL", sections: [.app, .startup, .sidebar])
                 group("TERMINAL", sections: [.terminalAppearance, .sftp])
-                group("AI", sections: [.providers, .modelRoles, .mcp])
+                group("AI", sections: [.providers, .modelRoles, .webSearch, .mcp])
                 group("iCloud", sections: [.iCloud])
             }
             .padding(.horizontal, Metrics.Space.m)

@@ -478,6 +478,12 @@ final class ConversationModel: Identifiable {
                 toolCards[index].result = result
                 toolCards[index].state = result.isError ? .failed : .completed
             }
+            // A card, but not a turn. A provider-native search happened inside
+            // the assistant's own turn and was never a tool call here, so
+            // adding it to the model-facing transcript would replay a tool
+            // result the provider has no matching call for — which it rejects
+            // on the *next* request. See `AgentToolResult.isProviderNative`.
+            guard !result.isProviderNative else { break }
             transcript.append(AgentTranscriptMessage(
                 role: .tool, text: result.content, toolCallID: result.callID,
                 toolName: invocation.call.name, isError: result.isError

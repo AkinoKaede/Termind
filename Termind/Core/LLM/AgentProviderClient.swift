@@ -7,6 +7,13 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     private let model: AIModel
     private let secret: String
     private let reasoning: ReasoningEffort
+    /// Ask the provider to run web search on its own servers this turn.
+    ///
+    /// Off by default so the short, tool-free features — titling, the command
+    /// composer, Security Review — cannot acquire it by accident. Only the
+    /// Chat/Agent path sets it, and only after `AppModel` has checked both the
+    /// model's ability and `ModelProvider.supportsNativeWebSearch`.
+    private let webSearch: Bool
     private let session: URLSession
 
     init(
@@ -14,12 +21,14 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         model: AIModel,
         secret: String,
         reasoning: ReasoningEffort = .medium,
+        webSearch: Bool = false,
         session: URLSession? = nil
     ) {
         self.provider = provider
         self.model = model
         self.secret = secret
         self.reasoning = reasoning
+        self.webSearch = webSearch
         self.session = session ?? Self.shared
     }
 
@@ -42,7 +51,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             let task = Task {
                 do {
                     var chatCallIDs: [Int: String] = [:]
-                    var anthropicCallIDs: [Int: String] = [:]
+                    var anthropicState = AnthropicStreamState()
                     var responseCallIDs: [String: String] = [:]
                     var responseCallNames: [String: String] = [:]
                     var urlRequest = try buildRequest(request, streaming: true)
@@ -78,7 +87,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                         if event.data == "[DONE]" { break }
                         for item in parse(
                             event, chatCallIDs: &chatCallIDs,
-                            anthropicCallIDs: &anthropicCallIDs,
+                            anthropicState: &anthropicState,
                             responseCallIDs: &responseCallIDs,
                             responseCallNames: &responseCallNames
                         ) {
@@ -177,24 +186,28 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         let reasoningValue = reasoningResolution.wireValue(for: normalizedReasoning)
         switch provider.kind {
         case .openAI where provider.usesResponsesAPI:
-            let tools = request.tools.map(Self.openAIToolObject)
+            var tools: [[String: Any]] = request.tools.map(Self.openAIToolObject).map { tool in
+                var responseTool = tool
+                responseTool["type"] = "function"
+                return responseTool
+            }
+            if webSearch { tools.append(["type": "web_search"]) }
             var body: [String: Any] = [
                 "model": model.id, "stream": streaming,
                 "instructions": request.systemPrompt,
                 "input": request.messages.flatMap(Self.responsesMessages),
             ]
-            if !tools.isEmpty {
-                body["tools"] = tools.map { tool in
-                    var responseTool = tool
-                    responseTool["type"] = "function"
-                    return responseTool
-                }
-            }
+            if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
                 body["reasoning"] = ["effort": reasoningValue]
             }
             return body
         case .openAI:
+            // No search here, whatever the model claims. `web_search_options`
+            // exists on two `*-search-preview` SKUs, while this branch is also
+            // every OpenAI-compatible gateway Termind talks to — see
+            // `ModelProvider.supportsNativeWebSearch`, which is what actually
+            // prevents it reaching this far.
             let tools = request.tools.map(Self.openAIToolObject)
             var messages: [[String: Any]] = [["role": "system", "content": request.systemPrompt]]
             messages += request.messages.flatMap(Self.chatMessages)
@@ -205,29 +218,40 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if let reasoningValue { body["reasoning_effort"] = reasoningValue }
             return body
         case .anthropic:
-            let tools = request.tools.map(Self.providerToolObject)
+            var tools: [[String: Any]] = request.tools.map(Self.providerToolObject).map { tool in
+                ["name": tool["name"]!, "description": tool["description"]!, "input_schema": tool["parameters"]!]
+            }
+            if webSearch {
+                tools.append([
+                    "type": "web_search_20250305", "name": "web_search",
+                    "max_uses": Self.nativeWebSearchMaxUses,
+                ])
+            }
             var body: [String: Any] = [
                 "model": model.id, "stream": streaming,
                 "max_tokens": model.maxOutputTokens ?? 4096,
                 "system": request.systemPrompt,
                 "messages": request.messages.flatMap(Self.anthropicMessages),
             ]
-            if !tools.isEmpty {
-                body["tools"] = tools.map { tool in
-                    ["name": tool["name"]!, "description": tool["description"]!, "input_schema": tool["parameters"]!]
-                }
-            }
+            if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
                 body["output_config"] = ["effort": reasoningValue]
             }
             return body
         case .google:
-            let tools = request.tools.map(Self.providerToolObject)
+            let declarations = request.tools.map(Self.providerToolObject)
+            // Two entries, not two keys in one entry. Gemini's `tools` is a
+            // list of tool *groups*, and putting `google_search` beside
+            // `functionDeclarations` inside one object is the arrangement it
+            // rejects.
+            var tools: [[String: Any]] = []
+            if !declarations.isEmpty { tools.append(["functionDeclarations": declarations]) }
+            if webSearch { tools.append(["google_search": [String: Any]()]) }
             var body: [String: Any] = [
                 "systemInstruction": ["parts": [["text": request.systemPrompt]]],
                 "contents": request.messages.map(Self.googleMessage),
             ]
-            if !tools.isEmpty { body["tools"] = [["functionDeclarations": tools]] }
+            if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
                 body["generationConfig"] = [
                     "thinkingConfig": ["thinkingLevel": reasoningValue]
@@ -236,6 +260,11 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             return body
         }
     }
+
+    /// A ceiling on searches per turn, which only Anthropic's tool takes as a
+    /// parameter. Eight is enough for a model to refine a query a few times and
+    /// low enough that a loop costs a bounded number of billed searches.
+    static let nativeWebSearchMaxUses = 8
 
     private func authorize(_ request: inout URLRequest) async throws {
         switch provider.kind {
@@ -253,7 +282,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
 
     private func parse(
         _ event: SSEEvent, chatCallIDs: inout [Int: String],
-        anthropicCallIDs: inout [Int: String],
+        anthropicState: inout AnthropicStreamState,
         responseCallIDs: inout [String: String],
         responseCallNames: inout [String: String]
     ) -> [AgentModelStreamEvent] {
@@ -272,7 +301,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             )
         case .openAI: return Self.parseChat(root, callIDs: &chatCallIDs)
         case .anthropic:
-            return Self.parseAnthropic(eventType, root, callIDs: &anthropicCallIDs)
+            return Self.parseAnthropic(eventType, root, state: &anthropicState)
         case .google: return Self.parseGoogle(root)
         }
     }
@@ -297,14 +326,14 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         // framing the already-buffered body rather than feeding `data: ...`
         // into JSONSerialization and surfacing Foundation's opaque error.
         var chatCallIDs: [Int: String] = [:]
-        var anthropicCallIDs: [Int: String] = [:]
+        var anthropicState = AnthropicStreamState()
         var responseCallIDs: [String: String] = [:]
         var responseCallNames: [String: String] = [:]
         var output: [AgentModelStreamEvent] = []
         for event in SSEStream.events(in: data) where event.data != "[DONE]" {
             output += parse(
                 event, chatCallIDs: &chatCallIDs,
-                anthropicCallIDs: &anthropicCallIDs,
+                anthropicState: &anthropicState,
                 responseCallIDs: &responseCallIDs,
                 responseCallNames: &responseCallNames
             )
@@ -511,6 +540,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             {
                 return [.providerItem(value)]
             }
+            if item["type"] as? String == "web_search_call" {
+                return responsesWebSearch(item)
+            }
             guard item["type"] as? String == "function_call",
                 let sourceID = (item["id"] ?? item["call_id"]) as? String,
                 let name = item["name"] as? String ?? callNames[sourceID]
@@ -554,6 +586,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             switch item["type"] as? String {
             case "reasoning":
                 if let value = jsonValue(item) { events.append(.providerItem(value)) }
+            case "web_search_call":
+                events += responsesWebSearch(item)
             case "message":
                 for content in item["content"] as? [[String: Any]] ?? [] {
                     if content["type"] as? String == "output_text",
@@ -629,12 +663,16 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     static func parseCompletedAnthropic(_ root: [String: Any]) -> [AgentModelStreamEvent] {
         guard root["type"] as? String == "message" else { return [] }
         var events: [AgentModelStreamEvent] = []
+        // The buffered body has both halves of a search in hand, so the query
+        // is matched to its results here rather than parked across events the
+        // way the streaming parser has to.
+        var queries: [String: String] = [:]
         for block in root["content"] as? [[String: Any]] ?? [] {
-            if block["type"] as? String == "text", let text = block["text"] as? String {
-                events.append(.textDelta(text))
-            } else if block["type"] as? String == "tool_use",
-                let name = block["name"] as? String
-            {
+            switch block["type"] as? String {
+            case "text":
+                if let text = block["text"] as? String { events.append(.textDelta(text)) }
+            case "tool_use":
+                guard let name = block["name"] as? String else { continue }
                 let data = block["input"].flatMap {
                     try? JSONSerialization.data(withJSONObject: $0)
                 } ?? Data("{}".utf8)
@@ -642,6 +680,16 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                     id: block["id"] as? String ?? UUID().uuidString,
                     name: name, arguments: String(decoding: data, as: UTF8.self)
                 ))
+            case "server_tool_use":
+                guard let id = block["id"] as? String else { continue }
+                queries[id] = (block["input"] as? [String: Any])?["query"] as? String ?? ""
+            case "web_search_tool_result":
+                let query = (block["tool_use_id"] as? String).flatMap { queries[$0] }
+                events.append(.webSearch(AgentWebSearchActivity(
+                    query: query ?? "", sources: anthropicSources(block["content"])
+                )))
+            default:
+                continue
             }
         }
         events.append(.finished(events.containsToolCall ? .toolCalls : .completed))
@@ -649,42 +697,127 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     }
 
     static func parseAnthropic(_ type: String, _ root: [String: Any]) -> [AgentModelStreamEvent] {
-        var callIDs: [Int: String] = [:]
-        return parseAnthropic(type, root, callIDs: &callIDs)
+        var state = AnthropicStreamState()
+        return parseAnthropic(type, root, state: &state)
     }
 
     static func parseAnthropic(
-        _ type: String, _ root: [String: Any], callIDs: inout [Int: String]
+        _ type: String, _ root: [String: Any], state: inout AnthropicStreamState
     ) -> [AgentModelStreamEvent] {
-        if type == "content_block_start", let block = root["content_block"] as? [String: Any],
-            block["type"] as? String == "tool_use"
-        {
-            let index = root["index"] as? Int ?? 0
-            let id = block["id"] as? String ?? "index-\(index)"
-            callIDs[index] = id
-            return [.toolCallDelta(
-                id: id,
-                name: block["name"] as? String, arguments: ""
-            )]
+        let index = root["index"] as? Int ?? 0
+
+        if type == "content_block_start", let block = root["content_block"] as? [String: Any] {
+            switch block["type"] as? String {
+            case "tool_use":
+                let id = block["id"] as? String ?? "index-\(index)"
+                state.callIDs[index] = id
+                return [.toolCallDelta(
+                    id: id,
+                    name: block["name"] as? String, arguments: ""
+                )]
+            case "server_tool_use":
+                // The provider's own call, not the model's. Claiming the index
+                // here is the whole point: `server_tool_use` streams
+                // `input_json_delta` exactly like `tool_use` does, and letting
+                // those deltas fall through to the tool-call branch below
+                // manufactures a call with an empty name — which `AgentRuntime`
+                // rejects with `invalidToolCall`, failing the entire turn.
+                state.serverBlocks[index] = AnthropicStreamState.ServerBlock(
+                    id: block["id"] as? String ?? "", name: block["name"] as? String ?? ""
+                )
+                return []
+            case "web_search_tool_result":
+                state.serverBlocks[index] = AnthropicStreamState.ServerBlock()
+                // Anthropic sends the query and its hits as two sibling blocks.
+                // The query was parked at the previous block's stop so one card
+                // can carry both.
+                let query = (block["tool_use_id"] as? String)
+                    .flatMap { state.pendingQueries.removeValue(forKey: $0) }
+                return [.webSearch(AgentWebSearchActivity(
+                    query: query ?? "", sources: anthropicSources(block["content"])
+                ))]
+            default:
+                return []
+            }
         }
+
         if type == "content_block_delta", let delta = root["delta"] as? [String: Any] {
+            if state.serverBlocks[index] != nil {
+                if let json = delta["partial_json"] as? String {
+                    state.serverBlocks[index]?.input += json
+                }
+                return []
+            }
             if let text = delta["text"] as? String { return [.textDelta(text)] }
             if let json = delta["partial_json"] as? String {
-                let index = root["index"] as? Int ?? 0
                 return [.toolCallDelta(
-                    id: callIDs[index] ?? "index-\(index)", name: nil, arguments: json
+                    id: state.callIDs[index] ?? "index-\(index)", name: nil, arguments: json
                 )]
             }
         }
+
+        if type == "content_block_stop",
+            let block = state.serverBlocks.removeValue(forKey: index), !block.id.isEmpty
+        {
+            state.pendingQueries[block.id] = anthropicQuery(block.input)
+            return []
+        }
+
         if type == "message_stop" { return [.finished(.completed)] }
         return []
     }
 
-    static func parseGoogle(_ root: [String: Any]) -> [AgentModelStreamEvent] {
-        guard let candidate = (root["candidates"] as? [[String: Any]])?.first,
-            let content = candidate["content"] as? [String: Any]
-        else { return [] }
+    /// A completed Responses search, as both a replay item and a card.
+    ///
+    /// Two events for one item, deliberately. The verbatim `web_search_call`
+    /// has to go back to OpenAI on the next turn or the reasoning that produced
+    /// it is orphaned, and that is what `providerItem` is for. The card wants
+    /// the query, which lives at `action.query` and would mean nothing to the
+    /// API. Neither can stand in for the other.
+    ///
+    /// Sources are absent here on purpose: Responses reports them as
+    /// `url_citation` annotations on the message rather than on this item.
+    private static func responsesWebSearch(_ item: [String: Any]) -> [AgentModelStreamEvent] {
         var events: [AgentModelStreamEvent] = []
+        if let value = jsonValue(item) { events.append(.providerItem(value)) }
+        let action = item["action"] as? [String: Any]
+        let query = action?["query"] as? String ?? item["query"] as? String ?? ""
+        events.append(.webSearch(AgentWebSearchActivity(query: query)))
+        return events
+    }
+
+    private static func anthropicQuery(_ rawInput: String) -> String {
+        guard let data = rawInput.data(using: .utf8),
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return "" }
+        return object["query"] as? String ?? ""
+    }
+
+    /// Tolerates the error shape. A failed search replaces the array of hits
+    /// with a single `web_search_tool_result_error` object, so the cast is what
+    /// turns "the search failed" into an empty source list rather than a crash.
+    private static func anthropicSources(_ content: Any?) -> [AgentWebSearchActivity.Source] {
+        (content as? [[String: Any]] ?? []).compactMap { row in
+            guard let url = row["url"] as? String, !url.isEmpty else { return nil }
+            return AgentWebSearchActivity.Source(
+                title: row["title"] as? String ?? "", url: url
+            )
+        }
+    }
+
+    static func parseGoogle(_ root: [String: Any]) -> [AgentModelStreamEvent] {
+        guard let candidate = (root["candidates"] as? [[String: Any]])?.first else { return [] }
+        var events: [AgentModelStreamEvent] = []
+        // Grounding hangs off the candidate, beside `content`, not inside
+        // `parts` — and it is read before the guard below, because a chunk can
+        // carry the metadata for a search without carrying any content.
+        if let grounding = candidate["groundingMetadata"] as? [String: Any] {
+            events.append(.webSearch(googleGrounding(grounding)))
+        }
+        guard let content = candidate["content"] as? [String: Any] else {
+            if candidate["finishReason"] != nil { events.append(.finished(.completed)) }
+            return events
+        }
         for part in content["parts"] as? [[String: Any]] ?? [] {
             if let text = part["text"] as? String { events.append(.textDelta(text)) }
             if let call = part["functionCall"] as? [String: Any], let name = call["name"] as? String {
@@ -695,9 +828,56 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         if candidate["finishReason"] != nil { events.append(.finished(events.containsToolCall ? .toolCalls : .completed)) }
         return events
     }
+
+    /// Gemini reports every query of the turn in one `webSearchQueries` array
+    /// and its sources in `groundingChunks`, with no mapping between them. The
+    /// queries are joined rather than split into a card each, because inventing
+    /// a source-to-query assignment the payload does not state would be worse
+    /// than showing them together.
+    private static func googleGrounding(
+        _ metadata: [String: Any]
+    ) -> AgentWebSearchActivity {
+        let queries = (metadata["webSearchQueries"] as? [String] ?? [])
+            .filter { !$0.isEmpty }
+        let sources = (metadata["groundingChunks"] as? [[String: Any]] ?? []).compactMap {
+            chunk -> AgentWebSearchActivity.Source? in
+            guard let web = chunk["web"] as? [String: Any],
+                let url = web["uri"] as? String, !url.isEmpty
+            else { return nil }
+            return AgentWebSearchActivity.Source(
+                title: web["title"] as? String ?? "", url: url
+            )
+        }
+        return AgentWebSearchActivity(
+            query: queries.joined(separator: ", "), sources: sources
+        )
+    }
 }
 
 extension AgentProviderClient: AgentModelCompleting {}
+
+/// Per-stream Anthropic block bookkeeping.
+///
+/// Anthropic streams two kinds of block through the same delta events: the
+/// model's own `tool_use`, which Termind must execute, and the provider's
+/// `server_tool_use`, which it must not. Knowing which index is which is the
+/// only way to tell them apart mid-stream, and getting it wrong is not a
+/// cosmetic error — see `parseAnthropic`.
+nonisolated struct AnthropicStreamState: Sendable {
+    fileprivate struct ServerBlock: Sendable {
+        var id: String = ""
+        var name: String = ""
+        var input: String = ""
+    }
+
+    fileprivate var callIDs: [Int: String] = [:]
+    fileprivate var serverBlocks: [Int: ServerBlock] = [:]
+    /// `server_tool_use.id` → query, held from that block's stop until the
+    /// sibling `web_search_tool_result` arrives, so one card carries both.
+    fileprivate var pendingQueries: [String: String] = [:]
+
+    init() {}
+}
 
 nonisolated private extension Array where Element == AgentModelStreamEvent {
     var containsToolCall: Bool {

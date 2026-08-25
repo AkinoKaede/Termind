@@ -337,10 +337,17 @@ actor AgentConnectionPool {
 }
 
 nonisolated enum AgentBuiltInTools {
+    /// `search` is optional, and nil means the tool is not registered at all
+    /// rather than registered and always failing. A model shown a `web_search`
+    /// it cannot use spends a turn discovering that; a model not shown one
+    /// reaches for `fetch` or asks, which is the behaviour we want when no
+    /// backend is configured. It is also nil whenever the model has provider
+    /// search of its own — see `AppModel.webSearchPlan`.
     static func make(
         hosts: AgentHostResolver,
         connections: AgentConnectionPool,
-        fetcher: RestrictedHTTPFetcher = RestrictedHTTPFetcher()
+        fetcher: RestrictedHTTPFetcher = RestrictedHTTPFetcher(),
+        search: WebSearchClient? = nil
     ) -> [AnyAgentTool] {
         [
             listHosts(hosts), sshExec(connections), terminalSuggest(),
@@ -348,7 +355,7 @@ nonisolated enum AgentBuiltInTools {
             sftpWrite(connections), sftpMkdir(connections), sftpMove(connections),
             sftpChmod(connections), sftpDelete(connections), fetch(fetcher),
             requestUserInput(), requestUserSecret(),
-        ]
+        ] + (search.map { [webSearch($0)] } ?? [])
     }
 
     private static func listHosts(_ hosts: AgentHostResolver) -> AnyAgentTool {
@@ -623,6 +630,59 @@ nonisolated enum AgentBuiltInTools {
                     "headers": .object(response.headers.mapValues(AgentJSONValue.string)),
                     "body": .string(response.body), "truncated": .bool(response.truncated),
                 ]), truncated: response.truncated)
+            }
+        )
+    }
+
+    /// Finding a URL, as the counterpart to `fetch` reading one.
+    ///
+    /// Snippets only, deliberately. Every backend here can also return page
+    /// text, and taking it would make this a second way to read the web —
+    /// one whose destination is chosen by the search engine rather than
+    /// classified by us. Leaving it out keeps `fetch` the single door, with its
+    /// address classification, redirect budget and private-network escalation
+    /// all still on the path.
+    ///
+    /// `.locallyReadOnly` for a public backend, matching `fetch`: a query is an
+    /// outbound request, not a change to anything. It escalates for the same
+    /// destinations `fetch` escalates for, which is what stops a search backend
+    /// configured at a LAN address from being reached without a word.
+    static func webSearch(_ search: WebSearchClient) -> AnyAgentTool {
+        let tool = descriptor(
+            "web_search",
+            "Search the public web. Returns titles, URLs and snippets only; use fetch to read a "
+                + "result page in full.",
+            properties: ["query": string(max: 1_024), "count": integer(min: 1, max: 10)],
+            required: ["query"], target: .network, safety: .locallyReadOnly
+        )
+        return AnyAgentTool(
+            descriptor: tool,
+            preflight: { invocation in
+                _ = try Arguments(invocation).string("query")
+                guard try await search.classification() == .restricted else {
+                    return AgentToolPreflight(invocation: invocation, safety: .locallyReadOnly)
+                }
+                return AgentToolPreflight(
+                    invocation: invocation,
+                    safety: .requiresAuthorization,
+                    reasons: [
+                        "The configured search backend is on a private or otherwise non-public "
+                            + "network: \(search.resolvedURL)"
+                    ]
+                )
+            },
+            execute: { invocation, _ in
+                let arguments = try Arguments(invocation)
+                let rows = try await search.search(
+                    arguments.string("query"), count: arguments.optionalInt("count") ?? 5
+                )
+                return result(invocation, .array(rows.map { row in
+                    .object([
+                        "title": .string(row.title), "url": .string(row.url),
+                        "snippet": .string(row.snippet),
+                        "published_at": row.publishedAt.map { .string($0.ISO8601Format()) } ?? .null,
+                    ])
+                }))
             }
         )
     }

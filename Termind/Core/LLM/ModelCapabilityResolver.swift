@@ -170,6 +170,16 @@ nonisolated enum ModelCapabilityResolver {
                 if record.reasoning { result.abilities.insert(.reasoning) }
             }
         }
+        // Outside every branch above, and that is the point. Server-side search
+        // is not treated as a headline capability by anyone: no `/models`
+        // payload reports it and Pi's catalog has no field for it, so "the
+        // source listed abilities" never means "the source ruled search out".
+        // Gating this on silence about *other* abilities would leave it off for
+        // exactly the well-described models most likely to have it.
+        //
+        // Additive only. It can turn the ability on from the model id; it never
+        // takes away one the payload actually asserted.
+        if Fallback.hasWebSearch(model.id) { result.abilities.insert(.webSearch) }
         if result.contextLength == nil { result.contextLength = record.contextWindow }
         if result.maxOutputTokens == nil, let maxOutputTokens = record.maxOutputTokens {
             result.maxOutputTokens = maxOutputTokens
@@ -457,7 +467,16 @@ nonisolated enum ModelCapabilityResolver {
                 if tools.matches(id) { result.abilities.insert(.toolCall) }
                 if reasoning.matches(id) { result.abilities.insert(.reasoning) }
             }
+            // Outside the guard, for the reason given in `fill`. It sits after
+            // the embedding and image-generation returns above rather than
+            // before them, so neither can pick up a search ability on its way
+            // out.
+            if webSearch.matches(id) { result.abilities.insert(.webSearch) }
             return result
+        }
+
+        static func hasWebSearch(_ modelID: String) -> Bool {
+            webSearch.matches(modelID.lowercased())
         }
 
         private static let embedding = Pattern(
@@ -474,6 +493,28 @@ nonisolated enum ModelCapabilityResolver {
             #"gpt-4o|gpt-4\.1|gpt-4-turbo|gpt-[5-9]|gpt-oss|(^|[-_/])o[1-9]([-._/]|$)|gemini|claude"#
                 + #"|grok-[3-9]|kimi-k[2-9]|qwen-?[3-9]|glm-[4-9]|minimax-m[2-9]|mistral|llama-[34]"#
                 + #"|deepseek-(chat|v[3-9]|reasoner)|command-r|nova-(lite|pro)|step-3|internlm|intern-s1"#
+        )
+        /// Deliberately the narrowest of these patterns.
+        ///
+        /// The others answer "can this model probably do X" and an over-guess
+        /// costs a greyed-out tick box. This one decides whether a *server
+        /// tool* goes into the request body, and an over-guess costs a 400 on
+        /// every message. Only families with a shipped, current-shape search
+        /// tool are listed: Gemini 1.5's `googleSearchRetrieval` is a different
+        /// object and is excluded rather than approximated.
+        ///
+        /// DeepSeek v4 belongs here despite being reached as an OpenAI-shaped
+        /// endpoint: its `/responses` accepts the identical
+        /// `{"type": "web_search"}` and answers with the identical
+        /// `web_search_call` items, so it needs no code of its own — only to be
+        /// recognised. `ModelProvider.supportsNativeWebSearch` still requires
+        /// the Responses toggle, which is what keeps the older
+        /// `deepseek-chat`/`deepseek-reasoner` chat-completions path out.
+        private static let webSearch = Pattern(
+            #"gpt-4o|gpt-4\.1|gpt-[5-9]|(^|[-_/])o[3-9]([-._/]|$)"#
+                + #"|claude-(opus|sonnet|haiku)-[4-9]|claude-3[-.][57]"#
+                + #"|gemini-(2\.[05]|[3-9])"#
+                + #"|deepseek-v[4-9]"#
         )
         private static let reasoning = Pattern(
             #"gpt-[5-9]|gpt-oss|(^|[-_/])o[1-9]([-._/]|$)|gemini-(2\.5|[3-9])"#

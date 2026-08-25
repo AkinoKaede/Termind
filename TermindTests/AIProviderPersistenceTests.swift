@@ -204,10 +204,102 @@ struct ModelCapabilityResolverTests {
         #expect(ModelCapabilityResolver.catalogMetadata?.modelCount == 1_312)
         #expect(resolution.catalogSource == .init(provider: "openai", modelID: "gpt-5.4"))
         #expect(resolution.model.input == [.text, .image])
-        #expect(resolution.model.abilities == [.toolCall, .reasoning])
+        // `webSearch` is the one ability that does come from the model id, and
+        // it has to: Pi's catalog has no field for server-side search, so this
+        // record says nothing about it either way. The rule the rest of this
+        // test guards is unchanged — a record that *does* list abilities is
+        // taken verbatim, and only a record silent on them is filled in.
+        #expect(resolution.model.abilities == [.toolCall, .reasoning, .webSearch])
         #expect(resolution.model.contextLength == 272_000)
         #expect(resolution.model.maxOutputTokens == 128_000)
         #expect(resolution.supported == [.off, .low, .medium, .high, .xHigh])
+    }
+
+    /// Nobody publishes server-side search as a capability: no `/models`
+    /// payload carries it and Pi's catalog has no field for it. So "the
+    /// endpoint reported its abilities" must not be read as "the endpoint said
+    /// there is no search" — otherwise the ability stays off for exactly the
+    /// well-described models most likely to have it.
+    @Test
+    func webSearchIsInferredEvenWhenTheEndpointReportedItsAbilities() {
+        let provider = ModelProvider(name: "OpenAI")
+        var reportedModel = AIModel(id: "gpt-5.4")
+        reportedModel.abilities = [.toolCall]
+
+        let resolution = ModelCapabilityResolver.resolve(
+            model: reportedModel, provider: provider, reported: [.abilities]
+        )
+
+        // The reported list is still honoured — reasoning is absent because the
+        // endpoint did not claim it — and search is added on top.
+        #expect(resolution.model.abilities == [.toolCall, .webSearch])
+    }
+
+    /// DeepSeek v4 reaches `/responses` with the identical
+    /// `{"type": "web_search"}` OpenAI uses, so it needs recognising rather than
+    /// any code of its own.
+    @Test
+    func deepSeekV4IsRecognisedAsSearchCapable() {
+        var provider = ModelProvider(name: "DeepSeek")
+        provider.baseURL = "https://api.deepseek.com/v1"
+        provider.usesResponsesAPI = true
+
+        let resolution = ModelCapabilityResolver.resolve(
+            model: AIModel(id: "deepseek-v4-pro"), provider: provider
+        )
+        #expect(resolution.model.abilities.contains(.webSearch))
+        #expect(provider.supportsNativeWebSearch(model: resolution.model))
+
+        // The older chat-completions models are excluded by the provider gate
+        // even where the id might tempt the pattern.
+        var legacy = ModelProvider(name: "DeepSeek Chat")
+        legacy.baseURL = "https://api.deepseek.com/v1"
+        #expect(!legacy.supportsNativeWebSearch(model: resolution.model))
+    }
+
+    /// The failure this pins reads `Unknown tool: web_search` at runtime.
+    ///
+    /// An OpenAI-shaped `/responses` gateway pointed at Claude accepts
+    /// `{"type": "web_search"}` and forwards it as an ordinary function
+    /// declaration. The model then calls `web_search` as a tool — and native
+    /// mode deliberately withholds the local one, so nothing can run it.
+    /// A server tool only exists where the vendor's API and the vendor's model
+    /// meet.
+    @Test
+    func nativeSearchNeedsTheModelFamilyToMatchTheEndpoint() {
+        var claude = AIModel(id: "anthropic/claude-sonnet-4")
+        claude.abilities = [.toolCall, .webSearch]
+
+        var gateway = ModelProvider(name: "OpenRouter")
+        gateway.baseURL = "https://openrouter.ai/api/v1"
+        gateway.usesResponsesAPI = true
+        #expect(!gateway.supportsNativeWebSearch(model: claude))
+
+        // The same model on Anthropic's own API does have it.
+        var anthropic = ModelProvider(name: "Anthropic")
+        anthropic.kind = .anthropic
+        #expect(anthropic.supportsNativeWebSearch(model: claude))
+
+        // And a Gemini id on an Anthropic-shaped endpoint is the same mistake
+        // in the other direction.
+        var gemini = AIModel(id: "gemini-2.5-pro")
+        gemini.abilities = [.toolCall, .webSearch]
+        #expect(!anthropic.supportsNativeWebSearch(model: gemini))
+
+        var google = ModelProvider(name: "Google")
+        google.kind = .google
+        #expect(google.supportsNativeWebSearch(model: gemini))
+    }
+
+    @Test
+    func searchIsNotInferredForModelsThatCannotChat() {
+        let provider = ModelProvider(name: "OpenAI")
+        for id in ["text-embedding-3-large", "dall-e-3"] {
+            let resolution = ModelCapabilityResolver.resolve(
+                model: AIModel(id: id), provider: provider
+            )
+            #expect(!resolution.model.abilities.contains(.webSearch), "\(id)")
+        }
     }
 
     @Test
@@ -279,7 +371,12 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.model.kind == .other)
         #expect(resolution.model.input == [.audio])
         #expect(resolution.model.output == [.image])
-        #expect(resolution.model.abilities.isEmpty)
+        // Reported abilities still win — `toolCall` and `reasoning` stay off
+        // despite the catalog claiming both for gpt-5.4. `webSearch` is the
+        // exception, deliberately: an empty array is the endpoint listing what
+        // it knows about, and no endpoint knows about server-side search. See
+        // `webSearchIsInferredEvenWhenTheEndpointReportedItsAbilities`.
+        #expect(resolution.model.abilities == [.webSearch])
         #expect(resolution.model.contextLength == 7)
         #expect(resolution.model.maxOutputTokens == 8)
         #expect(resolution.supported == [.off])
