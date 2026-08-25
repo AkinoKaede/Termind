@@ -46,6 +46,46 @@ struct WindowStateTests {
         #expect(window.assistantLibrary.selectedConversationID == first.id)
     }
 
+    /// Each window used to build its own `ConversationModel` for the same
+    /// conversation id, so a reply streaming in one window was invisible in the
+    /// other and both could start a run against the same stored history.
+    @Test
+    func twoWindowsShareOneInstanceOfEachConversationButNotTheSelection() {
+        let shared = AssistantConversationStore()
+        let first = WindowModel()
+        let second = WindowModel()
+        first.assistantLibrary.adopt(shared)
+        second.assistantLibrary.adopt(shared)
+
+        let conversation = first.openAssistant()
+        let other = first.openAssistant()
+
+        #expect(second.assistantLibrary.conversations.map(\.id) == [other.id, conversation.id])
+        #expect(second.assistantLibrary.conversation(id: conversation.id) === conversation)
+
+        second.selectAssistant(conversation.id)
+        #expect(second.assistantLibrary.selectedConversationID == conversation.id)
+        #expect(first.assistantLibrary.selectedConversationID == other.id)
+
+        // A delete in one window empties the other's stale selection too.
+        first.assistantLibrary.delete(conversation.id)
+        second.assistantLibrary.delete(conversation.id)
+        #expect(second.assistantLibrary.conversations.map(\.id) == [other.id])
+        #expect(second.assistantLibrary.selectedConversationID == other.id)
+    }
+
+    @Test
+    func aWindowThatAdoptsTheStoreLateKeepsWhatItAlreadyHad() {
+        let window = WindowModel()
+        let early = window.openAssistant()
+
+        let shared = AssistantConversationStore()
+        window.assistantLibrary.adopt(shared)
+
+        #expect(shared.conversations.map(\.id) == [early.id])
+        #expect(window.assistantLibrary.selectedConversationID == early.id)
+    }
+
     @Test
     func selectingAssistantDoesNotCreateAConversation() {
         let window = WindowModel()

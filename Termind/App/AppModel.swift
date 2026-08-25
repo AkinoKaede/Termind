@@ -67,6 +67,9 @@ final class AppModel {
     /// One app-wide microphone owner. Keeping this above individual composers
     /// prevents two windows from installing competing audio taps.
     let speechTranscription: SpeechTranscriptionCoordinator
+    /// The one set of conversations every window navigates. See
+    /// `AssistantConversationStore`.
+    private let assistantConversations = AssistantConversationStore()
     private let agentRunRepository: any AgentRunPersisting
     private let agentHosts: AgentHostResolver
     private let agentConnections: AgentConnectionPool
@@ -158,7 +161,7 @@ final class AppModel {
     func sendAgentDraft(_ conversation: ConversationModel) {
         let prompt = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty else { return }
-        conversation.messages.append(ChatMessage(role: .user, text: prompt))
+        conversation.appendUserTurn(prompt)
         conversation.draft = ""
         startAgentRun(conversation, prompt: prompt)
     }
@@ -201,15 +204,25 @@ final class AppModel {
                 reasoning: reasoning
             ))
         }()
+        // Weakly, all three times. The conversation owns the runtime, the
+        // runtime owns the broker and the interaction handler, and both of those
+        // used to own the conversation back — so every chat that had ever run an
+        // agent stayed alive, with its runtime, for the life of the process.
+        // A conversation that is gone denies and cancels: fail closed.
         let approval = AgentApprovalBroker(
             reviewer: reviewer,
-            manualApproval: { request in await conversation.requestApproval(request) },
-            event: { [agentRunRepository] event in
+            manualApproval: { [weak conversation] request in
+                guard let conversation else {
+                    return .deny(String(localized: "The conversation was closed before this action was approved."))
+                }
+                return await conversation.requestApproval(request)
+            },
+            event: { [agentRunRepository, weak conversation] event in
                 Task {
                     if let runID = event.associatedRunID {
                         try? await agentRunRepository.record(event, runID: runID)
                     }
-                    await MainActor.run { conversation.handle(event) }
+                    await MainActor.run { conversation?.handle(event) }
                 }
             }
         )
@@ -224,21 +237,15 @@ final class AppModel {
         }
         let runtime = AgentRuntime(
             model: model, tools: tools, approval: approval,
-            repository: agentRunRepository, userInteraction: conversation,
+            repository: agentRunRepository,
+            userInteraction: WeakAgentUserInteraction(conversation),
             runCleanup: { [agentConnections] runID in
                 await agentConnections.cleanup(runID: runID)
             }
         )
-        let prior = conversation.messages.dropLast().map { message in
-            AgentTranscriptMessage(
-                id: message.id,
-                role: message.role == .user ? .user : .assistant,
-                text: message.text
-            )
-        }
         conversation.start(runtime: runtime, request: AgentRunRequest(
             conversationID: conversation.id, prompt: userPrompt,
-            permissionMode: mode, priorMessages: prior
+            permissionMode: mode, priorMessages: conversation.pendingPriorMessages
         ))
     }
 
@@ -246,6 +253,7 @@ final class AppModel {
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
         window.commandHistoryStore = commandHistory
+        window.assistantLibrary.adopt(assistantConversations)
         window.assistantConversationDeletionHandler = { [weak self] id in
             self?.deleteAgentConversation(id)
         }

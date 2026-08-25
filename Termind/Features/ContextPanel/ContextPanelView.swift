@@ -627,14 +627,14 @@ struct ConversationView: View {
                     if conversation.isEmpty {
                         emptyState
                     } else {
-                        ForEach(conversation.messages) { message in
-                            MessageView(message: message)
-                                .id(message.id)
-                            Divider().opacity(0.4)
-                        }
-                        ForEach(conversation.toolCards) { card in
-                            AgentToolCardView(card: card)
-                                .id(card.id)
+                        ForEach(conversation.timeline) { item in
+                            Group {
+                                switch item {
+                                case .message(let message): MessageView(message: message)
+                                case .tool(let card): AgentToolCardView(card: card)
+                                }
+                            }
+                            .id(item.id)
                             Divider().opacity(0.4)
                         }
                         if conversation.runState == .interrupted {
@@ -648,8 +648,11 @@ struct ConversationView: View {
                 .frame(maxWidth: isCompact ? .infinity : 760)
                 .frame(maxWidth: .infinity)
             }
-            .onChange(of: conversation.messages.count) {
-                guard let last = conversation.messages.last else { return }
+            // Keyed on the last row's revision, not on a count. Streaming text
+            // grows one message without adding a row, so a count never changed
+            // and the transcript stopped following the reply it was showing.
+            .onChange(of: conversation.timeline.last?.revision) {
+                guard let last = conversation.timeline.last else { return }
                 withAnimation(Motion.tabSwitch) { proxy.scrollTo(last.id, anchor: .bottom) }
             }
         }

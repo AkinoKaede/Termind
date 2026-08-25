@@ -54,6 +54,10 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
     var commands: [SuggestedCommand] = []
     /// True while tokens are still arriving, so the view can show a caret.
     var isStreaming: Bool = false
+    /// Orders this message against the tool cards, which are a separate list.
+    /// Restored conversations carry their stored time so history does not
+    /// re-sort itself behind every card the moment a window opens.
+    var createdAt: Date = .now
 }
 
 nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
@@ -67,6 +71,35 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
     var state: State = .proposed
     var result: AgentToolResult?
     var review: SecurityReviewDecision?
+}
+
+/// One row of a conversation, whichever of the two lists it came from.
+nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
+    case message(ChatMessage)
+    case tool(AgentToolCard)
+
+    var id: UUID {
+        switch self {
+        case .message(let message): message.id
+        case .tool(let card): card.id
+        }
+    }
+
+    /// What the transcript scrolls to, and what a change to it must be visible
+    /// as: streaming text grows a message without changing any count.
+    var revision: Int {
+        var hasher = Hasher()
+        hasher.combine(id)
+        switch self {
+        case .message(let message):
+            hasher.combine(message.text.count)
+            hasher.combine(message.isStreaming)
+        case .tool(let card):
+            hasher.combine(card.state)
+            hasher.combine(card.result?.content.count ?? 0)
+        }
+        return hasher.finalize()
+    }
 }
 
 /// The approval posture selected for one conversation.
@@ -112,6 +145,15 @@ final class ConversationModel: Identifiable {
     var pendingUserInput: AgentUserInputRequest?
     var userInputDraft = ""
     var secretInputDraft = ""
+    /// The model-facing history, which is not what `messages` holds.
+    ///
+    /// `messages` is a display projection: it has no tool calls and no tool
+    /// results, because those are drawn as cards. Replaying it as the next run's
+    /// prior context loses every tool the agent already ran, and turns a
+    /// tool-only assistant turn into an empty message — which Anthropic and
+    /// Google both reject. So the authoritative transcript is kept beside it and
+    /// rebuilt from the same events.
+    private(set) var transcript: [AgentTranscriptMessage] = []
     private var runtime: AgentRuntime?
     private var eventTask: Task<Void, Never>?
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
@@ -142,10 +184,12 @@ final class ConversationModel: Identifiable {
 
     init(
         id: UUID = UUID(), messages: [ChatMessage] = [],
+        transcript: [AgentTranscriptMessage] = [],
         runState: AgentRunState = .idle
     ) {
         self.id = id
         self.messages = messages
+        self.transcript = transcript
         self.runState = runState
     }
 
@@ -163,6 +207,31 @@ final class ConversationModel: Identifiable {
 
     var isEmpty: Bool { messages.isEmpty }
 
+    /// Messages and tool cards in the order they happened.
+    ///
+    /// Drawing the two lists one after the other put every tool card below
+    /// every message, so a run that alternated between talking and acting read
+    /// back as a wall of text followed by a wall of cards. Both lists are
+    /// already chronological, so this is a merge rather than a sort.
+    var timeline: [TimelineItem] {
+        var items: [TimelineItem] = []
+        items.reserveCapacity(messages.count + toolCards.count)
+        var cards = toolCards[...]
+        for message in messages {
+            while let card = cards.first, card.invocation.createdAt < message.createdAt {
+                items.append(.tool(card))
+                cards = cards.dropFirst()
+            }
+            // A turn that only called tools has no text to show, and an empty
+            // bubble reads as the model having said nothing. While it is still
+            // streaming it stays, because that is the "working" indicator.
+            guard message.role != .assistant || !message.text.isEmpty || message.isStreaming
+            else { continue }
+            items.append(.message(message))
+        }
+        return items + cards.map(TimelineItem.tool)
+    }
+
     func addChip(_ chip: ContextChip) {
         guard !contextChips.contains(where: { $0.kind == chip.kind && $0.label == chip.label }) else { return }
         contextChips.append(chip)
@@ -177,8 +246,25 @@ final class ConversationModel: Identifiable {
     func sendDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        messages.append(ChatMessage(role: .user, text: text))
+        appendUserTurn(text)
         draft = ""
+    }
+
+    /// Adds one user turn to both the visible transcript and the model-facing
+    /// one. The run request carries the prompt separately, so `AgentRuntime`
+    /// appends it to its own snapshot; `priorMessages` must therefore stop
+    /// short of it — see `pendingPriorMessages`.
+    func appendUserTurn(_ text: String) {
+        messages.append(ChatMessage(role: .user, text: text))
+        transcript.append(AgentTranscriptMessage(role: .user, text: text))
+    }
+
+    /// The history to replay for a run whose prompt is the last user turn.
+    var pendingPriorMessages: [AgentTranscriptMessage] {
+        guard let last = transcript.lastIndex(where: { $0.role == .user }),
+            last == transcript.index(before: transcript.endIndex)
+        else { return transcript }
+        return Array(transcript[..<last])
     }
 
     /// Takes ownership of a run before it can emit its first event. Keeping the
@@ -199,13 +285,19 @@ final class ConversationModel: Identifiable {
     func stop() {
         eventTask?.cancel()
         eventTask = nil
-        Task { await runtime?.cancel() }
+        // Read the runtime *before* releasing it. `Task { await runtime?… }`
+        // resolves the property when the task runs, which is after this method
+        // has already set it to nil — so the run kept executing tools with
+        // nobody listening.
+        if let runtime { Task { await runtime.cancel() } }
         runtime = nil
         isStreaming = false
+        if !runState.isTerminal { runState = .cancelled }
     }
 
     func steer(_ text: String) {
-        Task { await runtime?.steer(text) }
+        guard let runtime else { return }
+        Task { await runtime.steer(text) }
     }
 
     /// Queues a visible user turn for the next model boundary without replacing
@@ -213,7 +305,7 @@ final class ConversationModel: Identifiable {
     func submitSteeringDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, runtime != nil else { return }
-        messages.append(ChatMessage(role: .user, text: text))
+        appendUserTurn(text)
         draft = ""
         steer(text)
     }
@@ -297,6 +389,13 @@ final class ConversationModel: Identifiable {
                     isStreaming: false
                 ))
             }
+            // Whole message, not just its text: the tool calls and the opaque
+            // provider items are what the next turn has to replay.
+            if let index = transcript.firstIndex(where: { $0.id == message.id }) {
+                transcript[index] = message
+            } else {
+                transcript.append(message)
+            }
         case .toolProposed(let invocation, let descriptor):
             toolCards.append(AgentToolCard(invocation: invocation, descriptor: descriptor))
         case .toolStarted(let invocation): setToolState(invocation.id, .running)
@@ -305,6 +404,10 @@ final class ConversationModel: Identifiable {
                 toolCards[index].result = result
                 toolCards[index].state = result.isError ? .failed : .completed
             }
+            transcript.append(AgentTranscriptMessage(
+                role: .tool, text: result.content, toolCallID: result.callID,
+                toolName: invocation.call.name, isError: result.isError
+            ))
         case .approvalRequested(let request):
             pendingApproval = request
             setToolState(request.invocation.id, .waitingForApproval)
@@ -390,6 +493,27 @@ final class ConversationModel: Identifiable {
 }
 
 extension ConversationModel: AgentUserInteractionHandling {}
+
+/// Lets a run ask its conversation a question without keeping it alive.
+///
+/// `AgentRuntime` holds its interaction handler for the whole run and the
+/// conversation holds the runtime, so handing the conversation over directly
+/// closed a reference cycle. A conversation that has been deallocated cannot
+/// answer, and an unanswerable prompt is a cancelled one.
+final class WeakAgentUserInteraction {
+    private weak var conversation: ConversationModel?
+
+    init(_ conversation: ConversationModel) {
+        self.conversation = conversation
+    }
+
+    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
+        guard let conversation else { return .cancelled }
+        return await conversation.request(request)
+    }
+}
+
+extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 
 // MARK: - Demo data
 
