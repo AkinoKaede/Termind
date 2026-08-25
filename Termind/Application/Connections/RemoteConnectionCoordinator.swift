@@ -16,6 +16,23 @@ nonisolated final class RemoteConnectionCoordinator: Sendable {
 
     func makeSFTPClient() -> any SFTPClientProtocol { SFTPClient() }
 
+    func makeExecSession() -> any SSHExecSessionProtocol { SSHExecSession() }
+
+    /// Mirrors `connectSFTP`, including its guarantee that a session which fails
+    /// to come up is torn down here rather than handed back half-open.
+    func connectExec(
+        using configuration: SSHConnectionConfiguration
+    ) async throws -> any SSHExecSessionProtocol {
+        let session = makeExecSession()
+        do {
+            try await session.connect(using: configuration)
+            return session
+        } catch {
+            await session.disconnect()
+            throw error
+        }
+    }
+
     func connectSFTP(
         using configuration: SSHConnectionConfiguration,
         progress: SSHRouteProgressHandler? = nil,

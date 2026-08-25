@@ -52,6 +52,26 @@ nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
         try container.encodeIfPresent(architecture, forKey: .architecture)
     }
 
+    /// Reads the `id|version|kernel_name|kernel_release|arch` line that both
+    /// probes print — the PTY bootstrap's token-delimited one and the Agent's
+    /// dedicated exec channel. Returns nil when the line is malformed or when
+    /// every field was rejected by `sanitized`.
+    ///
+    /// Empty fields are meaningful (a BSD has no os-release), so the split keeps
+    /// them rather than collapsing the run of separators.
+    init?(probeFields line: some StringProtocol) {
+        let fields = line.split(
+            separator: "|", maxSplits: 4, omittingEmptySubsequences: false
+        )
+        guard fields.count == 5 else { return nil }
+        let values = fields.map { Self.unquoted(String($0)) }
+        self.init(
+            distributionID: values[0], distributionVersion: values[1],
+            kernelName: values[2], kernelRelease: values[3], architecture: values[4]
+        )
+        if isEmpty { return nil }
+    }
+
     var isEmpty: Bool {
         distributionID == nil && distributionVersion == nil
             && kernelName == nil && kernelRelease == nil && architecture == nil
@@ -73,6 +93,17 @@ nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
         if let kernelRelease { lines.append("kernel_release: \(kernelRelease)") }
         if let architecture { lines.append("architecture: \(architecture)") }
         return lines
+    }
+
+    /// os-release quotes values that could contain spaces. Stripping a matched
+    /// pair here rather than in `sanitized` keeps the ASCII-token grammar itself
+    /// free of exceptions: `"22.04"` becomes `22.04`, while a lone quote stays
+    /// and is rejected.
+    private static func unquoted(_ raw: String) -> String {
+        guard raw.count >= 2, let first = raw.first, let last = raw.last,
+            first == last, first == "\"" || first == "'"
+        else { return raw }
+        return String(raw.dropFirst().dropLast())
     }
 
     private static func sanitized(_ proposed: String?) -> String? {

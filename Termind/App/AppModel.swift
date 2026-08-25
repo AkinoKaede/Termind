@@ -96,8 +96,12 @@ final class AppModel {
         connections = connectionCoordinator
         agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
         agentHosts = AgentHostResolver(store: hosts)
+        let agentHostResolver = agentHosts
         agentConnections = AgentConnectionPool(
-            hosts: agentHosts, coordinator: connectionCoordinator
+            configuration: { try await agentHostResolver.configuration(for: $0) },
+            routeFingerprint: { try await agentHostResolver.routeFingerprint(for: $0) },
+            openExec: { try await connectionCoordinator.connectExec(using: $0) },
+            openSFTP: { try await connectionCoordinator.connectSFTP(using: $0) }
         )
         hostRepository = dependencies.hostRepository
         hostLibrary = HostLibraryModel(repository: dependencies.hostRepository)
@@ -121,8 +125,12 @@ final class AppModel {
                 self?.temporaryAgentConfiguration(for: hostID)
             }
         )
-        hosts.willDeleteHost = { [weak forwarding] _, ruleIDs in
+        hosts.willDeleteHost = { [weak forwarding, agentConnections] hostID, ruleIDs in
             forwarding?.stop(ruleIDs)
+            // Not a `HostDeletionOutbox` step like the others: a live socket
+            // cannot outlive the process, so there is nothing to replay after a
+            // crash and nothing to make durable.
+            Task { await agentConnections.disconnect(hostID: hostID) }
         }
         hosts.willDeletePortForwardings = { [weak forwarding] ruleIDs in
             forwarding?.stop(ruleIDs)
@@ -252,10 +260,7 @@ final class AppModel {
         let runtime = AgentRuntime(
             model: model, tools: tools, approval: approval,
             repository: agentRunRepository,
-            userInteraction: WeakAgentUserInteraction(conversation),
-            runCleanup: { [agentConnections] runID in
-                await agentConnections.cleanup(runID: runID)
-            }
+            userInteraction: WeakAgentUserInteraction(conversation)
         )
         // No second Shell Integration gate here. `Pane.remoteSystemInfo` already
         // withholds the probe when the setting is off, and `context` is the same
@@ -401,6 +406,7 @@ final class AppModel {
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
         forwarding.stopAll()
+        Task { [agentConnections] in await agentConnections.closeAll() }
         outboxRunner?.stop()
     }
 

@@ -56,6 +56,40 @@ final class AgentHostResolver: Sendable {
         throw AgentToolError.invalidHost
     }
 
+    /// A stable description of *which machine, reached how, and as whom* — the
+    /// only question a pooled connection has to keep answering the same way.
+    ///
+    /// Built from records the store already holds in memory, with deliberately
+    /// no Keychain read: this runs before every reuse, and resolving credentials
+    /// here would put private-key material on the hot path of every command to
+    /// no purpose. A rotated credential on an unchanged identity is therefore
+    /// not a mismatch — the live session is still the same box and the same
+    /// login, and the new credential applies to the next connect.
+    func routeFingerprint(for id: UUID) throws -> String {
+        guard let host = store.host(id) else {
+            // A pane-backed target has no Vault record to describe, and its
+            // configuration is rebuilt from the live pane on every connect. Tie
+            // the fingerprint to that pane still existing, so a closed tab
+            // invalidates the Agent's connection to it.
+            guard temporaryTargets().contains(where: { $0.id == id }) else {
+                throw AgentToolError.invalidHost
+            }
+            return "temporary:\(id.uuidString)"
+        }
+        return store.route(for: host).map { node in
+            let identity = store.identity(for: node)
+            let proxy = node.proxy.map {
+                "\($0.kind.rawValue)://\($0.username)@\($0.hostname):\($0.port)"
+            }
+            let keys = store.knownHosts(for: node).map(\.fingerprint).sorted()
+            return [
+                node.id.uuidString, node.host, String(node.port),
+                identity?.id.uuidString ?? "", identity?.username ?? "",
+                proxy ?? "", keys.joined(separator: ","),
+            ].joined(separator: "\u{1F}")
+        }.joined(separator: "\u{1E}")
+    }
+
     private static func stateName(_ status: ConnectionStatus) -> String {
         switch status {
         case .disconnected: "disconnected"
@@ -67,34 +101,238 @@ final class AgentHostResolver: Sendable {
     }
 }
 
+/// Keeps one authenticated SSH-exec session and one SFTP session per host alive
+/// across tool calls, runs, and conversations.
+///
+/// Before this existed, `ssh_exec` paid a full TCP connect, handshake, host-key
+/// check, and signature for *every command* — and a jump-host route rebuilt
+/// every hop each time. Keying by host rather than by run is what lets a
+/// follow-up message reuse the connection; the idle sweep, not the end of a run,
+/// is what gives it back.
+///
+/// Exec and SFTP stay on separate sessions so one long-running command cannot
+/// block a directory listing. That is at most two connections per host, against
+/// one per command before.
 actor AgentConnectionPool {
-    private struct Key: Hashable { var runID: UUID; var hostID: UUID }
-    private let hosts: AgentHostResolver
-    private let coordinator: RemoteConnectionCoordinator
-    private var sftpClients: [Key: any SFTPClientProtocol] = [:]
+    nonisolated enum Kind: String, Hashable, Sendable, CaseIterable { case exec, sftp }
 
-    init(hosts: AgentHostResolver, coordinator: RemoteConnectionCoordinator) {
-        self.hosts = hosts
-        self.coordinator = coordinator
+    typealias ConfigurationResolving =
+        @Sendable (UUID) async throws -> SSHConnectionConfiguration
+    typealias FingerprintResolving = @Sendable (UUID) async throws -> String
+    typealias ExecOpening =
+        @Sendable (SSHConnectionConfiguration) async throws -> any SSHExecSessionProtocol
+    typealias SFTPOpening =
+        @Sendable (SSHConnectionConfiguration) async throws -> any SFTPClientProtocol
+
+    /// Long enough that a user reading output and asking a follow-up keeps the
+    /// connection, short enough that walking away does not leave an
+    /// authenticated session open on a server indefinitely.
+    static let defaultIdleTimeout = Duration.seconds(180)
+
+    private enum Client: Sendable {
+        case exec(any SSHExecSessionProtocol)
+        case sftp(any SFTPClientProtocol)
+
+        func disconnect() async {
+            switch self {
+            case .exec(let session): await session.disconnect()
+            case .sftp(let client): await client.disconnect()
+            }
+        }
     }
 
-    func configuration(for hostID: UUID) async throws -> SSHConnectionConfiguration {
-        try await hosts.configuration(for: hostID)
+    private struct Key: Hashable { var hostID: UUID; var kind: Kind }
+
+    private struct Entry {
+        var client: Client
+        var fingerprint: String
+        var lastUsedAt: ContinuousClock.Instant
     }
 
-    func sftp(runID: UUID, hostID: UUID) async throws -> any SFTPClientProtocol {
-        let key = Key(runID: runID, hostID: hostID)
-        if let client = sftpClients[key] { return client }
-        let configuration = try await hosts.configuration(for: hostID)
-        let client = try await coordinator.connectSFTP(using: configuration)
-        sftpClients[key] = client
+    private struct InFlight {
+        var fingerprint: String
+        var task: Task<Client, any Error>
+    }
+
+    private let configuration: ConfigurationResolving
+    private let routeFingerprint: FingerprintResolving
+    private let openExec: ExecOpening
+    private let openSFTP: SFTPOpening
+    private let idleTimeout: Duration
+    private let sweepInterval: Duration?
+    private var entries: [Key: Entry] = [:]
+    private var pending: [Key: InFlight] = [:]
+    private var sweeper: Task<Void, Never>?
+
+    init(
+        configuration: @escaping ConfigurationResolving,
+        routeFingerprint: @escaping FingerprintResolving,
+        openExec: @escaping ExecOpening,
+        openSFTP: @escaping SFTPOpening,
+        idleTimeout: Duration = AgentConnectionPool.defaultIdleTimeout,
+        sweepInterval: Duration? = .seconds(30)
+    ) {
+        self.configuration = configuration
+        self.routeFingerprint = routeFingerprint
+        self.openExec = openExec
+        self.openSFTP = openSFTP
+        self.idleTimeout = idleTimeout
+        self.sweepInterval = sweepInterval
+    }
+
+    /// Runs one command on the host's pooled session, opening one if needed.
+    ///
+    /// Retries exactly once, and only on `channelUnavailable` — the failure that
+    /// is thrown while the command is provably not running. A pooled session
+    /// that died quietly between commands is invisible to the caller; anything
+    /// that failed *after* the command started is surfaced, because re-running
+    /// half of an `rm` is worse than a failed tool call.
+    func execute(
+        _ command: String, workingDirectory: String?, stdin: Data?,
+        timeout: TimeInterval, outputLimit: Int, hostID: UUID
+    ) async throws -> SSHExecResult {
+        do {
+            return try await exec(hostID: hostID).execute(
+                command, workingDirectory: workingDirectory, stdin: stdin,
+                timeout: timeout, outputLimit: outputLimit
+            )
+        } catch SSHExecSessionError.channelUnavailable {
+            await disconnect(hostID: hostID, kind: .exec)
+            return try await exec(hostID: hostID).execute(
+                command, workingDirectory: workingDirectory, stdin: stdin,
+                timeout: timeout, outputLimit: outputLimit
+            )
+        }
+    }
+
+    func exec(hostID: UUID) async throws -> any SSHExecSessionProtocol {
+        guard case .exec(let session) = try await resolve(hostID: hostID, kind: .exec)
+        else { throw AgentToolError.invalidHost }
+        return session
+    }
+
+    func sftp(hostID: UUID) async throws -> any SFTPClientProtocol {
+        guard case .sftp(let client) = try await resolve(hostID: hostID, kind: .sftp)
+        else { throw AgentToolError.invalidHost }
         return client
     }
 
-    func cleanup(runID: UUID) async {
-        let keys = sftpClients.keys.filter { $0.runID == runID }
-        let clients = keys.compactMap { sftpClients.removeValue(forKey: $0) }
-        for client in clients { await client.disconnect() }
+    /// Reports whether anything was actually open, which is what lets callers
+    /// treat closing an already-closed host as a no-op rather than a failure.
+    @discardableResult
+    func disconnect(hostID: UUID, kind: Kind) async -> Bool {
+        guard let entry = entries.removeValue(forKey: Key(hostID: hostID, kind: kind))
+        else { return false }
+        stopSweepingIfEmpty()
+        await entry.client.disconnect()
+        return true
+    }
+
+    @discardableResult
+    func disconnect(hostID: UUID) async -> Bool {
+        var closed = false
+        for kind in Kind.allCases {
+            closed = await disconnect(hostID: hostID, kind: kind) || closed
+        }
+        return closed
+    }
+
+    func closeAll() async {
+        let closing = entries.values.map(\.client)
+        entries.removeAll()
+        stopSweepingIfEmpty()
+        for client in closing { await client.disconnect() }
+    }
+
+    /// Closes everything untouched for longer than the idle timeout and reports
+    /// how many connections remain. Driven by a background task in the app and
+    /// called directly, with a synthetic instant, by tests.
+    @discardableResult
+    func sweepIdle(now: ContinuousClock.Instant) async -> Int {
+        let expired = entries.filter { now - $0.value.lastUsedAt >= idleTimeout }
+        for key in expired.keys { entries[key] = nil }
+        stopSweepingIfEmpty()
+        for entry in expired.values { await entry.client.disconnect() }
+        return entries.count
+    }
+
+    func isConnected(hostID: UUID, kind: Kind) -> Bool {
+        entries[Key(hostID: hostID, kind: kind)] != nil
+    }
+
+    var openConnectionCount: Int { entries.count }
+
+    private func resolve(hostID: UUID, kind: Kind) async throws -> Client {
+        let fingerprint: String
+        do {
+            fingerprint = try await routeFingerprint(hostID)
+        } catch {
+            // The host is gone — deleted from the Vault, or a temporary target
+            // whose pane closed. Do not keep a session to it alive.
+            await disconnect(hostID: hostID)
+            throw error
+        }
+        let key = Key(hostID: hostID, kind: kind)
+        if let entry = entries.removeValue(forKey: key) {
+            guard entry.fingerprint == fingerprint else {
+                // Nothing waits on a stale socket. Its worker also frees the
+                // libssh2 session in `deinit`, so dropping the reference alone
+                // would be safe; this just makes it prompt.
+                Task { await entry.client.disconnect() }
+                return try await open(key: key, fingerprint: fingerprint)
+            }
+            entries[key] = Entry(
+                client: entry.client, fingerprint: fingerprint, lastUsedAt: .now
+            )
+            return entry.client
+        }
+        return try await open(key: key, fingerprint: fingerprint)
+    }
+
+    private func open(key: Key, fingerprint: String) async throws -> Client {
+        // Without this join, two tool calls that both miss the cache would each
+        // build a connection and one of them would never be pooled — or closed.
+        if let inFlight = pending[key], inFlight.fingerprint == fingerprint {
+            let client = try await inFlight.task.value
+            commit(client, key: key, fingerprint: fingerprint)
+            return client
+        }
+        let task = Task { [configuration, openExec, openSFTP] () async throws -> Client in
+            let resolved = try await configuration(key.hostID)
+            switch key.kind {
+            case .exec: return .exec(try await openExec(resolved))
+            case .sftp: return .sftp(try await openSFTP(resolved))
+            }
+        }
+        pending[key] = InFlight(fingerprint: fingerprint, task: task)
+        defer { if pending[key]?.fingerprint == fingerprint { pending[key] = nil } }
+        // Committed on every path that receives a client, not only on the path
+        // that started the task: whoever started it may have been cancelled
+        // while a second caller was still waiting on the same connection.
+        let client = try await task.value
+        commit(client, key: key, fingerprint: fingerprint)
+        return client
+    }
+
+    private func commit(_ client: Client, key: Key, fingerprint: String) {
+        entries[key] = Entry(client: client, fingerprint: fingerprint, lastUsedAt: .now)
+        startSweeping()
+    }
+
+    private func startSweeping() {
+        guard sweeper == nil, let sweepInterval else { return }
+        sweeper = Task { [weak self, sweepInterval] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: sweepInterval) } catch { return }
+                guard let self, await self.sweepIdle(now: .now) > 0 else { return }
+            }
+        }
+    }
+
+    private func stopSweepingIfEmpty() {
+        guard entries.isEmpty, pending.isEmpty else { return }
+        sweeper?.cancel()
+        sweeper = nil
     }
 }
 
@@ -175,11 +413,10 @@ nonisolated enum AgentBuiltInTools {
                     )
                     input = Data(secret.utf8)
                 }
-                let configuration = try await pool.configuration(for: hostID)
-                let output = try await SSHSessionActor.execute(
+                let output = try await pool.execute(
                     command, workingDirectory: arguments.optionalString("cwd"), stdin: input,
                     timeout: TimeInterval(arguments.optionalInt("timeout_seconds") ?? 60),
-                    outputLimit: 256 * 1_024, using: configuration
+                    outputLimit: 256 * 1_024, hostID: hostID
                 )
                 return result(invocation, .object([
                     "stdout": .string(output.stdout), "stderr": .string(output.stderr),
@@ -397,9 +634,9 @@ nonisolated enum AgentBuiltInTools {
         return AnyAgentTool(
             descriptor: tool,
             preflight: hostPathPreflight(safety: .locallyReadOnly),
-            execute: { invocation, context in
+            execute: { invocation, _ in
                 let arguments = try Arguments(invocation)
-                let client = try await pool.sftp(runID: context.runID, hostID: arguments.uuid("host_id"))
+                let client = try await pool.sftp(hostID: arguments.uuid("host_id"))
                 return try await operation(client, normalizeRemotePath(arguments.string("path")), invocation)
             }
         )
@@ -424,23 +661,32 @@ nonisolated enum AgentBuiltInTools {
         return AnyAgentTool(
             descriptor: tool,
             preflight: hostPathPreflight(safety: .requiresAuthorization),
-            execute: { invocation, context in
+            execute: { invocation, _ in
                 let arguments = try Arguments(invocation)
-                let client = try await pool.sftp(runID: context.runID, hostID: arguments.uuid("host_id"))
+                let client = try await pool.sftp(hostID: arguments.uuid("host_id"))
                 return try await operation(client, normalizeRemotePath(arguments.string("path")), arguments, invocation)
             }
         )
+    }
+
+    /// Resolves `host_id` before approval so the tool card names the host the
+    /// action is aimed at rather than an opaque argument blob.
+    private static func hostPreflight(
+        safety: AgentToolDescriptor.Safety
+    ) -> @Sendable (AgentToolInvocation) async throws -> AgentToolPreflight {
+        { invocation in
+            var checked = invocation
+            checked.targetHostID = try Arguments(invocation).uuid("host_id")
+            return AgentToolPreflight(invocation: checked, safety: safety)
+        }
     }
 
     private static func hostPathPreflight(
         safety: AgentToolDescriptor.Safety
     ) -> @Sendable (AgentToolInvocation) async throws -> AgentToolPreflight {
         { invocation in
-            let arguments = try Arguments(invocation)
-            _ = try normalizeRemotePath(arguments.string("path"))
-            var checked = invocation
-            checked.targetHostID = try arguments.uuid("host_id")
-            return AgentToolPreflight(invocation: checked, safety: safety)
+            _ = try normalizeRemotePath(Arguments(invocation).string("path"))
+            return try await hostPreflight(safety: safety)(invocation)
         }
     }
 

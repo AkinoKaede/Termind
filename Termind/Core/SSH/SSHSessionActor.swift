@@ -356,27 +356,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         guard payload.count >= 2, payload.suffix(2).elementsEqual(Data("__".utf8))
         else { return nil }
         payload.removeLast(2)
-        let fields = String(decoding: payload, as: UTF8.self).split(
-            separator: "|", maxSplits: 4, omittingEmptySubsequences: false
-        )
-        guard fields.count == 5 else { return nil }
-        let values = fields.map { normalizedOSReleaseValue(String($0)) }
-        let info = RemoteSystemInfo(
-            distributionID: values[0], distributionVersion: values[1],
-            kernelName: values[2], kernelRelease: values[3], architecture: values[4]
-        )
-        return info.isEmpty ? nil : info
-    }
-
-    private func normalizedOSReleaseValue(_ raw: String) -> String? {
-        guard !raw.isEmpty else { return nil }
-        if raw.count >= 2,
-            (raw.first == "\"" && raw.last == "\""
-                || raw.first == "'" && raw.last == "'")
-        {
-            return String(raw.dropFirst().dropLast())
-        }
-        return raw
+        return RemoteSystemInfo(probeFields: String(decoding: payload, as: UTF8.self))
     }
 
     private mutating func scanForLateProbe(now: UInt64) -> Update {
@@ -616,15 +596,6 @@ nonisolated enum SSHShellIntegrationEvent: Sendable {
     case draft(String)
 }
 
-nonisolated struct SSHExecResult: Hashable, Sendable {
-    var stdout: String
-    var stderr: String
-    var exitCode: Int32
-    var signal: String?
-    var stdoutTruncated: Bool
-    var stderrTruncated: Bool
-}
-
 actor SSHSessionActor {
     typealias OutputHandler = @Sendable (Data) -> Void
     typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
@@ -664,29 +635,6 @@ actor SSHSessionActor {
         try await SSHSessionWorker.installAuthorizedKey(
             publicKey, using: configuration
         )
-    }
-
-    /// Executes one command on a dedicated non-PTY channel. This never shares or
-    /// writes the user's interactive shell and therefore has deterministic output
-    /// and exit-code boundaries suitable for Agent tools.
-    static func execute(
-        _ command: String,
-        workingDirectory: String? = nil,
-        stdin: Data? = nil,
-        timeout: TimeInterval = 120,
-        outputLimit: Int = 256 * 1024,
-        using configuration: SSHConnectionConfiguration
-    ) async throws -> SSHExecResult {
-        let cancellation = TransferCancellationToken()
-        return try await withTaskCancellationHandler {
-            try await SSHSessionWorker.execute(
-                command, workingDirectory: workingDirectory, stdin: stdin,
-                timeout: timeout, outputLimit: outputLimit,
-                using: configuration, cancellation: cancellation
-            )
-        } onCancel: {
-            cancellation.cancel()
-        }
     }
 
     func connect(
@@ -800,207 +748,54 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
     }
 
-    static func execute(
-        _ command: String,
-        workingDirectory: String?,
-        stdin: Data?,
-        timeout: TimeInterval,
-        outputLimit: Int,
+    /// Opens a transport, handshakes, validates the host key, and authenticates —
+    /// the identical prologue every non-PTY entry point needs before it can open
+    /// a channel. On any failure it frees what it created and rethrows, so a
+    /// caller only owns the pair once it has been handed one.
+    ///
+    /// The returned session is left in blocking mode. Callers that want the
+    /// non-blocking pump switch it themselves once their channel is running.
+    static func openAuthenticatedSession(
         using configuration: SSHConnectionConfiguration,
-        cancellation: TransferCancellationToken
-    ) async throws -> SSHExecResult {
+        timeout: TimeInterval,
+        progress: SSHRouteProgressHandler? = nil
+    ) throws -> (transport: SSHRoutedSocket, session: OpaquePointer) {
         _ = initialization
-        return try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    continuation.resume(returning: try executeBlocking(
-                        command, workingDirectory: workingDirectory, stdin: stdin,
-                        timeout: timeout, outputLimit: outputLimit,
-                        using: configuration, cancellation: cancellation
-                    ))
-                } catch { continuation.resume(throwing: error) }
-            }
-        }
-    }
-
-    private static func executeBlocking(
-        _ command: String,
-        workingDirectory: String?,
-        stdin: Data?,
-        timeout: TimeInterval,
-        outputLimit: Int,
-        using configuration: SSHConnectionConfiguration,
-        cancellation: TransferCancellationToken
-    ) throws -> SSHExecResult {
-        guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw TermindSSHError.library("The command is empty.")
-        }
         var transport: SSHRoutedSocket?
         var session: OpaquePointer?
-        var channel: OpaquePointer?
-        defer {
-            if let channel {
-                _ = libssh2_channel_send_eof(channel)
-                _ = libssh2_channel_close(channel)
-                _ = libssh2_channel_free(channel)
+        do {
+            let opened = try SSHRoutedSocket.open(
+                host: configuration.host, port: configuration.port,
+                proxy: configuration.proxy, jumps: configuration.jumps,
+                timeout: timeout, progress: progress
+            )
+            transport = opened
+            progress?(.connecting(configuration.hostID))
+            guard let created = libssh2_session_init_ex(nil, nil, nil, nil) else {
+                throw TermindSSHError.library("Unable to create an SSH session.")
             }
-            if let session {
-                _ = libssh2_session_disconnect_ex(
-                    session, SSH_DISCONNECT_BY_APPLICATION,
-                    "Termind completed agent command", ""
-                )
-                _ = libssh2_session_free(session)
+            session = created
+            libssh2_session_set_blocking(created, 1)
+            guard libssh2_session_handshake(created, opened.socket) == 0 else {
+                throw sessionError(created, prefix: "SSH handshake failed")
             }
+            let observed = try observation(
+                host: configuration.host, port: configuration.port, session: created
+            )
+            try validateHostKey(observed, expected: configuration.expectedHostKeys)
+            progress?(.authenticating(configuration.hostID))
+            try authenticate(
+                username: configuration.username,
+                credentials: configuration.credentials,
+                session: created
+            )
+            progress?(.authenticated(configuration.hostID))
+            return (opened, created)
+        } catch {
+            if let session { _ = libssh2_session_free(session) }
             transport?.close()
+            throw error
         }
-
-        transport = try SSHRoutedSocket.open(
-            host: configuration.host, port: configuration.port,
-            proxy: configuration.proxy, jumps: configuration.jumps, timeout: 20
-        )
-        guard let created = libssh2_session_init_ex(nil, nil, nil, nil) else {
-            throw TermindSSHError.library("Unable to create an SSH session.")
-        }
-        session = created
-        libssh2_session_set_blocking(created, 1)
-        guard let transport, libssh2_session_handshake(created, transport.socket) == 0 else {
-            throw sessionError(created, prefix: "SSH handshake failed")
-        }
-        let observed = try observation(
-            host: configuration.host, port: configuration.port, session: created
-        )
-        try validateHostKey(observed, expected: configuration.expectedHostKeys)
-        try authenticate(
-            username: configuration.username,
-            credentials: configuration.credentials,
-            session: created
-        )
-        guard let opened = libssh2_channel_open_ex(
-            created, "session", 7, 2 * 1024 * 1024, 32 * 1024, nil, 0
-        ) else { throw sessionError(created, prefix: "Unable to open SSH exec channel") }
-        channel = opened
-
-        let effective: String
-        if let cwd = workingDirectory?.trimmingCharacters(in: .whitespacesAndNewlines), !cwd.isEmpty {
-            effective = "cd -- \(shellQuote(cwd)) && /bin/sh -lc \(shellQuote(command))"
-        } else {
-            effective = "/bin/sh -lc \(shellQuote(command))"
-        }
-        let started = effective.withCString {
-            libssh2_channel_process_startup(opened, "exec", 4, $0, UInt32(effective.utf8.count))
-        }
-        guard started == 0 else { throw sessionError(created, prefix: "Unable to start remote command") }
-        libssh2_session_set_blocking(created, 0)
-
-        var pendingInput = stdin ?? Data()
-        if !pendingInput.isEmpty, pendingInput.last != 0x0A { pendingInput.append(0x0A) }
-        var inputOffset = 0
-        var sentEOF = pendingInput.isEmpty
-        if sentEOF { _ = libssh2_channel_send_eof(opened) }
-        var standardOut = Data()
-        var standardError = Data()
-        var outTruncated = false
-        var errorTruncated = false
-        var buffer = [CChar](repeating: 0, count: 16 * 1024)
-        let deadline = Date().addingTimeInterval(max(1, min(timeout, 15 * 60)))
-
-        while libssh2_channel_eof(opened) == 0 {
-            if cancellation.isCancelled { throw CancellationError() }
-            if Date() >= deadline { throw TermindSSHError.library("The remote command timed out.") }
-            var progressed = false
-            if inputOffset < pendingInput.count {
-                let written = pendingInput.withUnsafeBytes { bytes in
-                    libssh2_channel_write_ex(
-                        opened, 0,
-                        bytes.baseAddress!.advanced(by: inputOffset).assumingMemoryBound(to: CChar.self),
-                        bytes.count - inputOffset
-                    )
-                }
-                if written > 0 { inputOffset += written; progressed = true }
-                else if written != LIBSSH2_ERROR_EAGAIN {
-                    throw sessionError(created, prefix: "Unable to write command input")
-                }
-            } else if !sentEOF {
-                let result = libssh2_channel_send_eof(opened)
-                if result == 0 { sentEOF = true; progressed = true }
-                else if result != LIBSSH2_ERROR_EAGAIN {
-                    throw sessionError(created, prefix: "Unable to finish command input")
-                }
-            }
-            for stream in [Int32(0), Int32(1)] {
-                while true {
-                    let count = libssh2_channel_read_ex(opened, stream, &buffer, buffer.count)
-                    if count > 0 {
-                        progressed = true
-                        let chunk = Data(bytes: buffer, count: count)
-                        if stream == 0 {
-                            appendCapped(chunk, to: &standardOut, limit: outputLimit, truncated: &outTruncated)
-                        } else {
-                            appendCapped(chunk, to: &standardError, limit: outputLimit, truncated: &errorTruncated)
-                        }
-                    } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 { break }
-                    else { throw sessionError(created, prefix: "Unable to read command output") }
-                }
-            }
-            if !progressed { usleep(10_000) }
-        }
-        // Drain bytes buffered alongside EOF.
-        for stream in [Int32(0), Int32(1)] {
-            while true {
-                let count = libssh2_channel_read_ex(opened, stream, &buffer, buffer.count)
-                guard count > 0 else { break }
-                let chunk = Data(bytes: buffer, count: count)
-                if stream == 0 {
-                    appendCapped(chunk, to: &standardOut, limit: outputLimit, truncated: &outTruncated)
-                } else {
-                    appendCapped(chunk, to: &standardError, limit: outputLimit, truncated: &errorTruncated)
-                }
-            }
-        }
-        while true {
-            let closed = libssh2_channel_close(opened)
-            if closed == 0 { break }
-            if closed != LIBSSH2_ERROR_EAGAIN {
-                throw sessionError(created, prefix: "Unable to close SSH exec channel")
-            }
-            if cancellation.isCancelled { throw CancellationError() }
-            if Date() >= deadline { throw TermindSSHError.library("The remote command timed out.") }
-            usleep(10_000)
-        }
-        var exitSignal: UnsafeMutablePointer<CChar>?
-        var exitSignalLength = 0
-        let signalResult = libssh2_channel_get_exit_signal(
-            opened, &exitSignal, &exitSignalLength, nil, nil, nil, nil
-        )
-        let signal: String?
-        if signalResult == 0, let exitSignal {
-            signal = String(decoding: UnsafeBufferPointer(
-                start: exitSignal, count: exitSignalLength
-            ).map(UInt8.init(bitPattern:)), as: UTF8.self)
-            libssh2_free(created, exitSignal)
-        } else {
-            signal = nil
-        }
-        return SSHExecResult(
-            stdout: String(decoding: standardOut, as: UTF8.self),
-            stderr: String(decoding: standardError, as: UTF8.self),
-            exitCode: Int32(libssh2_channel_get_exit_status(opened)),
-            signal: signal,
-            stdoutTruncated: outTruncated, stderrTruncated: errorTruncated
-        )
-    }
-
-    private static func shellQuote(_ value: String) -> String {
-        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
-    }
-
-    private static func appendCapped(
-        _ chunk: Data, to destination: inout Data,
-        limit: Int, truncated: inout Bool
-    ) {
-        let remaining = max(0, limit - destination.count)
-        if chunk.count > remaining { truncated = true }
-        if remaining > 0 { destination.append(chunk.prefix(remaining)) }
     }
 
     static func installAuthorizedKey(
@@ -1032,8 +827,9 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private static func installAuthorizedKeyBlocking(
         _ publicKey: String, using configuration: SSHConnectionConfiguration
     ) throws {
-        var transport: SSHRoutedSocket?
-        var session: OpaquePointer?
+        let (transport, created) = try openAuthenticatedSession(
+            using: configuration, timeout: 20
+        )
         var channel: OpaquePointer?
         defer {
             if let channel {
@@ -1041,39 +837,12 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 _ = libssh2_channel_close(channel)
                 _ = libssh2_channel_free(channel)
             }
-            if let session {
-                _ = libssh2_session_disconnect_ex(
-                    session, SSH_DISCONNECT_BY_APPLICATION, "Termind completed key export", ""
-                )
-                _ = libssh2_session_free(session)
-            }
-            transport?.close()
+            _ = libssh2_session_disconnect_ex(
+                created, SSH_DISCONNECT_BY_APPLICATION, "Termind completed key export", ""
+            )
+            _ = libssh2_session_free(created)
+            transport.close()
         }
-
-        transport = try SSHRoutedSocket.open(
-            host: configuration.host, port: configuration.port,
-            proxy: configuration.proxy, jumps: configuration.jumps, timeout: 20
-        )
-        guard let created = libssh2_session_init_ex(nil, nil, nil, nil) else {
-            throw TermindSSHError.library("Unable to create an SSH session.")
-        }
-        session = created
-        libssh2_session_set_blocking(created, 1)
-        guard let transport,
-            libssh2_session_handshake(created, transport.socket) == 0
-        else {
-            throw sessionError(created, prefix: "SSH handshake failed")
-        }
-
-        let observed = try observation(
-            host: configuration.host, port: configuration.port, session: created
-        )
-        try validateHostKey(observed, expected: configuration.expectedHostKeys)
-        try authenticate(
-            username: configuration.username,
-            credentials: configuration.credentials,
-            session: created
-        )
 
         guard
             let opened = libssh2_channel_open_ex(

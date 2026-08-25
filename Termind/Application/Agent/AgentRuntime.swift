@@ -174,7 +174,6 @@ actor AgentRuntime {
     private let approval: any AgentApprovalHandling
     private let repository: any AgentRunPersisting
     private let userInteraction: any AgentUserInteractionHandling
-    private let runCleanup: @Sendable (UUID) async -> Void
     let secretBroker: SecretBroker
     private var tools: [String: AnyAgentTool]
     private var runTask: Task<Void, Never>?
@@ -191,7 +190,6 @@ actor AgentRuntime {
         repository: any AgentRunPersisting = InMemoryAgentRunRepository(),
         secretBroker: SecretBroker = SecretBroker(),
         userInteraction: any AgentUserInteractionHandling = UnavailableAgentUserInteraction(),
-        runCleanup: @escaping @Sendable (UUID) async -> Void = { _ in },
         maxTurns: Int = 24,
         maxToolCalls: Int = 64
     ) {
@@ -207,7 +205,6 @@ actor AgentRuntime {
         self.repository = repository
         self.secretBroker = secretBroker
         self.userInteraction = userInteraction
-        self.runCleanup = runCleanup
         self.maxTurns = maxTurns
         self.maxToolCalls = maxToolCalls
     }
@@ -542,10 +539,10 @@ actor AgentRuntime {
     }
 
     private func finish(runID: UUID) {
-        Task {
-            await secretBroker.discardSecrets(for: runID)
-            await runCleanup(runID)
-        }
+        // Secrets, and nothing else. SSH and SFTP connections used to be closed
+        // here too; they are now pooled per host and given back by an idle
+        // sweep, so a run ending is no longer the event that releases them.
+        Task { await secretBroker.discardSecrets(for: runID) }
         activeRunID = nil
         runTask = nil
         continuation?.finish()
