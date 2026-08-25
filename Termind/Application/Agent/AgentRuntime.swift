@@ -249,6 +249,26 @@ actor AgentRuntime {
         Task { try? await repository.record(event, runID: runID) }
     }
 
+    /// Puts the session context into what is *sent* without putting it into
+    /// what is *kept*.
+    ///
+    /// `snapshot.messages` is the durable transcript, so a context block added
+    /// there would be persisted, replayed, and — since restore projects user
+    /// rows into the visible list — eventually shown in the user's own chat
+    /// bubble. Dropping it costs the next run one uncached message at the tail
+    /// and nothing before it, because history the model already saw is
+    /// unchanged either way.
+    private static func injecting(
+        _ context: AgentTranscriptMessage?,
+        at index: Int,
+        into messages: [AgentTranscriptMessage]
+    ) -> [AgentTranscriptMessage] {
+        guard let context, index <= messages.count else { return messages }
+        var result = messages
+        result.insert(context, at: index)
+        return result
+    }
+
     private func run(_ request: AgentRunRequest) async {
         var snapshot = AgentRunSnapshot(
             conversationID: request.conversationID,
@@ -258,9 +278,20 @@ actor AgentRuntime {
         )
         activeRunID = snapshot.id
         let runID = snapshot.id
-        let effectiveSystemPrompt = [request.systemPrompt, request.sessionContext.modelContext]
-            .compactMap { $0 }
-            .joined(separator: "\n\n")
+        // Session context rides the tail of the message list, not the system
+        // prompt. Every cache these providers keep is a *prefix* cache, and the
+        // working directory of a terminal is the most volatile thing we know:
+        // one `cd` between turns used to change byte zero of the request and
+        // miss the entire replayed conversation. Here the divergence is the
+        // newest turn, which was never cacheable anyway, and the system prompt
+        // stays byte-identical across every run, conversation, and user.
+        let sessionContext = request.sessionContext.modelContext.map {
+            AgentTranscriptMessage(role: .user, text: $0)
+        }
+        // Prior history ends here, and everything a run appends — tool results,
+        // steering, assistant turns — goes after the prompt, so this index
+        // stays put for the whole run.
+        let sessionContextIndex = snapshot.messages.count
         snapshot.messages.append(AgentTranscriptMessage(role: .user, text: request.prompt))
         emit(.runState(.running))
         await persist(snapshot)
@@ -274,8 +305,10 @@ actor AgentRuntime {
                     steering.removeAll()
                 }
                 let turn = try await assistantTurn(
-                    systemPrompt: effectiveSystemPrompt,
-                    messages: snapshot.messages
+                    systemPrompt: request.systemPrompt,
+                    messages: Self.injecting(
+                        sessionContext, at: sessionContextIndex, into: snapshot.messages
+                    )
                 )
                 snapshot.messages.append(turn.message)
                 emit(.messageFinished(turn.message))

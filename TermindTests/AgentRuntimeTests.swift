@@ -87,9 +87,14 @@ private struct RecordingScriptedAgentModel: AgentModelStreaming {
 
 @Suite
 struct AgentRuntimeTests {
+    /// The system prompt is the cached prefix of every request, and a terminal's
+    /// working directory is the most volatile value the app has. Putting one
+    /// inside the other meant a single `cd` between turns changed byte zero and
+    /// missed the whole replayed conversation.
     @Test
-    func sessionContextIsStableAcrossToolTurnsAndExcludedFromTranscript() async {
+    func sessionContextRidesTheMessageTailAndLeavesTheSystemPromptAlone() async {
         let requests = RequestRecorder()
+        let repository = InMemoryAgentRunRepository()
         let model = RecordingScriptedAgentModel(
             turns: [
                 [
@@ -115,7 +120,8 @@ struct AgentRuntimeTests {
         }
         let runtime = AgentRuntime(
             model: model, tools: [tool],
-            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+            repository: repository
         )
         let context = SessionContext(
             hostName: "edge-01",
@@ -126,27 +132,44 @@ struct AgentRuntimeTests {
                 architecture: "aarch64"
             )
         )
+        var runID: UUID?
 
-        for await _ in await runtime.start(AgentRunRequest(
+        for await event in await runtime.start(AgentRunRequest(
             conversationID: UUID(), prompt: "inspect", permissionMode: .askForApproval,
             sessionContext: context
-        )) {}
+        )) {
+            runID = runID ?? event.associatedRunID
+        }
 
         let captured = await requests.values
         #expect(captured.count == 2)
-        #expect(captured.allSatisfy {
-            $0.systemPrompt.contains("host: edge-01")
-                && $0.systemPrompt.contains("cwd: /srv/app")
-                && $0.systemPrompt.contains("distribution_id: alpine")
-                && $0.systemPrompt.contains("kernel_release: 6.6.44-0-lts")
-                && $0.systemPrompt.contains("architecture: aarch64")
+        // Byte-identical to the default across every run, which is the whole
+        // point: nothing session-specific may reach the cached prefix.
+        #expect(captured.allSatisfy { $0.systemPrompt == AgentSystemPrompt.default })
+
+        // One block, carrying everything, sitting between the replayed history
+        // and the turn it describes.
+        #expect(captured.allSatisfy { request in
+            request.messages.filter { $0.text.contains("cwd: /srv/app") }.count == 1
         })
         #expect(captured.allSatisfy { request in
-            request.messages.allSatisfy {
-                !$0.text.contains("distribution_id:") && !$0.text.contains("cwd:")
-            }
+            guard let index = request.messages.firstIndex(where: {
+                $0.text.contains("Session context")
+            }) else { return false }
+            let block = request.messages[index].text
+            return block.contains("host: edge-01")
+                && block.contains("distribution_id: alpine")
+                && block.contains("kernel_release: 6.6.44-0-lts")
+                && block.contains("architecture: aarch64")
+                && request.messages[index + 1].text == "inspect"
         })
-        #expect(captured.first?.messages.first?.text == "inspect")
+
+        // Present in what is sent, absent from what is kept — otherwise it would
+        // be replayed, and restore would project it into the user's own bubble.
+        let id = try! #require(runID)
+        let saved = try! #require(await repository.snapshot(id)).messages
+        #expect(saved.contains { $0.text == "inspect" })
+        #expect(!saved.contains { $0.text.contains("Session context") })
     }
 
     @Test
