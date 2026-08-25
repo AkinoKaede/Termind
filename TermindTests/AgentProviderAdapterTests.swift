@@ -135,10 +135,9 @@ struct AgentProviderAdapterTests {
 
         var ids: [String: String] = [:]
         var names: [String: String] = [:]
-        var sawOutput = false
         let completedEvent = AgentProviderClient.parseResponses(
             "response.completed", response,
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
         #expect(completedEvent.firstText == "Checking hosts.")
         #expect(completedEvent.firstTool?.name == "list_hosts")
@@ -171,19 +170,18 @@ struct AgentProviderAdapterTests {
     func openAIResponsesMapsItemIDArgumentDeltasBackToCallID() {
         var ids: [String: String] = [:]
         var names: [String: String] = [:]
-        var sawOutput = false
         let added = AgentProviderClient.parseResponses(
             "response.output_item.added",
             ["item": [
                 "type": "function_call", "id": "item-1", "call_id": "call-1",
                 "name": "list_hosts", "arguments": "",
             ]],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
         let delta = AgentProviderClient.parseResponses(
             "response.function_call_arguments.delta",
             ["item_id": "item-1", "delta": "{}"],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
 
         #expect(added.firstTool?.id == "call-1")
@@ -196,14 +194,13 @@ struct AgentProviderAdapterTests {
     func openAIResponsesAcceptsDoneOnlyFunctionCalls() {
         var ids: [String: String] = [:]
         var names: [String: String] = [:]
-        var sawOutput = false
         let events = AgentProviderClient.parseResponses(
             "response.output_item.done",
             ["item": [
                 "type": "function_call", "id": "item-1", "call_id": "call-1",
                 "name": "list_hosts", "arguments": "",
             ]],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
 
         #expect(events.firstTool?.id == "call-1")
@@ -215,14 +212,13 @@ struct AgentProviderAdapterTests {
     func openAIResponsesUsesDoneSnapshotWhenAddedHadNoArguments() {
         var ids: [String: String] = [:]
         var names: [String: String] = [:]
-        var sawOutput = false
         let added = AgentProviderClient.parseResponses(
             "response.output_item.added",
             ["item": [
                 "type": "function_call", "id": "item-1", "call_id": "call-1",
                 "name": "fetch", "arguments": "",
             ]],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
         let done = AgentProviderClient.parseResponses(
             "response.output_item.done",
@@ -230,7 +226,7 @@ struct AgentProviderAdapterTests {
                 "type": "function_call", "id": "item-1", "call_id": "call-1",
                 "name": "fetch", "arguments": #"{"url":"https://example.com"}"#,
             ]],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
 
         #expect(added.firstTool?.arguments == "")
@@ -243,14 +239,13 @@ struct AgentProviderAdapterTests {
     func openAIResponsesUsesCompletedResponseAsFinalToolSnapshot() {
         var ids: [String: String] = [:]
         var names: [String: String] = [:]
-        var sawOutput = false
         _ = AgentProviderClient.parseResponses(
             "response.output_item.added",
             ["item": [
                 "type": "function_call", "id": "item-1", "call_id": "call-1",
                 "name": "fetch", "arguments": "",
             ]],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
         let completed = AgentProviderClient.parseResponses(
             "response.completed",
@@ -261,7 +256,7 @@ struct AgentProviderAdapterTests {
                     "name": "fetch", "arguments": #"{"url":"https://example.com"}"#,
                 ]],
             ]],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
 
         #expect(completed.firstTool?.id == "call-1")
@@ -278,10 +273,9 @@ struct AgentProviderAdapterTests {
         ]
         var ids: [String: String] = [:]
         var names: [String: String] = [:]
-        var sawOutput = false
         let reasoningEvents = AgentProviderClient.parseResponses(
             "response.output_item.done", ["item": reasoning],
-            callIDs: &ids, callNames: &names, sawOutput: &sawOutput
+            callIDs: &ids, callNames: &names
         )
         let providerItem = try #require(reasoningEvents.firstProviderItem)
 

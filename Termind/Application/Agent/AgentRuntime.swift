@@ -111,10 +111,11 @@ nonisolated protocol AgentRunPersisting: Sendable {
     func deleteConversation(_ id: UUID) async throws
 }
 
-nonisolated extension AgentRunPersisting {
-    func record(_ event: AgentEvent, runID: UUID) async throws {}
-    func loadConversations() async throws -> [StoredAgentConversation] { [] }
-}
+// No default implementations here, deliberately. A protocol extension that
+// satisfies a requirement is also the thing that *silently* satisfies it when a
+// conformer's own method stops being a valid witness — an isolation change, a
+// renamed label — and run history would then be dropped with no diagnostic.
+// Both conformers implement the whole protocol.
 
 nonisolated struct StoredAgentConversation: Sendable {
     var id: UUID
@@ -138,6 +139,8 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
         guard !deletedConversationIDs.contains(snapshot.conversationID) else { return }
         snapshots[snapshot.id] = snapshot
     }
+    func record(_ event: AgentEvent, runID: UUID) {}
+    func loadConversations() -> [StoredAgentConversation] { [] }
     func snapshot(_ id: UUID) -> AgentRunSnapshot? { snapshots[id] }
     func deleteConversation(_ id: UUID) {
         deletedConversationIDs.insert(id)
@@ -180,7 +183,13 @@ actor AgentRuntime {
         maxToolCalls: Int = 64
     ) {
         self.model = model
-        self.tools = Dictionary(uniqueKeysWithValues: tools.map { ($0.descriptor.name, $0) })
+        // First registration wins. `uniqueKeysWithValues` traps on a duplicate,
+        // and one MCP server whose two tool names sanitize to the same string is
+        // enough to take the app down — from data a remote server controls. The
+        // built-ins are registered first, so a remote name can never shadow one.
+        self.tools = Dictionary(
+            tools.map { ($0.descriptor.name, $0) }, uniquingKeysWith: { first, _ in first }
+        )
         self.approval = approval
         self.repository = repository
         self.secretBroker = secretBroker
@@ -192,6 +201,10 @@ actor AgentRuntime {
 
     func start(_ request: AgentRunRequest) -> AsyncStream<AgentEvent> {
         cancel()
+        // Whoever was reading the previous run is about to be orphaned by the
+        // reassignment below; end their sequence rather than leaving it
+        // suspended for the life of the process.
+        continuation?.finish()
         let stream = AsyncStream<AgentEvent> { continuation in
             self.continuation = continuation
         }
@@ -215,9 +228,12 @@ actor AgentRuntime {
 
     private func emit(_ event: AgentEvent) {
         continuation?.yield(event)
-        if let runID = activeRunID {
-            Task { try? await repository.record(event, runID: runID) }
-        }
+        // Only run-scoped events reach storage. Handing every event to the
+        // repository meant one unstructured task and one `ModelContext.save()`
+        // per streamed token, all of it on the main actor — the UI stalled
+        // while a reply arrived, and none of those writes recorded anything.
+        guard let runID = activeRunID, event.isDurable else { return }
+        Task { try? await repository.record(event, runID: runID) }
     }
 
     private func run(_ request: AgentRunRequest) async {
@@ -398,11 +414,24 @@ actor AgentRuntime {
         userIntent: String
     ) async -> AgentToolResult {
         guard let tool = tools[call.name] else {
-            return AgentToolResult(
+            // Still a card. Returning silently left the transcript showing an
+            // empty assistant turn and nothing else, which reads as "the model
+            // said nothing" rather than "the model called a tool we do not
+            // have" — the one thing the user needs to see here.
+            let invocation = AgentToolInvocation(runID: runID, call: call)
+            let result = AgentToolResult(
                 callID: call.id,
                 content: String(localized: "Unknown tool: \(call.name)"),
                 isError: true
             )
+            emit(.toolProposed(invocation, AgentToolDescriptor(
+                name: call.name,
+                summary: String(localized: "This tool is not available in this run."),
+                inputSchema: .object(["type": .string("object")]),
+                target: .local, safety: .requiresAuthorization
+            )))
+            emit(.toolFinished(invocation, result))
+            return result
         }
         let proposed = AgentToolInvocation(runID: runID, call: call)
         let preflight: AgentToolPreflight

@@ -5,22 +5,47 @@ nonisolated enum AgentMCPTools {
         servers: [(server: MCPServer, bearerToken: String?)],
         client: MCPClient = MCPClient()
     ) -> [AnyAgentTool] {
-        servers.flatMap { entry in
+        // Sanitizing is lossy — `list-hosts` and `list.hosts` both become
+        // `list_hosts` — and two servers can share a UUID prefix. Names are
+        // therefore disambiguated here, in a stable order, rather than left to
+        // collide in whatever registry receives them.
+        var taken = Set<String>()
+        return servers.flatMap { entry in
             entry.server.enabledTools.map { tool in
-                make(server: entry.server, tool: tool, bearerToken: entry.bearerToken, client: client)
+                make(
+                    server: entry.server, tool: tool,
+                    name: unique(name(server: entry.server, tool: tool), taken: &taken),
+                    bearerToken: entry.bearerToken, client: client
+                )
             }
         }
     }
 
-    private static func make(
-        server: MCPServer, tool: MCPTool, bearerToken: String?, client: MCPClient
-    ) -> AnyAgentTool {
+    private static func name(server: MCPServer, tool: MCPTool) -> String {
         let safeServer = server.id.uuidString.lowercased().prefix(8)
         let safeTool = tool.id.map { character in
             character.isLetter || character.isNumber || character == "_" ? character : "_"
         }
+        return "mcp__\(safeServer)__\(String(safeTool))"
+    }
+
+    private static func unique(_ base: String, taken: inout Set<String>) -> String {
+        var candidate = base
+        var suffix = 2
+        while taken.contains(candidate) {
+            candidate = "\(base)_\(suffix)"
+            suffix += 1
+        }
+        taken.insert(candidate)
+        return candidate
+    }
+
+    private static func make(
+        server: MCPServer, tool: MCPTool, name: String,
+        bearerToken: String?, client: MCPClient
+    ) -> AnyAgentTool {
         let descriptor = AgentToolDescriptor(
-            name: "mcp__\(safeServer)__\(String(safeTool))",
+            name: name,
             summary: "\(server.name): \(tool.summary)",
             inputSchema: normalizedSchema(tool.inputSchema), target: .mcp,
             // A server's readOnlyHint is not proof. Every MCP call stays inside

@@ -197,6 +197,20 @@ nonisolated enum AgentEvent: Hashable, Sendable {
             nil
         }
     }
+
+    /// Whether this event carries something run history keeps.
+    ///
+    /// Message text is not in the list: the transcript is written from run
+    /// snapshots, so streaming a reply must not also stream database writes.
+    var isDurable: Bool {
+        switch self {
+        case .toolProposed, .toolStarted, .toolFinished,
+            .reviewStarted, .reviewFinished, .reviewFailed:
+            true
+        default:
+            false
+        }
+    }
 }
 
 nonisolated struct AgentRunRequest: Sendable {

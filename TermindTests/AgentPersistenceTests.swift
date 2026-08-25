@@ -67,6 +67,65 @@ struct AgentPersistenceTests {
         )
     }
 
+    /// A conversation replays its earlier turns into every later run, so a save
+    /// that matched stored rows by run id re-inserted the whole history on each
+    /// turn — colliding with the unique constraint and rewriting rows that were
+    /// already correct.
+    @Test
+    func replayedHistoryIsNotRewrittenByEveryLaterRun() async throws {
+        let configuration = ModelConfiguration(
+            "AgentPersistenceReplayTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+
+        // Explicit times: a real run separates its messages by a round trip,
+        // and ordering ties are not what this test is about.
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let opening = AgentTranscriptMessage(
+            role: .user, text: "list my hosts", createdAt: start
+        )
+        let answer = AgentTranscriptMessage(
+            role: .assistant, text: "host-a", createdAt: start.addingTimeInterval(1)
+        )
+        var first = AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval, messages: [opening, answer]
+        )
+        first.finishedAt = .now
+        try await repository.save(first)
+
+        // The second run carries the first run's messages as prior context.
+        var second = AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval,
+            messages: [
+                opening, answer,
+                AgentTranscriptMessage(
+                    role: .user, text: "connect to it",
+                    createdAt: start.addingTimeInterval(2)
+                ),
+            ]
+        )
+        second.finishedAt = .now
+        try await repository.save(second)
+
+        let rows = try container.mainContext.fetch(FetchDescriptor<PersistentAgentMessage>())
+        #expect(rows.count == 3)
+        #expect(Set(rows.map(\.id)).count == 3)
+        // The replayed rows still belong to the run that first wrote them.
+        #expect(rows.first { $0.id == opening.id }?.runID == first.id)
+        #expect(rows.first { $0.id == answer.id }?.runID == first.id)
+
+        let restored = try await repository.loadConversations()
+        #expect(restored.count == 1)
+        #expect(restored.first?.messages.map(\.text) == ["list my hosts", "host-a", "connect to it"])
+    }
+
     @Test
     func outOfOrderPersistenceEventsNeverDowngradeToolState() async throws {
         let configuration = ModelConfiguration(

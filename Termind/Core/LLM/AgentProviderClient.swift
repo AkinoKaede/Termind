@@ -20,14 +20,22 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         self.model = model
         self.secret = secret
         self.reasoning = reasoning
-        if let session { self.session = session }
-        else {
-            let configuration = URLSessionConfiguration.ephemeral
-            configuration.timeoutIntervalForRequest = 120
-            configuration.waitsForConnectivity = false
-            self.session = URLSession(configuration: configuration)
-        }
+        self.session = session ?? Self.shared
     }
+
+    /// One session for every agent request.
+    ///
+    /// A `URLSession` keeps itself alive until it is invalidated, and a client
+    /// is built per run — and again per Security Review — so making one here
+    /// leaked a session, its connection pool, and its delegate queue on every
+    /// turn. Sharing it also lets a multi-turn run reuse the connection it
+    /// already has open.
+    private static let shared: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 120
+        configuration.waitsForConnectivity = false
+        return URLSession(configuration: configuration)
+    }()
 
     func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
         AsyncThrowingStream { continuation in
@@ -37,7 +45,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                     var anthropicCallIDs: [Int: String] = [:]
                     var responseCallIDs: [String: String] = [:]
                     var responseCallNames: [String: String] = [:]
-                    var responseSawOutput = false
                     var urlRequest = try buildRequest(request, streaming: true)
                     try await authorize(&urlRequest)
                     let (bytes, response) = try await session.bytes(for: urlRequest)
@@ -45,9 +52,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                         throw AgentProviderError.notHTTP
                     }
                     guard (200..<300).contains(http.statusCode) else {
-                        var data = Data()
-                        for try await byte in bytes { data.append(byte) }
-                        throw AgentProviderError.http(http.statusCode, String(decoding: data.prefix(4096), as: UTF8.self))
+                        throw AgentProviderError.http(
+                            http.statusCode, await Self.errorBody(bytes)
+                        )
                     }
                     let contentType = http.value(forHTTPHeaderField: "Content-Type")?
                         .lowercased() ?? ""
@@ -73,8 +80,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                             event, chatCallIDs: &chatCallIDs,
                             anthropicCallIDs: &anthropicCallIDs,
                             responseCallIDs: &responseCallIDs,
-                            responseCallNames: &responseCallNames,
-                            responseSawOutput: &responseSawOutput
+                            responseCallNames: &responseCallNames
                         ) {
                             continuation.yield(item)
                         }
@@ -106,6 +112,27 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             )
         }
         return try parseBufferedResponse(data)
+    }
+
+    /// Reads only as much of a failed response as the message will show.
+    ///
+    /// The success paths are capped; this one drained the whole body first and
+    /// then took its first 4 KB, so a gateway answering an error with an endless
+    /// stream could be read until the process ran out of memory.
+    private static func errorBody<Bytes: AsyncSequence & Sendable>(
+        _ bytes: Bytes
+    ) async -> String where Bytes.Element == UInt8 {
+        var data = Data()
+        do {
+            for try await byte in bytes {
+                data.append(byte)
+                if data.count >= 4_096 { break }
+            }
+        } catch {
+            // A truncated error body still describes the failure better than
+            // the transport error that interrupted reading it.
+        }
+        return String(decoding: data, as: UTF8.self)
     }
 
     func buildRequest(
@@ -228,8 +255,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         _ event: SSEEvent, chatCallIDs: inout [Int: String],
         anthropicCallIDs: inout [Int: String],
         responseCallIDs: inout [String: String],
-        responseCallNames: inout [String: String],
-        responseSawOutput: inout Bool
+        responseCallNames: inout [String: String]
     ) -> [AgentModelStreamEvent] {
         guard let data = event.data.data(using: .utf8),
             let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -242,8 +268,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         case .openAI where provider.usesResponsesAPI:
             return Self.parseResponses(
                 eventType, root, callIDs: &responseCallIDs,
-                callNames: &responseCallNames,
-                sawOutput: &responseSawOutput
+                callNames: &responseCallNames
             )
         case .openAI: return Self.parseChat(root, callIDs: &chatCallIDs)
         case .anthropic:
@@ -275,15 +300,13 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         var anthropicCallIDs: [Int: String] = [:]
         var responseCallIDs: [String: String] = [:]
         var responseCallNames: [String: String] = [:]
-        var responseSawOutput = false
         var output: [AgentModelStreamEvent] = []
         for event in SSEStream.events(in: data) where event.data != "[DONE]" {
             output += parse(
                 event, chatCallIDs: &chatCallIDs,
                 anthropicCallIDs: &anthropicCallIDs,
                 responseCallIDs: &responseCallIDs,
-                responseCallNames: &responseCallNames,
-                responseSawOutput: &responseSawOutput
+                responseCallNames: &responseCallNames
             )
         }
         guard !output.isEmpty else { throw AgentProviderError.invalidResponse }
@@ -432,23 +455,19 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     static func parseResponses(_ type: String, _ root: [String: Any]) -> [AgentModelStreamEvent] {
         var callIDs: [String: String] = [:]
         var callNames: [String: String] = [:]
-        var sawOutput = false
         return parseResponses(
-            type, root, callIDs: &callIDs, callNames: &callNames,
-            sawOutput: &sawOutput
+            type, root, callIDs: &callIDs, callNames: &callNames
         )
     }
 
     static func parseResponses(
         _ type: String, _ root: [String: Any],
-        callIDs: inout [String: String], callNames: inout [String: String],
-        sawOutput: inout Bool
+        callIDs: inout [String: String], callNames: inout [String: String]
     ) -> [AgentModelStreamEvent] {
         switch type {
         case "response.output_text.delta":
             let events: [AgentModelStreamEvent] = (root["delta"] as? String)
                 .map { [.textDelta($0)] } ?? []
-            sawOutput = sawOutput || !events.isEmpty
             return events
         case "response.function_call_arguments.delta":
             guard let sourceID = (root["item_id"] ?? root["call_id"]) as? String else {
@@ -458,7 +477,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             let name = root["name"] as? String ?? callNames[sourceID]
             callIDs[sourceID] = id
             if let name { callNames[sourceID] = name }
-            sawOutput = true
             return [.toolCallDelta(
                 id: id, name: name, arguments: root["delta"] as? String ?? ""
             )]
@@ -471,7 +489,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             guard let name = root["name"] as? String ?? callNames[sourceID] else {
                 return []
             }
-            sawOutput = true
             return [.toolCallSnapshot(
                 id: id, providerItemID: sourceID, name: name,
                 arguments: root["arguments"] as? String ?? ""
@@ -483,7 +500,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             let id = item["call_id"] as? String ?? sourceID
             callIDs[sourceID] = id
             if let name = item["name"] as? String { callNames[sourceID] = name }
-            sawOutput = true
             return [.toolCallDelta(
                 id: id, name: item["name"] as? String,
                 arguments: item["arguments"] as? String ?? ""
@@ -493,7 +509,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if item["type"] as? String == "reasoning",
                 let value = jsonValue(item)
             {
-                sawOutput = true
                 return [.providerItem(value)]
             }
             guard item["type"] as? String == "function_call",
@@ -503,7 +518,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             let id = item["call_id"] as? String ?? callIDs[sourceID] ?? sourceID
             callIDs[sourceID] = id
             callNames[sourceID] = name
-            sawOutput = true
             return [.toolCallSnapshot(
                 id: id, providerItemID: item["id"] as? String,
                 name: name,
@@ -512,7 +526,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         case "response.completed":
             if root["response"] is [String: Any] || root["output"] is [[String: Any]] {
                 let events = parseCompletedResponses(root)
-                sawOutput = events.containsToolCall || events.containsText
                 return events
             }
             return [.finished(.completed)]
@@ -523,7 +536,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             // unnamed SSE `data:` event instead of using typed delta events.
             guard root["object"] as? String == "response" else { return [] }
             let events = parseCompletedResponses(root)
-            sawOutput = events.containsToolCall || events.containsText
             return events
         }
     }

@@ -347,6 +347,125 @@ struct AgentRuntimeTests {
         })
     }
 
+    /// Returning a bare error result left the transcript with an empty
+    /// assistant turn and no card, which reads as "the model said nothing"
+    /// rather than "the model called a tool that is not registered".
+    @Test
+    func anUnknownToolStillProducesACard() async {
+        let model = ScriptedAgentModel(turns: [
+            [
+                .toolCallDelta(id: "1", name: "not_registered", arguments: "{}"),
+                .finished(.toolCalls),
+            ],
+            [.textDelta("recovered"), .finished(.completed)],
+        ])
+        let runtime = AgentRuntime(
+            model: model, tools: [],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+        )
+        var events: [AgentEvent] = []
+        for await event in await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
+        )) { events.append(event) }
+
+        #expect(events.contains {
+            if case .toolProposed(let invocation, _) = $0 {
+                invocation.call.name == "not_registered"
+            } else { false }
+        })
+        #expect(events.contains {
+            if case .toolFinished(_, let result) = $0 { result.isError } else { false }
+        })
+        // The loop still recovers: the model is told, and answers.
+        #expect(events.contains(.runState(.completed)))
+    }
+
+    /// `Dictionary(uniqueKeysWithValues:)` traps on a duplicate, and tool names
+    /// partly come from remote MCP servers.
+    @Test
+    func duplicateToolNamesAreResolvedRatherThanTrapping() async {
+        let executed = Recorder()
+        let tools = ["builtin", "mcp-shadow"].map { origin in
+            AnyAgentTool(descriptor: AgentToolDescriptor(
+                name: "list_hosts", summary: origin,
+                inputSchema: .object([
+                    "type": .string("object"), "properties": .object([:]),
+                    "required": .array([]), "additionalProperties": .bool(false),
+                ]),
+                target: .host, safety: .locallyReadOnly
+            )) { invocation, _ in
+                await executed.append(origin)
+                return AgentToolResult(callID: invocation.call.id, content: origin)
+            }
+        }
+        let runtime = AgentRuntime(
+            model: ScriptedAgentModel(turns: [
+                [.toolCallDelta(id: "1", name: "list_hosts", arguments: "{}"), .finished(.toolCalls)],
+                [.textDelta("done"), .finished(.completed)],
+            ]),
+            tools: tools,
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+        )
+        for await _ in await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
+        )) {}
+
+        // First registration wins, so a remote name cannot shadow a built-in.
+        #expect(await executed.values == ["builtin"])
+    }
+
+    /// Every event used to be handed to the repository, which meant an
+    /// unstructured task and a `ModelContext.save()` per streamed token.
+    @Test
+    func onlyRunScopedEventsReachTheRepository() async {
+        let repository = RecordingRunRepository()
+        let runtime = AgentRuntime(
+            model: ScriptedAgentModel(turns: [
+                [
+                    .textDelta("one"), .textDelta("two"), .textDelta("three"),
+                    .toolCallDelta(id: "1", name: "noop", arguments: "{}"),
+                    .finished(.toolCalls),
+                ],
+                [.textDelta("done"), .finished(.completed)],
+            ]),
+            tools: [AnyAgentTool(descriptor: AgentToolDescriptor(
+                name: "noop", summary: "noop",
+                inputSchema: .object([
+                    "type": .string("object"), "properties": .object([:]),
+                    "required": .array([]), "additionalProperties": .bool(false),
+                ]),
+                target: .local, safety: .locallyReadOnly
+            )) { invocation, _ in
+                AgentToolResult(callID: invocation.call.id, content: "ok")
+            }],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+            repository: repository
+        )
+        for await _ in await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
+        )) {}
+        try? await Task.sleep(for: .milliseconds(50))
+
+        let recorded = await repository.recorded
+        #expect(!recorded.isEmpty)
+        #expect(recorded.allSatisfy { $0.isDurable })
+        #expect(!recorded.contains { if case .messageDelta = $0 { true } else { false } })
+        #expect(!recorded.contains { if case .runState = $0 { true } else { false } })
+    }
+
+    @Test
+    func mcpToolNamesThatSanitizeAlikeStayDistinct() {
+        var server = MCPServer(name: "Gateway")
+        server.tools = [
+            MCPTool(id: "list-hosts"), MCPTool(id: "list.hosts"), MCPTool(id: "list_hosts"),
+        ]
+        let names = AgentMCPTools.make(servers: [(server: server, bearerToken: nil)])
+            .map(\.descriptor.name)
+
+        #expect(Set(names).count == 3)
+        #expect(names.allSatisfy { $0.hasPrefix("mcp__") })
+    }
+
     @Test
     func secretHandlesAreSingleUseAndBindingScoped() async throws {
         let broker = SecretBroker()
@@ -374,6 +493,14 @@ struct AgentRuntimeTests {
 private actor Recorder {
     var values: [String] = []
     func append(_ value: String) { values.append(value) }
+}
+
+private actor RecordingRunRepository: AgentRunPersisting {
+    var recorded: [AgentEvent] = []
+    func save(_ snapshot: AgentRunSnapshot) {}
+    func record(_ event: AgentEvent, runID: UUID) { recorded.append(event) }
+    func loadConversations() -> [StoredAgentConversation] { [] }
+    func deleteConversation(_ id: UUID) {}
 }
 
 private actor Counter {

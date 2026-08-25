@@ -178,13 +178,21 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             ))
         }
 
-        let existing = try context.fetch(FetchDescriptor<PersistentAgentMessage>(
-            predicate: #Predicate { $0.runID == runID }
+        // Matched on message id, not on this run's id. A conversation's earlier
+        // turns are replayed into every later run, so filtering by `runID` made
+        // each save re-insert the whole history — colliding with the unique
+        // constraint and rewriting rows that were already correct.
+        let ids = Set(snapshot.messages.map(\.id))
+        let stored = try context.fetch(FetchDescriptor<PersistentAgentMessage>(
+            predicate: #Predicate { ids.contains($0.id) }
         ))
-        let existingIDs = Set(existing.map(\.id))
-        for message in snapshot.messages where !existingIDs.contains(message.id) {
+        let storedIDs = Set(stored.map(\.id))
+        var inserted = false
+        for message in snapshot.messages where !storedIDs.contains(message.id) {
             context.insert(PersistentAgentMessage(message, runID: runID))
+            inserted = true
         }
+        guard inserted || context.hasChanges else { return }
         try context.save()
     }
 
@@ -213,7 +221,10 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 failure: reason, timedOut: timedOut
             ))
         default:
-            break
+            // Nothing to write, so nothing to save. `AgentRuntime` already
+            // filters on `isDurable`; this is the second half of the same
+            // guarantee, for any caller that does not.
+            return
         }
         try context.save()
     }
@@ -232,8 +243,20 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             let matchingRuns = runs.filter { $0.conversationID == conversation.id }
                 .sorted { $0.startedAt < $1.startedAt }
             let runIDs = Set(matchingRuns.map(\.id))
+            // Ordered by run first, then by time within it. Sorting the whole
+            // conversation on `createdAt` alone let two runs interleave whenever
+            // their message timestamps were close, which reorders a transcript
+            // the model is about to be shown.
+            let runOrder = Dictionary(
+                uniqueKeysWithValues: matchingRuns.enumerated().map { ($0.element.id, $0.offset) }
+            )
             let transcript = messages.filter { runIDs.contains($0.runID) }
-                .sorted { $0.createdAt < $1.createdAt }
+                .sorted { lhs, rhs in
+                    let left = runOrder[lhs.runID] ?? 0
+                    let right = runOrder[rhs.runID] ?? 0
+                    if left != right { return left < right }
+                    return lhs.createdAt < rhs.createdAt
+                }
                 .compactMap { row -> AgentTranscriptMessage? in
                     guard let role = AgentTranscriptRole(rawValue: row.role) else { return nil }
                     let calls = (try? JSONDecoder().decode(
