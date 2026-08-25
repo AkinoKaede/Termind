@@ -110,12 +110,26 @@ nonisolated struct ChatProbe: Sendable {
 
     // MARK: - What
 
-    private static func body(for model: AIModel, on provider: ModelProvider) throws -> Data {
+    static func body(for model: AIModel, on provider: ModelProvider) throws -> Data {
         let object: [String: Any]
 
         switch provider.kind {
         case .openAI where provider.usesResponsesAPI:
-            object = ["model": model.id, "input": prompt]
+            // The Responses API accepts a bare string, but compatible gateways
+            // are not uniformly permissive: some require `input` to be the
+            // canonical list of input items. The list form works with OpenAI as
+            // well, so use it for the probe rather than making a valid setup
+            // look broken behind one of those gateways.
+            object = [
+                "model": model.id,
+                "input": [
+                    [
+                        "type": "message",
+                        "role": "user",
+                        "content": [["type": "input_text", "text": prompt]],
+                    ]
+                ],
+            ]
 
         case .openAI:
             // No output cap. `max_tokens` and `max_completion_tokens` are not

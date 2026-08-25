@@ -635,6 +635,9 @@ struct ModelListEditor: View {
         let targets = provider.models.filter { state.checked.contains($0.id) }
 
         state.isTesting = true
+        for model in targets {
+            state.results[model.id] = .queued
+        }
         Task {
             for model in targets {
                 state.results[model.id] = .running
@@ -691,6 +694,7 @@ struct ModelListEditor: View {
 
     /// What one Test came back with.
     enum TestResult: Equatable {
+        case queued
         case running
         case passed(String)
         case failed(String)
@@ -699,6 +703,7 @@ struct ModelListEditor: View {
 
         var message: String {
             switch self {
+            case .queued: String(localized: "Waiting…")
             case .running: String(localized: "Testing…")
             case .passed(let summary): summary
             case .failed(let reason): reason
@@ -707,6 +712,7 @@ struct ModelListEditor: View {
 
         var symbol: String {
             switch self {
+            case .queued: "hourglass"
             case .running: "clock"
             case .passed: "checkmark.circle.fill"
             case .failed: "exclamationmark.triangle.fill"
