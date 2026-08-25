@@ -139,19 +139,19 @@ struct WindowStateTests {
     }
 
     @Test
-    func assistantSidebarDraftShowsFocusedWorkspaceContext() {
+    func assistantSidebarShowsFocusedWorkspaceContext() {
         let host = Host(name: "Files", host: "files.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
         let window = WindowModel(tabs: [workspace])
 
         window.hostStore = HostStore(hosts: [host])
 
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host, .directory])
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/srv/app"])
+        #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host, .directory])
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/srv/app"])
     }
 
     @Test
-    func focusedSFTPPathChangesUpdateAssistantContext() {
+    func focusedSFTPPathChangesUpdateSessionContext() {
         let host = Host(name: "Files", host: "files.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
         let sftpSession = workspace.focusedPane.sftpSession!
@@ -160,11 +160,11 @@ struct WindowStateTests {
 
         sftpSession.navigate(to: "/srv/releases")
 
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host, .directory])
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/srv/releases"])
+        #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host, .directory])
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/srv/releases"])
 
         sftpSession.goBack()
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/srv"])
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/srv"])
     }
 
     @Test
@@ -183,31 +183,89 @@ struct WindowStateTests {
 
         backgroundSession.navigate(to: "/background/changed")
 
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Files", "/focused"])
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/focused"])
     }
 
+    /// The reported leak: session context must belong to the sidebar, so a
+    /// conversation promoted out of it arrives in the Assistant tab carrying
+    /// nothing about a host it can no longer see.
     @Test
-    func openingSidebarConversationRefreshesPinnedContextAndPreservesAttachments() {
+    func sendingFromTheSidebarDoesNotAttachSessionContextToTheConversation() {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
+        let window = WindowModel(tabs: [workspace])
+        window.hostStore = HostStore(hosts: [host])
+        window.sidebar.assistantDraft.draft = "Why is this slow?"
+
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/srv/app"])
+
+        let conversation = window.sendAssistantSidebarDraft()
+
+        #expect(conversation?.attachments.isEmpty == true)
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/srv/app"])
+    }
+
+    /// Leaving every Workspace used to freeze the last host and directory on
+    /// screen, because the refresh returned early instead of clearing.
+    @Test
+    func leavingEveryWorkspaceClearsSessionContext() {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
+        let window = WindowModel(tabs: [workspace])
+        window.hostStore = HostStore(hosts: [host])
+
+        #expect(!window.sidebar.sessionContext.isEmpty)
+
+        window.selectVault()
+        window.refreshSessionContext()
+
+        #expect(window.sidebar.sessionContext == .none)
+    }
+
+    /// The path `askAI` takes: attach the failure log, promote the draft, and
+    /// the log goes with the message it belongs to rather than sitting in the
+    /// draft as text the user could half-delete.
+    @Test
+    func promotingASidebarDraftSendsItsAttachmentWithTheFirstTurn() {
+        let conversation = ConversationModel()
+        conversation.attach(
+            ContextChip(kind: .output, label: "Connection error", content: "ssh: refused")
+        )
+        conversation.draft = "Explain this"
+
+        _ = AssistantLibraryModel().startConversation(conversation)
+
+        let first = conversation.messages.first?.text ?? ""
+        #expect(first.hasPrefix("Explain this"))
+        #expect(first.contains("ssh: refused"))
+        #expect(conversation.attachments.isEmpty, "the attachment went with the turn")
+    }
+
+    /// Opening a conversation in the sidebar used to stamp the focused pane's
+    /// host onto it, which is how that host followed the conversation into the
+    /// Assistant tab.
+    @Test
+    func openingASidebarConversationLeavesItUnmarkedByTheFocusedPane() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
         let conversation = ConversationModel()
-        conversation.addChip(
-            ContextChip(kind: .output, label: "Connection error", approximateTokens: 40)
-        )
         conversation.draft = "Explain this"
         let library = AssistantLibraryModel()
         _ = library.startConversation(conversation)
+        conversation.attach(
+            ContextChip(kind: .output, label: "Connection error", content: "ssh: refused")
+        )
         let window = WindowModel(tabs: [workspace], assistantLibrary: library)
         window.hostStore = HostStore(hosts: [host])
 
         window.openAssistantInSidebar(conversation.id)
 
-        #expect(conversation.contextChips.map(\.kind) == [.host, .output])
-        #expect(conversation.contextChips.map(\.label) == ["Server", "Connection error"])
+        #expect(conversation.attachments.map(\.label) == ["Connection error"])
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server"])
     }
 
     @Test
-    func focusedSSHDirectoryChangesUpdateAssistantContext() async {
+    func focusedSSHDirectoryChangesUpdateSessionContext() async {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
         let sshSession = workspace.focusedPane.sshSession!
@@ -217,15 +275,15 @@ struct WindowStateTests {
         sshSession.terminalState.terminalDidChangeWorkingDirectory("/var/log")
         await Task.yield()
 
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host, .directory])
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.label) == ["Server", "/var/log"])
+        #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host, .directory])
+        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/var/log"])
 
         sshSession.disconnect()
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host])
+        #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host])
     }
 
     @Test
-    func focusedSSHSystemInfoUpdatesHiddenAssistantContextAndSFTPClearsIt() {
+    func focusedSSHSystemInfoUpdatesSessionContextAndSFTPClearsIt() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
         let sshPane = workspace.focusedPane
@@ -239,21 +297,23 @@ struct WindowStateTests {
 
         sshSession.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: info))
 
-        #expect(window.sidebar.assistantDraft.remoteSystemInfo == info)
-        #expect(window.sidebar.assistantDraft.contextChips.map(\.kind) == [.host])
+        #expect(window.sidebar.sessionContext.systemInfo == info)
+        // OS facts reach the model but are not a pill: they are disclosed by the
+        // Shell Integration setting, not by the composer.
+        #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host])
 
         workspace.splitFocusedPane(axis: .horizontal, with: .sftpSession(host: host))
-        #expect(window.sidebar.assistantDraft.remoteSystemInfo == nil)
+        #expect(window.sidebar.sessionContext.systemInfo == nil)
 
         workspace.focus(sshPane.id)
-        #expect(window.sidebar.assistantDraft.remoteSystemInfo == info)
+        #expect(window.sidebar.sessionContext.systemInfo == info)
 
         sshSession.applyShellIntegrationPreference(isEnabled: false)
-        #expect(window.sidebar.assistantDraft.remoteSystemInfo == nil)
+        #expect(window.sidebar.sessionContext.systemInfo == nil)
 
         sshSession.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: info))
         sshSession.disconnect()
-        #expect(window.sidebar.assistantDraft.remoteSystemInfo == nil)
+        #expect(window.sidebar.sessionContext.systemInfo == nil)
     }
 
     @Test

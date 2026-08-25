@@ -428,6 +428,142 @@ struct ChatComposerStateTests {
         #expect(leaked == nil)
     }
 
+    // MARK: - Attachments
+
+    /// An attachment used to be a label for a payload that travelled separately
+    /// — pasted into the draft — so what the chip claimed and what was uploaded
+    /// were two different things.
+    @Test
+    func anAttachmentIsSentWithTheTurnItWasAttachedTo() {
+        let conversation = ConversationModel()
+        conversation.attach(ContextChip(
+            kind: .output, label: "Connection error", content: "ssh: connect refused"
+        ))
+
+        let sent = conversation.appendUserTurn("What should I check?")
+
+        #expect(sent.hasPrefix("What should I check?"))
+        #expect(sent.contains(#"<output label="Connection error">"#))
+        #expect(sent.contains("ssh: connect refused"))
+        // The run must be started with this text, so the visible turn, the
+        // model-facing transcript, and the request all say the same thing.
+        #expect(conversation.messages.last?.text == sent)
+        #expect(conversation.transcript.last?.text == sent)
+    }
+
+    /// Consumed, not kept: the payload is in the transcript from here on, and
+    /// re-uploading it every turn is the bill the user's own key pays.
+    @Test
+    func anAttachmentIsConsumedByTheTurnAndNotResent() {
+        let conversation = ConversationModel()
+        conversation.attach(ContextChip(kind: .file, label: "nginx.conf", content: "worker;"))
+
+        conversation.appendUserTurn("first")
+        #expect(conversation.attachments.isEmpty)
+
+        let second = conversation.appendUserTurn("second")
+        #expect(second == "second")
+    }
+
+    @Test
+    func detachingRemovesTheChipAndItsPayload() {
+        let conversation = ConversationModel()
+        let chip = ContextChip(kind: .selection, label: "Selection", content: "df -h")
+        conversation.attach(chip)
+        conversation.attach(chip)
+
+        #expect(conversation.attachments.count == 1, "the same attachment twice is once")
+
+        conversation.detach(chip.id)
+
+        #expect(conversation.attachments.isEmpty)
+        #expect(conversation.appendUserTurn("hello") == "hello")
+    }
+
+    // MARK: - Titling
+
+    @Test
+    func aFinishedRunNotifiesItsOwnerExactlyOnce() async {
+        let conversation = ConversationModel()
+        var finishes = 0
+        conversation.runDidFinish = { finishes += 1 }
+        conversation.appendUserTurn("hello")
+        conversation.start(
+            runtime: AgentRuntime(
+                model: ImmediateConversationAgentModel(turns: [[
+                    .textDelta("hi"), .finished(.completed),
+                ]]),
+                tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "hello",
+                permissionMode: .askForApproval
+            )
+        )
+        await waitForTerminal(conversation)
+        await wait { finishes > 0 }
+
+        #expect(finishes == 1)
+    }
+
+    @Test
+    func thereIsNothingToSummarizeUntilTheModelHasAnswered() {
+        let conversation = ConversationModel()
+        #expect(AppModel.titleContext(for: conversation) == nil)
+
+        conversation.appendUserTurn("Root is at 99%")
+        #expect(AppModel.titleContext(for: conversation) == nil)
+
+        conversation.handle(.messageFinished(
+            AgentTranscriptMessage(role: .assistant, text: "Start with du -sh /var/*.")
+        ))
+
+        let context = AppModel.titleContext(for: conversation)
+        #expect(context?.firstUserMessage == "Root is at 99%")
+        #expect(context?.firstAssistantMessage == "Start with du -sh /var/*.")
+    }
+
+    /// A run that failed writes its reason to the visible list only. Titling off
+    /// `messages` would have named the conversation after the error.
+    @Test
+    func aFailureNoticeIsNotAnAnswerWorthNaming() {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("Root is at 99%")
+
+        conversation.handle(.failed("The Chat model has no available credential."))
+
+        #expect(conversation.messages.contains { $0.role == .assistant })
+        #expect(AppModel.titleContext(for: conversation) == nil)
+    }
+
+    @Test
+    func aConversationThatAlreadyHasATitleIsNotSummarizedAgain() {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("Root is at 99%")
+        conversation.handle(.messageFinished(
+            AgentTranscriptMessage(role: .assistant, text: "Start with du.")
+        ))
+        #expect(AppModel.titleContext(for: conversation) != nil)
+
+        conversation.title = "Root volume filling up"
+
+        #expect(AppModel.titleContext(for: conversation) == nil)
+        #expect(conversation.derivedTitle == "Root volume filling up")
+    }
+
+    @Test
+    func derivedTitleFallsBackToTheOpeningLineUntilASummaryArrives() {
+        let conversation = ConversationModel()
+        #expect(conversation.derivedTitle == "New Chat")
+
+        conversation.appendUserTurn("Root is at 99%\nand climbing")
+        #expect(conversation.derivedTitle == "Root is at 99%")
+
+        conversation.title = "Disk pressure on root"
+        #expect(conversation.derivedTitle == "Disk pressure on root")
+    }
+
     private func waitForTerminal(_ conversation: ConversationModel) async {
         for _ in 0..<200 where !conversation.runState.isTerminal {
             try? await Task.sleep(for: .milliseconds(5))

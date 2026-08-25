@@ -384,13 +384,16 @@ struct TerminalPlaceholderView: View {
     /// the user still decides what leaves the machine.
     private func askAI(about message: String, log: String) {
         let conversation = window.sidebar.assistantDraft
-        conversation.addChip(
-            ContextChip(kind: .output, label: String(localized: "Connection error"), approximateTokens: 40)
-        )
-        let excerpt = String(log.suffix(4_000))
+        // The log rides on the chip rather than in the draft. Pasting it into
+        // the editable text made the pill a label for something the user could
+        // silently delete half of, and left the draft too long to read.
+        conversation.attach(ContextChip(
+            kind: .output,
+            label: String(localized: "Connection error"),
+            content: String(log.suffix(4_000))
+        ))
         conversation.draft = String(
-            localized:
-                "SSH connection failed: \(message). What should I check?\n\nConnection log:\n\(excerpt)"
+            localized: "SSH connection failed: \(message). What should I check?"
         )
         window.closeAssistantInSidebar()
         window.showAssistant()

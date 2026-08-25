@@ -59,6 +59,9 @@ final class AssistantConversationStore {
                 transcript: value.messages,
                 runState: value.lastRunState
             )
+            // Empty is "never summarized", not a name of nothing — `derivedTitle`
+            // has to be able to tell those apart to fall back.
+            conversation.title = value.title.isEmpty ? nil : value.title
             conversation.toolCards = value.toolCards.map { card in
                 let state: AgentToolCard.State
                 if card.result?.isError == true { state = .failed }

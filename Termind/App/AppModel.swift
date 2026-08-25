@@ -64,6 +64,9 @@ final class AppModel {
     /// See `AIStore`.
     let ai: AIStore
     let commandComposer: CommandComposerController
+    /// Names conversations for the chat list. Held as the protocol, not the
+    /// concrete controller, so a test can watch the trigger without a provider.
+    var conversationTitles: any ConversationTitling
     /// One app-wide microphone owner. Keeping this above individual composers
     /// prevents two windows from installing competing audio taps.
     let speechTranscription: SpeechTranscriptionCoordinator
@@ -76,6 +79,9 @@ final class AppModel {
     private let outboxRunner: OutboxRunner?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
     private var deletedAgentConversationIDs = Set<UUID>()
+    /// Conversations already handed to the summarizer. Titling is once per
+    /// conversation, and every run re-arms the hook that would do it.
+    private var titledConversationIDs = Set<UUID>()
 
     init(
         hosts: HostStore, ai: AIStore = AIStore(),
@@ -102,6 +108,7 @@ final class AppModel {
         )
         self.ai = ai
         commandComposer = CommandComposerController(ai: ai)
+        conversationTitles = ConversationTitleController(ai: ai)
         self.speechTranscription =
             speechTranscription
             ?? SpeechTranscriptionCoordinator(
@@ -158,15 +165,22 @@ final class AppModel {
         }
     }
 
-    func sendAgentDraft(_ conversation: ConversationModel) {
-        let prompt = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prompt.isEmpty else { return }
-        conversation.appendUserTurn(prompt)
+    func sendAgentDraft(_ conversation: ConversationModel, context: SessionContext = .none) {
+        let draft = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !draft.isEmpty else { return }
+        // The *returned* text, not `draft`: attachments are folded in there, and
+        // running on the pre-fold string would show the model a turn that does
+        // not match the one the conversation recorded.
+        let prompt = conversation.appendUserTurn(draft)
         conversation.draft = ""
-        startAgentRun(conversation, prompt: prompt)
+        startAgentRun(conversation, prompt: prompt, context: context)
     }
 
-    func startAgentRun(_ conversation: ConversationModel, prompt: String? = nil) {
+    func startAgentRun(
+        _ conversation: ConversationModel,
+        prompt: String? = nil,
+        context: SessionContext = .none
+    ) {
         let userPrompt = prompt
             ?? conversation.messages.last(where: { $0.role == .user })?.text
             ?? ""
@@ -243,12 +257,61 @@ final class AppModel {
                 await agentConnections.cleanup(runID: runID)
             }
         )
+        // No second Shell Integration gate here. `Pane.remoteSystemInfo` already
+        // withholds the probe when the setting is off, and `context` is the same
+        // value the chips were drawn from — so what is shown and what is sent
+        // cannot disagree.
         conversation.start(runtime: runtime, request: AgentRunRequest(
             conversationID: conversation.id, prompt: userPrompt,
             permissionMode: mode, priorMessages: conversation.pendingPriorMessages,
-            remoteSystemInfo: SettingsKey.isShellIntegrationEnabled
-                ? conversation.remoteSystemInfo : nil
+            sessionContext: context
         ))
+        scheduleTitle(for: conversation)
+    }
+
+    /// Arms the one-shot summary for this conversation.
+    ///
+    /// Titling is deliberately once per conversation, not per run: a chat list
+    /// whose rows rewrite themselves as the conversation grows is harder to scan
+    /// than one whose rows stay put. `titledConversationIDs` is what makes the
+    /// second run a no-op even though every run re-arms the hook.
+    private func scheduleTitle(for conversation: ConversationModel) {
+        conversation.runDidFinish = { [weak self, weak conversation] in
+            guard let self, let conversation,
+                let context = Self.titleContext(for: conversation),
+                !titledConversationIDs.contains(conversation.id)
+            else { return }
+            titledConversationIDs.insert(conversation.id)
+            Task { [weak self, weak conversation] in
+                guard let self else { return }
+                guard let title = try? await conversationTitles.summarize(context),
+                    let conversation
+                else { return }
+                conversation.title = title
+                try? await agentRunRepository.setTitle(title, conversationID: conversation.id)
+            }
+        }
+    }
+
+    /// The opening exchange, if this conversation has one worth naming.
+    ///
+    /// Read from `transcript`, not `messages`. A run that failed puts its reason
+    /// in the visible list alone, so gating on `messages` would happily title a
+    /// conversation "The Chat model has no available credential."
+    ///
+    /// Gated on there being a reply rather than on the run having *completed*,
+    /// so a run the user stopped after a full first answer still gets a title
+    /// instead of staying labelled by its opening line forever.
+    static func titleContext(for conversation: ConversationModel) -> ConversationTitleContext? {
+        guard conversation.title == nil,
+            let user = conversation.transcript.first(where: { $0.role == .user })?.text,
+            let assistant = conversation.transcript.first(where: {
+                $0.role == .assistant && !$0.text.isEmpty
+            })?.text
+        else { return nil }
+        return ConversationTitleContext(
+            firstUserMessage: user, firstAssistantMessage: assistant
+        )
     }
 
     func registerWindow(_ window: WindowModel) {
@@ -274,12 +337,13 @@ final class AppModel {
             for sshSession in window.tabs.flatMap(\.panes).compactMap(\.sshSession) {
                 sshSession.applyShellIntegrationPreference(isEnabled: isEnabled)
             }
-            window.refreshAssistantContext()
+            window.refreshSessionContext()
         }
     }
 
     private func deleteAgentConversation(_ id: UUID) {
         deletedAgentConversationIDs.insert(id)
+        titledConversationIDs.remove(id)
         windows = windows.filter { $0.value.value != nil }
         for window in windows.values.compactMap(\.value) {
             window.assistantLibrary.delete(id)

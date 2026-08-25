@@ -15,9 +15,15 @@ nonisolated struct SuggestedCommand: Identifiable, Hashable, Sendable {
 
 /// One user-facing piece of context attached to an LLM conversation.
 ///
-/// Output, selections, and file contents must be added explicitly. Shell
-/// Integration's narrow OS/kernel metadata is the sole hidden exception; it is
+/// Output, selections, and file contents must be added explicitly. The pinned
+/// host and directory pills are also chips, but they are built from the
+/// surface's `SessionContext` rather than held here — see that type. Shell
+/// Integration's narrow OS/kernel metadata is never a chip at all; it is
 /// transient, token-sanitized, and disclosed by the setting that enables it.
+///
+/// `content` is the payload, not decoration. A chip carrying only a label while
+/// its data travels by some other route — as the SSH-failure attachment did, by
+/// pasting the log into the draft — discloses nothing.
 nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     nonisolated enum Kind: Hashable, Sendable {
         case host, directory, output, selection, file
@@ -31,15 +37,27 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
             case .file: "doc"
             }
         }
+
+        /// Names the block this chip becomes inside the sent message.
+        var blockName: String {
+            switch self {
+            case .host: "host"
+            case .directory: "directory"
+            case .output: "output"
+            case .selection: "selection"
+            case .file: "file"
+            }
+        }
     }
 
     var id: UUID = UUID()
     var kind: Kind
     var label: String
-    /// Host and cwd are cheap and near-universally needed, so they are pinned;
-    /// everything the user added by hand can be taken back off.
-    var isRemovable: Bool = true
-    var approximateTokens: Int = 0
+    var content: String = ""
+
+    /// Derived, not declared. A hand-passed count is a number that was true
+    /// once, and the estimate exists to warn about payload size.
+    var approximateTokens: Int { max(1, content.count / 4) }
 }
 
 nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
@@ -128,17 +146,21 @@ nonisolated enum ChatPermissionMode: String, Codable, Sendable, CaseIterable, Id
     }
 }
 
-/// One AI conversation. Session-scoped instances belong to a Workspace's
-/// context panel; standalone instances belong to `AssistantLibraryModel` and
-/// appear in the fixed Assistant tab.
+/// One AI conversation, wherever it is being shown.
+///
+/// It deliberately knows nothing about a session. Where the conversation is
+/// *about* a host and a directory, that comes from the surface showing it —
+/// `WindowSidebarState.sessionContext` — because a conversation that owned its
+/// own session context carried it into the Assistant tab, which has no session
+/// to describe.
 @Observable
 final class ConversationModel: Identifiable {
     let id: UUID
     var messages: [ChatMessage] = []
-    var contextChips: [ContextChip] = []
-    /// Hidden, transient session metadata governed by Shell Integration. It is
-    /// never represented in the visible transcript or persisted conversation.
-    private(set) var remoteSystemInfo: RemoteSystemInfo?
+    /// What the user attached by hand, each carrying its own payload. Consumed
+    /// by the next user turn: an attachment belongs to one message, and once
+    /// that message is sent the content is in the transcript already.
+    var attachments: [ContextChip] = []
     var draft: String = ""
     var isStreaming: Bool = false
     var runState: AgentRunState = .idle
@@ -184,6 +206,15 @@ final class ConversationModel: Identifiable {
     /// nothing about where models come from.
     var model: AIModelRef?
 
+    /// The generated summary, once there has been something to summarize.
+    /// `nil` — not "", which is what an unset stored row decodes to — is what
+    /// makes `derivedTitle` fall back rather than show an empty row.
+    var title: String?
+
+    /// Fired when a run reaches a terminal state, so `AppModel` can title the
+    /// conversation without the conversation knowing what a title costs.
+    var runDidFinish: (() -> Void)?
+
     init(
         id: UUID = UUID(), messages: [ChatMessage] = [],
         transcript: [AgentTranscriptMessage] = [],
@@ -196,10 +227,17 @@ final class ConversationModel: Identifiable {
     }
 
     var estimatedContextTokens: Int {
-        contextChips.reduce(0) { $0 + $1.approximateTokens }
+        attachments.reduce(0) { $0 + $1.approximateTokens }
     }
 
+    /// The generated summary if there is one, and the opening line until then.
+    ///
+    /// The fallback is not a placeholder to be replaced on refresh — a title is
+    /// generated once, so this is what a conversation shows when the summary
+    /// never ran: no model configured, the request failed, or the first reply
+    /// has not arrived yet.
     var derivedTitle: String {
+        if let title, !title.isEmpty { return title }
         guard let first = messages.first(where: { $0.role == .user }) else {
             return String(localized: "New Chat")
         }
@@ -234,13 +272,14 @@ final class ConversationModel: Identifiable {
         return items + cards.map(TimelineItem.tool)
     }
 
-    func addChip(_ chip: ContextChip) {
-        guard !contextChips.contains(where: { $0.kind == chip.kind && $0.label == chip.label }) else { return }
-        contextChips.append(chip)
+    func attach(_ chip: ContextChip) {
+        guard !attachments.contains(where: { $0.kind == chip.kind && $0.label == chip.label })
+        else { return }
+        attachments.append(chip)
     }
 
-    func removeChip(_ id: ContextChip.ID) {
-        contextChips.removeAll { $0.id == id && $0.isRemovable }
+    func detach(_ id: ContextChip.ID) {
+        attachments.removeAll { $0.id == id }
     }
 
     /// Records a local user turn. Agent-backed composers use AppModel's runtime
@@ -253,12 +292,44 @@ final class ConversationModel: Identifiable {
     }
 
     /// Adds one user turn to both the visible transcript and the model-facing
-    /// one. The run request carries the prompt separately, so `AgentRuntime`
-    /// appends it to its own snapshot; `priorMessages` must therefore stop
-    /// short of it — see `pendingPriorMessages`.
-    func appendUserTurn(_ text: String) {
-        messages.append(ChatMessage(role: .user, text: text))
-        transcript.append(AgentTranscriptMessage(role: .user, text: text))
+    /// one, folding in whatever was attached, and hands back the text that
+    /// actually went.
+    ///
+    /// The caller must start its run with the *returned* string. The run request
+    /// carries the prompt separately and `AgentRuntime` appends it to its own
+    /// snapshot, so passing the pre-fold text there would send the model a turn
+    /// that does not match the one in `transcript` — and `priorMessages` must
+    /// stop short of it either way, see `pendingPriorMessages`.
+    ///
+    /// Attachments are consumed, not kept: they belong to this message, they are
+    /// in the transcript from here on, and the pill going away is how the user
+    /// sees that the payload was sent.
+    @discardableResult
+    func appendUserTurn(_ text: String) -> String {
+        let composed = composed(text)
+        attachments.removeAll()
+        messages.append(ChatMessage(role: .user, text: composed))
+        transcript.append(AgentTranscriptMessage(role: .user, text: composed))
+        return composed
+    }
+
+    /// Renders attachments into the message body rather than smuggling them
+    /// past it. What was uploaded is then literally what the bubble shows,
+    /// which is the BYOK rule the chips exist to serve, and it costs no hidden
+    /// message kind in the transcript or its stored schema.
+    private func composed(_ text: String) -> String {
+        guard !attachments.isEmpty else { return text }
+        let blocks = attachments.map { chip in
+            // A label can be a filename, and a filename can contain a quote —
+            // which would close the attribute and leave the block malformed.
+            let label = chip.label.replacingOccurrences(of: "\"", with: "'")
+            return """
+                <\(chip.kind.blockName) label="\(label)">
+                \(chip.content)
+                </\(chip.kind.blockName)>
+                """
+        }
+        return ([text] + blocks).joined(separator: "\n\n")
     }
 
     /// The history to replay for a run whose prompt is the last user turn.
@@ -364,6 +435,7 @@ final class ConversationModel: Identifiable {
         case .runState(let state):
             runState = state
             isStreaming = state != .idle && !state.isTerminal
+            if state.isTerminal { runDidFinish?() }
         case .messageStarted(let id):
             if let index = messages.firstIndex(where: { $0.id == id }) {
                 messages[index].isStreaming = true
@@ -459,43 +531,6 @@ final class ConversationModel: Identifiable {
         if sendAfterTranscription { send() }
         return true
     }
-
-    /// Seeds the two chips that are always attached, so the user can see the
-    /// baseline rather than having to infer it.
-    func syncDefaultChips(
-        hostName: String?, workingDirectory: String?,
-        remoteSystemInfo: RemoteSystemInfo? = nil
-    ) {
-        self.remoteSystemInfo = remoteSystemInfo
-        contextChips.removeAll { !$0.isRemovable }
-        var defaults: [ContextChip] = []
-        if let hostName {
-            defaults.append(ContextChip(kind: .host, label: hostName, isRemovable: false, approximateTokens: 8))
-        }
-        if let workingDirectory {
-            defaults.append(
-                ContextChip(kind: .directory, label: workingDirectory, isRemovable: false, approximateTokens: 8))
-        }
-        contextChips.insert(contentsOf: defaults, at: 0)
-    }
-
-    /// Replaces only the pinned cwd while preserving the pinned host and every
-    /// piece of context the user attached explicitly.
-    func syncDirectoryChip(_ workingDirectory: String?) {
-        contextChips.removeAll { !$0.isRemovable && $0.kind == .directory }
-        guard let workingDirectory else { return }
-        let directory = ContextChip(
-            kind: .directory,
-            label: workingDirectory,
-            isRemovable: false,
-            approximateTokens: 8
-        )
-        let insertionIndex =
-            contextChips.lastIndex { !$0.isRemovable && $0.kind == .host }
-            .map { contextChips.index(after: $0) }
-            ?? 0
-        contextChips.insert(directory, at: insertionIndex)
-    }
 }
 
 extension ConversationModel: AgentUserInteractionHandling {}
@@ -526,8 +561,10 @@ extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 extension ConversationModel {
     static func demo() -> ConversationModel {
         let conversation = ConversationModel()
-        conversation.syncDefaultChips(hostName: "web-01", workingDirectory: "/var/log")
-        conversation.addChip(ContextChip(kind: .output, label: "Last 200 lines", approximateTokens: 1_450))
+        conversation.attach(ContextChip(
+            kind: .output, label: "Last 200 lines",
+            content: String(repeating: "nginx: connect() failed\n", count: 200)
+        ))
         conversation.messages = [
             ChatMessage(role: .user, text: "Root is at 99%. What is eating the space?"),
             ChatMessage(

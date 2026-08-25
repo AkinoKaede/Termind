@@ -603,6 +603,9 @@ private struct SSHSessionSnippetRow: View {
 struct ConversationView: View {
     let conversation: ConversationModel
     var isCompact: Bool = false
+    /// Forwarded to the composer. Only the sidebar has a focused pane to
+    /// describe, so only the sidebar passes one.
+    var sessionContext: SessionContext = .none
 
     var body: some View {
         VStack(spacing: 0) {
@@ -616,7 +619,7 @@ struct ConversationView: View {
                 Divider()
             }
             Divider()
-            ComposerView(conversation: conversation)
+            ComposerView(conversation: conversation, sessionContext: sessionContext)
         }
     }
 

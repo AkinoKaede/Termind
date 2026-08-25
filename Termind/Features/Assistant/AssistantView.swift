@@ -78,9 +78,12 @@ struct AssistantPanelView: View {
             ComposerView(
                 conversation: window.sidebar.assistantDraft,
                 prompt: "Ask anything…",
+                sessionContext: window.sidebar.sessionContext,
                 onSend: {
                     if let conversation = window.sendAssistantSidebarDraft() {
-                        app.startAgentRun(conversation)
+                        app.startAgentRun(
+                            conversation, context: window.sidebar.sessionContext
+                        )
                     }
                 }
             )
@@ -152,12 +155,19 @@ struct AssistantPanelView: View {
             .background(.bar)
 
             Divider()
-            ConversationView(conversation: conversation, isCompact: true)
+            ConversationView(
+                conversation: conversation, isCompact: true,
+                sessionContext: window.sidebar.sessionContext
+            )
         }
     }
 }
 
 /// The second pinned tab's main conversation surface.
+///
+/// It passes no session context, and that is the point: this tab is not attached
+/// to a Workspace, so there is no focused pane whose host and directory it could
+/// honestly claim to be sending.
 struct AssistantView: View {
     @Environment(WindowModel.self) private var window
 

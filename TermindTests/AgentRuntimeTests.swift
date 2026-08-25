@@ -88,7 +88,7 @@ private struct RecordingScriptedAgentModel: AgentModelStreaming {
 @Suite
 struct AgentRuntimeTests {
     @Test
-    func remoteSystemInfoIsStableAcrossToolTurnsAndExcludedFromTranscript() async {
+    func sessionContextIsStableAcrossToolTurnsAndExcludedFromTranscript() async {
         let requests = RequestRecorder()
         let model = RecordingScriptedAgentModel(
             turns: [
@@ -117,26 +117,34 @@ struct AgentRuntimeTests {
             model: model, tools: [tool],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
-        let info = RemoteSystemInfo(
-            distributionID: "alpine", distributionVersion: "3.20.2",
-            kernelName: "Linux", kernelRelease: "6.6.44-0-lts",
-            architecture: "aarch64"
+        let context = SessionContext(
+            hostName: "edge-01",
+            workingDirectory: "/srv/app",
+            systemInfo: RemoteSystemInfo(
+                distributionID: "alpine", distributionVersion: "3.20.2",
+                kernelName: "Linux", kernelRelease: "6.6.44-0-lts",
+                architecture: "aarch64"
+            )
         )
 
         for await _ in await runtime.start(AgentRunRequest(
             conversationID: UUID(), prompt: "inspect", permissionMode: .askForApproval,
-            remoteSystemInfo: info
+            sessionContext: context
         )) {}
 
         let captured = await requests.values
         #expect(captured.count == 2)
         #expect(captured.allSatisfy {
-            $0.systemPrompt.contains("distribution_id: alpine")
+            $0.systemPrompt.contains("host: edge-01")
+                && $0.systemPrompt.contains("cwd: /srv/app")
+                && $0.systemPrompt.contains("distribution_id: alpine")
                 && $0.systemPrompt.contains("kernel_release: 6.6.44-0-lts")
                 && $0.systemPrompt.contains("architecture: aarch64")
         })
         #expect(captured.allSatisfy { request in
-            request.messages.allSatisfy { !$0.text.contains("distribution_id:") }
+            request.messages.allSatisfy {
+                !$0.text.contains("distribution_id:") && !$0.text.contains("cwd:")
+            }
         })
         #expect(captured.first?.messages.first?.text == "inspect")
     }
@@ -572,6 +580,7 @@ private actor RecordingRunRepository: AgentRunPersisting {
     func record(_ event: AgentEvent, runID: UUID) { recorded.append(event) }
     func loadConversations() -> [StoredAgentConversation] { [] }
     func deleteConversation(_ id: UUID) {}
+    func setTitle(_ title: String, conversationID: UUID) {}
 }
 
 private actor Counter {

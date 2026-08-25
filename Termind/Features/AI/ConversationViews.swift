@@ -6,16 +6,25 @@ import SwiftUI
 /// The row of user-visible attachments sent to the LLM endpoint.
 ///
 /// This is the trust surface of the whole feature. BYOK means the user's own key
-/// pays for — and is exposed to — whatever we upload. Host and directory are
-/// pinned; everything else the user added by hand can be taken back off. The
-/// setting-disclosed, token-sanitized Shell Integration environment is not a chip.
+/// pays for — and is exposed to — whatever we upload. The setting-disclosed,
+/// token-sanitized Shell Integration environment is not a chip.
+///
+/// Two sources, deliberately. Host and directory are pinned and come from the
+/// *surface*; everything the user added by hand comes from the conversation and
+/// can be taken back off. So a composer with no session — the Assistant tab,
+/// which is handed `.none` — cannot show, or send, a host and directory it does
+/// not have.
 struct ContextChipsView: View {
+    let sessionContext: SessionContext
     let conversation: ConversationModel
 
     var body: some View {
         FlowLayout(spacing: Metrics.Space.xs) {
-            ForEach(conversation.contextChips) { chip in
-                ChipView(chip: chip) { conversation.removeChip(chip.id) }
+            ForEach(sessionContext.chips) { chip in
+                ChipView(chip: chip, remove: nil)
+            }
+            ForEach(conversation.attachments) { chip in
+                ChipView(chip: chip) { conversation.detach(chip.id) }
             }
         }
         .accessibilityElement(children: .contain)
@@ -25,7 +34,9 @@ struct ContextChipsView: View {
 
 private struct ChipView: View {
     let chip: ContextChip
-    let remove: () -> Void
+    /// `nil` for a pinned session pill: the user's control over those is which
+    /// pane has focus, not a per-turn checkbox.
+    let remove: (() -> Void)?
 
     var body: some View {
         HStack(spacing: Metrics.Space.xs) {
@@ -34,7 +45,7 @@ private struct ChipView: View {
             Text(chip.label)
                 .font(.caption)
                 .lineLimit(1)
-            if chip.isRemovable {
+            if let remove {
                 Button(action: remove) {
                     Image(systemName: "xmark")
                         .font(.system(size: 7, weight: .bold))
@@ -46,7 +57,7 @@ private struct ChipView: View {
         .padding(.horizontal, Metrics.Space.s)
         .padding(.vertical, 3)
         .background(.quaternary.opacity(0.5), in: .capsule)
-        .help(Text(chip.isRemovable ? "Remove attachment" : "Always included"))
+        .help(Text(remove == nil ? "Always included" : "Remove attachment"))
     }
 }
 
@@ -150,6 +161,10 @@ struct MessageView: View {
 struct ComposerView: View {
     let conversation: ConversationModel
     var prompt: LocalizedStringKey = "Ask anything…"
+    /// What the surface showing this composer knows about the focused pane.
+    /// Defaulting to `.none` is what makes a composer outside a Workspace — the
+    /// Assistant tab — session-free by construction rather than by remembering.
+    var sessionContext: SessionContext = .none
     var onSend: (() -> Void)?
 
     @Environment(AppModel.self) private var app
@@ -203,8 +218,8 @@ struct ComposerView: View {
         @Bindable var conversation = conversation
 
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            if !conversation.contextChips.isEmpty {
-                ContextChipsView(conversation: conversation)
+            if !sessionContext.isEmpty || !conversation.attachments.isEmpty {
+                ContextChipsView(sessionContext: sessionContext, conversation: conversation)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
@@ -462,7 +477,7 @@ struct ComposerView: View {
         if let onSend {
             onSend()
         } else {
-            app.sendAgentDraft(conversation)
+            app.sendAgentDraft(conversation, context: sessionContext)
         }
     }
 

@@ -219,7 +219,10 @@ nonisolated struct AgentRunRequest: Sendable {
     var permissionMode: ChatPermissionMode
     var systemPrompt: String
     var priorMessages: [AgentTranscriptMessage]
-    var remoteSystemInfo: RemoteSystemInfo?
+    /// Where the run is happening, as the surface that started it understood it.
+    /// Per-run rather than per-conversation: the same chat continued from the
+    /// Assistant tab has no focused pane, and must not claim one.
+    var sessionContext: SessionContext
 
     init(
         conversationID: UUID,
@@ -227,14 +230,14 @@ nonisolated struct AgentRunRequest: Sendable {
         permissionMode: ChatPermissionMode,
         systemPrompt: String = AgentSystemPrompt.default,
         priorMessages: [AgentTranscriptMessage] = [],
-        remoteSystemInfo: RemoteSystemInfo? = nil
+        sessionContext: SessionContext = .none
     ) {
         self.conversationID = conversationID
         self.prompt = prompt
         self.permissionMode = permissionMode
         self.systemPrompt = systemPrompt
         self.priorMessages = priorMessages
-        self.remoteSystemInfo = remoteSystemInfo
+        self.sessionContext = sessionContext
     }
 }
 

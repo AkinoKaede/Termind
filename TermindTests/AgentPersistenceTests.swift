@@ -209,4 +209,45 @@ struct AgentPersistenceTests {
         #expect(try container.mainContext.fetch(FetchDescriptor<PersistentAgentReviewRecord>()).isEmpty)
         #expect(try await repository.loadConversations().isEmpty)
     }
+
+    /// A stored title means "the generated summary", so saving a run must leave
+    /// it empty. Seeding it from the opening line froze that line into storage
+    /// as though it were a name someone had chosen, and nothing ever read it
+    /// back to notice.
+    @Test
+    func aTitleIsWrittenOnlyBySummaryAndSurvivesRestore() async throws {
+        let configuration = ModelConfiguration(
+            "AgentPersistenceTitleTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        try await repository.save(AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval,
+            messages: [
+                AgentTranscriptMessage(role: .user, text: "Root is at 99%"),
+                AgentTranscriptMessage(role: .assistant, text: "Start with du."),
+            ]
+        ))
+
+        #expect(try await repository.loadConversations().first?.title == "")
+
+        try await repository.setTitle("Root volume filling up", conversationID: conversationID)
+
+        #expect(try await repository.loadConversations().first?.title == "Root volume filling up")
+
+        // The summary is model output about remote-influenced text, so it goes
+        // through the same redaction as every other stored string.
+        try await repository.setTitle("token=abcd1234", conversationID: conversationID)
+        let redacted = try await repository.loadConversations().first?.title ?? ""
+        #expect(!redacted.contains("abcd1234"))
+
+        try await repository.deleteConversation(conversationID)
+        try await repository.setTitle("late", conversationID: conversationID)
+        #expect(try await repository.loadConversations().isEmpty)
+    }
 }

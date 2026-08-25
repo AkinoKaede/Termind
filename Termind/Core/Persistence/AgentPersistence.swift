@@ -169,12 +169,15 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let conversationDescriptor = FetchDescriptor<PersistentAgentConversation>(
             predicate: #Predicate { $0.id == conversationID }
         )
+        // No title seeding here. `title` means "the generated summary", and
+        // empty means there is not one yet — which is what lets the UI decide to
+        // fall back to the opening line rather than having that line frozen into
+        // storage as though it were a name someone chose.
         if let conversation = try context.fetch(conversationDescriptor).first {
             conversation.updatedAt = .now
-            if conversation.title.isEmpty { conversation.title = title(snapshot.messages) }
         } else {
             context.insert(PersistentAgentConversation(
-                id: conversationID, title: title(snapshot.messages), createdAt: snapshot.startedAt
+                id: conversationID, title: "", createdAt: snapshot.startedAt
             ))
         }
 
@@ -275,9 +278,23 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 .compactMap { storedToolCard($0, results: results, reviews: reviews) }
             return StoredAgentConversation(
                 id: conversation.id, messages: transcript, toolCards: cards,
-                lastRunState: state
+                lastRunState: state, title: conversation.title
             )
         }
+    }
+
+    @MainActor
+    func setTitle(_ title: String, conversationID: UUID) async throws {
+        guard !deletedConversationIDs.contains(conversationID) else { return }
+        let descriptor = FetchDescriptor<PersistentAgentConversation>(
+            predicate: #Predicate { $0.id == conversationID }
+        )
+        // A title is model output about remote-influenced text, so it goes
+        // through the same redaction every other stored string does.
+        guard let row = try context.fetch(descriptor).first else { return }
+        row.title = AgentPersistenceRedactor.visibleText(String(title.prefix(80)))
+        row.updatedAt = .now
+        try context.save()
     }
 
     @MainActor
@@ -386,12 +403,6 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             }
             if changed { try context.save() }
         } catch { context.rollback() }
-    }
-
-    private func title(_ messages: [AgentTranscriptMessage]) -> String {
-        let first = messages.first(where: { $0.role == .user })?.text ?? ""
-        let line = first.split(separator: "\n").first.map(String.init) ?? first
-        return AgentPersistenceRedactor.visibleText(String(line.prefix(80)))
     }
 }
 

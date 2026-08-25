@@ -38,7 +38,7 @@ final class WindowModel {
     }
     var assistantConversationDeletionHandler: ((ConversationModel.ID) -> Void)?
     var hostStore: HostStore? {
-        didSet { refreshAssistantContext() }
+        didSet { refreshSessionContext() }
     }
 
     /// What is being dragged right now, from the tab bar or from a pane.
@@ -173,7 +173,7 @@ final class WindowModel {
     /// the native Toggle Sidebar command's job.
     func showAssistant() {
         guard selectedTab != nil else { return }
-        refreshAssistantContext()
+        refreshSessionContext()
         sidebar.isPresented = true
         sidebarMode = .assistant
     }
@@ -364,7 +364,7 @@ final class WindowModel {
         guard tabs.contains(where: { $0.id == id }) else { return }
         selectedTopLevelTab = .workspace(id)
         tabs.first { $0.id == id }?.markRead()
-        refreshAssistantContext()
+        refreshSessionContext()
     }
 
     func selectVault() {
@@ -384,12 +384,12 @@ final class WindowModel {
     func openAssistantInSidebar(_ id: ConversationModel.ID) {
         guard assistantLibrary.conversation(id: id) != nil else { return }
         sidebar.assistantConversationID = id
-        refreshAssistantContext()
+        refreshSessionContext()
     }
 
     func closeAssistantInSidebar() {
         sidebar.assistantConversationID = nil
-        refreshAssistantContext()
+        refreshSessionContext()
     }
 
     func deleteAssistantConversation(_ id: ConversationModel.ID) {
@@ -412,17 +412,27 @@ final class WindowModel {
         return conversation
     }
 
-    /// Pins the focused Workspace's host and directory to whichever composer is
-    /// currently visible in the Assistant sidebar. Explicit attachments remain
-    /// untouched; only the non-removable session chips are replaced.
-    func refreshAssistantContext() {
-        guard let tab = selectedTab, let hostStore else { return }
-        let hostName = tab.focusedPane.hostID.flatMap { hostStore.host($0)?.name }
-        let conversation = sidebarAssistantConversation ?? sidebar.assistantDraft
-        conversation.syncDefaultChips(
-            hostName: hostName,
+    /// Republishes the focused Workspace's host, directory, and OS facts for the
+    /// sidebar composer.
+    ///
+    /// It writes to the column, not to a conversation. Stamping this onto
+    /// whichever chat the sidebar happened to be showing meant the chat kept it:
+    /// send from the sidebar, open the same conversation in the Assistant tab,
+    /// and a host and directory that tab knows nothing about were still on
+    /// display — and would still have been uploaded.
+    ///
+    /// No Workspace selected clears it rather than returning early. Leaving the
+    /// last value in place froze a host and directory the user had navigated
+    /// away from.
+    func refreshSessionContext() {
+        guard let tab = selectedTab, let hostStore else {
+            sidebar.sessionContext = .none
+            return
+        }
+        sidebar.sessionContext = SessionContext(
+            hostName: tab.focusedPane.hostID.flatMap { hostStore.host($0)?.name },
             workingDirectory: tab.focusedPane.workingDirectory,
-            remoteSystemInfo: tab.focusedPane.remoteSystemInfo
+            systemInfo: tab.focusedPane.remoteSystemInfo
         )
     }
 
@@ -1029,7 +1039,7 @@ extension WindowModel: WorkspaceLifecycleRouting {
 
     func workspaceContextDidChange(_ workspace: Workspace) {
         guard selectedTab === workspace else { return }
-        refreshAssistantContext()
+        refreshSessionContext()
     }
 }
 

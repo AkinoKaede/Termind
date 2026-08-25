@@ -81,6 +81,14 @@ final class WindowSidebarState {
     var assistantConversationID: ConversationModel.ID?
     var assistantDraft = ConversationModel()
 
+    /// What the focused pane is, for whichever composer this column is showing.
+    ///
+    /// Here rather than on a conversation, because it describes the window's
+    /// current view of a host — not the chat. `WindowModel.refreshSessionContext`
+    /// is the only writer, and it clears this to `.none` when no Workspace is
+    /// selected so a stale host and directory cannot be left on screen.
+    var sessionContext: SessionContext = .none
+
     private var vaultMode: Mode = .navigation
     private var workspaceModes: [Workspace.ID: Mode] = [:]
 
