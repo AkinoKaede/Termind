@@ -4,15 +4,18 @@ import Foundation
 
 @MainActor
 final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
-    private let audioEngine = AVAudioEngine()
+    private let audioInput: any SpeechAudioInput
     private var recognizer: SFSpeechRecognizer?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var sessionToken: UUID?
-    private var inputTapInstalled = false
+
+    init(audioInput: any SpeechAudioInput) {
+        self.audioInput = audioInput
+    }
 
     func requestAuthorization() async throws {
-        let microphoneAllowed = await requestMicrophoneAuthorization()
+        let microphoneAllowed = await audioInput.requestAuthorization()
         guard microphoneAllowed else {
             throw SpeechTranscriptionFailure(.microphonePermissionDenied)
         }
@@ -37,12 +40,6 @@ final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
         // MainActor-inherited closure being invoked on the expected queue.
         recognizer.queue = .main
 
-        let inputNode = audioEngine.inputNode
-        let format = inputNode.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else {
-            throw SpeechTranscriptionFailure(.audioInputUnavailable)
-        }
-
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
 
@@ -59,21 +56,14 @@ final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
             )
         )
 
-        // Build the tap block in a nonisolated context. A closure created
-        // directly in this @MainActor method inherits main-actor isolation,
-        // but AVAudioEngine invokes it on its realtime audio queue. In Swift 6
-        // that mismatch traps with a libdispatch main-queue precondition.
-        inputNode.installTap(
-            onBus: 0,
-            bufferSize: 1_024,
-            format: format,
-            block: Self.makeAudioTapHandler(request: request, eventHandler: eventHandler)
-        )
-        inputTapInstalled = true
-
-        audioEngine.prepare()
         do {
-            try audioEngine.start()
+            try audioInput.start(
+                bufferHandler: Self.makeAudioBufferHandler(request: request),
+                levelHandler: Self.makeAudioLevelHandler(eventHandler: eventHandler)
+            )
+        } catch let failure as SpeechTranscriptionFailure {
+            cancel()
+            throw failure
         } catch {
             cancel()
             throw SpeechTranscriptionFailure(.audioInputUnavailable, detail: error.localizedDescription)
@@ -81,43 +71,18 @@ final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
     }
 
     func finish() {
-        stopCapturingAudio()
+        audioInput.stop()
         recognitionRequest?.endAudio()
     }
 
     func cancel() {
         sessionToken = nil
-        stopCapturingAudio()
+        audioInput.stop()
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionTask = nil
         recognitionRequest = nil
         recognizer = nil
-    }
-
-    private func stopCapturingAudio() {
-        if audioEngine.isRunning { audioEngine.stop() }
-        if inputTapInstalled {
-            audioEngine.inputNode.removeTap(onBus: 0)
-            inputTapInstalled = false
-        }
-    }
-
-    private func requestMicrophoneAuthorization() async -> Bool {
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .authorized:
-            return true
-        case .notDetermined:
-            return await withCheckedContinuation { continuation in
-                AVCaptureDevice.requestAccess(for: .audio) { allowed in
-                    continuation.resume(returning: allowed)
-                }
-            }
-        case .denied, .restricted:
-            return false
-        @unknown default:
-            return false
-        }
     }
 
     private func requestSpeechAuthorization() async -> SFSpeechRecognizerAuthorizationStatus {
@@ -157,16 +122,17 @@ final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
         }
     }
 
-    nonisolated private static func makeAudioTapHandler(
-        request: SFSpeechAudioBufferRecognitionRequest,
-        eventHandler: @escaping @MainActor (SpeechTranscriptionEvent) -> Void
-    ) -> AVAudioNodeTapBlock {
-        let levelGate = AudioLevelDeliveryGate(maximumUpdatesPerSecond: 30)
-        return { buffer, _ in
-            request.append(buffer)
+    nonisolated private static func makeAudioBufferHandler(
+        request: SFSpeechAudioBufferRecognitionRequest
+    ) -> SpeechAudioBufferHandler {
+        let sink = SpeechRecognitionBufferSink(request: request)
+        return { buffer in sink.append(buffer) }
+    }
 
-            let level = normalizedLevel(from: buffer)
-            guard levelGate.shouldDeliver() else { return }
+    nonisolated private static func makeAudioLevelHandler(
+        eventHandler: @escaping @MainActor (SpeechTranscriptionEvent) -> Void
+    ) -> SpeechAudioLevelHandler {
+        { level in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     eventHandler(.level(level))
@@ -183,14 +149,14 @@ final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
     ) {
         if let transcript {
             if isFinal {
-                stopCapturingAudio()
+                audioInput.stop()
                 eventHandler(.final(transcript))
             } else {
                 eventHandler(.partial(transcript))
             }
         }
         if let failure {
-            stopCapturingAudio()
+            audioInput.stop()
             eventHandler(.failure(failure))
         }
     }
@@ -207,34 +173,16 @@ final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
         )
     }
 
-    nonisolated private static func normalizedLevel(from buffer: AVAudioPCMBuffer) -> Float {
-        guard let channels = buffer.floatChannelData, buffer.frameLength > 0 else { return 0.04 }
-        let samples = channels[0]
-        var sum: Float = 0
-        for index in 0..<Int(buffer.frameLength) {
-            let sample = samples[index]
-            sum += sample * sample
-        }
-        let rms = sqrt(sum / Float(buffer.frameLength))
-        let decibels = 20 * log10(max(rms, 0.000_001))
-        return min(max((decibels + 58) / 58, 0.04), 1)
-    }
 }
 
-nonisolated private final class AudioLevelDeliveryGate: @unchecked Sendable {
-    private let lock = NSLock()
-    private let minimumInterval: TimeInterval
-    private var lastDeliveryTime: TimeInterval = 0
+nonisolated private final class SpeechRecognitionBufferSink: @unchecked Sendable {
+    private let request: SFSpeechAudioBufferRecognitionRequest
 
-    init(maximumUpdatesPerSecond: Double) {
-        minimumInterval = 1 / maximumUpdatesPerSecond
+    init(request: SFSpeechAudioBufferRecognitionRequest) {
+        self.request = request
     }
 
-    func shouldDeliver(now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        guard now - lastDeliveryTime >= minimumInterval else { return false }
-        lastDeliveryTime = now
-        return true
+    func append(_ buffer: AVAudioPCMBuffer) {
+        request.append(buffer)
     }
 }

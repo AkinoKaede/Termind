@@ -99,7 +99,9 @@ final class AppModel {
         self.ai = ai
         self.speechTranscription =
             speechTranscription
-            ?? SpeechTranscriptionCoordinator(service: AppleSpeechTranscriptionService())
+            ?? SpeechTranscriptionCoordinator(
+                service: AppleSpeechTranscriptionService(audioInput: MacOSSpeechAudioInput())
+            )
         outboxRunner = dependencies.outboxRunner
         agentHosts.configureTemporaryTargets(
             targets: { [weak self] in self?.temporaryAgentTargets() ?? [] },
