@@ -362,6 +362,12 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.supported == [.off, .high])
         #expect(resolution.clamp(.low) == .high)
         #expect(resolution.clamp(.max) == .high)
+        // Upward is the safe direction for a job that must reason, and the wrong
+        // one for a job that need not: asking for low here buys full effort. A
+        // caller that wants the cheapest level asks for off, which is the only
+        // request this clamp cannot answer by walking up — see
+        // `ConversationTitleController`.
+        #expect(resolution.clamp(.off) == .off)
         #expect(resolution.wireValue(for: .high) == "strong")
     }
 

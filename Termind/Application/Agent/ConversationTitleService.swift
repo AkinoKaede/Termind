@@ -135,9 +135,15 @@ final class ConversationTitleController: ConversationTitling {
         guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else {
             throw ConversationTitleError.missingCredential
         }
+        // `.off`, not `.low`. The shared clamp walks *upward* first, which is
+        // right for Security Review — a review that does not reason is worse
+        // than a slow one — but backwards here. Asking for low on a model whose
+        // levels are `[off, high]`, as several Kimi builds are, hands back high:
+        // full reasoning effort to write six words. Asking for off takes off
+        // where it exists and the lowest available level where it does not.
         let reasoning = ModelCapabilityResolver.reasoning(
             model: resolved.model, provider: resolved.provider
-        ).clamp(.low)
+        ).clamp(.off)
         let model = AgentProviderClient(
             provider: resolved.provider, model: resolved.model, secret: secret,
             reasoning: reasoning
