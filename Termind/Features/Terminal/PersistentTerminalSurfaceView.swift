@@ -149,6 +149,8 @@
             }
 
             switch character {
+            case "i":
+                return modifiers == .command
             case "b":
                 return modifiers == .command
             case "q":

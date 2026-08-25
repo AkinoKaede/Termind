@@ -38,7 +38,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                     var responseCallIDs: [String: String] = [:]
                     var responseCallNames: [String: String] = [:]
                     var responseSawOutput = false
-                    var urlRequest = try buildRequest(request)
+                    var urlRequest = try buildRequest(request, streaming: true)
                     try await authorize(&urlRequest)
                     let (bytes, response) = try await session.bytes(for: urlRequest)
                     guard let http = response as? HTTPURLResponse else {
@@ -86,9 +86,33 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         }
     }
 
-    private func buildRequest(_ input: AgentModelRequest) throws -> URLRequest {
+    func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent] {
+        var urlRequest = try buildRequest(request, streaming: false)
+        try await authorize(&urlRequest)
+        let (bytes, response) = try await session.bytes(for: urlRequest)
+        guard let http = response as? HTTPURLResponse else {
+            throw AgentProviderError.notHTTP
+        }
+        var data = Data()
+        for try await byte in bytes {
+            guard data.count < 16 * 1024 * 1024 else {
+                throw AgentProviderError.responseTooLarge
+            }
+            data.append(byte)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw AgentProviderError.http(
+                http.statusCode, String(decoding: data.prefix(4096), as: UTF8.self)
+            )
+        }
+        return try parseBufferedResponse(data)
+    }
+
+    func buildRequest(
+        _ input: AgentModelRequest, streaming: Bool
+    ) throws -> URLRequest {
         var urlString = provider.resolvedRequestURL(model: model.id)
-        if provider.kind == .google {
+        if provider.kind == .google, streaming {
             urlString = urlString.replacingOccurrences(
                 of: ":generateContent", with: ":streamGenerateContent"
             )
@@ -102,12 +126,23 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body(input))
+        request.setValue(
+            streaming ? "text/event-stream" : "application/json",
+            forHTTPHeaderField: "Accept"
+        )
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: body(input, streaming: streaming)
+        )
         return request
     }
 
     func body(_ request: AgentModelRequest) -> [String: Any] {
+        body(request, streaming: true)
+    }
+
+    func body(
+        _ request: AgentModelRequest, streaming: Bool
+    ) -> [String: Any] {
         let reasoningResolution = ModelCapabilityResolver.reasoning(
             model: model, provider: provider
         )
@@ -117,7 +152,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         case .openAI where provider.usesResponsesAPI:
             let tools = request.tools.map(Self.openAIToolObject)
             var body: [String: Any] = [
-                "model": model.id, "stream": true,
+                "model": model.id, "stream": streaming,
                 "instructions": request.systemPrompt,
                 "input": request.messages.flatMap(Self.responsesMessages),
             ]
@@ -136,14 +171,17 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             let tools = request.tools.map(Self.openAIToolObject)
             var messages: [[String: Any]] = [["role": "system", "content": request.systemPrompt]]
             messages += request.messages.flatMap(Self.chatMessages)
-            var body: [String: Any] = ["model": model.id, "stream": true, "messages": messages]
+            var body: [String: Any] = [
+                "model": model.id, "stream": streaming, "messages": messages,
+            ]
             if !tools.isEmpty { body["tools"] = tools.map { ["type": "function", "function": $0] } }
             if let reasoningValue { body["reasoning_effort"] = reasoningValue }
             return body
         case .anthropic:
             let tools = request.tools.map(Self.providerToolObject)
             var body: [String: Any] = [
-                "model": model.id, "stream": true, "max_tokens": model.maxOutputTokens ?? 4096,
+                "model": model.id, "stream": streaming,
+                "max_tokens": model.maxOutputTokens ?? 4096,
                 "system": request.systemPrompt,
                 "messages": request.messages.flatMap(Self.anthropicMessages),
             ]
@@ -646,6 +684,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         return events
     }
 }
+
+extension AgentProviderClient: AgentModelCompleting {}
 
 nonisolated private extension Array where Element == AgentModelStreamEvent {
     var containsToolCall: Bool {

@@ -141,4 +141,34 @@ struct RemoteCommandEventFilterTests {
         #expect(update.commands.isEmpty)
         #expect(update.visibleOutput == data)
     }
+
+    @Test
+    func filtersChunkedPromptAndUnicodeDraftEvents() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let first = filter.receive(Data("before\u{1B}]777;TermindPrompt=TO".utf8))
+        #expect(first.visibleOutput == Data("before".utf8))
+        #expect(!first.promptReady)
+
+        let second = filter.receive(
+            Data("KEN\u{7}\u{1B}]777;TermindDraft=TOKEN;echo%20%E4%BD%A0".utf8)
+        )
+        #expect(second.visibleOutput.isEmpty)
+        #expect(second.promptReady)
+        #expect(second.drafts.isEmpty)
+
+        let third = filter.receive(Data("%E5%A5%BD\u{7}after".utf8))
+        #expect(third.drafts == ["echo 你好"])
+        #expect(third.visibleOutput == Data("after".utf8))
+    }
+
+    @Test
+    func acceptsAuthenticatedEmptyDraft() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let update = filter.receive(
+            Data("\u{1B}]777;TermindDraft=TOKEN;\u{7}".utf8)
+        )
+
+        #expect(update.drafts == [""])
+        #expect(update.visibleOutput.isEmpty)
+    }
 }

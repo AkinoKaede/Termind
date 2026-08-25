@@ -13,12 +13,22 @@ struct TabContentView: View {
     @Environment(WindowModel.self) private var window
 
     var body: some View {
-        SplitNodeView(node: displayedLayout, tab: tab, isActive: isActive)
-            .id(tab.id)
-            .background {
-                broadcastShortcut
-                terminalFindShortcuts
+        ZStack(alignment: .bottom) {
+            SplitNodeView(node: displayedLayout, tab: tab, isActive: isActive)
+                .id(tab.id)
+
+            if tab.commandComposerState != .idle {
+                CommandComposerOverlay(state: tab.commandComposerState)
+                    .padding(Metrics.Space.l)
+                    .zIndex(20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+        .animation(Motion.panel, value: tab.commandComposerState)
+        .background {
+            broadcastShortcut
+            terminalFindShortcuts
+        }
     }
 
     /// ⌘B, with no menu item to hang it on.
@@ -89,6 +99,75 @@ struct TabContentView: View {
             let without = tab.layout.removing(id)
         else { return tab.layout }
         return without
+    }
+}
+
+private struct CommandComposerOverlay: View {
+    let state: CommandComposerState
+
+    var body: some View {
+        VStack(spacing: Metrics.Space.s) {
+            symbol
+            Text(title).font(.headline)
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, Metrics.Space.xl)
+        .padding(.vertical, Metrics.Space.l)
+        .background(.regularMaterial, in: .rect(cornerRadius: Metrics.Radius.large))
+        .overlay {
+            RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.16), radius: 12, y: 5)
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var symbol: some View {
+        switch state {
+        case .readingDraft, .generating:
+            ProgressView().controlSize(.small)
+        case .inserted:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title2)
+                .foregroundStyle(.green)
+        case .failed:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title2)
+                .foregroundStyle(.orange)
+        case .idle:
+            EmptyView()
+        }
+    }
+
+    private var title: String {
+        switch state {
+        case .idle: ""
+        case .readingDraft: String(localized: "Reading current input…")
+        case .generating: String(localized: "Composing command…")
+        case .inserted: String(localized: "Command inserted — press Return to run")
+        case .failed: String(localized: "Couldn't compose command")
+        }
+    }
+
+    private var detail: String {
+        switch state {
+        case .idle: ""
+        case .readingDraft:
+            String(localized: "Reading the focused shell's edit buffer.")
+        case .generating:
+            String(localized: "Only the current input, shell, and working directory are sent.")
+        case .inserted(let targetCount):
+            targetCount == 1
+                ? String(localized: "Review the command before running it.")
+                : String(localized: "Inserted into \(targetCount) broadcast terminals.")
+        case .failed(let message): message
+        }
     }
 }
 

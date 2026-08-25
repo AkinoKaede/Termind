@@ -386,15 +386,15 @@ nonisolated struct AIModelRef: Hashable, Codable, Sendable {
 
 /// What Termind asks a model to do.
 ///
-/// Three, and the list is short on purpose. A role earns its place by wanting a
+/// The list is short on purpose. A role earns its place by wanting a
 /// *materially different* model, not by being a different prompt — titling a
 /// conversation and summarising a thread both want "whatever the chat model is,
 /// but cheaper", which is a decision the chat picker already expresses. Roles
 /// that only ever get set to the same thing are multiple pickers pretending to be a
 /// choice.
 ///
-/// What is left is two jobs with genuinely different requirements: one that
-/// holds a conversation and one whose whole value is being a *second opinion*.
+/// What is left is a few jobs with genuinely different requirements: holding a
+/// conversation, quickly rewriting a draft, and supplying a *second opinion*.
 ///
 /// None of them is required — see `AIStore.resolve(_:)`.
 nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
@@ -403,6 +403,7 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
     /// which model should be behind it, and splitting them would ask the user a
     /// question that has one answer.
     case chat
+    case commandComposer
     case securityReview
 
     nonisolated var id: String { rawValue }
@@ -412,6 +413,7 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
         // Just "Chat", though it covers agent turns too. A label reading
         // "Chat & Agent" implies a second setting exists somewhere.
         case .chat: String(localized: "Chat")
+        case .commandComposer: String(localized: "Command Composer")
         case .securityReview: String(localized: "Security Review")
         }
     }
@@ -420,6 +422,11 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
         switch self {
         case .chat:
             String(localized: "Used for chat, tools, and the Assistant sidebar.")
+        case .commandComposer:
+            String(
+                localized:
+                    "Turns the current terminal input into one command. Choose a fast model."
+            )
         // Names two models outright. This one runs on every command Approve for
         // Me would execute, so it sits in the latency path — a deliberate
         // reasoning model here makes the feature feel broken even when it

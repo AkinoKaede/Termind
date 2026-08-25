@@ -19,7 +19,13 @@ struct ShellIntegrationBootstrapTests {
         let commandText = String(decoding: command, as: UTF8.self)
         #expect(commandText.contains("file://localhost%s"))
         #expect(commandText.contains("TermindCommand=ABC123"))
+        #expect(commandText.contains("TermindPrompt=ABC123"))
+        #expect(commandText.contains("TermindDraft=ABC123"))
         #expect(commandText.contains("PROMPT_COMMAND"))
+        #expect(commandText.contains("__termind_compose_clear"))
+        #expect(commandText.contains("emacs-standard vi-insertion vi-command"))
+        #expect(commandText.contains("\\e[777;1~"))
+        #expect(commandText.contains("\\e[777;2~"))
         #expect(!commandText.contains("$HOSTNAME"))
         #expect(!commandText.contains("kitty-shell-cwd"))
         #expect(probeUpdate.visibleOutput == nil)
@@ -57,9 +63,16 @@ struct ShellIntegrationBootstrapTests {
         #expect(text.contains("TermindCommand=SHELL"))
         if shell == "zsh" {
             #expect(text.contains("add-zsh-hook preexec"))
+            #expect(text.contains("emacs viins vicmd"))
         } else {
             #expect(text.contains("fish_preexec"))
+            #expect(text.contains("default insert visual"))
         }
+        #expect(text.contains("TermindPrompt=SHELL"))
+        #expect(text.contains("TermindDraft=SHELL"))
+        #expect(text.contains("__termind_compose_clear"))
+        #expect(text.contains("777;1~"))
+        #expect(text.contains("777;2~"))
     }
 
     @Test

@@ -71,6 +71,7 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
 /// between Workspaces.
 protocol SSHSessionInputRouting: AnyObject {
     func routeInteractiveInput(_ data: Data, from origin: SSHSessionModel)
+    func sshSessionDidInvalidateCommandComposition(_ sshSession: SSHSessionModel)
     func sshSession(
         _ sshSession: SSHSessionModel,
         didChangeWorkingDirectory workingDirectory: String?
@@ -114,6 +115,24 @@ nonisolated enum TerminalFindBinding {
     static let end = "end_search"
 }
 
+nonisolated enum TerminalDraftError: LocalizedError, Sendable {
+    case unavailable, alreadyPending, timedOut
+
+    var errorDescription: String? {
+        switch self {
+        case .unavailable:
+            String(
+                localized:
+                    "Command Composer requires a supported shell prompt with Shell Integration enabled."
+            )
+        case .alreadyPending:
+            String(localized: "Command Composer is already reading the current input.")
+        case .timedOut:
+            String(localized: "The remote shell did not return its current input.")
+        }
+    }
+}
+
 /// One terminal sshSession inside a pane.
 ///
 /// The screen buffer lives inside libghostty. This model bridges its in-memory
@@ -134,6 +153,7 @@ final class SSHSessionModel: Identifiable {
     var workingDirectory: String? {
         didSet {
             guard workingDirectory != oldValue else { return }
+            invalidateCommandComposition()
             inputRouter?.sshSession(
                 self, didChangeWorkingDirectory: workingDirectory
             )
@@ -152,6 +172,15 @@ final class SSHSessionModel: Identifiable {
 
     /// Whether the remote shell accepted OSC 133 integration.
     var shellIntegrationAvailable: Bool = false
+    private(set) var integratedShell: String?
+    private(set) var isShellPromptReady = false
+    private(set) var commandComposerRevision: UInt64 = 0
+    private struct PendingDraftRequest {
+        var id: UUID
+        var continuation: CheckedContinuation<String, any Error>
+    }
+    private var pendingDraftRequest: PendingDraftRequest?
+    private var draftRequestTimeoutTask: Task<Void, Never>?
 
     /// Non-nil while a connection is waiting for the user to approve a first or
     /// additional server fingerprint. No credential is sent before this clears.
@@ -386,17 +415,96 @@ final class SSHSessionModel: Identifiable {
     /// makes broadcast possible — see `Workspace.deliver`; `submit` appends the
     /// newline that the user's own Return key would otherwise supply.
     func insert(_ text: String, submit: Bool = false) {
+        invalidateCommandComposition()
         writeInputDirectly(Data((text + (submit ? "\r" : "")).utf8))
     }
+
+    var canComposeCurrentDraft: Bool {
+        status.isLive && shellIntegrationAvailable && isShellPromptReady
+            && Self.supportedComposerShells.contains(integratedShell ?? "")
+    }
+
+    func requestCurrentDraft() async throws -> String {
+        guard canComposeCurrentDraft else { throw TerminalDraftError.unavailable }
+        guard pendingDraftRequest == nil else { throw TerminalDraftError.alreadyPending }
+        let requestID = UUID()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation {
+                (continuation: CheckedContinuation<String, any Error>) in
+                pendingDraftRequest = PendingDraftRequest(
+                    id: requestID, continuation: continuation
+                )
+                writeInputDirectly(Self.commandComposerDraftRequest)
+                draftRequestTimeoutTask?.cancel()
+                draftRequestTimeoutTask = Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(2))
+                    guard !Task.isCancelled else { return }
+                    self?.failDraftRequest(id: requestID, with: TerminalDraftError.timedOut)
+                }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.failDraftRequest(id: requestID, with: CancellationError())
+            }
+        }
+    }
+
+    /// Clears the shell's edit buffer through the installed line-editor widget,
+    /// then inserts one literal command as a bracketed paste. There is
+    /// intentionally no carriage return in this payload.
+    func replaceCurrentDraft(with command: String) {
+        var data = Self.commandComposerDraftClear
+        data.append(Self.bracketedPasteStart)
+        data.append(Data(command.utf8))
+        data.append(Self.bracketedPasteEnd)
+        writeInputDirectly(data)
+    }
+
+    private func failDraftRequest(id: UUID, with error: any Error) {
+        guard pendingDraftRequest?.id == id, let request = pendingDraftRequest else { return }
+        pendingDraftRequest = nil
+        draftRequestTimeoutTask?.cancel()
+        draftRequestTimeoutTask = nil
+        request.continuation.resume(throwing: error)
+    }
+
+    private func completeDraftRequest(with draft: String) {
+        guard let request = pendingDraftRequest else { return }
+        pendingDraftRequest = nil
+        draftRequestTimeoutTask?.cancel()
+        draftRequestTimeoutTask = nil
+        request.continuation.resume(returning: draft)
+    }
+
+    private func invalidateCommandComposition() {
+        commandComposerRevision &+= 1
+        inputRouter?.sshSessionDidInvalidateCommandComposition(self)
+    }
+
+    private func resetCommandComposerShellState() {
+        integratedShell = nil
+        isShellPromptReady = false
+        shellIntegrationAvailable = false
+        if let request = pendingDraftRequest {
+            failDraftRequest(id: request.id, with: TerminalDraftError.unavailable)
+        }
+        invalidateCommandComposition()
+    }
+
+    private static let supportedComposerShells: Set<String> = ["bash", "zsh", "fish"]
+    private static let commandComposerDraftRequest = Data("\u{1B}[777;1~".utf8)
+    private static let commandComposerDraftClear = Data("\u{1B}[777;2~".utf8)
+    private static let bracketedPasteStart = Data("\u{1B}[200~".utf8)
+    private static let bracketedPasteEnd = Data("\u{1B}[201~".utf8)
 
     func connect(using store: HostStore) {
         startConnection(using: store)
     }
 
     private func startConnection(using store: HostStore) {
+        resetCommandComposerShellState()
         let reconnecting = hasConnectedOnce && isRecoveringConnection
         workingDirectory = nil
-        shellIntegrationAvailable = false
         transferConfiguration = nil
         commandExcludedFromHistory = nil
         statusStore = store
@@ -807,6 +915,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func disconnect() {
+        resetCommandComposerShellState()
         workingDirectory = nil
         transferConfiguration = nil
         pendingInitialCommand = nil
@@ -947,8 +1056,8 @@ final class SSHSessionModel: Identifiable {
     /// for Termind's retained pane model. Close the pane through its current
     /// Workspace instead; transport failures remain visible for reconnection.
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
+        resetCommandComposerShellState()
         workingDirectory = nil
-        shellIntegrationAvailable = false
         transferConfiguration = nil
         connectionAttemptID = nil
         ssh = nil
@@ -990,6 +1099,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func scheduleReconnect(after message: String, using store: HostStore) {
+        resetCommandComposerShellState()
         isRecoveringConnection = true
         connectionAttemptID = nil
         connectionTask?.cancel()
@@ -997,7 +1107,6 @@ final class SSHSessionModel: Identifiable {
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
         transferConfiguration = nil
-        shellIntegrationAvailable = false
         status = .reconnecting
         presentReconnectJourney(using: store)
         reconnectController.schedule(after: message) { [weak self, weak store] in
@@ -1131,6 +1240,7 @@ final class SSHSessionModel: Identifiable {
     /// captured user interaction. Mouse/focus reports and protocol replies use
     /// the direct path even while Broadcast Input is enabled.
     func handleTerminalWrite(_ data: Data, isInteractiveInput: Bool) {
+        if isInteractiveInput { invalidateCommandComposition() }
         if isInteractiveInput, let inputRouter {
             inputRouter.routeInteractiveInput(data, from: self)
         } else {
@@ -1176,10 +1286,20 @@ final class SSHSessionModel: Identifiable {
 
     func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
         switch event {
-        case .available:
+        case .available(let shell):
+            integratedShell = shell
+            isShellPromptReady = false
             shellIntegrationAvailable = true
+            invalidateCommandComposition()
+        case .promptReady:
+            isShellPromptReady = true
+            invalidateCommandComposition()
         case .commandStarted(let command):
+            isShellPromptReady = false
+            invalidateCommandComposition()
             recordExecutedCommand(command)
+        case .draft(let draft):
+            completeDraftRequest(with: draft)
         }
     }
 

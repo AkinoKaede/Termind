@@ -127,7 +127,7 @@ final class AIStore {
     /// One chain, and no step of it is required:
     ///
     ///   1. an explicit assignment for this role
-    ///   2. for the three non-chat roles, whatever Chat resolves to
+    ///   2. for non-chat roles, whatever Chat resolves to
     ///   3. the last model picked in a conversation's menu
     ///   4. the first chat model of the first enabled provider
     ///

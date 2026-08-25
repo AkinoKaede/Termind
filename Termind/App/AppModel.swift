@@ -63,6 +63,7 @@ final class AppModel {
     /// machines you connect to, this one about endpoints you spend a key at.
     /// See `AIStore`.
     let ai: AIStore
+    let commandComposer: CommandComposerController
     /// One app-wide microphone owner. Keeping this above individual composers
     /// prevents two windows from installing competing audio taps.
     let speechTranscription: SpeechTranscriptionCoordinator
@@ -97,6 +98,7 @@ final class AppModel {
             clientFactory: { connectionCoordinator.makeSFTPClient() }
         )
         self.ai = ai
+        commandComposer = CommandComposerController(ai: ai)
         self.speechTranscription =
             speechTranscription
             ?? SpeechTranscriptionCoordinator(

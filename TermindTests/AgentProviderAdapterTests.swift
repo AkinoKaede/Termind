@@ -6,6 +6,28 @@ import Testing
 @Suite
 struct AgentProviderAdapterTests {
     @Test
+    func commandComposerRequestUsesBufferedJSONInsteadOfSSE() throws {
+        var provider = ModelProvider(name: "OpenAI")
+        provider.usesResponsesAPI = true
+        let client = AgentProviderClient(
+            provider: provider, model: AIModel(id: "gpt-test"), secret: "test"
+        )
+        let modelRequest = AgentModelRequest(
+            systemPrompt: "Compose", messages: [], tools: []
+        )
+
+        let request = try client.buildRequest(modelRequest, streaming: false)
+        let bodyData = try #require(request.httpBody)
+        let body = try #require(
+            JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+        )
+
+        #expect(request.value(forHTTPHeaderField: "Accept") == "application/json")
+        #expect(body["stream"] as? Bool == false)
+        #expect(body["tools"] == nil)
+    }
+
+    @Test
     func securityReviewPrefersLowReasoningThenClampsUpward() {
         let provider = ModelProvider(name: "Gateway")
         var lowModel = AIModel(id: "low-reviewer")
@@ -121,6 +143,28 @@ struct AgentProviderAdapterTests {
         #expect(completedEvent.firstText == "Checking hosts.")
         #expect(completedEvent.firstTool?.name == "list_hosts")
         #expect(completedEvent.containsFinish == .toolCalls)
+    }
+
+    @Test
+    func openAIResponsesParsesCommandComposerJSONSnapshot() {
+        let response: [String: Any] = [
+            "object": "response", "status": "completed",
+            "output": [[
+                "type": "message", "status": "completed",
+                "content": [[
+                    "type": "output_text", "text": #"{"command":"ls"}"#,
+                ]],
+            ]],
+        ]
+
+        let events = AgentProviderClient.parseCompletedResponses(response)
+
+        guard case .textSnapshot(let text) = events.first else {
+            Issue.record("Expected a command JSON text snapshot")
+            return
+        }
+        #expect(text == #"{"command":"ls"}"#)
+        #expect(events.containsFinish == .completed)
     }
 
     @Test

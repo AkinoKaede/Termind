@@ -70,6 +70,14 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(after: .pasteboard) {
+            Button("Compose Command") {
+                window?.composeTerminalCommand(using: app.commandComposer)
+            }
+            .keyboardShortcut("i")
+            .disabled(!(window?.canComposeTerminalCommand ?? false))
+
+            Divider()
+
             Button("Find in Terminal") { window?.presentTerminalFind() }
                 .keyboardShortcut("f")
                 .disabled(!(window?.canFindInTerminal ?? false))

@@ -69,6 +69,7 @@ struct AIProviderPersistenceTests {
         let store = AIStore(modelContext: container.mainContext, persistsSecrets: false)
         store.upsert(provider)
         store.assign(ref, to: .chat)
+        store.assign(ref, to: .commandComposer)
         store.select(ref)
 
         store.removeModels([model.id], from: provider.id)
@@ -77,6 +78,54 @@ struct AIProviderPersistenceTests {
         #expect(reloaded.modelProvider(provider.id)?.models.isEmpty == true)
         #expect(reloaded.roles.isEmpty)
         #expect(reloaded.lastSelectedModel == nil)
+    }
+
+    @Test
+    func commandComposerAssignmentPersistsIndependentlyAndFallsBackToChat() throws {
+        let container = try makeContainer("CommandComposerRole")
+        let chatModel = reasoningModel("chat-model")
+        let composerModel = reasoningModel("composer-model")
+        let provider = ModelProvider(name: "OpenAI", models: [chatModel, composerModel])
+        let chatRef = AIModelRef(modelProviderID: provider.id, modelID: chatModel.id)
+        let composerRef = AIModelRef(modelProviderID: provider.id, modelID: composerModel.id)
+
+        do {
+            let store = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+            store.upsert(provider)
+            store.assign(chatRef, to: .chat)
+            #expect(store.resolve(.commandComposer)?.model.id == chatModel.id)
+            store.assign(composerRef, to: .commandComposer)
+            #expect(store.resolve(.commandComposer)?.model.id == composerModel.id)
+        }
+
+        let reloaded = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        #expect(reloaded.assignment(for: .chat) == chatRef)
+        #expect(reloaded.assignment(for: .commandComposer) == composerRef)
+        #expect(AIRole.allCases == [.chat, .commandComposer, .securityReview])
+        #expect(AIRole.commandComposer.unsetLabel == "Same as Chat")
+    }
+
+    @Test
+    func legacyInlineRoleIsIgnoredWithoutMigration() throws {
+        let container = try makeContainer("LegacyInlineRole")
+        let model = reasoningModel("legacy-model")
+        let provider = ModelProvider(name: "OpenAI", models: [model])
+        let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
+        let store = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        store.upsert(provider)
+
+        let legacy = PersistentAIRoleAssignment(role: .chat, ref: ref)
+        legacy.role = "inline"
+        container.mainContext.insert(legacy)
+        try container.mainContext.save()
+
+        let reloaded = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        #expect(reloaded.roles.isEmpty)
+        #expect(reloaded.assignment(for: .commandComposer) == nil)
+        #expect(
+            try container.mainContext.fetch(FetchDescriptor<PersistentAIRoleAssignment>())
+                .contains(where: { $0.role == "inline" })
+        )
     }
 
     @Test

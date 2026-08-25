@@ -24,6 +24,13 @@ nonisolated protocol AgentModelStreaming: Sendable {
     func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error>
 }
 
+/// A single buffered model response. Short, tool-free features use this path so
+/// their success does not depend on SSE framing or a provider-specific [DONE]
+/// event.
+nonisolated protocol AgentModelCompleting: Sendable {
+    func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent]
+}
+
 nonisolated struct AgentToolExecutionContext: Sendable {
     var runID: UUID
     var userIntent: String

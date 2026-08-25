@@ -14,6 +14,24 @@ import Testing
 #endif
 
 @MainActor
+private final class WorkspaceCommandComposerStub: CommandComposing {
+    var command: String
+    var delay: Duration?
+    private(set) var contexts: [CommandComposerContext] = []
+
+    init(command: String, delay: Duration? = nil) {
+        self.command = command
+        self.delay = delay
+    }
+
+    func compose(_ context: CommandComposerContext) async throws -> String {
+        contexts.append(context)
+        if let delay { try await Task.sleep(for: delay) }
+        return command
+    }
+}
+
+@MainActor
 struct BroadcastInputTests {
     @Test
     func routesInteractiveBytesOnlyWhenBroadcastIsEnabled() {
@@ -125,6 +143,126 @@ struct BroadcastInputTests {
         #expect(!capture.classifyWrite())
     }
 
+    @Test
+    func commandComposerReadsAndReplacesOnlyFocusedSessionWithoutBroadcast() async throws {
+        let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
+        focus(firstSSHSession, in: workspace)
+        try await Task.sleep(for: .milliseconds(20))
+        prepareForCommandComposer(firstSSHSession, cwd: "/srv/app", shell: "zsh")
+        var firstWrites: [Data] = []
+        var secondWrites: [Data] = []
+        firstSSHSession.inputSink = { data in
+            firstWrites.append(data)
+            if data == Data("\u{1B}[777;1~".utf8) {
+                DispatchQueue.main.async {
+                    firstSSHSession.receiveShellIntegrationEvent(.draft("show hidden files"))
+                }
+            }
+        }
+        secondSSHSession.inputSink = { secondWrites.append($0) }
+        let composer = WorkspaceCommandComposerStub(command: "ls -la")
+
+        workspace.composeFocusedCommand(using: composer)
+        try await waitUntil { workspace.commandComposerState == .inserted(targetCount: 1) }
+
+        #expect(composer.contexts == [
+            .init(draft: "show hidden files", shell: "zsh", cwd: "/srv/app")
+        ])
+        #expect(firstWrites.first == Data("\u{1B}[777;1~".utf8))
+        let replacement = try #require(firstWrites.last)
+        #expect(replacement == replacementPayload(command: "ls -la"))
+        #expect(!replacement.contains(0x0A))
+        #expect(!replacement.contains(0x0D))
+        #expect(secondWrites.isEmpty)
+    }
+
+    @Test
+    func commandComposerBroadcastsOneModelResultWithoutRoutingItTwice() async throws {
+        let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
+        focus(firstSSHSession, in: workspace)
+        try await Task.sleep(for: .milliseconds(20))
+        prepareForCommandComposer(firstSSHSession, cwd: "/tmp", shell: "bash")
+        prepareForCommandComposer(secondSSHSession, cwd: "/elsewhere", shell: "fish")
+        workspace.broadcastsInput = true
+        var firstWrites: [Data] = []
+        var secondWrites: [Data] = []
+        firstSSHSession.inputSink = { data in
+            firstWrites.append(data)
+            if data == Data("\u{1B}[777;1~".utf8) {
+                DispatchQueue.main.async {
+                    firstSSHSession.receiveShellIntegrationEvent(.draft("find large files"))
+                }
+            }
+        }
+        secondSSHSession.inputSink = { secondWrites.append($0) }
+        let composer = WorkspaceCommandComposerStub(command: "find . -type f -size +1M")
+
+        workspace.composeFocusedCommand(using: composer)
+        try await waitUntil { workspace.commandComposerState == .inserted(targetCount: 2) }
+
+        #expect(composer.contexts.count == 1)
+        #expect(composer.contexts.first?.shell == "bash")
+        #expect(composer.contexts.first?.cwd == "/tmp")
+        #expect(firstWrites.count == 2)
+        #expect(secondWrites == [replacementPayload(command: composer.command)])
+        #expect(firstWrites.last == secondWrites.last)
+    }
+
+    @Test
+    func commandComposerPreflightFailureLeavesEveryBroadcastDraftUntouched() {
+        let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
+        focus(firstSSHSession, in: workspace)
+        prepareForCommandComposer(firstSSHSession, cwd: "/tmp", shell: "bash")
+        workspace.broadcastsInput = true
+        var firstWrites: [Data] = []
+        var secondWrites: [Data] = []
+        firstSSHSession.inputSink = { firstWrites.append($0) }
+        secondSSHSession.inputSink = { secondWrites.append($0) }
+        let composer = WorkspaceCommandComposerStub(command: "ls")
+
+        workspace.composeFocusedCommand(using: composer)
+
+        #expect(composer.contexts.isEmpty)
+        #expect(firstWrites.isEmpty)
+        #expect(secondWrites.isEmpty)
+        guard case .failed = workspace.commandComposerState else {
+            Issue.record("Expected preflight failure overlay")
+            return
+        }
+    }
+
+    @Test
+    func programmaticInputCancelsGenerationWithoutReplacingTheDraft() async throws {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "host", host: "host.example")
+        )
+        let sshSession = workspace.focusedPane.sshSession!
+        try await Task.sleep(for: .milliseconds(20))
+        prepareForCommandComposer(sshSession, cwd: "/tmp", shell: "bash")
+        var writes: [Data] = []
+        sshSession.inputSink = { data in
+            writes.append(data)
+            if data == Data("\u{1B}[777;1~".utf8) {
+                DispatchQueue.main.async {
+                    sshSession.receiveShellIntegrationEvent(.draft("list files"))
+                }
+            }
+        }
+        let composer = WorkspaceCommandComposerStub(
+            command: "ls", delay: .seconds(30)
+        )
+
+        workspace.composeFocusedCommand(using: composer)
+        try await waitUntil { workspace.commandComposerState == .generating }
+        sshSession.insert("new draft")
+        try await Task.sleep(for: .milliseconds(20))
+
+        #expect(workspace.commandComposerState == .idle)
+        #expect(writes == [
+            Data("\u{1B}[777;1~".utf8), Data("new draft".utf8),
+        ])
+    }
+
     #if canImport(AppKit)
         @Test(.disabled(
             if: !ghosttyHasActiveDisplay,
@@ -206,7 +344,57 @@ struct BroadcastInputTests {
 
             #expect(!sshSession.terminalViewOwner.performKeyEquivalentForTesting(event))
         }
+
+        @Test
+        func commandIFallsThroughToAppKitComposeCommand() throws {
+            let host = Host(name: "host", host: "host.example")
+            let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
+            let event = try #require(
+                NSEvent.keyEvent(
+                    with: .keyDown,
+                    location: .zero,
+                    modifierFlags: .command,
+                    timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: 0,
+                    context: nil,
+                    characters: "i",
+                    charactersIgnoringModifiers: "i",
+                    isARepeat: false,
+                    keyCode: 34
+                ))
+
+            #expect(!sshSession.terminalViewOwner.performKeyEquivalentForTesting(event))
+        }
     #endif
+
+    private func prepareForCommandComposer(
+        _ sshSession: SSHSessionModel, cwd: String, shell: String
+    ) {
+        sshSession.status = .connected
+        sshSession.workingDirectory = cwd
+        sshSession.receiveShellIntegrationEvent(.available(shell: shell))
+        sshSession.receiveShellIntegrationEvent(.promptReady)
+    }
+
+    private func focus(_ sshSession: SSHSessionModel, in workspace: Workspace) {
+        workspace.focusedPaneID = workspace.panes.first(where: {
+            $0.sshSession === sshSession
+        })!.id
+    }
+
+    private func replacementPayload(command: String) -> Data {
+        Data("\u{1B}[777;2~\u{1B}[200~\(command)\u{1B}[201~".utf8)
+    }
+
+    private func waitUntil(
+        _ condition: @escaping @MainActor () -> Bool
+    ) async throws {
+        for _ in 0..<100 {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        Issue.record("Timed out waiting for condition")
+    }
 
     private func makeTwoSSHSessionWorkspace() -> (
         Workspace, SSHSessionModel, SSHSessionModel
