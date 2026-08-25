@@ -162,6 +162,55 @@ struct ModelCapabilityResolverTests {
     }
 
     @Test
+    func bundledOverrideEnrichesCodexAutoReview() {
+        let provider = ModelProvider(name: "OpenAI")
+        let resolution = ModelCapabilityResolver.resolve(
+            model: AIModel(id: "codex-auto-review"),
+            provider: provider
+        )
+
+        #expect(resolution.catalogSource == .init(provider: "openai", modelID: "codex-auto-review"))
+        #expect(resolution.model.displayName == "Codex Auto-review")
+        #expect(resolution.model.ownedBy == "openai")
+        #expect(resolution.model.input == [.text, .image])
+        #expect(resolution.model.output == [.text])
+        #expect(resolution.model.abilities == [.toolCall, .reasoning])
+        #expect(resolution.model.contextLength == 272_000)
+        #expect(resolution.model.maxOutputTokens == nil)
+        #expect(resolution.supported == [.low, .medium, .high, .xHigh, .max])
+        #expect(resolution.wireValue(for: .xHigh) == "xhigh")
+        #expect(resolution.wireValue(for: .max) == "max")
+        #expect(resolution.clamp(.off) == .low)
+        #expect(resolution.clamp(.minimal) == .low)
+    }
+
+    @Test
+    func reportedFieldsWinOverCodexAutoReviewOverride() {
+        let provider = ModelProvider(name: "OpenAI")
+        var model = AIModel(id: "codex-auto-review")
+        model.kind = .other
+        model.input = [.audio]
+        model.output = [.image]
+        model.abilities = []
+        model.contextLength = 7
+        model.maxOutputTokens = 8
+
+        let resolution = ModelCapabilityResolver.resolve(
+            model: model,
+            provider: provider,
+            reported: [.kind, .input, .output, .abilities]
+        )
+
+        #expect(resolution.model.kind == .other)
+        #expect(resolution.model.input == [.audio])
+        #expect(resolution.model.output == [.image])
+        #expect(resolution.model.abilities.isEmpty)
+        #expect(resolution.model.contextLength == 7)
+        #expect(resolution.model.maxOutputTokens == 8)
+        #expect(resolution.supported == [.off])
+    }
+
+    @Test
     func explicitlyReportedFieldsWinOverPiCatalog() {
         let provider = ModelProvider(name: "OpenAI")
         var model = AIModel(id: "gpt-5.4")

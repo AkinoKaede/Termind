@@ -1,0 +1,33 @@
+{
+  "models": [
+    {
+      "provider": "openai",
+      "id": "codex-auto-review",
+      "name": "Codex Auto-review",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ],
+      "abilities": [
+        "toolCall",
+        "reasoning"
+      ],
+      "contextWindow": 272000,
+      "supportedEfforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "effortWireValues": {
+        "xhigh": "xhigh",
+        "max": "max"
+      }
+    }
+  ]
+}

@@ -142,7 +142,7 @@ nonisolated enum ModelCapabilityResolver {
     private static func fill(
         _ model: AIModel,
         reported: ReportedFields,
-        from record: PiModelRecord
+        from record: CatalogRecord
     ) -> AIModel {
         var result = model
         if result.displayName.isEmpty { result.displayName = record.name }
@@ -152,23 +152,35 @@ nonisolated enum ModelCapabilityResolver {
             let modalities = Set(record.input.compactMap(AIModel.Modality.init(rawValue:)))
             result.input = modalities.isEmpty ? [.text] : modalities
         }
-        if !reported.contains(.output) { result.output = [.text] }
+        if !reported.contains(.output) {
+            let modalities = Set(
+                (record.output ?? [AIModel.Modality.text.rawValue])
+                    .compactMap(AIModel.Modality.init(rawValue:))
+            )
+            result.output = modalities.isEmpty ? [.text] : modalities
+        }
         if !reported.contains(.abilities) {
-            // Pi's language-model catalog is consumed by an agent runtime and
-            // its provider APIs accept tool schemas. `reasoning` is the one
-            // model-specific ability Pi records explicitly.
-            result.abilities = [.toolCall]
-            if record.reasoning { result.abilities.insert(.reasoning) }
+            if let abilities = record.abilities {
+                result.abilities = Set(abilities.compactMap(AIModel.Ability.init(rawValue:)))
+            } else {
+                // Pi's language-model catalog is consumed by an agent runtime and
+                // its provider APIs accept tool schemas. `reasoning` is the one
+                // model-specific ability Pi records explicitly.
+                result.abilities = [.toolCall]
+                if record.reasoning { result.abilities.insert(.reasoning) }
+            }
         }
         if result.contextLength == nil { result.contextLength = record.contextWindow }
-        if result.maxOutputTokens == nil { result.maxOutputTokens = record.maxOutputTokens }
+        if result.maxOutputTokens == nil, let maxOutputTokens = record.maxOutputTokens {
+            result.maxOutputTokens = maxOutputTokens
+        }
         return result
     }
 
     private static func reasoning(
         model: AIModel,
         provider: ModelProvider,
-        record: PiModelRecord?
+        record: CatalogRecord?
     ) -> ReasoningResolution {
         guard model.abilities.contains(.reasoning) else {
             return ReasoningResolution(supported: [.off])
@@ -198,7 +210,7 @@ nonisolated enum ModelCapabilityResolver {
     }
 
     private static func automaticReasoning(
-        record: PiModelRecord?,
+        record: CatalogRecord?,
         provider: ModelProvider
     ) -> ReasoningResolution {
         guard let record, record.reasoning else {
@@ -209,13 +221,21 @@ nonisolated enum ModelCapabilityResolver {
             return ReasoningResolution(supported: supported, wireValues: values)
         }
 
-        let unsupported = Set(record.unsupportedEfforts.compactMap(ReasoningEffort.init(piName:)))
-        var supported = ReasoningEffort.allCases.filter { effort in
-            if unsupported.contains(effort) { return false }
-            if effort == .xHigh || effort == .max {
-                return record.effortWireValues[effort.piName] != nil
+        var supported: [ReasoningEffort]
+        if let declared = record.supportedEfforts {
+            let declaredSet = Set(declared.compactMap(ReasoningEffort.init(piName:)))
+            supported = ReasoningEffort.allCases.filter(declaredSet.contains)
+        } else {
+            let unsupported = Set(
+                (record.unsupportedEfforts ?? []).compactMap(ReasoningEffort.init(piName:))
+            )
+            supported = ReasoningEffort.allCases.filter { effort in
+                if unsupported.contains(effort) { return false }
+                if effort == .xHigh || effort == .max {
+                    return record.effortWireValues[effort.piName] != nil
+                }
+                return true
             }
-            return true
         }
         if supported.isEmpty { supported = [.off] }
 
@@ -240,13 +260,13 @@ nonisolated enum ModelCapabilityResolver {
     private static let catalog = PiModelCatalog.load()
 
     private struct PiModelCatalog: Sendable {
-        var recordsByKey: [String: PiModelRecord]
-        var recordsByID: [String: [PiModelRecord]]
+        var recordsByKey: [String: CatalogRecord]
+        var recordsByID: [String: [CatalogRecord]]
         var metadata: CatalogMetadata?
 
         static func load() -> PiModelCatalog {
             let bundles = [Bundle.main, Bundle(for: BundleToken.self)]
-            let url = bundles.lazy.compactMap {
+            let piURL = bundles.lazy.compactMap {
                 $0.url(forResource: "PiModelCatalog", withExtension: "json")
                     ?? $0.url(
                         forResource: "PiModelCatalog",
@@ -254,18 +274,47 @@ nonisolated enum ModelCapabilityResolver {
                         subdirectory: "Resources"
                     )
             }.first
-            guard let url,
-                let data = try? Data(contentsOf: url),
+            guard let piURL,
+                let data = try? Data(contentsOf: piURL),
                 let payload = try? JSONDecoder().decode(PiCatalogPayload.self, from: data)
             else {
                 return PiModelCatalog(recordsByKey: [:], recordsByID: [:], metadata: nil)
             }
 
-            var byKey: [String: PiModelRecord] = [:]
-            var byID: [String: [PiModelRecord]] = [:]
+            var byKey: [String: CatalogRecord] = [:]
+            var byID: [String: [CatalogRecord]] = [:]
+            func upsert(_ record: CatalogRecord) {
+                let recordKey = key(provider: record.provider, modelID: record.id)
+                let normalizedID = normalized(record.id)
+                byKey[recordKey] = record
+                byID[normalizedID, default: []].removeAll {
+                    key(provider: $0.provider, modelID: $0.id) == recordKey
+                }
+                byID[normalizedID, default: []].append(record)
+            }
+
             for record in payload.models {
-                byKey[key(provider: record.provider, modelID: record.id)] = record
-                byID[record.id.lowercased(), default: []].append(record)
+                upsert(record)
+            }
+
+            let overridesURL = bundles.lazy.compactMap {
+                $0.url(forResource: "ModelCatalogOverrides", withExtension: "json")
+                    ?? $0.url(
+                        forResource: "ModelCatalogOverrides",
+                        withExtension: "json",
+                        subdirectory: "Resources"
+                    )
+            }.first
+            if let overridesURL,
+                let overridesData = try? Data(contentsOf: overridesURL),
+                let overrides = try? JSONDecoder().decode(
+                    CatalogOverridesPayload.self,
+                    from: overridesData
+                )
+            {
+                for record in overrides.models {
+                    upsert(record)
+                }
             }
             return PiModelCatalog(
                 recordsByKey: byKey,
@@ -279,7 +328,7 @@ nonisolated enum ModelCapabilityResolver {
             )
         }
 
-        func record(modelID: String, provider: ModelProvider) -> PiModelRecord? {
+        func record(modelID: String, provider: ModelProvider) -> CatalogRecord? {
             let normalizedID = Self.normalized(modelID)
             let preferredProvider = Self.piProviderID(for: provider)
 
@@ -302,9 +351,9 @@ nonisolated enum ModelCapabilityResolver {
         }
 
         private static func directVendorRecord(
-            in records: [PiModelRecord],
+            in records: [CatalogRecord],
             modelID: String
-        ) -> PiModelRecord? {
+        ) -> CatalogRecord? {
             let namespace = modelID.split(separator: "/", maxSplits: 1).first.map(String.init)
             let aliases: [String: String] = [
                 "openai": "openai",
@@ -358,18 +407,25 @@ nonisolated enum ModelCapabilityResolver {
         var package: String
         var version: String
         var commit: String
-        var models: [PiModelRecord]
+        var models: [CatalogRecord]
     }
 
-    private struct PiModelRecord: Decodable, Sendable {
+    private struct CatalogOverridesPayload: Decodable, Sendable {
+        var models: [CatalogRecord]
+    }
+
+    private struct CatalogRecord: Decodable, Sendable {
         var provider: String
         var id: String
         var name: String
         var reasoning: Bool
         var input: [String]
+        var output: [String]?
+        var abilities: [String]?
         var contextWindow: Int
-        var maxOutputTokens: Int
-        var unsupportedEfforts: [String] = []
+        var maxOutputTokens: Int?
+        var supportedEfforts: [String]?
+        var unsupportedEfforts: [String]?
         var effortWireValues: [String: String] = [:]
     }
 
