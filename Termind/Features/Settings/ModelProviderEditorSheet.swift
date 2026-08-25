@@ -194,7 +194,7 @@ struct ModelProviderEditorPage: View {
             .onChange(of: session.secret) { _, value in store(secret: value) }
 
             Text(
-                "The key stays in memory on this Mac and is cleared when Termind quits."
+                "The key is stored in this Mac's Data Protection Keychain."
             )
             .font(.caption)
             .foregroundStyle(.secondary)

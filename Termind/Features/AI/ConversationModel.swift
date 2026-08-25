@@ -56,30 +56,6 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
     var isStreaming: Bool = false
 }
 
-/// How much deliberate reasoning a conversation asks for.
-///
-/// Providers expose different subsets today. The composer deliberately offers
-/// the complete scale so the state shape is stable when per-model capability
-/// configuration arrives; P3 will be responsible for mapping it onto each
-/// provider's request format.
-nonisolated enum ReasoningEffort: String, Codable, Sendable, CaseIterable, Identifiable {
-    case off, minimal, low, medium, high, xHigh, max
-
-    nonisolated var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .off: String(localized: "Off")
-        case .minimal: String(localized: "Minimal")
-        case .low: String(localized: "Low")
-        case .medium: String(localized: "Medium")
-        case .high: String(localized: "High")
-        case .xHigh: String(localized: "XHigh")
-        case .max: String(localized: "Max")
-        }
-    }
-}
-
 /// The approval posture selected for one conversation.
 ///
 /// This turn-level state does not yet alter command or MCP execution. Keeping
@@ -118,8 +94,8 @@ final class ConversationModel: Identifiable {
     var draft: String = ""
     var isStreaming: Bool = false
 
-    /// Per-conversation reasoning state. Request-body mapping arrives with the
-    /// streaming client; until then this is intentionally UI state only.
+    /// Per-conversation reasoning state, normalized against the resolved model
+    /// by the composer before a request is made.
     var reasoningEffort: ReasoningEffort = .medium
 
     /// An explicit choice for this conversation. `nil` follows the app-wide

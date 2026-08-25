@@ -36,7 +36,7 @@ struct RepositoryOutboxTests {
             try context.save()
         }
 
-        let schema = Schema(versionedSchema: TermindSchemaV4.self)
+        let schema = Schema(versionedSchema: TermindSchemaV5.self)
         let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
         let container = try ModelContainer(
             for: schema, migrationPlan: TermindMigrationPlan.self,
@@ -108,7 +108,7 @@ struct RepositoryOutboxTests {
             try context.save()
         }
 
-        let schema = Schema(versionedSchema: TermindSchemaV4.self)
+        let schema = Schema(versionedSchema: TermindSchemaV5.self)
         let configuration = ModelConfiguration(
             "Migration", schema: schema, url: storeURL
         )

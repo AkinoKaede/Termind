@@ -9,8 +9,8 @@ extension AIStore {
     /// Same habit as `HostStore.demo()`: one of each shape, so every state a
     /// row can be in is on screen from the first launch rather than first
     /// appearing in the field. That means an unconfigured provider next to a
-    /// working one, a model with rich metadata next to one inference had to
-    /// guess at, and a server that has never connected.
+    /// working one, a model with rich metadata next to one resolved from the
+    /// bundled catalog, and a server that has never connected.
     ///
     /// **No roles are assigned**, deliberately. The interesting behaviour here
     /// is the automatic chain in `resolve(_:)` — the first provider has no
@@ -105,12 +105,18 @@ extension AIStore {
         gemini.origin = .fetched
 
         // Nothing but an id and an owner, exactly as a bare endpoint sends it.
-        // Run through inference so the demo shows what that layer recovers —
-        // and shows it is a guess, since no token limit can be guessed.
+        // Run through capability resolution so the demo shows what the bundled
+        // catalog recovers from only an id.
         var bare = AIModel(id: "o4-mini")
         bare.ownedBy = "openai"
         bare.origin = .fetched
 
-        return [opus, gemini, deepseek, ModelInference.fill(bare)]
+        let provider = ModelProvider(name: "OpenAI")
+        return [
+            opus,
+            gemini,
+            deepseek,
+            ModelCapabilityResolver.resolve(model: bare, provider: provider).model,
+        ]
     }
 }

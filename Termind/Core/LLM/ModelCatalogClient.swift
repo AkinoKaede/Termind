@@ -41,11 +41,11 @@ nonisolated struct ModelCatalogClient: Sendable {
 
         switch provider.kind {
         case .openAI:
-            return try await openAIModels(at: url, secret: secret)
+            return try await openAIModels(at: url, provider: provider, secret: secret)
         case .anthropic:
-            return try await anthropicModels(at: url, secret: secret)
+            return try await anthropicModels(at: url, provider: provider, secret: secret)
         case .google:
-            return try await googleModels(at: url, secret: secret)
+            return try await googleModels(at: url, provider: provider, secret: secret)
         }
     }
 
@@ -59,12 +59,16 @@ nonisolated struct ModelCatalogClient: Sendable {
     /// method: `api.openai.com` sends `{id, object, created, owned_by}` and a
     /// good gateway sends name, type, modalities, capabilities and token limits
     /// under the same envelope. See `CatalogRow`.
-    private func openAIModels(at url: URL, secret: String) async throws -> [AIModel] {
+    private func openAIModels(
+        at url: URL,
+        provider: ModelProvider,
+        secret: String
+    ) async throws -> [AIModel] {
         var request = URLRequest(url: url)
         if !secret.isEmpty {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
-        return try Self.parseOpenAIPage(try await get(request)).models
+        return try Self.parseOpenAIPage(try await get(request), provider: provider).models
     }
 
     // MARK: - Anthropic
@@ -76,7 +80,11 @@ nonisolated struct ModelCatalogClient: Sendable {
     /// ability sets a gateway's flat booleans produce. The context window is
     /// `max_input_tokens`; there is no `context_window` field, and assuming one
     /// from memory is the mistake this comment exists to prevent.
-    private func anthropicModels(at url: URL, secret: String) async throws -> [AIModel] {
+    private func anthropicModels(
+        at url: URL,
+        provider: ModelProvider,
+        secret: String
+    ) async throws -> [AIModel] {
         var models: [AIModel] = []
         var after: String?
 
@@ -93,7 +101,7 @@ nonisolated struct ModelCatalogClient: Sendable {
                 request.setValue(secret, forHTTPHeaderField: "x-api-key")
             }
 
-            let page = try Self.parseOpenAIPage(try await get(request))
+            let page = try Self.parseOpenAIPage(try await get(request), provider: provider)
             models += page.models
 
             guard page.hasMore, let last = page.lastID else { break }
@@ -114,7 +122,11 @@ nonisolated struct ModelCatalogClient: Sendable {
     /// Filtered to entries that support `generateContent`, because the same
     /// list carries embedding and tuning-only entries that cannot answer a
     /// chat request.
-    private func googleModels(at url: URL, secret: String) async throws -> [AIModel] {
+    private func googleModels(
+        at url: URL,
+        provider: ModelProvider,
+        secret: String
+    ) async throws -> [AIModel] {
         var models: [AIModel] = []
         var pageToken: String?
 
@@ -130,7 +142,7 @@ nonisolated struct ModelCatalogClient: Sendable {
                 request.setValue(secret, forHTTPHeaderField: "x-goog-api-key")
             }
 
-            let page = try Self.parseGooglePage(try await get(request))
+            let page = try Self.parseGooglePage(try await get(request), provider: provider)
             models += page.models
 
             guard let next = page.nextPageToken, !next.isEmpty else { break }
@@ -149,12 +161,15 @@ nonisolated struct ModelCatalogClient: Sendable {
 
     /// One page of an OpenAI-shaped list. Anthropic uses the same envelope with
     /// cursor fields added, so both go through here.
-    static func parseOpenAIPage(_ data: Data) throws -> CatalogPage {
+    static func parseOpenAIPage(
+        _ data: Data,
+        provider: ModelProvider = ModelProvider(name: "OpenAI")
+    ) throws -> CatalogPage {
         guard let envelope = try? JSONDecoder().decode(DataEnvelope<CatalogRow>.self, from: data) else {
             throw ModelCatalogError.decoding
         }
         return CatalogPage(
-            models: envelope.rows.map { $0.model(origin: .fetched) },
+            models: envelope.rows.map { $0.model(origin: .fetched, provider: provider) },
             hasMore: envelope.hasMore == true,
             lastID: envelope.lastID
         )
@@ -165,14 +180,17 @@ nonisolated struct ModelCatalogClient: Sendable {
     /// Entries that cannot answer `generateContent` are dropped — the same list
     /// carries embedding and tuning-only models. An entry that does not say is
     /// kept, since silence is not a refusal.
-    static func parseGooglePage(_ data: Data) throws -> CatalogPage {
+    static func parseGooglePage(
+        _ data: Data,
+        provider: ModelProvider = ModelProvider(name: "Google", kind: .google)
+    ) throws -> CatalogPage {
         guard let envelope = try? JSONDecoder().decode(GoogleEnvelope.self, from: data) else {
             throw ModelCatalogError.decoding
         }
         return CatalogPage(
             models: envelope.rows
                 .filter { $0.supportedGenerationMethods?.contains("generateContent") ?? true }
-                .map { $0.model() },
+                .map { $0.model(provider: provider) },
             nextPageToken: envelope.nextPageToken
         )
     }
@@ -274,12 +292,12 @@ nonisolated private struct CatalogRow: Decodable {
         var output: [String]?
     }
 
-    /// Builds the model, then hands whatever is still blank to inference.
+    /// Builds the model, then hands whatever is still blank to capability resolution.
     ///
     /// `reported` is assembled as it goes, so a server that sent `modalities`
     /// keeps exactly what it sent and a server that sent nothing gets the full
     /// guess. That distinction is the whole reason `ReportedFields` exists.
-    func model(origin: AIModel.Origin) -> AIModel {
+    func model(origin: AIModel.Origin, provider: ModelProvider) -> AIModel {
         var reported: ReportedFields = []
         var model = AIModel(id: id)
 
@@ -323,7 +341,11 @@ nonisolated private struct CatalogRow: Decodable {
             }
         }
 
-        return ModelInference.fill(model, reported: reported)
+        return ModelCapabilityResolver.resolve(
+            model: model,
+            provider: provider,
+            reported: reported
+        ).model
     }
 
     /// Unknown strings are dropped rather than thrown on — this list will meet
@@ -393,7 +415,7 @@ nonisolated private struct GoogleModelRow: Decodable {
     var outputTokenLimit: Int?
     var supportedGenerationMethods: [String]?
 
-    func model() -> AIModel {
+    func model(provider: ModelProvider) -> AIModel {
         var model = AIModel(id: name.hasPrefix("models/") ? String(name.dropFirst(7)) : name)
         model.displayName = displayName ?? ""
         model.ownedBy = "google"
@@ -401,8 +423,8 @@ nonisolated private struct GoogleModelRow: Decodable {
         model.maxOutputTokens = outputTokenLimit
         model.origin = .fetched
         // Google reports token limits and nothing about modality or tools, so
-        // everything else is inference's job.
-        return ModelInference.fill(model)
+        // everything else comes from the bundled catalog or fallback.
+        return ModelCapabilityResolver.resolve(model: model, provider: provider).model
     }
 }
 

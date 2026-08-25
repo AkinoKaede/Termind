@@ -1,14 +1,14 @@
 import Foundation
+import SwiftData
 
 /// The single source of truth for model providers, their models, which model does
 /// what, and the MCP servers.
 ///
 /// Its own store rather than more fields on `HostStore`: that one is about
-/// machines you connect to, this one is about endpoints you spend a key at, and
-/// the only thing they share is the shape. Like `HostStore`, this is in-memory
-/// at P0 — at P1 the arrays are backed by a SwiftData `ModelContext` and the
-/// method bodies change, but this surface does not, because views bind to the
-/// value-type projections either way.
+/// machines you connect to, this one is about endpoints you spend a key at.
+/// Provider configuration is projected from SwiftData in production while
+/// previews can still construct an in-memory store. MCP configuration remains
+/// session-only.
 @Observable
 final class AIStore {
     private(set) var modelProviders: [ModelProvider] = []
@@ -27,8 +27,8 @@ final class AIStore {
     private(set) var lastSelectedModel: AIModelRef?
 
     /// The approval posture new and otherwise-unset conversations follow.
-    /// Session-only, like `lastSelectedModel`; persistence arrives when this
-    /// store moves off its P0 in-memory backing.
+    /// Session-only. Unlike the model selection, approval posture is not part
+    /// of provider configuration and is deliberately not persisted here.
     private(set) var lastSelectedPermissionMode: ChatPermissionMode
 
     /// Live MCP connection state, keyed by server.
@@ -45,11 +45,14 @@ final class AIStore {
     private let keychain: KeychainSecretStore
     private let persistsSecrets: Bool
     private(set) var secretStorageError: String?
+    private var persistence: AIPersistence?
+    private(set) var storageError: String?
 
     init(
         modelProviders: [ModelProvider] = [],
         mcpServers: [MCPServer] = [],
         roles: [AIRole: AIModelRef] = [:],
+        lastSelectedModel: AIModelRef? = nil,
         lastSelectedPermissionMode: ChatPermissionMode = .askForApproval,
         keychain: KeychainSecretStore = KeychainSecretStore(),
         persistsSecrets: Bool = true
@@ -57,9 +60,28 @@ final class AIStore {
         self.modelProviders = modelProviders
         self.mcpServers = mcpServers
         self.roles = roles
+        self.lastSelectedModel = lastSelectedModel
         self.lastSelectedPermissionMode = lastSelectedPermissionMode
         self.keychain = keychain
         self.persistsSecrets = persistsSecrets
+    }
+
+    convenience init(
+        modelContext: ModelContext,
+        keychain: KeychainSecretStore = KeychainSecretStore(),
+        persistsSecrets: Bool = true
+    ) {
+        self.init(keychain: keychain, persistsSecrets: persistsSecrets)
+        let persistence = AIPersistence(context: modelContext)
+        self.persistence = persistence
+        do {
+            let loaded = try persistence.load()
+            modelProviders = loaded.providers
+            roles = loaded.roles
+            lastSelectedModel = loaded.lastSelectedModel
+        } catch {
+            storageError = error.localizedDescription
+        }
     }
 
     // MARK: - Reads
@@ -216,10 +238,12 @@ final class AIStore {
     // MARK: - Model provider writes
 
     func upsert(_ provider: ModelProvider) {
-        if let index = modelProviders.firstIndex(where: { $0.id == provider.id }) {
-            modelProviders[index] = provider
-        } else {
-            modelProviders.append(provider)
+        mutatePersistedState {
+            if let index = modelProviders.firstIndex(where: { $0.id == provider.id }) {
+                modelProviders[index] = provider
+            } else {
+                modelProviders.append(provider)
+            }
         }
     }
 
@@ -233,22 +257,25 @@ final class AIStore {
     func delete(modelProviderID: ModelProvider.ID) {
         guard let provider = modelProvider(modelProviderID) else { return }
 
+        let deleted = mutatePersistedState {
+            for role in roles(using: modelProviderID) {
+                roles[role] = nil
+            }
+            if lastSelectedModel?.modelProviderID == modelProviderID {
+                lastSelectedModel = nil
+            }
+            modelProviders.removeAll { $0.id == modelProviderID }
+        }
+        guard deleted else { return }
         setSecret(nil, for: provider.credentialRef)
         setSecret(nil, for: provider.vertex.credentialRef)
-
-        for role in roles(using: modelProviderID) {
-            roles[role] = nil
-        }
-        if lastSelectedModel?.modelProviderID == modelProviderID {
-            lastSelectedModel = nil
-        }
-
-        modelProviders.removeAll { $0.id == modelProviderID }
     }
 
     func setModelProviderEnabled(_ enabled: Bool, for id: ModelProvider.ID) {
-        guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
-        modelProviders[index].isEnabled = enabled
+        mutatePersistedState {
+            guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
+            modelProviders[index].isEnabled = enabled
+        }
     }
 
     // MARK: - Model writes
@@ -265,11 +292,23 @@ final class AIStore {
     /// through `addModel`. This exists for a caller that really does mean "this
     /// is now the list".
     func replaceModels(_ fetched: [AIModel], for id: ModelProvider.ID) {
-        guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
-        let fetchedIDs = Set(fetched.map(\.id))
-        let kept = modelProviders[index].models.filter { $0.origin == .manual && !fetchedIDs.contains($0.id) }
-        modelProviders[index].models = fetched + kept
-        modelProviders[index].modelsFetchedAt = Date()
+        mutatePersistedState {
+            guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
+            let previous = Dictionary(
+                uniqueKeysWithValues: modelProviders[index].models.map { ($0.id, $0) }
+            )
+            let fetchedIDs = Set(fetched.map(\.id))
+            let merged = fetched.map { fresh in
+                var fresh = fresh
+                fresh.reasoningProfile = previous[fresh.id]?.reasoningProfile
+                return fresh
+            }
+            let kept = modelProviders[index].models.filter {
+                $0.origin == .manual && !fetchedIDs.contains($0.id)
+            }
+            modelProviders[index].models = merged + kept
+            modelProviders[index].modelsFetchedAt = Date()
+        }
     }
 
     /// Records that the endpoint was asked, whatever the user then chose to add.
@@ -278,20 +317,26 @@ final class AIStore {
     /// offers" is a different question from "what did I keep", and the answer to
     /// the first is useful even when the answer to the second is "nothing".
     func markModelsFetched(for id: ModelProvider.ID) {
-        guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
-        modelProviders[index].modelsFetchedAt = Date()
+        mutatePersistedState {
+            guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
+            modelProviders[index].modelsFetchedAt = Date()
+        }
     }
 
     func addModel(_ model: AIModel, to id: ModelProvider.ID) {
-        guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
-        guard !modelProviders[index].models.contains(where: { $0.id == model.id }) else { return }
-        modelProviders[index].models.append(model)
+        mutatePersistedState {
+            guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
+            guard !modelProviders[index].models.contains(where: { $0.id == model.id }) else { return }
+            modelProviders[index].models.append(model)
+        }
     }
 
     func updateModel(_ model: AIModel, in id: ModelProvider.ID) {
-        guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
-        guard let slot = modelProviders[index].models.firstIndex(where: { $0.id == model.id }) else { return }
-        modelProviders[index].models[slot] = model
+        mutatePersistedState {
+            guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
+            guard let slot = modelProviders[index].models.firstIndex(where: { $0.id == model.id }) else { return }
+            modelProviders[index].models[slot] = model
+        }
     }
 
     /// Removes models, and unhooks anything that pointed at them.
@@ -299,28 +344,30 @@ final class AIStore {
     /// Same reasoning as `delete(modelProviderID:)`: a role holding a ref to a model
     /// that no longer exists is a failure deferred to send time.
     func removeModels(_ ids: Set<String>, from modelProviderID: ModelProvider.ID) {
-        guard let index = modelProviders.firstIndex(where: { $0.id == modelProviderID }) else { return }
-        modelProviders[index].models.removeAll { ids.contains($0.id) }
+        mutatePersistedState {
+            guard let index = modelProviders.firstIndex(where: { $0.id == modelProviderID }) else { return }
+            modelProviders[index].models.removeAll { ids.contains($0.id) }
 
-        for role in AIRole.allCases {
-            guard let ref = roles[role], ref.modelProviderID == modelProviderID, ids.contains(ref.modelID) else {
-                continue
+            for role in AIRole.allCases {
+                guard let ref = roles[role], ref.modelProviderID == modelProviderID, ids.contains(ref.modelID) else {
+                    continue
+                }
+                roles[role] = nil
             }
-            roles[role] = nil
-        }
-        if let ref = lastSelectedModel, ref.modelProviderID == modelProviderID, ids.contains(ref.modelID) {
-            lastSelectedModel = nil
+            if let ref = lastSelectedModel, ref.modelProviderID == modelProviderID, ids.contains(ref.modelID) {
+                lastSelectedModel = nil
+            }
         }
     }
 
     // MARK: - Role writes
 
     func assign(_ ref: AIModelRef?, to role: AIRole) {
-        roles[role] = ref
+        mutatePersistedState { roles[role] = ref }
     }
 
     func clearRole(_ role: AIRole) {
-        roles[role] = nil
+        mutatePersistedState { roles[role] = nil }
     }
 
     /// Records a choice made in a conversation's model menu.
@@ -328,13 +375,41 @@ final class AIStore {
     /// Not an assignment: it feeds step 3 of `resolve`, so it changes the
     /// default without overwriting anything the user set in Settings.
     func select(_ ref: AIModelRef) {
-        lastSelectedModel = ref
+        mutatePersistedState { lastSelectedModel = ref }
     }
 
     /// Records a composer permission choice for subsequent unset conversations.
     /// It does not alter command or MCP execution policy.
     func select(_ permissionMode: ChatPermissionMode) {
         lastSelectedPermissionMode = permissionMode
+    }
+
+    // MARK: - Provider persistence
+
+    @discardableResult
+    private func mutatePersistedState(_ mutation: () -> Void) -> Bool {
+        let previous = persistedSnapshot
+        mutation()
+        guard let persistence else { return true }
+        do {
+            try persistence.save(persistedSnapshot)
+            storageError = nil
+            return true
+        } catch {
+            modelProviders = previous.providers
+            roles = previous.roles
+            lastSelectedModel = previous.lastSelectedModel
+            storageError = error.localizedDescription
+            return false
+        }
+    }
+
+    private var persistedSnapshot: AIPersistence.Snapshot {
+        AIPersistence.Snapshot(
+            providers: modelProviders,
+            roles: roles,
+            lastSelectedModel: lastSelectedModel
+        )
     }
 
     // MARK: - MCP writes

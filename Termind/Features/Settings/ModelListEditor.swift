@@ -332,6 +332,9 @@ struct ModelListEditor: View {
 
                     modalityToggles("Input", model: model, keyPath: \.input)
                     abilityToggles(model)
+                    if model.abilities.contains(.reasoning), let provider {
+                        reasoningSection(model, provider: provider)
+                    }
 
                     HStack(spacing: Metrics.Space.m) {
                         limitField("Context", model: model, keyPath: \.contextLength)
@@ -347,7 +350,7 @@ struct ModelListEditor: View {
                 .padding(Metrics.Space.l)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(height: 268)
+            .frame(height: 430)
             .controlSize(.small)
         } else {
             Text("Select a model to edit it. Use the checkboxes to test or delete models.")
@@ -420,6 +423,112 @@ struct ModelListEditor: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func reasoningSection(_ model: AIModel, provider: ModelProvider) -> some View {
+        let automatic = ModelCapabilityResolver.reasoning(
+            model: model.withoutReasoningOverride,
+            provider: provider
+        )
+
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Reasoning Effort")
+                        .font(.caption.weight(.medium))
+                    Text(model.reasoningProfile == nil ? "Automatic from model catalog" : "Custom mapping")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
+                if model.reasoningProfile == nil {
+                    Button("Customize") {
+                        var updated = model
+                        updated.reasoningProfile = ModelCapabilityResolver.customProfile(
+                            from: automatic
+                        )
+                        app.ai.updateModel(updated, in: modelProviderID)
+                    }
+                } else {
+                    Button("Reset to Automatic") {
+                        var updated = model
+                        updated.reasoningProfile = nil
+                        app.ai.updateModel(updated, in: modelProviderID)
+                    }
+                }
+            }
+
+            if model.reasoningProfile == nil {
+                FlowLayout(spacing: Metrics.Space.xs) {
+                    ForEach(automatic.supported) { effort in
+                        CardChip(
+                            text: automatic.wireValue(for: effort).map {
+                                "\(effort.displayName) → \($0)"
+                            } ?? effort.displayName
+                        )
+                    }
+                }
+            } else {
+                ForEach(ReasoningEffort.allCases) { effort in
+                    reasoningLevelRow(effort, model: model)
+                }
+            }
+        }
+        .padding(.top, Metrics.Space.xs)
+    }
+
+    private func reasoningLevelRow(_ effort: ReasoningEffort, model: AIModel) -> some View {
+        let mapping = model.reasoningProfile?.mapping(for: effort)
+            ?? ReasoningLevelMapping(isSupported: false)
+        let supportedCount = model.reasoningProfile?.levels.values.filter(\.isSupported).count ?? 0
+
+        return HStack(spacing: Metrics.Space.s) {
+            Toggle(
+                effort.displayName,
+                isOn: Binding(
+                    get: { mapping.isSupported },
+                    set: { enabled in
+                        guard enabled || supportedCount > 1 else { return }
+                        updateReasoningMapping(model, effort: effort) {
+                            $0.isSupported = enabled
+                        }
+                    }
+                )
+            )
+            .toggleStyle(.checkbox)
+            .frame(width: 100, alignment: .leading)
+
+            TextField(
+                "Provider default",
+                text: Binding(
+                    get: { mapping.wireValue ?? "" },
+                    set: { value in
+                        updateReasoningMapping(model, effort: effort) {
+                            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                            $0.wireValue = trimmed.isEmpty ? nil : value
+                        }
+                    }
+                )
+            )
+            .textFieldStyle(.roundedBorder)
+            .disabled(!mapping.isSupported)
+            .accessibilityLabel(Text("\(effort.displayName) provider value"))
+        }
+    }
+
+    private func updateReasoningMapping(
+        _ model: AIModel,
+        effort: ReasoningEffort,
+        update: (inout ReasoningLevelMapping) -> Void
+    ) {
+        var model = model
+        var profile = model.reasoningProfile ?? ReasoningProfile()
+        var mapping = profile.mapping(for: effort)
+        update(&mapping)
+        profile.levels[effort] = mapping
+        model.reasoningProfile = profile
+        app.ai.updateModel(model, in: modelProviderID)
     }
 
     private func limitField(
@@ -531,14 +640,18 @@ struct ModelListEditor: View {
         }
     }
 
-    /// A hand-typed model gets the same inference a fetched one does, so the
-    /// chips arrive already right for anything the table recognises and the
+    /// A hand-typed model gets the same resolution a fetched one does, so the
+    /// chips arrive already right for anything the catalog recognises and the
     /// user only has to correct what it does not.
     private func addModel() {
         let id = state.newModelID.trimmingCharacters(in: .whitespaces)
         state.newModelID = ""
-        guard !id.isEmpty else { return }
-        app.ai.addModel(ModelInference.fill(AIModel(id: id)), to: modelProviderID)
+        guard !id.isEmpty, let provider else { return }
+        let model = ModelCapabilityResolver.resolve(
+            model: AIModel(id: id),
+            provider: provider
+        ).model
+        app.ai.addModel(model, to: modelProviderID)
         state.selection = id
         state.isAdding = false
     }
@@ -582,6 +695,14 @@ struct ModelListEditor: View {
             case .failed: "exclamationmark.triangle.fill"
             }
         }
+    }
+}
+
+private extension AIModel {
+    var withoutReasoningOverride: AIModel {
+        var copy = self
+        copy.reasoningProfile = nil
+        return copy
     }
 }
 

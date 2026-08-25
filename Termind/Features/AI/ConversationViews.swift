@@ -171,6 +171,19 @@ struct ComposerView: View {
         app.ai.resolve(conversation: conversation.permissionMode)
     }
 
+    private var reasoningResolution: ModelCapabilityResolver.ReasoningResolution? {
+        guard let resolved else { return nil }
+        return ModelCapabilityResolver.reasoning(model: resolved.model, provider: resolved.provider)
+    }
+
+    private var effectiveReasoningEffort: ReasoningEffort {
+        reasoningResolution?.clamp(conversation.reasoningEffort) ?? .off
+    }
+
+    private var supportsThinking: Bool {
+        reasoningResolution?.supported.contains(where: { $0 != .off }) == true
+    }
+
     var body: some View {
         @Bindable var conversation = conversation
 
@@ -222,6 +235,8 @@ struct ComposerView: View {
         }
         .padding(Metrics.Space.l)
         .background(.bar)
+        .onAppear(perform: normalizeReasoningEffort)
+        .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
     }
 
     private func composerMenus(compact: Bool) -> some View {
@@ -298,15 +313,15 @@ struct ComposerView: View {
                 Button("Configure Model Providers") { openSettings() }
             }
 
-            if resolved != nil {
+            if supportsThinking, let reasoningResolution {
                 Menu("Thinking") {
-                    ForEach(ReasoningEffort.allCases) { effort in
+                    ForEach(reasoningResolution.supported) { effort in
                         Button {
                             conversation.reasoningEffort = effort
                         } label: {
                             selectionLabel(
                                 effort.displayName,
-                                isSelected: effort == conversation.reasoningEffort
+                                isSelected: effort == effectiveReasoningEffort
                             )
                         }
                     }
@@ -336,22 +351,26 @@ struct ComposerView: View {
     }
 
     private var modelAndThinkingLabel: String {
-        guard resolved != nil else { return resolvedModelLabel }
-        return "\(resolvedModelLabel) · \(conversation.reasoningEffort.displayName)"
+        guard resolved != nil, supportsThinking else { return resolvedModelLabel }
+        return "\(resolvedModelLabel) · \(effectiveReasoningEffort.displayName)"
     }
 
     private var modelAndThinkingAccessibilityLabel: String {
         guard resolved != nil else { return String(localized: "Model, no model configured") }
+        guard supportsThinking else { return String(localized: "Model \(resolvedModelLabel)") }
         return String(
-            localized: "Model \(resolvedModelLabel), thinking \(conversation.reasoningEffort.displayName)"
+            localized: "Model \(resolvedModelLabel), thinking \(effectiveReasoningEffort.displayName)"
         )
     }
 
     private var modelAndThinkingHelp: String {
         if let resolved {
+            guard supportsThinking else {
+                return String(localized: "\(resolved.model.label) through \(resolved.provider.name)")
+            }
             return String(
                 localized:
-                    "\(resolved.model.label) through \(resolved.provider.name) · \(conversation.reasoningEffort.displayName) thinking"
+                    "\(resolved.model.label) through \(resolved.provider.name) · \(effectiveReasoningEffort.displayName) thinking"
             )
         }
         return String(localized: "No model configured")
@@ -367,6 +386,15 @@ struct ComposerView: View {
         let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
         conversation.model = ref
         app.ai.select(ref)
+        let resolution = ModelCapabilityResolver.reasoning(model: model, provider: provider)
+        conversation.reasoningEffort = resolution.clamp(conversation.reasoningEffort)
+    }
+
+    private func normalizeReasoningEffort() {
+        let normalized = effectiveReasoningEffort
+        if conversation.reasoningEffort != normalized {
+            conversation.reasoningEffort = normalized
+        }
     }
 
     @ViewBuilder

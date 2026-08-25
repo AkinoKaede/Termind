@@ -28,6 +28,7 @@ struct TermindApp: App {
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,
+                    ai: AIStore(modelContext: container.mainContext),
                     commandHistory: CommandHistoryStore(modelContext: container.mainContext),
                     dependencies: AppDependencies(
                         hostRepository: repository,

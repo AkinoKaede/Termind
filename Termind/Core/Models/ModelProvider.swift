@@ -217,7 +217,7 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
 /// good gateway sends name, type, modalities, capabilities and token limits,
 /// while `api.openai.com` sends an id and an owner. Every field but `id` is
 /// therefore optional on the wire, filled by the decoder where the server spoke
-/// and by `ModelInference` where it did not.
+/// and by `ModelCapabilityResolver` where it did not.
 nonisolated struct AIModel: Identifiable, Hashable, Sendable {
     /// What a request body carries, and what a `AIModelRef` points at. Two
     /// models on one provider cannot share one.
@@ -238,6 +238,9 @@ nonisolated struct AIModel: Identifiable, Hashable, Sendable {
     var iconHint: String = ""
     var createdAt: Date?
     var origin: Origin = .manual
+    /// `nil` follows the built-in model-family rules. A value is an explicit
+    /// per-model override and survives catalog refreshes.
+    var reasoningProfile: ReasoningProfile?
 
     var label: String {
         displayName.isEmpty ? id : displayName
@@ -339,6 +342,35 @@ nonisolated struct AIModel: Identifiable, Hashable, Sendable {
     /// a hand-added model is not silently replaced by the next fetch.
     nonisolated enum Origin: String, Codable, Sendable {
         case fetched, manual
+    }
+}
+
+/// One explicit entry in a model's custom reasoning profile.
+///
+/// A blank `wireValue` means "use the provider's ordinary value for this
+/// level". Keeping support separate from the value is important: providers
+/// such as Gemini use uppercase wire values, while a missing level means the
+/// level is unsupported rather than merely unmapped.
+nonisolated struct ReasoningLevelMapping: Hashable, Codable, Sendable {
+    var isSupported: Bool
+    var wireValue: String?
+
+    init(isSupported: Bool = true, wireValue: String? = nil) {
+        self.isSupported = isSupported
+        self.wireValue = wireValue
+    }
+}
+
+/// A complete manual override for the seven stable Termind effort levels.
+nonisolated struct ReasoningProfile: Hashable, Codable, Sendable {
+    var levels: [ReasoningEffort: ReasoningLevelMapping]
+
+    init(levels: [ReasoningEffort: ReasoningLevelMapping] = [:]) {
+        self.levels = levels
+    }
+
+    func mapping(for effort: ReasoningEffort) -> ReasoningLevelMapping {
+        levels[effort] ?? ReasoningLevelMapping(isSupported: false)
     }
 }
 
