@@ -231,22 +231,26 @@ final class AppModel {
         context: SessionContext = .none,
         includesTerminalSuggestion: Bool = false
     ) {
-        let userPrompt = prompt
+        let userPrompt =
+            prompt
             ?? conversation.messages.last(where: { $0.role == .user })?.text
             ?? ""
         guard !userPrompt.isEmpty else { return }
         guard let chat = ai.resolve(conversation: conversation.model) else {
-            conversation.messages.append(ChatMessage(
-                role: .assistant, text: String(localized: "No Chat model is configured.")
-            ))
+            conversation.messages.append(
+                ChatMessage(
+                    role: .assistant, text: String(localized: "No Chat model is configured.")
+                ))
             return
         }
-        let credentialRef = chat.provider.usesVertex && chat.provider.kind == .google
+        let credentialRef =
+            chat.provider.usesVertex && chat.provider.kind == .google
             ? chat.provider.vertex.credentialRef : chat.provider.credentialRef
         guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else {
-            conversation.messages.append(ChatMessage(
-                role: .assistant, text: String(localized: "The Chat model has no available credential.")
-            ))
+            conversation.messages.append(
+                ChatMessage(
+                    role: .assistant, text: String(localized: "The Chat model has no available credential.")
+                ))
             return
         }
 
@@ -259,16 +263,18 @@ final class AppModel {
         )
         let reviewer: (any SecurityReviewing)? = {
             guard mode == .approveForMe, let review = ai.resolve(.securityReview) else { return nil }
-            let ref = review.provider.usesVertex && review.provider.kind == .google
+            let ref =
+                review.provider.usesVertex && review.provider.kind == .google
                 ? review.provider.vertex.credentialRef : review.provider.credentialRef
             guard let reviewSecret = ai.secret(for: ref), !reviewSecret.isEmpty else { return nil }
             let reasoning = SecurityReviewClient.preferredReasoning(
                 model: review.model, provider: review.provider
             )
-            return SecurityReviewClient(model: AgentProviderClient(
-                provider: review.provider, model: review.model, secret: reviewSecret,
-                reasoning: reasoning
-            ))
+            return SecurityReviewClient(
+                model: AgentProviderClient(
+                    provider: review.provider, model: review.model, secret: reviewSecret,
+                    reasoning: reasoning
+                ))
         }()
         // One channel for the whole run, shared by everything that publishes
         // into it. The broker used to raise its review events through a closure
@@ -303,25 +309,31 @@ final class AppModel {
             // being keyed by conversation, so one chat can never read what another
             // pulled off a host.
             let scratch = AgentScratchWorkspace(conversationID: conversation.id)
-            providers.append(AgentStaticToolProvider(AgentBuiltInTools.make(
-                hosts: agentHosts, connections: agentConnections,
-                authentication: agentAuthentication,
-                background: agentBackgroundCommands, search: searchPlan.local,
-                includesTerminalSuggestion: includesTerminalSuggestion
-            )))
-            providers.append(AgentStaticToolProvider(AgentScratchTools.make(
-                workspace: scratch, connections: agentConnections,
-                authentication: agentAuthentication
-            )))
+            providers.append(
+                AgentStaticToolProvider(
+                    AgentBuiltInTools.make(
+                        hosts: agentHosts, connections: agentConnections,
+                        authentication: agentAuthentication,
+                        background: agentBackgroundCommands, search: searchPlan.local,
+                        includesTerminalSuggestion: includesTerminalSuggestion
+                    )))
+            providers.append(
+                AgentStaticToolProvider(
+                    AgentScratchTools.make(
+                        workspace: scratch, connections: agentConnections,
+                        authentication: agentAuthentication
+                    )))
             // Both write through the one ordered channel the rest of the run
             // uses, rather than reaching into the conversation directly: a tool
             // that touched `@Observable` state from a task group would be
             // mutating the UI from off the main actor.
-            providers.append(AgentStaticToolProvider(AgentPlanTools.make(
-                workspace: scratch,
-                tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
-                plans: AgentPlanRecorder { channel.emit(.planPresented($0)) }
-            )))
+            providers.append(
+                AgentStaticToolProvider(
+                    AgentPlanTools.make(
+                        workspace: scratch,
+                        tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
+                        plans: AgentPlanRecorder { channel.emit(.planPresented($0)) }
+                    )))
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
             }
@@ -347,12 +359,14 @@ final class AppModel {
         // withholds the probe when the setting is off, and `context` is the same
         // value the chips were drawn from — so what is shown and what is sent
         // cannot disagree.
-        conversation.start(runtime: runtime, request: AgentRunRequest(
-            conversationID: conversation.id, prompt: userPrompt,
-            permissionMode: mode, isPlanning: isPlanning,
-            priorMessages: conversation.pendingPriorMessages,
-            sessionContext: context
-        ))
+        conversation.start(
+            runtime: runtime,
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: userPrompt,
+                permissionMode: mode, isPlanning: isPlanning,
+                priorMessages: conversation.pendingPriorMessages,
+                sessionContext: context
+            ))
         scheduleTitle(for: conversation)
     }
 
@@ -380,43 +394,32 @@ final class AppModel {
         isManual: Bool = true
     ) async -> Bool {
         guard !conversation.isStreaming, !conversation.isCompacting else { return false }
+        conversation.beginCompaction()
         guard let span = conversation.compactionSpan(keepRecentTokens: keepRecentTokens)
         else {
-            // Only when asked for by hand. The automatic path calls this on
-            // every send and would otherwise narrate its own inaction after
-            // every message.
             if isManual {
-                conversation.messages.append(ChatMessage(
-                    role: .assistant,
-                    text: AgentCompactionError.nothingToCompact.localizedDescription
-                ))
+                conversation.failCompaction(
+                    AgentCompactionError.nothingToCompact.localizedDescription
+                )
+            } else {
+                conversation.endCompaction()
             }
             return false
         }
         guard let model = compactionModel() else {
-            conversation.messages.append(ChatMessage(
-                role: .assistant,
-                text: AgentCompactionError.missingModel.localizedDescription
-            ))
+            conversation.failCompaction(AgentCompactionError.missingModel.localizedDescription)
             return false
         }
 
-        conversation.beginCompaction()
-        defer { conversation.endCompaction() }
         do {
             let summary = try await agentCompaction.summarize(
                 span.summarize, instructions: instructions, model: model
             )
             conversation.applyCompaction(summary: summary, cut: span.cut)
+            conversation.endCompaction()
             return true
         } catch {
-            // Said out loud rather than swallowed. A compaction that quietly
-            // failed leaves the user watching a context they were told would
-            // shrink, and the next thing they see is the window overflowing.
-            conversation.messages.append(ChatMessage(
-                role: .assistant,
-                text: String(localized: "Compaction failed. \(error.localizedDescription)")
-            ))
+            conversation.failCompaction(error.localizedDescription)
             return false
         }
     }
@@ -430,10 +433,12 @@ final class AppModel {
         guard SettingsKey.isAutoCompactEnabled else { return }
         guard let usage = conversation.usage else { return }
         let window = ai.resolve(conversation: conversation.model)?.model.contextLength
-        guard AgentCompaction.shouldCompact(
-            contextTokens: usage.contextTokens, contextWindow: window,
-            reserveTokens: reserveTokens
-        ) else { return }
+        guard
+            AgentCompaction.shouldCompact(
+                contextTokens: usage.contextTokens, contextWindow: window,
+                reserveTokens: reserveTokens
+            )
+        else { return }
         await compact(conversation, isManual: false)
     }
 
@@ -444,7 +449,8 @@ final class AppModel {
     /// expensive.
     private func compactionModel() -> (any AgentModelCompleting)? {
         guard let resolved = ai.resolve(.chat) else { return nil }
-        let credentialRef = resolved.provider.usesVertex && resolved.provider.kind == .google
+        let credentialRef =
+            resolved.provider.usesVertex && resolved.provider.kind == .google
             ? resolved.provider.vertex.credentialRef : resolved.provider.credentialRef
         guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else { return nil }
         let reasoning = ModelCapabilityResolver.reasoning(
@@ -478,9 +484,10 @@ final class AppModel {
             return (true, nil)
         }
         let defaults = UserDefaults.standard
-        let backend = SearchBackend(
-            rawValue: defaults.string(forKey: SettingsKey.webSearchBackend) ?? ""
-        ) ?? .default
+        let backend =
+            SearchBackend(
+                rawValue: defaults.string(forKey: SettingsKey.webSearchBackend) ?? ""
+            ) ?? .default
         let client = WebSearchClient(
             backend: backend,
             baseURL: defaults.string(forKey: SettingsKey.webSearchBaseURL) ?? "",

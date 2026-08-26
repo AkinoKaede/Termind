@@ -9,8 +9,6 @@ import Foundation
 nonisolated struct ChatSlashCommand: Identifiable, Hashable, Sendable {
     nonisolated enum Icon: Hashable, Sendable {
         case symbol(String)
-        /// The live context ring. `/compact` is the reason this is an enum and
-        /// not a symbol name: the icon *is* the number it acts on.
         case contextRing
     }
 

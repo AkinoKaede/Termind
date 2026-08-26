@@ -69,15 +69,16 @@ struct ExternalAuthWindow: View {
                     } else {
                         requiresPassphrase = false
                     }
-                    app.externalAuthentication.respondSSH(.submit(
-                        AgentSSHAuthenticationAnswer(
-                            identityID: identityID,
-                            identityName: identityID.flatMap { app.hostLibrary.identity($0)?.name },
-                            username: username, password: password,
-                            passphrase: passphrase, keyID: keyID,
-                            save: requiresPassphrase ? false : save
-                        )
-                    ))
+                    app.externalAuthentication.respondSSH(
+                        .submit(
+                            AgentSSHAuthenticationAnswer(
+                                identityID: identityID,
+                                identityName: identityID.flatMap { app.hostLibrary.identity($0)?.name },
+                                username: username, password: password,
+                                passphrase: passphrase, keyID: keyID,
+                                save: requiresPassphrase ? false : save
+                            )
+                        ))
                     dismissIfFinished()
                 },
                 cancel: {
@@ -147,7 +148,6 @@ private struct ExternalSecretRequestForm: View {
             SecureField("Secret", text: $secret)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
-                .onSubmit { submitSecret() }
             Text(
                 "Termind returns only a one-shot handle to the MCP client. The value is bound to this session, destination, ssh_exec, and purpose."
             )
@@ -155,12 +155,19 @@ private struct ExternalSecretRequestForm: View {
             .foregroundStyle(.secondary)
             HStack {
                 Button("Cancel") { cancel() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Continue") { submitSecret() }
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
                     .disabled(secret.isEmpty || question == nil)
             }
         }
+        .activeFormKeyboardActions(
+            isDefaultEnabled: !secret.isEmpty && question != nil,
+            onDefault: submitSecret,
+            onCancel: cancel
+        )
         .onAppear { isFocused = true }
         .onDisappear { secret = "" }
     }
@@ -169,9 +176,10 @@ private struct ExternalSecretRequestForm: View {
         guard let question, !secret.isEmpty else { return }
         let value = secret
         secret = ""
-        submit(.answered([
-            AgentUserInputAnswer(questionID: question.id, value: .secret(value))
-        ]))
+        submit(
+            .answered([
+                AgentUserInputAnswer(questionID: question.id, value: .secret(value))
+            ]))
     }
 
     private func cancel() {

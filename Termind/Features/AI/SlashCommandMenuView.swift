@@ -13,8 +13,6 @@ import SwiftUI
 struct SlashCommandMenuView: View {
     let completion: ChatSlashCommandCompletion
     let selection: Int
-    /// Drawn in place of a symbol for `Icon.contextRing`. `nil` falls back to a
-    /// static glyph, which is what happens before a model's window is known.
     var contextShare: Double?
     /// The value a row currently holds — the resolved effort beside
     /// `/reasoning`. Returning `nil` leaves the trailing column empty.
@@ -94,11 +92,7 @@ struct SlashCommandMenuView: View {
             case .symbol(let name):
                 Image(systemName: name).font(.caption)
             case .contextRing:
-                if let contextShare {
-                    ContextRing(share: contextShare)
-                } else {
-                    Image(systemName: "circle.dashed").font(.caption)
-                }
+                ContextRing(share: contextShare ?? 0)
             }
         case .option:
             // Options are children of the row above them, and a second glyph

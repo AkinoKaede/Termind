@@ -29,56 +29,88 @@ struct ConversationView: View {
     var body: some View {
         VStack(spacing: 0) {
             transcript
-            // Each region rules itself off from whatever is above it, so every
-            // pair gets exactly one hairline. Ruling *below* instead, which is
-            // what these did, put two adjacent lines under any card that was
-            // showing — the card's own and the composer's.
-            // First of everything stacked over the composer. The capsule is the
-            // state of the work; an approval, a question and the steering queue
-            // are all interruptions to it, so they belong underneath — nearer
-            // the composer, where the answer gets typed.
-            if !conversation.tasks.isEmpty {
-                AgentTaskCapsuleView(conversation: conversation, isCompact: isCompact)
-                    // Above the cards below it, so its hover list is drawn over
-                    // them rather than behind.
-                    .zIndex(1)
-            }
-            if let approval = conversation.pendingApproval {
-                Divider()
-                AgentApprovalCard(request: approval, conversation: conversation)
-            }
             if let interaction = conversation.pendingUserInteraction {
-                switch interaction {
-                case .questions(let input):
-                    AgentUserInputCard(request: input, conversation: conversation)
-                        .padding(.horizontal, Metrics.Space.l)
-                        .frame(
-                            maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, Metrics.Space.s)
-                case .sshAuthentication(let authentication):
-                    AgentSSHAuthenticationCard(
-                        request: authentication, conversation: conversation
-                    )
+                blockingSurface { userInteraction(interaction) }
+            } else if let approval = conversation.pendingApproval {
+                blockingSurface {
+                    AgentApprovalCard(request: approval, conversation: conversation)
                 }
+            } else {
+                if !conversation.tasks.isEmpty {
+                    chatColumn {
+                        AgentTaskCapsuleView(
+                            conversation: conversation, isCompact: isCompact
+                        )
+                    }
+                    // Below the composer's Slash overlay, above Steering and
+                    // every ordinary surface in this interaction region.
+                    .zIndex(50)
+                }
+                if !conversation.pendingSteering.isEmpty {
+                    chatColumn {
+                        SteeringQueueView(
+                            conversation: conversation,
+                            isCompact: isCompact,
+                            isEmbedded: true
+                        )
+                    }
+                }
+                ComposerView(
+                    conversation: conversation,
+                    maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
+                    sessionContext: sessionContext,
+                    includesTerminalSuggestion: showsTerminalActions
+                )
+                .zIndex(100)
             }
-            if !conversation.pendingSteering.isEmpty {
-                SteeringQueueView(conversation: conversation)
-            }
-            ComposerView(
-                conversation: conversation,
-                maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
-                sessionContext: sessionContext,
-                includesTerminalSuggestion: showsTerminalActions
-            )
-            // The composer's slash palette is an overlay that floats up over
-            // whatever is stacked above it — an approval card, a question, the
-            // steering strip — instead of pushing them. Being the last child
-            // already draws it last; stating the order is what keeps that true
-            // if a fifth region is ever inserted above the composer.
-            .zIndex(1)
         }
+    }
+
+    private func chatColumn<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .padding(.horizontal, Metrics.Space.l)
+            .frame(maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth)
+            .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func userInteraction(_ interaction: ConversationModel.PendingUserInteraction)
+        -> some View
+    {
+        switch interaction {
+        case .questions(let input):
+            AgentUserInputCard(
+                request: input, conversation: conversation, isCompact: isCompact
+            )
+        case .sshAuthentication(let authentication):
+            AgentSSHAuthenticationCard(
+                request: authentication, conversation: conversation
+            )
+        }
+    }
+
+    private func blockingSurface<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .frame(
+                minHeight: max(
+                    0,
+                    (isCompact
+                        ? Metrics.Chat.compactComposerSurfaceMinHeight
+                        : Metrics.Chat.composerSurfaceMinHeight) - Metrics.Space.xxl
+                ),
+                alignment: .top
+            )
+            .composerBlock()
+            .padding(.horizontal, Metrics.Space.l)
+            .frame(maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth)
+            .frame(maxWidth: .infinity)
+            .padding(.top, Metrics.Space.s)
+            .padding(.bottom, isCompact ? Metrics.Space.s : Metrics.Space.l)
+            .zIndex(50)
     }
 
     private var transcript: some View {
@@ -202,6 +234,8 @@ struct ConversationView: View {
             AgentPlanRowView(card: card, conversation: conversation)
         case .compaction(let mark):
             AgentCompactionRowView(mark: mark)
+        case .compactionActivity(let activity):
+            AgentCompactionActivityRowView(activity: activity)
         }
     }
 
@@ -297,11 +331,21 @@ private struct AgentToolRowView: View {
                         presentation: card.descriptor.presentation,
                         review: card.review
                     ) {
-                        Text(output)
+                        let preview = AgentToolPresentation.preview(output)
+                        Text(preview.displayed)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .font(.caption.monospaced())
                             .foregroundStyle(result.isError ? .red : .secondary)
                             .textSelection(.enabled)
+
+                        if preview.isShortened {
+                            HStack(spacing: Metrics.Space.s) {
+                                Text("Output shortened for display")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                CopyButton(text: preview.full, title: "Copy Full Output")
+                            }
+                        }
                     }
 
                     if result.isTruncated {
@@ -334,6 +378,68 @@ private struct AgentToolRowView: View {
 
 // MARK: - Compaction
 
+private struct AgentCompactionActivityRowView: View {
+    let activity: AgentCompactionActivity
+
+    @State private var isExpanded = false
+
+    private var failure: String? {
+        guard case .failed(let reason) = activity.state else { return nil }
+        return reason
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            Button {
+                guard failure != nil else { return }
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: Metrics.Space.s) {
+                    if failure == nil {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .foregroundStyle(.secondary)
+                            .frame(width: Metrics.Sidebar.rowIcon)
+                    } else {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(.red)
+                            .frame(width: Metrics.Sidebar.rowIcon)
+                    }
+
+                    Text(failure == nil ? "Compacting context" : "Couldn’t compact context")
+                        .font(MarkdownTypography.body)
+                        .foregroundStyle(failure == nil ? .secondary : .primary)
+                        .modifier(ScanningTextMask(isActive: failure == nil))
+
+                    Spacer(minLength: Metrics.Space.s)
+                    if failure != nil {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .bold))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .help(Text(failure == nil ? "Compacting context" : "Show failure details"))
+
+            if isExpanded, let failure {
+                HStack(alignment: .top, spacing: Metrics.Space.m) {
+                    RoundedRectangle(cornerRadius: Metrics.Chat.rule / 2)
+                        .fill(.quaternary)
+                        .frame(width: Metrics.Chat.rule)
+                    Text(failure)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                }
+                .padding(.leading, Metrics.Sidebar.rowIcon)
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
 /// Where the model's memory of this conversation now begins.
 ///
 /// A rule with a label rather than a card, because it marks a boundary rather
@@ -348,10 +454,10 @@ private struct AgentCompactionRowView: View {
             line
             Label {
                 Text(
-                    "Compacted — \(ContextBreakdownMenuItems.compact(mark.summarizedTokens)) summarized to \(ContextBreakdownMenuItems.compact(mark.keptTokens))"
+                    "Compacted — \(ContextBreakdownView.compact(mark.summarizedTokens)) summarized to \(ContextBreakdownView.compact(mark.keptTokens))"
                 )
             } icon: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                Image(systemName: "doc.text")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -386,7 +492,7 @@ private struct AgentCompactionRowView: View {
 /// The list opens on hover, as an overlay drawn upward over the transcript.
 /// Inserting it into the stack instead would push the conversation every time
 /// the pointer crossed the pill.
-private struct AgentTaskCapsuleView: View {
+struct AgentTaskCapsuleView: View {
     let conversation: ConversationModel
     var isCompact = false
 
@@ -400,7 +506,7 @@ private struct AgentTaskCapsuleView: View {
     /// The rows' own height. A `ScrollView` reports none — left alone it takes
     /// every point it is offered.
     @State private var rowsHeight: CGFloat = 0
-    @State private var listHeight: CGFloat = 0
+    @State private var overlayHeight: CGFloat = 0
 
     private var isComplete: Bool {
         conversation.completedTaskCount == conversation.tasks.count
@@ -410,16 +516,23 @@ private struct AgentTaskCapsuleView: View {
 
     var body: some View {
         capsule
-            .overlay(alignment: .bottom) {
+            .overlay(alignment: .top) {
                 if isExpanded {
-                    list
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
-                            listHeight = $0
+                    VStack(spacing: 0) {
+                        list
+                        // Keeps hover continuous while leaving a small visual
+                        // gap between the floating list and its capsule.
+                        Color.clear.frame(height: Metrics.Space.xs)
+                    }
+                        .onGeometryChange(for: CGFloat.self) {
+                            $0.size.height
+                        } action: {
+                            overlayHeight = $0
                         }
-                        // Flush against the capsule, with no gap to lose the
-                        // pointer in on the way up. The block's own padding is
-                        // what separates them visually.
-                        .offset(y: -listHeight)
+                        // The overlay's bottom meets the capsule's top. Using
+                        // `.top` is important: bottom-aligning first and then
+                        // subtracting the list height moved it upward twice.
+                        .offset(y: -overlayHeight)
                         .onHover { isHoveringList = $0 }
                         .transition(.opacity)
                 }
@@ -436,16 +549,19 @@ private struct AgentTaskCapsuleView: View {
             isPinned.toggle()
         } label: {
             HStack(spacing: Metrics.Space.xs) {
-                Image(systemName: isComplete ? "checkmark.circle.fill" : "checklist")
-                    .font(.caption2)
-                    .foregroundStyle(isComplete ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
-                Text("\(conversation.completedTaskCount) / \(conversation.tasks.count)")
+                ProgressRing(
+                    share: Double(conversation.completedTaskCount)
+                        / Double(max(conversation.tasks.count, 1)),
+                    tint: isComplete ? .green : .accentColor,
+                    diameter: 10, lineWidth: 1.7
+                )
+                Text("Step \(conversation.completedTaskCount) / \(conversation.tasks.count)")
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, Metrics.Space.m)
             .padding(.vertical, 3)
-            .background(.quaternary.opacity(0.5), in: .capsule)
+            .background(.bar, in: .capsule)
             .overlay {
                 Capsule().stroke(.quaternary, lineWidth: 1)
             }
@@ -467,18 +583,22 @@ private struct AgentTaskCapsuleView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.height
+            } action: {
+                rowsHeight = $0
+            }
         }
         .frame(height: min(rowsHeight, Metrics.Chat.taskListMaxHeight))
         .scrollBounceBehavior(.basedOnSize)
-        .padding(Metrics.Space.m)
+        .padding(Metrics.Space.l)
         .frame(
             width: isCompact
                 ? Metrics.Chat.compactTaskListWidth : Metrics.Chat.taskListWidth
         )
-        .background(.bar, in: .rect(cornerRadius: Metrics.Radius.large))
+        .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.large)
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
                 .stroke(.quaternary, lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
@@ -716,13 +836,18 @@ private struct AgentApprovalCard: View {
             }
             HStack {
                 Button("Deny", role: .destructive) { conversation.respondToApproval(allow: false) }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Allow Once") { conversation.respondToApproval(allow: true) }
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(Metrics.Space.l)
-        .background(.orange.opacity(0.08))
+        .activeFormKeyboardActions(
+            isDefaultEnabled: true,
+            onDefault: { conversation.respondToApproval(allow: true) },
+            onCancel: { conversation.respondToApproval(allow: false) }
+        )
     }
 }
 
@@ -786,28 +911,29 @@ private struct AgentSSHAuthenticationCard: View {
                 submit: submit,
                 cancel: {
                     conversation.respondToSSHAuthentication(.cancelled)
-                }
+                },
+                usesContainerChrome: false
             )
             // A retry or the next route node must start with fresh SecureFields.
             .id(request.id)
         }
-        .padding(Metrics.Space.l)
     }
 
     private func submit(
         identityID: Identity.ID?, username: String, password: String?,
         passphrase: String?, keyID: SSHKeyRef.ID?, save: Bool
     ) {
-        conversation.respondToSSHAuthentication(.submit(
-            AgentSSHAuthenticationAnswer(
-                identityID: identityID,
-                username: username,
-                password: password,
-                passphrase: passphrase,
-                keyID: keyID,
-                save: requiresPassphrase ? false : save
-            )
-        ))
+        conversation.respondToSSHAuthentication(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    identityID: identityID,
+                    username: username,
+                    password: password,
+                    passphrase: passphrase,
+                    keyID: keyID,
+                    save: requiresPassphrase ? false : save
+                )
+            ))
     }
 }
 
@@ -827,6 +953,7 @@ private struct AgentSSHAuthenticationCard: View {
 private struct AgentUserInputCard: View {
     let request: AgentUserInputRequest
     let conversation: ConversationModel
+    var isCompact = false
 
     private var isForm: Bool { request.questions.count > 1 }
 
@@ -852,12 +979,11 @@ private struct AgentUserInputCard: View {
 
             footer
         }
-        .padding(Metrics.Space.l)
-        .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                .stroke(.quaternary, lineWidth: 1)
-        }
+        .activeFormKeyboardActions(
+            isDefaultEnabled: conversation.canSubmitUserInput,
+            onDefault: conversation.submitUserInput,
+            onCancel: conversation.cancelUserInput
+        )
     }
 
     private var questionStack: some View {
@@ -872,6 +998,7 @@ private struct AgentUserInputCard: View {
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
             Button("Cancel") { conversation.cancelUserInput() }
+                .keyboardShortcut(.cancelAction)
             Spacer(minLength: 0)
             if isForm {
                 Text(
@@ -882,6 +1009,7 @@ private struct AgentUserInputCard: View {
             }
             Button("Continue") { conversation.submitUserInput() }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
                 .disabled(!conversation.canSubmitUserInput)
         }
     }
@@ -951,7 +1079,9 @@ private struct AgentUserInputCard: View {
                         Text(option.detail)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                            .lineLimit(isCompact ? 2 : 3)
+                            .truncationMode(.tail)
+                            .help(Text(option.detail))
                     }
                 }
                 Spacer(minLength: 0)
@@ -1004,48 +1134,68 @@ private struct AgentUserInputCard: View {
 /// until the run delivers them, and drawing them as bubbles would put words in
 /// a place the model never read them. The strip empties itself: each row leaves
 /// as its message enters the transcript proper.
-private struct SteeringQueueView: View {
+struct SteeringQueueView: View {
     let conversation: ConversationModel
+    var isCompact = false
+    var isEmbedded = false
 
     /// The rows' own height, because a `ScrollView` will not report one — left
     /// alone it takes every point it is offered, and the strip would stand at
     /// its ceiling with one line in it. Same problem, and same answer, as the
     /// draft editor's height in `ComposerView`.
     @State private var rowsHeight: CGFloat = 0
+    @State private var hoveredMessageID: PendingSteeringMessage.ID?
 
     /// The wait has two different causes, and only one of them resolves on its
     /// own. While a card above is holding the run, saying "next step" would be
     /// a promise nothing is working towards.
-    private var caption: LocalizedStringKey {
+    private var deliveryStatus: LocalizedStringKey {
         switch conversation.runState {
-        case .waitingForApproval, .waitingForUser: "Steering — held until you answer above"
-        default: "Steering — delivered at the next step"
+        case .waitingForApproval, .waitingForUser: "Waiting for response"
+        default: "Next step"
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            Label(caption, systemImage: "arrow.turn.down.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            HStack(spacing: Metrics.Space.s) {
+                Label("Steering", systemImage: "arrow.turn.down.right")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: Metrics.Space.s)
+
+                Text(deliveryStatus)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
 
             ScrollView {
-                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(conversation.pendingSteering) { pending in
                         row(pending)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.height
+                } action: {
+                    rowsHeight = $0
+                }
             }
             .frame(height: min(rowsHeight, Metrics.Chat.steeringQueueMaxHeight))
             .scrollBounceBehavior(.basedOnSize)
         }
         .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.s)
+        .padding(.vertical, Metrics.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.32), in: .rect(cornerRadius: Metrics.Radius.large))
-        .padding(.horizontal, Metrics.Space.l)
+        .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+        .padding(.horizontal, isEmbedded ? 0 : Metrics.Space.l)
         .padding(.top, Metrics.Space.s)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Queued messages"))
@@ -1055,33 +1205,48 @@ private struct SteeringQueueView: View {
     /// attachment blocks folded in for the model, and a row of markup is not a
     /// reminder of anything.
     private func row(_ pending: PendingSteeringMessage) -> some View {
-        HStack(spacing: Metrics.Space.s) {
-            Text(pending.draft)
-                .font(.callout)
-                .lineLimit(1)
-                .truncationMode(.tail)
+        Button {
+            conversation.returnSteeringToDraft(pending.id)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
+                Text(pending.draft)
+                    .font(.callout)
+                    .lineLimit(isCompact ? 1 : 2)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            if !pending.attachments.isEmpty {
-                Label("\(pending.attachments.count)", systemImage: "paperclip")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .labelStyle(.titleAndIcon)
-            }
+                if !pending.attachments.isEmpty {
+                    Label("\(pending.attachments.count)", systemImage: "paperclip")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .labelStyle(.titleAndIcon)
+                }
 
-            Spacer(minLength: Metrics.Space.s)
-
-            Button {
-                conversation.returnSteeringToDraft(pending.id)
-            } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 8, weight: .bold))
                     .frame(width: Metrics.Sidebar.rowIcon, height: Metrics.Sidebar.rowIcon)
-                    .contentShape(.rect)
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .help(Text("Take this back and edit it"))
-            .accessibilityLabel(Text("Unqueue message"))
+            .padding(.horizontal, Metrics.Space.s)
+            .padding(.vertical, Metrics.Space.xs)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                hoveredMessageID == pending.id
+                    ? AnyShapeStyle(.quaternary.opacity(0.72))
+                    : AnyShapeStyle(.clear),
+                in: .rect(cornerRadius: Metrics.Radius.medium)
+            )
+            .contentShape(.rect)
         }
+        .buttonStyle(.plain)
+        .onHover { isHovering in
+            if isHovering {
+                hoveredMessageID = pending.id
+            } else if hoveredMessageID == pending.id {
+                hoveredMessageID = nil
+            }
+        }
+        .help(Text("Take this back and edit it"))
+        .accessibilityLabel(Text("Unqueue message"))
     }
 }

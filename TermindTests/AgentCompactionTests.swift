@@ -76,9 +76,11 @@ struct AgentCompactionTests {
         ]
 
         for budget in stride(from: 100, through: 1_600, by: 100) {
-            guard let cut = AgentCompaction.cutIndex(
-                in: messages, keepRecentTokens: budget
-            ) else { continue }
+            guard
+                let cut = AgentCompaction.cutIndex(
+                    in: messages, keepRecentTokens: budget
+                )
+            else { continue }
             #expect(
                 messages[cut].role != .tool,
                 "budget \(budget) cut at a tool result"
@@ -123,9 +125,10 @@ struct AgentCompactionTests {
         ]
         let cut = try #require(AgentCompaction.cutIndex(in: messages, keepRecentTokens: 20))
 
-        let compacted = [
-            AgentTranscriptMessage(role: .user, text: "## Goal\nsummary", isCompaction: true)
-        ] + messages[cut...]
+        let compacted =
+            [
+                AgentTranscriptMessage(role: .user, text: "## Goal\nsummary", isCompaction: true)
+            ] + messages[cut...]
 
         let repaired = AgentOrphanedToolResultRepair.apply(
             AgentUnansweredToolCallRepair.apply(compacted)
@@ -204,6 +207,52 @@ struct AgentCompactionTests {
         // What is shown did not. Compaction shapes the request, never history.
         #expect(conversation.messages.count == visibleBefore)
         #expect(conversation.compactions.count == 1)
+    }
+
+    @Test
+    func compactionActivityIsEphemeralAndNeverBecomesAMessage() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("old " + filler(tokens: 800))
+        conversation.appendUserTurn("recent " + filler(tokens: 20))
+        let messageCount = conversation.messages.count
+
+        conversation.beginCompaction()
+        #expect(conversation.isCompacting)
+        #expect(
+            conversation.timeline.contains {
+                if case .compactionActivity(let activity) = $0,
+                    case .running = activity.state
+                {
+                    return true
+                }
+                return false
+            })
+
+        let span = try #require(conversation.compactionSpan(keepRecentTokens: 20))
+        conversation.applyCompaction(summary: "summary", cut: span.cut)
+        conversation.endCompaction()
+
+        #expect(!conversation.isCompacting)
+        #expect(conversation.compactionActivity == nil)
+        #expect(conversation.messages.count == messageCount)
+        #expect(conversation.compactions.count == 1)
+    }
+
+    @Test
+    func failedCompactionKeepsAUiResultWithoutWritingAssistantHistory() {
+        let conversation = ConversationModel()
+        conversation.beginCompaction()
+        conversation.failCompaction("There is not enough history to compact yet.")
+
+        #expect(!conversation.isCompacting)
+        #expect(conversation.messages.isEmpty)
+        #expect(conversation.transcript.isEmpty)
+        #expect(!conversation.isEmpty)
+        guard case .failed(let reason)? = conversation.compactionActivity?.state else {
+            Issue.record("Expected a failed compaction activity")
+            return
+        }
+        #expect(reason == "There is not enough history to compact yet.")
     }
 
     /// The marker sorts above the history it kept rather than to the end of the

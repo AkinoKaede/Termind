@@ -1,6 +1,80 @@
 import AppKit
 import SwiftUI
 
+/// Reports composition text that SwiftUI's String binding has not committed.
+/// The observer lives beside the TextEditor and follows the field editor in
+/// the same window, so Pinyin candidates hide the hint before they are put into
+/// the bound draft.
+private struct TextViewMarkedTextObserver: NSViewRepresentable {
+    @Binding var hasMarkedText: Bool
+
+    final class ObserverView: NSView {
+        var report: (Bool) -> Void = { _ in }
+        private var monitors: [any NSObjectProtocol] = []
+        private var eventMonitor: Any?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            tearDown()
+            guard let window else { return }
+            let center = NotificationCenter.default
+            for name in [
+                NSText.didBeginEditingNotification,
+                NSText.didChangeNotification,
+                NSText.didEndEditingNotification,
+            ] {
+                monitors.append(
+                    center.addObserver(
+                        forName: name, object: nil, queue: .main
+                    ) { [weak self] _ in
+                        Task { @MainActor [weak self] in self?.refresh() }
+                    })
+            }
+            eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) {
+                [weak self, weak window] event in
+                guard event.window === window else { return event }
+                DispatchQueue.main.async { self?.refresh() }
+                return event
+            }
+            refresh()
+        }
+
+        private func refresh() {
+            let marked = (window?.firstResponder as? NSTextView)?.hasMarkedText() ?? false
+            report(marked)
+        }
+
+        private func tearDown() {
+            let center = NotificationCenter.default
+            monitors.forEach(center.removeObserver)
+            monitors.removeAll()
+            if let eventMonitor { NSEvent.removeMonitor(eventMonitor) }
+            eventMonitor = nil
+        }
+
+        func stop() { tearDown() }
+    }
+
+    func makeNSView(context: Context) -> ObserverView {
+        let view = ObserverView(frame: .zero)
+        view.report = update
+        return view
+    }
+
+    func updateNSView(_ nsView: ObserverView, context: Context) {
+        nsView.report = update
+    }
+
+    static func dismantleNSView(_ nsView: ObserverView, coordinator: ()) {
+        nsView.stop()
+    }
+
+    private func update(_ value: Bool) {
+        guard hasMarkedText != value else { return }
+        hasMarkedText = value
+    }
+}
+
 // MARK: - Context chips
 
 /// The row of user-visible attachments sent to the LLM endpoint.
@@ -194,6 +268,11 @@ private struct PlanModeChip: View {
 }
 
 struct ComposerView: View {
+    private enum ModelPickerSection {
+        case model
+        case thinking
+    }
+
     let conversation: ConversationModel
     var prompt: LocalizedStringKey = "Ask anything…"
     /// The full Assistant tab shares one centered column with its transcript.
@@ -218,6 +297,10 @@ struct ComposerView: View {
     /// cannot decide whether it is open.
     @State private var isSlashMenuDismissed = false
     @State private var draftHeight = Metrics.Chat.compactComposerMinHeight
+    @State private var hasMarkedText = false
+    @State private var isPermissionPickerPresented = false
+    @State private var isModelPickerPresented = false
+    @State private var expandedModelPickerSection: ModelPickerSection?
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
         app.aiConfiguration.resolve(conversation: conversation.model)
@@ -286,12 +369,10 @@ struct ComposerView: View {
             .animation(Motion.panel(reduceMotion: reduceMotion), value: showsTranscriptionControls)
         }
         .composerBlock()
-        // Anchored inside the block, before the horizontal inset and the width
-        // caps, so the palette inherits the block's exact edges rather than
-        // restating them. See `SlashCommandMenuView`.
-        .overlay(alignment: .top) {
-            slashMenu
-        }
+        // Anchored to the whole surface rather than the TextEditor. The editor
+        // begins inside the surface padding (and can have Context chips above
+        // it), which let the palette overlap the Chat frame.
+        .overlay(alignment: .top) { slashMenu }
         .padding(.horizontal, Metrics.Space.l)
         .frame(maxWidth: maxContentWidth ?? .infinity)
         .frame(maxWidth: .infinity)
@@ -330,88 +411,99 @@ struct ComposerView: View {
     /// tall as a five-line one. Measuring a `Text` instead means the box starts
     /// at one comfortable line and grows only as the draft does.
     private func draftEditor(_ draft: Binding<String>) -> some View {
-        ZStack(alignment: .topLeading) {
-            Text(draft.wrappedValue.isEmpty ? " " : draft.wrappedValue)
-                .font(.body)
-                .padding(.leading, Self.editorTextInset)
-                .padding(.vertical, Metrics.Space.xs)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                // Ignores the height it is offered and reports its own, which
-                // is what keeps this out of a measurement loop.
-                .fixedSize(horizontal: false, vertical: true)
-                .hidden()
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { draftHeight = $0 }
-
-            TextEditor(text: draft)
-                .font(.body)
-                .scrollContentBackground(.hidden)
-                .focused($isFocused)
-                .overlay(alignment: .topLeading) {
-                    if draft.wrappedValue.isEmpty {
-                        Text(prompt)
-                            .font(.body)
-                            .foregroundStyle(.tertiary)
-                            .padding(.leading, Self.editorTextInset)
-                            .allowsHitTesting(false)
+        TextEditor(text: draft)
+            .font(.body)
+            .scrollContentBackground(.hidden)
+            .focused($isFocused)
+            .overlay(alignment: .topLeading) {
+                if draft.wrappedValue.isEmpty, !hasMarkedText {
+                    Text(prompt)
+                        .font(.body)
+                        .foregroundStyle(.tertiary)
+                        .padding(.leading, Self.editorTextInset)
+                        .allowsHitTesting(false)
+                }
+            }
+            .background {
+                Text(draft.wrappedValue.isEmpty ? " " : draft.wrappedValue)
+                    .font(.body)
+                    .padding(.leading, Self.editorTextInset)
+                    .padding(.vertical, Metrics.Space.xs)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .hidden()
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.height
+                    } action: {
+                        draftHeight = $0
                     }
+            }
+            .background {
+                TextViewMarkedTextObserver(hasMarkedText: $hasMarkedText)
+            }
+            // Before Return, so an open palette gets first refusal on the
+            // keys that drive it. Each handler declines when the palette is
+            // closed, which is what leaves ordinary editing untouched.
+            .onKeyPress(.upArrow, phases: .down) { _ in
+                moveSlashSelection(by: -1) ? .handled : .ignored
+            }
+            .onKeyPress(.downArrow, phases: .down) { _ in
+                moveSlashSelection(by: 1) ? .handled : .ignored
+            }
+            .onKeyPress(.tab, phases: .down) { _ in
+                acceptHighlightedSlashRow() ? .handled : .ignored
+            }
+            .onKeyPress(.escape, phases: .down) { _ in
+                guard !slashCompletion.isEmpty else { return .ignored }
+                // Closes the palette, keeps the draft. Someone who typed
+                // `/compact keep the nginx findings` and wants the menu out
+                // of the way has not asked to lose the sentence.
+                isSlashMenuDismissed = true
+                return .handled
+            }
+            .onKeyPress(.return, phases: .down) { press in
+                guard !press.modifiers.contains(.shift) else { return .ignored }
+                let disallowed: EventModifiers = [.control, .option]
+                guard press.modifiers.intersection(disallowed).isEmpty else { return .ignored }
+                if acceptHighlightedSlashRow() { return .handled }
+                sendDraft()
+                return .handled
+            }
+            // Typing again after Escape re-opens the palette; the dismissal
+            // was about one keystroke, not about the rest of the draft.
+            .onChange(of: conversation.draft) { _, _ in
+                isSlashMenuDismissed = false
+            }
+            // The Stop button gives its slot to Send as soon as the draft
+            // has a character in it — which is exactly when this field has
+            // focus. Without this, typing would make a run unstoppable
+            // until the draft was cleared again.
+            .onKeyPress(KeyEquivalent("."), phases: .down) { press in
+                guard conversation.isStreaming, press.modifiers.contains(.command) else {
+                    return .ignored
                 }
-                // Before Return, so an open palette gets first refusal on the
-                // keys that drive it. Each handler declines when the palette is
-                // closed, which is what leaves ordinary editing untouched.
-                .onKeyPress(.upArrow, phases: .down) { _ in
-                    moveSlashSelection(by: -1) ? .handled : .ignored
-                }
-                .onKeyPress(.downArrow, phases: .down) { _ in
-                    moveSlashSelection(by: 1) ? .handled : .ignored
-                }
-                .onKeyPress(.tab, phases: .down) { _ in
-                    acceptHighlightedSlashRow() ? .handled : .ignored
-                }
-                .onKeyPress(.escape, phases: .down) { _ in
-                    guard !slashCompletion.isEmpty else { return .ignored }
-                    // Closes the palette, keeps the draft. Someone who typed
-                    // `/compact keep the nginx findings` and wants the menu out
-                    // of the way has not asked to lose the sentence.
-                    isSlashMenuDismissed = true
-                    return .handled
-                }
-                .onKeyPress(.return, phases: .down) { press in
-                    guard !press.modifiers.contains(.shift) else { return .ignored }
-                    let disallowed: EventModifiers = [.control, .option]
-                    guard press.modifiers.intersection(disallowed).isEmpty else { return .ignored }
-                    if acceptHighlightedSlashRow() { return .handled }
-                    sendDraft()
-                    return .handled
-                }
-                // Typing again after Escape re-opens the palette; the dismissal
-                // was about one keystroke, not about the rest of the draft.
-                .onChange(of: conversation.draft) { _, _ in
-                    isSlashMenuDismissed = false
-                }
-                // The Stop button gives its slot to Send as soon as the draft
-                // has a character in it — which is exactly when this field has
-                // focus. Without this, typing would make a run unstoppable
-                // until the draft was cleared again.
-                .onKeyPress(KeyEquivalent("."), phases: .down) { press in
-                    guard conversation.isStreaming, press.modifiers.contains(.command) else {
-                        return .ignored
-                    }
-                    conversation.stop()
-                    return .handled
-                }
-        }
-        .frame(
-            height: min(
-                max(draftHeight, minimumDraftHeight),
-                Metrics.Chat.composerMaxHeight
+                conversation.stop()
+                return .handled
+            }
+            .frame(
+                height: min(
+                    max(draftHeight, minimumDraftHeight),
+                    maximumDraftHeight
+                )
             )
-        )
+            .zIndex(100)
     }
 
     private var minimumDraftHeight: CGFloat {
         maxContentWidth == nil
             ? Metrics.Chat.compactComposerMinHeight
             : Metrics.Chat.composerMinHeight
+    }
+
+    private var maximumDraftHeight: CGFloat {
+        maxContentWidth == nil
+            ? Metrics.Chat.compactComposerMaxHeight
+            : Metrics.Chat.composerMaxHeight
     }
 
     /// `TextEditor`'s own leading text-container inset, which the placeholder
@@ -649,9 +741,11 @@ struct ComposerView: View {
             transcriptionError?.code == .speechPermissionDenied
             ? "Privacy_SpeechRecognition"
             : "Privacy_Microphone"
-        guard let url = URL(
-            string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)"
-        ) else { return }
+        guard
+            let url = URL(
+                string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)"
+            )
+        else { return }
         NSWorkspace.shared.open(url)
     }
 
@@ -676,22 +770,23 @@ struct ComposerView: View {
         // Always listed, whether or not there is enough history to act on.
         // Gating this on the compaction threshold hid it in every ordinary
         // conversation — a command that appears only once you are near the
-        // context limit is one nobody knows exists, and the ring beside it is
-        // worth seeing regardless. Running it early says so rather than doing
-        // nothing.
-        commands.append(ChatSlashCommand(
-            id: "compact",
-            summary: String(localized: "Summarize older turns to free context"),
-            icon: .contextRing,
-            argumentHint: String(localized: "what to emphasize")
-        ))
-        if supportsThinking {
-            commands.append(ChatSlashCommand(
-                id: "reasoning",
-                summary: String(localized: "How hard the model thinks"),
-                icon: .symbol("brain"),
-                argumentHint: String(localized: "effort")
+        // context limit is one nobody knows exists. Running it early says so
+        // rather than doing nothing.
+        commands.append(
+            ChatSlashCommand(
+                id: "compact",
+                summary: String(localized: "Summarize older turns to free context"),
+                icon: .contextRing,
+                argumentHint: String(localized: "what to emphasize")
             ))
+        if supportsThinking {
+            commands.append(
+                ChatSlashCommand(
+                    id: "reasoning",
+                    summary: String(localized: "How hard the model thinks"),
+                    icon: .symbol("brain"),
+                    argumentHint: String(localized: "effort")
+                ))
         }
         return commands
     }
@@ -724,7 +819,9 @@ struct ComposerView: View {
                 onHover: { slashSelection = $0 },
                 onSelect: acceptSlashRow
             )
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.height
+            } action: {
                 slashMenuHeight = $0
             }
             // Lifted clear of the block it is anchored to. Measured rather than
@@ -852,38 +949,107 @@ struct ComposerView: View {
     }
 
     private func permissionMenu(compact: Bool) -> some View {
-        Menu {
-            ForEach(ChatPermissionMode.allCases) { mode in
-                Button {
-                    conversation.permissionMode = mode
-                    app.aiConfiguration.select(mode)
-                } label: {
-                    selectionLabel(mode.displayName, isSelected: mode == resolvedPermissionMode)
-                }
-            }
+        Button {
+            isModelPickerPresented = false
+            isPermissionPickerPresented.toggle()
         } label: {
             if compact {
                 Image(systemName: resolvedPermissionMode.symbol)
-                    .font(.caption)
+                    .font(.body)
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(permissionTint)
+                    .frame(width: 24, height: 24)
             } else {
                 HStack(spacing: Metrics.Space.xs) {
                     Image(systemName: resolvedPermissionMode.symbol)
                         .symbolRenderingMode(.monochrome)
                     Text(resolvedPermissionMode.displayName)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 7, weight: .semibold))
+                        .foregroundStyle(.tertiary)
                 }
-                    .font(.caption2)
-                    .foregroundStyle(permissionTint)
-                    .lineLimit(1)
+                .font(.callout)
+                .foregroundStyle(permissionTint)
+                .lineLimit(1)
             }
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(compact ? .hidden : .visible)
-        .tint(permissionTint)
+        .buttonStyle(.plain)
         .fixedSize()
+        .popover(isPresented: $isPermissionPickerPresented, arrowEdge: .bottom) {
+            permissionPopover
+        }
         .help(Text("Permission: \(resolvedPermissionMode.displayName)"))
         .accessibilityLabel(Text("Permission, \(resolvedPermissionMode.displayName)"))
+    }
+
+    private var permissionPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Permission")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, Metrics.Space.l)
+                .padding(.top, Metrics.Space.l)
+                .padding(.bottom, Metrics.Space.s)
+
+            VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                ForEach(ChatPermissionMode.allCases) { mode in
+                    Button {
+                        conversation.permissionMode = mode
+                        app.aiConfiguration.select(mode)
+                    } label: {
+                        permissionOptionRow(mode)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Metrics.Space.s)
+            .padding(.bottom, Metrics.Space.s)
+        }
+        .frame(width: 320)
+    }
+
+    private func permissionOptionRow(_ mode: ChatPermissionMode) -> some View {
+        let isSelected = mode == resolvedPermissionMode
+        let isFullAccess = mode == .fullAccess
+        return HStack(alignment: .center, spacing: Metrics.Space.m) {
+            Image(systemName: mode.symbol)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(isFullAccess ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+                .frame(width: 20, height: 20, alignment: .center)
+
+            VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                Text(mode.displayName)
+                    .foregroundStyle(isFullAccess ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+                Text(permissionDescription(mode))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: Metrics.Space.s)
+
+            Image(systemName: "checkmark")
+                .font(.caption2.weight(.semibold))
+                .opacity(isSelected ? 1 : 0)
+        }
+        .font(.callout)
+        .padding(.horizontal, Metrics.Space.m)
+        .padding(.vertical, Metrics.Space.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
+            in: .rect(cornerRadius: Metrics.Radius.medium)
+        )
+        .contentShape(.rect)
+    }
+
+    private func permissionDescription(_ mode: ChatPermissionMode) -> LocalizedStringKey {
+        switch mode {
+        case .askForApproval: "Ask before protected actions"
+        case .approveForMe: "Use Security Review automatically"
+        case .fullAccess: "Run protected actions without review"
+        }
     }
 
     private var permissionTint: Color {
@@ -903,95 +1069,257 @@ struct ComposerView: View {
     }
 
     private func modelAndThinkingMenu(compact: Bool) -> some View {
-        Menu {
-            if contextEstimate.total > 0 {
-                ContextBreakdownMenuItems(
-                    estimate: contextEstimate,
-                    contextWindow: resolved?.model.contextLength,
-                    cachedInputTokens: conversation.usage?.cachedInputTokens ?? 0
-                )
-            }
-
-            Menu("Model") {
-                if modelProviders.isEmpty {
-                    Text("No models configured")
-                        .disabled(true)
-                    Divider()
-                } else {
-                    ForEach(modelProviders) { provider in
-                        Section(provider.name) {
-                            ForEach(provider.chatModels) { model in
-                                Button {
-                                    select(model, on: provider)
-                                } label: {
-                                    selectionLabel(
-                                        model.label,
-                                        isSelected: isSelected(model, on: provider)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Divider()
-                }
-                Button("Configure Model Providers") { openSettings() }
-            }
-
-            if supportsThinking, let reasoningResolution {
-                Menu("Thinking") {
-                    ForEach(reasoningResolution.supported) { effort in
-                        Button {
-                            conversation.reasoningEffort = effort
-                        } label: {
-                            selectionLabel(
-                                effort.displayName,
-                                isSelected: effort == effectiveReasoningEffort
-                            )
-                        }
-                    }
-                }
-            }
+        Button {
+            isPermissionPickerPresented = false
+            isModelPickerPresented.toggle()
         } label: {
             if compact {
-                modelGlyph
-                    .font(.caption)
+                modelGlyph(compact: true)
+                    .frame(width: 24, height: 24)
             } else {
                 HStack(spacing: Metrics.Space.xs) {
-                    modelGlyph
-                        .font(.caption2)
-                    Text(modelAndThinkingLabel)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    Label {
+                        Text(modelAndThinkingLabel)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    } icon: {
+                        modelGlyph(compact: false)
+                            .font(.caption2)
+                    }
+                    .labelStyle(.titleAndIcon)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 7, weight: .semibold))
+                        .foregroundStyle(.tertiary)
                 }
-                .font(.caption)
+                .font(.callout)
             }
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(compact ? .hidden : .visible)
+        .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .fixedSize()
+        .popover(isPresented: $isModelPickerPresented, arrowEdge: .bottom) {
+            modelAndThinkingPopover
+        }
+        .onChange(of: isModelPickerPresented) { _, isPresented in
+            if !isPresented { expandedModelPickerSection = nil }
+        }
         .help(Text(modelAndThinkingHelp))
         .accessibilityLabel(Text(modelAndThinkingAccessibilityLabel))
     }
 
-    /// The ring once there is something to weigh, `sparkles` until then.
+    private var modelAndThinkingPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if contextEstimate.total > 0 {
+                ContextBreakdownView(
+                    estimate: contextEstimate,
+                    contextWindow: resolved?.model.contextLength,
+                    cachedInputTokens: conversation.usage?.cachedInputTokens ?? 0
+                )
+                .padding(Metrics.Space.l)
+
+                Divider()
+            }
+
+            VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                Button {
+                    toggleModelPickerSection(.model)
+                } label: {
+                    modelPickerRow(
+                        title: String(localized: "Model"),
+                        value: resolvedModelLabel,
+                        isExpanded: expandedModelPickerSection == .model
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if expandedModelPickerSection == .model {
+                    modelOptions
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                if supportsThinking, let reasoningResolution {
+                    Button {
+                        toggleModelPickerSection(.thinking)
+                    } label: {
+                        modelPickerRow(
+                            title: String(localized: "Effort"),
+                            value: effectiveReasoningEffort.displayName,
+                            isExpanded: expandedModelPickerSection == .thinking
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    if expandedModelPickerSection == .thinking {
+                        thinkingOptions(reasoningResolution)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+            }
+            .padding(Metrics.Space.s)
+            .animation(
+                Motion.panel(reduceMotion: reduceMotion),
+                value: expandedModelPickerSection
+            )
+
+            Divider()
+
+            Button {
+                isModelPickerPresented = false
+                openSettings()
+            } label: {
+                Label("Configure Model Providers", systemImage: "slider.horizontal.3")
+                    .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Metrics.Space.l)
+                    .padding(.vertical, Metrics.Space.m)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(width: 264)
+    }
+
+    private func modelPickerRow(
+        title: String, value: String, isExpanded: Bool
+    ) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            Text(title)
+            Spacer(minLength: Metrics.Space.l)
+            Text(value)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+        }
+        .font(.callout)
+        .padding(.horizontal, Metrics.Space.s)
+        .padding(.vertical, Metrics.Space.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
+    }
+
+    private var modelOptions: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Metrics.Space.m) {
+                if modelProviders.isEmpty {
+                    Text("No models configured")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Metrics.Space.m)
+                        .padding(.vertical, Metrics.Space.s)
+                } else {
+                    ForEach(modelProviders) { provider in
+                        VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                            Text(provider.name)
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.tertiary)
+                                .padding(.horizontal, Metrics.Space.m)
+
+                            ForEach(provider.chatModels) { model in
+                                Button {
+                                    select(model, on: provider)
+                                } label: {
+                                    pickerOptionRow(
+                                        model.label,
+                                        isSelected: isSelected(model, on: provider)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // A max height alone has no intrinsic answer inside a newly presented
+        // popover. On its first expansion AppKit proposed zero, so Model looked
+        // inert until the shorter Effort section forced a second layout pass.
+        // A deterministic natural height makes the first click work and still
+        // caps large provider lists behind scrolling.
+        .frame(height: modelOptionsHeight)
+        .scrollBounceBehavior(.basedOnSize)
+        .padding(.bottom, Metrics.Space.xs)
+    }
+
+    private var modelOptionsHeight: CGFloat {
+        guard !modelProviders.isEmpty else { return 34 }
+        let modelCount = modelProviders.reduce(0) { $0 + $1.chatModels.count }
+        let providerCount = modelProviders.count
+        let estimated = CGFloat(modelCount) * 25
+            + CGFloat(providerCount) * 18
+            + CGFloat(max(0, providerCount - 1)) * Metrics.Space.m
+        return min(220, max(34, estimated))
+    }
+
+    private func thinkingOptions(
+        _ resolution: ModelCapabilityResolver.ReasoningResolution
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+            ForEach(resolution.supported) { effort in
+                Button {
+                    conversation.reasoningEffort = effort
+                } label: {
+                    pickerOptionRow(
+                        effort.displayName,
+                        isSelected: effort == effectiveReasoningEffort
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.bottom, Metrics.Space.xs)
+    }
+
+    private func pickerOptionRow(_ title: String, isSelected: Bool) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            Image(systemName: "checkmark")
+                .font(.caption2.weight(.semibold))
+                .opacity(isSelected ? 1 : 0)
+                .frame(width: Metrics.Sidebar.rowIcon)
+
+            Text(title)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            Spacer(minLength: 0)
+        }
+        .font(.callout)
+        .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+        .padding(.horizontal, Metrics.Space.m)
+        .padding(.vertical, Metrics.Space.xs)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
+            in: .rect(cornerRadius: Metrics.Radius.medium)
+        )
+        .contentShape(.rect)
+    }
+
+    private func toggleModelPickerSection(_ section: ModelPickerSection) {
+        expandedModelPickerSection = expandedModelPickerSection == section ? nil : section
+    }
+
+    /// The same ring is retained at zero before there is something to weigh.
     ///
     /// Replacing the glyph rather than adding a second one: the row is already
     /// four controls wide at 260pt, and a conversation's size is a property of
     /// the model it is being sent to, which is what this menu is about.
     @ViewBuilder
-    private var modelGlyph: some View {
-        Group {
-            if let contextShare {
-                ContextRing(share: contextShare)
-            } else {
-                Image(systemName: "sparkles")
-            }
-        }
-        // One column for both. The ring arrives the moment the first turn
-        // reports its usage, and a glyph that changed width at that moment
-        // would shift the model name sideways mid-reply.
-        .frame(width: PlanModeChip.glyphWidth)
+    private func modelGlyph(compact: Bool) -> some View {
+        ContextRingMenuIcon(
+            share: contextShare ?? 0,
+            diameter: 13,
+            lineWidth: 2
+        )
+            // One column for both. The ring arrives the moment the first turn
+            // reports its usage, and a glyph that changed width at that moment
+            // would shift the model name sideways mid-reply.
+            .frame(width: compact ? 24 : PlanModeChip.glyphWidth)
     }
 
     private var modelAndThinkingLabel: String {
@@ -1003,7 +1331,7 @@ struct ComposerView: View {
         guard resolved != nil else { return String(localized: "Model, no model configured") }
         guard supportsThinking else { return String(localized: "Model \(resolvedModelLabel)") }
         return String(
-            localized: "Model \(resolvedModelLabel), thinking \(effectiveReasoningEffort.displayName)"
+            localized: "Model \(resolvedModelLabel), effort \(effectiveReasoningEffort.displayName)"
         )
     }
 
@@ -1014,7 +1342,7 @@ struct ComposerView: View {
             }
             return String(
                 localized:
-                    "\(resolved.model.label) through \(resolved.provider.name) · \(effectiveReasoningEffort.displayName) thinking"
+                    "\(resolved.model.label) through \(resolved.provider.name) · \(effectiveReasoningEffort.displayName) effort"
             )
         }
         return String(localized: "No model configured")

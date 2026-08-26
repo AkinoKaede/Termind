@@ -185,7 +185,11 @@ nonisolated enum Metrics {
         static let composerMinHeight: CGFloat = 48
         /// Sidebar composers keep their denser one-line floor.
         static let compactComposerMinHeight: CGFloat = 40
-        static let composerMaxHeight: CGFloat = 132
+        static let composerMaxHeight: CGFloat = 180
+        static let compactComposerMaxHeight: CGFloat = 140
+        /// The whole empty surface, including its toolbar and insets.
+        static let composerSurfaceMinHeight: CGFloat = 110
+        static let compactComposerSurfaceMinHeight: CGFloat = 102
 
         /// How much of the steering queue is shown before it scrolls.
         ///
@@ -232,13 +236,6 @@ nonisolated enum Metrics {
         static let taskListWidth: CGFloat = 320
         static let compactTaskListWidth: CGFloat = 232
 
-        /// The width the context breakdown's rows are laid out at.
-        ///
-        /// A menu item sizes to its content, so its rows need a stated width
-        /// before a `Spacer` inside one has anything to push against. Without it
-        /// every row is a different width and the counts stagger instead of
-        /// forming a column. See `ContextBreakdownMenuItems`.
-        static let contextBreakdownWidth: CGFloat = 210
     }
 
     enum TransferCenter {

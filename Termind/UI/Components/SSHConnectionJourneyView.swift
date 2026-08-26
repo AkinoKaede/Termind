@@ -1,8 +1,125 @@
+import AppKit
 import SwiftUI
 
-#if canImport(AppKit)
-    import AppKit
-#endif
+nonisolated enum ActiveFormKeyDecision: Equatable, Sendable {
+    case passThrough
+    case consume
+    case submit
+    case cancel
+
+    static func resolve(
+        keyCode: UInt16, hasModifiers: Bool, hasMarkedText: Bool,
+        isRepeat: Bool, isDefaultEnabled: Bool
+    ) -> Self {
+        guard !hasModifiers, keyCode == 36 || keyCode == 76 || keyCode == 53 else {
+            return .passThrough
+        }
+        guard !hasMarkedText else { return .passThrough }
+        guard !isRepeat else { return .consume }
+        if keyCode == 53 { return .cancel }
+        return isDefaultEnabled ? .submit : .consume
+    }
+}
+
+/// Window-scoped Return/Escape handling for the foremost decision form.
+///
+/// Button key equivalents alone are ambiguous when an outer surface also owns
+/// Escape (the Assistant sidebar's Back button is one example). A local event
+/// monitor lets the visible form consume exactly one unmodified key press while
+/// still yielding to an IME composition or a menu in another key window.
+private struct ActiveFormKeyboardBridge: NSViewRepresentable {
+    var isDefaultEnabled: Bool
+    var onDefault: () -> Void
+    var onCancel: () -> Void
+
+    final class HandlerView: NSView {
+        var isDefaultEnabled = false
+        var onDefault: () -> Void = {}
+        var onCancel: () -> Void = {}
+        private var monitor: Any?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            removeMonitor()
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                self?.handle(event) ?? event
+            }
+        }
+
+        private func removeMonitor() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+        }
+
+        func stop() { removeMonitor() }
+
+        private func handle(_ event: NSEvent) -> NSEvent? {
+            guard let window, event.window === window, NSApp.keyWindow === window else {
+                return event
+            }
+            // Caps Lock and the numeric-pad flag do not turn Return/Escape
+            // into modified shortcuts. In particular, keypad Enter arrives
+            // with `.numericPad` and should behave exactly like Return.
+            let commandModifiers = event.modifierFlags.intersection([
+                .shift, .control, .option, .command,
+            ])
+            let decision = ActiveFormKeyDecision.resolve(
+                keyCode: event.keyCode,
+                hasModifiers: !commandModifiers.isEmpty,
+                hasMarkedText: (window.firstResponder as? NSTextView)?.hasMarkedText() ?? false,
+                isRepeat: event.isARepeat,
+                isDefaultEnabled: isDefaultEnabled
+            )
+            switch decision {
+            case .passThrough:
+                return event
+            case .consume:
+                return nil
+            case .cancel:
+                onCancel()
+            case .submit:
+                onDefault()
+            }
+            return nil
+        }
+    }
+
+    func makeNSView(context: Context) -> HandlerView {
+        let view = HandlerView(frame: .zero)
+        update(view)
+        return view
+    }
+
+    func updateNSView(_ nsView: HandlerView, context: Context) { update(nsView) }
+
+    static func dismantleNSView(_ nsView: HandlerView, coordinator: ()) {
+        nsView.stop()
+    }
+
+    private func update(_ view: HandlerView) {
+        view.isDefaultEnabled = isDefaultEnabled
+        view.onDefault = onDefault
+        view.onCancel = onCancel
+    }
+}
+
+extension View {
+    func activeFormKeyboardActions(
+        isDefaultEnabled: Bool,
+        onDefault: @escaping () -> Void,
+        onCancel: @escaping () -> Void
+    ) -> some View {
+        background {
+            ActiveFormKeyboardBridge(
+                isDefaultEnabled: isDefaultEnabled,
+                onDefault: onDefault,
+                onCancel: onCancel
+            )
+            .frame(width: 0, height: 0)
+        }
+    }
+}
 
 struct SSHConnectionJourneyView: View {
     let journey: SSHConnectionJourney
@@ -533,6 +650,7 @@ struct SSHAuthenticationForm: View {
     let prompt: SSHAuthenticationPrompt
     let submit: (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void
     let cancel: () -> Void
+    var usesContainerChrome = true
 
     @Environment(AppModel.self) private var app
     @State private var identityID: Identity.ID?
@@ -547,11 +665,13 @@ struct SSHAuthenticationForm: View {
     init(
         prompt: SSHAuthenticationPrompt,
         submit: @escaping (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void,
-        cancel: @escaping () -> Void
+        cancel: @escaping () -> Void,
+        usesContainerChrome: Bool = true
     ) {
         self.prompt = prompt
         self.submit = submit
         self.cancel = cancel
+        self.usesContainerChrome = usesContainerChrome
         _identityID = State(initialValue: prompt.selectedIdentityID)
         _username = State(initialValue: prompt.username)
         _keyID = State(initialValue: prompt.selectedKeyID)
@@ -573,11 +693,36 @@ struct SSHAuthenticationForm: View {
     }
 
     var body: some View {
+        Group {
+            if usesContainerChrome {
+                form
+                    .padding(18)
+                    .background(.regularMaterial, in: .rect(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(.separator.opacity(0.7))
+                    }
+            } else {
+                form
+            }
+        }
+        .activeFormKeyboardActions(
+            isDefaultEnabled: canContinue,
+            onDefault: { commit(save: !needsPassphrase) },
+            onCancel: cancel
+        )
+        .onAppear {
+            if identityID != nil, selectedIdentity == nil { identityID = nil }
+            updateFocusForRequirement()
+        }
+    }
+
+    private var form: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                    .font(.headline)
+                        .font(.headline)
                     Text(prompt.host.displayAddress).font(.caption.monospaced()).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -675,13 +820,6 @@ struct SSHAuthenticationForm: View {
                         .disabled(!canContinue)
                 }
             }
-        }
-        .padding(18)
-        .background(.regularMaterial, in: .rect(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.separator.opacity(0.7)) }
-        .onAppear {
-            if identityID != nil, selectedIdentity == nil { identityID = nil }
-            updateFocusForRequirement()
         }
     }
 

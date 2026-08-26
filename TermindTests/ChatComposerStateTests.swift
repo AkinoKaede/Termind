@@ -22,7 +22,10 @@ private struct ImmediateConversationAgentModel: AgentModelStreaming {
 
 private actor ImmediateConversationCursor {
     var value = 0
-    func next() -> Int { defer { value += 1 }; return value }
+    func next() -> Int {
+        defer { value += 1 }
+        return value
+    }
 }
 
 private actor ConversationExecutionCounter {
@@ -40,6 +43,45 @@ private actor ConversationCancellationProbe {
 @Suite
 @MainActor
 struct ChatComposerStateTests {
+    @Test
+    func activeFormKeysYieldToImeAndConsumeOnlyPlainReturnOrEscape() {
+        #expect(
+            ActiveFormKeyDecision.resolve(
+                keyCode: 36, hasModifiers: false, hasMarkedText: false,
+                isRepeat: false, isDefaultEnabled: true
+            ) == .submit)
+        #expect(
+            ActiveFormKeyDecision.resolve(
+                keyCode: 53, hasModifiers: false, hasMarkedText: false,
+                isRepeat: false, isDefaultEnabled: false
+            ) == .cancel)
+        #expect(
+            ActiveFormKeyDecision.resolve(
+                keyCode: 76, hasModifiers: false, hasMarkedText: false,
+                isRepeat: false, isDefaultEnabled: true
+            ) == .submit)
+        #expect(
+            ActiveFormKeyDecision.resolve(
+                keyCode: 36, hasModifiers: false, hasMarkedText: true,
+                isRepeat: false, isDefaultEnabled: true
+            ) == .passThrough)
+        #expect(
+            ActiveFormKeyDecision.resolve(
+                keyCode: 36, hasModifiers: false, hasMarkedText: false,
+                isRepeat: false, isDefaultEnabled: false
+            ) == .consume)
+        #expect(
+            ActiveFormKeyDecision.resolve(
+                keyCode: 36, hasModifiers: false, hasMarkedText: false,
+                isRepeat: true, isDefaultEnabled: true
+            ) == .consume)
+        #expect(
+            ActiveFormKeyDecision.resolve(
+                keyCode: 36, hasModifiers: true, hasMarkedText: false,
+                isRepeat: false, isDefaultEnabled: true
+            ) == .passThrough)
+    }
+
     @Test
     func reasoningEffortExposesTheFullScaleAndDefaultsToMedium() {
         #expect(
@@ -178,9 +220,11 @@ struct ChatComposerStateTests {
         #expect(conversation.messages[0].isStreaming)
 
         let finishedID = UUID()
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            id: finishedID, role: .assistant, text: "finished"
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    id: finishedID, role: .assistant, text: "finished"
+                )))
 
         #expect(conversation.messages.count == 2)
         #expect(conversation.messages[1].id == finishedID)
@@ -192,24 +236,29 @@ struct ChatComposerStateTests {
     func immediatelyCompletedRuntimeStillReachesTheConversation() async {
         let conversation = ConversationModel()
         let runtime = AgentRuntime(
-            model: ImmediateConversationAgentModel(turns: [[
-                .textDelta("partial"), .textSnapshot("visible immediately"),
-                .finished(.completed),
-            ]]),
+            model: ImmediateConversationAgentModel(turns: [
+                [
+                    .textDelta("partial"), .textSnapshot("visible immediately"),
+                    .finished(.completed),
+                ]
+            ]),
             tools: [],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
 
-        conversation.start(runtime: runtime, request: AgentRunRequest(
-            conversationID: conversation.id, prompt: "hello",
-            permissionMode: .askForApproval
-        ))
+        conversation.start(
+            runtime: runtime,
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "hello",
+                permissionMode: .askForApproval
+            ))
         await waitForTerminal(conversation)
 
         #expect(conversation.runState == .completed)
-        #expect(conversation.messages.contains {
-            $0.role == .assistant && $0.text == "visible immediately"
-        })
+        #expect(
+            conversation.messages.contains {
+                $0.role == .assistant && $0.text == "visible immediately"
+            })
     }
 
     @Test
@@ -229,18 +278,20 @@ struct ChatComposerStateTests {
             ],
             [.textDelta("tool result is visible"), .finished(.completed)],
         ])
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "lookup", summary: "lookup",
-            inputSchema: .object([
-                "type": .string("object"),
-                "properties": .object([
-                    "query": .object(["type": .string("string")]),
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "lookup", summary: "lookup",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "query": .object(["type": .string("string")])
+                    ]),
+                    "required": .array([.string("query")]),
+                    "additionalProperties": .bool(false),
                 ]),
-                "required": .array([.string("query")]),
-                "additionalProperties": .bool(false),
-            ]),
-            target: .local, safety: .locallyReadOnly
-        )) { invocation, _ in
+                target: .local, safety: .locallyReadOnly
+            )
+        ) { invocation, _ in
             #expect(invocation.call.arguments == .object(["query": .string("hosts")]))
             await executions.increment()
             return AgentToolResult(callID: invocation.call.id, content: "host-a")
@@ -251,17 +302,20 @@ struct ChatComposerStateTests {
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
 
-        conversation.start(runtime: runtime, request: AgentRunRequest(
-            conversationID: conversation.id, prompt: "inspect",
-            permissionMode: .askForApproval
-        ))
+        conversation.start(
+            runtime: runtime,
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "inspect",
+                permissionMode: .askForApproval
+            ))
         await waitForTerminal(conversation)
 
         #expect(await executions.value == 1)
         #expect(conversation.runState == .completed)
-        #expect(conversation.messages.contains {
-            $0.role == .assistant && $0.text == "tool result is visible"
-        })
+        #expect(
+            conversation.messages.contains {
+                $0.role == .assistant && $0.text == "tool result is visible"
+            })
     }
 
     /// `messages` is a display projection with no tool calls and no tool
@@ -280,16 +334,18 @@ struct ChatComposerStateTests {
             ],
             [.textDelta("host-a is up"), .finished(.completed)],
         ])
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "lookup", summary: "lookup",
-            inputSchema: .object([
-                "type": .string("object"),
-                "properties": .object(["query": .object(["type": .string("string")])]),
-                "required": .array([.string("query")]),
-                "additionalProperties": .bool(false),
-            ]),
-            target: .local, safety: .locallyReadOnly
-        )) { invocation, _ in
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "lookup", summary: "lookup",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object(["query": .object(["type": .string("string")])]),
+                    "required": .array([.string("query")]),
+                    "additionalProperties": .bool(false),
+                ]),
+                target: .local, safety: .locallyReadOnly
+            )
+        ) { invocation, _ in
             AgentToolResult(callID: invocation.call.id, content: "host-a")
         }
         let conversation = ConversationModel()
@@ -316,9 +372,10 @@ struct ChatComposerStateTests {
         let call = prior.first { $0.role == .assistant }?.toolCalls.first
         #expect(call?.name == "lookup")
         #expect(call?.providerItemID == "item-1")
-        #expect(prior.contains {
-            $0.role == .tool && $0.toolCallID == "call-1" && $0.text == "host-a"
-        })
+        #expect(
+            prior.contains {
+                $0.role == .tool && $0.toolCallID == "call-1" && $0.text == "host-a"
+            })
         #expect(!prior.contains { $0.role == .assistant && $0.text.isEmpty && $0.toolCalls.isEmpty })
     }
 
@@ -327,14 +384,16 @@ struct ChatComposerStateTests {
     @Test
     func stopCancelsTheRunAndNotOnlyItsEventStream() async {
         let probe = ConversationCancellationProbe()
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "wait", summary: "wait",
-            inputSchema: .object([
-                "type": .string("object"), "properties": .object([:]),
-                "required": .array([]), "additionalProperties": .bool(false),
-            ]),
-            target: .local, safety: .locallyReadOnly
-        )) { invocation, _ in
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "wait", summary: "wait",
+                inputSchema: .object([
+                    "type": .string("object"), "properties": .object([:]),
+                    "required": .array([]), "additionalProperties": .bool(false),
+                ]),
+                target: .local, safety: .locallyReadOnly
+            )
+        ) { invocation, _ in
             await probe.markStarted()
             do {
                 try await Task.sleep(for: .seconds(10))
@@ -348,10 +407,12 @@ struct ChatComposerStateTests {
         conversation.appendUserTurn("wait for me")
         conversation.start(
             runtime: AgentRuntime(
-                model: ImmediateConversationAgentModel(turns: [[
-                    .toolCallDelta(id: "call-1", name: "wait", arguments: "{}"),
-                    .finished(.toolCalls),
-                ]]),
+                model: ImmediateConversationAgentModel(turns: [
+                    [
+                        .toolCallDelta(id: "call-1", name: "wait", arguments: "{}"),
+                        .finished(.toolCalls),
+                    ]
+                ]),
                 tools: [tool],
                 approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
             ),
@@ -388,16 +449,20 @@ struct ChatComposerStateTests {
                     ],
                     [.textDelta("host-a is up"), .finished(.completed)],
                 ]),
-                tools: [AnyAgentTool(descriptor: AgentToolDescriptor(
-                    name: "lookup", summary: "lookup",
-                    inputSchema: .object([
-                        "type": .string("object"), "properties": .object([:]),
-                        "required": .array([]), "additionalProperties": .bool(false),
-                    ]),
-                    target: .local, safety: .locallyReadOnly
-                )) { invocation, _ in
-                    AgentToolResult(callID: invocation.call.id, content: "host-a")
-                }],
+                tools: [
+                    AnyAgentTool(
+                        descriptor: AgentToolDescriptor(
+                            name: "lookup", summary: "lookup",
+                            inputSchema: .object([
+                                "type": .string("object"), "properties": .object([:]),
+                                "required": .array([]), "additionalProperties": .bool(false),
+                            ]),
+                            target: .local, safety: .locallyReadOnly
+                        )
+                    ) { invocation, _ in
+                        AgentToolResult(callID: invocation.call.id, content: "host-a")
+                    }
+                ],
                 approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
             ),
             request: AgentRunRequest(
@@ -413,6 +478,7 @@ struct ChatComposerStateTests {
             case .tool: "tool"
             case .plan: "plan"
             case .compaction: "compaction"
+            case .compactionActivity: "compaction-activity"
             }
         }
         #expect(kinds == ["user", "assistant", "tool", "assistant"])
@@ -429,10 +495,12 @@ struct ChatComposerStateTests {
         conversation.handle(.messageStarted(started))
         #expect(conversation.timeline.count == 2, "a streaming turn still shows progress")
 
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            id: id, role: .assistant, text: "",
-            toolCalls: [AgentToolCall(id: "c", name: "lookup", arguments: .object([:]))]
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    id: id, role: .assistant, text: "",
+                    toolCalls: [AgentToolCall(id: "c", name: "lookup", arguments: .object([:]))]
+                )))
 
         #expect(conversation.timeline.count == 1)
         #expect(conversation.messages.count == 2, "the turn is still in the history")
@@ -450,9 +518,11 @@ struct ChatComposerStateTests {
             conversation.appendUserTurn("hello")
             conversation.start(
                 runtime: AgentRuntime(
-                    model: ImmediateConversationAgentModel(turns: [[
-                        .textDelta("hi"), .finished(.completed),
-                    ]]),
+                    model: ImmediateConversationAgentModel(turns: [
+                        [
+                            .textDelta("hi"), .finished(.completed),
+                        ]
+                    ]),
                     tools: [],
                     approval: AgentApprovalBroker(
                         reviewer: nil,
@@ -484,9 +554,10 @@ struct ChatComposerStateTests {
     @Test
     func anAttachmentIsSentWithTheTurnItWasAttachedTo() {
         let conversation = ConversationModel()
-        conversation.attach(ContextChip(
-            kind: .output, label: "Connection error", content: "ssh: connect refused"
-        ))
+        conversation.attach(
+            ContextChip(
+                kind: .output, label: "Connection error", content: "ssh: connect refused"
+            ))
 
         let sent = conversation.appendUserTurn("What should I check?")
 
@@ -538,9 +609,11 @@ struct ChatComposerStateTests {
         conversation.appendUserTurn("hello")
         conversation.start(
             runtime: AgentRuntime(
-                model: ImmediateConversationAgentModel(turns: [[
-                    .textDelta("hi"), .finished(.completed),
-                ]]),
+                model: ImmediateConversationAgentModel(turns: [
+                    [
+                        .textDelta("hi"), .finished(.completed),
+                    ]
+                ]),
                 tools: [],
                 approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
             ),
@@ -563,9 +636,10 @@ struct ChatComposerStateTests {
         conversation.appendUserTurn("Root is at 99%")
         #expect(AppModel.titleContext(for: conversation) == nil)
 
-        conversation.handle(.messageFinished(
-            AgentTranscriptMessage(role: .assistant, text: "Start with du -sh /var/*.")
-        ))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(role: .assistant, text: "Start with du -sh /var/*.")
+            ))
 
         let context = AppModel.titleContext(for: conversation)
         #expect(context?.firstUserMessage == "Root is at 99%")
@@ -589,9 +663,10 @@ struct ChatComposerStateTests {
     func aConversationThatAlreadyHasATitleIsNotSummarizedAgain() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("Root is at 99%")
-        conversation.handle(.messageFinished(
-            AgentTranscriptMessage(role: .assistant, text: "Start with du.")
-        ))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(role: .assistant, text: "Start with du.")
+            ))
         #expect(AppModel.titleContext(for: conversation) != nil)
 
         conversation.title = "Root volume filling up"

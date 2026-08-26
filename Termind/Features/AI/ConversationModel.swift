@@ -152,6 +152,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     case tool(AgentToolCard)
     case plan(AgentPlanCard)
     case compaction(AgentCompactionMark)
+    case compactionActivity(AgentCompactionActivity)
 
     var id: UUID {
         switch self {
@@ -159,6 +160,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         case .tool(let card): card.id
         case .plan(let card): card.id
         case .compaction(let mark): mark.id
+        case .compactionActivity(let activity): activity.id
         }
     }
 
@@ -170,6 +172,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         case .tool(let card): card.invocation.createdAt
         case .plan(let card): card.createdAt
         case .compaction(let mark): mark.createdAt
+        case .compactionActivity(let activity): activity.createdAt
         }
     }
 
@@ -179,7 +182,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     /// not stable, so equal timestamps otherwise swap between redraws.
     var sortRank: Int {
         switch self {
-        case .compaction: 1
+        case .compaction, .compactionActivity: 1
         default: 0
         }
     }
@@ -202,9 +205,22 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
             hasher.combine(card.outcome)
         case .compaction(let mark):
             hasher.combine(mark.keptTokens)
+        case .compactionActivity(let activity):
+            hasher.combine(activity.state)
         }
         return hasher.finalize()
     }
+}
+
+nonisolated struct AgentCompactionActivity: Identifiable, Hashable, Sendable {
+    nonisolated enum State: Hashable, Sendable {
+        case running
+        case failed(String)
+    }
+
+    var id: UUID = UUID()
+    var state: State
+    var createdAt: Date = .now
 }
 
 /// The line in the transcript where history stopped being sent.
@@ -343,8 +359,7 @@ final class ConversationModel: Identifiable {
     private var eventTask: Task<Void, Never>?
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
     private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
-    private var sshAuthenticationWaiters:
-        [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
+    private var sshAuthenticationWaiters: [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
 
     /// Whether the agent may only look.
     ///
@@ -362,6 +377,11 @@ final class ConversationModel: Identifiable {
     /// authoritative record of a compaction is the `isCompaction` turn in
     /// `transcript`, which is what survives a relaunch.
     private(set) var compactions: [AgentCompactionMark] = []
+
+    /// Ephemeral UI state. Successful compactions become boundary marks; a
+    /// failed attempt stays readable for this process without entering the
+    /// model transcript or persistence schema.
+    private(set) var compactionActivity: AgentCompactionActivity?
 
     /// True while a compaction is in flight, so the composer can say so and not
     /// start a second one.
@@ -473,7 +493,7 @@ final class ConversationModel: Identifiable {
         return line.count > 40 ? String(line.prefix(40)) + "…" : line
     }
 
-    var isEmpty: Bool { messages.isEmpty }
+    var isEmpty: Bool { timeline.isEmpty }
 
     /// Messages and tool cards in the order they happened.
     ///
@@ -483,7 +503,7 @@ final class ConversationModel: Identifiable {
     /// already chronological, so this is a merge rather than a sort.
     var timeline: [TimelineItem] {
         var items: [TimelineItem] = []
-        items.reserveCapacity(messages.count + toolCards.count + plans.count)
+        items.reserveCapacity(messages.count + toolCards.count + plans.count + 1)
         var cards = toolCards[...]
         for message in messages {
             while let card = cards.first, card.invocation.createdAt < message.createdAt {
@@ -498,12 +518,15 @@ final class ConversationModel: Identifiable {
             items.append(.message(message))
         }
         items += cards.map(TimelineItem.tool)
-        guard !plans.isEmpty || !compactions.isEmpty else { return items }
+        guard !plans.isEmpty || !compactions.isEmpty || compactionActivity != nil else {
+            return items
+        }
         // Merged by time rather than woven into the loop above. A plan ends its
         // run and a compaction happens between runs, so there are never many of
         // either, and two more cursors inside that loop would be two more things
         // to keep right for no gain.
-        let extra = plans.map(TimelineItem.plan) + compactions.map(TimelineItem.compaction)
+        var extra = plans.map(TimelineItem.plan) + compactions.map(TimelineItem.compaction)
+        if let compactionActivity { extra.append(.compactionActivity(compactionActivity)) }
         return (items + extra).sorted {
             $0.orderedAt == $1.orderedAt
                 ? $0.sortRank < $1.sortRank : $0.orderedAt < $1.orderedAt
@@ -517,14 +540,33 @@ final class ConversationModel: Identifiable {
     func compactionSpan(
         keepRecentTokens: Int = AgentCompaction.defaultKeepRecentTokens
     ) -> (summarize: [AgentTranscriptMessage], cut: Int)? {
-        guard let cut = AgentCompaction.cutIndex(
-            in: transcript, keepRecentTokens: keepRecentTokens
-        ) else { return nil }
+        guard
+            let cut = AgentCompaction.cutIndex(
+                in: transcript, keepRecentTokens: keepRecentTokens
+            )
+        else { return nil }
         return (Array(transcript[..<cut]), cut)
     }
 
-    func beginCompaction() { isCompacting = true }
-    func endCompaction() { isCompacting = false }
+    func beginCompaction() {
+        isCompacting = true
+        compactionActivity = AgentCompactionActivity(state: .running)
+    }
+
+    func endCompaction() {
+        isCompacting = false
+        compactionActivity = nil
+    }
+
+    func failCompaction(_ reason: String) {
+        isCompacting = false
+        if var activity = compactionActivity {
+            activity.state = .failed(reason)
+            compactionActivity = activity
+        } else {
+            compactionActivity = AgentCompactionActivity(state: .failed(reason))
+        }
+    }
 
     /// Replaces everything before `cut` with one synthetic turn carrying the
     /// summary.
@@ -550,11 +592,12 @@ final class ConversationModel: Identifiable {
             role: .user, text: summary, isCompaction: true, createdAt: stamp
         )
         transcript.replaceSubrange(..<cut, with: [replacement])
-        compactions.append(AgentCompactionMark(
-            summarizedTokens: summarizedTokens,
-            keptTokens: AgentContextEstimator.tokens(inCharacters: summary.count),
-            createdAt: stamp
-        ))
+        compactions.append(
+            AgentCompactionMark(
+                summarizedTokens: summarizedTokens,
+                keptTokens: AgentContextEstimator.tokens(inCharacters: summary.count),
+                createdAt: stamp
+            ))
         // The gauge is measuring a context that no longer exists. Dropping it
         // rather than scaling it means the next turn reports a real number and
         // until then the estimate is shown as an estimate.
@@ -761,7 +804,8 @@ final class ConversationModel: Identifiable {
     func respondToApproval(allow: Bool) {
         guard !pendingApprovals.isEmpty else { return }
         let request = pendingApprovals.removeFirst()
-        let decision: AgentApprovalDecision = allow
+        let decision: AgentApprovalDecision =
+            allow
             ? .allow : .deny(String(localized: "The user denied this action."))
         if !allow { setToolState(request.invocation.id, .denied) }
         refreshRunState()
@@ -956,11 +1000,12 @@ final class ConversationModel: Identifiable {
             if let index = messages.firstIndex(where: { $0.id == started.id }) {
                 messages[index].isStreaming = true
             } else {
-                messages.append(ChatMessage(
-                    id: started.id, role: .assistant, text: "", isStreaming: true,
-                    // The run's clock, not the UI's. See `AgentEvent.messageStarted`.
-                    createdAt: started.createdAt
-                ))
+                messages.append(
+                    ChatMessage(
+                        id: started.id, role: .assistant, text: "", isStreaming: true,
+                        // The run's clock, not the UI's. See `AgentEvent.messageStarted`.
+                        createdAt: started.createdAt
+                    ))
             }
             refreshRunState()
         case .messageDelta(let id, let text):
@@ -968,9 +1013,10 @@ final class ConversationModel: Identifiable {
                 messages[index].text += text
                 messages[index].isStreaming = true
             } else {
-                messages.append(ChatMessage(
-                    id: id, role: .assistant, text: text, isStreaming: true
-                ))
+                messages.append(
+                    ChatMessage(
+                        id: id, role: .assistant, text: text, isStreaming: true
+                    ))
             }
             refreshRunState()
         // A queued turn has entered the model's context, so now it is part of
@@ -978,20 +1024,22 @@ final class ConversationModel: Identifiable {
         // no longer in the queue the composer is drawing.
         case .steeringDelivered(let message):
             pendingSteering.removeAll { $0.id == message.id }
-            messages.append(ChatMessage(
-                id: message.id, role: .user, text: message.text,
-                createdAt: message.createdAt
-            ))
+            messages.append(
+                ChatMessage(
+                    id: message.id, role: .user, text: message.text,
+                    createdAt: message.createdAt
+                ))
             transcript.append(message)
         case .messageFinished(let message):
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[index].text = message.text
                 messages[index].isStreaming = false
             } else {
-                messages.append(ChatMessage(
-                    id: message.id, role: .assistant, text: message.text,
-                    isStreaming: false, createdAt: message.createdAt
-                ))
+                messages.append(
+                    ChatMessage(
+                        id: message.id, role: .assistant, text: message.text,
+                        isStreaming: false, createdAt: message.createdAt
+                    ))
             }
             // Whole message, not just its text: the tool calls and the opaque
             // provider items are what the next turn has to replay.
@@ -1019,8 +1067,11 @@ final class ConversationModel: Identifiable {
                 // replayable, but the card kept being relabelled `Failed` the
                 // instant it was refused, so `denied` never reached the screen.
                 if toolCards[index].state != .denied {
-                    if result.isInterrupted { toolCards[index].state = .interrupted }
-                    else { toolCards[index].state = result.isError ? .failed : .completed }
+                    if result.isInterrupted {
+                        toolCards[index].state = .interrupted
+                    } else {
+                        toolCards[index].state = result.isError ? .failed : .completed
+                    }
                 }
             }
             // A card, but not a turn. A provider-native search happened inside
@@ -1029,10 +1080,11 @@ final class ConversationModel: Identifiable {
             // result the provider has no matching call for — which it rejects
             // on the *next* request. See `AgentToolResult.isProviderNative`.
             guard !result.isProviderNative else { break }
-            transcript.append(AgentTranscriptMessage(
-                role: .tool, text: result.content, toolCallID: result.callID,
-                toolName: invocation.call.name, isError: result.isError
-            ))
+            transcript.append(
+                AgentTranscriptMessage(
+                    role: .tool, text: result.content, toolCallID: result.callID,
+                    toolName: invocation.call.name, isError: result.isError
+                ))
         // The card only. The queue belongs to `requestApproval`, which is the
         // path that also holds the continuation — see its comment.
         case .approvalRequested(let request):
@@ -1130,10 +1182,11 @@ extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 extension ConversationModel {
     static func demo() -> ConversationModel {
         let conversation = ConversationModel()
-        conversation.attach(ContextChip(
-            kind: .output, label: "Last 200 lines",
-            content: String(repeating: "nginx: connect() failed\n", count: 200)
-        ))
+        conversation.attach(
+            ContextChip(
+                kind: .output, label: "Last 200 lines",
+                content: String(repeating: "nginx: connect() failed\n", count: 200)
+            ))
         conversation.messages = [
             ChatMessage(role: .user, text: "Root is at 99%. What is eating the space?"),
             ChatMessage(

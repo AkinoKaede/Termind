@@ -70,7 +70,13 @@ struct StatusBarView: View {
             ?? .disconnected
 
         HStack(spacing: Metrics.Space.s) {
-            StatusDot(status: status)
+            Circle()
+                .fill(status.tint)
+                .frame(
+                    width: Metrics.Sidebar.statusDot,
+                    height: Metrics.Sidebar.statusDot
+                )
+                .accessibilityLabel(Text(status.label))
             if let host {
                 Text(host.name)
                 Text(host.host).foregroundStyle(.tertiary)

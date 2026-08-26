@@ -3,6 +3,16 @@ import Foundation
 /// Turns tool protocol data into the small amount of language the transcript needs.
 /// Execution, approval and replay continue to use the original call and result unchanged.
 nonisolated enum AgentToolPresentation {
+    static let displayCharacterLimit = 8_192
+    static let displayLineLimit = 120
+
+    nonisolated struct OutputPreview: Equatable, Sendable {
+        let displayed: String
+        let full: String
+        let isShortened: Bool
+        let omittedCharacters: Int
+    }
+
     static func symbol(for card: AgentToolCard) -> String {
         return card.descriptor.presentation?.symbol ?? "wrench.and.screwdriver"
     }
@@ -13,9 +23,13 @@ nonisolated enum AgentToolPresentation {
     ) -> String {
         let operation = operationName(for: card)
         let phase: String
-        if card.state == .running { phase = card.result?.presentationPhase ?? card.state.rawValue }
-        else if card.state == .reviewing { phase = AgentToolCard.State.proposed.rawValue }
-        else { phase = card.state.rawValue }
+        if card.state == .running {
+            phase = card.result?.presentationPhase ?? card.state.rawValue
+        } else if card.state == .reviewing {
+            phase = AgentToolCard.State.proposed.rawValue
+        } else {
+            phase = card.state.rawValue
+        }
         if let template = card.descriptor.presentation?.messages[phase] {
             var rendered = template.replacingOccurrences(of: "{activity}", with: operation)
             if let hostName, !hostName.isEmpty {
@@ -73,6 +87,100 @@ nonisolated enum AgentToolPresentation {
             normalized(rendered) == normalized(review.reason)
         else { return rendered }
         return nil
+    }
+
+    /// A bounded rendering projection. The full transformed output stays beside
+    /// it for Copy, while the Text view only receives the small preview.
+    static func preview(
+        _ full: String,
+        characterLimit: Int = displayCharacterLimit,
+        lineLimit: Int = displayLineLimit
+    ) -> OutputPreview {
+        let lineCount = full.reduce(1) { $1 == "\n" ? $0 + 1 : $0 }
+        guard full.count > characterLimit || lineCount > lineLimit else {
+            return OutputPreview(
+                displayed: full, full: full, isShortened: false, omittedCharacters: 0
+            )
+        }
+
+        // Five eighths at the front and three eighths at the back keeps the
+        // command and initial diagnostics while retaining the final failure.
+        // Leave room for the marker itself; a final tightening pass below
+        // makes the bound exact even when the omitted count has many digits.
+        let contentCharacterLimit = max(2, characterLimit - min(80, characterLimit / 4))
+        let headCharacters = max(1, contentCharacterLimit * 5 / 8)
+        let tailCharacters = max(1, contentCharacterLimit - headCharacters)
+        let contentLineLimit = max(2, lineLimit - 1)
+        let headLines = max(1, contentLineLimit * 5 / 8)
+        let tailLines = max(1, contentLineLimit - headLines)
+
+        let headByCharacters = full.index(
+            full.startIndex,
+            offsetBy: min(headCharacters, full.count)
+        )
+        let tailByCharacters = full.index(
+            full.endIndex,
+            offsetBy: -min(tailCharacters, full.count)
+        )
+        let headByLines = boundaryAfterLines(headLines, in: full)
+        let tailByLines = boundaryBeforeLastLines(tailLines, in: full)
+        var headEnd = min(headByCharacters, headByLines)
+        var tailStart = max(tailByCharacters, tailByLines)
+
+        // The limits above normally leave a gap. Keep the fallback defensive
+        // for tiny custom limits used by unit tests.
+        tailStart = max(tailStart, headEnd)
+        var displayed = renderedPreview(full, headEnd: headEnd, tailStart: tailStart)
+        while displayed.count > characterLimit, headEnd > full.startIndex || tailStart < full.endIndex {
+            let overflow = displayed.count - characterLimit
+            let availableHead = full.distance(from: full.startIndex, to: headEnd)
+            let availableTail = full.distance(from: tailStart, to: full.endIndex)
+            let dropHead = min(availableHead, max(1, overflow * 5 / 8))
+            let dropTail = min(availableTail, max(0, overflow - dropHead))
+            headEnd = full.index(headEnd, offsetBy: -dropHead)
+            tailStart = full.index(tailStart, offsetBy: dropTail)
+            displayed = renderedPreview(full, headEnd: headEnd, tailStart: tailStart)
+        }
+        let omitted = full.distance(from: headEnd, to: tailStart)
+        return OutputPreview(
+            displayed: displayed, full: full,
+            isShortened: true, omittedCharacters: omitted
+        )
+    }
+
+    private static func renderedPreview(
+        _ full: String, headEnd: String.Index, tailStart: String.Index
+    ) -> String {
+        let omitted = full.distance(from: headEnd, to: tailStart)
+        let marker = String(localized: "[… \(omitted) characters omitted …]")
+        return String(full[..<headEnd]) + "\n\(marker)\n" + String(full[tailStart...])
+    }
+
+    private static func boundaryAfterLines(_ count: Int, in text: String) -> String.Index {
+        guard count > 0 else { return text.startIndex }
+        var lines = 1
+        var index = text.startIndex
+        while index < text.endIndex {
+            if text[index] == "\n" {
+                if lines == count { return index }
+                lines += 1
+            }
+            index = text.index(after: index)
+        }
+        return index
+    }
+
+    private static func boundaryBeforeLastLines(_ count: Int, in text: String) -> String.Index {
+        var remaining = count
+        var index = text.endIndex
+        while index > text.startIndex, remaining > 0 {
+            index = text.index(before: index)
+            if text[index] == "\n" { remaining -= 1 }
+        }
+        if index < text.endIndex, text[index] == "\n" {
+            return text.index(after: index)
+        }
+        return index
     }
 
     private static func output(

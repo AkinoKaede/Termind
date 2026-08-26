@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// How full the model's context window is, as a ring.
@@ -11,24 +12,21 @@ import SwiftUI
 /// a plain SwiftUI view and renders wherever any view renders — including a
 /// `Menu` label, which on macOS is bridged into AppKit and is not somewhere to
 /// find out that an imperative drawing context was unsupported.
-struct ContextRing: View {
-    /// 0...1. `AgentContextEstimate.share(of:)` clamps before this is reached.
+struct ProgressRing: View {
     let share: Double
+    let tint: Color
     var diameter: CGFloat = 11
     var lineWidth: CGFloat = 2
 
     var body: some View {
         ZStack {
-            // A filled grey disc, not just a thin track. The ring sits in a row
-            // of text at 11pt, and an unfilled outline at that size reads as a
-            // stray glyph — the disc is what makes it look like a gauge with
-            // something left in it.
             Circle()
-                .fill(.quaternary)
+                .stroke(.quaternary, lineWidth: lineWidth)
+                .padding(lineWidth / 2)
             Circle()
                 .trim(from: 0, to: max(0, min(1, share)))
                 .stroke(
-                    Self.tint(for: share),
+                    tint,
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 // `trim` starts at three o'clock; every other dial starts at
@@ -38,6 +36,20 @@ struct ContextRing: View {
         }
         .frame(width: diameter, height: diameter)
         .accessibilityHidden(true)
+    }
+}
+
+struct ContextRing: View {
+    /// 0...1. `AgentContextEstimate.share(of:)` clamps before this is reached.
+    let share: Double
+    var diameter: CGFloat = 11
+    var lineWidth: CGFloat = 2
+
+    var body: some View {
+        ProgressRing(
+            share: share, tint: Self.tint(for: share),
+            diameter: diameter, lineWidth: lineWidth
+        )
     }
 
     /// Blue for the ordinary case, then orange, then red.
@@ -56,22 +68,76 @@ struct ContextRing: View {
     }
 }
 
-/// What the context is made of, as rows of a menu.
+/// An image-backed variant for places macOS bridges into `NSMenu`.
 ///
-/// The counts are in a right-aligned column, which is what a column of numbers
-/// is for: they are read against each other, and a ragged edge makes "38k" and
-/// "3.8k" look the same size at a glance.
+/// `Menu` labels accept arbitrary SwiftUI content in source, but AppKit keeps
+/// only image and text primitives when it builds the actual control. A ring
+/// made from two `Circle` shapes therefore disappears from the model picker.
+/// Rendering the same geometry as an `NSImage` makes the icon a native menu
+/// primitive while preserving the transparent centre and separate grey track.
+struct ContextRingMenuIcon: View {
+    let share: Double
+    var diameter: CGFloat = 11
+    var lineWidth: CGFloat = 2
+
+    var body: some View {
+        Image(nsImage: Self.image(share: share, diameter: diameter, lineWidth: lineWidth))
+            .renderingMode(.original)
+            .frame(width: diameter, height: diameter)
+            .accessibilityHidden(true)
+    }
+
+    private static func image(
+        share: Double, diameter: CGFloat, lineWidth: CGFloat
+    ) -> NSImage {
+        let clampedShare = max(0, min(1, share))
+        return NSImage(
+            size: NSSize(width: diameter, height: diameter),
+            flipped: false
+        ) { bounds in
+            let center = NSPoint(x: bounds.midX, y: bounds.midY)
+            let radius = max(0, min(bounds.width, bounds.height) / 2 - lineWidth / 2)
+
+            let track = NSBezierPath()
+            track.appendArc(
+                withCenter: center, radius: radius,
+                startAngle: 0, endAngle: 360
+            )
+            track.lineWidth = lineWidth
+            NSColor.quaternaryLabelColor.setStroke()
+            track.stroke()
+
+            guard clampedShare > 0 else { return true }
+            let progress = NSBezierPath()
+            progress.appendArc(
+                withCenter: center, radius: radius,
+                startAngle: 90, endAngle: 90 - 360 * clampedShare,
+                clockwise: true
+            )
+            progress.lineWidth = lineWidth
+            progress.lineCapStyle = .round
+            tint(for: clampedShare).setStroke()
+            progress.stroke()
+            return true
+        }
+    }
+
+    private static func tint(for share: Double) -> NSColor {
+        switch share {
+        case ..<0.75: .controlAccentColor
+        case ..<0.9: .systemOrange
+        default: .systemRed
+        }
+    }
+}
+
+/// What the context is made of, laid out in a real two-column surface.
 ///
-/// That alignment is why each row is an `HStack` with a `Spacer` rather than one
-/// padded string. macOS bridges `Menu` content into `NSMenu`, so a plain `Text`
-/// becomes a menu-item title and there is no way to align *within* a title —
-/// padding with figure spaces only lines up digits, and these labels are words.
-/// The ring stays on the menu's *label*, which is an ordinary view either way.
-///
-/// The point is not the total — that is on the label the reader just clicked —
-/// but the split under it. "38k of your 62k is tool output" is what makes
-/// compacting an informed choice rather than a guess.
-struct ContextBreakdownMenuItems: View {
+/// A native `NSMenu` reserves a trailing accessory column for submenu arrows
+/// and shortcuts. No amount of string padding can place text in that column —
+/// it only makes the menu wider. Keeping this in the model picker's popover
+/// gives `Spacer` an actual width and makes the value edge truthful.
+struct ContextBreakdownView: View {
     let estimate: AgentContextEstimate
     /// `nil` when the model's window is unknown, which is common for gateway
     /// providers. The parts still mean something; the share does not.
@@ -79,59 +145,53 @@ struct ContextBreakdownMenuItems: View {
     let cachedInputTokens: Int
 
     var body: some View {
-        Section(headline) {
-            ForEach(AgentContextEstimate.Part.allCases) { part in
-                let tokens = estimate.tokens(part)
-                if tokens > 0 {
-                    row(part.displayName, tokens)
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            Text("Context")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.l) {
+                    Text(row.name)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: Metrics.Space.l)
+                    Text(row.value)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .multilineTextAlignment(.trailing)
                 }
-            }
-            if cachedInputTokens > 0 {
-                row(String(localized: "Served from cache"), cachedInputTokens)
+                .font(.callout)
             }
         }
     }
 
-    private func row(_ name: String, _ tokens: Int) -> some View {
-        HStack(spacing: Metrics.Space.m) {
-            Text(name)
-            Spacer(minLength: Metrics.Space.m)
-            Text(Self.compact(tokens))
-                // Monospaced digits so the column stays a column as the numbers
-                // change under a running turn, rather than shuffling by a
-                // fraction of a character every time a 1 becomes a 4.
-                .monospacedDigit()
+    private var rows: [(name: String, value: String)] {
+        var rows = [(String(localized: "Usage"), usageValue)]
+        for part in AgentContextEstimate.Part.allCases {
+            let tokens = estimate.tokens(part)
+            if tokens > 0 {
+                rows.append((part.displayName, Self.compact(tokens)))
+            }
         }
-        // The width is the whole reason this aligns. A menu item sizes to its
-        // content, so a `Spacer` inside one has nothing to expand into and
-        // collapses to its minimum — every row then ends up a different width
-        // and the numbers stagger. Fixing the width gives the spacer room to
-        // push against, which is what puts the counts in a column.
-        .frame(width: Metrics.Chat.contextBreakdownWidth, alignment: .leading)
+        if cachedInputTokens > 0 {
+            rows.append((String(localized: "Served from cache"), Self.compact(cachedInputTokens)))
+        }
+        return rows
     }
 
-    private var headline: String {
+    private var usageValue: String {
         // The tilde is the whole disclosure. With no measured turn behind it
         // this is a character count, and a number presented as though the
         // provider had said it is one people would plan against.
         let prefix = estimate.isMeasured ? "" : "~"
         guard let contextWindow, contextWindow > 0 else {
-            return String(localized: "Context: \(prefix)\(Self.compact(estimate.total)) tokens")
+            return String(localized: "\(prefix)\(Self.compact(estimate.total)) tokens")
         }
         let percent = Int((estimate.share(of: contextWindow) ?? 0) * 100)
         return String(
             localized:
-                "Context: \(prefix)\(Self.compact(estimate.total)) of \(Self.compact(contextWindow)) (\(percent)%)"
+                "\(prefix)\(Self.compact(estimate.total)) of \(Self.compact(contextWindow)) (\(percent)%)"
         )
-    }
-
-    /// Pads with figure spaces rather than a `Grid`, because this text becomes
-    /// an `NSMenuItem` title. U+2007 is the width of a digit in most faces, so
-    /// the counts line up without assuming a monospaced menu font.
-    private static func row(_ name: String, _ tokens: Int) -> String {
-        let value = compact(tokens)
-        let padding = max(1, 22 - name.count - value.count)
-        return name + String(repeating: "\u{2007}", count: padding) + value
     }
 
     /// `62.4k`, not `62,431`. A gauge is read at a glance, and the last three

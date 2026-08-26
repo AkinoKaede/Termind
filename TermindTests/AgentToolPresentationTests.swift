@@ -163,12 +163,14 @@ struct AgentToolPresentationTests {
             callID: "call", content: "The remote host refused the command.", isError: true
         )
 
-        #expect(AgentToolPresentation.detailOutput(
-            from: duplicate, presentation: nil, review: review
-        ) == nil)
-        #expect(AgentToolPresentation.detailOutput(
-            from: distinct, presentation: nil, review: review
-        ) == "The remote host refused the command.")
+        #expect(
+            AgentToolPresentation.detailOutput(
+                from: duplicate, presentation: nil, review: review
+            ) == nil)
+        #expect(
+            AgentToolPresentation.detailOutput(
+                from: distinct, presentation: nil, review: review
+            ) == "The remote host refused the command.")
     }
 
     @Test
@@ -181,9 +183,54 @@ struct AgentToolPresentationTests {
             callID: "call", content: review.reason, isError: true
         )
 
-        #expect(AgentToolPresentation.detailOutput(
-            from: result, presentation: nil, review: review
-        ) == review.reason)
+        #expect(
+            AgentToolPresentation.detailOutput(
+                from: result, presentation: nil, review: review
+            ) == review.reason)
+    }
+
+    @Test
+    func longOutputPreviewStaysWithinTheRenderingBudgetAndKeepsFullCopy() {
+        let full = (0..<180).map { "line \($0) " + String(repeating: "x", count: 80) }
+            .joined(separator: "\n")
+
+        let preview = AgentToolPresentation.preview(full)
+
+        #expect(preview.isShortened)
+        #expect(preview.full == full)
+        #expect(preview.displayed.count <= AgentToolPresentation.displayCharacterLimit)
+        #expect(
+            preview.displayed.reduce(1) { $1 == "\n" ? $0 + 1 : $0 }
+                <= AgentToolPresentation.displayLineLimit
+        )
+        #expect(preview.displayed.hasPrefix("line 0"))
+        #expect(preview.displayed.contains("characters omitted"))
+        #expect(preview.displayed.hasSuffix(String(repeating: "x", count: 80)))
+        #expect(preview.omittedCharacters > 0)
+    }
+
+    @Test
+    func outputPreviewCountsUnicodeCharactersWithoutCorruptingEitherEnd() {
+        let full = "开头🧭" + String(repeating: "中", count: 200) + "结尾✅"
+        let preview = AgentToolPresentation.preview(full, characterLimit: 80, lineLimit: 120)
+
+        #expect(preview.isShortened)
+        #expect(preview.displayed.count <= 80)
+        #expect(preview.displayed.hasPrefix("开头🧭"))
+        #expect(preview.displayed.hasSuffix("结尾✅"))
+        #expect(preview.full == full)
+    }
+
+    @Test
+    func shortOutputIsNotProjectedOrMarkedAsShortened() {
+        let full = "one\ntwo\nthree"
+        let preview = AgentToolPresentation.preview(full)
+
+        #expect(
+            preview
+                == .init(
+                    displayed: full, full: full, isShortened: false, omittedCharacters: 0
+                ))
     }
 
     @Test
@@ -212,11 +259,14 @@ struct AgentToolPresentationTests {
 
     @Test
     func builtInToolsKeepDistinctStableIcons() {
-        #expect(AgentToolPresentation.symbol(for: makeCard(
-            name: "ssh_exec", target: .host,
-            presentation: .init(symbol: "terminal", activity: .label("command"))
-        )) == "terminal")
-        #expect(AgentToolPresentation.symbol(for: makeCard(name: "unknown", target: .local)) == "wrench.and.screwdriver")
+        #expect(
+            AgentToolPresentation.symbol(
+                for: makeCard(
+                    name: "ssh_exec", target: .host,
+                    presentation: .init(symbol: "terminal", activity: .label("command"))
+                )) == "terminal")
+        #expect(
+            AgentToolPresentation.symbol(for: makeCard(name: "unknown", target: .local)) == "wrench.and.screwdriver")
     }
 
     @Test
