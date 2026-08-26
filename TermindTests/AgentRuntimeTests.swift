@@ -333,6 +333,34 @@ struct AgentRuntimeTests {
         #expect(saved?.contains { $0.text == "one more thing" } == true)
     }
 
+    /// The line in `cancel()` that this guards is easy to lose: the batch runs
+    /// in an unstructured task, so cancelling the run does not reach it by
+    /// itself, and Stop would leave every running tool running.
+    @Test
+    func stoppingARunCancelsTheToolsItIsWaitingOn() async {
+        let cancelled = Recorder()
+        let gate = AsyncGate()
+        let runtime = AgentRuntime(
+            model: ScriptedAgentModel(turns: [
+                [.toolCallSnapshot(id: "1", providerItemID: nil, name: "hang", arguments: "{}"),
+                 .finished(.toolCalls)],
+                [.textDelta("done"), .finished(.completed)],
+            ]),
+            tools: [hangingTool(gate, onCancel: cancelled)],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+        )
+        let stream = await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+        ))
+        let consumer = Task { for await _ in stream {} }
+
+        await gate.waitUntilStarted()
+        await runtime.cancel()
+        await consumer.value
+
+        #expect(await cancelled.values == ["hang"])
+    }
+
     /// A queue nobody will drain is worse than a refusal: the caller still has
     /// the words and can put them back in front of the user.
     @Test
@@ -770,6 +798,30 @@ private actor Recorder {
     func append(_ value: String) { values.append(value) }
 }
 
+/// Announces that it started, then waits to be cancelled rather than to finish.
+///
+/// The sleep is long enough that finishing normally is never the fast path, and
+/// short enough that a test which fails to cancel it fails rather than hangs.
+private func hangingTool(_ gate: AsyncGate, onCancel: Recorder? = nil) -> AnyAgentTool {
+    AnyAgentTool(descriptor: AgentToolDescriptor(
+        name: "hang", summary: "hang",
+        inputSchema: .object([
+            "type": .string("object"), "properties": .object([:]),
+            "required": .array([]), "additionalProperties": .bool(false),
+        ]),
+        target: .local, safety: .locallyReadOnly, concurrency: .parallel
+    )) { invocation, _ in
+        await gate.begin()
+        do {
+            try await Task.sleep(for: .seconds(5))
+        } catch {
+            await onCancel?.append("hang")
+            throw error
+        }
+        return AgentToolResult(callID: invocation.call.id, content: "ran to completion")
+    }
+}
+
 private actor RecordingRunRepository: AgentRunPersisting {
     var recorded: [AgentEvent] = []
     func save(_ snapshot: AgentRunSnapshot) {}
@@ -799,11 +851,17 @@ private actor AsyncGate {
     private var startedWaiters: [CheckedContinuation<Void, Never>] = []
     private var releaseWaiter: CheckedContinuation<Void, Never>?
 
-    func beginAndWait() async {
+    /// Announce arrival without blocking on release — for work that is meant to
+    /// be ended by cancellation rather than let through.
+    func begin() {
         started = true
         let waiters = startedWaiters
         startedWaiters.removeAll()
         waiters.forEach { $0.resume() }
+    }
+
+    func beginAndWait() async {
+        begin()
         await withCheckedContinuation { releaseWaiter = $0 }
     }
 

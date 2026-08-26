@@ -54,6 +54,25 @@ nonisolated enum AgentPlannedToolCall: Sendable {
     }
 }
 
+/// What a call whose wait was cut short says to the model.
+///
+/// Shared by the two ways that happens — the user pressing Stop, and a steered
+/// message ending the batch early — because the honest thing to say is the same
+/// in both. It must not say the tool did not run: cancelling an `ssh_exec`
+/// abandons the channel and gives up the session, it does not stop the command
+/// on the far side, and a model told "this never ran" will happily run it again.
+/// See the `defer` in `SSHExecSession.executeOnQueue`, which spells out that the
+/// command may still be running, and `AgentUnansweredToolCallRepair`, which says
+/// the same thing about a process that died.
+nonisolated enum AgentInterruptedToolCall {
+    static let reason = String(
+        localized: """
+            Termind stopped waiting for this tool before it finished. Whether the action \
+            completed is unknown; check the current state before doing it again.
+            """
+    )
+}
+
 /// Runs a single tool call through every gate, in a fixed order.
 ///
 /// The order is the contract: structural validation, then locally-proven facts,
@@ -159,6 +178,19 @@ nonisolated struct AgentToolExecutor: Sendable {
                     ready.invocation, context: context(for: ready)
                 )
                 return await finish(ready, result)
+            } catch is CancellationError {
+                // Not `localizedDescription`, which for this error is
+                // "The operation couldn't be completed. (Swift.CancellationError
+                // error 1.)" — a sentence about Swift, addressed to a model that
+                // needs a sentence about the host. And not "it did not run"
+                // either: cancelling an `ssh_exec` abandons the channel without
+                // stopping the command on the far side, so the outcome is
+                // genuinely unknown. Same wording, for the same reason, as
+                // `AgentUnansweredToolCallRepair`.
+                return await finish(ready, AgentToolResult(
+                    callID: ready.invocation.call.id,
+                    content: AgentInterruptedToolCall.reason, isError: true
+                ))
             } catch {
                 return await finish(ready, AgentToolResult(
                     callID: ready.invocation.call.id,
