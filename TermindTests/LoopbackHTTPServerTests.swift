@@ -6,9 +6,20 @@ import Testing
 @Suite
 struct LoopbackHTTPServerTests {
     @Test
+    func constructsLoopbackListenersWithoutDuplicatingThePortArgument() async throws {
+        let server = LoopbackHTTPServer()
+
+        try await server.start(port: 57_391, token: "test-token") { _ in
+            .text(200, "OK")
+        }
+        await server.stop()
+    }
+
+    @Test
     func mcpServerIsOffByDefault() {
         #expect(SettingsKey.defaultMCPServerEnabled == false)
         #expect(SettingsKey.defaultMCPServerPort == 7_391)
+        #expect(MCPServerController.Status.ready(port: 7_391).label == "Listening on localhost:7391")
     }
 
     @Test

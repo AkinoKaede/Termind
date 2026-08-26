@@ -92,7 +92,7 @@ actor LoopbackHTTPServer {
                 parameters.requiredLocalEndpoint = .hostPort(
                     host: NWEndpoint.Host(address), port: endpointPort
                 )
-                let listener = try NWListener(using: parameters, on: endpointPort)
+                let listener = try NWListener(using: parameters)
                 listener.newConnectionLimit = Self.maximumConnections
                 listener.newConnectionHandler = { [weak self] connection in
                     Task { await self?.accept(connection) }

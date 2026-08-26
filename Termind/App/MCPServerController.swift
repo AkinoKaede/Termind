@@ -14,7 +14,8 @@ final class MCPServerController {
             switch self {
             case .stopped: String(localized: "Off")
             case .starting: String(localized: "Starting…")
-            case .ready(let port): String(localized: "Listening on localhost:\(port)")
+            case .ready(let port):
+                String(localized: "Listening on localhost:\(String(port))")
             case .failed(let reason): reason
             }
         }
