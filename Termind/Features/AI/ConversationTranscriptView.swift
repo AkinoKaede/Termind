@@ -394,8 +394,8 @@ private struct AgentWorkGroupView: View {
                     processMessage(message)
                 case .tool(let card):
                     AgentToolRowView(card: card)
-                case .tools(let cards):
-                    AgentToolBatchView(cards: cards)
+                case .tools(let batch):
+                    AgentToolBatchView(batch: batch)
                 }
             }
         }
@@ -440,10 +440,12 @@ private struct AgentWorkGroupView: View {
 /// the header reuses those calls' ordinary live wording exactly; only a fully
 /// terminal batch changes over to a compact action summary.
 private struct AgentToolBatchView: View {
-    let cards: [AgentToolCard]
+    let batch: AgentToolBatch
 
     @Environment(AppModel.self) private var app
     @State private var isExpanded = false
+
+    private var cards: [AgentToolCard] { batch.cards }
 
     private var unfinished: [AgentToolCard] {
         cards.filter { card in
@@ -454,10 +456,18 @@ private struct AgentToolBatchView: View {
         }
     }
 
+    private var displayedReasoning: String? {
+        guard !unfinished.isEmpty, let reasoning = batch.reasoningTitle,
+            AgentToolPresentation.showsReasoning(forBatchID: batch.id)
+        else { return nil }
+        return reasoning
+    }
+
     private var title: String {
         guard !unfinished.isEmpty else {
             return AgentToolPresentation.batchSummary(for: cards)
         }
+        if let displayedReasoning { return displayedReasoning }
         return unfinished.map { card in
             AgentToolPresentation.summary(for: card, hostName: hostName(for: card))
         }.joined(separator: "; ")
@@ -474,8 +484,11 @@ private struct AgentToolBatchView: View {
                         .frame(width: Metrics.Sidebar.rowIcon)
                     Text(title)
                         .font(MarkdownTypography.body)
+                        .lineLimit(displayedReasoning == nil ? nil : 1)
+                        .truncationMode(.tail)
                         .foregroundStyle(.secondary)
                         .modifier(ScanningTextMask(isActive: !unfinished.isEmpty))
+                        .layoutPriority(1)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .bold))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))

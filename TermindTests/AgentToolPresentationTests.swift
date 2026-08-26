@@ -255,6 +255,32 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func reasoningBatchTitleIsPlainSingleLineText() {
+        let title = AgentToolPresentation.reasoningTitle(from: """
+            **Checked both hosts.**
+
+            - Compare the logs
+            - Verify `sshd`
+            """)
+
+        #expect(title == "Checked both hosts. Compare the logs Verify sshd")
+    }
+
+    @Test
+    func reasoningBatchSamplingIsStableAtThirtyPercent() throws {
+        let included = try #require(UUID(
+            uuidString: "00000000-0000-4000-8000-000000000001"
+        ))
+        let excluded = try #require(UUID(
+            uuidString: "ffffffff-ffff-4fff-8fff-ffffffffffff"
+        ))
+
+        #expect(AgentToolPresentation.showsReasoning(forBatchID: included))
+        #expect(AgentToolPresentation.showsReasoning(forBatchID: included))
+        #expect(!AgentToolPresentation.showsReasoning(forBatchID: excluded))
+    }
+
+    @Test
     func countedArrayActivityRoundTrips() throws {
         let activity = AgentToolDescriptor.Presentation.Activity.arrayCount(
             key: "questions", singular: "a question", plural: "questions",

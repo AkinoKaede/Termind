@@ -46,6 +46,28 @@ nonisolated enum AgentToolPresentation {
         return .warning
     }
 
+    /// A stable 30% sample for a batch. Invocation identifiers are random UUIDs,
+    /// so using their first 32 bits gives the desired distribution without
+    /// making a SwiftUI row redraw or scroll reuse roll the dice again.
+    static func showsReasoning(forBatchID id: UUID) -> Bool {
+        let sample = withUnsafeBytes(of: id.uuid) { bytes in
+            bytes.prefix(4).reduce(UInt32.zero) { value, byte in
+                (value << 8) | UInt32(byte)
+            }
+        }
+        return sample < (UInt32.max / 10) * 3
+    }
+
+    /// Converts provider-authored Markdown into the one-line prose a tool
+    /// batch header can accommodate. Structure and emphasis remain available
+    /// in the live reasoning row; here only the visible words are reused.
+    static func reasoningTitle(from markdown: String) -> String {
+        let text = MarkdownDocumentParser.parse(markdown)
+            .flatMap(plainText)
+            .joined(separator: " ")
+        return text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
     static func summary(
         for card: AgentToolCard,
         hostName: String? = nil
@@ -90,6 +112,27 @@ nonisolated enum AgentToolPresentation {
 
         if let hostName, !hostName.isEmpty { return String(localized: "\(action) on \(hostName)") }
         return action
+    }
+
+    private static func plainText(_ block: MarkdownBlock) -> [String] {
+        switch block {
+        case .paragraph(let inlines), .heading(_, let inlines):
+            [inlines.map(\.text).joined()]
+        case .codeBlock(_, let code):
+            [code]
+        case .list(let list):
+            list.items.flatMap { $0.blocks.flatMap(plainText) }
+        case .table(let table):
+            ([table.header] + table.rows).flatMap { row in
+                row.map { $0.map(\.text).joined() }
+            }
+        case .blockQuote(let blocks):
+            blocks.flatMap(plainText)
+        case .htmlBlock(let raw):
+            [raw]
+        case .thematicBreak:
+            []
+        }
     }
 
     /// A finished contiguous batch, phrased from the same presentation

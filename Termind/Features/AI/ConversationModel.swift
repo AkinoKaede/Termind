@@ -304,21 +304,34 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     }
 }
 
+nonisolated struct AgentToolBatch: Identifiable, Hashable, Sendable {
+    var id: UUID { cards.first?.id ?? Self.emptyID }
+    var cards: [AgentToolCard]
+    /// The assistant response that requested every tool in this batch.
+    var sourceMessageID: UUID
+    /// A single-line projection of that response's display-safe reasoning.
+    /// Kept only while at least one member is unfinished.
+    var reasoningTitle: String?
+
+    private static let emptyID = UUID(
+        uuidString: "00000000-0000-0000-0000-000000000000"
+    )!
+}
+
 nonisolated enum AgentWorkItem: Identifiable, Hashable, Sendable {
     case reasoning(AgentReasoningBlock)
     case message(ChatMessage)
     case tool(AgentToolCard)
     /// Two or more contiguous tool calls, regardless of their current result.
     /// The view shows activity until every member is terminal, then summarizes.
-    case tools([AgentToolCard])
+    case tools(AgentToolBatch)
 
     var id: UUID {
         switch self {
         case .reasoning(let block): block.id
         case .message(let message): message.id
         case .tool(let card): card.id
-        case .tools(let cards):
-            cards.first?.id ?? UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+        case .tools(let batch): batch.id
         }
     }
 
@@ -327,7 +340,7 @@ nonisolated enum AgentWorkItem: Identifiable, Hashable, Sendable {
         case .reasoning(let block): block.createdAt
         case .message(let message): message.createdAt
         case .tool(let card): card.invocation.createdAt
-        case .tools(let cards): cards.first?.invocation.createdAt ?? .distantPast
+        case .tools(let batch): batch.cards.first?.invocation.createdAt ?? .distantPast
         }
     }
 }
@@ -987,8 +1000,15 @@ final class ConversationModel: Identifiable {
                     ?? recoveredSourceByCallID[card.invocation.call.id]
                 return source.map { (card.id, $0) }
             })
+            let reasoningTitles = Dictionary(uniqueKeysWithValues: processMessages.compactMap {
+                message -> (UUID, String)? in
+                let reasoning = message.reasoning.map(\.text).joined(separator: "\n\n")
+                let title = AgentToolPresentation.reasoningTitle(from: reasoning)
+                return title.isEmpty ? nil : (message.id, title)
+            })
             items = Self.groupAdjacentTools(
-                in: items, sourceMessageIDs: sourceMessageIDs
+                in: items, sourceMessageIDs: sourceMessageIDs,
+                reasoningTitles: reasoningTitles
             )
             let stored = runSummaries[runID]
             // A user stop is useful transcript state even when it interrupted a
@@ -1027,7 +1047,8 @@ final class ConversationModel: Identifiable {
     }
 
     private static func groupAdjacentTools(
-        in items: [AgentWorkItem], sourceMessageIDs: [AgentToolCard.ID: UUID]
+        in items: [AgentWorkItem], sourceMessageIDs: [AgentToolCard.ID: UUID],
+        reasoningTitles: [UUID: String]
     ) -> [AgentWorkItem] {
         var grouped: [AgentWorkItem] = []
         var adjacent: [AgentToolCard] = []
@@ -1036,8 +1057,13 @@ final class ConversationModel: Identifiable {
             guard !adjacent.isEmpty else { return }
             if adjacent.count == 1 {
                 grouped.append(.tool(adjacent[0]))
-            } else {
-                grouped.append(.tools(adjacent))
+            } else if let sourceMessageID = adjacentSourceMessageID {
+                let hasUnfinished = adjacent.contains { !$0.state.isTerminal }
+                grouped.append(.tools(AgentToolBatch(
+                    cards: adjacent,
+                    sourceMessageID: sourceMessageID,
+                    reasoningTitle: hasUnfinished ? reasoningTitles[sourceMessageID] : nil
+                )))
             }
             adjacent.removeAll(keepingCapacity: true)
             adjacentSourceMessageID = nil

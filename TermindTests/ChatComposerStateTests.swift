@@ -641,7 +641,7 @@ struct ChatComposerStateTests {
             Issue.record("Two adjacent tools should form one live batch")
             return
         }
-        #expect(live.map(\.id) == [first.id, second.id])
+        #expect(live.cards.map(\.id) == [first.id, second.id])
 
         conversation.handle(.toolFinished(first, AgentToolResult(
             callID: first.call.id, content: "failed", isError: true
@@ -655,7 +655,67 @@ struct ChatComposerStateTests {
             Issue.record("A failed member must not split the completed batch")
             return
         }
-        #expect(terminal.map(\.state) == [.failed, .completed])
+        #expect(terminal.cards.map(\.state) == [.failed, .completed])
+    }
+
+    @Test
+    func liveToolBatchReusesOnlyItsProviderTurnsReasoning() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("inspect both")
+        let runID = UUID()
+        let start = Date()
+        let source = AgentTranscriptMessage(
+            role: .assistant,
+            reasoning: [AgentReasoningBlock(text: "**Compare** both hosts.\nThen verify them.")],
+            toolCalls: ["first", "second"].map {
+                AgentToolCall(id: $0, name: "lookup", arguments: .object([:]))
+            },
+            createdAt: start.addingTimeInterval(1)
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: start
+        )))
+        conversation.handle(.messageStarted(source))
+        conversation.handle(.messageFinished(source))
+        conversation.handle(.turnFinished(index: 0, stopReason: .toolCalls))
+
+        let descriptor = AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )
+        let invocations = ["first", "second"].enumerated().map { offset, callID in
+            AgentToolInvocation(
+                runID: runID,
+                call: AgentToolCall(id: callID, name: "lookup", arguments: .object([:])),
+                sourceMessageID: source.id,
+                createdAt: start.addingTimeInterval(Double(offset + 2))
+            )
+        }
+        for invocation in invocations {
+            conversation.handle(.toolProposed(invocation, descriptor))
+        }
+
+        guard case .tools(let live) = try #require(
+            conversation.workGroups.first?.items.first
+        ) else {
+            Issue.record("Expected a live tool batch")
+            return
+        }
+        #expect(live.sourceMessageID == source.id)
+        #expect(live.reasoningTitle == "Compare both hosts. Then verify them.")
+
+        for invocation in invocations {
+            conversation.handle(.toolFinished(invocation, AgentToolResult(
+                callID: invocation.call.id, content: "ok"
+            )))
+        }
+        guard case .tools(let terminal) = try #require(
+            conversation.workGroups.first?.items.first
+        ) else {
+            Issue.record("Expected the completed tools to remain batched")
+            return
+        }
+        #expect(terminal.reasoningTitle == nil)
     }
 
     @Test
@@ -837,8 +897,8 @@ struct ChatComposerStateTests {
             case .reasoning(let block): return "reasoning:\(block.text)"
             case .message(let message): return "message:\(message.text)"
             case .tool(let card): return "tool:\(card.invocation.call.id)"
-            case .tools(let cards):
-                return "tools:\(cards.map(\.invocation.call.id).joined(separator: ","))"
+            case .tools(let batch):
+                return "tools:\(batch.cards.map(\.invocation.call.id).joined(separator: ","))"
             }
         }
         #expect(kinds == [
@@ -896,7 +956,7 @@ struct ChatComposerStateTests {
         let group = try #require(conversation.workGroups.first)
         let batches: [[String]] = group.items.map { item -> [String] in
             switch item {
-            case .tools(let cards): cards.map(\.invocation.call.id)
+            case .tools(let batch): batch.cards.map(\.invocation.call.id)
             case .tool(let card): [card.invocation.call.id]
             case .reasoning, .message: []
             }
@@ -953,7 +1013,7 @@ struct ChatComposerStateTests {
         let items = try #require(store.conversation(id: conversationID)?.workGroups.first).items
         let groups = items.map { item -> [String] in
             switch item {
-            case .tools(let cards): cards.map(\.invocation.call.id)
+            case .tools(let batch): batch.cards.map(\.invocation.call.id)
             case .tool(let card): [card.invocation.call.id]
             case .reasoning, .message: []
             }
@@ -998,7 +1058,7 @@ struct ChatComposerStateTests {
         let items = group.items
         let groups = items.map { item -> [String] in
             switch item {
-            case .tools(let cards): cards.map(\.descriptor.name)
+            case .tools(let batch): batch.cards.map(\.descriptor.name)
             case .tool(let card): [card.descriptor.name]
             case .reasoning, .message: []
             }
