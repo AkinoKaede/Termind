@@ -106,9 +106,12 @@ struct HostConnectMenu: View {
 
 /// One place that knows about `NSPasteboard`, so the views stay platform-neutral
 /// for the eventual iPadOS layout.
-func copyToPasteboard(_ text: String) {
+@discardableResult
+func copyToPasteboard(_ text: String) -> Bool {
     #if canImport(AppKit)
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        return NSPasteboard.general.setString(text, forType: .string)
+    #else
+        return false
     #endif
 }

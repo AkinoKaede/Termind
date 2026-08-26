@@ -64,14 +64,15 @@ final class AssistantConversationStore {
             conversation.title = value.title.isEmpty ? nil : value.title
             conversation.toolCards = value.toolCards.map { card in
                 let state: AgentToolCard.State
-                if card.result?.isError == true { state = .failed }
+                if card.result?.isInterrupted == true { state = .interrupted }
+                else if card.result?.isError == true { state = .failed }
                 else if card.result != nil || card.state == "finished" { state = .completed }
                 // Not `.running`, which is what this used to restore to. Every
                 // unfinished run is marked interrupted at launch, so a card
                 // that was mid-flight when the process died is not running
                 // now and never will be — it came back as a spinner that
                 // nothing would ever stop.
-                else if card.state == "started" { state = .failed }
+                else if card.state == "started" { state = .interrupted }
                 else { state = .proposed }
                 return AgentToolCard(
                     invocation: card.invocation, descriptor: card.descriptor,

@@ -56,7 +56,12 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             much of the workspace quota is spent.
             """,
             properties: ["path": string(max: pathBytes), "recursive": boolean()],
-            required: [], target: .local, safety: .locallyReadOnly, concurrency: .parallel
+            required: [], target: .local, safety: .locallyReadOnly, concurrency: .parallel,
+            presentation: .init(
+                symbol: "folder", activity: .argument(key: "path", fallback: "the scratch workspace"),
+                output: .json,
+                action: .init(infinitive: "list", progressive: "Listing", past: "Listed")
+            )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
             let entries = try await workspace.list(
@@ -94,7 +99,12 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 "offset": integer(min: 1, max: 10_000_000),
                 "limit": integer(min: 1, max: 100_000),
             ],
-            required: ["path"], target: .local, safety: .locallyReadOnly, concurrency: .parallel
+            required: ["path"], target: .local, safety: .locallyReadOnly, concurrency: .parallel,
+            presentation: .init(
+                symbol: "doc.text", activity: .argument(key: "path", fallback: "a scratch file"),
+                output: .field("content"),
+                action: .init(infinitive: "read", progressive: "Reading", past: "Read")
+            )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
             let text = try await workspace.read(
@@ -124,7 +134,12 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             """,
             properties: ["path": string(max: pathBytes), "content": string(max: contentBytes)],
             required: ["path", "content"], target: .local, safety: .locallyContained,
-            concurrency: .parallel
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "square.and.pencil",
+                activity: .argument(key: "path", fallback: "a scratch file"), output: .json,
+                action: .init(infinitive: "write", progressive: "Writing", past: "Wrote")
+            )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
             // Not `string("content")`: writing an empty file is a legitimate request
@@ -168,7 +183,12 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 "edits": array(items: replacement, max: AgentScratchWorkspace.Limits.edits),
             ],
             required: ["path", "edits"], target: .local, safety: .locallyContained,
-            concurrency: .parallel
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "pencil", activity: .argument(key: "path", fallback: "a scratch file"),
+                output: .field("diff"),
+                action: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
+            )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
             let outcome = try await workspace.apply(
@@ -203,7 +223,12 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 "context": integer(min: 0, max: 20),
             ],
             required: ["path_a", "path_b"], target: .local, safety: .locallyReadOnly,
-            concurrency: .parallel
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "arrow.left.arrow.right",
+                activity: .argument(key: "path_a", fallback: "scratch files"), output: .field("diff"),
+                action: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
+            )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
             let pathA = try arguments.string("path_a")
@@ -237,7 +262,12 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 "path": string(max: pathBytes), "kind": enumeration(["file", "directory"]),
             ],
             required: ["path", "kind"], target: .local, safety: .locallyContained,
-            concurrency: .parallel
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "trash", activity: .argument(key: "path", fallback: "a scratch entry"),
+                output: .json,
+                action: .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
+            )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
             let path = try arguments.string("path")
@@ -278,7 +308,13 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 "scratch_path": string(max: pathBytes),
             ],
             required: ["host_id", "remote_path", "scratch_path"], target: .host,
-            safety: .locallyContained, concurrency: .parallel
+            safety: .locallyContained, concurrency: .parallel,
+            presentation: .init(
+                symbol: "arrow.down.doc",
+                activity: .argument(key: "remote_path", fallback: "a remote file"), output: .json,
+                action: .init(infinitive: "pull", progressive: "Pulling", past: "Pulled"),
+                includesTarget: true
+            )
         )
         return AnyAgentTool(
             descriptor: tool,
@@ -341,7 +377,13 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 "remote_path": string(max: 4_096), "overwrite": boolean(),
             ],
             required: ["host_id", "scratch_path", "remote_path"], target: .host,
-            safety: .requiresAuthorization
+            safety: .requiresAuthorization,
+            presentation: .init(
+                symbol: "arrow.up.doc",
+                activity: .argument(key: "remote_path", fallback: "a remote file"), output: .json,
+                action: .init(infinitive: "push", progressive: "Pushing", past: "Pushed"),
+                includesTarget: true
+            )
         )
         return AnyAgentTool(
             descriptor: tool,

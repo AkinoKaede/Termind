@@ -71,6 +71,57 @@ nonisolated enum AgentJSONValue: Hashable, Sendable, Codable {
 }
 
 nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codable {
+    nonisolated struct Presentation: Hashable, Sendable, Codable {
+        nonisolated struct Action: Hashable, Sendable, Codable {
+            var infinitive: String
+            var progressive: String
+            var past: String
+        }
+
+        nonisolated enum Activity: Hashable, Sendable, Codable {
+            case label(String)
+            case argument(key: String, fallback: String)
+        }
+
+        nonisolated enum Output: Hashable, Sendable, Codable {
+            case automatic
+            case streams
+            case field(String)
+            case json
+        }
+
+        var symbol: String
+        var activity: Activity
+        var output: Output = .automatic
+        /// Templates keyed by card state or a tool-reported live phase.
+        /// Supported placeholders are `{activity}` and `{target}`.
+        var messages: [String: String] = [:]
+
+        init(
+            symbol: String, activity: Activity, output: Output = .automatic,
+            action: Action? = nil, includesTarget: Bool = false,
+            messages overrides: [String: String] = [:]
+        ) {
+            self.symbol = symbol
+            self.activity = activity
+            self.output = output
+            let target = includesTarget ? " on {target}" : ""
+            if let action {
+                messages = [
+                    "proposed": "Preparing to \(action.infinitive) {activity}\(target)",
+                    "waitingForApproval": "Waiting to \(action.infinitive) {activity}\(target)",
+                    "waitingForUser": "Waiting to \(action.infinitive) {activity}\(target)",
+                    "running": "\(action.progressive) {activity}\(target)",
+                    "completed": "\(action.past) {activity}\(target)",
+                    "denied": "Did not \(action.infinitive) {activity}\(target)",
+                    "failed": "Failed to \(action.infinitive) {activity}\(target)",
+                    "interrupted": "Interrupted while \(action.progressive.lowercased()) {activity}\(target)",
+                ]
+            }
+            messages.merge(overrides) { _, override in override }
+        }
+    }
+
     nonisolated enum Target: String, Hashable, Sendable, Codable {
         case local, host, network, user, mcp
     }
@@ -131,6 +182,8 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
     var concurrency: Concurrency = .sequential
     /// MCP's Ask First override. Full access intentionally ignores it.
     var alwaysAskUser: Bool = false
+    /// Transcript rendering declared by the tool rather than guessed by Chat UI.
+    var presentation: Presentation? = nil
 }
 
 nonisolated struct AgentToolCall: Identifiable, Hashable, Sendable, Codable {
@@ -202,6 +255,7 @@ nonisolated struct AgentToolResult: Hashable, Sendable, Codable {
 
     /// Marks a result the provider produced inside its own turn.
     static let providerNativeKey = "provider_native"
+    static let toolPresentationKey = "tool_presentation"
     static let untrustedDataOpeningMarker = "<untrusted-data>\n"
     static let untrustedDataClosingMarker = "\n</untrusted-data>"
 
@@ -236,6 +290,30 @@ nonisolated struct AgentToolResult: Hashable, Sendable, Codable {
     /// of costing a schema version.
     var isProviderNative: Bool {
         metadata[Self.providerNativeKey]?.boolValue == true
+    }
+
+    var isInterrupted: Bool {
+        metadata["interrupted"]?.boolValue == true
+    }
+
+    var presentationPhase: String? {
+        metadata["presentation_phase"]?.stringValue
+    }
+
+    var toolPresentation: AgentToolDescriptor.Presentation? {
+        get {
+            guard let encoded = metadata[Self.toolPresentationKey]?.stringValue,
+                let data = Data(base64Encoded: encoded)
+            else { return nil }
+            return try? JSONDecoder().decode(AgentToolDescriptor.Presentation.self, from: data)
+        }
+        set {
+            guard let newValue, let data = try? JSONEncoder().encode(newValue) else {
+                metadata.removeValue(forKey: Self.toolPresentationKey)
+                return
+            }
+            metadata[Self.toolPresentationKey] = .string(data.base64EncodedString())
+        }
     }
 }
 

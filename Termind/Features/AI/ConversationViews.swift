@@ -200,7 +200,13 @@ struct ComposerView: View {
             .animation(Motion.panel(reduceMotion: reduceMotion), value: showsTranscriptionControls)
         }
         .padding(Metrics.Space.l)
-        .background(.bar)
+        .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+        .padding(.horizontal, Metrics.Space.l)
+        .padding(.vertical, Metrics.Space.s)
         .onAppear(perform: normalizeReasoningEffort)
         .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
         .onDisappear {

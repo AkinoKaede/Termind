@@ -153,6 +153,6 @@ struct AgentInterruptedRunRecoveryTests {
         )])
 
         let card = try! #require(store.conversations.first?.toolCards.first)
-        #expect(card.state != .running)
+        #expect(card.state == .interrupted)
     }
 }

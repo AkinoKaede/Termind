@@ -32,7 +32,8 @@ nonisolated extension AgentToolSchemaBuilding {
         _ name: String, _ summary: String, properties: [String: AgentJSONValue],
         required: [String], target: AgentToolDescriptor.Target,
         safety: AgentToolDescriptor.Safety,
-        concurrency: AgentToolDescriptor.Concurrency = .sequential
+        concurrency: AgentToolDescriptor.Concurrency = .sequential,
+        presentation: AgentToolDescriptor.Presentation? = nil
     ) -> AgentToolDescriptor {
         AgentToolDescriptor(
             name: name, summary: summary,
@@ -41,7 +42,8 @@ nonisolated extension AgentToolSchemaBuilding {
                 "required": .array(required.map(AgentJSONValue.string)),
                 "additionalProperties": .bool(false),
             ]),
-            target: target, safety: safety, concurrency: concurrency
+            target: target, safety: safety, concurrency: concurrency,
+            presentation: presentation
         )
     }
 

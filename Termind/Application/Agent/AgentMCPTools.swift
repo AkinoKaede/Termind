@@ -61,7 +61,11 @@ nonisolated enum AgentMCPTools {
             // whole turn serial.
             concurrency: tool.annotations.destructiveHint == true || tool.requiresApproval
                 ? .sequential : .parallel,
-            alwaysAskUser: tool.requiresApproval
+            alwaysAskUser: tool.requiresApproval,
+            presentation: .init(
+                symbol: "puzzlepiece.extension", activity: .label(tool.id), output: .json,
+                action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+            )
         )
         return AnyAgentTool(
             descriptor: descriptor,

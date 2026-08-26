@@ -83,6 +83,7 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
 nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
     nonisolated enum State: String, Hashable, Sendable {
         case proposed, waitingForApproval, waitingForUser, reviewing, running, completed, denied, failed
+        case interrupted
 
         /// The transcript used to show `rawValue.capitalized`, which put the
         /// case name itself on screen — `WaitingForApproval`. The raw value is
@@ -97,6 +98,7 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
             case .completed: String(localized: "Completed")
             case .denied: String(localized: "Denied")
             case .failed: String(localized: "Failed")
+            case .interrupted: String(localized: "Interrupted")
             }
         }
 
@@ -108,6 +110,7 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
         var revealsDetailByDefault: Bool {
             switch self {
             case .waitingForApproval, .waitingForUser, .reviewing, .running, .denied, .failed: true
+            case .interrupted: false
             case .proposed, .completed: false
             }
         }
@@ -453,6 +456,9 @@ final class ConversationModel: Identifiable {
     }
 
     func stop() {
+        for index in toolCards.indices where toolCards[index].state == .running {
+            toolCards[index].state = .interrupted
+        }
         eventTask?.cancel()
         eventTask = nil
         // Read the runtime *before* releasing it. `Task { await runtime?… }`
@@ -798,7 +804,8 @@ final class ConversationModel: Identifiable {
                 // replayable, but the card kept being relabelled `Failed` the
                 // instant it was refused, so `denied` never reached the screen.
                 if toolCards[index].state != .denied {
-                    toolCards[index].state = result.isError ? .failed : .completed
+                    if result.isInterrupted { toolCards[index].state = .interrupted }
+                    else { toolCards[index].state = result.isError ? .failed : .completed }
                 }
             }
             // A card, but not a turn. A provider-native search happened inside

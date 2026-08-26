@@ -423,12 +423,6 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             call: AgentToolCall(id: row.callID, name: row.toolName, arguments: arguments),
             targetHostID: row.targetHostID, createdAt: row.createdAt
         )
-        let descriptor = AgentToolDescriptor(
-            name: row.toolName, summary: row.toolName,
-            inputSchema: .object(["type": .string("object")]),
-            target: row.targetHostID == nil ? .local : .host,
-            safety: .requiresAuthorization
-        )
         let result = results.last(where: { $0.invocationID == row.id }).map { stored in
             AgentToolResult(
                 callID: stored.callID, content: stored.content,
@@ -438,6 +432,12 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 )) ?? [:]
             )
         }
+        let descriptor = AgentToolDescriptor(
+            name: row.toolName, summary: row.toolName,
+            inputSchema: .object(["type": .string("object")]),
+            target: row.targetHostID == nil ? .local : .host,
+            safety: .requiresAuthorization, presentation: result?.toolPresentation
+        )
         let review = reviews.filter { $0.invocationID == row.id }
             .sorted { $0.createdAt < $1.createdAt }
             .last.flatMap { stored -> SecurityReviewDecision? in

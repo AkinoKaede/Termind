@@ -218,7 +218,8 @@ nonisolated struct AgentToolExecutor: Sendable {
                 // `AgentUnansweredToolCallRepair`.
                 return await finish(ready, AgentToolResult(
                     callID: ready.invocation.call.id,
-                    content: AgentInterruptedToolCall.reason, isError: true
+                    content: AgentInterruptedToolCall.reason, isError: true,
+                    metadata: ["interrupted": .bool(true)]
                 ))
             } catch {
                 return await finish(ready, AgentToolResult(
@@ -276,9 +277,10 @@ nonisolated struct AgentToolExecutor: Sendable {
     private func finish(
         _ ready: AgentPlannedToolCall.Ready, _ result: AgentToolResult
     ) async -> AgentToolResult {
-        let final = await hooks.didExecute(
+        var final = await hooks.didExecute(
             ready.invocation, descriptor: ready.descriptor, result: result
         )
+        final.toolPresentation = ready.descriptor.presentation
         channel.emit(.toolFinished(ready.invocation, final))
         return final
     }

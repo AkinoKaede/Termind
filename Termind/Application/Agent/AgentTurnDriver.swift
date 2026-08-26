@@ -149,7 +149,12 @@ nonisolated struct AgentTurnDriver: Sendable {
             ]),
             target: .network,
             safety: .locallyReadOnly,
-            concurrency: .parallel
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "magnifyingglass",
+                activity: .argument(key: "query", fallback: "the web"), output: .json,
+                action: .init(infinitive: "search", progressive: "Searching", past: "Searched")
+            )
         )
         let sources = AgentJSONValue.array(activity.sources.map { source in
             .object(["title": .string(source.title), "url": .string(source.url)])

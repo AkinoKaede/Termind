@@ -172,7 +172,7 @@ struct CopyButton: View {
 
     var body: some View {
         Button {
-            copyToPasteboard(text)
+            guard copyToPasteboard(text) else { return }
             hasCopied = true
             Task {
                 try? await Task.sleep(for: .seconds(1.4))
@@ -181,6 +181,8 @@ struct CopyButton: View {
         } label: {
             Image(systemName: hasCopied ? "checkmark" : "doc.on.doc")
                 .contentTransition(.symbolEffect(.replace))
+                .frame(width: 28, height: 28)
+                .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .font(.caption)

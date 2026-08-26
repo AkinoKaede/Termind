@@ -23,9 +23,9 @@ struct ConversationView: View {
                 AgentApprovalCard(request: approval, conversation: conversation)
             }
             if let interaction = conversation.pendingUserInteraction {
-                Divider()
                 switch interaction {
                 case .questions(let input):
+                    Divider()
                     AgentUserInputCard(request: input, conversation: conversation)
                 case .sshAuthentication(let authentication):
                     AgentSSHAuthenticationCard(
@@ -34,10 +34,8 @@ struct ConversationView: View {
                 }
             }
             if !conversation.pendingSteering.isEmpty {
-                Divider()
                 SteeringQueueView(conversation: conversation)
             }
-            Divider()
             ComposerView(conversation: conversation, sessionContext: sessionContext)
         }
     }
@@ -114,40 +112,45 @@ struct ConversationView: View {
 /// One tool call, as a line the reader can open.
 ///
 /// A filled card per call turns a reply that used four tools into four grey
-/// slabs around one paragraph of prose. The state is what people scan for; the
-/// arguments and output are what they open when the state surprises them.
+/// slabs around one paragraph of prose. The one-line action is what people scan
+/// for; only the review result and output appear when they ask for more.
 private struct AgentToolRowView: View {
     let card: AgentToolCard
 
-    /// `nil` until the reader has an opinion, after which theirs wins. Before
-    /// that the row follows its state, so a call that starts running opens and
-    /// a call that finishes does not slam shut under the pointer.
-    @State private var userExpanded: Bool?
+    @Environment(AppModel.self) private var app
+    @State private var isExpanded = false
 
-    private var isExpanded: Bool {
-        userExpanded ?? card.state.revealsDetailByDefault
+    private var summary: String {
+        AgentToolPresentation.summary(for: card, hostName: hostName)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
-                userExpanded = !isExpanded
+                isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
-                    Image(systemName: symbol)
+                    Image(systemName: AgentToolPresentation.symbol(for: card))
                         .foregroundStyle(tint)
                         .frame(width: Metrics.Sidebar.rowIcon)
-                    Text(card.descriptor.name)
+                    Text(summary)
                         .font(MarkdownTypography.body)
+                        .lineLimit(isExpanded ? nil : 1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     Spacer(minLength: Metrics.Space.s)
-                    Text(card.state.displayName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if card.state == .reviewing {
+                        Image(systemName: "checkmark.shield")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .accessibilityLabel(Text("Security Review in progress"))
+                    }
                     Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .bold))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .foregroundStyle(.tertiary)
                 }
+                .opacity(card.state == .interrupted ? 0.5 : 1)
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
@@ -164,14 +167,6 @@ private struct AgentToolRowView: View {
                 .frame(width: Metrics.Chat.rule)
 
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                Text(
-                    AgentSensitiveDataRedactor
-                        .redactedJSON(card.invocation.call.arguments).encodedString
-                )
-                .font(.caption.monospaced())
-                .textSelection(.enabled)
-                .lineLimit(8)
-
                 if let review = card.review {
                     Label(
                         "Security Review: \(review.risk.rawValue.capitalized) — \(review.reason)",
@@ -179,14 +174,18 @@ private struct AgentToolRowView: View {
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
                 }
 
                 if let result = card.result {
-                    Text(result.content)
+                    Text(AgentToolPresentation.output(
+                        from: result, presentation: card.descriptor.presentation
+                    ))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .font(.caption.monospaced())
                         .foregroundStyle(result.isError ? .red : .secondary)
                         .textSelection(.enabled)
-                        .lineLimit(12)
+
                     if result.isTruncated {
                         Text("Output truncated")
                             .font(.caption2)
@@ -199,20 +198,15 @@ private struct AgentToolRowView: View {
         .padding(.leading, Metrics.Sidebar.rowIcon)
     }
 
-    private var symbol: String {
-        switch card.state {
-        case .reviewing: "checkmark.shield"
-        case .waitingForUser: "key.fill"
-        case .running: "gearshape.2"
-        case .completed: "checkmark.circle.fill"
-        case .denied, .failed: "xmark.octagon"
-        default: "wrench.and.screwdriver"
-        }
+    private var hostName: String? {
+        guard let id = card.invocation.targetHostID else { return nil }
+        return app.hosts.host(id)?.name ?? String(id.uuidString.prefix(8))
     }
 
     private var tint: Color {
         switch card.state {
         case .denied, .failed: .red
+        case .interrupted: .secondary
         case .reviewing, .waitingForApproval, .waitingForUser: .orange
         case .completed: .green
         default: .secondary
@@ -572,7 +566,9 @@ private struct SteeringQueueView: View {
         .padding(.horizontal, Metrics.Space.l)
         .padding(.vertical, Metrics.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.25))
+        .background(.quaternary.opacity(0.32), in: .rect(cornerRadius: Metrics.Radius.large))
+        .padding(.horizontal, Metrics.Space.l)
+        .padding(.top, Metrics.Space.s)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Queued messages"))
     }
