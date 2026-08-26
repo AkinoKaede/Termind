@@ -361,6 +361,68 @@ struct AgentRuntimeTests {
         #expect(await cancelled.values == ["hang"])
     }
 
+    @Test
+    func aNoticeJoinsTheNextRequestTheRunWasAlreadyGoingToMake() async {
+        let requests = RequestRecorder()
+        let gate = AsyncGate()
+        let runtime = AgentRuntime(
+            model: RecordingScriptedAgentModel(
+                turns: [
+                    [.toolCallSnapshot(id: "1", providerItemID: nil, name: "wait", arguments: "{}"),
+                     .finished(.toolCalls)],
+                    [.textDelta("done"), .finished(.completed)],
+                ],
+                requests: requests
+            ),
+            tools: [AnyAgentTool(descriptor: AgentToolDescriptor(
+                name: "wait", summary: "wait",
+                inputSchema: .object(["type": .string("object")]),
+                target: .local, safety: .locallyReadOnly
+            )) { invocation, _ in
+                await gate.beginAndWait()
+                return AgentToolResult(callID: invocation.call.id, content: "released")
+            }],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+        )
+        let stream = await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+        ))
+        let consumer = Task { for await _ in stream {} }
+
+        await gate.waitUntilStarted()
+        #expect(await runtime.notify("the deploy finished with exit code 0"))
+        await gate.release()
+        await consumer.value
+
+        #expect(await requests.values.last?.messages.contains {
+            $0.text == "the deploy finished with exit code 0"
+        } == true)
+    }
+
+    /// A report is not a request. An agent that has said its piece should not
+    /// start talking again because a command it forgot about came back — so a
+    /// notice, unlike steering, does not buy the run another turn.
+    @Test
+    func aNoticeAloneDoesNotKeepARunAlive() async {
+        let requests = RequestRecorder()
+        let gate = AsyncGate()
+        let runtime = AgentRuntime(
+            model: GatedAgentModel(requests: requests, gate: gate), tools: [],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+        )
+        let stream = await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+        ))
+        let consumer = Task { for await _ in stream {} }
+
+        await gate.waitUntilStarted()
+        #expect(await runtime.notify("the deploy finished"))
+        await gate.release()
+        await consumer.value
+
+        #expect(await requests.values.count == 1, "nothing here was worth another round trip")
+    }
+
     /// A queue nobody will drain is worse than a refusal: the caller still has
     /// the words and can put them back in front of the user.
     @Test

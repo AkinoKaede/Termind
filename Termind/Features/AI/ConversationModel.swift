@@ -752,6 +752,11 @@ final class ConversationModel: Identifiable {
                 ))
             }
             refreshRunState()
+        // The model-facing history only. There is no bubble for it on purpose:
+        // it is a report the run made to the model, and rendering it would
+        // attribute to the user words the user never wrote.
+        case .noticeDelivered(let message):
+            transcript.append(message)
         // A queued turn has entered the model's context, so now it is part of
         // the conversation — in both lists, at the position the run put it, and
         // no longer in the queue the composer is drawing.

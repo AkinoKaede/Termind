@@ -972,7 +972,11 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                     await pool.detachExec(hostID: hostID, session: session)
                     let handle = await background.adopt(
                         hostID: hostID, command: command, stream: stream,
-                        task: running, session: session
+                        task: running, session: session,
+                        // If the model never comes back for it, the outcome is
+                        // pushed at the next model boundary instead of being
+                        // swept ten minutes later unread.
+                        announce: context.notify
                     )
                     let captured = stream.captured
                     return result(invocation, .object([

@@ -44,6 +44,10 @@ actor AgentRuntime {
     private let channel: AgentEventChannel
     private var runTask: Task<Void, Never>?
     private var steering: [AgentTranscriptMessage] = []
+    /// Things to tell the model that the user is not shown. Same lifetime and
+    /// same delivery point as steering; a different event, because one is a
+    /// person talking and the other is a machine reporting.
+    private var notices: [AgentTranscriptMessage] = []
     /// Whether a message queued *now* would still be delivered.
     ///
     /// Not the same question as "is there a run task". `complete` awaits its
@@ -130,6 +134,22 @@ actor AgentRuntime {
         return true
     }
 
+    /// Queues something for the model that never appears in the transcript.
+    ///
+    /// `false` when there is no run left to tell — a command that finishes
+    /// after its conversation has gone quiet has nobody to report to, and the
+    /// model finds out by asking `ssh_wait` or not at all. Deliberately does
+    /// *not* keep the loop alive on its own: a report is not a request, and an
+    /// agent that had said its piece should not start talking again because a
+    /// command it forgot about came back.
+    @discardableResult
+    func notify(_ text: String) -> Bool {
+        guard acceptsSteering else { return false }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        notices.append(AgentTranscriptMessage(role: .user, text: text))
+        return true
+    }
+
     func cancel() {
         acceptsSteering = false
         runTask?.cancel()
@@ -172,7 +192,8 @@ actor AgentRuntime {
                 tools: tools, approval: approval, hooks: hooks, channel: channel,
                 secretBroker: secretBroker, userInteraction: userInteraction,
                 runID: runID, permissionMode: request.permissionMode,
-                userIntent: request.prompt
+                userIntent: request.prompt,
+                notify: { [weak self] text in Task { await self?.notify(text) } }
             ),
             mode: configuration.toolExecution,
             maximumConcurrency: configuration.maximumToolConcurrency
@@ -183,7 +204,10 @@ actor AgentRuntime {
             for index in 0..<configuration.maxTurns {
                 try Task.checkCancellation()
                 channel.emit(.turnStarted(index: index))
-                if !steering.isEmpty {
+                if !notices.isEmpty || !steering.isEmpty {
+                    // Reports first, then instructions: what happened while the
+                    // model was away is context for what it is being asked now.
+                    snapshot.messages.append(contentsOf: deliverNotices())
                     snapshot.messages.append(contentsOf: deliverSteering())
                     await persist(snapshot)
                 }
@@ -276,6 +300,17 @@ actor AgentRuntime {
     /// and a message stamped while the previous turn was still streaming sorts
     /// above the reply the user was reading when they typed it — which is not
     /// where the model saw it.
+    private func deliverNotices() -> [AgentTranscriptMessage] {
+        let delivered = notices.map { queued in
+            var message = queued
+            message.createdAt = .now
+            return message
+        }
+        notices.removeAll()
+        for message in delivered { channel.emit(.noticeDelivered(message)) }
+        return delivered
+    }
+
     private func deliverSteering() -> [AgentTranscriptMessage] {
         let delivered = steering.map { queued in
             var message = queued

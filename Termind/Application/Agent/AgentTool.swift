@@ -17,6 +17,14 @@ nonisolated struct AgentToolExecutionContext: Sendable {
     /// for. Defaults to discarding, so a caller assembling a context by hand —
     /// a test, a preview — need not care.
     var report: @Sendable (AgentToolResult) -> Void = { _ in }
+    /// Tell the model something after this call has already returned.
+    ///
+    /// For work a tool handed on rather than finished. Unlike `report`, this is
+    /// not scoped to the call — that is the whole point of it — and unlike a
+    /// result, it is never shown to the user. Dropped when there is no run left
+    /// to tell, which is the honest outcome: a command finishing after its
+    /// conversation went quiet has nobody to report to.
+    var notify: @Sendable (String) -> Void = { _ in }
 }
 
 nonisolated protocol AgentTool: Sendable {
