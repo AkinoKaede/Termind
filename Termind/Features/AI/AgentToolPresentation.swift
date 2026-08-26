@@ -59,6 +59,22 @@ nonisolated enum AgentToolPresentation {
         return output(raw, policy: presentation?.output ?? .automatic)
     }
 
+    /// The denial reason is intentionally kept both on the review record and
+    /// in the tool result: people need the former and the model must receive
+    /// the latter. The transcript, however, should not print identical text
+    /// twice. Distinct execution failures remain visible below the review.
+    static func detailOutput(
+        from result: AgentToolResult,
+        presentation: AgentToolDescriptor.Presentation?,
+        review: SecurityReviewDecision?
+    ) -> String? {
+        let rendered = output(from: result, presentation: presentation)
+        guard result.isError, let review, !review.allowsExecution,
+            normalized(rendered) == normalized(review.reason)
+        else { return rendered }
+        return nil
+    }
+
     private static func output(
         _ raw: String, policy: AgentToolDescriptor.Presentation.Output
     ) -> String {
@@ -115,5 +131,9 @@ nonisolated enum AgentToolPresentation {
             )
         else { return value.encodedString }
         return String(decoding: data, as: UTF8.self)
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }

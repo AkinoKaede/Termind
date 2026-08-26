@@ -149,6 +149,44 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func duplicateSecurityReviewDenialIsShownOnlyOnce() {
+        let reason = "The request was not explicitly authorized."
+        let review = SecurityReviewDecision(
+            verdict: .deny, risk: .high, userAuthorization: .insufficient,
+            reason: reason
+        )
+        let duplicate = AgentToolResult(
+            callID: "call", content: "  The request was not explicitly\nauthorized.  ",
+            isError: true
+        )
+        let distinct = AgentToolResult(
+            callID: "call", content: "The remote host refused the command.", isError: true
+        )
+
+        #expect(AgentToolPresentation.detailOutput(
+            from: duplicate, presentation: nil, review: review
+        ) == nil)
+        #expect(AgentToolPresentation.detailOutput(
+            from: distinct, presentation: nil, review: review
+        ) == "The remote host refused the command.")
+    }
+
+    @Test
+    func allowedReviewNeverHidesAResult() {
+        let review = SecurityReviewDecision(
+            verdict: .approve, risk: .low, userAuthorization: .sufficient,
+            reason: "Completed with a warning."
+        )
+        let result = AgentToolResult(
+            callID: "call", content: review.reason, isError: true
+        )
+
+        #expect(AgentToolPresentation.detailOutput(
+            from: result, presentation: nil, review: review
+        ) == review.reason)
+    }
+
+    @Test
     func interruptedResultsAreExplicitlyMarked() {
         let result = AgentToolResult(
             callID: "call", content: "stopped", isError: true,

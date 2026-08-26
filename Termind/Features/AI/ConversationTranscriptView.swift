@@ -25,8 +25,13 @@ struct ConversationView: View {
             if let interaction = conversation.pendingUserInteraction {
                 switch interaction {
                 case .questions(let input):
-                    Divider()
                     AgentUserInputCard(request: input, conversation: conversation)
+                        .padding(.horizontal, Metrics.Space.l)
+                        .frame(
+                            maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, Metrics.Space.s)
                 case .sshAuthentication(let authentication):
                     AgentSSHAuthenticationCard(
                         request: authentication, conversation: conversation
@@ -36,7 +41,11 @@ struct ConversationView: View {
             if !conversation.pendingSteering.isEmpty {
                 SteeringQueueView(conversation: conversation)
             }
-            ComposerView(conversation: conversation, sessionContext: sessionContext)
+            ComposerView(
+                conversation: conversation,
+                maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
+                sessionContext: sessionContext
+            )
         }
     }
 
@@ -68,7 +77,9 @@ struct ConversationView: View {
                 // edge of unframed assistant text.
                 .padding(.horizontal, isCompact ? Metrics.Space.l : Metrics.Space.xl)
                 .padding(.vertical, Metrics.Space.xl)
-                .frame(maxWidth: isCompact ? .infinity : 760)
+                .frame(
+                    maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth
+                )
                 .frame(maxWidth: .infinity)
             }
             // Keyed on the last row's revision, not on a count. Streaming text
@@ -178,13 +189,17 @@ private struct AgentToolRowView: View {
                 }
 
                 if let result = card.result {
-                    Text(AgentToolPresentation.output(
-                        from: result, presentation: card.descriptor.presentation
-                    ))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(result.isError ? .red : .secondary)
-                        .textSelection(.enabled)
+                    if let output = AgentToolPresentation.detailOutput(
+                        from: result,
+                        presentation: card.descriptor.presentation,
+                        review: card.review
+                    ) {
+                        Text(output)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(result.isError ? .red : .secondary)
+                            .textSelection(.enabled)
+                    }
 
                     if result.isTruncated {
                         Text("Output truncated")
@@ -364,22 +379,25 @@ private struct AgentUserInputCard: View {
                 }
             }
 
-            // Three questions with four described options each runs past 500pt,
-            // and this card sits between the transcript and the composer. But a
-            // bare `ScrollView` is greedy: capped at the same height it would
-            // hand a one-question card 320pt of box for 120pt of question. So
-            // the natural stack is preferred and the scrolling one is the
-            // fallback, which is what `ViewThatFits` is for.
+            // Prefer the form's natural height. When the surrounding VStack
+            // offers less room (including after a live window resize), the
+            // scrolling fallback accepts that proposal instead. There is no
+            // fixed card height, so one question never inherits the box needed
+            // by three long ones.
             ViewThatFits(in: .vertical) {
                 questionStack
                 ScrollView { questionStack }
                     .scrollBounceBehavior(.basedOnSize)
             }
-            .frame(maxHeight: Metrics.Chat.userInputMaxHeight)
 
             footer
         }
         .padding(Metrics.Space.l)
+        .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
+                .stroke(.quaternary, lineWidth: 1)
+        }
     }
 
     private var questionStack: some View {

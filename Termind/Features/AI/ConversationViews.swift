@@ -120,6 +120,9 @@ struct FlowLayout: Layout {
 struct ComposerView: View {
     let conversation: ConversationModel
     var prompt: LocalizedStringKey = "Ask anything…"
+    /// The full Assistant tab shares one centered column with its transcript.
+    /// `nil` keeps compact/sidebar composers fluid.
+    var maxContentWidth: CGFloat? = nil
     /// What the surface showing this composer knows about the focused pane.
     /// Defaulting to `.none` is what makes a composer outside a Workspace — the
     /// Assistant tab — session-free by construction rather than by remembering.
@@ -131,7 +134,7 @@ struct ComposerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
     @State private var draftBeforeTranscription = ""
-    @State private var draftHeight = Metrics.Chat.composerMinHeight
+    @State private var draftHeight = Metrics.Chat.compactComposerMinHeight
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
         app.aiConfiguration.resolve(conversation: conversation.model)
@@ -206,7 +209,13 @@ struct ComposerView: View {
                 .stroke(.quaternary, lineWidth: 1)
         }
         .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.s)
+        .frame(maxWidth: maxContentWidth ?? .infinity)
+        .frame(maxWidth: .infinity)
+        .padding(.top, Metrics.Space.s)
+        .padding(
+            .bottom,
+            maxContentWidth == nil ? Metrics.Space.s : Metrics.Space.l
+        )
         .onAppear(perform: normalizeReasoningEffort)
         .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
         .onDisappear {
@@ -283,10 +292,16 @@ struct ComposerView: View {
         }
         .frame(
             height: min(
-                max(draftHeight, Metrics.Chat.composerMinHeight),
+                max(draftHeight, minimumDraftHeight),
                 Metrics.Chat.composerMaxHeight
             )
         )
+    }
+
+    private var minimumDraftHeight: CGFloat {
+        maxContentWidth == nil
+            ? Metrics.Chat.compactComposerMinHeight
+            : Metrics.Chat.composerMinHeight
     }
 
     /// `TextEditor`'s own leading text-container inset, which the placeholder

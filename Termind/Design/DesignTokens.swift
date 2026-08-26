@@ -145,6 +145,12 @@ nonisolated enum Metrics {
     /// be noticeably larger than `Space.xl` — at ordinary padding the gap reads
     /// as a wrap, not as a change of speaker.
     enum Chat {
+        /// The shared reading column in the full Assistant tab.
+        ///
+        /// Transcript, decision forms and composer use one width so the page
+        /// reads as a single conversation rather than three nested columns.
+        /// Compact Assistant surfaces continue to use all available width.
+        static let contentMaxWidth: CGFloat = 840
         static let turnSpacing: CGFloat = 20
         static let blockSpacing: CGFloat = 10
         static let bubbleRadius: CGFloat = 14
@@ -176,15 +182,10 @@ nonisolated enum Metrics {
         /// composer stand at its maximum with the caret marooned at the top and
         /// a hand's width of nothing under it. The height is measured from the
         /// draft instead; these two bound the result.
-        static let composerMinHeight: CGFloat = 40
+        static let composerMinHeight: CGFloat = 48
+        /// Sidebar composers keep their denser one-line floor.
+        static let compactComposerMinHeight: CGFloat = 40
         static let composerMaxHeight: CGFloat = 132
-
-        /// How tall the agent's question form may grow before it scrolls.
-        ///
-        /// Three questions with four described options each runs past 500pt,
-        /// and this card sits between the transcript and the composer — past
-        /// this it would push the conversation it is about off the screen.
-        static let userInputMaxHeight: CGFloat = 320
 
         /// How much of the steering queue is shown before it scrolls.
         ///
