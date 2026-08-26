@@ -18,7 +18,7 @@ struct AgentHostAuthenticationTests {
             connectionState: "connected", isTemporary: true,
             groupID: UUID(), groupPath: "must be cleared"
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [grouped, ungrouped], groups: [empty, child, root]
         )
         let resolver = AgentHostResolver(store: store, temporaryTargets: { [temporary] })
@@ -41,7 +41,7 @@ struct AgentHostAuthenticationTests {
     @Test
     func inlineIdentityCanBeUsedOnceWithoutChangingTheVault() async throws {
         let host = Host(name: "Server", host: "server.example")
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host],
             knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")]
         )
@@ -69,10 +69,10 @@ struct AgentHostAuthenticationTests {
     func inlineIdentityCanBeCreatedAndBound() async throws {
         let host = Host(name: "Server", host: "server.example")
         let secrets = MemoryHostSecretStore()
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host],
             knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")],
-            keychain: secrets
+            secrets: secrets
         )
         let interaction = AuthenticationResponder { _ in
             .submit(AgentSSHAuthenticationAnswer(
@@ -111,10 +111,10 @@ struct AgentHostAuthenticationTests {
             for: reference, storage: .thisDevice
         )
         let host = Host(name: "Server", host: "server.example")
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host], keys: [key],
             knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")],
-            keychain: keychain
+            secrets: keychain
         )
         let interaction = AuthenticationResponder { request in
             switch request.mode {
@@ -165,7 +165,7 @@ struct AgentHostAuthenticationTests {
         let jump = Host(name: "Bastion", host: "jump.example")
         var destination = Host(name: "Files", host: "files.example")
         destination.jumpHostID = jump.id
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [destination, jump],
             knownHosts: [
                 KnownHostEntry(hostname: jump.host, fingerprint: "SHA256:jump"),
@@ -209,7 +209,7 @@ struct AgentHostAuthenticationTests {
     @Test
     func sftpToolCollectsMissingIdentityBeforeListing() async throws {
         let host = Host(name: "Files", host: "files.example")
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host],
             knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")]
         )
@@ -363,7 +363,7 @@ struct AgentHostAuthenticationTests {
     @Test
     func staleFailureCannotClearANewerAuthenticationGeneration() async throws {
         let host = Host(name: "Server", host: "server.example")
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host],
             knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")]
         )
@@ -536,7 +536,7 @@ struct AgentHostAuthenticationTests {
         resolver: AgentHostResolver
     ) {
         let host = Host(name: "Server", host: "server.example")
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host],
             knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")]
         )
@@ -572,7 +572,7 @@ struct AgentHostAuthenticationTests {
     }
 }
 
-private final class MemoryHostSecretStore: HostSecretStoring, @unchecked Sendable {
+private final class MemoryHostSecretStore: SecretStoring, @unchecked Sendable {
     private struct PasswordKey: Hashable {
         var account: String
         var storage: PasswordStorage

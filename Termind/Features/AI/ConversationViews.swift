@@ -134,11 +134,11 @@ struct ComposerView: View {
     @State private var draftHeight = Metrics.Chat.composerMinHeight
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
-        app.ai.resolve(conversation: conversation.model)
+        app.aiConfiguration.resolve(conversation: conversation.model)
     }
 
     private var modelProviders: [ModelProvider] {
-        app.ai.enabledModelProviders.filter { !$0.chatModels.isEmpty }
+        app.aiConfiguration.enabledModelProviders.filter { !$0.chatModels.isEmpty }
     }
 
     private var resolvedModelLabel: String {
@@ -146,7 +146,7 @@ struct ComposerView: View {
     }
 
     private var resolvedPermissionMode: ChatPermissionMode {
-        app.ai.resolve(conversation: conversation.permissionMode)
+        app.aiConfiguration.resolve(conversation: conversation.permissionMode)
     }
 
     private var reasoningResolution: ModelCapabilityResolver.ReasoningResolution? {
@@ -536,7 +536,7 @@ struct ComposerView: View {
             ForEach(ChatPermissionMode.allCases) { mode in
                 Button {
                     conversation.permissionMode = mode
-                    app.ai.select(mode)
+                    app.aiConfiguration.select(mode)
                 } label: {
                     selectionLabel(mode.displayName, isSelected: mode == resolvedPermissionMode)
                 }
@@ -669,7 +669,7 @@ struct ComposerView: View {
     private func select(_ model: AIModel, on provider: ModelProvider) {
         let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
         conversation.model = ref
-        app.ai.select(ref)
+        app.aiConfiguration.select(ref)
         let resolution = ModelCapabilityResolver.reasoning(model: model, provider: provider)
         conversation.reasoningEffort = resolution.clamp(conversation.reasoningEffort)
     }

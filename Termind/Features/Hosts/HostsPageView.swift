@@ -87,7 +87,7 @@ struct HostsPageView: ManagedCardPage {
     /// means both.
     private var sections: [Section] {
         guard !isFiltering else {
-            let matches = app.hosts.searchHosts(state.query).filter {
+            let matches = app.hostLibrary.searchHosts(state.query).filter {
                 $0.hasTags(state.selectedTags)
             }
             guard !matches.isEmpty else { return [] }
@@ -113,20 +113,20 @@ struct HostsPageView: ManagedCardPage {
                 Section(
                     id: .group(group.id), title: title,
                     isExpanded: group.isExpanded,
-                    hosts: app.hosts.hosts(in: group.id)
+                    hosts: app.hostLibrary.hosts(in: group.id)
                 )
             )
             guard group.isExpanded else { return }
-            for child in app.hosts.childGroups(of: group.id) {
+            for child in app.hostLibrary.childGroups(of: group.id) {
                 walk(child, prefix: title)
             }
         }
-        for group in app.hosts.rootGroups {
+        for group in app.hostLibrary.rootGroups {
             walk(group, prefix: "")
         }
 
-        let ungrouped = app.hosts.hosts(in: nil)
-        if !ungrouped.isEmpty || !app.hosts.groups.isEmpty {
+        let ungrouped = app.hostLibrary.hosts(in: nil)
+        if !ungrouped.isEmpty || !app.hostLibrary.groups.isEmpty {
             // Foldable like a real group, because on a fleet that is mostly
             // unfiled it is the section most worth getting out of the way. Its
             // flag has to live on the store instead of on a `HostGroup` — there
@@ -134,7 +134,7 @@ struct HostsPageView: ManagedCardPage {
             result.append(
                 Section(
                     id: .ungrouped, title: String(localized: "Ungrouped"),
-                    isExpanded: app.hosts.isUngroupedExpanded, hosts: ungrouped
+                    isExpanded: app.hostLibrary.isUngroupedExpanded, hosts: ungrouped
                 )
             )
         }
@@ -166,24 +166,24 @@ struct HostsPageView: ManagedCardPage {
                 isEnabled: !isFiltering,
                 dropPolicy: .anySection
             ) { ids, destination, next in
-                app.hosts.move(hostIDs: ids, into: destination.groupID, before: next)
+                app.hostLibrary.move(hostIDs: ids, into: destination.groupID, before: next)
             }
         )
     }
 
     var isManagedSourceEmpty: Bool {
-        app.hosts.hosts.isEmpty && app.hosts.groups.isEmpty
+        app.hostLibrary.hosts.isEmpty && app.hostLibrary.groups.isEmpty
     }
 
     @ViewBuilder
     func managedHeader(
         for section: ManagedCardSection<SectionID, Host>, isDropTarget: Bool
     ) -> some View {
-        if case .group(let groupID) = section.id, let group = app.hosts.group(groupID) {
+        if case .group(let groupID) = section.id, let group = app.hostLibrary.group(groupID) {
             CardSectionHeader(
                 title: section.title,
                 count: section.items.count,
-                toggle: { app.hosts.setExpanded(!group.isExpanded, for: group.id) },
+                toggle: { app.hostLibrary.setExpanded(!group.isExpanded, for: group.id) },
                 isCollapsed: !group.isExpanded,
                 select: { selectGroup(group.id) },
                 isSelected: state.selectedGroupID == group.id,
@@ -199,7 +199,7 @@ struct HostsPageView: ManagedCardPage {
                 title: section.title,
                 count: section.items.count,
                 toggle: section.isExpanded.map { expanded in
-                    { app.hosts.setUngroupedExpanded(!expanded) }
+                    { app.hostLibrary.setUngroupedExpanded(!expanded) }
                 },
                 isCollapsed: !(section.isExpanded ?? true),
                 isDropTarget: isDropTarget
@@ -222,7 +222,7 @@ struct HostsPageView: ManagedCardPage {
     }
 
     func managedGhost(for host: Host) -> some View {
-        HostGhostCard(host: host, address: app.hosts.loginAddress(for: host))
+        HostGhostCard(host: host, address: app.hostLibrary.loginAddress(for: host))
     }
 
     @ViewBuilder
@@ -240,7 +240,7 @@ struct HostsPageView: ManagedCardPage {
     /// anywhere beneath it takes nothing with it but empty folders, and a dialog
     /// for that is a dialog people learn to dismiss without reading.
     private func requestDelete(_ group: HostGroup) {
-        if app.hosts.hosts(inTreeOf: group.id).isEmpty {
+        if app.hostLibrary.hosts(inTreeOf: group.id).isEmpty {
             delete(group, keepHosts: false)
         } else {
             state.confirmation = .deleteGroup(group)
@@ -248,26 +248,26 @@ struct HostsPageView: ManagedCardPage {
     }
 
     private func delete(_ group: HostGroup, keepHosts: Bool) {
-        app.hosts.delete(groupID: group.id, keepHosts: keepHosts)
+        app.hostLibrary.delete(groupID: group.id, keepHosts: keepHosts)
         state.confirmation = nil
         pruneHostSelection()
 
         if state.selectedGroupID == group.id { state.selectedGroupID = nil }
-        window.pruneDetailSelections(in: app.hosts)
+        window.pruneDetailSelections(in: app.hostLibrary)
     }
 
     /// A deleted tag also stops being something the list is narrowed by —
     /// otherwise the page would sit filtered by a tag no host has, showing
     /// nothing, with no obvious way back.
     private func deleteTag(_ tag: String) {
-        app.hosts.deleteTag(tag)
+        app.hostLibrary.deleteTag(tag)
         state.selectedTags.remove(tag)
         state.confirmation = nil
     }
 
     private func deletionMessage(for group: HostGroup) -> String {
-        let hosts = app.hosts.hosts(inTreeOf: group.id).count
-        let nested = app.hosts.descendantGroups(of: group.id).count
+        let hosts = app.hostLibrary.hosts(inTreeOf: group.id).count
+        let nested = app.hostLibrary.descendantGroups(of: group.id).count
         let hostCount = hosts == 1
             ? String(localized: "1 host") : String(localized: "\(hosts) hosts")
         if nested == 0 {
@@ -290,7 +290,7 @@ struct HostsPageView: ManagedCardPage {
     }
 
     private func setHostSelection(_ ids: Set<Host.ID>) {
-        let valid = ids.intersection(Set(app.hosts.hosts.map(\.id)))
+        let valid = ids.intersection(Set(app.hostLibrary.hosts.map(\.id)))
         if !valid.isEmpty { state.selectedGroupID = nil }
         let ordered = visibleHosts.filter { valid.contains($0.id) }.map { ContextPanelDetailID.host($0.id) }
         window.setDetailSelection(ordered, for: .hosts)
@@ -314,7 +314,7 @@ struct HostsPageView: ManagedCardPage {
             searchFocused: $searchFocused
         ) {
             TagFilterButton(
-                tags: app.hosts.hostTags,
+                tags: app.hostLibrary.hostTags,
                 selection: Binding(
                     get: { state.selectedTags }, set: { state.selectedTags = $0 }
                 ),
@@ -350,7 +350,7 @@ struct HostsPageView: ManagedCardPage {
             }
             // The same slot, for the other kind of selection — the two can never
             // both be set, so the toolbar only ever offers one set of verbs.
-            if let group = state.selectedGroupID.flatMap({ app.hosts.group($0) }) {
+            if let group = state.selectedGroupID.flatMap({ app.hostLibrary.group($0) }) {
                 Button("Edit Group") { editGroup(group) }
                 Button("Delete Group", role: .destructive) { requestDelete(group) }
             }
@@ -396,7 +396,7 @@ struct HostsPageView: ManagedCardPage {
         HostsPagePresentation(
             state: state,
             actions: HostsPagePresentation.Actions(
-                store: app.hosts,
+                store: app.hostLibrary,
                 deleteGroup: { delete($0, keepHosts: $1) },
                 deleteTag: deleteTag,
                 deletionMessage: deletionMessage
@@ -428,7 +428,7 @@ struct HostsPageView: ManagedCardPage {
 
 struct HostsPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
-        let store: HostStore
+        let store: HostLibraryModel
         let deleteGroup: (HostGroup, Bool) -> Void
         let deleteTag: (String) -> Void
         let deletionMessage: (HostGroup) -> String
@@ -495,13 +495,13 @@ private struct HostCard: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    private var status: ConnectionStatus { app.hosts.status(of: host.id) }
+    private var status: ConnectionStatus { app.hostLibrary.status(of: host.id) }
 
     /// A pinned key that stopped matching. Shown here, on the host, because that
     /// is what the fingerprint belongs to — there is no separate Known Hosts
     /// list to go and check.
     private var keyMismatched: Bool {
-        app.hosts.knownHosts(for: host).contains(where: \.isMismatched)
+        app.hostLibrary.knownHosts(for: host).contains(where: \.isMismatched)
     }
 
     var body: some View { card }
@@ -523,7 +523,7 @@ private struct HostCard: View {
         .contextMenu {
             HostContextMenu(hosts: actionHosts, selectionDeleted: selectionDeleted)
         }
-        .help(Text("\(app.hosts.loginAddress(for: host)) — \(status.label)"))
+        .help(Text("\(app.hostLibrary.loginAddress(for: host)) — \(status.label)"))
         .accessibilityLabel(host.name)
         .accessibilityHint("Quick Connect with SSH")
         .accessibilityAction(named: Text("Quick Connect"), quickConnect)
@@ -541,7 +541,7 @@ private struct HostCard: View {
                 Text(host.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text(app.hosts.loginAddress(for: host))
+                Text(app.hostLibrary.loginAddress(for: host))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

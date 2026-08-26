@@ -18,7 +18,12 @@ struct AppDependencies {
         self.agentRunRepository = agentRunRepository
     }
 
-    static func legacy(hosts: HostStore) -> Self {
-        Self(hostRepository: HostStoreRepositoryAdapter(store: hosts), outboxRunner: nil)
+    static func inMemory(hosts: [Host], groups: [HostGroup]) -> Self {
+        Self(
+            hostRepository: InMemoryHostRepository(
+                snapshot: HostLibrarySnapshot(hosts: hosts, groups: groups)
+            ),
+            outboxRunner: nil
+        )
     }
 }

@@ -607,8 +607,8 @@ struct SSHAuthenticationForm: View {
                                     String(localized: "Custom"), selected: identityID == nil
                                 )
                             }
-                            if !app.hosts.identities.isEmpty { Divider() }
-                            ForEach(app.hosts.identities) { identity in
+                            if !app.hostLibrary.identities.isEmpty { Divider() }
+                            ForEach(app.hostLibrary.identities) { identity in
                                 Button {
                                     identitySelection.wrappedValue = identity.id
                                 } label: {
@@ -641,8 +641,8 @@ struct SSHAuthenticationForm: View {
                                         String(localized: "None"), selected: keyID == nil
                                     )
                                 }
-                                if !app.hosts.keys.isEmpty { Divider() }
-                                ForEach(app.hosts.keys) { key in
+                                if !app.hostLibrary.keys.isEmpty { Divider() }
+                                ForEach(app.hostLibrary.keys) { key in
                                     Button {
                                         keySelection.wrappedValue = key.id
                                     } label: {
@@ -703,7 +703,7 @@ struct SSHAuthenticationForm: View {
     }
 
     private var selectedIdentity: Identity? {
-        identityID.flatMap { app.hosts.identity($0) }
+        identityID.flatMap { app.hostLibrary.identity($0) }
     }
 
     private var identityLabel: String {
@@ -712,7 +712,7 @@ struct SSHAuthenticationForm: View {
     }
 
     private var keyLabel: String {
-        keyID.flatMap { app.hosts.key($0) }?.label ?? String(localized: "None")
+        keyID.flatMap { app.hostLibrary.key($0) }?.label ?? String(localized: "None")
     }
 
     private func fullWidthMenu<Content: View>(
@@ -762,7 +762,7 @@ struct SSHAuthenticationForm: View {
             identityID
         } set: { id in
             identityID = id
-            guard let identity = id.flatMap({ app.hosts.identity($0) }) else { return }
+            guard let identity = id.flatMap({ app.hostLibrary.identity($0) }) else { return }
             username = identity.username
             password = ""
             passphrase = ""

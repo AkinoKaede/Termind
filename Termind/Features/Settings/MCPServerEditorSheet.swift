@@ -13,7 +13,7 @@ final class MCPServerEditorSession {
     var connection: ConnectionState = .idle
     private var didBegin = false
 
-    func begin(with server: MCPServer, in store: AIStore) {
+    func begin(with server: MCPServer, in store: AIConfigurationModel) {
         guard !didBegin else { return }
         didBegin = true
         token = store.secret(for: server.credentialRef) ?? ""
@@ -43,7 +43,7 @@ struct MCPServerEditorPage: View {
 
     @State private var session = MCPServerEditorSession()
 
-    private var server: MCPServer? { app.ai.mcpServer(serverID) }
+    private var server: MCPServer? { app.aiConfiguration.mcpServer(serverID) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,7 +53,7 @@ struct MCPServerEditorPage: View {
                     title: server.name.isEmpty ? String(localized: "Server") : server.name,
                     subtitle: server.negotiatedVersion.isEmpty ? server.url : "MCP \(server.negotiatedVersion)",
                     back: back,
-                    trailing: AnyView(StatusDot(status: app.ai.mcpStatus(of: serverID)))
+                    trailing: AnyView(StatusDot(status: app.aiConfiguration.mcpStatus(of: serverID)))
                 )
                 Divider()
                 Form {
@@ -63,7 +63,7 @@ struct MCPServerEditorPage: View {
                     toolsSection(server)
                     Section {
                         Button("Delete Server", role: .destructive) {
-                            app.ai.delete(serverID: serverID)
+                            app.aiConfiguration.delete(serverID: serverID)
                             deleted()
                         }
                     }
@@ -77,7 +77,7 @@ struct MCPServerEditorPage: View {
         }
         .onAppear {
             guard let server else { return }
-            session.begin(with: server, in: app.ai)
+            session.begin(with: server, in: app.aiConfiguration)
         }
     }
 
@@ -219,20 +219,20 @@ struct MCPServerEditorPage: View {
 
     private func connect(_ server: MCPServer) {
         session.connection = .running
-        app.ai.setMCPStatus(.connecting, for: serverID)
+        app.aiConfiguration.setMCPStatus(.connecting, for: serverID)
         let bearer = session.token.isEmpty ? nil : session.token
 
         Task {
             do {
                 let discovery = try await MCPClient().discover(server, bearerToken: bearer)
-                app.ai.setTools(discovery.tools, version: discovery.protocolVersion, for: serverID)
-                app.ai.setMCPStatus(.connected, for: serverID)
+                app.aiConfiguration.setTools(discovery.tools, version: discovery.protocolVersion, for: serverID)
+                app.aiConfiguration.setMCPStatus(.connected, for: serverID)
                 session.connection = .succeeded(
                     discovery.tools.count == 1
                         ? String(localized: "\(discovery.serverName) — 1 tool")
                         : String(localized: "\(discovery.serverName) — \(discovery.tools.count) tools"))
             } catch {
-                app.ai.setMCPStatus(.failed(error.localizedDescription), for: serverID)
+                app.aiConfiguration.setMCPStatus(.failed(error.localizedDescription), for: serverID)
                 session.connection = .failed(error.localizedDescription)
             }
         }
@@ -241,38 +241,38 @@ struct MCPServerEditorPage: View {
     private func store(token value: String) {
         guard var server else { return }
         if value.isEmpty {
-            app.ai.setSecret(nil, for: server.credentialRef)
+            app.aiConfiguration.setSecret(nil, for: server.credentialRef)
             server.credentialRef = ""
         } else {
             if server.credentialRef.isEmpty {
-                server.credentialRef = AIStore.makeCredentialRef("mcp")
+                server.credentialRef = AIConfigurationModel.makeCredentialRef("mcp")
             }
-            app.ai.setSecret(value, for: server.credentialRef)
+            app.aiConfiguration.setSecret(value, for: server.credentialRef)
         }
-        app.ai.upsert(server)
+        app.aiConfiguration.upsert(server)
     }
 
     private func addHeader() {
         guard var server else { return }
         server.headers.append(MCPHeader())
-        app.ai.upsert(server)
+        app.aiConfiguration.upsert(server)
     }
 
     private func removeHeader(_ id: MCPHeader.ID) {
         guard var server else { return }
         server.headers.removeAll { $0.id == id }
-        app.ai.upsert(server)
+        app.aiConfiguration.upsert(server)
     }
 
     // MARK: - Bindings
 
     private func binding<Value>(_ keyPath: WritableKeyPath<MCPServer, Value>) -> Binding<Value> {
         Binding(
-            get: { app.ai.mcpServer(serverID)?[keyPath: keyPath] ?? MCPServer(name: "")[keyPath: keyPath] },
+            get: { app.aiConfiguration.mcpServer(serverID)?[keyPath: keyPath] ?? MCPServer(name: "")[keyPath: keyPath] },
             set: { newValue in
-                guard var server = app.ai.mcpServer(serverID) else { return }
+                guard var server = app.aiConfiguration.mcpServer(serverID) else { return }
                 server[keyPath: keyPath] = newValue
-                app.ai.upsert(server)
+                app.aiConfiguration.upsert(server)
             }
         )
     }
@@ -281,13 +281,13 @@ struct MCPServerEditorPage: View {
         _ id: MCPHeader.ID, _ keyPath: WritableKeyPath<MCPHeader, String>
     ) -> Binding<String> {
         Binding(
-            get: { app.ai.mcpServer(serverID)?.headers.first { $0.id == id }?[keyPath: keyPath] ?? "" },
+            get: { app.aiConfiguration.mcpServer(serverID)?.headers.first { $0.id == id }?[keyPath: keyPath] ?? "" },
             set: { newValue in
-                guard var server = app.ai.mcpServer(serverID),
+                guard var server = app.aiConfiguration.mcpServer(serverID),
                     let index = server.headers.firstIndex(where: { $0.id == id })
                 else { return }
                 server.headers[index][keyPath: keyPath] = newValue
-                app.ai.upsert(server)
+                app.aiConfiguration.upsert(server)
             }
         )
     }
@@ -344,14 +344,14 @@ private struct ToolRow: View {
     private var enabled: Binding<Bool> {
         Binding(
             get: { tool.isEnabled },
-            set: { app.ai.setToolEnabled($0, tool: tool.id, on: serverID) }
+            set: { app.aiConfiguration.setToolEnabled($0, tool: tool.id, on: serverID) }
         )
     }
 
     private var asksFirst: Binding<Bool> {
         Binding(
             get: { tool.requiresApproval },
-            set: { app.ai.setToolRequiresApproval($0, tool: tool.id, on: serverID) }
+            set: { app.aiConfiguration.setToolRequiresApproval($0, tool: tool.id, on: serverID) }
         )
     }
 }

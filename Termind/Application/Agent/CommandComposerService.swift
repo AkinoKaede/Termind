@@ -99,10 +99,10 @@ protocol CommandComposing: AnyObject, Sendable {
 
 @MainActor
 final class CommandComposerController: CommandComposing {
-    private let ai: AIStore
+    private let ai: AIConfigurationModel
     private let service: CommandComposerService
 
-    init(ai: AIStore, service: CommandComposerService = CommandComposerService()) {
+    init(ai: AIConfigurationModel, service: CommandComposerService = CommandComposerService()) {
         self.ai = ai
         self.service = service
     }

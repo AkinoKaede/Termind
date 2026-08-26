@@ -152,7 +152,7 @@ private struct TagFilterRow: View {
 
     PageToolbar(query: .constant(""), prompt: "Filter hosts") {
         TagFilterButton(
-            tags: HostStore.demo().hostTags,
+            tags: HostLibraryModel.demo().hostTags,
             selection: $selection,
             requestDelete: { _ in }
         )

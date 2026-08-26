@@ -47,14 +47,17 @@ final class AppModel {
         init(_ value: WindowModel) { self.value = value }
     }
 
-    let hosts: HostStore
-    let commandHistory: CommandHistoryStore
-    let externalToolCalls: ExternalToolCallStore
+    private let hosts: HostLibraryModel
+    var hostLibrary: HostLibraryModel { hosts }
+    let credentials: CredentialLibraryModel
+    let snippets: SnippetLibraryModel
+    let forwardings: ForwardingLibraryModel
+    let transfers: TransferLibraryModel
+    let commandHistory: CommandHistoryModel
+    private let externalToolCalls: ToolAuditModel
+    var toolAudit: ToolAuditModel { externalToolCalls }
     let externalAuthentication: ExternalAuthCoordinator
     let toolServer: ToolServerController
-    /// Repository-backed projection used by newly migrated features. HostStore
-    /// remains temporarily available until all legacy features have moved.
-    let hostLibrary: HostLibraryModel
     let commands = AppCommandRegistry()
     let connections: RemoteConnectionCoordinator
     let hostRepository: any HostRepository
@@ -62,10 +65,11 @@ final class AppModel {
     let sftpTransfers: SFTPTransferCoordinator
     /// Providers, models, role assignments, MCP servers.
     ///
-    /// Its own store rather than more fields on `HostStore`: that one is about
+    /// Its own store rather than more fields on `HostLibraryModel`: that one is about
     /// machines you connect to, this one about endpoints you spend a key at.
-    /// See `AIStore`.
-    let ai: AIStore
+    /// See `AIConfigurationModel`.
+    private let ai: AIConfigurationModel
+    var aiConfiguration: AIConfigurationModel { ai }
     let commandComposer: CommandComposerController
     /// Names conversations for the chat list. Held as the protocol, not the
     /// concrete controller, so a test can watch the trigger without a provider.
@@ -92,15 +96,19 @@ final class AppModel {
     private var titledConversationIDs = Set<UUID>()
 
     init(
-        hosts: HostStore, ai: AIStore = AIStore(),
-        commandHistory: CommandHistoryStore = CommandHistoryStore(),
-        externalToolCalls: ExternalToolCallStore = ExternalToolCallStore(),
+        hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
+        commandHistory: CommandHistoryModel = CommandHistoryModel(),
+        externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil
     ) {
-        let dependencies = dependencies ?? .legacy(hosts: hosts)
+        let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         let connectionCoordinator = dependencies.connectionCoordinator
         self.hosts = hosts
+        credentials = CredentialLibraryModel(library: hosts)
+        snippets = SnippetLibraryModel(library: hosts)
+        forwardings = ForwardingLibraryModel(library: hosts)
+        transfers = TransferLibraryModel(library: hosts)
         self.commandHistory = commandHistory
         self.externalToolCalls = externalToolCalls
         externalAuthentication = ExternalAuthCoordinator()
@@ -116,7 +124,6 @@ final class AppModel {
             openSFTP: { try await connectionCoordinator.connectSFTP(using: $0) }
         )
         hostRepository = dependencies.hostRepository
-        hostLibrary = HostLibraryModel(repository: dependencies.hostRepository)
         forwarding = PortForwardingController(hosts: hosts)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
@@ -496,7 +503,7 @@ final class AppModel {
     /// Opens a host in the given window, handing back the tab it landed in.
     ///
     /// The initial status flip is optimistic; once the terminal appears, its SSH
-    /// session reports the authoritative state back to `HostStore`.
+    /// session reports the authoritative state back to `HostLibraryModel`.
     ///
     /// The return value exists for `open(_:as:in:)`'s plural form, which has to
     /// know which tab was first. Discardable because nearly every caller opens

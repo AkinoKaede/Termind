@@ -9,7 +9,7 @@ final class MCPToolServer {
     ]
 
     private let channel: AgentEventChannel
-    private let history: ExternalToolCallStore
+    private let history: ToolAuditModel
     private let externalAuthentication: ExternalAuthCoordinator
     private let approval: AgentApprovalBroker
     private var registry: AgentToolRegistry
@@ -20,7 +20,7 @@ final class MCPToolServer {
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands,
         externalAuthentication: ExternalAuthCoordinator,
-        history: ExternalToolCallStore,
+        history: ToolAuditModel,
         disabledTools: Set<String> = []
     ) {
         channel = AgentEventChannel(repository: InMemoryAgentRunRepository())

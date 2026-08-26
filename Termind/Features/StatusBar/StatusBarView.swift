@@ -47,7 +47,7 @@ struct StatusBarView: View {
             if hasTransfers {
                 TransferCenterButton(
                     coordinator: app.sftpTransfers,
-                    hosts: app.hosts
+                    hosts: app.hostLibrary
                 )
             }
         }
@@ -66,7 +66,7 @@ struct StatusBarView: View {
         let status =
             sshSession?.status
             ?? sftpSession?.status
-            ?? pane?.hostID.map { app.hosts.status(of: $0) }
+            ?? pane?.hostID.map { app.hostLibrary.status(of: $0) }
             ?? .disconnected
 
         HStack(spacing: Metrics.Space.s) {
@@ -78,10 +78,10 @@ struct StatusBarView: View {
                 Text(status.label)
             }
         }
-        .help(Text(host.map { app.hosts.loginAddress(for: $0) } ?? status.label))
+        .help(Text(host.map { app.hostLibrary.loginAddress(for: $0) } ?? status.label))
     }
 
-    private var host: Host? { pane?.hostID.flatMap { app.hosts.host($0) } }
+    private var host: Host? { pane?.hostID.flatMap { app.hostLibrary.host($0) } }
 
     private func item(_ symbol: String, _ text: String) -> some View {
         Label(text, systemImage: symbol).truncationMode(.head)
@@ -142,7 +142,7 @@ struct StatusBarView: View {
 
 private struct TransferCenterButton: View {
     let coordinator: SFTPTransferCoordinator
-    let hosts: HostStore
+    let hosts: HostLibraryModel
 
     @State private var isPresented = false
 
@@ -220,7 +220,7 @@ private struct TransferCenterButton: View {
 
 private struct TransferCenterPopover: View {
     let coordinator: SFTPTransferCoordinator
-    let hosts: HostStore
+    let hosts: HostLibraryModel
     let dismiss: () -> Void
 
     private var transfers: [SFTPTransfer] {

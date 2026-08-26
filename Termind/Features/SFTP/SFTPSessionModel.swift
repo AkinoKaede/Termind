@@ -127,7 +127,7 @@ final class SFTPSessionModel: Identifiable {
     private var isRecoveringConnection = false
     private var operationCancellation: TransferCancellationToken?
     weak var navigationRouter: (any SFTPSessionNavigationRouting)?
-    private weak var statusStore: HostStore?
+    private weak var statusStore: HostLibraryModel?
     private weak var transferCoordinator: SFTPTransferCoordinator?
     private var didResolveInitialPath: Bool
     private let automaticRefreshInterval: Duration
@@ -186,11 +186,15 @@ final class SFTPSessionModel: Identifiable {
         return configuration.map(SFTPTransferConnection.saved)
     }
 
-    func connect(using store: HostStore) {
+    func connect(using store: HostLibraryModel) {
         startConnection(using: store)
     }
 
-    private func startConnection(using store: HostStore) {
+    func connect(using transfers: TransferLibraryModel) {
+        connect(using: transfers.library)
+    }
+
+    private func startConnection(using store: HostLibraryModel) {
         let reconnecting = hasConnectedOnce && isRecoveringConnection
         bindStatus(to: store)
         connectionTask?.cancel()
@@ -355,7 +359,7 @@ final class SFTPSessionModel: Identifiable {
         }
     }
 
-    func bindStatus(to store: HostStore) {
+    func bindStatus(to store: HostLibraryModel) {
         statusStore = store
         store.setConnectionStatus(status, connectionID: id, hostID: hostID)
     }
@@ -423,7 +427,7 @@ final class SFTPSessionModel: Identifiable {
         didResolveInitialPath = true
     }
 
-    func trustAndConnect(_ observation: SSHHostKeyObservation, using store: HostStore) {
+    func trustAndConnect(_ observation: SSHHostKeyObservation, using store: HostLibraryModel) {
         store.trust(
             KnownHostEntry(
                 hostname: observation.hostname, port: observation.port,
@@ -439,8 +443,14 @@ final class SFTPSessionModel: Identifiable {
         connect(using: store)
     }
 
+    func trustAndConnect(
+        _ observation: SSHHostKeyObservation, using transfers: TransferLibraryModel
+    ) {
+        trustAndConnect(observation, using: transfers.library)
+    }
+
     func continueWithTemporaryHostKey(
-        _ observation: SSHHostKeyObservation, using store: HostStore
+        _ observation: SSHHostKeyObservation, using store: HostLibraryModel
     ) {
         guard let hostID = pendingHostKeyHostID else { return }
         temporaryHostKeys[hostID] = observation.identity
@@ -450,9 +460,15 @@ final class SFTPSessionModel: Identifiable {
         connect(using: store)
     }
 
+    func continueWithTemporaryHostKey(
+        _ observation: SSHHostKeyObservation, using transfers: TransferLibraryModel
+    ) {
+        continueWithTemporaryHostKey(observation, using: transfers.library)
+    }
+
     func continueAuthentication(
         identityID: Identity.ID?, username: String, password: String?, passphrase: String?,
-        keyID: SSHKeyRef.ID?, save: Bool, using store: HostStore
+        keyID: SSHKeyRef.ID?, save: Bool, using store: HostLibraryModel
     ) {
         guard let prompt = pendingAuthentication,
             var host = store.host(prompt.host.id)
@@ -541,6 +557,16 @@ final class SFTPSessionModel: Identifiable {
             }
         }
         connect(using: store)
+    }
+
+    func continueAuthentication(
+        identityID: Identity.ID?, username: String, password: String?, passphrase: String?,
+        keyID: SSHKeyRef.ID?, save: Bool, using transfers: TransferLibraryModel
+    ) {
+        continueAuthentication(
+            identityID: identityID, username: username, password: password,
+            passphrase: passphrase, keyID: keyID, save: save, using: transfers.library
+        )
     }
 
     func cancelAuthentication() {
@@ -1225,7 +1251,7 @@ final class SFTPSessionModel: Identifiable {
         return copy
     }
 
-    private func discoverHostKey(host: Host, store: HostStore) async {
+    private func discoverHostKey(host: Host, store: HostLibraryModel) async {
         do {
             let observation = try await SSHSessionActor.discoverHostKey(
                 hostID: host.id, host: host.host, port: host.port,
@@ -1265,7 +1291,7 @@ final class SFTPSessionModel: Identifiable {
     }
 
     private func requestAuthentication(
-        host: Host, store: HostStore, failure: String? = nil,
+        host: Host, store: HostLibraryModel, failure: String? = nil,
         mode: SSHAuthenticationPrompt.Mode = .localIdentity,
         requiresPassphrase: Bool? = nil,
         preserveSubmission: Bool = false
@@ -1320,7 +1346,7 @@ final class SFTPSessionModel: Identifiable {
         scheduleReconnect(after: message, using: store)
     }
 
-    private func scheduleReconnect(after message: String, using store: HostStore) {
+    private func scheduleReconnect(after message: String, using store: HostLibraryModel) {
         isRecoveringConnection = true
         connectionAttemptID = nil
         connectionTask?.cancel()
@@ -1342,7 +1368,7 @@ final class SFTPSessionModel: Identifiable {
         Task { await client?.disconnect() }
     }
 
-    private func presentReconnectJourney(using store: HostStore) {
+    private func presentReconnectJourney(using store: HostLibraryModel) {
         guard let host = store.host(hostID) else { return }
         connectionJourney.begin(
             host: host, route: store.route(for: host), purpose: .sftpSession,

@@ -118,7 +118,7 @@ struct ExternalToolCallHistoryTests {
     @Test
     func sftpBodiesAndSSHOutputNeverEnterHistory() async throws {
         let channel = AgentEventChannel(repository: InMemoryAgentRunRepository())
-        let store = ExternalToolCallStore()
+        let store = ToolAuditModel()
         store.consume(channel)
         let runID = UUID()
         store.register(runID: runID, clientName: "Claude Code")
@@ -159,17 +159,17 @@ struct ExternalToolCallHistoryTests {
     @Test
     func inMemoryHistoryKeepsTheNewestTwoThousandRows() {
         let start = Date(timeIntervalSince1970: 1_000)
-        let entries = (0...ExternalToolCallStore.globalLimit).map { index in
+        let entries = (0...ToolAuditModel.globalLimit).map { index in
             ExternalToolCall(
                 runID: UUID(), clientName: "Client", toolName: "list_hosts",
                 summary: "row-\(index)", risk: .readOnly,
                 startedAt: start.addingTimeInterval(Double(index))
             )
         }
-        let store = ExternalToolCallStore(entries: entries)
+        let store = ToolAuditModel(entries: entries)
         let kept = store.entries()
 
-        #expect(kept.count == ExternalToolCallStore.globalLimit)
+        #expect(kept.count == ToolAuditModel.globalLimit)
         #expect(kept.first?.summary == "row-2000")
         #expect(kept.last?.summary == "row-1")
     }

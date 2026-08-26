@@ -163,7 +163,7 @@ final class SSHSessionModel: Identifiable {
     var latencyMilliseconds: Int?
     var hasUnreadOutput: Bool = false
     /// History for an unsaved Quick Connect destination. Saved Hosts use the
-    /// app-wide CommandHistoryStore instead so every window sees the same list.
+    /// app-wide CommandHistoryModel instead so every window sees the same list.
     private(set) var transientCommandHistory: [CommandHistoryEntry] = []
 
     /// Find stays with this terminal's scrollback. Closing the bar ends Ghostty's
@@ -208,8 +208,8 @@ final class SSHSessionModel: Identifiable {
         let terminalViewOwner: PersistentTerminalViewOwner
     #endif
     private let terminalBackend: InMemoryTerminalSession
-    private weak var statusStore: HostStore?
-    weak var commandHistoryStore: CommandHistoryStore?
+    private weak var statusStore: HostLibraryModel?
+    weak var commandHistoryStore: CommandHistoryModel?
     private var ssh: SSHSessionActor?
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
@@ -511,11 +511,11 @@ final class SSHSessionModel: Identifiable {
     private static let bracketedPasteStart = Data("\u{1B}[200~".utf8)
     private static let bracketedPasteEnd = Data("\u{1B}[201~".utf8)
 
-    func connect(using store: HostStore) {
+    func connect(using store: HostLibraryModel) {
         startConnection(using: store)
     }
 
-    private func startConnection(using store: HostStore) {
+    private func startConnection(using store: HostLibraryModel) {
         resetCommandComposerShellState()
         let reconnecting = hasConnectedOnce && isRecoveringConnection
         workingDirectory = nil
@@ -785,7 +785,7 @@ final class SSHSessionModel: Identifiable {
     func continueAuthentication(
         identityID: Identity.ID?, username: String, password: String?, passphrase: String?,
         keyID: SSHKeyRef.ID?, save: Bool,
-        using store: HostStore
+        using store: HostLibraryModel
     ) {
         let selectedIdentity = identityID.flatMap { store.identity($0) }
         let trimmedUsername = (selectedIdentity?.username ?? username)
@@ -901,7 +901,7 @@ final class SSHSessionModel: Identifiable {
         connectionJourney.hide()
     }
 
-    func trustAndConnect(_ observation: SSHHostKeyObservation, using store: HostStore) {
+    func trustAndConnect(_ observation: SSHHostKeyObservation, using store: HostLibraryModel) {
         store.trust(
             KnownHostEntry(
                 hostname: observation.hostname, port: observation.port,
@@ -918,7 +918,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func continueWithTemporaryHostKey(
-        _ observation: SSHHostKeyObservation, using store: HostStore
+        _ observation: SSHHostKeyObservation, using store: HostLibraryModel
     ) {
         guard let hostID = pendingHostKeyHostID else { return }
         temporaryHostKeys[hostID] = observation.identity
@@ -1086,7 +1086,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func handleConnectionAttemptFailure(
-        _ error: any Error, store: HostStore, reconnecting: Bool
+        _ error: any Error, store: HostLibraryModel, reconnecting: Bool
     ) {
         connectionAttemptID = nil
         if hasConnectedOnce || reconnecting {
@@ -1110,7 +1110,7 @@ final class SSHSessionModel: Identifiable {
         scheduleReconnect(after: message, using: store)
     }
 
-    private func scheduleReconnect(after message: String, using store: HostStore) {
+    private func scheduleReconnect(after message: String, using store: HostLibraryModel) {
         resetCommandComposerShellState()
         isRecoveringConnection = true
         connectionAttemptID = nil
@@ -1127,7 +1127,7 @@ final class SSHSessionModel: Identifiable {
         }
     }
 
-    private func presentReconnectJourney(using store: HostStore) {
+    private func presentReconnectJourney(using store: HostLibraryModel) {
         guard let host = store.host(hostID) ?? transientHost else { return }
         connectionJourney.begin(
             host: host, route: store.route(for: host), purpose: .sshSession,
@@ -1189,7 +1189,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func discoverHostKey(
-        for host: Host, using store: HostStore, attemptID: UUID
+        for host: Host, using store: HostLibraryModel, attemptID: UUID
     ) async {
         do {
             let observation = try await SSHSessionActor.discoverHostKey(
@@ -1339,9 +1339,9 @@ final class SSHSessionModel: Identifiable {
             transientCommandHistory.insert(
                 CommandHistoryEntry(hostID: hostID, command: command), at: 0
             )
-            if transientCommandHistory.count > CommandHistoryStore.perHostLimit {
+            if transientCommandHistory.count > CommandHistoryModel.perHostLimit {
                 transientCommandHistory.removeLast(
-                    transientCommandHistory.count - CommandHistoryStore.perHostLimit
+                    transientCommandHistory.count - CommandHistoryModel.perHostLimit
                 )
             }
         }

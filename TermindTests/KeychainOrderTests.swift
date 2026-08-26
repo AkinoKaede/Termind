@@ -11,7 +11,7 @@ struct KeychainOrderTests {
     func unsortedInputsStartAlphabeticallyAndCanBeReordered() throws {
         let zebra = SSHKeyRef(label: "Zebra")
         let alpha = SSHKeyRef(label: "Alpha")
-        let store = HostStore(keys: [zebra, alpha])
+        let store = HostLibraryModel(keys: [zebra, alpha])
 
         #expect(store.searchKeys("").map(\.id) == [alpha.id, zebra.id])
 
@@ -25,7 +25,7 @@ struct KeychainOrderTests {
         let first = Identity(name: "First", username: "first", sortIndex: 0)
         let second = Identity(name: "Second", username: "second", sortIndex: 1)
         let third = Identity(name: "Third", username: "third", sortIndex: 2)
-        let store = HostStore(identities: [first, second, third])
+        let store = HostLibraryModel(identities: [first, second, third])
 
         store.move(
             identityIDs: [third.id, UUID(), third.id, second.id],
@@ -46,7 +46,7 @@ struct KeychainOrderTests {
         let second = SSHKeyRef(
             label: "Second", credentialRef: "termind.key.\(UUID().uuidString)", sortIndex: 1
         )
-        let store = HostStore(keys: [first, second])
+        let store = HostLibraryModel(keys: [first, second])
         var renamed = first
         renamed.label = "Zulu"
 
@@ -70,7 +70,7 @@ struct KeychainOrderTests {
             for: HostPersistence.schema,
             configurations: [configuration]
         )
-        let store = HostStore(modelContext: container.mainContext)
+        let store = HostLibraryModel(modelContext: container.mainContext)
         let firstKey = SSHKeyRef(label: "First")
         let secondKey = SSHKeyRef(label: "Second")
         let firstIdentity = Identity(name: "First", username: "first")
@@ -83,7 +83,7 @@ struct KeychainOrderTests {
         store.move(keyIDs: [secondKey.id], before: firstKey.id)
         store.move(identityIDs: [secondIdentity.id], before: firstIdentity.id)
 
-        let reloaded = HostStore(modelContext: container.mainContext)
+        let reloaded = HostLibraryModel(modelContext: container.mainContext)
         #expect(reloaded.searchKeys("").map(\.id) == [secondKey.id, firstKey.id])
         #expect(
             reloaded.searchIdentities("").map(\.id)

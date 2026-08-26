@@ -8,7 +8,7 @@ import Testing
 struct IdentityCredentialTests {
     @Test
     func passwordUpdatesKeepReplaceAndRemoveTheKeychainItem() throws {
-        let keychain = KeychainSecretStore()
+        let keychain = InMemorySecretStore()
         let reference = "termind.password.\(UUID().uuidString)"
         let id = UUID()
         let keyID = UUID()
@@ -16,32 +16,32 @@ struct IdentityCredentialTests {
             id: id, name: "Deploy", username: "deploy",
             credentialRef: reference, passwordStorage: .thisDevice, keyID: keyID
         )
-        let store = HostStore(identities: [original], keychain: keychain)
-        defer { try? keychain.removePassword(reference) }
+        let store = HostLibraryModel(identities: [original], secrets: keychain)
+        defer { try? keychain.removePassword(reference, storage: .thisDevice) }
 
-        try keychain.setString("old", for: reference)
+        try keychain.setString("old", for: reference, storage: .thisDevice)
 
         var renamed = original
         renamed.name = "Production"
         try store.upsert(renamed, passwordUpdate: .keep)
         #expect(store.identity(id)?.credentialRef == reference)
-        #expect(try keychain.string(for: reference) == "old")
+        #expect(try keychain.string(for: reference, storage: .thisDevice) == "old")
 
         try store.upsert(renamed, passwordUpdate: .replace("new"))
         #expect(store.identity(id)?.credentialRef == reference)
-        #expect(try keychain.string(for: reference) == "new")
+        #expect(try keychain.string(for: reference, storage: .thisDevice) == "new")
 
         try store.upsert(renamed, passwordUpdate: .remove)
         #expect(store.identity(id)?.credentialRef == "")
         #expect(store.identity(id)?.keyID == keyID)
-        #expect(try keychain.string(for: reference) == nil)
+        #expect(try keychain.string(for: reference, storage: .thisDevice) == nil)
     }
 
     @Test
     func addingAPasswordMintsAReference() throws {
-        let keychain = KeychainSecretStore()
+        let keychain = InMemorySecretStore()
         let identity = Identity(name: "Deploy", username: "deploy")
-        let store = HostStore(keychain: keychain)
+        let store = HostLibraryModel(secrets: keychain)
 
         try store.upsert(identity, passwordUpdate: .replace("secret"))
         let saved = try #require(store.identity(identity.id))
@@ -61,11 +61,11 @@ struct IdentityCredentialTests {
 
     @Test
     func missingKeyDoesNotSuppressAnAvailablePassword() throws {
-        let keychain = KeychainSecretStore()
+        let keychain = InMemorySecretStore()
         let passwordReference = "termind.password.\(UUID().uuidString)"
         let missingKeyReference = "termind.key.\(UUID().uuidString)"
         defer {
-            try? keychain.removePassword(passwordReference)
+            try? keychain.removePassword(passwordReference, storage: .thisDevice)
             try? keychain.removeKeyCredential(missingKeyReference, storage: .thisDevice)
         }
 
@@ -78,8 +78,8 @@ struct IdentityCredentialTests {
             credentialRef: passwordReference, passwordStorage: .thisDevice,
             keyID: key.id
         )
-        try keychain.setString("fallback", for: passwordReference)
-        let store = HostStore(keys: [key], identities: [identity], keychain: keychain)
+        try keychain.setString("fallback", for: passwordReference, storage: .thisDevice)
+        let store = HostLibraryModel(keys: [key], identities: [identity], secrets: keychain)
 
         let resolution = store.sshCredentials(for: identity)
         #expect(resolution.hasConfiguredCredential)
@@ -94,7 +94,7 @@ struct IdentityCredentialTests {
 
     @Test
     func protectedKeyWithoutSavedPassphraseRequestsItBeforeUse() throws {
-        let keychain = KeychainSecretStore()
+        let keychain = InMemorySecretStore()
         let reference = "termind.key.\(UUID().uuidString)"
         defer { try? keychain.removeKeyCredential(reference, storage: .thisDevice) }
 
@@ -105,7 +105,7 @@ struct IdentityCredentialTests {
             hasPassphrase: true, storesPassphrase: false
         )
         let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
-        let store = HostStore(keys: [key], identities: [identity], keychain: keychain)
+        let store = HostLibraryModel(keys: [key], identities: [identity], secrets: keychain)
         try keychain.setKeyCredential(
             .software(SSHPrivateKeySecret(privateKey: "encrypted", passphrase: nil)),
             for: reference, storage: .thisDevice

@@ -175,15 +175,15 @@ struct SettingsPageView: View {
         switch route {
         case .modelProvider(let id, isNew: true):
             if case .providerModels(id, _) = newRoute { return }
-            guard let provider = app.ai.modelProvider(id) else { return }
-            if SettingsDraftPolicy.shouldDiscard(provider) { app.ai.delete(modelProviderID: id) }
+            guard let provider = app.aiConfiguration.modelProvider(id) else { return }
+            if SettingsDraftPolicy.shouldDiscard(provider) { app.aiConfiguration.delete(modelProviderID: id) }
         case .providerModels(let id, isNew: true):
             if case .modelProvider(id, _) = newRoute { return }
-            guard let provider = app.ai.modelProvider(id) else { return }
-            if SettingsDraftPolicy.shouldDiscard(provider) { app.ai.delete(modelProviderID: id) }
+            guard let provider = app.aiConfiguration.modelProvider(id) else { return }
+            if SettingsDraftPolicy.shouldDiscard(provider) { app.aiConfiguration.delete(modelProviderID: id) }
         case .mcpServer(let id, isNew: true):
-            guard let server = app.ai.mcpServer(id) else { return }
-            if SettingsDraftPolicy.shouldDiscard(server) { app.ai.delete(serverID: id) }
+            guard let server = app.aiConfiguration.mcpServer(id) else { return }
+            if SettingsDraftPolicy.shouldDiscard(server) { app.aiConfiguration.delete(serverID: id) }
         default:
             break
         }

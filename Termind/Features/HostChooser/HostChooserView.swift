@@ -152,7 +152,7 @@ struct HostChooserView: View {
     }
 
     private var results: [Host] {
-        app.hosts.searchHosts(query)
+        app.hostLibrary.searchHosts(query)
     }
 
     var body: some View {
@@ -219,7 +219,7 @@ struct HostChooserView: View {
 
     @ViewBuilder
     private var content: some View {
-        if app.hosts.hosts.isEmpty {
+        if app.hostLibrary.hosts.isEmpty {
             ContentUnavailableView {
                 Label("No Hosts", systemImage: "server.rack")
             } description: {
@@ -325,7 +325,7 @@ struct HostChooserView: View {
     }
 
     private func openChecked(as layout: BatchLayout = .separateTabs) {
-        let batch = app.hosts.searchHosts("").filter { chooser.selected.contains($0.id) }
+        let batch = app.hostLibrary.searchHosts("").filter { chooser.selected.contains($0.id) }
         guard !batch.isEmpty else { return }
         if case .snippet = purpose {
             requestSnippetExecution()
@@ -342,7 +342,7 @@ struct HostChooserView: View {
 
     private var requestedSnippets: [Snippet] {
         guard let request = snippetRequest else { return [] }
-        return request.snippetIDs.compactMap { app.hosts.snippet($0) }
+        return request.snippetIDs.compactMap { app.hostLibrary.snippet($0) }
     }
 
     private func requestSnippetExecution() {
@@ -357,7 +357,7 @@ struct HostChooserView: View {
 
     private func performSnippetExecution() {
         guard let request = snippetRequest else { return }
-        let ids = app.hosts.searchHosts("").filter { chooser.selected.contains($0.id) }.map(\.id)
+        let ids = app.hostLibrary.searchHosts("").filter { chooser.selected.contains($0.id) }.map(\.id)
         switch request.strategy {
         case .fillMissingTargets:
             app.execute(requestedSnippets, fallbackHostIDs: ids, in: window)
@@ -368,7 +368,7 @@ struct HostChooserView: View {
     }
 
     private var snippetConfirmationMessage: String {
-        let selectedIDs = app.hosts.searchHosts("")
+        let selectedIDs = app.hostLibrary.searchHosts("")
             .filter { chooser.selected.contains($0.id) }.map(\.id)
         return requestedSnippets.map { snippet in
             let ids: [Host.ID]
@@ -379,7 +379,7 @@ struct HostChooserView: View {
                 ids = selectedIDs
             }
             let wanted = Set(ids)
-            let targets = app.hosts.searchHosts("").filter { wanted.contains($0.id) }
+            let targets = app.hostLibrary.searchHosts("").filter { wanted.contains($0.id) }
                 .map(\.name).joined(separator: ", ")
             return "• \(snippet.body)\n  \(targets)"
         }.joined(separator: "\n")
@@ -448,13 +448,13 @@ struct HostChooserRow: View {
                 SelectionMark(mode: .multiple, isSelected: isChecked)
             }
 
-            StatusDot(status: app.hosts.status(of: host.id))
+            StatusDot(status: app.hostLibrary.status(of: host.id))
 
             VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
                 Text(host.name)
                     .lineLimit(1)
 
-                Text(app.hosts.loginAddress(for: host))
+                Text(app.hostLibrary.loginAddress(for: host))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -463,7 +463,7 @@ struct HostChooserRow: View {
 
             }
         } trailing: {
-            if let group = host.groupID.flatMap({ app.hosts.group($0) }) {
+            if let group = host.groupID.flatMap({ app.hostLibrary.group($0) }) {
                 Text(group.name)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)

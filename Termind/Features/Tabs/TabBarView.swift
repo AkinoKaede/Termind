@@ -281,10 +281,10 @@ struct TabBarView: View {
         switch window.dragging {
         case .pane(let id):
             guard let pane = window.pane(id) else { return nil }
-            return (pane.symbol, pane.sidebarTitle(in: app.hosts))
+            return (pane.symbol, pane.sidebarTitle(in: app.hostLibrary))
         case .workspace(let id):
             guard let tab = window.tabs.first(where: { $0.id == id }) else { return nil }
-            return (tab.symbol, tab.title(in: app.hosts))
+            return (tab.symbol, tab.title(in: app.hostLibrary))
         case nil:
             return nil
         }
@@ -371,7 +371,7 @@ struct TabBarView: View {
             Button("New Chat") { window.openAssistant() }
             Button("New Host") { window.openHostEditor(host: nil) }
 
-            let recents = app.hosts.recents(limit: 5)
+            let recents = app.hostLibrary.recents(limit: 5)
             if !recents.isEmpty {
                 Divider()
                 Section("Recent") {
@@ -424,7 +424,7 @@ struct TabBarView: View {
                 Button {
                     window.select(tab.id)
                 } label: {
-                    Label(tab.title(in: app.hosts), systemImage: tab.symbol)
+                    Label(tab.title(in: app.hostLibrary), systemImage: tab.symbol)
                 }
             }
             if window.canReopen {

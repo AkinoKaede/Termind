@@ -287,14 +287,14 @@ final class ConversationModel: Identifiable {
     var reasoningEffort: ReasoningEffort = .medium
 
     /// An explicit choice for this conversation. `nil` follows the app-wide
-    /// last selection through `AIStore.resolve(conversation:)`, the same shape
+    /// last selection through `AIConfigurationModel.resolve(conversation:)`, the same shape
     /// used by `model` below.
     var permissionMode: ChatPermissionMode?
 
     /// The model this conversation was told to use, if it was told.
     ///
     /// `nil` is the normal state and is not a missing value — it means "whatever
-    /// the Chat role resolves to", which `AIStore.resolve(_:)` answers. Keeping
+    /// the Chat role resolves to", which `AIConfigurationModel.resolve(_:)` answers. Keeping
     /// it unset rather than assigning a default on creation is what lets a
     /// change in Settings move every conversation that never chose, and lets one
     /// that did keep its choice.

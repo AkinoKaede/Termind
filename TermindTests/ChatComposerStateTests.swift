@@ -68,13 +68,13 @@ struct ChatComposerStateTests {
                 == [.askForApproval, .approveForMe, .fullAccess]
         )
 
-        let store = AIStore(persistsSecrets: false)
+        let store = AIConfigurationModel(persistsSecrets: false)
         #expect(store.resolve(conversation: nil as ChatPermissionMode?) == .askForApproval)
     }
 
     @Test
     func latestPermissionFeedsUnsetConversationsWhileExplicitChoiceWins() {
-        let store = AIStore(persistsSecrets: false)
+        let store = AIConfigurationModel(persistsSecrets: false)
         let unset = ConversationModel()
         let explicit = ConversationModel()
         explicit.permissionMode = .askForApproval
@@ -92,7 +92,7 @@ struct ChatComposerStateTests {
 
     @Test
     func permissionDefaultCanBeSeededForAnAppSession() {
-        let store = AIStore(
+        let store = AIConfigurationModel(
             lastSelectedPermissionMode: .approveForMe,
             persistsSecrets: false
         )
@@ -107,15 +107,15 @@ struct ChatComposerStateTests {
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let first = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        let first = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
         first.select(ChatPermissionMode.approveForMe)
 
-        let second = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        let second = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
         #expect(second.lastSelectedPermissionMode == .approveForMe)
 
         second.select(ChatPermissionMode.fullAccess)
 
-        let third = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        let third = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
         #expect(third.lastSelectedPermissionMode == .fullAccess)
 
         let explicit = ConversationModel()
@@ -129,7 +129,7 @@ struct ChatComposerStateTests {
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let store = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        let store = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
 
         #expect(store.lastSelectedPermissionMode == .askForApproval)
     }
@@ -141,7 +141,7 @@ struct ChatComposerStateTests {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set("unknown-mode", forKey: SettingsKey.agentPermissionMode)
 
-        let store = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        let store = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
 
         #expect(store.lastSelectedPermissionMode == .askForApproval)
     }
@@ -154,7 +154,7 @@ struct ChatComposerStateTests {
             name: "Test Provider",
             models: [firstModel, secondModel]
         )
-        let store = AIStore(modelProviders: [provider], persistsSecrets: false)
+        let store = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
         let firstRef = AIModelRef(modelProviderID: provider.id, modelID: firstModel.id)
         let secondRef = AIModelRef(modelProviderID: provider.id, modelID: secondModel.id)
 

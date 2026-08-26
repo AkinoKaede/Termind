@@ -149,7 +149,7 @@ func makeMCPToolServer(
     disabledTools: Set<String> = [],
     externalAuthentication: ExternalAuthCoordinator = ExternalAuthCoordinator()
 ) -> MCPToolServer {
-    let store = HostStore()
+    let store = HostLibraryModel()
     let resolver = AgentHostResolver(store: store)
     return MCPToolServer(
         hosts: resolver,
@@ -163,7 +163,7 @@ func makeMCPToolServer(
         authentication: AgentSSHAuthenticationRegistry(resolver: resolver),
         background: AgentBackgroundCommands(sweepInterval: nil),
         externalAuthentication: externalAuthentication,
-        history: ExternalToolCallStore(), disabledTools: disabledTools
+        history: ToolAuditModel(), disabledTools: disabledTools
     )
 }
 

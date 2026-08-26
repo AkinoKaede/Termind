@@ -25,7 +25,7 @@ struct SFTPBrowserView: View {
     @AppStorage("termind.sftp.table.columns")
     private var columnCustomization = TableColumnCustomization<RemoteFile>()
 
-    private var host: Host? { app.hosts.host(sftpSession.hostID) }
+    private var host: Host? { app.transfers.host(sftpSession.hostID) }
     private var deleteConfirmationMessage: String {
         let paths = deleteTargets.prefix(6).map(\.path).joined(separator: "\n")
         let remainder = max(0, deleteTargets.count - 6)
@@ -58,17 +58,17 @@ struct SFTPBrowserView: View {
                         identityID, username, password, passphrase, keyID, save in
                         sftpSession.continueAuthentication(
                             identityID: identityID, username: username, password: password,
-                            passphrase: passphrase, keyID: keyID, save: save, using: app.hosts
+                            passphrase: passphrase, keyID: keyID, save: save, using: app.transfers
                         )
                     },
                     continueHostKey: {
-                        sftpSession.continueWithTemporaryHostKey($0, using: app.hosts)
+                        sftpSession.continueWithTemporaryHostKey($0, using: app.transfers)
                     },
-                    trustHostKey: { sftpSession.trustAndConnect($0, using: app.hosts) },
+                    trustHostKey: { sftpSession.trustAndConnect($0, using: app.transfers) },
                     denyHostKey: {
                         cancelConnection()
                     },
-                    retry: { sftpSession.connect(using: app.hosts) },
+                    retry: { sftpSession.connect(using: app.transfers) },
                     cancel: cancelConnection,
                     reconnectState: sftpSession.reconnectState,
                     retryReconnectNow: sftpSession.retryReconnectNow,
@@ -82,7 +82,7 @@ struct SFTPBrowserView: View {
         .onAppear {
             sftpSession.bindTransfers(to: app.sftpTransfers)
             if sftpSession.status == .disconnected {
-                sftpSession.connect(using: app.hosts)
+                sftpSession.connect(using: app.transfers)
             } else {
                 sftpSession.startAutomaticRefresh()
             }
@@ -256,7 +256,7 @@ struct SFTPBrowserView: View {
                     Image(systemName: "folder.badge.questionmark")
                         .font(.largeTitle).foregroundStyle(.tertiary)
                     Text("Not connected").foregroundStyle(.secondary)
-                    Button("Connect") { sftpSession.connect(using: app.hosts) }
+                    Button("Connect") { sftpSession.connect(using: app.transfers) }
                         .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

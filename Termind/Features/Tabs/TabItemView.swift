@@ -74,7 +74,7 @@ struct TabItemView: View {
         .onTapGesture { window.select(tab.id) }
         .simultaneousGesture(TapGesture(count: 2).onEnded(beginRename))
         .onHover { isHovering = $0 }
-        .help(Text(tab.title(in: app.hosts)))
+        .help(Text(tab.title(in: app.hostLibrary)))
         .contextMenu { menu }
         // `onDrag` rather than `draggable`, for the closure: the drop targets have
         // to know what is in flight while it is still in flight. See
@@ -89,7 +89,7 @@ struct TabItemView: View {
             frame = $0
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(tab.title(in: app.hosts)))
+        .accessibilityLabel(Text(tab.title(in: app.hostLibrary)))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
@@ -101,10 +101,10 @@ struct TabItemView: View {
 
     private var titleStack: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(tab.title(in: app.hosts))
+            Text(tab.title(in: app.hostLibrary))
                 .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
                 .lineLimit(1)
-            if let subtitle = tab.subtitle(in: app.hosts) {
+            if let subtitle = tab.subtitle(in: app.hostLibrary) {
                 Text(subtitle)
                     .font(.system(size: 9))
                     .foregroundStyle(.secondary)
@@ -220,7 +220,7 @@ struct TabItemView: View {
     /// typed.
     private func beginRename() {
         guard tab.isRenameable else { return }
-        draftTitle = tab.title(in: app.hosts)
+        draftTitle = tab.title(in: app.hostLibrary)
         isRenaming = true
         titleFieldFocused = true
     }

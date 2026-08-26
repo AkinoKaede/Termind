@@ -37,7 +37,7 @@ struct ModelListEditor: View {
 
     @State private var state = EditorState()
 
-    private var provider: ModelProvider? { app.ai.modelProvider(modelProviderID) }
+    private var provider: ModelProvider? { app.aiConfiguration.modelProvider(modelProviderID) }
 
     private var models: [AIModel] {
         (provider?.models ?? []).filter { $0.matches(state.query) }
@@ -203,7 +203,7 @@ struct ModelListEditor: View {
     /// Roles whose model is among the ticked ones.
     private var brokenRoles: [AIRole] {
         AIRole.allCases.filter { role in
-            guard let ref = app.ai.assignment(for: role), ref.modelProviderID == modelProviderID else { return false }
+            guard let ref = app.aiConfiguration.assignment(for: role), ref.modelProviderID == modelProviderID else { return false }
             return state.checked.contains(ref.modelID)
         }
     }
@@ -238,9 +238,9 @@ struct ModelListEditor: View {
             existing: Set(provider?.models.map(\.id) ?? []),
             add: { chosen in
                 for model in state.candidates where chosen.contains(model.id) {
-                    app.ai.addModel(model, to: modelProviderID)
+                    app.aiConfiguration.addModel(model, to: modelProviderID)
                 }
-                app.ai.markModelsFetched(for: modelProviderID)
+                app.aiConfiguration.markModelsFetched(for: modelProviderID)
                 state.isChoosing = false
             },
             cancel: { state.isChoosing = false }
@@ -412,7 +412,7 @@ struct ModelListEditor: View {
                         } else {
                             updated[keyPath: keyPath].insert(modality)
                         }
-                        app.ai.updateModel(updated, in: modelProviderID)
+                        app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                     .opacity(modality == .text ? 0.6 : 1)
                 }
@@ -438,7 +438,7 @@ struct ModelListEditor: View {
                         } else {
                             updated.abilities.insert(ability)
                         }
-                        app.ai.updateModel(updated, in: modelProviderID)
+                        app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 }
             }
@@ -468,13 +468,13 @@ struct ModelListEditor: View {
                         updated.reasoningProfile = ModelCapabilityResolver.customProfile(
                             from: automatic
                         )
-                        app.ai.updateModel(updated, in: modelProviderID)
+                        app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 } else {
                     Button("Reset to Automatic") {
                         var updated = model
                         updated.reasoningProfile = nil
-                        app.ai.updateModel(updated, in: modelProviderID)
+                        app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 }
             }
@@ -548,7 +548,7 @@ struct ModelListEditor: View {
         update(&mapping)
         profile.levels[effort] = mapping
         model.reasoningProfile = profile
-        app.ai.updateModel(model, in: modelProviderID)
+        app.aiConfiguration.updateModel(model, in: modelProviderID)
     }
 
     private func limitField(
@@ -567,7 +567,7 @@ struct ModelListEditor: View {
                     set: { newValue in
                         var updated = model
                         updated[keyPath: keyPath] = newValue
-                        app.ai.updateModel(updated, in: modelProviderID)
+                        app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 ),
                 format: .number
@@ -581,11 +581,11 @@ struct ModelListEditor: View {
         _ model: AIModel, _ keyPath: WritableKeyPath<AIModel, String>
     ) -> Binding<String> {
         Binding(
-            get: { app.ai.modelProvider(modelProviderID)?.model(model.id)?[keyPath: keyPath] ?? "" },
+            get: { app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id)?[keyPath: keyPath] ?? "" },
             set: { newValue in
-                guard var updated = app.ai.modelProvider(modelProviderID)?.model(model.id) else { return }
+                guard var updated = app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id) else { return }
                 updated[keyPath: keyPath] = newValue
-                app.ai.updateModel(updated, in: modelProviderID)
+                app.aiConfiguration.updateModel(updated, in: modelProviderID)
             }
         )
     }
@@ -595,12 +595,12 @@ struct ModelListEditor: View {
     ) -> Binding<Value> where Value: Hashable {
         Binding(
             get: {
-                app.ai.modelProvider(modelProviderID)?.model(model.id)?[keyPath: keyPath] ?? model[keyPath: keyPath]
+                app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id)?[keyPath: keyPath] ?? model[keyPath: keyPath]
             },
             set: { newValue in
-                guard var updated = app.ai.modelProvider(modelProviderID)?.model(model.id) else { return }
+                guard var updated = app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id) else { return }
                 updated[keyPath: keyPath] = newValue
-                app.ai.updateModel(updated, in: modelProviderID)
+                app.aiConfiguration.updateModel(updated, in: modelProviderID)
             }
         )
     }
@@ -611,7 +611,7 @@ struct ModelListEditor: View {
     private func fetchModels() {
         guard let provider else { return }
         state.fetch = .running
-        let secret = app.ai.secret(for: provider.credentialRef) ?? ""
+        let secret = app.aiConfiguration.secret(for: provider.credentialRef) ?? ""
         Task {
             do {
                 state.candidates = try await ModelCatalogClient().models(
@@ -639,8 +639,8 @@ struct ModelListEditor: View {
         guard let provider, provider.hasCredential, !state.isTesting, !targets.isEmpty else {
             return
         }
-        let secret = app.ai.secret(for: provider.credentialRef) ?? ""
-        let vertexSecret = app.ai.secret(for: provider.vertex.credentialRef) ?? ""
+        let secret = app.aiConfiguration.secret(for: provider.credentialRef) ?? ""
+        let vertexSecret = app.aiConfiguration.secret(for: provider.vertex.credentialRef) ?? ""
         let credential = provider.usesVertex && provider.kind == .google ? vertexSecret : secret
 
         state.isTesting = true
@@ -649,20 +649,20 @@ struct ModelListEditor: View {
         }
         Task {
             for model in targets {
-                guard app.ai.modelProvider(modelProviderID)?.model(model.id) != nil else {
+                guard app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id) != nil else {
                     state.results[model.id] = nil
                     continue
                 }
                 state.results[model.id] = .running
                 do {
                     let result = try await ChatProbe().run(model: model, on: provider, secret: credential)
-                    guard app.ai.modelProvider(modelProviderID)?.model(model.id) != nil else {
+                    guard app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id) != nil else {
                         state.results[model.id] = nil
                         continue
                     }
                     state.results[model.id] = .passed(result.summary)
                 } catch {
-                    guard app.ai.modelProvider(modelProviderID)?.model(model.id) != nil else {
+                    guard app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id) != nil else {
                         state.results[model.id] = nil
                         continue
                     }
@@ -692,7 +692,7 @@ struct ModelListEditor: View {
             model: AIModel(id: id),
             provider: provider
         ).model
-        app.ai.addModel(model, to: modelProviderID)
+        app.aiConfiguration.addModel(model, to: modelProviderID)
         state.selection = id
         state.isAdding = false
     }
@@ -702,7 +702,7 @@ struct ModelListEditor: View {
     }
 
     private func deleteModels(_ doomed: Set<String>) {
-        app.ai.removeModels(doomed, from: modelProviderID)
+        app.aiConfiguration.removeModels(doomed, from: modelProviderID)
         state.checked.subtract(doomed)
         for id in doomed { state.results[id] = nil }
         if let selection = state.selection, doomed.contains(selection) {

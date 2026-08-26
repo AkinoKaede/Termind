@@ -132,18 +132,18 @@ struct WebSearchSettings: View {
             }
             .disabled(!isEnabled)
         }
-        .onAppear { apiKey = app.ai.secret(for: credentialRef) ?? "" }
+        .onAppear { apiKey = app.aiConfiguration.secret(for: credentialRef) ?? "" }
         .onChange(of: backendID) { _, _ in probe = .idle }
     }
 
     private func store(key: String) {
         guard !key.isEmpty else {
-            app.ai.setSecret(nil, for: credentialRef)
+            app.aiConfiguration.setSecret(nil, for: credentialRef)
             credentialRef = ""
             return
         }
-        if credentialRef.isEmpty { credentialRef = AIStore.makeCredentialRef("search") }
-        app.ai.setSecret(key, for: credentialRef)
+        if credentialRef.isEmpty { credentialRef = AIConfigurationModel.makeCredentialRef("search") }
+        app.aiConfiguration.setSecret(key, for: credentialRef)
     }
 
     private func runProbe() {

@@ -71,7 +71,7 @@ struct SnippetsPageView: ManagedCardPage {
 
     private var sections: [Section] {
         if isFiltering {
-            let matches = app.hosts.searchSnippets(state.query)
+            let matches = app.snippets.searchSnippets(state.query)
             guard !matches.isEmpty else { return [] }
             return [
                 Section(
@@ -88,22 +88,22 @@ struct SnippetsPageView: ManagedCardPage {
                 Section(
                     id: .package(package.id), title: title,
                     isExpanded: package.isExpanded,
-                    snippets: app.hosts.snippets(in: package.id)
+                    snippets: app.snippets.snippets(in: package.id)
                 )
             )
             guard package.isExpanded else { return }
-            for child in app.hosts.childSnippetPackages(of: package.id) {
+            for child in app.snippets.childSnippetPackages(of: package.id) {
                 walk(child, prefix: title)
             }
         }
-        for package in app.hosts.rootSnippetPackages { walk(package, prefix: "") }
+        for package in app.snippets.rootSnippetPackages { walk(package, prefix: "") }
 
-        let ungrouped = app.hosts.snippets(in: nil)
-        if !ungrouped.isEmpty || !app.hosts.snippetPackages.isEmpty {
+        let ungrouped = app.snippets.snippets(in: nil)
+        if !ungrouped.isEmpty || !app.snippets.snippetPackages.isEmpty {
             result.append(
                 Section(
                     id: .ungrouped, title: String(localized: "Ungrouped"),
-                    isExpanded: app.hosts.isSnippetsUngroupedExpanded,
+                    isExpanded: app.snippets.isSnippetsUngroupedExpanded,
                     snippets: ungrouped
                 )
             )
@@ -135,7 +135,7 @@ struct SnippetsPageView: ManagedCardPage {
                 isEnabled: !isFiltering,
                 dropPolicy: .anySection
             ) { ids, destination, next in
-                app.hosts.move(
+                app.snippets.move(
                     snippetIDs: ids, into: destination.packageID, before: next
                 )
             }
@@ -143,7 +143,7 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     var isManagedSourceEmpty: Bool {
-        app.hosts.snippets.isEmpty && app.hosts.snippetPackages.isEmpty
+        app.snippets.snippets.isEmpty && app.snippets.snippetPackages.isEmpty
     }
 
     @ViewBuilder
@@ -152,11 +152,11 @@ struct SnippetsPageView: ManagedCardPage {
     ) -> some View {
         switch section.id {
         case .package(let id):
-            if let package = app.hosts.snippetPackage(id) {
+            if let package = app.snippets.snippetPackage(id) {
                 CardSectionHeader(
                     title: section.title, count: section.items.count,
                     toggle: {
-                        app.hosts.setSnippetPackageExpanded(
+                        app.snippets.setSnippetPackageExpanded(
                             !package.isExpanded, for: package.id
                         )
                     },
@@ -180,11 +180,11 @@ struct SnippetsPageView: ManagedCardPage {
             CardSectionHeader(
                 title: section.title, count: section.items.count,
                 toggle: {
-                    app.hosts.setSnippetsUngroupedExpanded(
-                        !app.hosts.isSnippetsUngroupedExpanded
+                    app.snippets.setSnippetsUngroupedExpanded(
+                        !app.snippets.isSnippetsUngroupedExpanded
                     )
                 },
-                isCollapsed: !app.hosts.isSnippetsUngroupedExpanded,
+                isCollapsed: !app.snippets.isSnippetsUngroupedExpanded,
                 isDropTarget: isDropTarget
             )
         case .results:
@@ -273,7 +273,7 @@ struct SnippetsPageView: ManagedCardPage {
         SnippetsPagePresentation(
             state: state,
             actions: SnippetsPagePresentation.Actions(
-                store: app.hosts,
+                store: app.snippets,
                 saveSnippet: saveSnippet,
                 savePackage: savePackage,
                 deletePackage: deletePackage,
@@ -293,14 +293,14 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     private func setSelection(_ ids: Set<Snippet.ID>) {
-        let valid = ids.intersection(Set(app.hosts.snippets.map(\.id)))
+        let valid = ids.intersection(Set(app.snippets.snippets.map(\.id)))
         let ordered = visibleSnippets.filter { valid.contains($0.id) }
             .map { ContextPanelDetailID.snippet($0.id) }
         window.setDetailSelection(ordered, for: .snippets)
     }
 
     private func saveSnippet(_ snippet: Snippet) {
-        app.hosts.upsert(snippet)
+        app.snippets.upsert(snippet)
         window.selectDetail(.snippet(snippet.id), on: .snippets)
     }
 
@@ -313,19 +313,19 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     private func savePackage(_ package: SnippetPackage) {
-        app.hosts.upsert(package)
+        app.snippets.upsert(package)
     }
 
     private func deletePackage(_ package: SnippetPackage, keepSnippets: Bool) {
-        app.hosts.delete(snippetPackageID: package.id, keepSnippets: keepSnippets)
+        app.snippets.delete(snippetPackageID: package.id, keepSnippets: keepSnippets)
         state.confirmation = nil
-        window.pruneDetailSelections(in: app.hosts)
+        window.pruneDetailSelections(in: app.snippets)
     }
 
     private func deleteSnippets(_ snippets: [Snippet]) {
-        app.hosts.delete(snippetIDs: snippets.map(\.id))
+        app.snippets.delete(snippetIDs: snippets.map(\.id))
         state.confirmation = nil
-        window.pruneDetailSelections(in: app.hosts)
+        window.pruneDetailSelections(in: app.snippets)
     }
 
     private func requestExecution(_ snippets: [Snippet]) {
@@ -370,7 +370,7 @@ struct SnippetsPageView: ManagedCardPage {
     private func executionMessage(_ snippets: [Snippet]) -> String {
         snippets.map { snippet in
             let wanted = Set(snippet.targetHostIDs)
-            let targets = app.hosts.searchHosts("").filter { wanted.contains($0.id) }
+            let targets = app.snippets.searchHosts("").filter { wanted.contains($0.id) }
                 .map(\.name).joined(separator: ", ")
             return "• \(snippet.body)\n  \(targets)"
         }.joined(separator: "\n")
@@ -395,7 +395,7 @@ struct SnippetsPageView: ManagedCardPage {
 
 struct SnippetsPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
-        let store: HostStore
+        let store: SnippetLibraryModel
         let saveSnippet: (Snippet) -> Void
         let savePackage: (SnippetPackage) -> Void
         let deletePackage: (SnippetPackage, Bool) -> Void
@@ -673,7 +673,7 @@ struct SnippetEditorSheet: View {
                 Section {
                     if selectedHosts.isEmpty {
                         Text(
-                            app.hosts.hosts.isEmpty
+                            app.snippets.hosts.isEmpty
                                 ? String(localized: "No saved hosts")
                                 : String(localized: "No targets selected")
                         )
@@ -683,7 +683,7 @@ struct SnippetEditorSheet: View {
                             HStack(spacing: Metrics.Space.m) {
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(host.name)
-                                    Text(app.hosts.loginAddress(for: host))
+                                    Text(app.snippets.loginAddress(for: host))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -709,7 +709,7 @@ struct SnippetEditorSheet: View {
                         } label: {
                             Label("Add Hosts", systemImage: "plus")
                         }
-                        .disabled(app.hosts.hosts.isEmpty)
+                        .disabled(app.snippets.hosts.isEmpty)
                     }
                 }
             }
@@ -730,13 +730,13 @@ struct SnippetEditorSheet: View {
     private var trimmedBody: String { bodyText.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private var packageChoices: [(package: SnippetPackage, path: String)] {
-        app.hosts.snippetPackages.compactMap { package in
-            app.hosts.snippetPackagePath(package.id).map { (package, $0) }
+        app.snippets.snippetPackages.compactMap { package in
+            app.snippets.snippetPackagePath(package.id).map { (package, $0) }
         }.sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
     }
 
     private var selectedHosts: [Host] {
-        app.hosts.searchHosts("").filter { targets.contains($0.id) }
+        app.snippets.searchHosts("").filter { targets.contains($0.id) }
     }
 
     private func close() {
@@ -744,7 +744,7 @@ struct SnippetEditorSheet: View {
     }
 
     private func commit() {
-        let orderedTargets = app.hosts.searchHosts("").filter { targets.contains($0.id) }.map(\.id)
+        let orderedTargets = app.snippets.searchHosts("").filter { targets.contains($0.id) }.map(\.id)
         save(
             Snippet(
                 id: existing?.id ?? UUID(), title: trimmedTitle, body: trimmedBody,
@@ -792,7 +792,7 @@ private struct SnippetTargetPickerSheet: View {
             footer
         }
         .onAppear {
-            let available = Set(app.hosts.hosts.map(\.id))
+            let available = Set(app.snippets.hosts.map(\.id))
             chooser.selected = initialSelection.intersection(available)
         }
         .onChange(of: chooser.query) {
@@ -815,7 +815,7 @@ private struct SnippetTargetPickerSheet: View {
 
     @ViewBuilder
     private var content: some View {
-        if app.hosts.hosts.isEmpty {
+        if app.snippets.hosts.isEmpty {
             ContentUnavailableView {
                 Label("No Hosts", systemImage: "server.rack")
             } description: {
@@ -872,7 +872,7 @@ private struct SnippetTargetPickerSheet: View {
         .padding(Metrics.Space.l)
     }
 
-    private var results: [Host] { app.hosts.searchHosts(query) }
+    private var results: [Host] { app.snippets.searchHosts(query) }
 
     private var allResultsChecked: Bool {
         !results.isEmpty && results.allSatisfy { chooser.selected.contains($0.id) }
@@ -959,14 +959,14 @@ struct SnippetPackageSheet: View {
         let forbidden: Set<SnippetPackage.ID>
         if let existing {
             forbidden = Set(
-                [existing.id] + app.hosts.descendantSnippetPackages(of: existing.id).map(\.id)
+                [existing.id] + app.snippets.descendantSnippetPackages(of: existing.id).map(\.id)
             )
         } else {
             forbidden = []
         }
-        return app.hosts.snippetPackages.filter { !forbidden.contains($0.id) }
+        return app.snippets.snippetPackages.filter { !forbidden.contains($0.id) }
             .compactMap { package in
-                app.hosts.snippetPackagePath(package.id).map { (package, $0) }
+                app.snippets.snippetPackagePath(package.id).map { (package, $0) }
             }
             .sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
     }

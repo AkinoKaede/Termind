@@ -82,7 +82,7 @@ struct RootView: View {
         }
         .onAppear {
             window.connectionCoordinator = app.connections
-            window.hostStore = app.hosts
+            window.hostStore = app.hostLibrary
             app.registerWindow(window)
             window.refreshSessionContext()
             window.reconcileSidebarMode()
@@ -109,7 +109,7 @@ struct RootView: View {
             .navigationSplitViewStyle(.balanced)
         } else {
             NavigationSplitView(columnVisibility: sidebarVisibility) {
-                SidebarView(detailCatalog: .standard(store: app.hosts))
+                SidebarView(detailCatalog: .standard(store: app.hostLibrary))
                     .navigationSplitViewColumnWidth(
                         min: Metrics.Sidebar.min,
                         ideal: Metrics.Sidebar.ideal,

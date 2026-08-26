@@ -134,12 +134,12 @@ final class Workspace: Identifiable {
     /// (see `WindowModel.rename`), and one thing has one name. It also means a
     /// renamed tab reads "Workspace" the moment it is split, since the name it
     /// was given went to the pane rather than to the group.
-    func title(in store: HostStore) -> String {
+    func title(in store: HostLibraryModel) -> String {
         if isSplit { return customTitle ?? String(localized: "Workspace") }
         return focusedPane.title(in: store)
     }
 
-    func subtitle(in store: HostStore) -> String? {
+    func subtitle(in store: HostLibraryModel) -> String? {
         if isSplit {
             let count = panes.count
             return String(localized: "\(count) panes")
@@ -510,7 +510,7 @@ extension Workspace {
         for pane in panes { pane.configureConnections(using: coordinator) }
     }
 
-    func configureCommandHistory(using store: CommandHistoryStore) {
+    func configureCommandHistory(using store: CommandHistoryModel) {
         for pane in panes { pane.configureCommandHistory(using: store) }
     }
 

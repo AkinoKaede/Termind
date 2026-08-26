@@ -275,7 +275,7 @@ struct AgentBackgroundCommandTests {
     @Test @MainActor
     func waitIsRegisteredAndReadOnly() {
         let tools = AgentBuiltInTools.make(
-            hosts: AgentHostResolver(store: HostStore()),
+            hosts: AgentHostResolver(store: HostLibraryModel()),
             connections: AgentConnectionPool(
                 configuration: { _ in throw AgentToolError.invalidHost },
                 routeFingerprint: { _ in "" },

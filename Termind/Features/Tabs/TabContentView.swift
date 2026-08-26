@@ -617,14 +617,14 @@ private struct PaneView: View {
     /// pane, so a name is what follows the cursor.
     @ViewBuilder
     private var title: some View {
-        let label = Text(pane.sidebarTitle(in: app.hosts))
+        let label = Text(pane.sidebarTitle(in: app.hostLibrary))
             .font(.system(size: 11, weight: isFocused ? .semibold : .regular))
             .foregroundStyle(isFocused ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .lineLimit(1)
             .truncationMode(.middle)
             .contentShape(.rect)
             .onTapGesture(count: 2, perform: beginRename)
-            .accessibilityLabel(Text(pane.title(in: app.hosts)))
+            .accessibilityLabel(Text(pane.title(in: app.hostLibrary)))
 
         if pane.isCombinable {
             label
@@ -649,7 +649,7 @@ private struct PaneView: View {
 
     private var dragChip: some View {
         Label {
-            Text(pane.sidebarTitle(in: app.hosts))
+            Text(pane.sidebarTitle(in: app.hostLibrary))
         } icon: {
             Image(systemName: pane.symbol)
         }
@@ -661,7 +661,7 @@ private struct PaneView: View {
 
     private func beginRename() {
         guard pane.kind.isRenameable else { return }
-        draftTitle = pane.sidebarTitle(in: app.hosts)
+        draftTitle = pane.sidebarTitle(in: app.hostLibrary)
         isRenaming = true
         titleFieldFocused = true
     }
@@ -731,7 +731,7 @@ struct WelcomeView: View {
     }
 
     private var matches: [Host] {
-        query.isEmpty ? [] : app.hosts.searchHosts(query)
+        query.isEmpty ? [] : app.hostLibrary.searchHosts(query)
     }
 
     /// An ad-hoc destination parsed from the field, offered only when nothing
@@ -773,7 +773,7 @@ struct WelcomeView: View {
     @ViewBuilder
     private var results: some View {
         if query.isEmpty {
-            let hosts = app.hosts.recents(limit: 6)
+            let hosts = app.hostLibrary.recents(limit: 6)
             if !hosts.isEmpty {
                 section("Recents") {
                     ForEach(hosts) { host in
@@ -823,12 +823,12 @@ private struct WelcomeHostRow: View {
             app.open(host, as: .sshSession, in: window)
         } label: {
             HStack(spacing: Metrics.Space.m) {
-                StatusDot(status: app.hosts.status(of: host.id))
+                StatusDot(status: app.hostLibrary.status(of: host.id))
                 Text(host.name)
                     .lineLimit(1)
                 // Resolved through the store, so a quick-connect row that
                 // matched a saved identity shows the login it will actually use.
-                Text(app.hosts.loginAddress(for: host))
+                Text(app.hostLibrary.loginAddress(for: host))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer(minLength: Metrics.Space.m)

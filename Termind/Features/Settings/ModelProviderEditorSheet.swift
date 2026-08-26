@@ -9,7 +9,7 @@ final class ModelProviderEditorSession {
     var importError: String?
     private var didBegin = false
 
-    func begin(with provider: ModelProvider, in store: AIStore) {
+    func begin(with provider: ModelProvider, in store: AIConfigurationModel) {
         guard !didBegin else { return }
         didBegin = true
         secret = store.secret(for: provider.credentialRef) ?? ""
@@ -36,7 +36,7 @@ struct ModelProviderEditorPage: View {
     /// identity as well as in its buffer.
     @State private var session = ModelProviderEditorSession()
 
-    private var provider: ModelProvider? { app.ai.modelProvider(modelProviderID) }
+    private var provider: ModelProvider? { app.aiConfiguration.modelProvider(modelProviderID) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -57,7 +57,7 @@ struct ModelProviderEditorPage: View {
     }
 
     private var brokenRoles: [AIRole] {
-        app.ai.roles(using: modelProviderID)
+        app.aiConfiguration.roles(using: modelProviderID)
     }
 
     private var brokenRolesSummary: String {
@@ -119,7 +119,7 @@ struct ModelProviderEditorPage: View {
 
             Section {
                 Button("Delete Provider", role: .destructive) {
-                    app.ai.delete(modelProviderID: modelProviderID)
+                    app.aiConfiguration.delete(modelProviderID: modelProviderID)
                     deleted()
                 }
                 .help(deleteHelp)
@@ -276,7 +276,7 @@ struct ModelProviderEditorPage: View {
 
     private func loadSecrets() {
         guard let provider else { return }
-        session.begin(with: provider, in: app.ai)
+        session.begin(with: provider, in: app.aiConfiguration)
     }
 
     /// Mints a reference the first time something is typed, and clears the
@@ -289,15 +289,15 @@ struct ModelProviderEditorPage: View {
     private func store(secret value: String) {
         guard var provider else { return }
         if value.isEmpty {
-            app.ai.setSecret(nil, for: provider.credentialRef)
+            app.aiConfiguration.setSecret(nil, for: provider.credentialRef)
             provider.credentialRef = ""
         } else {
             if provider.credentialRef.isEmpty {
-                provider.credentialRef = AIStore.makeCredentialRef()
+                provider.credentialRef = AIConfigurationModel.makeCredentialRef()
             }
-            app.ai.setSecret(value, for: provider.credentialRef)
+            app.aiConfiguration.setSecret(value, for: provider.credentialRef)
         }
-        app.ai.upsert(provider)
+        app.aiConfiguration.upsert(provider)
     }
 
     private func importServiceAccount(_ result: Result<URL, any Error>) {
@@ -317,7 +317,7 @@ struct ModelProviderEditorPage: View {
 
             guard var provider else { return }
             if provider.vertex.credentialRef.isEmpty {
-                provider.vertex.credentialRef = AIStore.makeCredentialRef("vertex")
+                provider.vertex.credentialRef = AIConfigurationModel.makeCredentialRef("vertex")
             }
             provider.vertex.clientEmail = email
             // The file names the project it belongs to, so a field the user
@@ -328,8 +328,8 @@ struct ModelProviderEditorPage: View {
             {
                 provider.vertex.projectID = project
             }
-            app.ai.setSecret(json, for: provider.vertex.credentialRef)
-            app.ai.upsert(provider)
+            app.aiConfiguration.setSecret(json, for: provider.vertex.credentialRef)
+            app.aiConfiguration.upsert(provider)
             session.serviceAccountJSON = json
         } catch {
             session.importError = error.localizedDescription
@@ -338,10 +338,10 @@ struct ModelProviderEditorPage: View {
 
     private func clearServiceAccount() {
         guard var provider else { return }
-        app.ai.setSecret(nil, for: provider.vertex.credentialRef)
+        app.aiConfiguration.setSecret(nil, for: provider.vertex.credentialRef)
         provider.vertex.credentialRef = ""
         provider.vertex.clientEmail = ""
-        app.ai.upsert(provider)
+        app.aiConfiguration.upsert(provider)
         session.serviceAccountJSON = ""
         session.importError = nil
     }
@@ -350,18 +350,18 @@ struct ModelProviderEditorPage: View {
 
     /// A two-way binding into the stored provider.
     ///
-    /// Reads and writes go through `AIStore` rather than through a local copy,
+    /// Reads and writes go through `AIConfigurationModel` rather than through a local copy,
     /// so the row behind the sheet updates as you type and there is no "apply"
     /// step that could be skipped. The `?? ModelProvider(name: "")` is unreachable
     /// while the sheet is up — the `if let` in `body` has already established
     /// the provider exists.
     private func binding<Value>(_ keyPath: WritableKeyPath<ModelProvider, Value>) -> Binding<Value> {
         Binding(
-            get: { app.ai.modelProvider(modelProviderID)?[keyPath: keyPath] ?? ModelProvider(name: "")[keyPath: keyPath] },
+            get: { app.aiConfiguration.modelProvider(modelProviderID)?[keyPath: keyPath] ?? ModelProvider(name: "")[keyPath: keyPath] },
             set: { newValue in
-                guard var provider = app.ai.modelProvider(modelProviderID) else { return }
+                guard var provider = app.aiConfiguration.modelProvider(modelProviderID) else { return }
                 provider[keyPath: keyPath] = newValue
-                app.ai.upsert(provider)
+                app.aiConfiguration.upsert(provider)
             }
         )
     }

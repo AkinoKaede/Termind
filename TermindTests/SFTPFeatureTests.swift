@@ -26,7 +26,7 @@ struct SFTPFeatureTests {
             localPath: "/tmp/failed", remotePath: "/srv/failed",
             byteCount: 10, transferredBytes: 4, state: .failed("Network lost")
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host], sftpTransfers: [first, second, failed]
         )
         let coordinator = SFTPTransferCoordinator(store: store)
@@ -59,7 +59,7 @@ struct SFTPFeatureTests {
             hostID: host.id, localPath: "/tmp/failed", remotePath: "/failed",
             state: .failed("Permission denied")
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host],
             sftpTransfers: [queued, running, completed, cancelled, failed]
         )
@@ -92,7 +92,7 @@ struct SFTPFeatureTests {
             remotePath: "/destination/README.md",
             state: .running
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [source, destination], sftpTransfers: [sftpTransfer]
         )
 
@@ -199,7 +199,7 @@ struct SFTPFeatureTests {
 
     @Test
     func applicationTerminationClosesRegisteredWindows() {
-        let app = AppModel(hosts: HostStore())
+        let app = AppModel(hosts: HostLibraryModel())
         let window = WindowModel()
         app.registerWindow(window)
 
@@ -303,7 +303,7 @@ struct SFTPFeatureTests {
         let client = SnapshotSFTPClient(
             responses: [.success([existing]), .connectionLost]
         )
-        let store = HostStore(hosts: [host])
+        let store = HostLibraryModel(hosts: [host])
         let sftpSession = SFTPSessionModel(
             hostID: host.id, initialPath: "/home", client: client,
             configuration: testConfiguration
@@ -326,7 +326,7 @@ struct SFTPFeatureTests {
     func ordinarySFTPFailureDoesNotStartReconnect() async {
         let host = Host(name: "Files", host: "files.example")
         let client = SnapshotSFTPClient(responses: [.failure])
-        let store = HostStore(hosts: [host])
+        let store = HostLibraryModel(hosts: [host])
         let sftpSession = SFTPSessionModel(
             hostID: host.id, initialPath: "/home", client: client,
             configuration: testConfiguration
@@ -355,7 +355,7 @@ struct SFTPFeatureTests {
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
-        let coordinator = SFTPTransferCoordinator(store: HostStore()) { client }
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
         await sftpSession.prepareUpload([localFile])
         await sftpSession.enqueuePending(policy: .replace, coordinator: coordinator)
@@ -370,7 +370,7 @@ struct SFTPFeatureTests {
     func coordinatorHonorsGlobalAndPerHostLimits() async {
         let hostA = UUID()
         let hostB = UUID()
-        let store = HostStore()
+        let store = HostLibraryModel()
         let gate = SFTPTransferClientGate()
         let coordinator = SFTPTransferCoordinator(store: store) { FakeSFTPTransferClient(gate: gate) }
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -401,7 +401,7 @@ struct SFTPFeatureTests {
     func borrowedConnectionRunsSeriallyWithoutReconnect() async {
         let hostID = UUID()
         let connectionID = UUID()
-        let store = HostStore()
+        let store = HostLibraryModel()
         let gate = SFTPTransferClientGate()
         let client = BorrowedSFTPTransferClient(gate: gate)
         let coordinator = SFTPTransferCoordinator(
@@ -437,7 +437,7 @@ struct SFTPFeatureTests {
     func increasingLimitsImmediatelyStartsQueuedTransfers() async {
         let gate = SFTPTransferClientGate()
         let coordinator = SFTPTransferCoordinator(
-            store: HostStore(), clientFactory: { FakeSFTPTransferClient(gate: gate) },
+            store: HostLibraryModel(), clientFactory: { FakeSFTPTransferClient(gate: gate) },
             globalLimit: 1, perHostLimit: 1
         )
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -462,7 +462,7 @@ struct SFTPFeatureTests {
 
     @Test
     func coordinatorReportsCompletionForOpenAfterDownload() async {
-        let store = HostStore()
+        let store = HostLibraryModel()
         let client = ManifestSFTPClient(entries: [:])
         let coordinator = SFTPTransferCoordinator(store: store) { client }
         let root = FileManager.default.temporaryDirectory
@@ -490,7 +490,7 @@ struct SFTPFeatureTests {
         let hostID = UUID()
         let sshSessionID = UUID()
         let sftpSessionID = UUID()
-        let store = HostStore()
+        let store = HostLibraryModel()
 
         store.setConnectionStatus(.connected, connectionID: sshSessionID, hostID: hostID)
         store.setConnectionStatus(.connecting, connectionID: sftpSessionID, hostID: hostID)
@@ -512,7 +512,7 @@ struct SFTPFeatureTests {
     @Test
     func sftpSessionPublishesItsStatusToHostStore() {
         let hostID = UUID()
-        let store = HostStore()
+        let store = HostLibraryModel()
         let sftpSession = SFTPSessionModel(
             hostID: hostID, initialPath: "/home",
             client: SnapshotSFTPClient(responses: [.success([])]),
@@ -549,7 +549,7 @@ struct SFTPFeatureTests {
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
-        let coordinator = SFTPTransferCoordinator(store: HostStore()) { client }
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
         let file = remoteFile(path: "/home/\(name)", kind: .file)
         let provider = SFTPBrowserView.promisedFileProvider(
             for: file, sftpSession: sftpSession, coordinator: coordinator
@@ -575,7 +575,7 @@ struct SFTPFeatureTests {
             bundle.path: [empty, readme],
             empty.path: [],
         ])
-        let coordinator = SFTPTransferCoordinator(store: HostStore()) { client }
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
         let source = SFTPRemoteCopySource(
             hostID: sourceHostID,
             configuration: makeTestConfiguration(hostID: sourceHostID, host: "source"),
@@ -607,7 +607,7 @@ struct SFTPFeatureTests {
                 path: "/incoming/bundle/README.md", kind: .file, size: 3
             )
         ])
-        let coordinator = SFTPTransferCoordinator(store: HostStore()) { sourceClient }
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { sourceClient }
         let payload = coordinator.registerRemoteCopySource(
             SFTPRemoteCopySource(
                 hostID: sourceHostID,
@@ -632,7 +632,7 @@ struct SFTPFeatureTests {
         let sourceHostID = UUID()
         let targetHostID = UUID()
         let state = RemoteCopyTrackingState()
-        let coordinator = SFTPTransferCoordinator(store: HostStore()) {
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) {
             RemoteCopyTrackingClient(state: state)
         }
         coordinator.enqueueRemoteCopy(
@@ -699,7 +699,7 @@ struct SFTPFeatureTests {
             hostID: UUID(), initialPath: "/incoming", client: client,
             configuration: testConfiguration
         )
-        let coordinator = SFTPTransferCoordinator(store: HostStore()) { client }
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
         await sftpSession.prepareUpload([upload])
         #expect(sftpSession.pendingBatch?.conflictCount == 1)
@@ -730,7 +730,7 @@ struct SFTPFeatureTests {
             hostID: UUID(), initialPath: "/incoming", client: client,
             configuration: testConfiguration
         )
-        let coordinator = SFTPTransferCoordinator(store: HostStore()) { client }
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
         await sftpSession.prepareUpload([upload])
         await sftpSession.enqueuePending(policy: .keepBoth, coordinator: coordinator)

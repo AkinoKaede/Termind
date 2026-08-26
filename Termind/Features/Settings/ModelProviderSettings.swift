@@ -11,7 +11,7 @@ struct ModelProviderSettings: View {
     @Environment(AppModel.self) private var app
     let edit: (ModelProvider.ID, Bool) -> Void
 
-    private var modelProviders: [ModelProvider] { app.ai.modelProviders }
+    private var modelProviders: [ModelProvider] { app.aiConfiguration.modelProviders }
 
     var body: some View {
         Section("Model Providers") {
@@ -25,7 +25,7 @@ struct ModelProviderSettings: View {
                 // provider living in a view's `@State`. Cancelling takes it back
                 // out again — which is what `isNew` below is for.
                 let provider = ModelProvider(name: String(localized: "New Provider"))
-                app.ai.upsert(provider)
+                app.aiConfiguration.upsert(provider)
                 edit(provider.id, true)
             }
 
@@ -36,7 +36,7 @@ struct ModelProviderSettings: View {
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
 
-            if let error = app.ai.storageError {
+            if let error = app.aiConfiguration.storageError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -102,7 +102,7 @@ private struct ModelProviderRow: View {
     private var enabled: Binding<Bool> {
         Binding(
             get: { provider.isEnabled },
-            set: { app.ai.setModelProviderEnabled($0, for: provider.id) }
+            set: { app.aiConfiguration.setModelProviderEnabled($0, for: provider.id) }
         )
     }
 

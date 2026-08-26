@@ -30,14 +30,14 @@ final class WindowModel {
             }
         }
     }
-    weak var commandHistoryStore: CommandHistoryStore? {
+    weak var commandHistoryStore: CommandHistoryModel? {
         didSet {
             guard let commandHistoryStore else { return }
             for tab in tabs { tab.configureCommandHistory(using: commandHistoryStore) }
         }
     }
     var assistantConversationDeletionHandler: ((ConversationModel.ID) -> Void)?
-    var hostStore: HostStore? {
+    var hostStore: HostLibraryModel? {
         didSet { refreshSessionContext() }
     }
 
@@ -108,16 +108,28 @@ final class WindowModel {
     /// Resolves the active ids against live store data without mutating the
     /// remembered selection. This makes deletion safe even before the next
     /// pruning pass runs.
-    func activeDetailSelection(in store: HostStore) -> [ContextPanelDetailID] {
+    func activeDetailSelection(in store: HostLibraryModel) -> [ContextPanelDetailID] {
         activeDetailSelection.filter(Self.availableContextPanelDetails(in: store).contains)
     }
 
     /// Removes records deleted out from under a remembered selection.
-    func pruneDetailSelections(in store: HostStore) {
+    func pruneDetailSelections(in store: HostLibraryModel) {
         sidebar.pruneSelections(available: Self.availableContextPanelDetails(in: store))
     }
 
-    private static func availableContextPanelDetails(in store: HostStore) -> Set<ContextPanelDetailID> {
+    func pruneDetailSelections(in store: CredentialLibraryModel) {
+        let available = Set(store.keys.map { ContextPanelDetailID.key($0.id) })
+            .union(store.identities.map { .identity($0.id) })
+        sidebar.pruneSelections(available: available)
+    }
+
+    func pruneDetailSelections(in store: SnippetLibraryModel) {
+        sidebar.pruneSelections(
+            available: Set(store.snippets.map { ContextPanelDetailID.snippet($0.id) })
+        )
+    }
+
+    private static func availableContextPanelDetails(in store: HostLibraryModel) -> Set<ContextPanelDetailID> {
         Set(store.hosts.map { .host($0.id) })
             .union(store.keys.map { .key($0.id) })
             .union(store.identities.map { .identity($0.id) })

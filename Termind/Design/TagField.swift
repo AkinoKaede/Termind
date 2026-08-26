@@ -15,7 +15,7 @@ import SwiftUI
 /// snippets carry tags too, and their editor will want this control unchanged.
 struct TagField: View {
     @Binding var tags: [String]
-    /// Every tag worth offering — `HostStore.allTags` at every call site so far.
+    /// Every tag worth offering — `HostLibraryModel.allTags` at every call site so far.
     /// Passed in rather than read from the environment so the control stays a
     /// plain value: the snippet editor will hand it the same list.
     let suggestions: [String]
@@ -391,7 +391,7 @@ private struct ChipFlow: Layout {
         Section("Grouping & Tags") {
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
                 Text("Tags")
-                TagField(tags: $tags, suggestions: HostStore.demo().allTags)
+                TagField(tags: $tags, suggestions: HostLibraryModel.demo().allTags)
             }
         }
     }

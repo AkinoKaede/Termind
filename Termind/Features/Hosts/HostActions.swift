@@ -61,16 +61,16 @@ struct HostContextMenu: View {
                     copy.id = UUID()
                     copy.name = String(localized: "\(host.name) copy")
                     copy.lastUsedAt = nil
-                    app.hosts.upsert(copy)
+                    app.hostLibrary.upsert(copy)
                 }
             }
             Button("Copy SSH Command") {
-                guard let command = app.hosts.sshCommand(for: host) else { return }
+                guard let command = app.hostLibrary.sshCommand(for: host) else { return }
                 copyToPasteboard(command)
             }
-            .disabled(app.hosts.sshCommand(for: host) == nil)
+            .disabled(app.hostLibrary.sshCommand(for: host) == nil)
             .help(
-                app.hosts.sshCommand(for: host) == nil
+                app.hostLibrary.sshCommand(for: host) == nil
                     ? "SSH commands are unavailable for routes that use a Proxy."
                     : "Copy an OpenSSH command for this route."
             )
@@ -79,11 +79,11 @@ struct HostContextMenu: View {
         }
 
         Button("Remove from Recents") {
-            for host in hosts { app.hosts.forgetRecent(host.id) }
+            for host in hosts { app.hostLibrary.forgetRecent(host.id) }
         }
         .disabled(!hosts.contains { $0.lastUsedAt != nil })
         Button("Delete", role: .destructive) {
-            for host in hosts { app.hosts.delete(hostID: host.id) }
+            for host in hosts { app.hostLibrary.delete(hostID: host.id) }
             selectionDeleted?()
         }
         .disabled(hosts.isEmpty)

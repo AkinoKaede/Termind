@@ -177,7 +177,7 @@ struct SSHConnectionJourneyTests {
         let jump = Host(name: "Bastion", host: "jump.example")
         var destination = Host(name: "Server", host: "server.example")
         destination.jumpHostID = jump.id
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [jump, destination],
             knownHosts: [
                 KnownHostEntry(
@@ -203,7 +203,7 @@ struct SSHConnectionJourneyTests {
     @Test
     func temporaryHostKeyApprovalDoesNotPersist() throws {
         let host = Host(name: "Server", host: "server.example")
-        let store = HostStore(hosts: [host])
+        let store = HostLibraryModel(hosts: [host])
         let temporary = SSHHostKeyIdentity(
             algorithm: .ed25519, fingerprint: "SHA256:temporary"
         )
@@ -225,7 +225,7 @@ struct SSHConnectionJourneyTests {
         let temporary = SSHHostKeyIdentity(
             algorithm: .ed25519, fingerprint: "SHA256:temporary"
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [host],
             knownHosts: [
                 KnownHostEntry(
@@ -253,7 +253,7 @@ struct SSHConnectionJourneyTests {
             hostname: host.host, algorithm: .ed25519,
             fingerprint: "SHA256:second", addedAt: Date(timeIntervalSince1970: 2)
         )
-        let store = HostStore(hosts: [host], knownHosts: [first])
+        let store = HostLibraryModel(hosts: [host], knownHosts: [first])
 
         store.trust(second)
 
@@ -269,7 +269,7 @@ struct SSHConnectionJourneyTests {
             fingerprint: "SHA256:key", addedAt: Date(timeIntervalSince1970: 1),
             isMismatched: true
         )
-        let store = HostStore(hosts: [host], knownHosts: [original])
+        let store = HostLibraryModel(hosts: [host], knownHosts: [original])
 
         store.trust(
             KnownHostEntry(
@@ -290,7 +290,7 @@ struct SSHConnectionJourneyTests {
         let host = Host(name: "Server", host: "server.example")
         let first = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:first")
         let second = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:second")
-        let store = HostStore(hosts: [host], knownHosts: [first, second])
+        let store = HostLibraryModel(hosts: [host], knownHosts: [first, second])
 
         store.markKnownHostMismatched(hostname: host.host, port: host.port)
         for entry in store.knownHosts(for: host) {
@@ -355,7 +355,7 @@ struct SSHConnectionJourneyTests {
         let unrelated = KnownHostEntry(
             hostname: "other.example", algorithm: .ed25519, fingerprint: "SHA256:other"
         )
-        let store = HostStore(hosts: [host], knownHosts: [oldKey, unrelated])
+        let store = HostLibraryModel(hosts: [host], knownHosts: [oldKey, unrelated])
         host.host = "new.example"
         host.port = 2222
         let manual = KnownHostEntry(

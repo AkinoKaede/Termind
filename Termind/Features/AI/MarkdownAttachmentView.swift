@@ -9,7 +9,7 @@ import SwiftUI
 /// would otherwise eat — which is what makes recognising it here safe.
 ///
 /// The grammar lives on this side of the fence on purpose: the tag vocabulary
-/// is `ContextChip.Kind`'s, and `Core/Markdown` must not depend on it.
+/// is `ContextChip.Kind`'s, and the parser must not depend on presentation state.
 struct AttachmentBlock: Hashable {
     var kind: ContextChip.Kind
     var label: String

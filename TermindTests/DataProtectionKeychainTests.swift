@@ -30,13 +30,14 @@ struct DataProtectionKeychainTests {
     @Test
     func aiSecretsSurviveAcrossStoreInstances() {
         let reference = "termind.ai.test.\(UUID().uuidString)"
-        let writer = AIStore()
+        let secrets = InMemorySecretStore()
+        let writer = AIConfigurationModel(secrets: secrets)
         defer { writer.setSecret(nil, for: reference) }
 
         writer.setSecret("test-token", for: reference)
         #expect(writer.secretStorageError == nil)
 
-        let reader = AIStore()
+        let reader = AIConfigurationModel(secrets: secrets)
         #expect(reader.secret(for: reference) == "test-token")
         #expect(reader.secretStorageError == nil)
     }

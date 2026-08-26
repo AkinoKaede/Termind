@@ -39,9 +39,9 @@ struct NewGroupSheet: View {
     /// Everything this group could be filed inside — which is every group except
     /// itself and its own descendants, since a group cannot contain itself.
     private var parentCandidates: [HostGroup] {
-        guard let group else { return app.hosts.groups }
-        let forbidden = Set([group.id] + app.hosts.descendantGroups(of: group.id).map(\.id))
-        return app.hosts.groups.filter { !forbidden.contains($0.id) }
+        guard let group else { return app.hostLibrary.groups }
+        let forbidden = Set([group.id] + app.hostLibrary.descendantGroups(of: group.id).map(\.id))
+        return app.hostLibrary.groups.filter { !forbidden.contains($0.id) }
     }
 
     var body: some View {
@@ -117,7 +117,7 @@ struct NewGroupSheet: View {
     }
 
     /// Editing keeps the group's id, `sortIndex`, and expansion state, so
-    /// `HostStore.upsert(_:)` replaces it in place and the section it is drawn as
+    /// `HostLibraryModel.upsert(_:)` replaces it in place and the section it is drawn as
     /// does not jump or spring open. Creating leaves `sortIndex` at its default,
     /// which the store then numbers against the new group's siblings — knowledge
     /// this sheet does not have.

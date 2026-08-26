@@ -82,7 +82,7 @@ struct HostEditorView: View {
                 // offering it.
                 Picker("Identity", selection: identityChoice) {
                     Text("None").tag(Choice<Identity.ID>.unset)
-                    ForEach(app.hosts.identities) { identity in
+                    ForEach(app.hostLibrary.identities) { identity in
                         Text("\(identity.name) · \(identity.username)")
                             .tag(Choice.existing(identity.id))
                     }
@@ -148,7 +148,7 @@ struct HostEditorView: View {
 
                 if !draft.host.trimmingCharacters(in: .whitespaces).isEmpty {
                     LabeledContent("Route") {
-                        Text(app.hosts.routeSummary(for: draft))
+                        Text(app.hostLibrary.routeSummary(for: draft))
                             .font(.caption.monospaced())
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.trailing)
@@ -166,7 +166,7 @@ struct HostEditorView: View {
             Section("Group & Tags") {
                 Picker("Group", selection: groupChoice) {
                     Text("None").tag(Choice<HostGroup.ID>.unset)
-                    ForEach(app.hosts.groups) { group in
+                    ForEach(app.hostLibrary.groups) { group in
                         Text(group.name).tag(Choice.existing(group.id))
                     }
                     Divider()
@@ -182,13 +182,13 @@ struct HostEditorView: View {
                 // of the row.
                 VStack(alignment: .leading, spacing: Metrics.Space.s) {
                     Text("Tags")
-                    TagField(tags: $draft.tags, suggestions: app.hosts.allTags)
+                    TagField(tags: $draft.tags, suggestions: app.hostLibrary.allTags)
                 }
             }
 
             if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Section("SSH Command") {
-                    if let command = app.hosts.sshCommand(for: draft) {
+                    if let command = app.hostLibrary.sshCommand(for: draft) {
                         HStack(spacing: Metrics.Space.s) {
                             Text(command)
                                 .font(.caption.monospaced())
@@ -224,18 +224,18 @@ struct HostEditorView: View {
         switch route {
         case .identity:
             NewIdentitySheet(back: closeNestedEditor) { identity, passwordUpdate in
-                try app.hosts.upsert(identity, passwordUpdate: passwordUpdate)
+                try app.hostLibrary.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.identityID = identity.id
             }
         case .group:
             NewGroupSheet(back: closeNestedEditor) { group in
-                app.hosts.upsert(group)
+                app.hostLibrary.upsert(group)
                 draft.groupID = group.id
             }
         case .proxyIdentity:
             NewIdentitySheet(configuration: .proxy, back: closeNestedEditor) {
                 identity, passwordUpdate in
-                try app.hosts.upsert(identity, passwordUpdate: passwordUpdate)
+                try app.hostLibrary.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.proxy?.identityID = identity.id
                 draft.proxy?.username = identity.username
             }
@@ -308,12 +308,12 @@ struct HostEditorView: View {
     }
 
     private var jumpHostChoices: [Host] {
-        app.hosts.hosts.filter { candidate in
+        app.hostLibrary.hosts.filter { candidate in
             candidate.id != draft.id
                 && {
                     var proposed = draft
                     proposed.jumpHostID = candidate.id
-                    return app.hosts.validatedRoute(for: proposed) != nil
+                    return app.hostLibrary.validatedRoute(for: proposed) != nil
                 }()
         }
     }
@@ -335,22 +335,22 @@ struct HostEditorView: View {
 
         func walk(_ group: HostGroup, prefix: String) {
             let title = prefix.isEmpty ? group.name : "\(prefix) / \(group.name)"
-            let hosts = app.hosts.hosts(in: group.id).filter { eligibleIDs.contains($0.id) }
+            let hosts = app.hostLibrary.hosts(in: group.id).filter { eligibleIDs.contains($0.id) }
             if !hosts.isEmpty {
                 result.append(
                     JumpHostSection(id: .group(group.id), title: title, hosts: hosts)
                 )
             }
-            for child in app.hosts.childGroups(of: group.id) {
+            for child in app.hostLibrary.childGroups(of: group.id) {
                 walk(child, prefix: title)
             }
         }
 
-        for group in app.hosts.rootGroups {
+        for group in app.hostLibrary.rootGroups {
             walk(group, prefix: "")
         }
 
-        let ungrouped = app.hosts.hosts(in: nil).filter { eligibleIDs.contains($0.id) }
+        let ungrouped = app.hostLibrary.hosts(in: nil).filter { eligibleIDs.contains($0.id) }
         if !ungrouped.isEmpty {
             result.append(
                 JumpHostSection(
@@ -406,7 +406,7 @@ struct HostEditorView: View {
                 draft.proxy?.username = ""
             case .existing(let id):
                 draft.proxy?.identityID = id
-                guard let identity = app.hosts.identity(id) else { return }
+                guard let identity = app.hostLibrary.identity(id) else { return }
                 draft.proxy?.username = identity.username
             case .new:
                 route = .proxyIdentity
@@ -415,7 +415,7 @@ struct HostEditorView: View {
     }
 
     private var proxyIdentities: [Identity] {
-        app.hosts.identities.filter(app.hosts.isProxyEligibleOnThisDevice)
+        app.hostLibrary.identities.filter(app.hostLibrary.isProxyEligibleOnThisDevice)
     }
 
     private var footer: some View {
@@ -453,7 +453,7 @@ struct HostEditorView: View {
             && (draft.proxy?.isValid ?? true)
             && (draft.sftpSessionInitialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || draft.sftpSessionInitialPath.hasPrefix("/"))
-            && app.hosts.validatedRoute(for: draft) != nil
+            && app.hostLibrary.validatedRoute(for: draft) != nil
             && draftForwardings.allSatisfy(\.isValid)
             && knownHostsAreValid
     }
@@ -470,10 +470,10 @@ struct HostEditorView: View {
     }
 
     private func load() {
-        guard let hostID, let existing = app.hosts.host(hostID) else { return }
+        guard let hostID, let existing = app.hostLibrary.host(hostID) else { return }
         draft = existing
-        draftForwardings = app.hosts.portForwardings(for: hostID)
-        originalKnownHosts = app.hosts.knownHosts(for: existing)
+        draftForwardings = app.hostLibrary.portForwardings(for: hostID)
+        originalKnownHosts = app.hostLibrary.knownHosts(for: existing)
         draftKnownHosts = originalKnownHosts
     }
 
@@ -492,14 +492,14 @@ struct HostEditorView: View {
         let initialPath = draft.sftpSessionInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
         draft.sftpSessionInitialPath = initialPath.isEmpty ? "" : RemotePath.normalized(initialPath)
         for index in draftForwardings.indices { draftForwardings[index].hostID = draft.id }
-        if app.hosts.upsert(
+        if app.hostLibrary.upsert(
             draft,
             replacingPortForwardings: draftForwardings,
             replacingKnownHosts: knownHostsForSave
         ) {
             closeTab()
         } else {
-            saveError = app.hosts.storageError ?? String(localized: "The host could not be saved.")
+            saveError = app.hostLibrary.storageError ?? String(localized: "The host could not be saved.")
         }
     }
 

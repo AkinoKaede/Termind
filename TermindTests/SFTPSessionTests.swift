@@ -79,7 +79,7 @@ struct SFTPSessionTests {
             hostID: host.id, localPath: "/tmp/archive.zip",
             remotePath: "/srv/archive.zip"
         )
-        let store = HostStore(hosts: [host], sftpTransfers: [sftpTransfer])
+        let store = HostLibraryModel(hosts: [host], sftpTransfers: [sftpTransfer])
         let workspace = Workspace.sftpSession(host: host)
         let window = WindowModel(tabs: [workspace])
 

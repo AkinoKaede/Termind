@@ -42,14 +42,14 @@ struct AIProviderPersistenceTests {
         let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
 
         do {
-            let store = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+            let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
             store.upsert(provider)
             store.assign(ref, to: .chat)
             store.select(ref)
             #expect(store.storageError == nil)
         }
 
-        let reloaded = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         #expect(reloaded.modelProviders == [provider])
         #expect(reloaded.roles == [.chat: ref])
         #expect(reloaded.lastSelectedModel == ref)
@@ -66,7 +66,7 @@ struct AIProviderPersistenceTests {
         let model = reasoningModel("gpt-5.4")
         let provider = ModelProvider(name: "OpenAI", models: [model])
         let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
-        let store = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         store.upsert(provider)
         store.assign(ref, to: .chat)
         store.assign(ref, to: .commandComposer)
@@ -74,7 +74,7 @@ struct AIProviderPersistenceTests {
 
         store.removeModels([model.id], from: provider.id)
 
-        let reloaded = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         #expect(reloaded.modelProvider(provider.id)?.models.isEmpty == true)
         #expect(reloaded.roles.isEmpty)
         #expect(reloaded.lastSelectedModel == nil)
@@ -90,7 +90,7 @@ struct AIProviderPersistenceTests {
         let composerRef = AIModelRef(modelProviderID: provider.id, modelID: composerModel.id)
 
         do {
-            let store = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+            let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
             store.upsert(provider)
             store.assign(chatRef, to: .chat)
             #expect(store.resolve(.commandComposer)?.model.id == chatModel.id)
@@ -98,7 +98,7 @@ struct AIProviderPersistenceTests {
             #expect(store.resolve(.commandComposer)?.model.id == composerModel.id)
         }
 
-        let reloaded = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         #expect(reloaded.assignment(for: .chat) == chatRef)
         #expect(reloaded.assignment(for: .commandComposer) == composerRef)
         #expect(AIRole.allCases == [.chat, .commandComposer, .securityReview])
@@ -111,7 +111,7 @@ struct AIProviderPersistenceTests {
         let model = reasoningModel("legacy-model")
         let provider = ModelProvider(name: "OpenAI", models: [model])
         let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
-        let store = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         store.upsert(provider)
 
         let legacy = PersistentAIRoleAssignment(role: .chat, ref: ref)
@@ -119,7 +119,7 @@ struct AIProviderPersistenceTests {
         container.mainContext.insert(legacy)
         try container.mainContext.save()
 
-        let reloaded = AIStore(modelContext: container.mainContext, persistsSecrets: false)
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         #expect(reloaded.roles.isEmpty)
         #expect(reloaded.assignment(for: .commandComposer) == nil)
         #expect(
@@ -135,7 +135,7 @@ struct AIProviderPersistenceTests {
             .high: ReasoningLevelMapping(isSupported: true, wireValue: "strong")
         ])
         let provider = ModelProvider(name: "Gateway", models: [original])
-        let store = AIStore(modelProviders: [provider], persistsSecrets: false)
+        let store = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
 
         store.replaceModels([reasoningModel(original.id)], for: provider.id)
 

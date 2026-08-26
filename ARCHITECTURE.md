@@ -14,10 +14,18 @@ them as separate modules.
 - `Platform/macOS` contains AppKit adapters.
 - `App` constructs dependencies and owns application/window lifetimes.
 
+There is deliberately no `Core` or generic shared layer. A value belongs to
+Domain, orchestration and ports belong to Application, concrete I/O belongs to
+Infrastructure, and presentation-only parsing or formatting stays with its
+Feature. This prevents a catch-all directory from bypassing dependency review.
+
 Domain must not import SwiftUI, SwiftData, AppKit, Ghostty, CSSH2, or OpenSSL.
 Views must not construct network clients, access SwiftData/Keychain directly, or
 coordinate cross-domain cleanup. Runtime side effects belong to application
 services and durable outbox handlers.
+
+The project remains one target, so `ArchitectureBoundaryTests` enforces the
+framework and concrete-client restrictions that directory layout alone cannot.
 
 ## State lifetimes
 
@@ -40,6 +48,13 @@ services and durable outbox handlers.
 
 Repository data is persistent truth. Runtime connection state is kept in a
 connection registry and is never persisted onto domain records.
+
+Feature views receive aggregate-facing Application Models rather than a generic
+store API: `HostLibraryModel`, `CredentialLibraryModel`, `SnippetLibraryModel`,
+`ForwardingLibraryModel`, `TransferLibraryModel`, `AIConfigurationModel`,
+`CommandHistoryModel`, and `ToolAuditModel`. Aggregates that share one persisted
+vault snapshot still expose separate intent surfaces, so a feature cannot gain
+unrelated write operations merely because its records are saved together.
 
 ## Agent runtime and security
 

@@ -91,7 +91,7 @@ struct ContextPanelSelectionTests {
         let host = Host(name: "Host", host: "host.example")
         let key = SSHKeyRef(label: "Key")
         let identity = Identity(name: "Identity", username: "user")
-        let store = HostStore(hosts: [host], keys: [key], identities: [identity])
+        let store = HostLibraryModel(hosts: [host], keys: [key], identities: [identity])
         let window = WindowModel(vaultDestination: .hosts)
         window.setDetailSelection([.host(host.id), .host(UUID())], for: .hosts)
         window.setDetailSelection(

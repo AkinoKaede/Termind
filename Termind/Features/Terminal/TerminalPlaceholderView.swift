@@ -88,17 +88,17 @@ struct TerminalPlaceholderView: View {
                         identityID, username, password, passphrase, keyID, save in
                         sshSession.continueAuthentication(
                             identityID: identityID, username: username, password: password,
-                            passphrase: passphrase, keyID: keyID, save: save, using: app.hosts
+                            passphrase: passphrase, keyID: keyID, save: save, using: app.hostLibrary
                         )
                     },
                     continueHostKey: {
-                        sshSession.continueWithTemporaryHostKey($0, using: app.hosts)
+                        sshSession.continueWithTemporaryHostKey($0, using: app.hostLibrary)
                     },
-                    trustHostKey: { sshSession.trustAndConnect($0, using: app.hosts) },
+                    trustHostKey: { sshSession.trustAndConnect($0, using: app.hostLibrary) },
                     denyHostKey: {
                         cancelConnection()
                     },
-                    retry: { sshSession.connect(using: app.hosts) },
+                    retry: { sshSession.connect(using: app.hostLibrary) },
                     cancel: cancelConnection,
                     askAI: {
                         if case .failed(let message) = sshSession.connectionJourney.phase {
@@ -132,7 +132,7 @@ struct TerminalPlaceholderView: View {
             sshSession.terminalState.isSurfaceVisible = isVisible
             terminalFocused = requestsFocus
             sshSession.applyAppearance(appearancePreferences)
-            if sshSession.status == .connecting { sshSession.connect(using: app.hosts) }
+            if sshSession.status == .connecting { sshSession.connect(using: app.hostLibrary) }
             if requestsFocus { sshSession.requestTerminalFocus() }
         }
         .onChange(of: isVisible) { _, visible in
@@ -222,7 +222,7 @@ struct TerminalPlaceholderView: View {
     }
 
     private var uploadHostName: String {
-        app.hosts.host(sshSession.hostID)?.name ?? sshSession.title
+        app.hostLibrary.host(sshSession.hostID)?.name ?? sshSession.title
     }
 
     private func receiveDroppedURLs(_ urls: [URL]) -> Bool {

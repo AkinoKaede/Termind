@@ -17,7 +17,7 @@ struct PortForwardingEditorSection: View {
                 HostForwardingRow(
                     host: host,
                     rule: rule,
-                    canToggle: app.hosts.portForwarding(rule.id) == rule,
+                    canToggle: app.forwardings.portForwarding(rule.id) == rule,
                     edit: { openEditor(rule) },
                     duplicate: { duplicate(rule) },
                     delete: { rules.removeAll { $0.id == rule.id } }
@@ -49,7 +49,7 @@ struct PortForwardingEditorSection: View {
     }
 
     private var savedRules: [PortForwardingRule] {
-        rules.filter { app.hosts.portForwarding($0.id) == $0 }
+        rules.filter { app.forwardings.portForwarding($0.id) == $0 }
     }
 
     private func duplicate(_ rule: PortForwardingRule) {
@@ -156,7 +156,7 @@ private struct HostForwardingContextMenu: View {
     @Environment(AppModel.self) private var app
 
     private var isActive: Bool { app.forwarding.state(for: rule.id).isActive }
-    private var command: String? { app.hosts.sshCommand(for: rule, host: host) }
+    private var command: String? { app.forwardings.sshCommand(for: rule, host: host) }
 
     var body: some View {
         Button(app.forwarding.isEnabled(rule.id) ? "Stop" : "Start", action: toggle)
@@ -236,7 +236,7 @@ struct PortForwardingEditorSheet: View {
                 Section("SSH Host") {
                     LabeledContent("Host", value: host.name.isEmpty ? host.host : host.name)
                     if !host.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(app.hosts.routeSummary(for: host))
+                        Text(app.forwardings.routeSummary(for: host))
                             .font(.caption.monospaced())
                             .foregroundStyle(.secondary)
                     }
@@ -331,7 +331,7 @@ struct PortForwardingEditorSheet: View {
 
     private var routePreview: String {
         let start = previewAddress(draft.bindHost, port: parsedBindPort)
-        let ssh = host.host.isEmpty ? String(localized: "SSH Host") : app.hosts.routeSummary(for: host)
+        let ssh = host.host.isEmpty ? String(localized: "SSH Host") : app.forwardings.routeSummary(for: host)
         let targetHost = targetHostDraft.isEmpty ? "—" : targetHostDraft
         let targetPort = parsedTargetPort.map(String.init) ?? "—"
         switch draft.kind {

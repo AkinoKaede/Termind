@@ -200,7 +200,7 @@ private struct AgentToolRowView: View {
 
     private var hostName: String? {
         guard let id = card.invocation.targetHostID else { return nil }
-        return app.hosts.host(id)?.name ?? String(id.uuidString.prefix(8))
+        return app.hostLibrary.host(id)?.name ?? String(id.uuidString.prefix(8))
     }
 
     private var tint: Color {

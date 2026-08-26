@@ -11,7 +11,7 @@ struct CommandHistoryTests {
     func memoryStoreKeepsDuplicatesSearchesAndScopesByHost() throws {
         let firstHost = UUID()
         let secondHost = UUID()
-        let store = CommandHistoryStore()
+        let store = CommandHistoryModel()
 
         store.record("uptime", for: firstHost, at: Date(timeIntervalSince1970: 1))
         let duplicate = try #require(
@@ -34,10 +34,10 @@ struct CommandHistoryTests {
     @Test
     func storeRejectsBlankCommandsAndTrimsPerHost() {
         let hostID = UUID()
-        let store = CommandHistoryStore()
+        let store = CommandHistoryModel()
         #expect(store.record(" \n\t ", for: hostID) == nil)
 
-        for index in 0...CommandHistoryStore.perHostLimit {
+        for index in 0...CommandHistoryModel.perHostLimit {
             store.record(
                 "command-\(index)", for: hostID,
                 at: Date(timeIntervalSince1970: TimeInterval(index))
@@ -45,7 +45,7 @@ struct CommandHistoryTests {
         }
 
         let commands = store.entries(for: hostID).map(\.command)
-        #expect(commands.count == CommandHistoryStore.perHostLimit)
+        #expect(commands.count == CommandHistoryModel.perHostLimit)
         #expect(commands.first == "command-1000")
         #expect(commands.last == "command-1")
     }
@@ -56,7 +56,7 @@ struct CommandHistoryTests {
         let hostID = UUID()
         let entryID: UUID
         do {
-            let store = CommandHistoryStore(modelContext: container.mainContext)
+            let store = CommandHistoryModel(modelContext: container.mainContext)
             entryID = try #require(store.record("echo 持久化", for: hostID)).id
             #expect(store.storageError == nil)
             #expect(
@@ -66,7 +66,7 @@ struct CommandHistoryTests {
             )
         }
 
-        let reloaded = CommandHistoryStore(modelContext: container.mainContext)
+        let reloaded = CommandHistoryModel(modelContext: container.mainContext)
         #expect(reloaded.entries(for: hostID).map(\.id) == [entryID])
         #expect(reloaded.entries(for: hostID).map(\.command) == ["echo 持久化"])
         #expect(reloaded.storageError == nil)

@@ -19,7 +19,7 @@ struct SnippetFeatureTests {
         let after = Snippet(
             title: "After", body: "after", packageID: destination.id, sortIndex: 1
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             snippets: [first, second, before, after],
             snippetPackages: [source, destination]
         )
@@ -42,7 +42,7 @@ struct SnippetFeatureTests {
             name: "Child", parentID: root.id, isExpanded: false
         )
         let snippet = Snippet(title: "Status", body: "uptime")
-        let store = HostStore(
+        let store = HostLibraryModel(
             snippets: [snippet], snippetPackages: [root, child]
         )
 
@@ -63,7 +63,7 @@ struct SnippetFeatureTests {
         let second = Snippet(
             title: "Second", body: "two", packageID: child.id, sortIndex: 0
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             snippets: [existing, first, second], snippetPackages: [root, child]
         )
 
@@ -81,7 +81,7 @@ struct SnippetFeatureTests {
             title: "Status", body: "uptime",
             targetHostIDs: [removed.id, kept.id]
         )
-        let store = HostStore(hosts: [removed, kept], snippets: [snippet])
+        let store = HostLibraryModel(hosts: [removed, kept], snippets: [snippet])
 
         store.delete(hostID: removed.id)
 
@@ -98,7 +98,7 @@ struct SnippetFeatureTests {
             for: HostPersistence.schema,
             configurations: [configuration]
         )
-        let store = HostStore(modelContext: container.mainContext)
+        let store = HostLibraryModel(modelContext: container.mainContext)
         let host = Host(name: "Web", host: "web.example")
         let package = SnippetPackage(name: "Operations", isExpanded: false)
         let script = """
@@ -116,7 +116,7 @@ struct SnippetFeatureTests {
         store.setSnippetPackageExpanded(false, for: package.id)
         store.upsert(snippet)
 
-        let reloaded = HostStore(modelContext: container.mainContext)
+        let reloaded = HostLibraryModel(modelContext: container.mainContext)
         #expect(reloaded.snippetPackage(package.id)?.isExpanded == false)
         #expect(reloaded.snippet(snippet.id)?.packageID == package.id)
         #expect(reloaded.snippet(snippet.id)?.targetHostIDs == [host.id])
@@ -136,7 +136,7 @@ struct SnippetFeatureTests {
             title: "Second Workspace", body: "whoami",
             targetHostIDs: [firstHost.id]
         )
-        let store = HostStore(hosts: [secondHost, firstHost], snippets: [first, second])
+        let store = HostLibraryModel(hosts: [secondHost, firstHost], snippets: [first, second])
         let app = AppModel(hosts: store)
         let window = WindowModel()
 
@@ -156,7 +156,7 @@ struct SnippetFeatureTests {
         let snippet = Snippet(
             title: "Status", body: "uptime", targetHostIDs: [saved.id]
         )
-        let store = HostStore(hosts: [saved, temporary], snippets: [snippet])
+        let store = HostLibraryModel(hosts: [saved, temporary], snippets: [snippet])
         let app = AppModel(hosts: store)
         let window = WindowModel()
 

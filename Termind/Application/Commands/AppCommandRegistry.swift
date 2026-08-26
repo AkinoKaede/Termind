@@ -35,8 +35,8 @@ nonisolated struct AppCommandDescriptor: Identifiable, Hashable, Sendable {
 final class AppCommandRegistry {
     func commands(app: AppModel, window: WindowModel) -> [AppCommandDescriptor] {
         fixedCommands + vaultCommands
-            + window.tabs.map { workspaceCommand($0, store: app.hosts) }
-            + app.hosts.searchHosts("").flatMap(hostCommands)
+            + window.tabs.map { workspaceCommand($0, store: app.hostLibrary) }
+            + app.hostLibrary.searchHosts("").flatMap(hostCommands)
             + actionCommands(canShowAssistant: window.selectedTab != nil)
     }
 
@@ -56,7 +56,7 @@ final class AppCommandRegistry {
         case .workspace(let id):
             window.select(id)
         case .connectHost(let id, let target):
-            guard let host = app.hosts.host(id) else { return }
+            guard let host = app.hostLibrary.host(id) else { return }
             app.open(host, as: target, in: window)
         case .newChat:
             window.openAssistant()
@@ -101,7 +101,7 @@ final class AppCommandRegistry {
     }
 
     private func workspaceCommand(
-        _ workspace: Workspace, store: HostStore
+        _ workspace: Workspace, store: HostLibraryModel
     ) -> AppCommandDescriptor {
         AppCommandDescriptor(
             id: "workspace.\(workspace.id.uuidString)",

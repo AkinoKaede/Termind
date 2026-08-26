@@ -14,7 +14,7 @@ struct ModelRoleSettings: View {
                 RolePicker(role: role)
             }
 
-            if app.ai.firstAvailableModel == nil {
+            if app.aiConfiguration.firstAvailableModel == nil {
                 Text("No models yet. Add a provider above and fetch its models.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -33,7 +33,7 @@ private struct RolePicker: View {
     /// Chat models only. An embedding model cannot hold a conversation, and
     /// offering one is offering a request that will fail.
     private var modelProviders: [ModelProvider] {
-        app.ai.enabledModelProviders.filter { !$0.chatModels.isEmpty }
+        app.aiConfiguration.enabledModelProviders.filter { !$0.chatModels.isEmpty }
     }
 
     var body: some View {
@@ -64,8 +64,8 @@ private struct RolePicker: View {
 
     private var selection: Binding<AIModelRef?> {
         Binding(
-            get: { app.ai.assignment(for: role) },
-            set: { app.ai.assign($0, to: role) }
+            get: { app.aiConfiguration.assignment(for: role) },
+            set: { app.aiConfiguration.assign($0, to: role) }
         )
     }
 
@@ -79,8 +79,8 @@ private struct RolePicker: View {
     /// the picker, so repeating the resolved model would bury the row that is
     /// actually deciding.
     private var caption: String {
-        guard role == .chat, app.ai.assignment(for: .chat) == nil,
-            let resolved = app.ai.resolve(.chat)
+        guard role == .chat, app.aiConfiguration.assignment(for: .chat) == nil,
+            let resolved = app.aiConfiguration.resolve(.chat)
         else { return role.detail }
         return "\(role.detail) Currently \(resolved.model.label) on \(resolved.provider.name)."
     }

@@ -35,7 +35,7 @@ struct WorkingDirectoryTests {
 
         sshSession.terminalState.terminalDidChangeWorkingDirectory("/stale-again")
         await Task.yield()
-        sshSession.connect(using: HostStore())
+        sshSession.connect(using: HostLibraryModel())
         #expect(sshSession.workingDirectory == nil)
     }
 }

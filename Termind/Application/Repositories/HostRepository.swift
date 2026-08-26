@@ -19,23 +19,19 @@ protocol HostRepository: AnyObject {
     func finalizeHostDeletion(_ hostID: Host.ID) throws
 }
 
-/// Compatibility source used by previews and focused unit tests while features
-/// are migrated away from HostStore. It is deliberately read-only.
 @MainActor
-final class HostStoreRepositoryAdapter: HostRepository {
-    private let store: HostStore
+final class InMemoryHostRepository: HostRepository {
+    private var value: HostLibrarySnapshot
     private var revision: Int64 = 0
     private var continuations: [UUID: AsyncStream<RepositoryChange<HostLibrarySnapshot>>.Continuation]
         = [:]
 
-    init(store: HostStore) {
-        self.store = store
-    }
+    init(snapshot: HostLibrarySnapshot = .empty) { value = snapshot }
 
     func snapshot() throws -> RepositoryChange<HostLibrarySnapshot> {
         RepositoryChange(
             revision: revision,
-            value: HostLibrarySnapshot(hosts: store.hosts, groups: store.groups),
+            value: value,
             reason: .initial
         )
     }
@@ -55,30 +51,39 @@ final class HostStoreRepositoryAdapter: HostRepository {
         revision &+= 1
         let change = RepositoryChange(
             revision: revision,
-            value: HostLibrarySnapshot(hosts: store.hosts, groups: store.groups),
+            value: value,
             reason: .refresh
         )
         for continuation in continuations.values { continuation.yield(change) }
     }
 
     func upsertHost(_ host: Host) throws {
-        store.upsert(host)
-        try refresh()
+        if let index = value.hosts.firstIndex(where: { $0.id == host.id }) {
+            value.hosts[index] = host
+        } else {
+            value.hosts.append(host)
+        }
+        try publish(.mutation)
     }
 
     func deletionImpact(for hostID: Host.ID) throws -> HostDeletionImpact {
         HostDeletionImpact(
-            jumpHostReferences: store.hosts.filter { $0.jumpHostID == hostID }.count,
-            snippetReferences: store.snippets.filter { $0.targetHostIDs.contains(hostID) }.count,
-            forwardingRules: store.portForwardings(for: hostID).count
+            jumpHostReferences: value.hosts.filter { $0.jumpHostID == hostID }.count,
+            snippetReferences: 0, forwardingRules: 0
         )
     }
 
     func requestHostDeletion(_ hostID: Host.ID) throws {
-        store.delete(hostID: hostID)
-        try refresh()
+        value.hosts.removeAll { $0.id == hostID }
+        try publish(.mutation)
     }
 
     func clearReferencesForDeletedHost(_ hostID: Host.ID) throws {}
     func finalizeHostDeletion(_ hostID: Host.ID) throws {}
+
+    private func publish(_ reason: RepositoryChangeReason) throws {
+        revision &+= 1
+        let change = RepositoryChange(revision: revision, value: value, reason: reason)
+        for continuation in continuations.values { continuation.yield(change) }
+    }
 }

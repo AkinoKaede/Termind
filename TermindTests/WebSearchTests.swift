@@ -340,7 +340,7 @@ struct WebSearchTests {
 
     @Test @MainActor
     func theToolIsAbsentUntilABackendIsConfigured() {
-        let hosts = AgentHostResolver(store: HostStore())
+        let hosts = AgentHostResolver(store: HostLibraryModel())
         let pool = AgentConnectionPool(
             configuration: { _ in throw AgentToolError.invalidHost },
             routeFingerprint: { _ in "" },

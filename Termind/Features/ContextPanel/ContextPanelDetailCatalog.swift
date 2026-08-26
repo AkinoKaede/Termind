@@ -71,7 +71,7 @@ struct ContextPanelDetailCatalog {
         )
     }
 
-    static func standard(store: HostStore) -> Self {
+    static func standard(store: HostLibraryModel) -> Self {
         Self([
             AnyContextPanelDetailProvider(HostContextPanelDetailProvider(store: store)),
             AnyContextPanelDetailProvider(KeyContextPanelDetailProvider(store: store)),
@@ -82,7 +82,7 @@ struct ContextPanelDetailCatalog {
 }
 
 private struct HostContextPanelDetailProvider: ContextPanelDetailProvider {
-    let store: HostStore
+    let store: HostLibraryModel
     let kind = ContextPanelDetailID.Kind.host
     let page = VaultPage.hosts
     let emptyState = ContextPanelEmptyState(
@@ -111,7 +111,7 @@ private struct HostContextPanelDetailProvider: ContextPanelDetailProvider {
 }
 
 private struct KeyContextPanelDetailProvider: ContextPanelDetailProvider {
-    let store: HostStore
+    let store: HostLibraryModel
     let kind = ContextPanelDetailID.Kind.key
     let page = VaultPage.keychain
     let emptyState = ContextPanelEmptyState(
@@ -138,7 +138,7 @@ private struct KeyContextPanelDetailProvider: ContextPanelDetailProvider {
 }
 
 private struct IdentityContextPanelDetailProvider: ContextPanelDetailProvider {
-    let store: HostStore
+    let store: HostLibraryModel
     let kind = ContextPanelDetailID.Kind.identity
     let page = VaultPage.keychain
     let emptyState = ContextPanelEmptyState(
@@ -169,7 +169,7 @@ private struct IdentityContextPanelDetailProvider: ContextPanelDetailProvider {
 }
 
 private struct SnippetContextPanelDetailProvider: ContextPanelDetailProvider {
-    let store: HostStore
+    let store: HostLibraryModel
     let kind = ContextPanelDetailID.Kind.snippet
     let page = VaultPage.snippets
     let emptyState = ContextPanelEmptyState(
@@ -252,7 +252,7 @@ private struct IdentityContextPanelDetailView: View {
         IdentityDetailContent(identity: identity) { isEditing = true }
             .sheet(isPresented: $isEditing) {
                 NewIdentitySheet(identity: identity) { updated, passwordUpdate in
-                    try app.hosts.upsert(updated, passwordUpdate: passwordUpdate)
+                    try app.hostLibrary.upsert(updated, passwordUpdate: passwordUpdate)
                 }
             }
     }

@@ -68,7 +68,7 @@ struct ExternalAuthWindow: View {
                     app.externalAuthentication.respondSSH(.submit(
                         AgentSSHAuthenticationAnswer(
                             identityID: identityID,
-                            identityName: identityID.flatMap { app.hosts.identity($0)?.name },
+                            identityName: identityID.flatMap { app.hostLibrary.identity($0)?.name },
                             username: username, password: password,
                             passphrase: passphrase, keyID: keyID,
                             save: requiresPassphrase ? false : save
@@ -85,7 +85,7 @@ struct ExternalAuthWindow: View {
         case .secret(let request):
             ExternalSecretRequestForm(
                 request: request,
-                hostName: request.hostID.flatMap { app.hosts.host($0)?.name },
+                hostName: request.hostID.flatMap { app.hostLibrary.host($0)?.name },
                 submit: { response in
                     app.externalAuthentication.respondSecret(response)
                     dismissIfFinished()

@@ -144,7 +144,7 @@ struct WindowStateTests {
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
         let window = WindowModel(tabs: [workspace])
 
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
 
         #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host, .directory])
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/srv/app"])
@@ -160,7 +160,7 @@ struct WindowStateTests {
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
         let sftpSession = workspace.focusedPane.sftpSession!
         let window = WindowModel(tabs: [workspace])
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
 
         sftpSession.navigate(to: "/srv/releases")
 
@@ -183,7 +183,7 @@ struct WindowStateTests {
         let backgroundSession = workspace.focusedPane.sftpSession!
         workspace.focus(focusedPane.id)
         let window = WindowModel(tabs: [workspace])
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
 
         backgroundSession.navigate(to: "/background/changed")
 
@@ -198,7 +198,7 @@ struct WindowStateTests {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
         let window = WindowModel(tabs: [workspace])
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
         window.sidebar.assistantDraft.draft = "Why is this slow?"
 
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/srv/app"])
@@ -216,7 +216,7 @@ struct WindowStateTests {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
         let window = WindowModel(tabs: [workspace])
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
 
         #expect(!window.sidebar.sessionContext.isEmpty)
 
@@ -260,7 +260,7 @@ struct WindowStateTests {
             ContextChip(kind: .output, label: "Connection error", content: "ssh: refused")
         )
         let window = WindowModel(tabs: [workspace], assistantLibrary: library)
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
 
         window.openAssistantInSidebar(conversation.id)
 
@@ -274,7 +274,7 @@ struct WindowStateTests {
         let workspace = Workspace.sshSession(host: host)
         let sshSession = workspace.focusedPane.sshSession!
         let window = WindowModel(tabs: [workspace])
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
 
         sshSession.terminalState.terminalDidChangeWorkingDirectory("/var/log")
         await Task.yield()
@@ -293,7 +293,7 @@ struct WindowStateTests {
         let sshPane = workspace.focusedPane
         let sshSession = sshPane.sshSession!
         let window = WindowModel(tabs: [workspace])
-        window.hostStore = HostStore(hosts: [host])
+        window.hostStore = HostLibraryModel(hosts: [host])
         let info = RemoteSystemInfo(
             distributionID: "ubuntu", distributionVersion: "24.04",
             kernelName: "Linux", kernelRelease: "6.8.0", architecture: "x86_64"
@@ -465,7 +465,7 @@ struct WindowStateTests {
     @Test
     func sftpTitlesUseHostNameWithoutPrefixAndFallBackToSFTP() {
         let host = Host(name: "Uploads", host: "uploads.example")
-        let store = HostStore(hosts: [host])
+        let store = HostLibraryModel(hosts: [host])
         let pane = Pane.sftpSession(host: host)
         let missing = Pane(.sftpSession(SFTPSessionModel(hostID: UUID(), initialPath: "/")))
 
@@ -502,7 +502,7 @@ struct WindowStateTests {
     func appRoutesHostsToSSHAndSFTPSessionsForTabsAndWorkspaces() {
         let first = Host(name: "First", host: "first.example")
         let second = Host(name: "Second", host: "second.example")
-        let store = HostStore(hosts: [first, second])
+        let store = HostLibraryModel(hosts: [first, second])
         let app = AppModel(hosts: store)
         let window = WindowModel()
 

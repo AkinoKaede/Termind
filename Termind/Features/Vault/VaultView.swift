@@ -13,8 +13,8 @@ struct VaultSidebarView: View {
 
             Section("Vault") {
                 row(.hosts, count: app.hostLibrary.hosts.count)
-                row(.keychain, count: app.hosts.keys.count + app.hosts.identities.count)
-                row(.snippets, count: app.hosts.snippets.count)
+                row(.keychain, count: app.hostLibrary.keys.count + app.hostLibrary.identities.count)
+                row(.snippets, count: app.hostLibrary.snippets.count)
             }
 
             if showRecents, !recentHosts.isEmpty {
@@ -53,7 +53,7 @@ struct VaultSidebarView: View {
     }
 
     private var recentHosts: [Host] {
-        app.hosts.recents(limit: 5)
+        app.hostLibrary.recents(limit: 5)
     }
 
     /// Recents are actions rather than Vault destinations: activating one opens
@@ -63,12 +63,12 @@ struct VaultSidebarView: View {
             app.open(host, as: .sshSession, in: window)
         } label: {
             HStack(spacing: Metrics.Space.s) {
-                StatusDot(status: app.hosts.status(of: host.id))
+                StatusDot(status: app.hostLibrary.status(of: host.id))
                 VStack(alignment: .leading, spacing: Metrics.Space.xs) {
                     Text(host.name)
                         .lineLimit(1)
                     if !compactSidebar {
-                        Text(app.hosts.loginAddress(for: host))
+                        Text(app.hostLibrary.loginAddress(for: host))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -82,7 +82,7 @@ struct VaultSidebarView: View {
         .contextMenu {
             HostContextMenu(host: host)
         }
-        .help(Text("Quick Connect to \(app.hosts.loginAddress(for: host))"))
+        .help(Text("Quick Connect to \(app.hostLibrary.loginAddress(for: host))"))
         .accessibilityHint("Quick Connect with SSH")
     }
 
@@ -127,18 +127,18 @@ struct VaultWorkDetailView: View {
             HostEditorView(hostID: id)
         case .hostGroupEditor(let groupID, let parentID):
             NewGroupSheet(
-                group: groupID.flatMap(app.hosts.group), parentID: parentID,
+                group: groupID.flatMap(app.hostLibrary.group), parentID: parentID,
                 create: { group in
-                    app.hosts.upsert(group)
+                    app.hostLibrary.upsert(group)
                     window.closeVaultWork()
                 },
                 close: window.closeVaultWork
             )
         case .identityEditor(let id):
             NewIdentitySheet(
-                identity: id.flatMap(app.hosts.identity),
+                identity: id.flatMap(app.hostLibrary.identity),
                 create: { identity, password in
-                    try app.hosts.upsert(identity, passwordUpdate: password)
+                    try app.hostLibrary.upsert(identity, passwordUpdate: password)
                     window.selectDetail(.identity(identity.id), on: .keychain)
                 },
                 close: window.closeVaultWork
@@ -150,20 +150,20 @@ struct VaultWorkDetailView: View {
         case .editKey(let id):
             KeychainEditDetail(keyID: id)
         case .exportKeys(let ids):
-            ExportKeyToHostsSheet(keys: ids.compactMap(app.hosts.key))
+            ExportKeyToHostsSheet(keys: ids.compactMap(app.hostLibrary.key))
         case .snippetEditor(let snippetID, let packageID):
             SnippetEditorSheet(
-                snippet: snippetID.flatMap(app.hosts.snippet), packageID: packageID,
+                snippet: snippetID.flatMap(app.hostLibrary.snippet), packageID: packageID,
                 save: { snippet in
-                    app.hosts.upsert(snippet)
+                    app.hostLibrary.upsert(snippet)
                     window.selectDetail(.snippet(snippet.id), on: .snippets)
                 },
                 close: window.closeVaultWork
             )
         case .snippetPackageEditor(let packageID, let parentID):
             SnippetPackageSheet(
-                package: packageID.flatMap(app.hosts.snippetPackage), parentID: parentID,
-                save: { app.hosts.upsert($0) }, close: window.closeVaultWork
+                package: packageID.flatMap(app.hostLibrary.snippetPackage), parentID: parentID,
+                save: { app.hostLibrary.upsert($0) }, close: window.closeVaultWork
             )
         case .snippetExecutionTargets(let request):
             SnippetExecutionTargetsView(request: request)

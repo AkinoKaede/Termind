@@ -146,7 +146,7 @@ struct NewIdentitySheet: View {
                 if configuration.showsKey {
                     Picker("Key", selection: $keyID) {
                         Text("None").tag(SSHKeyRef.ID?.none)
-                        ForEach(app.hosts.keys) { key in
+                        ForEach(app.credentials.keys) { key in
                             Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
                         }
                     }
@@ -224,7 +224,7 @@ struct NewIdentitySheet: View {
 
     private var hasAvailablePassword: Bool {
         guard let existing else { return false }
-        return app.hosts.passwordAvailability(for: existing) == .available
+        return app.credentials.passwordAvailability(for: existing) == .available
     }
 
     private var passwordUpdate: IdentityPasswordUpdate {
@@ -248,7 +248,7 @@ struct NewIdentitySheet: View {
     }
 
     /// The view describes the password change but never mints or changes a
-    /// Keychain reference. `HostStore` owns that transaction so clearing an
+    /// Keychain reference. `HostLibraryModel` owns that transaction so clearing an
     /// existing password cannot strand its old Keychain item.
     private func add() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)

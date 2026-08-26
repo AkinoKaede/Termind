@@ -12,13 +12,13 @@ struct MCPSettings: View {
 
     var body: some View {
         Section {
-            ForEach(app.ai.mcpServers) { server in
+            ForEach(app.aiConfiguration.mcpServers) { server in
                 MCPServerRow(server: server) { edit(server.id, false) }
             }
 
             FormNavigationAction(title: "Add Server") {
                 let server = MCPServer(name: String(localized: "New Server"))
-                app.ai.upsert(server)
+                app.aiConfiguration.upsert(server)
                 edit(server.id, true)
             }
 
@@ -42,7 +42,7 @@ private struct MCPServerRow: View {
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
-            StatusDot(status: app.ai.mcpStatus(of: server.id))
+            StatusDot(status: app.aiConfiguration.mcpStatus(of: server.id))
                 .frame(width: Metrics.Sidebar.rowIcon)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -81,13 +81,13 @@ private struct MCPServerRow: View {
         }
         .contentShape(.rect)
         .onTapGesture(perform: edit)
-        .help(Text(app.ai.mcpStatus(of: server.id).label))
+        .help(Text(app.aiConfiguration.mcpStatus(of: server.id).label))
     }
 
     private var enabled: Binding<Bool> {
         Binding(
             get: { server.isEnabled },
-            set: { app.ai.setServerEnabled($0, for: server.id) }
+            set: { app.aiConfiguration.setServerEnabled($0, for: server.id) }
         )
     }
 }

@@ -467,7 +467,7 @@ struct AgentScratchTests {
     @Test @MainActor
     func theSFTPToolsAreUnchanged() {
         let tools = AgentBuiltInTools.make(
-            hosts: AgentHostResolver(store: HostStore()),
+            hosts: AgentHostResolver(store: HostLibraryModel()),
             connections: Fixture.pool(StubTransferSFTPClient())
         )
         let names = tools.map(\.descriptor.name)
@@ -673,7 +673,7 @@ private enum Fixture {
     @MainActor
     static func authentication() -> AgentSSHAuthenticationRegistry {
         AgentSSHAuthenticationRegistry(
-            resolver: AgentHostResolver(store: HostStore())
+            resolver: AgentHostResolver(store: HostLibraryModel())
         )
     }
 

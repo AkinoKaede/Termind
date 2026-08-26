@@ -50,15 +50,15 @@ struct KeychainPageView: ManagedCardPage {
 
     @State private var state = KeychainPageState()
 
-    private var keys: [SSHKeyRef] { app.hosts.searchKeys(state.query) }
-    private var identities: [Identity] { app.hosts.searchIdentities(state.query) }
+    private var keys: [SSHKeyRef] { app.credentials.searchKeys(state.query) }
+    private var identities: [Identity] { app.credentials.searchIdentities(state.query) }
 
     private var selection: Set<ContextPanelDetailID> {
         Set(window.detailSelection(for: .keychain))
     }
 
     private var isEmpty: Bool {
-        app.hosts.keys.isEmpty && app.hosts.identities.isEmpty
+        app.credentials.keys.isEmpty && app.credentials.identities.isEmpty
     }
 
     // MARK: - Page
@@ -91,10 +91,10 @@ struct KeychainPageView: ManagedCardPage {
                 switch destination {
                 case .keys:
                     let keyIDs = ids.compactMap(\.keyID)
-                    app.hosts.move(keyIDs: keyIDs, before: next?.keyID)
+                    app.credentials.move(keyIDs: keyIDs, before: next?.keyID)
                 case .identities:
                     let identityIDs = ids.compactMap(\.identityID)
-                    app.hosts.move(identityIDs: identityIDs, before: next?.identityID)
+                    app.credentials.move(identityIDs: identityIDs, before: next?.identityID)
                 }
             }
         )
@@ -215,19 +215,19 @@ struct KeychainPageView: ManagedCardPage {
     /// failures leave that key selected and report the first error.
     private func delete(keys: [SSHKeyRef], identities: [Identity]) {
         for identity in identities {
-            if !app.hosts.delete(identityID: identity.id) {
-                state.errorMessage = app.hosts.storageError
+            if !app.credentials.delete(identityID: identity.id) {
+                state.errorMessage = app.credentials.storageError
                     ?? String(localized: "The identity could not be deleted.")
             }
         }
         for key in keys {
             do {
-                try app.hosts.delete(keyID: key.id)
+                try app.credentials.delete(keyID: key.id)
             } catch {
                 state.errorMessage = error.localizedDescription
             }
         }
-        window.pruneDetailSelections(in: app.hosts)
+        window.pruneDetailSelections(in: app.credentials)
     }
 
     // MARK: - Chrome
@@ -294,7 +294,7 @@ struct KeychainPageView: ManagedCardPage {
         KeychainPagePresentation(
             state: state,
             actions: KeychainPagePresentation.Actions(
-                pruneSelection: { window.pruneDetailSelections(in: app.hosts) }
+                pruneSelection: { window.pruneDetailSelections(in: app.credentials) }
             )
         )
     }
@@ -339,7 +339,7 @@ struct KeychainImportDetail: View {
             keySize: material.keySize, hasPassphrase: passphrase != nil,
             storesPassphrase: false, createdAt: Date()
         )
-        try app.hosts.upsert(
+        try app.credentials.upsert(
             key,
             credential: .software(
                 SSHPrivateKeySecret(privateKey: privateKey, passphrase: nil)
@@ -651,7 +651,7 @@ struct KeychainGenerateDetail: View {
                 storesPassphrase: false, requiresUserPresence: requiresUserPresence,
                 createdAt: Date()
             )
-            try app.hosts.upsert(key, credential: .secureEnclave(material.credential))
+            try app.credentials.upsert(key, credential: .secureEnclave(material.credential))
         } else {
             let material = try await Task.detached(priority: .userInitiated) {
                 try SSHKeyMaterial.generate(
@@ -666,7 +666,7 @@ struct KeychainGenerateDetail: View {
                 keySize: material.keySize, hasPassphrase: passphrase != nil,
                 storesPassphrase: false, createdAt: Date()
             )
-            try app.hosts.upsert(
+            try app.credentials.upsert(
                 key,
                 credential: .software(
                     SSHPrivateKeySecret(privateKey: material.privateKey, passphrase: nil)
@@ -847,7 +847,7 @@ struct KeychainEditDetail: View {
 
     @ViewBuilder
     var body: some View {
-        if let key = app.hosts.key(keyID) {
+        if let key = app.credentials.key(keyID) {
             if key.storage == .secureEnclave {
                 SecureEnclaveKeyEditor(
                     key: key, close: window.closeVaultWork,
@@ -873,7 +873,7 @@ struct KeychainEditDetail: View {
     }
 
     private func loadPrivateKey(_ key: SSHKeyRef) throws -> String {
-        guard case .software(let secret)? = try app.hosts.keyCredential(for: key) else {
+        guard case .software(let secret)? = try app.credentials.keyCredential(for: key) else {
             throw TermindSSHError.library(
                 String(localized: "The private key is unavailable on this Mac.")
             )
@@ -897,7 +897,7 @@ struct KeychainEditDetail: View {
         let keepsOriginalPrivateKey = privateKey == (try loadPrivateKey(original))
         updated.hasPassphrase = passphrase != nil || (keepsOriginalPrivateKey && original.hasPassphrase)
         updated.storesPassphrase = false
-        try app.hosts.upsert(
+        try app.credentials.upsert(
             updated,
             credential: .software(
                 SSHPrivateKeySecret(privateKey: privateKey, passphrase: nil)
@@ -910,7 +910,7 @@ struct KeychainEditDetail: View {
     private func saveSecureEnclave(_ original: SSHKeyRef, name: String) throws {
         var updated = original
         updated.label = name
-        try app.hosts.upsert(updated)
+        try app.credentials.upsert(updated)
         window.selectDetail(.key(updated.id), on: .keychain)
     }
 }
@@ -997,9 +997,9 @@ struct ExportKeyToHostsSheet: View {
     private var queryBinding: Binding<String> {
         Binding(get: { chooser.query }, set: { chooser.query = $0 })
     }
-    private var hosts: [Host] { app.hosts.searchHosts(query) }
+    private var hosts: [Host] { app.credentials.searchHosts(query) }
     private var eligibleHosts: [Host] {
-        hosts.filter { app.hosts.keyExportUnavailableReason(for: $0) == nil }
+        hosts.filter { app.credentials.keyExportUnavailableReason(for: $0) == nil }
     }
     private var isExporting: Bool { states.values.contains(.running) }
     private var isFinished: Bool { !states.isEmpty && !isExporting }
@@ -1067,7 +1067,7 @@ struct ExportKeyToHostsSheet: View {
 
     @ViewBuilder
     private var content: some View {
-        if app.hosts.hosts.isEmpty {
+        if app.credentials.hosts.isEmpty {
             ContentUnavailableView {
                 Label("No Hosts", systemImage: "server.rack")
             } description: {
@@ -1089,7 +1089,7 @@ struct ExportKeyToHostsSheet: View {
     }
 
     private func row(for host: Host) -> some View {
-        let unavailable = app.hosts.keyExportUnavailableReason(for: host)
+        let unavailable = app.credentials.keyExportUnavailableReason(for: host)
         return Button {
             chooser.activate(host.id)
         } label: {
@@ -1102,7 +1102,7 @@ struct ExportKeyToHostsSheet: View {
                     Text(host.name)
                         .foregroundStyle(unavailable == nil ? .primary : .secondary)
                         .lineLimit(1)
-                    Text(app.hosts.loginAddress(for: host))
+                    Text(app.credentials.loginAddress(for: host))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -1243,20 +1243,20 @@ struct ExportKeyToHostsSheet: View {
     }
 
     private func export() {
-        let targets = app.hosts.searchHosts("").filter {
+        let targets = app.credentials.searchHosts("").filter {
             chooser.selected.contains($0.id)
         }
         guard !targets.isEmpty else { return }
 
         var configurations: [(Host.ID, SSHConnectionConfiguration)] = []
         for host in targets {
-            if let reason = app.hosts.keyExportUnavailableReason(for: host) {
+            if let reason = app.credentials.keyExportUnavailableReason(for: host) {
                 states[host.id] = .failed(reason)
                 continue
             }
             do {
                 configurations.append(
-                    (host.id, try app.hosts.sshConnectionConfiguration(for: host))
+                    (host.id, try app.credentials.sshConnectionConfiguration(for: host))
                 )
                 states[host.id] = .running
             } catch {
@@ -1328,7 +1328,7 @@ private struct KeyCard: View {
     /// Deleting a key breaks every identity pointing at it, so the card says how
     /// many that is before anyone finds out the hard way.
     private var dependents: Int {
-        app.hosts.identities(using: key.id).count
+        app.credentials.identities(using: key.id).count
     }
 
     var body: some View {
@@ -1389,7 +1389,7 @@ private struct KeyCard: View {
                         text: key.storage.displayName,
                         symbol: key.storage.symbol
                     )
-                    switch app.hosts.keyAvailability(for: key) {
+                    switch app.credentials.keyAvailability(for: key) {
                     case .missing:
                         CardChip(
                             text: String(localized: "Private key missing"),
@@ -1461,7 +1461,7 @@ private struct IdentityCard: View {
     /// The key this identity signs with, resolved through the store so renaming a
     /// key renames it here too.
     private var key: SSHKeyRef? {
-        identity.keyID.flatMap { app.hosts.key($0) }
+        identity.keyID.flatMap { app.credentials.key($0) }
     }
 
     var body: some View {
@@ -1524,7 +1524,7 @@ private struct IdentityCard: View {
     @ViewBuilder
     private var secretChip: some View {
         if identity.usesPassword {
-            switch app.hosts.passwordAvailability(for: identity) {
+            switch app.credentials.passwordAvailability(for: identity) {
             case .available:
                 CardChip(text: String(localized: "Password"), symbol: "lock.fill")
             case .missing:

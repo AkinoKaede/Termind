@@ -86,7 +86,7 @@ struct ToolServerSettings: View {
 
         Section("Call History") {
             TextField("Filter by client, tool, host or argument", text: $historyQuery)
-            let rows = app.externalToolCalls.entries(matching: historyQuery)
+            let rows = app.toolAudit.entries(matching: historyQuery)
             if rows.isEmpty {
                 ContentUnavailableView(
                     "No external calls", systemImage: "clock.arrow.circlepath",
@@ -97,7 +97,7 @@ struct ToolServerSettings: View {
                 ForEach(rows.prefix(200)) { row in ExternalToolCallRow(row: row) }
             }
             HStack {
-                Button("Clear History", role: .destructive) { app.externalToolCalls.clear() }
+                Button("Clear History", role: .destructive) { app.toolAudit.clear() }
                 Spacer()
                 Text("Stores commands, paths and byte counts; never file bodies, stdin, stdout or stderr.")
                     .font(.caption)

@@ -50,7 +50,7 @@ struct PortForwardingFeatureTests {
             kind: .http, hostname: "proxy.example", port: 8080,
             username: "proxy", identityID: identity.id
         )
-        let store = HostStore(hosts: [host], identities: [identity])
+        let store = HostLibraryModel(hosts: [host], identities: [identity])
         var withoutPassword = identity
         withoutPassword.credentialRef = ""
 
@@ -93,7 +93,7 @@ struct PortForwardingFeatureTests {
             host.jumpHostID = chain.last?.id
             chain.append(host)
         }
-        let store = HostStore(hosts: chain)
+        let store = HostLibraryModel(hosts: chain)
         #expect(
             store.validatedRoute(for: chain.last!)?.map { $0.id }
                 == chain.map { $0.id }
@@ -122,7 +122,7 @@ struct PortForwardingFeatureTests {
             username: "proxy", identityID: proxyIdentity.id
         )
         let rule = PortForwardingRule(hostID: jump.id)
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [jump, destination], identities: [proxyIdentity],
             portForwardings: [rule]
         )
@@ -146,7 +146,7 @@ struct PortForwardingFeatureTests {
             for: HostPersistence.schema,
             configurations: [configuration]
         )
-        let store = HostStore(modelContext: container.mainContext)
+        let store = HostLibraryModel(modelContext: container.mainContext)
         let jump = Host(name: "Jump", host: "jump.example")
         var destination = Host(name: "Destination", host: "destination.example")
         destination.jumpHostID = jump.id
@@ -163,7 +163,7 @@ struct PortForwardingFeatureTests {
         store.upsert(destination)
         store.upsert(dynamic)
 
-        let reloaded = HostStore(modelContext: container.mainContext)
+        let reloaded = HostLibraryModel(modelContext: container.mainContext)
         #expect(reloaded.host(destination.id)?.jumpHostID == jump.id)
         #expect(reloaded.host(destination.id)?.proxy?.kind == .socks5)
         #expect(reloaded.portForwarding(dynamic.id)?.targetHost == nil)
@@ -184,7 +184,7 @@ struct PortForwardingFeatureTests {
             hostID: destination.id, bindPort: 15432,
             targetHost: "db.internal", targetPort: 5432
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [jump, destination], identities: [identity, destinationIdentity]
         )
         let command = store.sshCommand(for: rule)
@@ -193,7 +193,7 @@ struct PortForwardingFeatureTests {
         #expect(command?.contains("-L 127.0.0.1:15432:db.internal:5432") == true)
 
         jump.proxy = HostProxy(kind: .http, hostname: "proxy.example", port: 8080)
-        let proxiedStore = HostStore(
+        let proxiedStore = HostLibraryModel(
             hosts: [jump, destination], identities: [identity, destinationIdentity]
         )
         #expect(proxiedStore.sshCommand(for: rule) == nil)
@@ -211,7 +211,7 @@ struct PortForwardingFeatureTests {
             name: "Destination", host: "destination host", port: 2222,
             identityID: destinationIdentity.id, jumpHostID: jump.id
         )
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [jump, destination], identities: [jumpIdentity, destinationIdentity]
         )
 
@@ -236,7 +236,7 @@ struct PortForwardingFeatureTests {
             name: "Example Server", host: "server.example.com",
             identityID: identity.id
         )
-        let store = HostStore(hosts: [host], identities: [identity])
+        let store = HostLibraryModel(hosts: [host], identities: [identity])
 
         #expect(
             store.sshCommand(for: host)
@@ -250,7 +250,7 @@ struct PortForwardingFeatureTests {
         let second = Host(name: "Second", host: "second.example")
         let oldFirstRule = PortForwardingRule(hostID: first.id, bindPort: 8000)
         let secondRule = PortForwardingRule(hostID: second.id, bindPort: 9000)
-        let store = HostStore(
+        let store = HostLibraryModel(
             hosts: [first, second], portForwardings: [oldFirstRule, secondRule]
         )
         var renamed = first

@@ -21,19 +21,24 @@ struct TermindApp: App {
                 configurations: [configuration]
             )
             modelContainer = container
-            let hosts = HostStore(modelContext: container.mainContext)
+            let secrets = KeychainSecretStore()
+            let hosts = HostLibraryModel(
+                modelContext: container.mainContext, secrets: secrets
+            )
             let repository = SwiftDataHostRepository(context: container.mainContext)
             let outboxStore = SwiftDataOutboxStore(context: container.mainContext)
             let outboxRunner = OutboxRunner(store: outboxStore)
-            let externalToolCalls = ExternalToolCallStore(
+            let externalToolCalls = ToolAuditModel(
                 modelContext: container.mainContext,
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }
             )
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,
-                    ai: AIStore(modelContext: container.mainContext),
-                    commandHistory: CommandHistoryStore(modelContext: container.mainContext),
+                    ai: AIConfigurationModel(
+                        modelContext: container.mainContext, secrets: secrets
+                    ),
+                    commandHistory: CommandHistoryModel(modelContext: container.mainContext),
                     externalToolCalls: externalToolCalls,
                     dependencies: AppDependencies(
                         hostRepository: repository,

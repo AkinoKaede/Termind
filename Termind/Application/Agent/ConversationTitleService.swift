@@ -123,10 +123,10 @@ protocol ConversationTitling: AnyObject, Sendable {
 /// clamping the reasoning budget instead, the same way Command Composer does.
 @MainActor
 final class ConversationTitleController: ConversationTitling {
-    private let ai: AIStore
+    private let ai: AIConfigurationModel
     private let service: ConversationTitleService
 
-    init(ai: AIStore, service: ConversationTitleService = ConversationTitleService()) {
+    init(ai: AIConfigurationModel, service: ConversationTitleService = ConversationTitleService()) {
         self.ai = ai
         self.service = service
     }

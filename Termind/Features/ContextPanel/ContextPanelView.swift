@@ -192,13 +192,13 @@ private struct SSHSessionSnippetsSidebar: View {
     }
 
     private var displayedSnippets: [Snippet] {
-        query.isEmpty ? app.hosts.snippets : app.hosts.searchSnippets(query)
+        query.isEmpty ? app.hostLibrary.snippets : app.hostLibrary.searchSnippets(query)
     }
 
-    private var ungrouped: [Snippet] { app.hosts.snippets(in: nil) }
+    private var ungrouped: [Snippet] { app.hostLibrary.snippets(in: nil) }
 
     private var packageSections: [(package: SnippetPackage, path: String, snippets: [Snippet])] {
-        flattenPackages(app.hosts.rootSnippetPackages)
+        flattenPackages(app.hostLibrary.rootSnippetPackages)
     }
 
     private func flattenPackages(
@@ -207,10 +207,10 @@ private struct SSHSessionSnippetsSidebar: View {
         packages.flatMap { package in
             let current = (
                 package: package,
-                path: app.hosts.snippetPackagePath(package.id) ?? package.name,
-                snippets: app.hosts.snippets(in: package.id)
+                path: app.hostLibrary.snippetPackagePath(package.id) ?? package.name,
+                snippets: app.hostLibrary.snippets(in: package.id)
             )
-            return [current] + flattenPackages(app.hosts.childSnippetPackages(of: package.id))
+            return [current] + flattenPackages(app.hostLibrary.childSnippetPackages(of: package.id))
         }
     }
 
@@ -252,7 +252,7 @@ private struct SSHSessionHistorySidebar: View {
 
     private var isSavedHost: Bool {
         guard let hostID = sshSession?.hostID else { return false }
-        return app.hosts.host(hostID) != nil
+        return app.hostLibrary.host(hostID) != nil
     }
 
     private var allEntries: [CommandHistoryEntry] {
@@ -448,7 +448,7 @@ private struct SSHSessionHistorySidebar: View {
     private func saveSnippet(from entry: CommandHistoryEntry) {
         let name = snippetName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
-        app.hosts.upsert(Snippet(title: name, body: entry.command))
+        app.hostLibrary.upsert(Snippet(title: name, body: entry.command))
         cancelSnippetNaming()
     }
 }
@@ -691,10 +691,10 @@ struct HostDetailContent: View {
             }
             .controlSize(.small)
 
-            LabeledContent("Status", value: app.hosts.status(of: host.id).label)
+            LabeledContent("Status", value: app.hostLibrary.status(of: host.id).label)
             LabeledContent("Port") { Text(host.port, format: .number.grouping(.never)) }
             LabeledContent("Identity") {
-                if let identity = app.hosts.identity(for: host) {
+                if let identity = app.hostLibrary.identity(for: host) {
                     Text("\(identity.name) · \(identity.username)")
                 } else {
                     Text("Not set").foregroundStyle(.secondary)
@@ -702,7 +702,7 @@ struct HostDetailContent: View {
             }
             if host.jumpHostID != nil || host.proxy != nil {
                 LabeledContent("Route") {
-                    Text(app.hosts.routeSummary(for: host))
+                    Text(app.hostLibrary.routeSummary(for: host))
                         .font(.caption.monospaced())
                         .multilineTextAlignment(.trailing)
                 }
@@ -729,7 +729,7 @@ struct HostDetailContent: View {
 
             hostKey
 
-            let portForwardings = app.hosts.portForwardings(for: host.id)
+            let portForwardings = app.hostLibrary.portForwardings(for: host.id)
             if !portForwardings.isEmpty {
                 DetailSection(title: "Port Forwarding") {
                     ForEach(portForwardings, id: \.id) { portForwarding in
@@ -751,7 +751,7 @@ struct HostDetailContent: View {
 
     @ViewBuilder
     private var hostKey: some View {
-        let entries = app.hosts.knownHosts(for: host)
+        let entries = app.hostLibrary.knownHosts(for: host)
         DetailSection(title: "Host Key") {
             if !entries.isEmpty {
                 if entries.contains(where: \.isMismatched) {
@@ -801,7 +801,7 @@ struct KeyDetailContent: View {
 
     @Environment(AppModel.self) private var app
 
-    private var identities: [Identity] { app.hosts.identities(using: key.id) }
+    private var identities: [Identity] { app.hostLibrary.identities(using: key.id) }
 
     private var algorithm: String {
         if key.algorithm == .rsa, let bits = key.keySize { return "RSA \(bits)" }
@@ -869,8 +869,8 @@ struct IdentityDetailContent: View {
 
     @Environment(AppModel.self) private var app
 
-    private var key: SSHKeyRef? { identity.keyID.flatMap { app.hosts.key($0) } }
-    private var hosts: [Host] { app.hosts.hosts(using: identity.id) }
+    private var key: SSHKeyRef? { identity.keyID.flatMap { app.hostLibrary.key($0) } }
+    private var hosts: [Host] { app.hostLibrary.hosts(using: identity.id) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.xl) {
@@ -914,7 +914,7 @@ struct IdentityDetailContent: View {
     }
 
     private var passwordStatus: String {
-        switch app.hosts.passwordAvailability(for: identity) {
+        switch app.hostLibrary.passwordAvailability(for: identity) {
         case .notConfigured: String(localized: "Not configured")
         case .available: String(localized: "Configured")
         case .missing: String(localized: "Not available on this Mac")
@@ -923,7 +923,7 @@ struct IdentityDetailContent: View {
     }
 
     private var passwordStatusIsWarning: Bool {
-        switch app.hosts.passwordAvailability(for: identity) {
+        switch app.hostLibrary.passwordAvailability(for: identity) {
         case .missing, .failed: true
         case .notConfigured, .available: false
         }
@@ -936,9 +936,9 @@ struct SnippetDetailContent: View {
     @Environment(AppModel.self) private var app
 
     private var assessment: RiskAssessment { CommandRiskClassifier.assess(snippet.body) }
-    private var targets: [Host] { snippet.targetHostIDs.compactMap { app.hosts.host($0) } }
+    private var targets: [Host] { snippet.targetHostIDs.compactMap { app.hostLibrary.host($0) } }
     private var packagePath: String {
-        app.hosts.snippetPackagePath(snippet.packageID) ?? String(localized: "Ungrouped")
+        app.hostLibrary.snippetPackagePath(snippet.packageID) ?? String(localized: "Ungrouped")
     }
 
     var body: some View {
@@ -967,7 +967,7 @@ struct SnippetDetailContent: View {
                     ForEach(targets) { host in
                         VStack(alignment: .leading, spacing: 1) {
                             Label(host.name, systemImage: "server.rack")
-                            Text(app.hosts.loginAddress(for: host))
+                            Text(app.hostLibrary.loginAddress(for: host))
                                 .font(.caption2.monospaced())
                                 .foregroundStyle(.secondary)
                                 .padding(.leading, 20)

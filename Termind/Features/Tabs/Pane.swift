@@ -117,7 +117,7 @@ final class Pane: Identifiable {
         }
     }
 
-    func configureCommandHistory(using store: CommandHistoryStore) {
+    func configureCommandHistory(using store: CommandHistoryModel) {
         guard case .sshSession(let session) = content else { return }
         session.commandHistoryStore = store
     }
@@ -249,7 +249,7 @@ final class Pane: Identifiable {
 
     /// Resolved against the store so a renamed host renames its tabs — unless
     /// the user named this pane, in which case their word wins everywhere.
-    func title(in store: HostStore) -> String {
+    func title(in store: HostLibraryModel) -> String {
         if let customTitle { return customTitle }
         return numbered(derivedTitle(in: store))
     }
@@ -261,7 +261,7 @@ final class Pane: Identifiable {
         duplicateIndex > 0 ? "\(base) (\(duplicateIndex))" : base
     }
 
-    private func derivedTitle(in store: HostStore) -> String {
+    private func derivedTitle(in store: HostLibraryModel) -> String {
         switch content {
         case .sshSession(let sshSession):
             sshSession.title
@@ -276,7 +276,7 @@ final class Pane: Identifiable {
     ///
     /// SFTP and SSH panes share Sessions, with their symbols distinguishing the
     /// protocol. The row therefore keeps the host name concise and unprefixed.
-    func sidebarTitle(in store: HostStore) -> String {
+    func sidebarTitle(in store: HostLibraryModel) -> String {
         if let customTitle { return customTitle }
         if case .sftpSession(let sftpSession) = content,
             let host = store.host(sftpSession.hostID)
@@ -286,7 +286,7 @@ final class Pane: Identifiable {
         return numbered(derivedTitle(in: store))
     }
 
-    func subtitle(in store: HostStore) -> String? {
+    func subtitle(in store: HostLibraryModel) -> String? {
         switch content {
         case _ where customTitle != nil:
             // A renamed pane shows its name and nothing under it: the subtitle
