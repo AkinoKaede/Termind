@@ -78,7 +78,33 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
     nonisolated enum Safety: String, Hashable, Sendable, Codable {
         /// Proven locally, not asserted by a model or remote MCP annotation.
         case locallyReadOnly
+        /// A change, but only to storage the app owns and nothing outside it can
+        /// reach — today, the scratch workspace.
+        ///
+        /// A separate case rather than a second use of `locallyReadOnly`, because
+        /// the two names state *why* a call may skip the gate and a write is not a
+        /// read. What they share is the kind of evidence: containment is a local
+        /// fact about a path this process resolved, not something a model or a
+        /// remote server asserted.
+        ///
+        /// Auto-allowed in every permission mode, including Ask for approval. That
+        /// is the point of it: a staging area you have to approve into is not a
+        /// staging area, and six dialogs for one edit loop teach the reader to
+        /// click through the seventh — the one that reaches a host.
+        case locallyContained
         case requiresAuthorization
+
+        /// Whether the approval gate lets this through without asking anyone.
+        ///
+        /// Phrased as a property of the case rather than an `== .requiresAuthorization`
+        /// at the call site so that adding a fourth case forces a decision here,
+        /// where the reasoning is, instead of silently defaulting to allowed.
+        var isAutoAllowed: Bool {
+            switch self {
+            case .locallyReadOnly, .locallyContained: true
+            case .requiresAuthorization: false
+            }
+        }
     }
 
     /// Whether this tool may run beside the other calls of the same turn.
@@ -351,5 +377,10 @@ nonisolated enum AgentSystemPrompt {
         the user to reveal a password in ordinary chat; use request_user_secret. Never claim a tool ran
         unless its result is present. The interactive terminal belongs to the user: you may suggest text,
         but you cannot type into or submit its PTY.
+        The scratch_* tools are a private staging directory that persists across this conversation and
+        is not shown to the user, so put working copies and drafts there rather than in your replies.
+        For a remote file you intend to change, scratch_pull, scratch_edit, then scratch_push: the file's
+        contents then never enter this conversation, and the only step the user is asked to approve is
+        the one that reaches their host.
         """
 }

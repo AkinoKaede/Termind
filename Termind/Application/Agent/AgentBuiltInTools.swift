@@ -336,7 +336,7 @@ actor AgentConnectionPool {
     }
 }
 
-nonisolated enum AgentBuiltInTools {
+nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
     /// `search` is optional, and nil means the tool is not registered at all
     /// rather than registered and always failing. A model shown a `web_search`
     /// it cannot use spends a turn discovering that; a model not shown one
@@ -951,7 +951,10 @@ nonisolated enum AgentBuiltInTools {
         }
     }
 
-    private static func normalizeRemotePath(_ raw: String) throws -> String {
+    /// Internal rather than private because `scratch_pull` and `scratch_push` aim at
+    /// the same remote paths the SFTP tools do, and two implementations of "what is
+    /// a valid remote path" would be one too many.
+    static func normalizeRemotePath(_ raw: String) throws -> String {
         guard raw.hasPrefix("/"), !raw.contains("\0"), !raw.contains("\r"), !raw.contains("\n") else {
             throw AgentToolError.invalidPath
         }
@@ -975,70 +978,6 @@ nonisolated enum AgentBuiltInTools {
         ])
     }
 
-    private static func result(
-        _ invocation: AgentToolInvocation, _ value: AgentJSONValue, truncated: Bool = false
-    ) -> AgentToolResult {
-        AgentToolResult(
-            callID: invocation.call.id,
-            content: "<untrusted-data>\n\(value.encodedString)\n</untrusted-data>",
-            isTruncated: truncated,
-            metadata: ["untrusted": .bool(true)]
-        )
-    }
-
-    private static func descriptor(
-        _ name: String, _ summary: String, properties: [String: AgentJSONValue],
-        required: [String], target: AgentToolDescriptor.Target,
-        safety: AgentToolDescriptor.Safety,
-        concurrency: AgentToolDescriptor.Concurrency = .sequential
-    ) -> AgentToolDescriptor {
-        AgentToolDescriptor(
-            name: name, summary: summary,
-            inputSchema: .object([
-                "type": .string("object"), "properties": .object(properties),
-                "required": .array(required.map(AgentJSONValue.string)),
-                "additionalProperties": .bool(false),
-            ]),
-            target: target, safety: safety, concurrency: concurrency
-        )
-    }
-
-    private static func string(max: Int? = nil) -> AgentJSONValue {
-        var schema: [String: AgentJSONValue] = ["type": .string("string")]
-        if let max { schema["maxLength"] = .number(Double(max)) }
-        return .object(schema)
-    }
-
-    private static func boolean() -> AgentJSONValue { .object(["type": .string("boolean")]) }
-
-    private static func integer(min: Int, max: Int) -> AgentJSONValue {
-        .object([
-            "type": .string("integer"), "minimum": .number(Double(min)),
-            "maximum": .number(Double(max)),
-        ])
-    }
-
-    private static func enumeration(_ values: [String]) -> AgentJSONValue {
-        .object([
-            "type": .string("string"), "enum": .array(values.map(AgentJSONValue.string)),
-        ])
-    }
-
-    private static func array(items: AgentJSONValue, max: Int) -> AgentJSONValue {
-        .object([
-            "type": .string("array"), "items": items, "maxItems": .number(Double(max)),
-        ])
-    }
-
-    private static func object(
-        properties: [String: AgentJSONValue], required: [String]
-    ) -> AgentJSONValue {
-        .object([
-            "type": .string("object"), "properties": .object(properties),
-            "required": .array(required.map(AgentJSONValue.string)),
-            "additionalProperties": .bool(false),
-        ])
-    }
 }
 
 nonisolated struct Arguments: Sendable {
@@ -1158,10 +1097,31 @@ nonisolated struct Arguments: Sendable {
             return RestrictedHTTPHeader(name: name, value: value)
         }
     }
+
+    /// `new_text` may legitimately be empty — that is how a block is deleted — so it
+    /// is read for presence rather than through `string(_:)`, which rejects empty.
+    func scratchEdits() throws -> [ScratchEdit] {
+        guard let rows = object["edits"]?.arrayValue, !rows.isEmpty else {
+            throw AgentToolError.invalidArguments("edits must be a non-empty array.")
+        }
+        return try rows.map { row in
+            guard let fields = row.objectValue,
+                let oldText = fields["old_text"]?.stringValue,
+                let newText = fields["new_text"]?.stringValue
+            else {
+                throw AgentToolError.invalidArguments("Each edit requires old_text and new_text.")
+            }
+            return ScratchEdit(oldText: oldText, newText: newText)
+        }
+    }
 }
 
 nonisolated enum AgentToolError: LocalizedError, Sendable {
     case invalidHost, invalidPath, notFound, cancelled, invalidArguments(String)
+    case scratchPathEscapes
+    case scratchNotFound(String)
+    case scratchNotText(String)
+    case scratchQuotaExceeded(String)
 
     var errorDescription: String? {
         switch self {
@@ -1170,6 +1130,18 @@ nonisolated enum AgentToolError: LocalizedError, Sendable {
         case .notFound: "The remote path does not exist."
         case .cancelled: "The user cancelled the request."
         case .invalidArguments(let message): message
+        case .scratchPathEscapes:
+            """
+            A scratch path must be relative, must not contain "..", and must stay inside \
+            the workspace.
+            """
+        case .scratchNotFound(let path): "\(path) is not in the scratch workspace."
+        case .scratchNotText(let path):
+            """
+            \(path) is not UTF-8 text. It can still be moved with scratch_push, \
+            which does not decode it.
+            """
+        case .scratchQuotaExceeded(let message): message
         }
     }
 }

@@ -101,10 +101,32 @@ match `curl -H -L`; sensitive values are redacted from review, UI, and durable
 history. MCP discovery retains schemas and annotations, but remote annotations
 are risk hints rather than proof of safety.
 
-The permission modes share structural validation but differ at the action gate:
+`AgentScratchWorkspace` is a per-conversation staging directory under Application
+Support, inside the sandbox container, deleted with the conversation that owns it.
+Paths are relative, `..` is refused rather than resolved, symlinks are refused even
+when they point back inside, and every resolved path is proven to still be under the
+scope; writes are bounded per file, per conversation, and by entry count. It is an
+actor, so it is also the per-path mutation queue — a read and a write of the same
+file in one batch serialize there rather than by taking the whole turn serial, which
+is why every scratch tool is parallel. `scratch_pull` and `scratch_push` move bytes
+between a host and the workspace without the bytes entering the transcript, so a
+remote file can be pulled, edited and pushed back without a copy of it crossing the
+model boundary in either direction; `scratch_edit` returns a unified diff rather than
+the new file for the same reason. The SFTP tools are unchanged and know nothing about
+the workspace. Because a push is approved by filename rather than by content, its
+preflight puts the size, digest and a redacted head into the approval reasons, and
+binds the approval to that digest through execution-only metadata so a file rewritten
+while the user was deciding is refused rather than written.
 
-- Ask for approval executes locally proven read-only calls and presents every
-  other action to the user.
+The permission modes share structural validation but differ at the action gate.
+Safety is a property of the call, established locally: `locallyReadOnly` for calls
+proven to change nothing, `locallyContained` for calls that change only storage the
+app owns, and `requiresAuthorization` for everything else. The first two are allowed
+in every mode — a staging area that has to be approved into is not a staging area,
+and dialogs nobody can act on teach the reader to click through the one that matters.
+
+- Ask for approval executes locally proven read-only and contained calls and
+  presents every other action to the user.
 - Approve for me sends those same non-read-only actions to Security Review.
   Missing credentials, timeout, transport errors, or malformed review JSON fail
   closed and are persisted as review failures.

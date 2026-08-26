@@ -255,9 +255,18 @@ final class AppModel {
         // registry resolves providers in precedence order.
         var providers: [any AgentToolProviding] = []
         if chat.model.abilities.contains(.toolCall) {
+            // One workspace per conversation, not per run: a file staged before the
+            // user interrupted, or before they typed a follow-up, is still there for
+            // the run that answers them. Isolation comes from the scope directory
+            // being keyed by conversation, so one chat can never read what another
+            // pulled off a host.
+            let scratch = AgentScratchWorkspace(conversationID: conversation.id)
             providers.append(AgentStaticToolProvider(AgentBuiltInTools.make(
                 hosts: agentHosts, connections: agentConnections,
                 search: searchPlan.local
+            )))
+            providers.append(AgentStaticToolProvider(AgentScratchTools.make(
+                workspace: scratch, connections: agentConnections
             )))
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
@@ -404,6 +413,11 @@ final class AppModel {
         }
         Task { [agentRunRepository] in
             try? await agentRunRepository.deleteConversation(id)
+            // The scratch scope goes with the conversation that owns it. Nothing
+            // else ever collects it, so a chat deleted without this would leave its
+            // staged files — possibly a copy of a production config — on disk for
+            // the life of the install.
+            try? await AgentScratchWorkspace(conversationID: id).removeScope()
         }
     }
 

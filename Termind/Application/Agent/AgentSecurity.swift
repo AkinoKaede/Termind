@@ -74,7 +74,7 @@ actor AgentApprovalBroker: AgentApprovalHandling {
         _ request: AgentApprovalRequest,
         mode: ChatPermissionMode
     ) async -> AgentApprovalDecision {
-        if request.descriptor.safety == .locallyReadOnly { return .allow }
+        if request.descriptor.safety.isAutoAllowed { return .allow }
         if mode == .fullAccess { return .allow }
 
         if request.descriptor.alwaysAskUser || mode == .askForApproval {
