@@ -283,7 +283,13 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 .sorted { $0.createdAt < $1.createdAt }
                 .compactMap { storedToolCard($0, results: results, reviews: reviews) }
             return StoredAgentConversation(
-                id: conversation.id, messages: transcript, toolCards: cards,
+                id: conversation.id,
+                messages: Self.recovering(
+                    transcript,
+                    results: results.filter { runIDs.contains($0.runID) },
+                    invocations: invocations.filter { runIDs.contains($0.runID) }
+                ),
+                toolCards: cards,
                 lastRunState: state, title: conversation.title
             )
         }
@@ -336,6 +342,59 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let conversations = try context.fetch(FetchDescriptor<PersistentAgentConversation>())
         for row in conversations where row.id == id { context.delete(row) }
         try context.save()
+    }
+
+    /// Puts back tool results that were recorded but never made it into the
+    /// transcript.
+    ///
+    /// The two are written on different schedules: a result row lands as its
+    /// tool finishes, while its transcript row waits for the run's next
+    /// snapshot save. A process killed in between — force quit, crash, the OS
+    /// reclaiming the app — leaves the call answered in storage and unanswered
+    /// in history, and an assistant turn with an unanswered call is rejected
+    /// outright on the next request.
+    ///
+    /// `AgentUnansweredToolCallRepair` would invent a placeholder for the same
+    /// gap, and does for anything still missing after this. Doing it here first
+    /// is what gives the model the output the tool actually produced instead of
+    /// being told the outcome is unknown when it is sitting in the database.
+    static func recovering(
+        _ transcript: [AgentTranscriptMessage],
+        results: [PersistentAgentToolResult],
+        invocations: [PersistentAgentToolInvocation]
+    ) -> [AgentTranscriptMessage] {
+        guard transcript.contains(where: { $0.role == .assistant && !$0.toolCalls.isEmpty })
+        else { return transcript }
+
+        let names = Dictionary(
+            invocations.map { ($0.callID, $0.toolName) }, uniquingKeysWith: { first, _ in first }
+        )
+        var recovered: [AgentTranscriptMessage] = []
+        recovered.reserveCapacity(transcript.count)
+        var index = transcript.startIndex
+        while index < transcript.endIndex {
+            let message = transcript[index]
+            recovered.append(message)
+            index += 1
+            guard message.role == .assistant, !message.toolCalls.isEmpty else { continue }
+
+            var answered: Set<String> = []
+            while index < transcript.endIndex, transcript[index].role == .tool {
+                if let id = transcript[index].toolCallID { answered.insert(id) }
+                recovered.append(transcript[index])
+                index += 1
+            }
+            for call in message.toolCalls where !answered.contains(call.id) {
+                // The last recorded one: a call id is unique to its invocation,
+                // so more than one row can only mean a rewritten result.
+                guard let stored = results.last(where: { $0.callID == call.id }) else { continue }
+                recovered.append(AgentTranscriptMessage(
+                    role: .tool, text: stored.content, toolCallID: call.id,
+                    toolName: names[call.id] ?? call.name, isError: stored.isError
+                ))
+            }
+        }
+        return recovered
     }
 
     private func upsertInvocation(

@@ -116,3 +116,13 @@ Agent conversations, runs, visible messages, tool calls/results, and reviews are
 stored in SwiftData after truncation and redaction. Launch marks unfinished runs
 `interrupted`; history is restored but remote actions are never resumed or
 replayed.
+
+A process that dies mid-batch — force quit, crash, the OS reclaiming the app —
+leaves tool calls that nothing answered, which the next request would be
+rejected for. Restore closes that in two steps. Results are recorded as each
+tool finishes but their transcript rows wait for the run's next snapshot save,
+so `loadConversations` first materializes any recorded result whose transcript
+row was never written. Whatever is still unanswered is answered at the model
+boundary by `AgentUnansweredToolCallRepair`, which says the outcome is unknown
+rather than that the tool did not run: the process died after the command was
+dispatched, and a model told otherwise would repeat it.

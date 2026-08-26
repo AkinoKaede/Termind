@@ -120,10 +120,13 @@ actor AgentRuntime {
             state: .running,
             permissionMode: request.permissionMode,
             // Applied to incoming history as well as at the model boundary,
-            // which is what makes it a repair and not just a guard: this
-            // snapshot is persisted, so filtering here stops a stored orphan
-            // from being written forward into the next run.
-            messages: AgentOrphanedToolResultRepair.apply(request.priorMessages)
+            // which is what makes these repairs and not just guards: this
+            // snapshot is persisted, so a call left unanswered by a process
+            // that died — or a result left behind by one — is fixed once here
+            // rather than re-derived on every future turn of the conversation.
+            messages: AgentOrphanedToolResultRepair.apply(
+                AgentUnansweredToolCallRepair.apply(request.priorMessages)
+            )
         )
         activeRunID = snapshot.id
         let runID = snapshot.id

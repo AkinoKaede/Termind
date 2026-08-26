@@ -37,16 +37,18 @@ nonisolated struct AgentContextPipeline: Sendable {
 
     /// What a chat run uses.
     ///
-    /// Order matters. Ordering runs before the orphan repair so a reordered
-    /// block is what gets checked; trimming runs after both so it measures the
-    /// results that will actually be sent; injection runs last because it is
-    /// the only step that adds a message, and every earlier step reasons about
+    /// Order matters. The unanswered repair runs first so the results it
+    /// invents are sorted into place by the step after it; ordering runs before
+    /// the orphan repair so a reordered block is what gets checked; trimming
+    /// runs after all three so it measures the results that will actually be
+    /// sent; injection runs last because everything before it reasons about
     /// tool results sitting directly behind their assistant turn.
     static func chat(
         sessionContext: AgentTranscriptMessage?,
         before promptID: AgentTranscriptMessage.ID?
     ) -> AgentContextPipeline {
         AgentContextPipeline([
+            AgentUnansweredToolCallRepair(),
             AgentToolResultOrdering(),
             AgentOrphanedToolResultRepair(),
             AgentToolResultTrimming(),
@@ -147,6 +149,71 @@ nonisolated struct AgentOrphanedToolResultRepair: AgentContextTransforming {
             return answered.contains(id)
         }
     }
+}
+
+// MARK: - Unanswered calls
+
+/// Answers tool calls that nothing ever answered.
+///
+/// The mirror of `AgentOrphanedToolResultRepair`, and the same class of fatal:
+/// where a result with no call is rejected, so is a call with no result. OpenAI
+/// says `No tool output found for function call call_…`, and the other two
+/// reject the equivalent — the conversation cannot be continued at all after
+/// that, only deleted.
+///
+/// The gap this closes is a process that dies mid-batch. A live run always
+/// answers every call, cancellation included — see `AgentToolScheduler` — but a
+/// force quit, a crash, or the OS reclaiming the app takes the run's remaining
+/// writes with it, and the history restored at launch has an assistant turn
+/// with nothing behind it.
+///
+/// The wording matters as much as the presence. It must not say the tool did
+/// not run: the process died *after* the command was dispatched, so whether the
+/// remote side executed it is genuinely unknown, and a model told "this never
+/// ran" will happily run it again. Telling it to check first is the only honest
+/// instruction, and the only safe one when the call was `rm`.
+nonisolated struct AgentUnansweredToolCallRepair: AgentContextTransforming {
+    func transform(_ context: AgentModelContext) -> AgentModelContext {
+        var result = context
+        result.messages = Self.apply(result.messages)
+        return result
+    }
+
+    static func apply(_ messages: [AgentTranscriptMessage]) -> [AgentTranscriptMessage] {
+        guard messages.contains(where: { $0.role == .assistant && !$0.toolCalls.isEmpty })
+        else { return messages }
+
+        var repaired: [AgentTranscriptMessage] = []
+        repaired.reserveCapacity(messages.count)
+        var index = messages.startIndex
+        while index < messages.endIndex {
+            let message = messages[index]
+            repaired.append(message)
+            index += 1
+            guard message.role == .assistant, !message.toolCalls.isEmpty else { continue }
+
+            var answered: Set<String> = []
+            while index < messages.endIndex, messages[index].role == .tool {
+                if let id = messages[index].toolCallID { answered.insert(id) }
+                repaired.append(messages[index])
+                index += 1
+            }
+            for call in message.toolCalls where !answered.contains(call.id) {
+                repaired.append(AgentTranscriptMessage(
+                    role: .tool, text: interrupted, toolCallID: call.id,
+                    toolName: call.name, isError: true
+                ))
+            }
+        }
+        return repaired
+    }
+
+    private static let interrupted = String(
+        localized: """
+            Termind stopped before this tool call's result was recorded. Whether the action \
+            completed is unknown; check the current state before doing it again.
+            """
+    )
 }
 
 // MARK: - Trimming
