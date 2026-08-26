@@ -271,11 +271,16 @@ nonisolated enum Metrics {
         static let detailMin: CGFloat = 320
         static let detailMinHeight: CGFloat = 440
 
-        /// The narrowest permanent two-column layout is Vault: one minimum
-        /// sidebar, the native split-view divider, and Vault's main surface.
-        /// Optional Vault work details keep contributing their own active
-        /// minimum through `.contentMinSize` when one is presented.
-        static let minWidth: CGFloat = Metrics.Sidebar.min + 1 + Metrics.VaultContent.min
+        /// Vault's complete working layout sets the application floor: the
+        /// navigation sidebar, main surface, and an Edit/New detail panel, plus
+        /// the two dividers between them. Reserving the third column even while
+        /// it is closed prevents opening an editor inside an already-too-narrow
+        /// window and keeps every host form usable from the moment it appears.
+        static let minWidth: CGFloat = Metrics.Sidebar.min
+            + 1
+            + Metrics.VaultContent.min
+            + 1
+            + Metrics.VaultDetail.min
 
         /// Root content includes the pinned tab strip and its divider above the
         /// detail floor. The macOS title bar is outside this measurement.
