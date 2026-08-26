@@ -81,6 +81,11 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         nonisolated enum Activity: Hashable, Sendable, Codable {
             case label(String)
             case argument(key: String, fallback: String)
+            /// Names an activity from the number of entries in an array
+            /// argument. The singular phrase includes its determiner (for
+            /// example, "a question"); the plural phrase is prefixed by the
+            /// count when rendered.
+            case arrayCount(key: String, singular: String, plural: String, fallback: String)
         }
 
         nonisolated enum Output: Hashable, Sendable, Codable {

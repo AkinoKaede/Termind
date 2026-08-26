@@ -947,23 +947,24 @@ private struct AgentSSHAuthenticationCard: View {
 
 /// The agent asking the user to decide one or more things.
 ///
-/// A form rather than a run of cards. A turn's questions are usually one group
-/// of decisions, and revealing the second only once the first is answered hides
-/// it at the moment it would have informed the first.
+/// One step at a time rather than a tall form. Answers stay in the model while
+/// the user moves back and forth, and Skip makes an intentional null distinct
+/// from cancelling the whole request.
 ///
 /// Options are a list rather than a `Picker` because each one carries a
 /// sentence explaining what it costs, and a pop-up menu has nowhere to put
 /// that. Nothing is preselected — including the recommendation, which is a
 /// label and not a default, so that an answer always takes a deliberate click.
-/// A question may also be left alone: the tool reports that as a null and the
-/// model decides it itself, so the count in the footer is a count and not a
-/// validation error, and an unanswered question is marked in no way at all.
+/// A question may also be explicitly skipped: the tool reports that as a null
+/// and the model decides it itself.
 private struct AgentUserInputCard: View {
     let request: AgentUserInputRequest
     let conversation: ConversationModel
     var isCompact = false
 
-    private var isForm: Bool { request.questions.count > 1 }
+    private var isLastQuestion: Bool {
+        conversation.currentUserInputQuestionIndex == request.questions.count - 1
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
@@ -974,51 +975,62 @@ private struct AgentUserInputCard: View {
                 }
             }
 
-            // Prefer the form's natural height. When the surrounding VStack
-            // offers less room (including after a live window resize), the
-            // scrolling fallback accepts that proposal instead. There is no
-            // fixed card height, so one question never inherits the box needed
-            // by three long ones.
+            // Prefer the step's natural height. When the surrounding VStack
+            // offers less room, the scrolling fallback accepts that proposal.
             ViewThatFits(in: .vertical) {
-                questionStack
-                ScrollView { questionStack }
+                currentQuestion
+                ScrollView { currentQuestion }
                     .scrollBounceBehavior(.basedOnSize)
             }
 
             footer
         }
         .activeFormKeyboardActions(
-            isDefaultEnabled: conversation.canSubmitUserInput,
-            onDefault: conversation.submitUserInput,
+            isDefaultEnabled: conversation.canAdvanceUserInput,
+            onDefault: conversation.advanceUserInputQuestion,
             onCancel: conversation.cancelUserInput
         )
     }
 
-    private var questionStack: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.l) {
-            ForEach(request.questions) { question in
-                questionBlock(question)
-            }
+    @ViewBuilder
+    private var currentQuestion: some View {
+        if let question = conversation.currentUserInputQuestion {
+            questionBlock(question)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .id(question.id)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
-            Button("Cancel") { conversation.cancelUserInput() }
-                .keyboardShortcut(.cancelAction)
-            Spacer(minLength: 0)
-            if isForm {
-                Text(
-                    "\(conversation.answeredUserInputCount) of \(request.questions.count) answered"
-                )
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+            HStack(spacing: Metrics.Space.s) {
+                Button("Cancel") { conversation.cancelUserInput() }
+                    .keyboardShortcut(.cancelAction)
+                if conversation.currentUserInputQuestionIndex > 0 {
+                    Button("Back") { conversation.previousUserInputQuestion() }
+                }
             }
-            Button("Continue") { conversation.submitUserInput() }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(
+                "Question \(conversation.currentUserInputQuestionIndex + 1) of \(request.questions.count)"
+            )
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .fixedSize()
+
+            HStack(spacing: Metrics.Space.s) {
+                if conversation.canSkipUserInputQuestion {
+                    Button("Skip") { conversation.skipUserInputQuestion() }
+                }
+                Button(isLastQuestion ? "Submit" : "Next") {
+                    conversation.advanceUserInputQuestion()
+                }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
-                .disabled(!conversation.canSubmitUserInput)
+                .disabled(!conversation.canAdvanceUserInput)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 

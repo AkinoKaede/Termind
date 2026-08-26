@@ -423,6 +423,8 @@ final class ConversationModel: Identifiable {
     /// carry several questions, so the drafts are per question rather than one
     /// pair of fields shared by whichever one happened to be on screen.
     private(set) var userInputDrafts: [String: AgentUserInputDraft] = [:]
+    private(set) var currentUserInputQuestionIndex = 0
+    private(set) var skippedUserInputQuestionIDs: Set<String> = []
     /// Kept out of `userInputDrafts` on purpose: a secret does not belong in
     /// the same dictionary as text that is echoed back to the model.
     var secretInputDraft = ""
@@ -1006,14 +1008,28 @@ final class ConversationModel: Identifiable {
         pendingUserInput?.questions.filter(isUserInputAnswered).count ?? 0
     }
 
-    /// Nothing is preselected, so this is what stops Continue from returning an
-    /// answer the user never gave.
-    ///
-    /// One answer is enough — a question may be left alone, and the tool
-    /// reports that as a null the model has to decide for itself. Zero is not
-    /// enough: answering nothing is Cancel, and dressing it as success would
-    /// hand the model a result that says only that it was not refused.
-    var canSubmitUserInput: Bool { answeredUserInputCount > 0 }
+    var currentUserInputQuestion: AgentUserQuestion? {
+        guard let questions = pendingUserInput?.questions,
+            questions.indices.contains(currentUserInputQuestionIndex)
+        else { return nil }
+        return questions[currentUserInputQuestionIndex]
+    }
+
+    var canAdvanceUserInput: Bool {
+        guard let question = currentUserInputQuestion else { return false }
+        return isUserInputAnswered(question) || skippedUserInputQuestionIDs.contains(question.id)
+    }
+
+    var canSubmitUserInput: Bool {
+        guard let request = pendingUserInput else { return false }
+        return currentUserInputQuestionIndex == request.questions.count - 1 && canAdvanceUserInput
+    }
+
+    var canSkipUserInputQuestion: Bool {
+        guard let question = currentUserInputQuestion else { return false }
+        if case .secret = question.kind { return false }
+        return true
+    }
 
     func toggleUserInputOption(_ optionID: String, in questionID: String) {
         guard case .choice(let choice)? = question(questionID)?.kind else { return }
@@ -1031,6 +1047,7 @@ final class ConversationModel: Identifiable {
             draft.text = ""
         }
         userInputDrafts[questionID] = draft
+        skippedUserInputQuestionIDs.remove(questionID)
     }
 
     /// The other half of that rule — typing clears the radio it would otherwise
@@ -1045,6 +1062,30 @@ final class ConversationModel: Identifiable {
             draft.selection.removeAll()
         }
         userInputDrafts[questionID] = draft
+        if !draft.selection.isEmpty || !draft.trimmedText.isEmpty {
+            skippedUserInputQuestionIDs.remove(questionID)
+        }
+    }
+
+    func advanceUserInputQuestion() {
+        guard let request = pendingUserInput, canAdvanceUserInput else { return }
+        if currentUserInputQuestionIndex == request.questions.count - 1 {
+            submitUserInput()
+        } else {
+            currentUserInputQuestionIndex += 1
+        }
+    }
+
+    func previousUserInputQuestion() {
+        guard currentUserInputQuestionIndex > 0 else { return }
+        currentUserInputQuestionIndex -= 1
+    }
+
+    func skipUserInputQuestion() {
+        guard let question = currentUserInputQuestion, canSkipUserInputQuestion else { return }
+        userInputDrafts[question.id] = AgentUserInputDraft()
+        skippedUserInputQuestionIDs.insert(question.id)
+        advanceUserInputQuestion()
     }
 
     func submitUserInput() {
@@ -1097,6 +1138,8 @@ final class ConversationModel: Identifiable {
     private func clearUserInputDrafts() {
         secretInputDraft = ""
         userInputDrafts = [:]
+        currentUserInputQuestionIndex = 0
+        skippedUserInputQuestionIDs = []
     }
 
     /// What the transcript shows, from what is actually outstanding.

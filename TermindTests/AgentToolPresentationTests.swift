@@ -130,6 +130,57 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func userInputSummaryCountsQuestionsAndUsesAskGrammar() {
+        let descriptor = AgentBuiltInTools.requestUserInput().descriptor
+        #expect(descriptor.presentation?.symbol == "questionmark.circle")
+
+        for count in 1...3 {
+            let arguments: [String: AgentJSONValue] = [
+                "questions": .array(
+                    (0..<count).map { index in
+                        .object([
+                            "id": .string("q\(index)"), "prompt": .string("Question?")
+                        ])
+                    })
+            ]
+            var card = makeCard(
+                name: "request_user_input", target: .user, arguments: arguments,
+                presentation: descriptor.presentation
+            )
+            let activity = count == 1 ? "a question" : "\(count) questions"
+
+            card.state = .running
+            #expect(AgentToolPresentation.summary(for: card) == "Asking \(activity)")
+            card.state = .completed
+            #expect(AgentToolPresentation.summary(for: card) == "Asked \(activity)")
+        }
+
+        var lifecycle = makeCard(
+            name: "request_user_input", target: .user,
+            arguments: ["questions": .array([.object([:])])],
+            presentation: descriptor.presentation
+        )
+        #expect(AgentToolPresentation.summary(for: lifecycle) == "Preparing to ask a question")
+        lifecycle.state = .failed
+        #expect(AgentToolPresentation.summary(for: lifecycle) == "Failed to ask a question")
+        lifecycle.state = .interrupted
+        #expect(
+            AgentToolPresentation.summary(for: lifecycle)
+                == "Interrupted while asking a question"
+        )
+    }
+
+    @Test
+    func countedArrayActivityRoundTrips() throws {
+        let activity = AgentToolDescriptor.Presentation.Activity.arrayCount(
+            key: "questions", singular: "a question", plural: "questions",
+            fallback: "a question"
+        )
+        let data = try JSONEncoder().encode(activity)
+        #expect(try JSONDecoder().decode(type(of: activity), from: data) == activity)
+    }
+
+    @Test
     func outputUnwrapsAndExtractsCommandStreams() {
         let result = AgentToolResult(
             callID: "call",

@@ -52,9 +52,12 @@ nonisolated extension AgentBuiltInTools {
                 )
             ], required: ["questions"], target: .user, safety: .locallyReadOnly,
             presentation: .init(
-                symbol: "person.crop.circle.badge.questionmark",
-                activity: .label("a user decision"),
-                action: .init(infinitive: "request", progressive: "Requesting", past: "Requested")
+                symbol: "questionmark.circle",
+                activity: .arrayCount(
+                    key: "questions", singular: "a question", plural: "questions",
+                    fallback: "a question"
+                ),
+                action: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
             )
         )) { invocation, context in
             let questions = try Arguments(invocation).userQuestions()
@@ -175,4 +178,3 @@ nonisolated extension AgentBuiltInTools {
         }
     }
 }
-

@@ -240,7 +240,7 @@ nonisolated struct AgentUserQuestion: Identifiable, Hashable, Sendable {
 /// asking about storage, then about migrations only once storage is answered,
 /// hides the second question at the moment it would have informed the first.
 /// The tool's calls are `.sequential`, so asking twice in a turn already meant
-/// answering twice in a row; this makes it one form instead.
+/// answering twice in a row; this keeps them in one navigable request instead.
 nonisolated struct AgentUserInputRequest: Identifiable, Hashable, Sendable {
     var id: UUID = UUID()
     var createdAt: Date = .now

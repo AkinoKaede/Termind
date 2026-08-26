@@ -224,6 +224,11 @@ nonisolated enum AgentToolPresentation {
             let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
             return oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? fallback : oneLine
+        case .arrayCount(let key, let singular, let plural, let fallback):
+            guard let count = card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count,
+                count > 0
+            else { return fallback }
+            return count == 1 ? singular : "\(count) \(plural)"
         }
     }
 

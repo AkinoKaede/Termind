@@ -226,14 +226,46 @@ struct AgentUserInputTests {
     }
 
     @Test
-    func oneAnswerIsEnoughToContinueButNoneIsNot() {
+    func currentQuestionMustBeAnsweredOrSkippedBeforeAdvancing() {
         let conversation = ConversationModel()
         conversation.present(threeQuestions())
 
-        #expect(!conversation.canSubmitUserInput, "answering nothing is Cancel, not Continue")
+        #expect(!conversation.canAdvanceUserInput)
+        #expect(!conversation.canSubmitUserInput)
         conversation.toggleUserInputOption("postgres", in: "storage")
-        #expect(conversation.canSubmitUserInput)
+        #expect(conversation.canAdvanceUserInput)
+        #expect(!conversation.canSubmitUserInput, "only the last step submits")
         #expect(conversation.answeredUserInputCount == 1)
+
+        conversation.advanceUserInputQuestion()
+        #expect(conversation.currentUserInputQuestionIndex == 1)
+        #expect(conversation.currentUserInputQuestion?.id == "migrations")
+    }
+
+    @Test
+    func goingBackKeepsDraftsAndChangingASkippedQuestionMakesItUnresolved() {
+        let conversation = ConversationModel()
+        conversation.present(threeQuestions())
+
+        conversation.toggleUserInputOption("postgres", in: "storage")
+        conversation.advanceUserInputQuestion()
+        conversation.toggleUserInputOption("flyway", in: "migrations")
+        conversation.previousUserInputQuestion()
+
+        #expect(conversation.currentUserInputQuestion?.id == "storage")
+        #expect(conversation.userInputDraft(for: "storage").selection == ["postgres"])
+        #expect(conversation.userInputDraft(for: "migrations").selection == ["flyway"])
+
+        conversation.skipUserInputQuestion()
+        #expect(conversation.userInputDraft(for: "storage").selection.isEmpty)
+        #expect(conversation.skippedUserInputQuestionIDs.contains("storage"))
+        conversation.previousUserInputQuestion()
+        #expect(conversation.canAdvanceUserInput, "the explicit skip remains resolved")
+
+        conversation.toggleUserInputOption("sqlite", in: "storage")
+        conversation.toggleUserInputOption("sqlite", in: "storage")
+        #expect(!conversation.skippedUserInputQuestionIDs.contains("storage"))
+        #expect(!conversation.canAdvanceUserInput)
     }
 
     // MARK: - What the tool gets back
@@ -244,8 +276,10 @@ struct AgentUserInputTests {
         let answering = Task { await conversation.request(threeQuestions()) }
         await settle(conversation)
 
+        conversation.skipUserInputQuestion()
         conversation.toggleUserInputOption("flyway", in: "migrations")
-        conversation.submitUserInput()
+        conversation.advanceUserInputQuestion()
+        conversation.skipUserInputQuestion()
 
         #expect(
             await answering.value
@@ -255,6 +289,36 @@ struct AgentUserInputTests {
                     )
                 ])
         )
+    }
+
+    @Test
+    func explicitlySkippingEveryQuestionReturnsASuccessfulEmptyAnswer() async {
+        let conversation = ConversationModel()
+        let answering = Task { await conversation.request(threeQuestions()) }
+        await settle(conversation)
+
+        conversation.skipUserInputQuestion()
+        conversation.skipUserInputQuestion()
+        conversation.skipUserInputQuestion()
+
+        #expect(await answering.value == .answered([]))
+        #expect(conversation.pendingUserInput == nil)
+    }
+
+    @Test
+    func completingARequestResetsNavigationForTheQueuedOne() {
+        let conversation = ConversationModel()
+        conversation.present(threeQuestions())
+        conversation.present(request(multiple: false))
+
+        conversation.skipUserInputQuestion()
+        conversation.skipUserInputQuestion()
+        conversation.skipUserInputQuestion()
+
+        #expect(conversation.pendingUserInputs.count == 1)
+        #expect(conversation.currentUserInputQuestionIndex == 0)
+        #expect(conversation.skippedUserInputQuestionIDs.isEmpty)
+        #expect(conversation.userInputDrafts.isEmpty)
     }
 
     @Test
@@ -367,6 +431,9 @@ struct AgentUserInputTests {
         await settle(conversation)
 
         #expect(!conversation.canSubmitUserInput)
+        #expect(!conversation.canSkipUserInputQuestion)
+        conversation.skipUserInputQuestion()
+        #expect(conversation.pendingUserInput != nil)
         conversation.secretInputDraft = "hunter2"
         #expect(conversation.canSubmitUserInput)
         conversation.submitUserInput()
