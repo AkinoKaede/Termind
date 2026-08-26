@@ -112,6 +112,43 @@ struct AgentProviderAdapterTests {
     }
 
     @Test
+    func responsesRequestsAutomaticReasoningSummary() throws {
+        var provider = ModelProvider(name: "OpenAI")
+        provider.usesResponsesAPI = true
+        let body = AgentProviderClient(
+            provider: provider, model: Self.reasoningModel(id: "gpt-reasoning"),
+            secret: "test", reasoning: .high
+        ).body(AgentModelRequest(systemPrompt: "test", messages: [], tools: []))
+
+        let reasoning = try #require(body["reasoning"] as? [String: String])
+        #expect(reasoning["effort"] == "high")
+        #expect(reasoning["summary"] == "auto")
+    }
+
+    @Test
+    func anthropicAdaptiveThinkingAndGoogleThoughtsAreRequested() throws {
+        let anthropicBody = AgentProviderClient(
+            provider: ModelProvider(name: "Anthropic", kind: .anthropic),
+            model: Self.reasoningModel(id: "claude-sonnet-4-6"),
+            secret: "test", reasoning: .high
+        ).body(AgentModelRequest(systemPrompt: "test", messages: [], tools: []))
+        let thinking = try #require(anthropicBody["thinking"] as? [String: String])
+        #expect(thinking == ["type": "adaptive", "display": "summarized"])
+        #expect((anthropicBody["output_config"] as? [String: String])?["effort"] == "high")
+        #expect(thinking["budget_tokens"] == nil)
+
+        let googleBody = AgentProviderClient(
+            provider: ModelProvider(name: "Google", kind: .google),
+            model: Self.reasoningModel(id: "gemini-reasoning"),
+            secret: "test", reasoning: .high
+        ).body(AgentModelRequest(systemPrompt: "test", messages: [], tools: []))
+        let generation = try #require(googleBody["generationConfig"] as? [String: Any])
+        let config = try #require(generation["thinkingConfig"] as? [String: Any])
+        #expect(config["thinkingLevel"] as? String == "HIGH")
+        #expect(config["includeThoughts"] as? Bool == true)
+    }
+
+    @Test
     func openAIStrictSchemaRequiresEveryPropertyAndMakesOptionalsNullable() throws {
         let normalized = AgentProviderClient.openAIStrictSchema(.object([
             "type": .string("object"),
@@ -262,6 +299,33 @@ struct AgentProviderAdapterTests {
         )
         #expect(tool.firstTool?.id == "call-1")
         #expect(tool.firstTool?.arguments == "{\"host_id\":")
+    }
+
+    @Test
+    func openAIResponsesKeepsReasoningSeparateFromAnswerText() {
+        let delta = AgentProviderClient.parseResponses(
+            "response.reasoning_summary_text.delta", ["delta": "Checked the constraints."]
+        )
+        #expect(delta.firstReasoning == "Checked the constraints.")
+        #expect(delta.firstText == nil)
+
+        let completed = AgentProviderClient.parseCompletedResponses([
+            "object": "response", "status": "completed",
+            "output": [
+                [
+                    "type": "reasoning", "id": "reasoning-1",
+                    "summary": [[
+                        "type": "summary_text", "text": "Compared both options.",
+                    ]],
+                ],
+                [
+                    "type": "message",
+                    "content": [["type": "output_text", "text": "Use option B."]],
+                ],
+            ],
+        ])
+        #expect(completed.firstReasoning == "Compared both options.")
+        #expect(completed.firstText == "Use option B.")
     }
 
     @Test
@@ -518,6 +582,70 @@ struct AgentProviderAdapterTests {
     }
 
     @Test
+    func anthropicThinkingStreamsAndReplaysItsSignature() throws {
+        var state = AnthropicStreamState()
+        var events = AgentProviderClient.parseAnthropic(
+            "content_block_start",
+            ["index": 0, "content_block": ["type": "thinking", "thinking": ""]],
+            state: &state
+        )
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_delta",
+            ["index": 0, "delta": [
+                "type": "thinking_delta", "thinking": "Inspect the logs.",
+            ]], state: &state
+        )
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_delta",
+            ["index": 0, "delta": [
+                "type": "signature_delta", "signature": "signed-thinking",
+            ]], state: &state
+        )
+        events += AgentProviderClient.parseAnthropic(
+            "content_block_stop", ["index": 0], state: &state
+        )
+
+        #expect(events.firstReasoning == "Inspect the logs.")
+        let item = try #require(events.firstProviderItem)
+        #expect(item.objectValue?["thinking"]?.stringValue == "Inspect the logs.")
+        #expect(item.objectValue?["signature"]?.stringValue == "signed-thinking")
+
+        let assistant = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: [AgentToolCall(
+                id: "call", name: "lookup", arguments: .object([:])
+            )],
+            providerItems: [item]
+        )
+        let body = Self.body(
+            ModelProvider(name: "Anthropic", kind: .anthropic),
+            webSearch: false, tools: [], messages: [assistant]
+        )
+        let messages = try #require(body["messages"] as? [[String: Any]])
+        let content = try #require(messages.first?["content"] as? [[String: Any]])
+        let replayed = try #require(content.first { $0["type"] as? String == "thinking" })
+        #expect(replayed["signature"] as? String == "signed-thinking")
+    }
+
+    @Test
+    func anthropicBufferedThinkingIsNotAnswerText() {
+        let events = AgentProviderClient.parseCompletedAnthropic([
+            "type": "message",
+            "content": [
+                [
+                    "type": "thinking", "thinking": "Checked disk usage.",
+                    "signature": "signed",
+                ],
+                ["type": "text", "text": "The cache is largest."],
+            ],
+        ])
+
+        #expect(events.firstReasoning == "Checked disk usage.")
+        #expect(events.firstText == "The cache is largest.")
+        #expect(events.firstProviderItem?.objectValue?["signature"]?.stringValue == "signed")
+    }
+
+    @Test
     func geminiParsesFunctionCallAndFinish() {
         let events = AgentProviderClient.parseGoogle([
             "candidates": [[
@@ -529,6 +657,49 @@ struct AgentProviderAdapterTests {
         ])
         #expect(events.firstTool?.name == "list_hosts")
         #expect(events.containsFinish == .toolCalls)
+    }
+
+    @Test
+    func googleThoughtTextIsReasoningAndFunctionSignatureReplays() throws {
+        let events = AgentProviderClient.parseGoogle([
+            "candidates": [[
+                "content": ["parts": [
+                    [
+                        "thought": true, "text": "Check both hosts.",
+                        "thoughtSignature": "thought-signature",
+                    ],
+                    ["text": "I found the issue."],
+                    [
+                        "thoughtSignature": "call-signature",
+                        "functionCall": ["name": "lookup", "args": ["query": "disk"]],
+                    ],
+                ]],
+                "finishReason": "STOP",
+            ]],
+        ])
+
+        #expect(events.firstReasoning == "Check both hosts.")
+        #expect(events.firstText == "I found the issue.")
+        let tool = try #require(events.firstTool)
+        #expect(tool.providerItemID == "call-signature")
+        #expect(events.firstProviderItem?.objectValue?["thoughtSignature"]?.stringValue
+            == "thought-signature")
+
+        let assistant = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: [AgentToolCall(
+                id: tool.id, name: tool.name ?? "lookup", arguments: .object([:]),
+                providerItemID: tool.providerItemID
+            )]
+        )
+        let body = Self.body(
+            ModelProvider(name: "Google", kind: .google),
+            webSearch: false, tools: [], messages: [assistant]
+        )
+        let contents = try #require(body["contents"] as? [[String: Any]])
+        let parts = try #require(contents.first?["parts"] as? [[String: Any]])
+        let replayedCall = try #require(parts.first { $0["functionCall"] != nil })
+        #expect(replayedCall["thoughtSignature"] as? String == "call-signature")
     }
 
     // MARK: - Provider-native web search
@@ -823,6 +994,15 @@ struct AgentProviderAdapterTests {
         target: .mcp, safety: .requiresAuthorization
     )
 
+    private static func reasoningModel(id: String) -> AIModel {
+        var model = AIModel(id: id)
+        model.abilities.insert(.reasoning)
+        model.reasoningProfile = ReasoningProfile(levels: [
+            .high: ReasoningLevelMapping(isSupported: true),
+        ])
+        return model
+    }
+
     private static func body(
         _ provider: ModelProvider, webSearch: Bool, tools: [AgentToolDescriptor],
         messages: [AgentTranscriptMessage] = []
@@ -845,13 +1025,25 @@ private extension [AgentModelStreamEvent] {
         return nil
     }
 
-    var firstTool: (id: String, name: String?, arguments: String)? {
+    var firstTool: (
+        id: String, providerItemID: String?, name: String?, arguments: String
+    )? {
         for event in self {
             switch event {
             case .toolCallDelta(let id, let name, let arguments):
-                return (id, name, arguments)
-            case .toolCallSnapshot(let id, _, let name, let arguments):
-                return (id, name, arguments)
+                return (id, nil, name, arguments)
+            case .toolCallSnapshot(let id, let providerItemID, let name, let arguments):
+                return (id, providerItemID, name, arguments)
+            default: continue
+            }
+        }
+        return nil
+    }
+
+    var firstReasoning: String? {
+        for event in self {
+            switch event {
+            case .reasoningDelta(let text), .reasoningSnapshot(let text): return text
             default: continue
             }
         }

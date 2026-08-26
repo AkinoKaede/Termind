@@ -300,9 +300,9 @@ struct ConversationView: View {
 
 // MARK: - Tool calls
 
-/// One run's process, collapsed after a successful finish and kept open while
-/// attention or recovery may still be needed. A horizontal rule separates the
-/// process from the transcript without making its contents look nested.
+/// While a run is live, its process sits below the run boundary and is not yet
+/// part of a disclosure. Only a terminal run has a settled Worked disclosure;
+/// its boundary then moves below the entire block.
 private struct AgentWorkGroupView: View {
     let group: AgentWorkGroup
     let isCompact: Bool
@@ -313,57 +313,104 @@ private struct AgentWorkGroupView: View {
         self.group = group
         self.isCompact = isCompact
         _isExpanded = State(
-            initialValue: AgentWorkPresentation.isExpandedByDefault(for: group.run.state)
+            initialValue: AgentWorkPresentation.isExpandedByDefault(
+                for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer
+            )
         )
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Button {
-                isExpanded.toggle()
-            } label: {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    HStack(spacing: Metrics.Space.s) {
-                        Text(title(at: context.date))
-                            .font(MarkdownTypography.body)
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 8, weight: .bold))
-                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                            .foregroundStyle(.tertiary)
-                        Spacer(minLength: 0)
-                    }
-                    .contentShape(.rect)
-                }
-            }
-            .buttonStyle(.plain)
-            .help(Text(isExpanded ? "Hide work" : "Show work"))
-            .accessibilityLabel(Text(title(at: group.run.finishedAt ?? .now)))
-            .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
-            .accessibilityHint(Text(isExpanded ? "Collapse work process" : "Expand work process"))
-
-            Divider()
-
-            if isExpanded {
-                LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
-                    ForEach(group.items) { item in
-                        switch item {
-                        case .message(let message):
-                            processMessage(message)
-                        case .tool(let card):
-                            AgentToolRowView(card: card)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if group.run.state.isTerminal {
+                terminalDisclosure
+                Divider()
+            } else {
+                liveHeader
+                Divider()
+                workItems
             }
         }
         .onChange(of: group.run.state) { _, state in
             // Runtime transitions are authoritative. Once a run has ended,
             // later user toggles remain untouched because the state is frozen.
-            isExpanded = AgentWorkPresentation.isExpandedByDefault(for: state)
+            isExpanded = AgentWorkPresentation.isExpandedByDefault(
+                for: state, appearsAfterAnswer: group.appearsAfterAnswer
+            )
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var liveHeader: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            HStack(spacing: Metrics.Space.s) {
+                Text(title(at: context.date))
+                    .font(MarkdownTypography.body)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+        }
+        .accessibilityLabel(Text(title(at: .now)))
+    }
+
+    private var terminalDisclosure: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: Metrics.Space.s) {
+                    Text(title(at: group.run.finishedAt ?? .now))
+                        .font(MarkdownTypography.body)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(.tertiary)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .help(Text(isExpanded ? "Hide work" : "Show work"))
+            .accessibilityLabel(Text(title(at: group.run.finishedAt ?? .now)))
+            .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+            .accessibilityHint(Text(
+                isExpanded ? "Collapse work process" : "Expand work process"
+            ))
+
+            if isExpanded { workItems }
+        }
+    }
+
+    private var workItems: some View {
+        LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
+            ForEach(group.items) { item in
+                switch item {
+                case .reasoning(let block):
+                    reasoningBlock(
+                        block,
+                        isActive: group.activeReasoningBlockID == block.id
+                    )
+                case .message(let message):
+                    processMessage(message)
+                case .tool(let card):
+                    AgentToolRowView(card: card)
+                case .tools(let cards):
+                    AgentToolBatchView(cards: cards)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func reasoningBlock(
+        _ block: AgentReasoningBlock, isActive: Bool
+    ) -> some View {
+        MarkdownView(
+            text: block.text, isAssistant: true, isCompact: isCompact
+        )
+        .foregroundStyle(.secondary)
+        .modifier(ScanningTextMask(isActive: isActive))
+        .textSelection(.enabled)
     }
 
     @ViewBuilder
@@ -391,6 +438,85 @@ private struct AgentWorkGroupView: View {
     }
 }
 
+/// Two or more contiguous calls inside Worked. While any call is unfinished,
+/// the header reuses those calls' ordinary live wording exactly; only a fully
+/// terminal batch changes over to a compact action summary.
+private struct AgentToolBatchView: View {
+    let cards: [AgentToolCard]
+
+    @Environment(AppModel.self) private var app
+    @State private var isExpanded = false
+
+    private var unfinished: [AgentToolCard] {
+        cards.filter { card in
+            switch card.state {
+            case .proposed, .waitingForApproval, .waitingForUser, .reviewing, .running: true
+            case .completed, .denied, .failed, .interrupted: false
+            }
+        }
+    }
+
+    private var title: String {
+        guard !unfinished.isEmpty else {
+            return AgentToolPresentation.batchSummary(for: cards)
+        }
+        return unfinished.map { card in
+            AgentToolPresentation.summary(for: card, hostName: hostName(for: card))
+        }.joined(separator: "; ")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: Metrics.Space.s) {
+                    Image(systemName: AgentToolPresentation.batchSymbol(for: cards))
+                        .foregroundStyle(iconTint)
+                        .frame(width: Metrics.Sidebar.rowIcon)
+                    Text(title)
+                        .font(MarkdownTypography.body)
+                        .foregroundStyle(.secondary)
+                        .modifier(ScanningTextMask(isActive: !unfinished.isEmpty))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(.tertiary)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .help(Text(isExpanded ? "Hide tools" : "Show tools"))
+            .accessibilityLabel(Text(title))
+            .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+
+            if isExpanded {
+                LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
+                    ForEach(cards) { card in
+                        AgentToolRowView(card: card, showsActivityAnimation: false)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func hostName(for card: AgentToolCard) -> String? {
+        guard let id = card.invocation.targetHostID else { return nil }
+        return app.hostLibrary.host(id)?.name ?? String(id.uuidString.prefix(8))
+    }
+
+    private var iconTint: Color {
+        switch AgentToolPresentation.batchTint(for: cards) {
+        case .secondary: .secondary
+        case .warning: .orange
+        case .success: .green
+        case .failure: .red
+        }
+    }
+}
+
 /// One tool call, as a line the reader can open.
 ///
 /// A filled card per call turns a reply that used four tools into four grey
@@ -398,6 +524,7 @@ private struct AgentWorkGroupView: View {
 /// for; only the review result and output appear when they ask for more.
 private struct AgentToolRowView: View {
     let card: AgentToolCard
+    var showsActivityAnimation = true
 
     @Environment(AppModel.self) private var app
     @State private var isExpanded = false
@@ -420,7 +547,9 @@ private struct AgentToolRowView: View {
                         .lineLimit(isExpanded ? nil : 1)
                         .truncationMode(.tail)
                         .foregroundStyle(card.state == .running ? .secondary : .primary)
-                        .modifier(ScanningTextMask(isActive: card.state == .running))
+                        .modifier(ScanningTextMask(
+                            isActive: showsActivityAnimation && card.state == .running
+                        ))
                         .layoutPriority(1)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .bold))
@@ -445,54 +574,48 @@ private struct AgentToolRowView: View {
     }
 
     private var detail: some View {
-        HStack(alignment: .top, spacing: Metrics.Space.m) {
-            RoundedRectangle(cornerRadius: Metrics.Chat.rule / 2)
-                .fill(.quaternary)
-                .frame(width: Metrics.Chat.rule)
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            if let review = card.review {
+                Label(
+                    "Security Review: \(review.risk.rawValue.capitalized) — \(review.reason)",
+                    systemImage: "checkmark.shield"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+            }
 
-            VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                if let review = card.review {
-                    Label(
-                        "Security Review: \(review.risk.rawValue.capitalized) — \(review.reason)",
-                        systemImage: "checkmark.shield"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                }
+            if let result = card.result {
+                if let output = AgentToolPresentation.detailOutput(
+                    from: result,
+                    presentation: card.descriptor.presentation,
+                    review: card.review
+                ) {
+                    let preview = AgentToolPresentation.preview(output)
+                    Text(preview.displayed)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(result.isError ? .red : .secondary)
+                        .textSelection(.enabled)
 
-                if let result = card.result {
-                    if let output = AgentToolPresentation.detailOutput(
-                        from: result,
-                        presentation: card.descriptor.presentation,
-                        review: card.review
-                    ) {
-                        let preview = AgentToolPresentation.preview(output)
-                        Text(preview.displayed)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(result.isError ? .red : .secondary)
-                            .textSelection(.enabled)
-
-                        if preview.isShortened {
-                            HStack(spacing: Metrics.Space.s) {
-                                Text("Output shortened for display")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                CopyButton(text: preview.full, title: "Copy Full Output")
-                            }
+                    if preview.isShortened {
+                        HStack(spacing: Metrics.Space.s) {
+                            Text("Output shortened for display")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            CopyButton(text: preview.full, title: "Copy Full Output")
                         }
                     }
+                }
 
-                    if result.isTruncated {
-                        Text("Output truncated")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
-                    }
+                if result.isTruncated {
+                    Text("Output truncated")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, Metrics.Sidebar.rowIcon)
     }
 

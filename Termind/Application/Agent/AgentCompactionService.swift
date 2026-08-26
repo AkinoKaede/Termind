@@ -167,7 +167,7 @@ actor AgentCompactionService {
                 // A summarizer is given no tools. A response carrying a call is
                 // answering some other question.
                 throw AgentCompactionError.invalidResponse
-            case .providerItem, .webSearch, .usage:
+            case .reasoningDelta, .reasoningSnapshot, .providerItem, .webSearch, .usage:
                 continue
             case .finished(let reason):
                 stopReason = reason

@@ -666,7 +666,32 @@ enum TermindSchemaV12: VersionedSchema {
         TermindSchemaV11.models.filter {
             $0 != TermindSchemaV11AgentModels.PersistentAgentConversation.self
                 && $0 != TermindSchemaV11AgentModels.PersistentAgentMessage.self
-        } + [PersistentAgentConversation.self, PersistentAgentMessage.self]
+        } + [
+            PersistentAgentConversation.self,
+            TermindSchemaV13AgentModels.PersistentAgentMessage.self,
+        ]
+    }
+}
+
+/// Frozen message shape used by V12 and V13. V14 adds display-safe reasoning
+/// summaries without changing the checksums of stores written by older builds.
+enum TermindSchemaV13AgentModels {
+    @Model
+    final class PersistentAgentMessage {
+        @Attribute(.unique) var id: UUID = UUID()
+        var runID: UUID = UUID()
+        var role = AgentTranscriptRole.user.rawValue
+        var text = ""
+        var authoredText: String?
+        var imagesData = Data()
+        var toolCallsData = Data()
+        var toolCallID: String?
+        var toolName: String?
+        var isError = false
+        var isCompaction = false
+        var sequence = 0
+        var createdAt: Date = Date()
+        init() {}
     }
 }
 
@@ -679,6 +704,15 @@ enum TermindSchemaV13: VersionedSchema {
     }
 }
 
+enum TermindSchemaV14: VersionedSchema {
+    static let versionIdentifier = Schema.Version(14, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV13.models.filter {
+            $0 != TermindSchemaV13AgentModels.PersistentAgentMessage.self
+        } + [PersistentAgentMessage.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
@@ -686,7 +720,7 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV3.self, TermindSchemaV4.self, TermindSchemaV5.self,
             TermindSchemaV6.self, TermindSchemaV7.self, TermindSchemaV8.self,
             TermindSchemaV9.self, TermindSchemaV10.self, TermindSchemaV11.self,
-            TermindSchemaV12.self, TermindSchemaV13.self,
+            TermindSchemaV12.self, TermindSchemaV13.self, TermindSchemaV14.self,
         ]
     }
 
@@ -753,13 +787,17 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV12.self,
                 toVersion: TermindSchemaV13.self
             ),
+            .lightweight(
+                fromVersion: TermindSchemaV13.self,
+                toVersion: TermindSchemaV14.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV13.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV14.self)
 
     let context: ModelContext
 

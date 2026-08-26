@@ -249,7 +249,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             ]
             if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
-                body["reasoning"] = ["effort": reasoningValue]
+                body["reasoning"] = ["effort": reasoningValue, "summary": "auto"]
             }
             return body
         case .openAI:
@@ -300,6 +300,11 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
                 body["output_config"] = ["effort": reasoningValue]
+                if Self.supportsAdaptiveAnthropicThinking(model.id) {
+                    body["thinking"] = [
+                        "type": "adaptive", "display": "summarized",
+                    ]
+                }
             }
             return body
         case .google:
@@ -322,7 +327,10 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
                 body["generationConfig"] = [
-                    "thinkingConfig": ["thinkingLevel": reasoningValue]
+                    "thinkingConfig": [
+                        "thinkingLevel": reasoningValue,
+                        "includeThoughts": true,
+                    ]
                 ]
             }
             return body
@@ -333,6 +341,17 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     /// parameter. Eight is enough for a model to refine a query a few times and
     /// low enough that a loop costs a bounded number of billed searches.
     static let nativeWebSearchMaxUses = 8
+
+    /// Adaptive thinking and effort are one protocol on current Claude
+    /// families. Older extended-thinking models use a token budget instead;
+    /// inventing that budget from this app's qualitative effort control would
+    /// silently change cost, so those models keep their existing request shape.
+    private static func supportsAdaptiveAnthropicThinking(_ modelID: String) -> Bool {
+        modelID.lowercased().range(
+            of: #"claude-(opus|sonnet|haiku)-(4[-.]([6-9])|[5-9])"#,
+            options: .regularExpression
+        ) != nil
+    }
 
     private func authorize(_ request: inout URLRequest) async throws {
         switch provider.kind {
@@ -603,7 +622,14 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         if message.role == .tool {
             return [["role": "user", "content": [["type": "tool_result", "tool_use_id": message.toolCallID ?? "", "content": message.text, "is_error": message.isError]]]]
         }
-        var content: [[String: Any]] = message.text.isEmpty ? [] : [["type": "text", "text": message.text]]
+        var content = message.providerItems.compactMap { item -> [String: Any]? in
+            guard let row = foundationObject(item) as? [String: Any],
+                let type = row["type"] as? String,
+                type == "thinking" || type == "redacted_thinking"
+            else { return nil }
+            return row
+        }
+        if !message.text.isEmpty { content.append(["type": "text", "text": message.text]) }
         if message.role == .user {
             content += message.images.map { image in
                 [
@@ -632,7 +658,13 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 "response": ["output": message.text],
             ]]]]
         }
-        var parts: [[String: Any]] = message.text.isEmpty ? [] : [["text": message.text]]
+        var parts = message.providerItems.compactMap { item -> [String: Any]? in
+            guard let row = foundationObject(item) as? [String: Any],
+                row["thought"] as? Bool == true
+            else { return nil }
+            return row
+        }
+        if !message.text.isEmpty { parts.append(["text": message.text]) }
         if message.role == .user {
             parts += message.images.map { image in
                 ["inlineData": [
@@ -641,10 +673,16 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 ]]
             }
         }
-        parts += message.toolCalls.map { ["functionCall": [
-            "name": toolNames.wireName(for: $0.name),
-            "args": foundationObject($0.arguments),
-        ]] }
+        parts += message.toolCalls.map { call in
+            var part: [String: Any] = ["functionCall": [
+                "name": toolNames.wireName(for: call.name),
+                "args": foundationObject(call.arguments),
+            ]]
+            if let signature = call.providerItemID {
+                part["thoughtSignature"] = signature
+            }
+            return part
+        }
         return ["role": message.role == .assistant ? "model" : "user", "parts": parts]
     }
 
@@ -672,6 +710,15 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         return "\(namespace).\(name)"
     }
 
+    private static func responsesReasoningSummary(_ item: [String: Any]) -> String? {
+        let parts = item["summary"] as? [[String: Any]] ?? []
+        let text = parts.compactMap { part -> String? in
+            guard part["type"] as? String == "summary_text" else { return nil }
+            return part["text"] as? String
+        }.joined(separator: "\n\n")
+        return text.isEmpty ? nil : text
+    }
+
     private static func canonicalName(
         _ wireName: String, wireNames: [String: String]
     ) -> String {
@@ -695,6 +742,10 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             let events: [AgentModelStreamEvent] = (root["delta"] as? String)
                 .map { [.textDelta($0)] } ?? []
             return events
+        case "response.reasoning_summary_text.delta":
+            return (root["delta"] as? String).map { [.reasoningDelta($0)] } ?? []
+        case "response.reasoning_summary_text.done":
+            return (root["text"] as? String).map { [.reasoningSnapshot($0)] } ?? []
         case "response.function_call_arguments.delta":
             guard let sourceID = (root["item_id"] ?? root["call_id"]) as? String else {
                 return []
@@ -735,7 +786,11 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if item["type"] as? String == "reasoning",
                 let value = jsonValue(item)
             {
-                return [.providerItem(value)]
+                var events: [AgentModelStreamEvent] = [.providerItem(value)]
+                if let summary = responsesReasoningSummary(item), !summary.isEmpty {
+                    events.append(.reasoningSnapshot(summary))
+                }
+                return events
             }
             if item["type"] as? String == "web_search_call" {
                 return responsesWebSearch(item)
@@ -783,6 +838,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             switch item["type"] as? String {
             case "reasoning":
                 if let value = jsonValue(item) { events.append(.providerItem(value)) }
+                if let summary = responsesReasoningSummary(item), !summary.isEmpty {
+                    events.append(.reasoningSnapshot(summary))
+                }
             case "web_search_call":
                 events += responsesWebSearch(item)
             case "message":
@@ -879,6 +937,13 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         var queries: [String: String] = [:]
         for block in root["content"] as? [[String: Any]] ?? [] {
             switch block["type"] as? String {
+            case "thinking":
+                if let thinking = block["thinking"] as? String, !thinking.isEmpty {
+                    events.append(.reasoningDelta(thinking))
+                }
+                if let value = jsonValue(block) { events.append(.providerItem(value)) }
+            case "redacted_thinking":
+                if let value = jsonValue(block) { events.append(.providerItem(value)) }
             case "text":
                 if let text = block["text"] as? String { events.append(.textDelta(text)) }
             case "tool_use":
@@ -932,6 +997,14 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
 
         if type == "content_block_start", let block = root["content_block"] as? [String: Any] {
             switch block["type"] as? String {
+            case "thinking":
+                state.thinkingBlocks[index] = AnthropicStreamState.ThinkingBlock(
+                    text: block["thinking"] as? String ?? "",
+                    signature: block["signature"] as? String ?? ""
+                )
+                return []
+            case "redacted_thinking":
+                return jsonValue(block).map { [.providerItem($0)] } ?? []
             case "tool_use":
                 let id = block["id"] as? String ?? "index-\(index)"
                 state.callIDs[index] = id
@@ -968,6 +1041,16 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         }
 
         if type == "content_block_delta", let delta = root["delta"] as? [String: Any] {
+            if state.thinkingBlocks[index] != nil {
+                if let thinking = delta["thinking"] as? String {
+                    state.thinkingBlocks[index]?.text += thinking
+                    return [.reasoningDelta(thinking)]
+                }
+                if let signature = delta["signature"] as? String {
+                    state.thinkingBlocks[index]?.signature += signature
+                }
+                return []
+            }
             if state.serverBlocks[index] != nil {
                 if let json = delta["partial_json"] as? String {
                     state.serverBlocks[index]?.input += json
@@ -980,6 +1063,16 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                     id: state.callIDs[index] ?? "index-\(index)", name: nil, arguments: json
                 )]
             }
+        }
+
+        if type == "content_block_stop",
+            let block = state.thinkingBlocks.removeValue(forKey: index)
+        {
+            var item: [String: Any] = [
+                "type": "thinking", "thinking": block.text,
+            ]
+            if !block.signature.isEmpty { item["signature"] = block.signature }
+            return jsonValue(item).map { [.providerItem($0)] } ?? []
         }
 
         if type == "content_block_stop",
@@ -1050,11 +1143,21 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             return events
         }
         for part in content["parts"] as? [[String: Any]] ?? [] {
+            if part["thought"] as? Bool == true {
+                if let text = part["text"] as? String, !text.isEmpty {
+                    events.append(.reasoningDelta(text))
+                }
+                if part["thoughtSignature"] != nil, let value = jsonValue(part) {
+                    events.append(.providerItem(value))
+                }
+                continue
+            }
             if let text = part["text"] as? String { events.append(.textDelta(text)) }
             if let call = part["functionCall"] as? [String: Any], let name = call["name"] as? String {
                 let args = call["args"].flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data("{}".utf8)
-                events.append(.toolCallDelta(
+                events.append(.toolCallSnapshot(
                     id: UUID().uuidString,
+                    providerItemID: part["thoughtSignature"] as? String,
                     name: canonicalName(name, wireNames: wireNames),
                     arguments: String(decoding: args, as: UTF8.self)
                 ))
@@ -1158,6 +1261,11 @@ extension AgentProviderClient: AgentModelCompleting {}
 /// only way to tell them apart mid-stream, and getting it wrong is not a
 /// cosmetic error — see `parseAnthropic`.
 nonisolated struct AnthropicStreamState: Sendable {
+    fileprivate struct ThinkingBlock: Sendable {
+        var text = ""
+        var signature = ""
+    }
+
     fileprivate struct ServerBlock: Sendable {
         var id: String = ""
         var name: String = ""
@@ -1165,6 +1273,7 @@ nonisolated struct AnthropicStreamState: Sendable {
     }
 
     fileprivate var callIDs: [Int: String] = [:]
+    fileprivate var thinkingBlocks: [Int: ThinkingBlock] = [:]
     fileprivate var serverBlocks: [Int: ServerBlock] = [:]
     /// `server_tool_use.id` → query, held from that block's stop until the
     /// sibling `web_search_tool_result` arrives, so one card carries both.

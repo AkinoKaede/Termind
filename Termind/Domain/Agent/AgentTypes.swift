@@ -473,6 +473,18 @@ nonisolated struct AgentImageAttachment: Identifiable, Hashable, Sendable, Codab
     var pixelHeight: Int
 }
 
+/// Provider-authored, user-visible reasoning text.
+///
+/// This is deliberately separate from `providerItems`: `text` is safe to draw
+/// and persist through the ordinary redaction path, while provider items may
+/// contain opaque signatures or encrypted state that only belongs on the next
+/// request of the same in-flight tool chain.
+nonisolated struct AgentReasoningBlock: Identifiable, Hashable, Sendable, Codable {
+    var id: UUID = UUID()
+    var text: String
+    var createdAt: Date = .now
+}
+
 nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Codable {
     var id: UUID = UUID()
     var role: AgentTranscriptRole
@@ -481,6 +493,7 @@ nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Cod
     /// Nil on assistant/tool turns and on stores created before message editing.
     var authoredText: String?
     var images: [AgentImageAttachment] = []
+    var reasoning: [AgentReasoningBlock] = []
     var toolCalls: [AgentToolCall] = []
     var toolCallID: String?
     var toolName: String?
@@ -537,6 +550,8 @@ nonisolated enum AgentEvent: Hashable, Sendable {
     /// asked for it, and sort above it.
     case messageStarted(AgentTranscriptMessage)
     case messageDelta(messageID: AgentTranscriptMessage.ID, text: String)
+    /// Provider-authored reasoning summary/thinking, kept out of final answer text.
+    case reasoningDelta(messageID: AgentTranscriptMessage.ID, text: String)
     case messageFinished(AgentTranscriptMessage)
     /// A message the user queued mid-run has entered the model's context.
     ///

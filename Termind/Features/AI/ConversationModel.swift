@@ -152,6 +152,7 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
     var id: UUID = UUID()
     var role: Role
     var text: String
+    var reasoning: [AgentReasoningBlock] = []
     var contextChips: [ContextChipReference] = []
     var images: [AgentImageAttachment] = []
     var commands: [SuggestedCommand] = []
@@ -195,6 +196,13 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
             case .waitingForApproval, .waitingForUser, .reviewing, .running, .denied, .failed: true
             case .interrupted: false
             case .proposed, .completed: false
+            }
+        }
+
+        var isTerminal: Bool {
+            switch self {
+            case .completed, .denied, .failed, .interrupted: true
+            case .proposed, .waitingForApproval, .waitingForUser, .reviewing, .running: false
             }
         }
     }
@@ -297,20 +305,29 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
 }
 
 nonisolated enum AgentWorkItem: Identifiable, Hashable, Sendable {
+    case reasoning(AgentReasoningBlock)
     case message(ChatMessage)
     case tool(AgentToolCard)
+    /// Two or more contiguous tool calls, regardless of their current result.
+    /// The view shows activity until every member is terminal, then summarizes.
+    case tools([AgentToolCard])
 
     var id: UUID {
         switch self {
+        case .reasoning(let block): block.id
         case .message(let message): message.id
         case .tool(let card): card.id
+        case .tools(let cards):
+            cards.first?.id ?? UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
         }
     }
 
     var orderedAt: Date {
         switch self {
+        case .reasoning(let block): block.createdAt
         case .message(let message): message.createdAt
         case .tool(let card): card.invocation.createdAt
+        case .tools(let cards): cards.first?.invocation.createdAt ?? .distantPast
         }
     }
 }
@@ -321,11 +338,17 @@ nonisolated struct AgentWorkGroup: Identifiable, Hashable, Sendable {
     var items: [AgentWorkItem]
     var orderedAt: Date
     var anchorMessageID: UUID?
+    var appearsAfterAnswer: Bool
+    /// The provider summary currently receiving deltas. The view scans this
+    /// text instead of showing a second generic Working indicator outside.
+    var activeReasoningBlockID: AgentReasoningBlock.ID?
 }
 
 nonisolated enum AgentWorkPresentation {
-    static func isExpandedByDefault(for state: AgentRunState) -> Bool {
-        state != .completed
+    static func isExpandedByDefault(
+        for state: AgentRunState, appearsAfterAnswer: Bool = false
+    ) -> Bool {
+        state != .completed || appearsAfterAnswer
     }
 
     /// A compact, stable duration for the work disclosure. Seconds are floored
@@ -457,6 +480,10 @@ final class ConversationModel: Identifiable {
     private(set) var runSummaries: [UUID: AgentRunSummary] = [:]
     private(set) var messageRunIDs: [UUID: UUID] = [:]
     private var activeRunID: UUID?
+    /// Reasoning is live presentation for one provider round trip, not run
+    /// history. The provider copy remains on the transcript for replay, while
+    /// this id alone decides whether it is currently visible.
+    private var activeReasoningMessageID: UUID?
 
     /// Questions waiting on the user, oldest first.
     ///
@@ -784,9 +811,10 @@ final class ConversationModel: Identifiable {
                     ), images: message.images, createdAt: message.createdAt
                 )
             case .assistant:
-                guard !message.text.isEmpty else { return nil }
+                guard !message.text.isEmpty || !message.reasoning.isEmpty else { return nil }
                 return ChatMessage(
                     id: message.id, role: .assistant, text: message.text,
+                    reasoning: message.reasoning,
                     createdAt: message.createdAt
                 )
             case .tool: return nil
@@ -856,6 +884,9 @@ final class ConversationModel: Identifiable {
     var workGroups: [AgentWorkGroup] {
         let visibleByID = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
         let cardsByRun = Dictionary(grouping: toolCards, by: { $0.invocation.runID })
+        let toolProcessMessageIDs = Set(transcript.compactMap { message -> UUID? in
+            message.role == .assistant && !message.toolCalls.isEmpty ? message.id : nil
+        })
         var processRunIDs: [UUID: UUID] = [:]
         for message in transcript where message.role == .assistant && !message.toolCalls.isEmpty {
             if let runID = messageRunIDs[message.id] {
@@ -871,6 +902,15 @@ final class ConversationModel: Identifiable {
             }
         }
 
+        // Reasoning is visible only for the model turn currently in flight.
+        // Completed provider summaries remain model-facing data, not UI
+        // history, and therefore do not resurrect after restore.
+        if let activeReasoningMessageID,
+            let runID = messageRunIDs[activeReasoningMessageID]
+        {
+            processRunIDs[activeReasoningMessageID] = runID
+        }
+
         let stoppedRunIDs = runSummaries.values.compactMap { run in
             run.state == .cancelled ? run.id : nil
         }
@@ -884,51 +924,87 @@ final class ConversationModel: Identifiable {
                 return visibleByID[messageID]
             }
             let visibleProcess = processMessages.filter {
-                !$0.text.isEmpty || $0.isStreaming
+                (!$0.text.isEmpty || ($0.isStreaming && $0.reasoning.isEmpty))
+                    && toolProcessMessageIDs.contains($0.id)
             }
-            var items = visibleProcess.map(AgentWorkItem.message)
+            let reasoningItems = processMessages.flatMap { message -> [AgentWorkItem] in
+                guard message.id == activeReasoningMessageID else { return [] }
+                return message.reasoning.map(AgentWorkItem.reasoning)
+            }
+            let activeReasoningBlockID = processMessages.first(where: {
+                $0.id == activeReasoningMessageID && $0.isStreaming && $0.text.isEmpty
+            })?.reasoning.last?.id
+            var items = reasoningItems + visibleProcess.map(AgentWorkItem.message)
                 + cards.map(AgentWorkItem.tool)
             items.sort {
                 if $0.orderedAt != $1.orderedAt { return $0.orderedAt < $1.orderedAt }
                 switch ($0, $1) {
-                case (.message, .tool): return true
-                case (.tool, .message): return false
+                case (.reasoning, .message), (.reasoning, .tool), (.reasoning, .tools): return true
+                case (.message, .reasoning), (.tool, .reasoning), (.tools, .reasoning): return false
+                case (.message, .tool), (.message, .tools): return true
+                case (.tool, .message), (.tools, .message): return false
                 default: return $0.id.uuidString < $1.id.uuidString
                 }
             }
+            items = Self.groupAdjacentTools(in: items)
             let stored = runSummaries[runID]
             // A user stop is useful transcript state even when it interrupted a
             // direct response before any tool or process item was produced.
             guard !items.isEmpty || stored?.state == .cancelled else { return nil }
 
-            let anchorID = processMessages.min(by: { $0.createdAt < $1.createdAt })?.id
-                ?? cards.compactMap(\.invocation.sourceMessageID).first(where: {
-                    visibleByID[$0] != nil
-                })
-                ?? messages.last(where: {
-                    $0.role == .assistant && messageRunIDs[$0.id] == runID
-                })?.id
-                ?? messages.first(where: { message in
-                    guard message.role == .assistant else { return false }
-                    return cards.contains { $0.invocation.createdAt <= message.createdAt }
-                })?.id
-            let anchorAt = anchorID.flatMap { visibleByID[$0]?.createdAt }
-                ?? items.first?.orderedAt
+            // The work row follows the clock of the first thing it actually
+            // presents. A stopped direct answer has no work item, so its stop
+            // event is the row's place in the timeline.
+            let orderedAt = items.first?.orderedAt
+                ?? stored?.finishedAt
                 ?? stored?.startedAt
                 ?? .now
+            let anchorID = messages.first(where: { $0.createdAt >= orderedAt })?.id
+            let answerAt = messages.last(where: {
+                $0.role == .assistant
+                    && !$0.text.isEmpty
+                    && messageRunIDs[$0.id] == runID
+                    && processRunIDs[$0.id] == nil
+                    && $0.createdAt < orderedAt
+            })?.createdAt
             let fallbackState: AgentRunState = cards.allSatisfy {
                 $0.state == .completed
             } ? .completed : .interrupted
             let run = stored ?? AgentRunSummary(
                 id: runID, state: fallbackState,
-                startedAt: items.first?.orderedAt ?? anchorAt,
+                startedAt: items.first?.orderedAt ?? orderedAt,
                 finishedAt: items.last?.orderedAt
             )
             return AgentWorkGroup(
-                run: run, items: items, orderedAt: anchorAt,
-                anchorMessageID: anchorID
+                run: run, items: items, orderedAt: orderedAt,
+                anchorMessageID: anchorID, appearsAfterAnswer: answerAt != nil,
+                activeReasoningBlockID: activeReasoningBlockID
             )
         }.sorted { $0.orderedAt < $1.orderedAt }
+    }
+
+    private static func groupAdjacentTools(in items: [AgentWorkItem]) -> [AgentWorkItem] {
+        var grouped: [AgentWorkItem] = []
+        var adjacent: [AgentToolCard] = []
+        func flush() {
+            guard !adjacent.isEmpty else { return }
+            if adjacent.count == 1 {
+                grouped.append(.tool(adjacent[0]))
+            } else {
+                grouped.append(.tools(adjacent))
+            }
+            adjacent.removeAll(keepingCapacity: true)
+        }
+        for item in items {
+            if case .tool(let card) = item {
+                adjacent.append(card)
+            } else {
+                flush()
+                grouped.append(item)
+            }
+        }
+        flush()
+        return grouped
     }
 
     /// Messages and run-scoped work in the order the reader experienced them.
@@ -950,8 +1026,10 @@ final class ConversationModel: Identifiable {
             if groupedProcessIDs.contains(message.id) { continue }
             // A turn that only called tools has no text to show, and an empty
             // bubble reads as the model having said nothing. While it is still
-            // streaming it stays, because that is the "working" indicator.
-            guard message.role != .assistant || !message.text.isEmpty || message.isStreaming
+            // streaming it stays only until this turn receives reasoning; that
+            // live text then owns the activity treatment until turnFinished.
+            guard message.role != .assistant || !message.text.isEmpty
+                || (message.isStreaming && message.reasoning.isEmpty)
             else { continue }
             items.append(.message(message))
         }
@@ -1221,6 +1299,7 @@ final class ConversationModel: Identifiable {
     }
 
     func stop() {
+        activeReasoningMessageID = nil
         for index in toolCards.indices where toolCards[index].state == .running {
             toolCards[index].state = .interrupted
         }
@@ -1552,6 +1631,7 @@ final class ConversationModel: Identifiable {
         switch event {
         case .runState(let state):
             runtimeState = state
+            if state.isTerminal { activeReasoningMessageID = nil }
             refreshRunState()
             if state.isTerminal {
                 returnAllSteeringToDraft()
@@ -1570,11 +1650,15 @@ final class ConversationModel: Identifiable {
                 messageRunIDs[prompt.id] = run.id
             }
         case .runFinished(let run):
+            activeReasoningMessageID = nil
             runSummaries[run.id] = run
             if activeRunID == run.id { activeRunID = nil }
-        case .turnStarted, .turnFinished:
-            break
+        case .turnStarted:
+            activeReasoningMessageID = nil
+        case .turnFinished:
+            activeReasoningMessageID = nil
         case .messageStarted(let started):
+            activeReasoningMessageID = nil
             if let activeRunID { messageRunIDs[started.id] = activeRunID }
             if let index = messages.firstIndex(where: { $0.id == started.id }) {
                 messages[index].isStreaming = true
@@ -1599,6 +1683,22 @@ final class ConversationModel: Identifiable {
                     ))
             }
             refreshRunState()
+        case .reasoningDelta(let id, let text):
+            activeReasoningMessageID = id
+            if let activeRunID { messageRunIDs[id] = activeRunID }
+            if let index = messages.firstIndex(where: { $0.id == id }) {
+                if messages[index].reasoning.isEmpty {
+                    messages[index].reasoning.append(AgentReasoningBlock(
+                        text: text, createdAt: messages[index].createdAt
+                    ))
+                } else {
+                    messages[index].reasoning[
+                        messages[index].reasoning.index(before: messages[index].reasoning.endIndex)
+                    ].text += text
+                }
+                messages[index].isStreaming = true
+            }
+            refreshRunState()
         // A queued turn has entered the model's context, so now it is part of
         // the conversation — in both lists, at the position the run put it, and
         // no longer in the queue the composer is drawing.
@@ -1621,12 +1721,14 @@ final class ConversationModel: Identifiable {
             if let activeRunID { messageRunIDs[message.id] = activeRunID }
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[index].text = message.text
+                messages[index].reasoning = message.reasoning
                 messages[index].isStreaming = false
             } else {
                 messages.append(
                     ChatMessage(
                         id: message.id, role: .assistant, text: message.text,
-                        isStreaming: false, createdAt: message.createdAt
+                        reasoning: message.reasoning, isStreaming: false,
+                        createdAt: message.createdAt
                     ))
             }
             // Whole message, not just its text: the tool calls and the opaque

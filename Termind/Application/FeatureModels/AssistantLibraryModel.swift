@@ -85,6 +85,7 @@ final class AssistantConversationStore {
                     case .assistant:
                         ChatMessage(
                             id: message.id, role: .assistant, text: message.text,
+                            reasoning: message.reasoning,
                             createdAt: message.createdAt
                         )
                     case .tool: nil

@@ -521,6 +521,60 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func twoAdjacentToolsStayBatchedAcrossLiveFailureAndCompletionStates() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("run both")
+        let runID = UUID()
+        let start = Date()
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: start
+        )))
+        let descriptor = AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )
+        let first = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(id: "first", name: "lookup", arguments: .object([:])),
+            createdAt: start.addingTimeInterval(1)
+        )
+        let second = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(id: "second", name: "lookup", arguments: .object([:])),
+            createdAt: start.addingTimeInterval(2)
+        )
+        conversation.handle(.toolProposed(first, descriptor))
+        guard case .tool(let single) = try #require(conversation.workGroups.first?.items.first)
+        else {
+            Issue.record("One tool should remain a direct row")
+            return
+        }
+        #expect(single.id == first.id)
+
+        conversation.handle(.toolProposed(second, descriptor))
+        guard case .tools(let live) = try #require(conversation.workGroups.first?.items.first)
+        else {
+            Issue.record("Two adjacent tools should form one live batch")
+            return
+        }
+        #expect(live.map(\.id) == [first.id, second.id])
+
+        conversation.handle(.toolFinished(first, AgentToolResult(
+            callID: first.call.id, content: "failed", isError: true
+        )))
+        conversation.handle(.toolFinished(second, AgentToolResult(
+            callID: second.call.id, content: "ok"
+        )))
+        guard case .tools(let terminal) = try #require(
+            conversation.workGroups.first?.items.first
+        ) else {
+            Issue.record("A failed member must not split the completed batch")
+            return
+        }
+        #expect(terminal.map(\.state) == [.failed, .completed])
+    }
+
+    @Test
     func directAnswerDoesNotCreateAWorkGroup() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("hello")
@@ -533,16 +587,204 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func stoppedDirectAnswerStillShowsItsStoppedDurationBeforeThePartialAnswer() {
+    func finishedReasoningOnlyAnswerLeavesNoWorkedHistory() async {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("compare")
+        conversation.start(
+            runtime: AgentRuntime(
+                model: ImmediateConversationAgentModel(turns: [[
+                    .reasoningDelta("Compared the two configurations."),
+                    .textDelta("Use the second configuration."),
+                    .finished(.completed),
+                ]]),
+                tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "compare",
+                permissionMode: .askForApproval
+            )
+        )
+        await waitForTerminal(conversation)
+
+        let order = conversation.timeline.map { item in
+            switch item {
+            case .message(let message): return message.role == .user ? "user" : "assistant"
+            case .work: return "work"
+            default: return "other"
+            }
+        }
+        #expect(order == ["user", "assistant"])
+        #expect(conversation.workGroups.isEmpty)
+        #expect(conversation.messages.last?.text == "Use the second configuration.")
+        #expect(conversation.messages.last?.reasoning.map(\.text)
+            == ["Compared the two configurations."])
+    }
+
+    @Test
+    func liveReasoningReplacesTheGenericWorkingIndicator() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("think")
+        let runID = UUID()
+        let startedAt = Date()
+        let assistant = AgentTranscriptMessage(
+            role: .assistant, createdAt: startedAt.addingTimeInterval(1)
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: startedAt
+        )))
+        conversation.handle(.messageStarted(assistant))
+        conversation.handle(.reasoningDelta(
+            messageID: assistant.id, text: "Evaluating the request."
+        ))
+
+        let group = try #require(conversation.workGroups.first)
+        guard case .reasoning(let block) = try #require(group.items.first) else {
+            Issue.record("Expected live reasoning in Worked")
+            return
+        }
+        #expect(group.activeReasoningBlockID == block.id)
+        let visibleAssistantRows = conversation.timeline.compactMap { item -> ChatMessage? in
+            guard case .message(let message) = item, message.role == .assistant else {
+                return nil
+            }
+            return message
+        }
+        #expect(visibleAssistantRows.isEmpty)
+
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            id: assistant.id, role: .assistant, reasoning: [block],
+            createdAt: assistant.createdAt
+        )))
+        conversation.handle(.turnFinished(index: 0, stopReason: .toolCalls))
+        #expect(conversation.workGroups.isEmpty)
+
+        // A new model turn gets its own ordinary Working placeholder until it
+        // produces reasoning. The previous turn's reasoning never returns.
+        conversation.handle(.turnStarted(index: 1))
+        let continuation = AgentTranscriptMessage(
+            role: .assistant, createdAt: startedAt.addingTimeInterval(2)
+        )
+        conversation.handle(.messageStarted(continuation))
+        let rowsDuringContinuation = conversation.timeline.compactMap { item -> ChatMessage? in
+            guard case .message(let message) = item, message.role == .assistant else {
+                return nil
+            }
+            return message
+        }
+        #expect(rowsDuringContinuation.map(\.id) == [continuation.id])
+
+        conversation.handle(.messageDelta(messageID: continuation.id, text: "Answer"))
+        #expect(conversation.workGroups.first?.activeReasoningBlockID == nil)
+    }
+
+    @Test
+    func finishedReasoningDisappearsAndAdjacentToolsFormOneBatch() async throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("inspect both")
+        conversation.start(
+            runtime: AgentRuntime(
+                model: ImmediateConversationAgentModel(turns: [
+                    [
+                        .reasoningDelta("Choose both checks."),
+                        .toolCallDelta(id: "call-1", name: "lookup", arguments: "{}"),
+                        .toolCallDelta(id: "call-2", name: "lookup", arguments: "{}"),
+                        .finished(.toolCalls),
+                    ],
+                    [
+                        .reasoningDelta("Verify the combined result."),
+                        .toolCallDelta(id: "call-3", name: "lookup", arguments: "{}"),
+                        .finished(.toolCalls),
+                    ],
+                    [
+                        .reasoningDelta("Compare all results."),
+                        .textDelta("Both checks passed."),
+                        .finished(.completed),
+                    ],
+                ]),
+                tools: [
+                    AnyAgentTool(
+                        descriptor: AgentToolDescriptor(
+                            name: "lookup", summary: "lookup",
+                            inputSchema: .object([
+                                "type": .string("object"), "properties": .object([:]),
+                                "required": .array([]), "additionalProperties": .bool(false),
+                            ]),
+                            target: .local, safety: .locallyReadOnly
+                        )
+                    ) { invocation, _ in
+                        AgentToolResult(callID: invocation.call.id, content: "ok")
+                    }
+                ],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "inspect both",
+                permissionMode: .askForApproval
+            )
+        )
+        await waitForTerminal(conversation)
+
+        let group = try #require(conversation.workGroups.first)
+        #expect(conversation.workGroups.count == 1)
+        let kinds = group.items.map { item in
+            switch item {
+            case .reasoning(let block): return "reasoning:\(block.text)"
+            case .message(let message): return "message:\(message.text)"
+            case .tool(let card): return "tool:\(card.invocation.call.id)"
+            case .tools(let cards):
+                return "tools:\(cards.map(\.invocation.call.id).joined(separator: ","))"
+            }
+        }
+        #expect(kinds == [
+            "tools:call-1,call-2,call-3",
+        ])
+        #expect(conversation.timeline.compactMap { item in
+            if case .work = item { return "work" }
+            return nil
+        } == ["work"])
+    }
+
+    @Test
+    func restoredReasoningStaysPersistedButOutOfWorked() throws {
+        let conversationID = UUID()
+        let runID = UUID()
+        let createdAt = Date(timeIntervalSince1970: 2_000)
+        let reasoning = AgentReasoningBlock(
+            text: "Restored provider summary.", createdAt: createdAt
+        )
+        let assistant = AgentTranscriptMessage(
+            role: .assistant, text: "Restored answer", reasoning: [reasoning],
+            createdAt: createdAt
+        )
+        let store = AssistantConversationStore()
+        store.restore([StoredAgentConversation(
+            id: conversationID, messages: [assistant],
+            messageRunIDs: [assistant.id: runID],
+            runs: [AgentRunSummary(
+                id: runID, state: .completed, startedAt: createdAt,
+                finishedAt: createdAt.addingTimeInterval(1)
+            )],
+            lastRunState: .completed
+        )])
+
+        let restored = try #require(store.conversation(id: conversationID))
+        #expect(restored.messages.first?.reasoning == [reasoning])
+        #expect(restored.workGroups.isEmpty)
+    }
+
+    @Test
+    func stoppedDirectAnswerShowsItsStoppedDurationAfterThePartialAnswer() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("Explain")
         let runID = UUID()
-        let start = Date(timeIntervalSince1970: 1_000)
+        let start = Date()
         conversation.handle(.runStarted(AgentRunSummary(
             id: runID, state: .running, startedAt: start
         )))
         conversation.handle(.messageFinished(AgentTranscriptMessage(
-            role: .assistant, text: "Partial answer"
+            role: .assistant, text: "Partial answer",
+            createdAt: start.addingTimeInterval(1)
         )))
         conversation.handle(.runFinished(AgentRunSummary(
             id: runID, state: .cancelled, startedAt: start,
@@ -556,8 +798,9 @@ struct ChatComposerStateTests {
             default: return "other"
             }
         }
-        #expect(order == ["user", "work", "assistant"])
+        #expect(order == ["user", "assistant", "work"])
         #expect(conversation.workGroups.first?.items.isEmpty == true)
+        #expect(conversation.workGroups.first?.appearsAfterAnswer == true)
         let run = conversation.workGroups.first?.run
         #expect(run.map {
             AgentWorkPresentation.title(
@@ -567,11 +810,11 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func providerSearchReportedAfterTextStillAppearsBeforeTheFinalAnswer() {
+    func providerSearchReportedAfterTextAppearsAfterTheAnswerAndExpanded() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("search")
         let runID = UUID()
-        let startedAt = Date(timeIntervalSince1970: 1_000)
+        let startedAt = Date()
         let answer = AgentTranscriptMessage(
             role: .assistant, text: "The answer", createdAt: startedAt.addingTimeInterval(1)
         )
@@ -610,8 +853,12 @@ struct ChatComposerStateTests {
             default: return "other"
             }
         }
-        #expect(order == ["user", "work", "assistant"])
+        #expect(order == ["user", "assistant", "work"])
         #expect(conversation.workGroups.first?.items.count == 1)
+        #expect(conversation.workGroups.first?.appearsAfterAnswer == true)
+        #expect(AgentWorkPresentation.isExpandedByDefault(
+            for: .completed, appearsAfterAnswer: true
+        ))
     }
 
     @Test

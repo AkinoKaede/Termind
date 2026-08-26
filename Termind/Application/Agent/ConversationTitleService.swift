@@ -65,7 +65,7 @@ actor ConversationTitleService {
                 text = snapshot
             case .toolCallDelta, .toolCallSnapshot:
                 throw ConversationTitleError.invalidResponse
-            case .providerItem, .webSearch, .usage:
+            case .reasoningDelta, .reasoningSnapshot, .providerItem, .webSearch, .usage:
                 // Some reasoning providers require opaque output items in agent
                 // turns. This one-shot, tool-free request never replays them.
                 //

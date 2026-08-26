@@ -53,6 +53,9 @@ final class PersistentAgentMessage {
     var authoredText: String?
     /// Defaults to an encoded empty array so older stores migrate in place.
     var imagesData = Data()
+    /// Provider-authored, display-safe reasoning summaries. Opaque signatures
+    /// and encrypted provider state deliberately remain in memory only.
+    var reasoningData = Data()
     var toolCallsData = Data()
     var toolCallID: String?
     var toolName: String?
@@ -73,6 +76,13 @@ final class PersistentAgentMessage {
         text = AgentPersistenceRedactor.visibleText(message.text)
         authoredText = message.authoredText.map(AgentPersistenceRedactor.visibleText)
         imagesData = (try? JSONEncoder().encode(message.images)) ?? Data()
+        reasoningData = AgentPersistenceRedactor.encoded(message.reasoning.map { block in
+            AgentReasoningBlock(
+                id: block.id,
+                text: AgentPersistenceRedactor.visibleText(block.text),
+                createdAt: block.createdAt
+            )
+        })
         toolCallsData = AgentPersistenceRedactor.encoded(message.toolCalls.map { call in
             AgentToolCall(
                 id: call.id, name: call.name,
@@ -311,9 +321,13 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     let images = (try? JSONDecoder().decode(
                         [AgentImageAttachment].self, from: row.imagesData
                     )) ?? []
+                    let reasoning = (try? JSONDecoder().decode(
+                        [AgentReasoningBlock].self, from: row.reasoningData
+                    )) ?? []
                     return AgentTranscriptMessage(
                         id: row.id, role: role, text: row.text,
                         authoredText: row.authoredText, images: images,
+                        reasoning: reasoning,
                         toolCalls: calls,
                         toolCallID: row.toolCallID, toolName: row.toolName,
                         isError: row.isError, isCompaction: row.isCompaction,

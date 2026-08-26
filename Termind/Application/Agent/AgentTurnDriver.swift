@@ -62,6 +62,25 @@ nonisolated struct AgentTurnDriver: Sendable {
                 // The UI is reconciled by messageFinished after the provider
                 // stream closes, so replacing here cannot duplicate deltas.
                 message.text = text
+            case .reasoningDelta(let text):
+                if message.reasoning.isEmpty {
+                    message.reasoning.append(AgentReasoningBlock(
+                        text: text, createdAt: message.createdAt
+                    ))
+                } else {
+                    message.reasoning[message.reasoning.index(before: message.reasoning.endIndex)]
+                        .text += text
+                }
+                channel.emit(.reasoningDelta(messageID: message.id, text: text))
+            case .reasoningSnapshot(let text):
+                if message.reasoning.isEmpty {
+                    message.reasoning.append(AgentReasoningBlock(
+                        text: text, createdAt: message.createdAt
+                    ))
+                } else {
+                    message.reasoning[message.reasoning.index(before: message.reasoning.endIndex)]
+                        .text = text
+                }
             case .toolCallDelta(let id, let name, let arguments):
                 if pending[id] == nil { order.append(id) }
                 var entry = pending[id] ?? PendingToolCall()

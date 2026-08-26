@@ -10,6 +10,10 @@ nonisolated enum AgentModelStreamEvent: Sendable {
     case textDelta(String)
     /// Authoritative complete text used by buffered/final provider responses.
     case textSnapshot(String)
+    /// Provider-authored reasoning summary/thinking, distinct from answer text.
+    case reasoningDelta(String)
+    /// Authoritative complete reasoning text used by buffered/final responses.
+    case reasoningSnapshot(String)
     case toolCallDelta(id: String, name: String?, arguments: String)
     /// The authoritative completed tool call. Arguments replace, rather than
     /// append to, the partial streaming buffer.

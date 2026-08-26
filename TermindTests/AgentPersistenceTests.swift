@@ -163,6 +163,42 @@ struct AgentPersistenceTests {
     }
 
     @Test
+    func versionThirteenMessagesMigrateWithEmptyReasoning() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "TermindReasoningMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "Termind.store")
+        let messageID = UUID()
+
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV13.self)
+            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let message = TermindSchemaV13AgentModels.PersistentAgentMessage()
+            message.id = messageID
+            message.text = "Existing answer"
+            container.mainContext.insert(message)
+            try container.mainContext.save()
+        }
+
+        let configuration = ModelConfiguration(
+            "Migration", schema: HostPersistence.schema, url: storeURL
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, migrationPlan: TermindMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let message = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessage>()
+        ).first)
+
+        #expect(message.id == messageID)
+        #expect(message.text == "Existing answer")
+        #expect(message.reasoningData.isEmpty)
+    }
+
+    @Test
     func imagePartsRoundTripThroughConversationPersistence() async throws {
         let configuration = ModelConfiguration(
             "AgentImagePersistenceTests", schema: HostPersistence.schema,
@@ -186,6 +222,48 @@ struct AgentPersistenceTests {
         let restored = try await repository.loadConversations()
 
         #expect(restored.first?.messages.first?.images == [image])
+    }
+
+    @Test
+    func displayReasoningRoundTripsRedactedWithoutProviderState() async throws {
+        let configuration = ModelConfiguration(
+            "AgentReasoningPersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let createdAt = Date(timeIntervalSince1970: 1_234)
+        let block = AgentReasoningBlock(
+            text: "Inspect token=durable-secret before answering.", createdAt: createdAt
+        )
+        let message = AgentTranscriptMessage(
+            role: .assistant, text: "Done", reasoning: [block],
+            providerItems: [.object([
+                "signature": .string("opaque-provider-signature"),
+            ])]
+        )
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval, messages: [message]
+        )
+
+        try await repository.save(snapshot)
+
+        let row = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessage>()
+        ).first)
+        let storedReasoning = String(decoding: row.reasoningData, as: UTF8.self)
+        #expect(!storedReasoning.contains("durable-secret"))
+        #expect(!storedReasoning.contains("opaque-provider-signature"))
+
+        let restored = try #require(try await repository.loadConversations().first)
+        let restoredBlock = try #require(restored.messages.first?.reasoning.first)
+        #expect(restoredBlock.id == block.id)
+        #expect(restoredBlock.createdAt == createdAt)
+        #expect(restoredBlock.text.contains("[REDACTED]"))
+        #expect(restored.messages.first?.providerItems.isEmpty == true)
     }
 
     @Test

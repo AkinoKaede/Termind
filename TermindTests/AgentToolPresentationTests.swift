@@ -48,6 +48,19 @@ struct AgentToolPresentationTests {
             AgentToolPresentation.summary(for: card, hostName: "production")
                 == "Ran “ls -la” on production"
         )
+        #expect(
+            AgentToolPresentation.batchSummary(for: [card, card])
+                == "Ran 2 SSH commands"
+        )
+        for state in [
+            AgentToolCard.State.denied, .failed, .interrupted,
+        ] {
+            card.state = state
+            let summary = AgentToolPresentation.batchSummary(for: [card, card])
+            #expect(!summary.contains("“"))
+            #expect(!summary.contains("”"))
+            #expect(!summary.contains("\""))
+        }
     }
 
     @Test
@@ -167,6 +180,77 @@ struct AgentToolPresentationTests {
         #expect(
             AgentToolPresentation.summary(for: lifecycle)
                 == "Interrupted while asking a question"
+        )
+    }
+
+    @Test
+    func finishedBatchSummaryCountsRepeatedActivitiesAndPreservesFailures() {
+        let questionPresentation = AgentBuiltInTools.requestUserInput().descriptor.presentation
+        var firstQuestion = makeCard(
+            name: "request_user_input", target: .user,
+            arguments: ["questions": .array([.object([:])])],
+            presentation: questionPresentation
+        )
+        var secondQuestion = firstQuestion
+        let commandPresentation = AgentToolDescriptor.Presentation(
+            symbol: "terminal", activity: .argument(key: "command", fallback: "a command"),
+            action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+        )
+        var command = makeCard(
+            name: "ssh_exec", target: .host,
+            arguments: ["command": .string("uptime")],
+            presentation: commandPresentation
+        )
+        firstQuestion.state = .completed
+        secondQuestion.state = .completed
+        command.state = .completed
+
+        #expect(
+            AgentToolPresentation.batchSummary(for: [firstQuestion, secondQuestion, command])
+                == "Asked 2 questions, ran a command"
+        )
+
+        command.state = .failed
+        #expect(
+            AgentToolPresentation.batchSummary(for: [firstQuestion, secondQuestion, command])
+                == "Asked 2 questions, failed to run a command"
+        )
+    }
+
+    @Test
+    func batchIconFollowsLiveAndHomogeneousTools() {
+        let terminal = AgentToolDescriptor.Presentation(
+            symbol: "terminal", activity: .label("a command"),
+            action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+        )
+        var first = makeCard(name: "ssh_exec", target: .host, presentation: terminal)
+        var second = makeCard(name: "ssh_exec", target: .host, presentation: terminal)
+        first.state = .running
+        second.state = .proposed
+        #expect(AgentToolPresentation.batchSymbol(for: [first, second]) == "terminal")
+        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .secondary)
+
+        first.state = .completed
+        second.state = .completed
+        #expect(AgentToolPresentation.batchSymbol(for: [first, second]) == "terminal")
+        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .success)
+
+        first.state = .failed
+        second.state = .denied
+        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .failure)
+
+        first.state = .completed
+        second.state = .failed
+        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .warning)
+
+        var question = makeCard(
+            name: "request_user_input", target: .user,
+            presentation: AgentBuiltInTools.requestUserInput().descriptor.presentation
+        )
+        question.state = .completed
+        #expect(
+            AgentToolPresentation.batchSymbol(for: [first, question])
+                == "wrench.and.screwdriver"
         )
     }
 

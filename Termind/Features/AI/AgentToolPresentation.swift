@@ -3,6 +3,10 @@ import Foundation
 /// Turns tool protocol data into the small amount of language the transcript needs.
 /// Execution, approval and replay continue to use the original call and result unchanged.
 nonisolated enum AgentToolPresentation {
+    enum BatchTint: Equatable {
+        case secondary, warning, success, failure
+    }
+
     static let displayCharacterLimit = 8_192
     static let displayLineLimit = 120
 
@@ -15,6 +19,31 @@ nonisolated enum AgentToolPresentation {
 
     static func symbol(for card: AgentToolCard) -> String {
         return card.descriptor.presentation?.symbol ?? "wrench.and.screwdriver"
+    }
+
+    /// While work is live, use the icon of the tool(s) still in flight. After
+    /// completion, a homogeneous batch keeps its tool icon; mixed batches use
+    /// the generic tools symbol.
+    static func batchSymbol(for cards: [AgentToolCard]) -> String {
+        let unfinished = cards.filter { !$0.state.isTerminal }
+        if let live = unfinished.first { return symbol(for: live) }
+        guard let first = cards.first else { return "wrench.and.screwdriver" }
+        let name = first.descriptor.qualifiedName
+        return cards.allSatisfy { $0.descriptor.qualifiedName == name }
+            ? symbol(for: first) : "wrench.and.screwdriver"
+    }
+
+    static func batchTint(for cards: [AgentToolCard]) -> BatchTint {
+        if let live = cards.first(where: { !$0.state.isTerminal }) {
+            return tint(for: live.state)
+        }
+        if !cards.isEmpty, cards.allSatisfy({ $0.state == .completed }) {
+            return .success
+        }
+        if !cards.isEmpty, cards.allSatisfy({ $0.state == .failed || $0.state == .denied }) {
+            return .failure
+        }
+        return .warning
     }
 
     static func summary(
@@ -61,6 +90,29 @@ nonisolated enum AgentToolPresentation {
 
         if let hostName, !hostName.isEmpty { return String(localized: "\(action) on \(hostName)") }
         return action
+    }
+
+    /// A finished contiguous batch, phrased from the same presentation
+    /// metadata as its individual rows but with repeated activities counted.
+    /// Calls in different terminal states stay separate, so one failure can
+    /// never be rewritten as a successful action by the batch title.
+    static func batchSummary(for cards: [AgentToolCard]) -> String {
+        struct Key: Hashable {
+            let name: String
+            let state: AgentToolCard.State
+        }
+
+        var order: [Key] = []
+        var grouped: [Key: [AgentToolCard]] = [:]
+        for card in cards {
+            let key = Key(name: card.descriptor.qualifiedName, state: card.state)
+            if grouped[key] == nil { order.append(key) }
+            grouped[key, default: []].append(card)
+        }
+        return order.compactMap { grouped[$0].map(batchClause) }
+            .enumerated()
+            .map { index, clause in index == 0 ? clause : lowercaseFirst(clause) }
+            .joined(separator: ", ")
     }
 
     static func output(from result: AgentToolResult) -> String {
@@ -229,6 +281,112 @@ nonisolated enum AgentToolPresentation {
                 count > 0
             else { return fallback }
             return count == 1 ? singular : "\(count) \(plural)"
+        }
+    }
+
+    private static func batchClause(_ cards: [AgentToolCard]) -> String {
+        guard let first = cards.first else { return "" }
+        guard let presentation = first.descriptor.presentation else {
+            let operation = humanized(first.descriptor.qualifiedName)
+            let activity = cards.count == 1
+                ? operation : "\(cards.count) \(operation) calls"
+            return fallbackAction(for: first.state, activity: activity)
+        }
+
+        let activity = batchActivity(presentation.activity, cards: cards)
+        if let template = presentation.messages[first.state.rawValue] {
+            return replacingQuotedActivity(in: template, with: activity)
+                .replacingOccurrences(of: "{activity}", with: activity)
+                .replacingOccurrences(of: " on {target}", with: "")
+                .replacingOccurrences(of: " to {target}", with: "")
+                .replacingOccurrences(of: " with {target}", with: "")
+                .replacingOccurrences(of: "{target}", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return fallbackAction(for: first.state, activity: activity)
+    }
+
+    private static func replacingQuotedActivity(in template: String, with activity: String) -> String {
+        [
+            "“{activity}”", "\"{activity}\"", "‘{activity}’", "'{activity}'",
+            "«{activity}»", "‹{activity}›", "「{activity}」", "『{activity}』",
+        ].reduce(template) { text, quoted in
+            text.replacingOccurrences(of: quoted, with: activity)
+        }
+    }
+
+    private static func batchActivity(
+        _ activity: AgentToolDescriptor.Presentation.Activity,
+        cards: [AgentToolCard]
+    ) -> String {
+        switch activity {
+        case .arrayCount(let key, let singular, let plural, let fallback):
+            let count = cards.reduce(0) { total, card in
+                total + (card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count ?? 0)
+            }
+            guard count > 0 else { return fallback }
+            return count == 1 ? singular : "\(count) \(plural)"
+        case .argument(_, let fallback):
+            return cards.count == 1 ? fallback : counted(fallback, count: cards.count)
+        case .label(let label):
+            return cards.count == 1 ? label : counted(label, count: cards.count)
+        }
+    }
+
+    private static func fallbackAction(
+        for state: AgentToolCard.State, activity: String
+    ) -> String {
+        switch state {
+        case .proposed: "Preparing \(activity)"
+        case .waitingForApproval, .waitingForUser: "Waiting to run \(activity)"
+        case .reviewing: "Preparing \(activity)"
+        case .running: "Running \(activity)"
+        case .completed: "Ran \(activity)"
+        case .denied: "Denied \(activity)"
+        case .failed: "Failed \(activity)"
+        case .interrupted: "Interrupted \(activity)"
+        }
+    }
+
+    private static func counted(_ phrase: String, count: Int) -> String {
+        let prefixes = ["a ", "an ", "the "]
+        let lower = phrase.lowercased()
+        let nounPhrase = prefixes.first(where: { lower.hasPrefix($0) }).map {
+            String(phrase.dropFirst($0.count))
+        } ?? phrase
+        return "\(count) \(pluralized(nounPhrase))"
+    }
+
+    private static func pluralized(_ phrase: String) -> String {
+        guard let space = phrase.lastIndex(of: " ") else {
+            return pluralizedWord(phrase)
+        }
+        return String(phrase[...space]) + pluralizedWord(String(phrase[phrase.index(after: space)...]))
+    }
+
+    private static func pluralizedWord(_ word: String) -> String {
+        let lower = word.lowercased()
+        if lower.hasSuffix("s") { return word }
+        if lower.hasSuffix("y"), word.count > 1 {
+            return String(word.dropLast()) + "ies"
+        }
+        if lower.hasSuffix("ch") || lower.hasSuffix("sh") || lower.hasSuffix("x") {
+            return word + "es"
+        }
+        return word + "s"
+    }
+
+    private static func lowercaseFirst(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return first.lowercased() + String(text.dropFirst())
+    }
+
+    private static func tint(for state: AgentToolCard.State) -> BatchTint {
+        switch state {
+        case .denied, .failed: .failure
+        case .reviewing, .waitingForApproval, .waitingForUser: .warning
+        case .completed: .success
+        case .proposed, .running, .interrupted: .secondary
         }
     }
 
