@@ -9,12 +9,21 @@ struct DataProtectionKeychainTests {
     func persistedStorageNamesUseThisDevice() {
         #expect(KeyStorage.thisDevice.rawValue == "thisDevice")
         #expect(PasswordStorage.thisDevice.rawValue == "thisDevice")
+        #expect(KeyStorage.iCloud.rawValue == "iCloud")
+        #expect(PasswordStorage.iCloud.rawValue == "iCloud")
         #expect(KeyStorage(rawValue: "local" + "Keychain") == nil)
-        #expect(Identity(name: "", username: "").passwordStorage == .iCloudKeychain)
-        #expect(SSHKeyRef(label: "").storage == .iCloudKeychain)
+        #expect(Identity(name: "", username: "").passwordStorage == .iCloud)
+        #expect(SSHKeyRef(label: "").storage == .iCloud)
     }
 
-    @Test(arguments: [PasswordStorage.thisDevice, .iCloudKeychain])
+    @Test
+    func legacyCloudStorageNamesRemainReadable() {
+        let legacyValue = "iCloud" + "Keychain"
+        #expect(PasswordStorage(persistedRawValue: legacyValue) == .iCloud)
+        #expect(KeyStorage(persistedRawValue: legacyValue) == .iCloud)
+    }
+
+    @Test(arguments: [PasswordStorage.thisDevice, .iCloud])
     func identityPasswordRoundTripUsesExactStorageClass(
         _ storage: PasswordStorage
     ) throws {
@@ -24,7 +33,7 @@ struct DataProtectionKeychainTests {
 
         try keychain.setString("secret", for: reference, storage: storage)
         #expect(try keychain.string(for: reference, storage: storage) == "secret")
-        let other: PasswordStorage = storage == .thisDevice ? .iCloudKeychain : .thisDevice
+        let other: PasswordStorage = storage == .thisDevice ? .iCloud : .thisDevice
         #expect(try keychain.string(for: reference, storage: other) == nil)
     }
     @Test
@@ -42,7 +51,7 @@ struct DataProtectionKeychainTests {
         #expect(reader.secretStorageError == nil)
     }
 
-    @Test(arguments: [KeyStorage.thisDevice, .iCloudKeychain])
+    @Test(arguments: [KeyStorage.thisDevice, .iCloud])
     func softwareKeyRoundTripUsesExactStorageClass(_ storage: KeyStorage) throws {
         let keychain = KeychainSecretStore()
         let reference = "termind.key.\(UUID().uuidString)"

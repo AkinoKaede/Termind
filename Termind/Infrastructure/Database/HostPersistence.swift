@@ -244,7 +244,7 @@ enum TermindSchemaV4Models {
         var value: Identity {
             Identity(
                 id: id, name: name, username: username, credentialRef: credentialRef,
-                passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .thisDevice,
+                passwordStorage: PasswordStorage(persistedRawValue: passwordStorage) ?? .thisDevice,
                 keyID: keyID, notes: notes, lastUsedAt: lastUsedAt, sortIndex: sortIndex
             )
         }
@@ -294,7 +294,7 @@ enum TermindSchemaV4Models {
                 algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
                 publicKey: publicKey, certificate: certificate, fingerprint: fingerprint,
                 credentialRef: credentialRef,
-                storage: KeyStorage(rawValue: storage) ?? .thisDevice,
+                storage: KeyStorage(persistedRawValue: storage) ?? .thisDevice,
                 keySize: keySize, hasPassphrase: hasPassphrase,
                 storesPassphrase: storesPassphrase,
                 requiresUserPresence: requiresUserPresence, createdAt: createdAt,
@@ -806,6 +806,7 @@ final class HostPersistence {
     }
 
     func load() throws -> VaultSnapshot {
+        try migrateLegacyCloudStorageNames()
         let hosts = try context.fetch(FetchDescriptor<PersistentHost>()).map(\.value)
         let groups = try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.value)
         let identities = try context.fetch(FetchDescriptor<PersistentIdentity>()).map(\.value)
@@ -819,6 +820,33 @@ final class HostPersistence {
             knownHosts: knownHosts, snippets: snippets,
             snippetPackages: snippetPackages, portForwardings: portForwardings
         )
+    }
+
+    /// The cloud-storage enum case and its persisted raw value were shortened.
+    /// Rewrite existing rows before projecting them so the compatibility decoder
+    /// is only a fallback for interrupted migrations, not the permanent form.
+    private func migrateLegacyCloudStorageNames() throws {
+        let legacyValue = "iCloud" + "Keychain"
+        var changed = false
+
+        for identity in try context.fetch(FetchDescriptor<PersistentIdentity>())
+        where identity.passwordStorage == legacyValue {
+            identity.passwordStorage = PasswordStorage.iCloud.rawValue
+            changed = true
+        }
+        for key in try context.fetch(FetchDescriptor<PersistentSSHKey>())
+        where key.storage == legacyValue {
+            key.storage = KeyStorage.iCloud.rawValue
+            changed = true
+        }
+
+        guard changed else { return }
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
     }
 
     func save(_ snapshot: VaultSnapshot) throws {

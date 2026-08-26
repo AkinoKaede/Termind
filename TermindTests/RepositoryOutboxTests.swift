@@ -8,6 +8,27 @@ import Testing
 @MainActor
 struct RepositoryOutboxTests {
     @Test
+    func legacyICloudStorageNamesAreRewrittenWhenVaultLoads() throws {
+        let container = try makeContainer("LegacyICloudStorageMigration")
+        let context = container.mainContext
+        let identity = PersistentIdentity(Identity(name: "Cloud", username: "cloud"))
+        let key = PersistentSSHKey(SSHKeyRef(label: "Cloud Key"))
+        let legacyValue = "iCloud" + "Keychain"
+        identity.passwordStorage = legacyValue
+        key.storage = legacyValue
+        context.insert(identity)
+        context.insert(key)
+        try context.save()
+
+        let snapshot = try HostPersistence(context: context).load()
+
+        #expect(snapshot.identities.first?.passwordStorage == .iCloud)
+        #expect(snapshot.keys.first?.storage == .iCloud)
+        #expect(identity.passwordStorage == PasswordStorage.iCloud.rawValue)
+        #expect(key.storage == KeyStorage.iCloud.rawValue)
+    }
+
+    @Test
     func versionThreeStorageNamesMigrateToThisDevice() throws {
         let directory = FileManager.default.temporaryDirectory
             .appending(path: "TermindV3Migration-\(UUID().uuidString)", directoryHint: .isDirectory)

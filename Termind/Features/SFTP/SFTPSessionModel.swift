@@ -538,7 +538,7 @@ final class SFTPSessionModel: Identifiable {
             let identity = Identity(
                 id: existing?.id ?? UUID(), name: existing?.name ?? submittedUsername,
                 username: submittedUsername, credentialRef: existing?.credentialRef ?? "",
-                passwordStorage: existing?.passwordStorage ?? .iCloudKeychain,
+                passwordStorage: existing?.passwordStorage ?? .iCloud,
                 keyID: submittedKeyID, notes: existing?.notes ?? "",
                 lastUsedAt: existing?.lastUsedAt
             )

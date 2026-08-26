@@ -865,7 +865,7 @@ final class SSHSessionModel: Identifiable {
                 name: existing?.name ?? trimmedUsername,
                 username: trimmedUsername,
                 credentialRef: existing?.credentialRef ?? "",
-                passwordStorage: existing?.passwordStorage ?? .iCloudKeychain,
+                passwordStorage: existing?.passwordStorage ?? .iCloud,
                 keyID: submittedKeyID,
                 notes: existing?.notes ?? "",
                 lastUsedAt: existing?.lastUsedAt

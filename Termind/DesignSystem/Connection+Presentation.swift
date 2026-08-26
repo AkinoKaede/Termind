@@ -4,7 +4,7 @@ extension KeyStorage {
     nonisolated var displayName: String {
         switch self {
         case .thisDevice: String(localized: "This Mac")
-        case .iCloudKeychain: String(localized: "iCloud")
+        case .iCloud: String(localized: "iCloud")
         case .secureEnclave: String(localized: "Secure Enclave")
         }
     }
@@ -12,7 +12,7 @@ extension KeyStorage {
     nonisolated var symbol: String {
         switch self {
         case .thisDevice: "lock.laptopcomputer"
-        case .iCloudKeychain: "icloud.fill"
+        case .iCloud: "icloud.fill"
         case .secureEnclave: "checkmark.shield.fill"
         }
     }

@@ -2,21 +2,29 @@ import Foundation
 
 nonisolated enum PasswordStorage: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
     case thisDevice
-    case iCloudKeychain
+    case iCloud
 
     var id: String { rawValue }
+
+    init?(persistedRawValue: String) {
+        self.init(
+            rawValue: persistedRawValue == "iCloud" + "Keychain"
+                ? Self.iCloud.rawValue
+                : persistedRawValue
+        )
+    }
 
     var displayName: String {
         switch self {
         case .thisDevice: String(localized: "This Mac")
-        case .iCloudKeychain: String(localized: "iCloud")
+        case .iCloud: String(localized: "iCloud")
         }
     }
 
     var symbol: String {
         switch self {
         case .thisDevice: "lock.laptopcomputer"
-        case .iCloudKeychain: "icloud.fill"
+        case .iCloud: "icloud.fill"
         }
     }
 }
@@ -65,7 +73,7 @@ nonisolated struct Identity: Identifiable, Hashable, Sendable {
     var credentialRef: String = ""
     /// The secret itself never enters SwiftData. This value only selects the
     /// Data Protection Keychain class used to resolve `credentialRef`.
-    var passwordStorage: PasswordStorage = .iCloudKeychain
+    var passwordStorage: PasswordStorage = .iCloud
     /// One of the entries on the Keys list. Storing the id rather than the key
     /// means renaming or rotating a key never touches the identities that use
     /// it. `nil` means this identity has no key.

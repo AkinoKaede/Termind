@@ -83,7 +83,7 @@ struct NewIdentitySheet: View {
         requestedBack = back
         _name = State(initialValue: identity?.name ?? "")
         _username = State(initialValue: identity?.username ?? "")
-        _passwordStorage = State(initialValue: identity?.passwordStorage ?? .iCloudKeychain)
+        _passwordStorage = State(initialValue: identity?.passwordStorage ?? .iCloud)
         _keyID = State(initialValue: identity?.keyID)
     }
 

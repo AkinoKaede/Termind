@@ -389,7 +389,7 @@ private struct SoftwareKeyEditor: View {
         self.loadPrivateKey = loadPrivateKey
         self.save = save
         _name = State(initialValue: existing?.label ?? "")
-        _storage = State(initialValue: existing?.storage ?? .iCloudKeychain)
+        _storage = State(initialValue: existing?.storage ?? .iCloud)
         _certificate = State(initialValue: existing?.certificate ?? "")
         _isLoading = State(initialValue: loadPrivateKey != nil)
     }
@@ -411,7 +411,7 @@ private struct SoftwareKeyEditor: View {
                     Section("Key") {
                         TextField("Name", text: $name, prompt: Text("Defaults to key type"))
                         Picker("Store in", selection: $storage) {
-                            Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloudKeychain)
+                            Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                             Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
                         }
                     }
@@ -695,7 +695,7 @@ private struct GenerateKeySheet: View {
     let close: () -> Void
 
     @State private var label = ""
-    @State private var storage = KeyStorage.iCloudKeychain
+    @State private var storage = KeyStorage.iCloud
     @State private var kind = Kind.ed25519
     @State private var curveBits = 256
     @State private var rsaBits = 3072
@@ -709,7 +709,7 @@ private struct GenerateKeySheet: View {
 
     private let availableStorage: [KeyStorage] = [
         .thisDevice,
-        .iCloudKeychain,
+        .iCloud,
         .secureEnclave,
     ]
 

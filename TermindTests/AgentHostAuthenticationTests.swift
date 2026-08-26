@@ -91,7 +91,7 @@ struct AgentHostAuthenticationTests {
         defer { _ = store.delete(identityID: saved.id) }
         #expect(saved.name == "Production Deploy")
         #expect(saved.username == "deploy")
-        #expect(saved.passwordStorage == .iCloudKeychain)
+        #expect(saved.passwordStorage == .iCloud)
         #expect(store.host(host.id)?.identityID == saved.id)
         #expect(try store.passwordCredential(for: saved) == "secret")
         #expect(configuration.username == "deploy")

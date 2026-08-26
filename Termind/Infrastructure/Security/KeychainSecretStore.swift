@@ -45,7 +45,7 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         guard
             let data = try data(
                 for: account, service: Self.passwordService,
-                synchronizable: storage == .iCloudKeychain
+                synchronizable: storage == .iCloud
             )
         else { return nil }
         guard let value = String(data: data, encoding: .utf8) else {
@@ -63,8 +63,8 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         try validateStringReference(account)
         try setData(
             value?.data(using: .utf8), for: account, service: Self.passwordService,
-            synchronizable: storage == .iCloudKeychain,
-            accessible: storage == .iCloudKeychain
+            synchronizable: storage == .iCloud,
+            accessible: storage == .iCloud
                 ? kSecAttrAccessibleWhenUnlocked
                 : kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         )
@@ -77,11 +77,11 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         guard
             let data = try data(
                 for: account, service: service(for: storage),
-                synchronizable: storage == .iCloudKeychain
+                synchronizable: storage == .iCloud
             )
         else { return nil }
         switch storage {
-        case .thisDevice, .iCloudKeychain:
+        case .thisDevice, .iCloud:
             return .software(try JSONDecoder().decode(SSHPrivateKeySecret.self, from: data))
         case .secureEnclave:
             guard !data.isEmpty else { throw KeychainSecretError.unexpectedValue }
@@ -95,7 +95,7 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         try validate(account, prefix: "termind.key.")
         let data: Data?
         switch (value, storage) {
-        case (.software(let secret), .thisDevice), (.software(let secret), .iCloudKeychain):
+        case (.software(let secret), .thisDevice), (.software(let secret), .iCloud):
             data = try JSONEncoder().encode(secret)
         case (.secureEnclave(let credential), .secureEnclave):
             data = credential.dataRepresentation
@@ -106,8 +106,8 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         }
         try setData(
             data, for: account, service: service(for: storage),
-            synchronizable: storage == .iCloudKeychain,
-            accessible: storage == .iCloudKeychain
+            synchronizable: storage == .iCloud,
+            accessible: storage == .iCloud
                 ? kSecAttrAccessibleWhenUnlocked
                 : kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         )
@@ -120,7 +120,7 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         try validate(account, prefix: "termind.password.")
         try remove(
             account, service: Self.passwordService,
-            synchronizable: storage == .iCloudKeychain
+            synchronizable: storage == .iCloud
         )
     }
 
@@ -129,7 +129,7 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         try validate(account, prefix: "termind.key.")
         try remove(
             account, service: service(for: storage),
-            synchronizable: storage == .iCloudKeychain
+            synchronizable: storage == .iCloud
         )
     }
 
@@ -195,7 +195,7 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
 
     private func service(for storage: KeyStorage) -> String {
         switch storage {
-        case .thisDevice, .iCloudKeychain: Self.softwareKeyService
+        case .thisDevice, .iCloud: Self.softwareKeyService
         case .secureEnclave: Self.enclaveService
         }
     }

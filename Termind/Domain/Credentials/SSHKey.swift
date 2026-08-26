@@ -2,10 +2,18 @@ import Foundation
 
 nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
     case thisDevice
-    case iCloudKeychain
+    case iCloud
     case secureEnclave
 
     var id: String { rawValue }
+
+    init?(persistedRawValue: String) {
+        self.init(
+            rawValue: persistedRawValue == "iCloud" + "Keychain"
+                ? Self.iCloud.rawValue
+                : persistedRawValue
+        )
+    }
 }
 
 nonisolated enum SSHKeyAlgorithm: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
@@ -26,7 +34,7 @@ nonisolated struct SSHKeyRef: Identifiable, Hashable, Sendable {
     var certificate: String = ""
     var fingerprint: String = ""
     var credentialRef: String = ""
-    var storage: KeyStorage = .iCloudKeychain
+    var storage: KeyStorage = .iCloud
     var keySize: Int?
     var hasPassphrase = false
     var storesPassphrase = false
@@ -36,4 +44,3 @@ nonisolated struct SSHKeyRef: Identifiable, Hashable, Sendable {
 
     var requiresPassphraseEntry: Bool { hasPassphrase && !storesPassphrase }
 }
-
