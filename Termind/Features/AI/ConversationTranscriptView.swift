@@ -7,11 +7,6 @@ import SwiftUI
 struct ConversationView: View {
     private enum ScrollTarget: Hashable { case bottom }
 
-    private struct TranscriptScrollMetrics: Equatable {
-        let isAtBottom: Bool
-        let contentHeight: CGFloat
-    }
-
     let conversation: ConversationModel
     var isCompact: Bool = false
     /// Forwarded to the composer. Only the sidebar has a focused pane to
@@ -33,6 +28,9 @@ struct ConversationView: View {
     @State private var isFollowingTranscriptBottom = true
     @State private var isUserScrollingTranscript = false
     @State private var isTranscriptScrollPending = true
+    @State private var transcriptScrollMetrics: TranscriptScrollMetrics?
+    @State private var isSuppressingDisclosureExpansion = false
+    @State private var disclosureExpansionGeneration = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -180,19 +178,32 @@ struct ConversationView: View {
                 TranscriptScrollMetrics(
                     isAtBottom: geometry.visibleRect.maxY
                         >= geometry.contentSize.height - Metrics.Space.l,
-                    contentHeight: geometry.contentSize.height
+                    contentHeight: geometry.contentSize.height,
+                    viewportHeight: geometry.containerSize.height,
+                    visibleMinY: geometry.visibleRect.minY
                 )
             } action: { oldMetrics, newMetrics in
+                transcriptScrollMetrics = newMetrics
                 isAtTranscriptBottom = newMetrics.isAtBottom
                 if isUserScrollingTranscript {
                     isFollowingTranscriptBottom = newMetrics.isAtBottom
                 }
 
-                // A token only needs a scroll when it actually wraps or adds a
-                // block. Watching text revisions scheduled work for every token
-                // even though most of them did not move the bottom at all.
-                if oldMetrics.contentHeight != newMetrics.contentHeight {
+                switch TranscriptScrollCoordination.adjustment(
+                    from: oldMetrics, to: newMetrics,
+                    isFollowingBottom: isFollowingTranscriptBottom,
+                    isUserScrolling: isUserScrollingTranscript,
+                    isSuppressingDisclosureExpansion: isSuppressingDisclosureExpansion
+                ) {
+                case .none:
+                    break
+                case .followBottomAfterLayout:
+                    // A token only needs a scroll when it actually wraps or
+                    // adds a block. Coalesce that ordinary live growth, but do
+                    // not send disclosure growth through the same path.
                     requestScrollToBottom()
+                case .repairBottomImmediately:
+                    repairTranscriptBottom(using: proxy)
                 }
             }
             .onScrollPhaseChange { _, phase in
@@ -207,6 +218,9 @@ struct ConversationView: View {
                         isFollowingTranscriptBottom = isAtTranscriptBottom
                     }
                     isUserScrollingTranscript = false
+                    if transcriptScrollMetrics?.isBeyondBottom == true {
+                        repairTranscriptBottom(using: proxy)
+                    }
                 case .animating:
                     // Programmatic scrolling is not an instruction to stop
                     // following. Only direct user interaction changes it.
@@ -216,7 +230,23 @@ struct ConversationView: View {
             // Sending a new prompt is an explicit return to the live edge,
             // even if the reader had previously scrolled up through history.
             .onChange(of: conversation.messages.last(where: { $0.role == .user })?.id) {
+                isSuppressingDisclosureExpansion = false
                 requestScrollToBottom(force: true)
+            }
+            .task(id: disclosureExpansionGeneration) {
+                guard disclosureExpansionGeneration > 0 else { return }
+                do {
+                    // A nested LazyVStack can settle over more than one layout
+                    // pass. Keep all of those passes classified as the same
+                    // user expansion rather than as live model output.
+                    try await Task.sleep(for: .milliseconds(120))
+                } catch {
+                    return
+                }
+                if transcriptScrollMetrics?.isAtBottom == false {
+                    isFollowingTranscriptBottom = false
+                }
+                isSuppressingDisclosureExpansion = false
             }
             .task(id: isTranscriptScrollPending) {
                 // One view-owned debounce coalesces rapid layout changes.
@@ -243,6 +273,21 @@ struct ConversationView: View {
         guard force || isFollowingTranscriptBottom else { return }
         if force { isFollowingTranscriptBottom = true }
         isTranscriptScrollPending = true
+    }
+
+    private func disclosureWillExpand() {
+        isTranscriptScrollPending = false
+        isSuppressingDisclosureExpansion = true
+        disclosureExpansionGeneration &+= 1
+    }
+
+    private func repairTranscriptBottom(using proxy: ScrollViewProxy) {
+        isTranscriptScrollPending = false
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            proxy.scrollTo(ScrollTarget.bottom, anchor: .bottom)
+        }
     }
 
     @ViewBuilder
@@ -272,15 +317,23 @@ struct ConversationView: View {
                 }
             )
         case .tool(let card):
-            AgentToolRowView(card: card)
+            AgentToolRowView(card: card, onExpansion: disclosureWillExpand)
         case .work(let group):
-            AgentWorkGroupView(group: group, isCompact: isCompact)
+            AgentWorkGroupView(
+                group: group, isCompact: isCompact,
+                onExpansion: disclosureWillExpand
+            )
         case .plan(let card):
-            AgentPlanRowView(card: card, conversation: conversation)
+            AgentPlanRowView(
+                card: card, conversation: conversation,
+                onExpansion: disclosureWillExpand
+            )
         case .compaction(let mark):
             AgentCompactionRowView(mark: mark)
         case .compactionActivity(let activity):
-            AgentCompactionActivityRowView(activity: activity)
+            AgentCompactionActivityRowView(
+                activity: activity, onExpansion: disclosureWillExpand
+            )
         }
     }
 
@@ -306,12 +359,14 @@ struct ConversationView: View {
 private struct AgentWorkGroupView: View {
     let group: AgentWorkGroup
     let isCompact: Bool
+    let onExpansion: () -> Void
 
     @State private var isExpanded: Bool
 
-    init(group: AgentWorkGroup, isCompact: Bool) {
+    init(group: AgentWorkGroup, isCompact: Bool, onExpansion: @escaping () -> Void) {
         self.group = group
         self.isCompact = isCompact
+        self.onExpansion = onExpansion
         _isExpanded = State(
             initialValue: AgentWorkPresentation.isExpandedByDefault(
                 for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer
@@ -355,6 +410,7 @@ private struct AgentWorkGroupView: View {
     private var terminalDisclosure: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
             Button {
+                if !isExpanded { onExpansion() }
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
@@ -393,9 +449,9 @@ private struct AgentWorkGroupView: View {
                 case .message(let message):
                     processMessage(message)
                 case .tool(let card):
-                    AgentToolRowView(card: card)
+                    AgentToolRowView(card: card, onExpansion: onExpansion)
                 case .tools(let batch):
-                    AgentToolBatchView(batch: batch)
+                    AgentToolBatchView(batch: batch, onExpansion: onExpansion)
                 }
             }
         }
@@ -441,6 +497,7 @@ private struct AgentWorkGroupView: View {
 /// terminal batch changes over to a compact action summary.
 private struct AgentToolBatchView: View {
     let batch: AgentToolBatch
+    let onExpansion: () -> Void
 
     @Environment(AppModel.self) private var app
     @State private var isExpanded = false
@@ -476,6 +533,7 @@ private struct AgentToolBatchView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
+                if !isExpanded { onExpansion() }
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
@@ -505,7 +563,10 @@ private struct AgentToolBatchView: View {
             if isExpanded {
                 LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
                     ForEach(cards) { card in
-                        AgentToolRowView(card: card, showsActivityAnimation: false)
+                        AgentToolRowView(
+                            card: card, showsActivityAnimation: false,
+                            onExpansion: onExpansion
+                        )
                     }
                 }
             }
@@ -536,6 +597,7 @@ private struct AgentToolBatchView: View {
 private struct AgentToolRowView: View {
     let card: AgentToolCard
     var showsActivityAnimation = true
+    let onExpansion: () -> Void
 
     @Environment(AppModel.self) private var app
     @State private var isExpanded = false
@@ -547,6 +609,7 @@ private struct AgentToolRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
+                if !isExpanded { onExpansion() }
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
@@ -810,6 +873,7 @@ private struct AgentToolDetailView: View {
 
 private struct AgentCompactionActivityRowView: View {
     let activity: AgentCompactionActivity
+    let onExpansion: () -> Void
 
     @State private var isExpanded = false
 
@@ -822,6 +886,7 @@ private struct AgentCompactionActivityRowView: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
                 guard failure != nil else { return }
+                if !isExpanded { onExpansion() }
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
@@ -1079,6 +1144,7 @@ struct AgentTaskCapsuleView: View {
 private struct AgentPlanRowView: View {
     let card: AgentPlanCard
     let conversation: ConversationModel
+    let onExpansion: () -> Void
 
     @Environment(AppModel.self) private var app
     /// Collapsed until the reader opens it. A plan is long by construction, and
@@ -1128,6 +1194,7 @@ private struct AgentPlanRowView: View {
             // is a promise that there is more, and answering it by hunting for
             // an 8pt chevron would be a poor return on having read that far.
             Button {
+                onExpansion()
                 isExpanded = true
             } label: {
                 rendered
@@ -1154,6 +1221,7 @@ private struct AgentPlanRowView: View {
 
     private var header: some View {
         Button {
+            if !isExpanded { onExpansion() }
             isExpanded.toggle()
         } label: {
             HStack(spacing: Metrics.Space.s) {
