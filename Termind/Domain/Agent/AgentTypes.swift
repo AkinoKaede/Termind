@@ -98,18 +98,23 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         var symbol: String
         var activity: Activity
         var output: Output = .automatic
+        /// Defaults to participating. A tool may opt out when its row is
+        /// proposed content rather than work that belongs in an activity batch.
+        var groupsWithAdjacentTools: Bool = true
         /// Templates keyed by card state or a tool-reported live phase.
         /// Supported placeholders are `{activity}` and `{target}`.
         var messages: [String: String] = [:]
 
         init(
             symbol: String, activity: Activity, output: Output = .automatic,
+            groupsWithAdjacentTools: Bool = true,
             action: Action? = nil, includesTarget: Bool = false,
             messages overrides: [String: String] = [:]
         ) {
             self.symbol = symbol
             self.activity = activity
             self.output = output
+            self.groupsWithAdjacentTools = groupsWithAdjacentTools
             let target = includesTarget ? " on {target}" : ""
             if let action {
                 messages = [
@@ -124,6 +129,23 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
                 ]
             }
             messages.merge(overrides) { _, override in override }
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case symbol, activity, output, groupsWithAdjacentTools, messages
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            symbol = try container.decode(String.self, forKey: .symbol)
+            activity = try container.decode(Activity.self, forKey: .activity)
+            output = try container.decodeIfPresent(Output.self, forKey: .output) ?? .automatic
+            groupsWithAdjacentTools = try container.decodeIfPresent(
+                Bool.self, forKey: .groupsWithAdjacentTools
+            ) ?? true
+            messages = try container.decodeIfPresent(
+                [String: String].self, forKey: .messages
+            ) ?? [:]
         }
     }
 
@@ -532,12 +554,10 @@ nonisolated enum AgentEvent: Hashable, Sendable {
     case runFinished(AgentRunSummary)
     /// Brackets one model round trip and the tool batch it asks for.
     ///
-    /// These are what make a parallel batch legible: every tool card emitted
-    /// between `turnStarted(n)` and the next `turnStarted(n + 1)` belongs to
-    /// turn *n*. Deriving that from the cards alone is impossible once they
-    /// stop arriving one at a time, and the alternative — stamping a turn onto
-    /// `AgentToolInvocation` — would cost a stored schema change for something
-    /// no reader needs after the run is over.
+    /// These make a parallel batch legible while it is running. Persisted and
+    /// final UI grouping uses each invocation's assistant sourceMessageID, so
+    /// tools from different provider turns never merge after live reasoning
+    /// has disappeared.
     case turnStarted(index: Int)
     case turnFinished(index: Int, stopReason: AgentStopReason)
     /// The whole message, empty, rather than just its id.

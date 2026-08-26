@@ -417,9 +417,7 @@ private struct AgentWorkGroupView: View {
     private func processMessage(_ message: ChatMessage) -> some View {
         if message.text.isEmpty {
             if message.isStreaming {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel(Text("Working"))
+                WorkingIndicator()
             }
         } else {
             MarkdownView(

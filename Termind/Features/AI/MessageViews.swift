@@ -243,7 +243,7 @@ struct AssistantMessageView: View {
 /// A quiet, text-only activity indicator. The wording changes occasionally so
 /// a long wait does not feel frozen, while the transparent scan supplies the
 /// continuous motion shared by running tool titles.
-private struct WorkingIndicator: View {
+struct WorkingIndicator: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var statusIndex = 0
 
@@ -255,10 +255,12 @@ private struct WorkingIndicator: View {
 
     var body: some View {
         Text(Self.statuses[statusIndex])
-            .font(.callout.weight(.medium))
+            // This occupies the exact slot later used by provider reasoning.
+            // Matching its typography avoids a baseline jump when the first
+            // reasoning delta replaces the placeholder.
+            .font(MarkdownTypography.body)
             .foregroundStyle(.secondary)
             .modifier(ScanningTextMask(isActive: true))
-            .padding(.vertical, Metrics.Space.xs)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(Self.statuses[statusIndex]))
             .task(id: reduceMotion) {

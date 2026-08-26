@@ -614,14 +614,17 @@ struct ChatComposerStateTests {
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
             target: .local, safety: .locallyReadOnly
         )
+        let sourceMessageID = UUID()
         let first = AgentToolInvocation(
             runID: runID,
             call: AgentToolCall(id: "first", name: "lookup", arguments: .object([:])),
+            sourceMessageID: sourceMessageID,
             createdAt: start.addingTimeInterval(1)
         )
         let second = AgentToolInvocation(
             runID: runID,
             call: AgentToolCall(id: "second", name: "lookup", arguments: .object([:])),
+            sourceMessageID: sourceMessageID,
             createdAt: start.addingTimeInterval(2)
         )
         conversation.handle(.toolProposed(first, descriptor))
@@ -715,11 +718,27 @@ struct ChatComposerStateTests {
             id: runID, state: .running, startedAt: startedAt
         )))
         conversation.handle(.messageStarted(assistant))
+
+        let placeholderGroup = try #require(conversation.workGroups.first)
+        guard case .message(let placeholder) = try #require(placeholderGroup.items.first) else {
+            Issue.record("Expected Working in the future reasoning slot")
+            return
+        }
+        #expect(placeholder.id == assistant.id)
+        #expect(placeholder.text.isEmpty)
+        #expect(conversation.timeline.compactMap { item -> UUID? in
+            guard case .message(let message) = item, message.role == .assistant else {
+                return nil
+            }
+            return message.id
+        }.isEmpty)
+
         conversation.handle(.reasoningDelta(
             messageID: assistant.id, text: "Evaluating the request."
         ))
 
         let group = try #require(conversation.workGroups.first)
+        #expect(group.id == placeholderGroup.id)
         guard case .reasoning(let block) = try #require(group.items.first) else {
             Issue.record("Expected live reasoning in Worked")
             return
@@ -747,20 +766,25 @@ struct ChatComposerStateTests {
             role: .assistant, createdAt: startedAt.addingTimeInterval(2)
         )
         conversation.handle(.messageStarted(continuation))
-        let rowsDuringContinuation = conversation.timeline.compactMap { item -> ChatMessage? in
+        let continuationGroup = try #require(conversation.workGroups.first)
+        let placeholderIDs = continuationGroup.items.compactMap { item -> UUID? in
+            guard case .message(let message) = item else { return nil }
+            return message.id
+        }
+        #expect(placeholderIDs == [continuation.id])
+        #expect(conversation.timeline.compactMap { item -> UUID? in
             guard case .message(let message) = item, message.role == .assistant else {
                 return nil
             }
-            return message
-        }
-        #expect(rowsDuringContinuation.map(\.id) == [continuation.id])
+            return message.id
+        }.isEmpty)
 
         conversation.handle(.messageDelta(messageID: continuation.id, text: "Answer"))
         #expect(conversation.workGroups.first?.activeReasoningBlockID == nil)
     }
 
     @Test
-    func finishedReasoningDisappearsAndAdjacentToolsFormOneBatch() async throws {
+    func finishedReasoningDisappearsWithoutMergingToolsAcrossProviderTurns() async throws {
         let conversation = ConversationModel()
         conversation.appendUserTurn("inspect both")
         conversation.start(
@@ -818,12 +842,170 @@ struct ChatComposerStateTests {
             }
         }
         #expect(kinds == [
-            "tools:call-1,call-2,call-3",
+            "tools:call-1,call-2",
+            "tool:call-3",
         ])
         #expect(conversation.timeline.compactMap { item in
             if case .work = item { return "work" }
             return nil
         } == ["work"])
+    }
+
+    @Test
+    func providerTurnsWithoutReasoningStillSeparateToolBatches() async throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("inspect four")
+        conversation.start(
+            runtime: AgentRuntime(
+                model: ImmediateConversationAgentModel(turns: [
+                    [
+                        .toolCallDelta(id: "call-1", name: "lookup", arguments: "{}"),
+                        .toolCallDelta(id: "call-2", name: "lookup", arguments: "{}"),
+                        .finished(.toolCalls),
+                    ],
+                    [
+                        .toolCallDelta(id: "call-3", name: "lookup", arguments: "{}"),
+                        .toolCallDelta(id: "call-4", name: "lookup", arguments: "{}"),
+                        .finished(.toolCalls),
+                    ],
+                    [.textDelta("Done."), .finished(.completed)],
+                ]),
+                tools: [
+                    AnyAgentTool(
+                        descriptor: AgentToolDescriptor(
+                            name: "lookup", summary: "lookup",
+                            inputSchema: .object([
+                                "type": .string("object"), "properties": .object([:]),
+                                "required": .array([]), "additionalProperties": .bool(false),
+                            ]),
+                            target: .local, safety: .locallyReadOnly
+                        )
+                    ) { invocation, _ in
+                        AgentToolResult(callID: invocation.call.id, content: "ok")
+                    }
+                ],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "inspect four",
+                permissionMode: .askForApproval
+            )
+        )
+        await waitForTerminal(conversation)
+
+        let group = try #require(conversation.workGroups.first)
+        let batches: [[String]] = group.items.map { item -> [String] in
+            switch item {
+            case .tools(let cards): cards.map(\.invocation.call.id)
+            case .tool(let card): [card.invocation.call.id]
+            case .reasoning, .message: []
+            }
+        }.filter { !$0.isEmpty }
+        #expect(batches == [["call-1", "call-2"], ["call-3", "call-4"]])
+    }
+
+    @Test
+    func restoreRecoversTurnBoundariesAndLeavesUnknownSourcesUngrouped() throws {
+        let store = AssistantConversationStore()
+        let conversationID = UUID()
+        let runID = UUID()
+        let startedAt = Date(timeIntervalSince1970: 3_000)
+        let first = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: ["call-1", "call-2"].map {
+                AgentToolCall(id: $0, name: "lookup", arguments: .object([:]))
+            },
+            createdAt: startedAt.addingTimeInterval(1)
+        )
+        let second = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: ["call-3", "call-4"].map {
+                AgentToolCall(id: $0, name: "lookup", arguments: .object([:]))
+            },
+            createdAt: startedAt.addingTimeInterval(2)
+        )
+        let descriptor = AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )
+        let storedCards = ["call-1", "call-2", "call-3", "call-4", "unknown-1", "unknown-2"]
+            .enumerated().map { offset, callID in
+                let invocation = AgentToolInvocation(
+                    runID: runID,
+                    call: AgentToolCall(id: callID, name: "lookup", arguments: .object([:])),
+                    createdAt: startedAt.addingTimeInterval(Double(offset + 3))
+                )
+                return StoredAgentToolCard(
+                    invocation: invocation, descriptor: descriptor, state: "finished",
+                    result: AgentToolResult(callID: callID, content: "ok")
+                )
+            }
+        store.restore([StoredAgentConversation(
+            id: conversationID, messages: [first, second],
+            messageRunIDs: [first.id: runID, second.id: runID],
+            runs: [AgentRunSummary(
+                id: runID, state: .completed, startedAt: startedAt,
+                finishedAt: startedAt.addingTimeInterval(10)
+            )],
+            toolCards: storedCards, lastRunState: .completed
+        )])
+
+        let items = try #require(store.conversation(id: conversationID)?.workGroups.first).items
+        let groups = items.map { item -> [String] in
+            switch item {
+            case .tools(let cards): cards.map(\.invocation.call.id)
+            case .tool(let card): [card.invocation.call.id]
+            case .reasoning, .message: []
+            }
+        }.filter { !$0.isEmpty }
+        #expect(groups == [
+            ["call-1", "call-2"], ["call-3", "call-4"],
+            ["unknown-1"], ["unknown-2"],
+        ])
+    }
+
+    @Test
+    func terminalSuggestionStaysIndependentAndBreaksAdjacentToolBatches() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("prepare")
+        let runID = UUID()
+        let sourceMessageID = UUID()
+        let startedAt = Date()
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: startedAt
+        )))
+        let lookup = AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )
+        let suggestion = AgentBuiltInTools.terminalSuggest().descriptor
+        #expect(suggestion.presentation?.groupsWithAdjacentTools == false)
+        for (offset, name) in [
+            "lookup", "lookup", "terminal_suggest", "lookup", "lookup",
+        ].enumerated() {
+            let invocation = AgentToolInvocation(
+                runID: runID,
+                call: AgentToolCall(id: "call-\(offset)", name: name, arguments: .object([:])),
+                sourceMessageID: sourceMessageID,
+                createdAt: startedAt.addingTimeInterval(Double(offset + 1))
+            )
+            conversation.handle(.toolProposed(
+                invocation, name == "terminal_suggest" ? suggestion : lookup
+            ))
+        }
+
+        let group = try #require(conversation.workGroups.first)
+        let items = group.items
+        let groups = items.map { item -> [String] in
+            switch item {
+            case .tools(let cards): cards.map(\.descriptor.name)
+            case .tool(let card): [card.descriptor.name]
+            case .reasoning, .message: []
+            }
+        }.filter { !$0.isEmpty }
+        #expect(groups == [
+            ["lookup", "lookup"], ["terminal_suggest"], ["lookup", "lookup"],
+        ])
     }
 
     @Test

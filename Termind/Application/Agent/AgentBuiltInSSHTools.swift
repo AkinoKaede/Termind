@@ -338,6 +338,7 @@ nonisolated extension AgentBuiltInTools {
             concurrency: .parallel,
             presentation: .init(
                 symbol: "terminal", activity: .argument(key: "command", fallback: "a command"),
+                groupsWithAdjacentTools: false,
                 action: .init(infinitive: "suggest", progressive: "Suggesting", past: "Suggested")
             )
         )) { invocation, _ in
@@ -355,4 +356,3 @@ nonisolated extension AgentBuiltInTools {
         }
     }
 }
-

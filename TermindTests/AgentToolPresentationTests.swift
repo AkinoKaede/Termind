@@ -383,6 +383,7 @@ struct AgentToolPresentationTests {
             symbol: "terminal",
             activity: .argument(key: "command", fallback: "the SSH command"),
             output: .streams,
+            groupsWithAdjacentTools: false,
             messages: ["running": "Connecting to {target}"]
         )
         var result = AgentToolResult(callID: "call", content: "done")
@@ -390,6 +391,24 @@ struct AgentToolPresentationTests {
 
         #expect(result.toolPresentation == presentation)
         #expect(result.metadata[AgentToolResult.toolPresentationKey] != nil)
+    }
+
+    @Test
+    func olderPresentationMetadataDefaultsToParticipatingInBatches() throws {
+        let presentation = AgentToolDescriptor.Presentation(
+            symbol: "terminal", activity: .label("a command")
+        )
+        let encoded = try JSONEncoder().encode(presentation)
+        var object = try #require(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        object["groupsWithAdjacentTools"] = nil
+        let legacy = try JSONSerialization.data(withJSONObject: object)
+
+        let decoded = try JSONDecoder().decode(
+            AgentToolDescriptor.Presentation.self, from: legacy
+        )
+        #expect(decoded.groupsWithAdjacentTools)
     }
 
     @Test

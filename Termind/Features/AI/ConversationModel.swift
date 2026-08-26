@@ -911,6 +911,19 @@ final class ConversationModel: Identifiable {
             processRunIDs[activeReasoningMessageID] = runID
         }
 
+        // Put the generic activity text in the same work slot that reasoning
+        // will occupy. Previously the empty assistant row lived outside the
+        // work group, so its replacement jumped below a newly inserted header
+        // and divider as soon as the first reasoning delta arrived.
+        if let activeRunID {
+            for message in messages
+            where message.role == .assistant && message.isStreaming
+                && messageRunIDs[message.id] == activeRunID
+            {
+                processRunIDs[message.id] = activeRunID
+            }
+        }
+
         let stoppedRunIDs = runSummaries.values.compactMap { run in
             run.state == .cancelled ? run.id : nil
         }
@@ -923,9 +936,13 @@ final class ConversationModel: Identifiable {
                 guard owner == runID else { return nil }
                 return visibleByID[messageID]
             }
-            let visibleProcess = processMessages.filter {
-                (!$0.text.isEmpty || ($0.isStreaming && $0.reasoning.isEmpty))
-                    && toolProcessMessageIDs.contains($0.id)
+            let visibleProcess = processMessages.filter { message in
+                let livePlaceholder = message.isStreaming && message.text.isEmpty
+                    && message.reasoning.isEmpty
+                let toolProcess = toolProcessMessageIDs.contains(message.id)
+                    && (!message.text.isEmpty
+                        || (message.isStreaming && message.reasoning.isEmpty))
+                return livePlaceholder || toolProcess
             }
             let reasoningItems = processMessages.flatMap { message -> [AgentWorkItem] in
                 guard message.id == activeReasoningMessageID else { return [] }
@@ -946,7 +963,32 @@ final class ConversationModel: Identifiable {
                 default: return $0.id.uuidString < $1.id.uuidString
                 }
             }
-            items = Self.groupAdjacentTools(in: items)
+            // A provider turn is the semantic boundary for a tool batch. Most
+            // cards carry it directly as sourceMessageID. Rows restored from
+            // older stores may not, so recover it from the assistant tool call
+            // while treating duplicate call ids as ambiguous.
+            var recoveredSourceByCallID: [String: UUID] = [:]
+            var ambiguousCallIDs = Set<String>()
+            for message in transcript
+            where message.role == .assistant && processRunIDs[message.id] == runID
+            {
+                for call in message.toolCalls {
+                    if let existing = recoveredSourceByCallID[call.id], existing != message.id {
+                        recoveredSourceByCallID[call.id] = nil
+                        ambiguousCallIDs.insert(call.id)
+                    } else if !ambiguousCallIDs.contains(call.id) {
+                        recoveredSourceByCallID[call.id] = message.id
+                    }
+                }
+            }
+            let sourceMessageIDs = Dictionary(uniqueKeysWithValues: cards.compactMap { card in
+                let source = card.invocation.sourceMessageID
+                    ?? recoveredSourceByCallID[card.invocation.call.id]
+                return source.map { (card.id, $0) }
+            })
+            items = Self.groupAdjacentTools(
+                in: items, sourceMessageIDs: sourceMessageIDs
+            )
             let stored = runSummaries[runID]
             // A user stop is useful transcript state even when it interrupted a
             // direct response before any tool or process item was produced.
@@ -983,9 +1025,12 @@ final class ConversationModel: Identifiable {
         }.sorted { $0.orderedAt < $1.orderedAt }
     }
 
-    private static func groupAdjacentTools(in items: [AgentWorkItem]) -> [AgentWorkItem] {
+    private static func groupAdjacentTools(
+        in items: [AgentWorkItem], sourceMessageIDs: [AgentToolCard.ID: UUID]
+    ) -> [AgentWorkItem] {
         var grouped: [AgentWorkItem] = []
         var adjacent: [AgentToolCard] = []
+        var adjacentSourceMessageID: UUID?
         func flush() {
             guard !adjacent.isEmpty else { return }
             if adjacent.count == 1 {
@@ -994,9 +1039,26 @@ final class ConversationModel: Identifiable {
                 grouped.append(.tools(adjacent))
             }
             adjacent.removeAll(keepingCapacity: true)
+            adjacentSourceMessageID = nil
         }
         for item in items {
             if case .tool(let card) = item {
+                if card.descriptor.presentation?.groupsWithAdjacentTools == false {
+                    flush()
+                    grouped.append(.tool(card))
+                    continue
+                }
+                guard let sourceMessageID = sourceMessageIDs[card.id] else {
+                    flush()
+                    grouped.append(.tool(card))
+                    continue
+                }
+                if let adjacentSourceMessageID,
+                    adjacentSourceMessageID != sourceMessageID
+                {
+                    flush()
+                }
+                adjacentSourceMessageID = sourceMessageID
                 adjacent.append(card)
             } else {
                 flush()
