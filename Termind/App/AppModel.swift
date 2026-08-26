@@ -76,6 +76,10 @@ final class AppModel {
     private let agentRunRepository: any AgentRunPersisting
     private let agentHosts: AgentHostResolver
     private let agentConnections: AgentConnectionPool
+    /// Commands that outlived the turn that started them. App-wide rather than
+    /// per-run, because a handle taken in one turn is answered in a later one
+    /// and a run ending is not a reason to stop a deploy.
+    private let agentBackgroundCommands = AgentBackgroundCommands()
     private let outboxRunner: OutboxRunner?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
     private var deletedAgentConversationIDs = Set<UUID>()
@@ -263,7 +267,7 @@ final class AppModel {
             let scratch = AgentScratchWorkspace(conversationID: conversation.id)
             providers.append(AgentStaticToolProvider(AgentBuiltInTools.make(
                 hosts: agentHosts, connections: agentConnections,
-                search: searchPlan.local
+                background: agentBackgroundCommands, search: searchPlan.local
             )))
             providers.append(AgentStaticToolProvider(AgentScratchTools.make(
                 workspace: scratch, connections: agentConnections
@@ -466,7 +470,10 @@ final class AppModel {
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
         forwarding.stopAll()
-        Task { [agentConnections] in await agentConnections.closeAll() }
+        Task { [agentConnections, agentBackgroundCommands] in
+            await agentBackgroundCommands.closeAll()
+            await agentConnections.closeAll()
+        }
         outboxRunner?.stop()
     }
 

@@ -19,7 +19,7 @@ nonisolated final class AgentCommandOutputStream: @unchecked Sendable {
     private var lastReportedAt: ContinuousClock.Instant?
     private let interval: Duration
     private let limit: Int
-    private let report: @Sendable (String, String) -> Void
+    private var report: @Sendable (String, String) -> Void
 
     init(
         interval: Duration = .milliseconds(150),
@@ -29,6 +29,22 @@ nonisolated final class AgentCommandOutputStream: @unchecked Sendable {
         self.interval = interval
         self.limit = limit
         self.report = report
+    }
+
+    /// Points the reports at whoever is now responsible for this command.
+    ///
+    /// A command that outlives the `ssh_exec` which started it is handed on: the
+    /// call that started it has returned and stopped listening, and the
+    /// `ssh_wait` now blocked on it is the card the output belongs under. Output
+    /// follows the call that is currently answering for it, so it is never being
+    /// drawn into two places or none.
+    func redirect(to report: @escaping @Sendable (String, String) -> Void) {
+        lock.withLock {
+            self.report = report
+            // The new listener has seen nothing, so it does not wait out a
+            // window opened by reports it never got.
+            lastReportedAt = nil
+        }
     }
 
     /// The handler to hand to a session. Retains this stream for as long as the
@@ -43,7 +59,11 @@ nonisolated final class AgentCommandOutputStream: @unchecked Sendable {
     }
 
     private func append(_ chunk: Data, isStandardError: Bool) {
-        let due: (String, String)? = lock.withLock {
+        // The sink is read under the lock and called outside it: `redirect` can
+        // replace it from another thread, and a slow reader must not be holding
+        // the lock the command's own queue needs to append its next chunk.
+        typealias Due = (String, String, @Sendable (String, String) -> Void)
+        let due: Due? = lock.withLock {
             if isStandardError {
                 Self.appendCapped(chunk, to: &standardError, limit: limit)
             } else {
@@ -52,10 +72,10 @@ nonisolated final class AgentCommandOutputStream: @unchecked Sendable {
             let now = ContinuousClock.now
             if let lastReportedAt, now - lastReportedAt < interval { return nil }
             lastReportedAt = now
-            return (decoded(standardOut), decoded(standardError))
+            return (decoded(standardOut), decoded(standardError), report)
         }
         guard let due else { return }
-        report(due.0, due.1)
+        due.2(due.0, due.1)
     }
 
     /// A chunk boundary can fall inside a multi-byte character, which decodes as

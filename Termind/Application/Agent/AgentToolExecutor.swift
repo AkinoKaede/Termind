@@ -54,6 +54,30 @@ nonisolated enum AgentPlannedToolCall: Sendable {
     }
 }
 
+/// Open for as long as one `execute` call is running.
+///
+/// Pi's rule, and its words: a progress callback "is scoped to the current
+/// `execute()` invocation. Calls made after the tool promise settles are
+/// ignored." It matters here because a tool may hand its work on — `ssh_exec`
+/// leaves a long command running and returns — and without this the finished
+/// call's card would go on rewriting itself with output belonging to whoever
+/// took the command over.
+nonisolated final class AgentToolProgressGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isOpen = true
+
+    func close() { lock.withLock { isOpen = false } }
+
+    func forward(_ report: @escaping @Sendable (AgentToolResult) -> Void)
+        -> @Sendable (AgentToolResult) -> Void
+    {
+        { [self] partial in
+            guard lock.withLock({ isOpen }) else { return }
+            report(partial)
+        }
+    }
+}
+
 /// What a call whose wait was cut short says to the model.
 ///
 /// Shared by the two ways that happens — the user pressing Stop, and a steered
@@ -173,9 +197,11 @@ nonisolated struct AgentToolExecutor: Sendable {
             ))
         case .allow:
             channel.emit(.toolStarted(ready.invocation))
+            let gate = AgentToolProgressGate()
+            defer { gate.close() }
             do {
                 let result = try await ready.tool.execute(
-                    ready.invocation, context: context(for: ready)
+                    ready.invocation, context: context(for: ready, gate: gate)
                 )
                 return await finish(ready, result)
             } catch is CancellationError {
@@ -220,7 +246,9 @@ nonisolated struct AgentToolExecutor: Sendable {
         return result
     }
 
-    private func context(for ready: AgentPlannedToolCall.Ready) -> AgentToolExecutionContext {
+    private func context(
+        for ready: AgentPlannedToolCall.Ready, gate: AgentToolProgressGate
+    ) -> AgentToolExecutionContext {
         AgentToolExecutionContext(
             runID: runID,
             userIntent: userIntent,
@@ -232,7 +260,7 @@ nonisolated struct AgentToolExecutor: Sendable {
             authorize: { [approval, permissionMode] request in
                 await approval.authorize(request, mode: permissionMode)
             },
-            report: { [channel, invocation = ready.invocation] partial in
+            report: gate.forward { [channel, invocation = ready.invocation] partial in
                 channel.emit(.toolProgress(invocation, partial))
             }
         )

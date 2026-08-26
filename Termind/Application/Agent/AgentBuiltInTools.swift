@@ -525,6 +525,23 @@ actor AgentConnectionPool {
         return client
     }
 
+    /// Gives a session away without closing it.
+    ///
+    /// For a command that outlived the turn that started it: the channel is
+    /// still being pumped, so the session cannot be shared or swept, but it
+    /// also must not be torn down. The pool forgets it and the next command for
+    /// this host opens a fresh one — the same reconnect a timeout already
+    /// forces today, except the output survives.
+    func detachExec(hostID: UUID, session: any SSHExecSessionProtocol) {
+        let key = Key(hostID: hostID, kind: .exec)
+        // By identity, because the pool may have opened a replacement for this
+        // host in the meantime, and evicting *that* would give away a session
+        // somebody else is about to use.
+        guard case .exec(let pooled)? = entries[key]?.client, pooled === session else { return }
+        entries.removeValue(forKey: key)
+        stopSweepingIfEmpty()
+    }
+
     /// Reports whether anything was actually open, which is what lets callers
     /// treat closing an already-closed host as a no-op rather than a failure.
     @discardableResult
@@ -665,11 +682,13 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
     static func make(
         hosts: AgentHostResolver,
         connections: AgentConnectionPool,
+        background: AgentBackgroundCommands = AgentBackgroundCommands(),
         fetcher: RestrictedHTTPFetcher = RestrictedHTTPFetcher(),
         search: WebSearchClient? = nil
     ) -> [AnyAgentTool] {
         [
-            listHosts(hosts), sshExec(hosts, connections), terminalSuggest(),
+            listHosts(hosts), sshExec(hosts, connections, background),
+            sshWait(background), terminalSuggest(),
             sftpList(connections), sftpStat(connections), sftpRead(connections),
             sftpWrite(connections), sftpMkdir(connections), sftpMove(connections),
             sftpChmod(connections), sftpDelete(connections), fetch(fetcher),
@@ -708,8 +727,97 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         }
     }
 
+    /// How long `ssh_exec` waits before telling the model what it has.
+    ///
+    /// Short, and safe to be short only because expiry stopped being
+    /// destructive. It used to throw, discard the session, and lose everything
+    /// the command had printed — while the command itself carried on running on
+    /// the host — so the default had to be generous enough that it rarely
+    /// happened. Now it hands back the output and a handle, which makes a short
+    /// deadline pure gain: turns end in seconds, and anything the user typed
+    /// while waiting is delivered at the boundary that follows.
+    private static let defaultReportingDeadline = 15
+
+    /// The ceiling on how long a command may run at all, deadline or no. Matches
+    /// the clamp the session's own pump applies.
+    private static let maximumCommandLifetime: TimeInterval = 15 * 60
+
+    /// The sink that turns captured output into progress on this call's card.
+    private static func reporting(
+        _ invocation: AgentToolInvocation,
+        _ report: @escaping @Sendable (AgentToolResult) -> Void
+    ) -> @Sendable (String, String) -> Void {
+        { out, error in
+            report(result(invocation, .object([
+                "status": .string("running"),
+                "stdout": .string(out), "stderr": .string(error),
+            ])))
+        }
+    }
+
+    private static func exitedResult(
+        _ invocation: AgentToolInvocation, _ output: SSHExecResult
+    ) -> AgentToolResult {
+        result(invocation, .object([
+            "status": .string("exited"),
+            "stdout": .string(output.stdout), "stderr": .string(output.stderr),
+            "exit_code": .number(Double(output.exitCode)),
+            "signal": output.signal.map(AgentJSONValue.string) ?? .null,
+            "stdout_truncated": .bool(output.stdoutTruncated),
+            "stderr_truncated": .bool(output.stderrTruncated),
+        ]), truncated: output.stdoutTruncated || output.stderrTruncated)
+    }
+
+    /// Picks up a command `ssh_exec` left running.
+    ///
+    /// Read-only and parallel: it looks at a buffer and a task, and touches the
+    /// host not at all. While it waits, the command's output is redirected to
+    /// *this* call's card — output belongs under whichever call is currently
+    /// answering for it, never two at once and never none.
+    private static func sshWait(_ background: AgentBackgroundCommands) -> AnyAgentTool {
+        AnyAgentTool(
+            descriptor: descriptor(
+                "ssh_wait",
+                "Wait for a command ssh_exec reported as still running, and return its output.",
+                properties: [
+                    "handle": string(max: 64),
+                    "timeout_seconds": integer(min: 1, max: 900),
+                ],
+                required: ["handle"], target: .host, safety: .locallyReadOnly,
+                concurrency: .parallel
+            ),
+            execute: { invocation, context in
+                let arguments = try Arguments(invocation)
+                guard let handle = UUID(uuidString: try arguments.string("handle")) else {
+                    throw AgentToolError.invalidArguments("handle is not a valid handle.")
+                }
+                let outcome = try await background.wait(
+                    handle,
+                    timeout: .seconds(arguments.optionalInt("timeout_seconds") ?? 60),
+                    reporting: reporting(invocation, context.report)
+                )
+                guard let exitCode = outcome.exitCode else {
+                    return result(invocation, .object([
+                        "status": .string("running"),
+                        "handle": .string(handle.uuidString),
+                        "stdout": .string(outcome.standardOut),
+                        "stderr": .string(outcome.standardError),
+                    ]))
+                }
+                return result(invocation, .object([
+                    "status": .string("exited"),
+                    "stdout": .string(outcome.standardOut),
+                    "stderr": .string(outcome.standardError),
+                    "exit_code": .number(Double(exitCode)),
+                    "signal": outcome.signal.map(AgentJSONValue.string) ?? .null,
+                ]))
+            }
+        )
+    }
+
     private static func sshExec(
-        _ hosts: AgentHostResolver, _ pool: AgentConnectionPool
+        _ hosts: AgentHostResolver, _ pool: AgentConnectionPool,
+        _ background: AgentBackgroundCommands
     ) -> AnyAgentTool {
         let tool = descriptor(
             "ssh_exec", "Execute one command over a dedicated non-PTY SSH exec channel.",
@@ -780,39 +888,108 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                 // Live output, so a command that takes a minute is a card
                 // filling in rather than a spinner. Reported, never returned:
                 // the model is owed one result per call and gets it below.
-                let stream = AgentCommandOutputStream { [report = context.report] out, error in
-                    report(result(invocation, .object([
-                        "status": .string("running"),
-                        "stdout": .string(out), "stderr": .string(error),
-                    ])))
-                }
-                let output: SSHExecResult
-                while true {
-                    do {
-                        output = try await pool.execute(
-                            command, workingDirectory: arguments.optionalString("cwd"), stdin: input,
-                            timeout: TimeInterval(arguments.optionalInt("timeout_seconds") ?? 60),
-                            outputLimit: 256 * 1_024, hostID: hostID,
-                            configuration: interactiveConfiguration,
-                            onOutput: stream.handler
-                        )
-                        break
-                    } catch let error as TermindSSHError where error.shouldRequestAuthentication {
-                        // Authentication failed before an exec channel — and
-                        // therefore before the command could run. It is safe to
-                        // collect another credential and reopen; command errors
-                        // never enter this path.
-                        await pool.disconnect(hostID: hostID, kind: .exec)
-                        await authentication.retry(after: error)
+                let stream = AgentCommandOutputStream(
+                    report: reporting(invocation, context.report)
+                )
+                let cwd = arguments.optionalString("cwd")
+                // A `let` copy, because the task below outlives this call and a
+                // captured `var` would be shared mutable state across it.
+                let stdin = input
+                let deadline = Duration.seconds(
+                    arguments.optionalInt("timeout_seconds") ?? defaultReportingDeadline
+                )
+                // Connecting is inside the deadline too. A hang is a hang
+                // whether it is DNS, a jump host or a handshake, and a turn that
+                // ends on time is what lets the user be heard at all.
+                let handover = AgentCommandHandover()
+                let running = Task { () async throws -> SSHExecResult in
+                    var retriedDeadSession = false
+                    while true {
+                        let session: any SSHExecSessionProtocol
+                        do {
+                            session = try await pool.exec(
+                                hostID: hostID, configuration: interactiveConfiguration
+                            )
+                        } catch let error as TermindSSHError
+                            where error.shouldRequestAuthentication
+                        {
+                            // Authentication failed before an exec channel — and
+                            // therefore before the command could run. It is safe
+                            // to collect another credential and reopen; command
+                            // errors never enter this path.
+                            await pool.disconnect(hostID: hostID, kind: .exec)
+                            await authentication.retry(after: error)
+                            continue
+                        }
+                        // The call may already have given up while this was
+                        // connecting. Starting anyway would leave a command
+                        // running, printing and finishing with nobody holding a
+                        // handle to it.
+                        guard retriedDeadSession || handover.beginRunning(on: session) else {
+                            throw AgentCommandNotStarted()
+                        }
+                        do {
+                            return try await session.execute(
+                                command, workingDirectory: cwd, stdin: stdin,
+                                timeout: maximumCommandLifetime, outputLimit: 256 * 1_024,
+                                onOutput: stream.handler
+                            )
+                        } catch SSHExecSessionError.channelUnavailable
+                            where !retriedDeadSession
+                        {
+                            // A pooled session that died quietly between commands
+                            // is invisible until it is used. Thrown only while the
+                            // command is provably not running, so reopening cannot
+                            // run half of an `rm` twice.
+                            retriedDeadSession = true
+                            await pool.disconnect(hostID: hostID, kind: .exec)
+                        }
                     }
                 }
-                return result(invocation, .object([
-                    "stdout": .string(output.stdout), "stderr": .string(output.stderr),
-                    "exit_code": .number(Double(output.exitCode)),
-                    "signal": output.signal.map(AgentJSONValue.string) ?? .null,
-                    "stdout_truncated": .bool(output.stdoutTruncated),
-                    "stderr_truncated": .bool(output.stderrTruncated),
-                ]), truncated: output.stdoutTruncated || output.stderrTruncated)
+
+                guard await AgentBackgroundCommands.settled(running, within: deadline) else {
+                    guard let session = handover.giveUp() else {
+                        // Still connecting, so there is nothing to hand over —
+                        // no session, no output, no handle worth giving. The
+                        // connection is left to finish into the pool rather than
+                        // torn down, so the retry this invites is the fast one.
+                        return result(invocation, .object([
+                            "status": .string("connecting"),
+                            "note": .string(String(
+                                localized: """
+                                    The host has not finished answering after \
+                                    \(deadline.components.seconds)s, so the command has not \
+                                    started. Nothing ran. The connection is still being set up; \
+                                    running this again shortly is likely to be quick.
+                                    """
+                            )),
+                        ]), truncated: false)
+                    }
+                    // It outlived its turn. The session goes with it — the
+                    // channel is still being pumped, so it can be neither shared
+                    // nor swept — and the next command for this host opens a
+                    // fresh one.
+                    await pool.detachExec(hostID: hostID, session: session)
+                    let handle = await background.adopt(
+                        hostID: hostID, command: command, stream: stream,
+                        task: running, session: session
+                    )
+                    let captured = stream.captured
+                    return result(invocation, .object([
+                        "status": .string("running"),
+                        "handle": .string(handle.uuidString),
+                        "stdout": .string(captured.standardOut),
+                        "stderr": .string(captured.standardError),
+                        "note": .string(String(
+                            localized: """
+                                Still running after \(deadline.components.seconds)s. The output \
+                                above is what it has printed so far. Call ssh_wait with this \
+                                handle for the rest; leaving it unasked-about abandons it.
+                                """
+                        )),
+                    ]))
+                }
+                return exitedResult(invocation, try await running.value)
             }
         )
     }

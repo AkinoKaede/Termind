@@ -36,7 +36,7 @@ nonisolated enum SSHExecSessionError: LocalizedError, Sendable {
 /// a jump-host route stops rebuilding every hop for every `ls`. Semantics are
 /// unchanged — a command still gets a private channel and a private
 /// `/bin/sh -lc`, so there is no shared shell state and no cwd carry-over.
-nonisolated protocol SSHExecSessionProtocol: Sendable {
+nonisolated protocol SSHExecSessionProtocol: AnyObject, Sendable {
     func connect(using configuration: SSHConnectionConfiguration) async throws
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
