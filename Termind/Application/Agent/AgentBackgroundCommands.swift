@@ -48,9 +48,18 @@ actor AgentBackgroundCommands {
 
     private var entries: [UUID: Entry] = [:]
     private let idleTimeout: Duration
+    /// `nil` disables the timer, for tests that drive `sweepIdle` themselves
+    /// with a synthetic instant. Same seam, and same reason, as the connection
+    /// pool's.
+    private let sweepInterval: Duration?
+    private var sweeper: Task<Void, Never>?
 
-    init(idleTimeout: Duration = AgentBackgroundCommands.defaultIdleTimeout) {
+    init(
+        idleTimeout: Duration = AgentBackgroundCommands.defaultIdleTimeout,
+        sweepInterval: Duration? = .seconds(60)
+    ) {
         self.idleTimeout = idleTimeout
+        self.sweepInterval = sweepInterval
     }
 
     var count: Int { entries.count }
@@ -67,6 +76,7 @@ actor AgentBackgroundCommands {
             hostID: hostID, command: command, stream: stream, task: task,
             session: session, lastAskedAt: now
         )
+        startSweeping()
         return handle
     }
 
@@ -100,6 +110,7 @@ actor AgentBackgroundCommands {
         // rather than left for the sweep: a session nobody will read from again
         // is an authenticated connection sitting open on someone's server.
         entries.removeValue(forKey: handle)
+        stopSweepingIfEmpty()
         let session = entry.session
         Task { await session.disconnect() }
         let result = try await entry.task.value
@@ -120,16 +131,36 @@ actor AgentBackgroundCommands {
             entry.task.cancel()
             await entry.session.disconnect()
         }
+        stopSweepingIfEmpty()
         return entries.count
     }
 
     func closeAll() async {
         let closing = entries.values
         entries.removeAll()
+        stopSweepingIfEmpty()
         for entry in closing {
             entry.task.cancel()
             await entry.session.disconnect()
         }
+    }
+
+    /// Runs only while something is held. A timer ticking against an empty
+    /// registry is a wakeup a laptop pays for and nobody reads.
+    private func startSweeping() {
+        guard sweeper == nil, let sweepInterval else { return }
+        sweeper = Task { [weak self, sweepInterval] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: sweepInterval) } catch { return }
+                guard let self, await self.sweepIdle(now: .now) > 0 else { return }
+            }
+        }
+    }
+
+    private func stopSweepingIfEmpty() {
+        guard entries.isEmpty else { return }
+        sweeper?.cancel()
+        sweeper = nil
     }
 
     /// Whether the task settled inside the window, without cancelling it when

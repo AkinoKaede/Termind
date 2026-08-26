@@ -92,7 +92,7 @@ struct AgentBackgroundCommandTests {
 
     @Test
     func waitingOnAFinishedCommandReportsItAndReleasesTheHandle() async throws {
-        let commands = AgentBackgroundCommands()
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
         let session = StubSession()
         let handle = await commands.adopt(
             hostID: UUID(), command: "make", stream: AgentCommandOutputStream { _, _ in },
@@ -114,7 +114,7 @@ struct AgentBackgroundCommandTests {
 
     @Test
     func waitingOnARunningCommandReturnsWhatItHasAndKeepsTheHandle() async throws {
-        let commands = AgentBackgroundCommands()
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
         let released = AsyncRelease()
         let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
         let handle = await commands.adopt(
@@ -135,7 +135,7 @@ struct AgentBackgroundCommandTests {
 
     @Test
     func anUnknownHandleSaysSoRatherThanHanging() async {
-        let commands = AgentBackgroundCommands()
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
         await #expect(throws: AgentBackgroundCommandError.self) {
             try await commands.wait(UUID(), timeout: .seconds(1))
         }
@@ -145,7 +145,7 @@ struct AgentBackgroundCommandTests {
     /// `ssh_exec` that started this one has returned and stopped listening.
     @Test
     func waitingRedirectsTheCommandsOutputToTheCaller() async throws {
-        let commands = AgentBackgroundCommands()
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
         let released = AsyncRelease()
         let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
         let handle = await commands.adopt(
@@ -165,7 +165,7 @@ struct AgentBackgroundCommandTests {
 
     @Test
     func theSweepReleasesWhatNobodyAskedAboutAndLeavesTheRest() async {
-        let commands = AgentBackgroundCommands(idleTimeout: .seconds(600))
+        let commands = AgentBackgroundCommands(idleTimeout: .seconds(600), sweepInterval: nil)
         let forgotten = StubSession()
         let released = AsyncRelease()
         let start = ContinuousClock.now
@@ -187,6 +187,30 @@ struct AgentBackgroundCommandTests {
         await #expect(throws: AgentBackgroundCommandError.self) {
             try await commands.wait(stale, timeout: .seconds(1))
         }
+        await released.release()
+    }
+
+    /// The window is a promise, and until this landed nothing kept it: the
+    /// sweep existed but nothing ever called it, so a released handle stayed
+    /// held until the app quit.
+    @Test
+    func theTimerReleasesAHandleOnceItsWindowHasPassed() async throws {
+        let commands = AgentBackgroundCommands(
+            idleTimeout: .zero, sweepInterval: .milliseconds(20)
+        )
+        let session = StubSession()
+        let released = AsyncRelease()
+        _ = await commands.adopt(
+            hostID: UUID(), command: "tail -f", stream: AgentCommandOutputStream { _, _ in },
+            task: Task { await released.wait(); return exited(0) }, session: session
+        )
+
+        for _ in 0..<50 where await commands.count > 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(await commands.count == 0)
+        #expect(await session.didDisconnect)
         await released.release()
     }
 
