@@ -21,6 +21,10 @@ nonisolated enum AgentModelStreamEvent: Sendable {
     /// the *replay* channel and must stay byte-shaped the way its provider
     /// sent it; this one is normalized for display and is never sent back.
     case webSearch(AgentWebSearchActivity)
+    /// What this round trip cost. Providers report it at different moments and
+    /// more than once — see `AgentTokenUsage.merging(_:)`, which is how a reader
+    /// folds several of these into one turn's answer.
+    case usage(AgentTokenUsage)
     case finished(AgentStopReason)
 }
 

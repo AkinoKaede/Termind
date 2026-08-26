@@ -156,6 +156,28 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             case .requiresAuthorization: false
             }
         }
+
+        /// Whether plan mode lets this run at all.
+        ///
+        /// Phrased here beside `isAutoAllowed`, and for the same reason: adding
+        /// a fourth case should force a decision where the reasoning is rather
+        /// than default to permitted at a call site.
+        ///
+        /// It happens to agree with `isAutoAllowed` today, and they are still
+        /// two properties, because they answer different questions. That one is
+        /// "must a person authorize this"; this one is "does this change
+        /// anything outside the app". A future case could easily be auto-allowed
+        /// and still be a change plan mode has no business making.
+        ///
+        /// `locallyContained` is allowed deliberately: the scratch workspace is
+        /// where a plan is drafted, and a planning mode that cannot write its own
+        /// plan is not one.
+        var isAllowedWhilePlanning: Bool {
+            switch self {
+            case .locallyReadOnly, .locallyContained: true
+            case .requiresAuthorization: false
+            }
+        }
     }
 
     /// Whether this tool may run beside the other calls of the same turn.
@@ -322,6 +344,86 @@ nonisolated struct AgentToolResult: Hashable, Sendable, Codable {
     }
 }
 
+/// One step of a job the agent is working through.
+///
+/// The whole list is replaced on every update rather than patched — see
+/// `manage_tasks`. That is why there is no ordering field and no timestamps: the
+/// array *is* the order, and the only version that exists is the current one.
+nonisolated struct AgentTask: Identifiable, Hashable, Sendable, Codable {
+    nonisolated enum Status: String, Hashable, Sendable, Codable, CaseIterable {
+        case pending, inProgress = "in_progress", completed
+    }
+
+    /// Named by the model, unique within its list, and its own vocabulary
+    /// rather than an index we assign.
+    var id: String
+    var title: String
+    var status: Status
+}
+
+/// A plan the agent has finished drafting and put to the user.
+///
+/// The body is Markdown, read out of the scratch workspace by `present_plan`
+/// rather than typed into the tool call — see `AgentPlanTools`. It is carried on
+/// the event so the transcript can render it without reaching back into an actor
+/// for a file that may have been edited since.
+nonisolated struct AgentPlan: Identifiable, Hashable, Sendable, Codable {
+    nonisolated enum Outcome: String, Hashable, Sendable, Codable {
+        case pending, implemented, discarded
+    }
+
+    var id: UUID = UUID()
+    var title: String
+    /// Markdown.
+    var body: String
+    /// Where it was drafted, so a follow-up turn can be told which file to edit
+    /// rather than guessing or rewriting it whole.
+    var scratchPath: String
+    var createdAt: Date = .now
+}
+
+/// What one model round trip cost, as the provider counted it.
+///
+/// The provider's number rather than an estimate of ours: it is the only one
+/// that accounts for the tokenizer actually in use, the tool schemas as that
+/// vendor serializes them, and whatever the gateway added on the way through.
+/// `AgentContextEstimator` exists for the moment before the first response
+/// arrives, and says so.
+nonisolated struct AgentTokenUsage: Hashable, Sendable, Codable {
+    var inputTokens: Int = 0
+    var outputTokens: Int = 0
+    /// The share of `inputTokens` the provider served from its prefix cache.
+    /// Reported by all four, and worth showing: it is the difference between a
+    /// long conversation being expensive and being nearly free.
+    var cachedInputTokens: Int = 0
+
+    /// What the *next* request would carry, which is what a context gauge is a
+    /// share of. The reply becomes context the moment the turn ends, so input
+    /// alone would under-report by a whole assistant turn.
+    var contextTokens: Int { inputTokens + outputTokens }
+
+    /// Folds a second report of the *same* turn into this one.
+    ///
+    /// Field-wise maximum, because the two providers that report twice both
+    /// report cumulatively rather than incrementally: Anthropic sends input on
+    /// `message_start` and a growing output count on each `message_delta`, and
+    /// Gemini repeats `usageMetadata` on every chunk with the running totals.
+    /// Summing those would multiply the count by the number of chunks.
+    ///
+    /// Across turns the runtime replaces rather than merges — see
+    /// `AgentRuntime`. A later turn's input already includes everything the
+    /// earlier turns put in the context.
+    func merging(_ other: AgentTokenUsage) -> AgentTokenUsage {
+        AgentTokenUsage(
+            inputTokens: max(inputTokens, other.inputTokens),
+            outputTokens: max(outputTokens, other.outputTokens),
+            cachedInputTokens: max(cachedInputTokens, other.cachedInputTokens)
+        )
+    }
+
+    var isEmpty: Bool { self == AgentTokenUsage() }
+}
+
 nonisolated enum AgentRunState: String, Hashable, Sendable, Codable {
     case idle, running, waitingForUser, waitingForApproval, reviewing
     case completed, failed, cancelled, interrupted
@@ -353,6 +455,14 @@ nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Cod
     /// Opaque assistant output items required for an in-flight provider turn,
     /// such as Responses API reasoning items.
     var providerItems: [AgentJSONValue] = []
+    /// Marks the synthetic turn that stands in for everything compacted away.
+    ///
+    /// Stored, and load-bearing at restore. History is rebuilt from persisted
+    /// messages, so without a marker in the record a relaunch would resurrect
+    /// the whole pre-compaction conversation and undo the compaction silently —
+    /// on the one turn where the user could least afford it. See
+    /// `SwiftDataAgentRunRepository.loadConversations`.
+    var isCompaction: Bool = false
     var createdAt: Date = .now
 }
 
@@ -418,6 +528,21 @@ nonisolated enum AgentEvent: Hashable, Sendable {
     case reviewFinished(AgentApprovalRequest, SecurityReviewDecision)
     case reviewFailed(AgentApprovalRequest, reason: String, timedOut: Bool)
     case userInputRequested(AgentUserInputRequest)
+    /// What the turn that just finished cost, as the provider counted it.
+    ///
+    /// Deliberately absent from `isDurable`, on the same grounds as
+    /// `messageDelta` and `toolProgress`: this is re-derived from the next
+    /// response, so a gauge that follows a run must not also stream database
+    /// writes for something no reader needs after the run is over.
+    case usageUpdated(AgentTokenUsage)
+    /// The agent has finished planning and is waiting on a decision.
+    ///
+    /// The turn that raises this is also the last turn of its run — see
+    /// `AgentPlanModeHook.shouldStop(after:)`. Nothing is suspended: the plan is
+    /// read by a person on their own time, and implementing it starts a new run.
+    case planPresented(AgentPlan)
+    /// The task list as it now stands, whole. Never a delta — see `AgentTask`.
+    case tasksUpdated([AgentTask])
     case failed(String)
 
     var associatedRunID: UUID? {
@@ -454,6 +579,12 @@ nonisolated struct AgentRunRequest: Sendable {
     var conversationID: UUID
     var prompt: String
     var permissionMode: ChatPermissionMode
+    /// Whether this run may only look.
+    ///
+    /// Per run rather than read from the conversation mid-flight: a run's
+    /// posture is fixed when it starts, which is what lets the hook enforcing it
+    /// be a value instead of an actor.
+    var isPlanning: Bool
     var systemPrompt: String
     var priorMessages: [AgentTranscriptMessage]
     /// Where the run is happening, as the surface that started it understood it.
@@ -465,6 +596,7 @@ nonisolated struct AgentRunRequest: Sendable {
         conversationID: UUID,
         prompt: String,
         permissionMode: ChatPermissionMode,
+        isPlanning: Bool = false,
         systemPrompt: String = AgentSystemPrompt.default,
         priorMessages: [AgentTranscriptMessage] = [],
         sessionContext: SessionContext = .none
@@ -472,6 +604,7 @@ nonisolated struct AgentRunRequest: Sendable {
         self.conversationID = conversationID
         self.prompt = prompt
         self.permissionMode = permissionMode
+        self.isPlanning = isPlanning
         self.systemPrompt = systemPrompt
         self.priorMessages = priorMessages
         self.sessionContext = sessionContext

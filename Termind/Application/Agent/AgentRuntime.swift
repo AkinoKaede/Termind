@@ -12,11 +12,12 @@ nonisolated struct AgentLoopConfiguration: Sendable {
     var toolExecution: AgentToolExecutionMode = .parallel
     var maximumToolConcurrency = 8
     /// The `transformContext` seam, replaceable whole. Given the run's session
-    /// context block and the id of the turn it belongs in front of, it returns
-    /// the chain applied to every request this run makes.
+    /// context block, the id of the turn it belongs in front of, and whether the
+    /// run is planning, it returns the chain applied to every request this run
+    /// makes.
     var contextPipeline:
-        @Sendable (AgentTranscriptMessage?, AgentTranscriptMessage.ID?) -> AgentContextPipeline =
-            AgentContextPipeline.chat
+        @Sendable (AgentTranscriptMessage?, AgentTranscriptMessage.ID?, Bool)
+            -> AgentContextPipeline = AgentContextPipeline.chat
 
     init() {}
 }
@@ -163,7 +164,9 @@ actor AgentRuntime {
         }
         let prompt = AgentTranscriptMessage(role: .user, text: request.prompt)
         snapshot.messages.append(prompt)
-        let pipeline = configuration.contextPipeline(sessionContext, prompt.id)
+        let pipeline = configuration.contextPipeline(
+            sessionContext, prompt.id, request.isPlanning
+        )
 
         channel.emit(.runStarted(runID))
         channel.emit(.runState(.running))
@@ -200,6 +203,11 @@ actor AgentRuntime {
                 )))
                 snapshot.messages.append(turn.message)
                 channel.emit(.messageFinished(turn.message))
+                // Replaced, not accumulated across turns: this turn's input
+                // already counts everything the earlier turns put in the
+                // context, so summing them would count the same conversation
+                // once per turn it survived.
+                if !turn.usage.isEmpty { channel.emit(.usageUpdated(turn.usage)) }
                 channel.emit(.turnFinished(index: index, stopReason: turn.reason))
                 await persist(snapshot)
 

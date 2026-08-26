@@ -33,6 +33,16 @@ struct ConversationView: View {
             // pair gets exactly one hairline. Ruling *below* instead, which is
             // what these did, put two adjacent lines under any card that was
             // showing — the card's own and the composer's.
+            // First of everything stacked over the composer. The capsule is the
+            // state of the work; an approval, a question and the steering queue
+            // are all interruptions to it, so they belong underneath — nearer
+            // the composer, where the answer gets typed.
+            if !conversation.tasks.isEmpty {
+                AgentTaskCapsuleView(conversation: conversation, isCompact: isCompact)
+                    // Above the cards below it, so its hover list is drawn over
+                    // them rather than behind.
+                    .zIndex(1)
+            }
             if let approval = conversation.pendingApproval {
                 Divider()
                 AgentApprovalCard(request: approval, conversation: conversation)
@@ -62,6 +72,12 @@ struct ConversationView: View {
                 sessionContext: sessionContext,
                 includesTerminalSuggestion: showsTerminalActions
             )
+            // The composer's slash palette is an overlay that floats up over
+            // whatever is stacked above it — an approval card, a question, the
+            // steering strip — instead of pushing them. Being the last child
+            // already draws it last; stating the order is what keeps that true
+            // if a fifth region is ever inserted above the composer.
+            .zIndex(1)
         }
     }
 
@@ -182,6 +198,10 @@ struct ConversationView: View {
             )
         case .tool(let card):
             AgentToolRowView(card: card)
+        case .plan(let card):
+            AgentPlanRowView(card: card, conversation: conversation)
+        case .compaction(let mark):
+            AgentCompactionRowView(mark: mark)
         }
     }
 
@@ -308,6 +328,363 @@ private struct AgentToolRowView: View {
         case .reviewing, .waitingForApproval, .waitingForUser: .orange
         case .completed: .green
         default: .secondary
+        }
+    }
+}
+
+// MARK: - Compaction
+
+/// Where the model's memory of this conversation now begins.
+///
+/// A rule with a label rather than a card, because it marks a boundary rather
+/// than reporting an event. Everything above it is still here to scroll through
+/// — compaction changes what is *sent*, never what is kept — and this says so
+/// plainly enough that nobody has to wonder where their history went.
+private struct AgentCompactionRowView: View {
+    let mark: AgentCompactionMark
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.s) {
+            line
+            Label {
+                Text(
+                    "Compacted — \(ContextBreakdownMenuItems.compact(mark.summarizedTokens)) summarized to \(ContextBreakdownMenuItems.compact(mark.keptTokens))"
+                )
+            } icon: {
+                Image(systemName: "arrow.down.right.and.arrow.up.left")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize()
+            line
+        }
+        .help(Text("Earlier turns are summarized for the model. Nothing was deleted."))
+    }
+
+    private var line: some View {
+        Rectangle()
+            .fill(.quaternary)
+            .frame(height: 1)
+    }
+}
+
+// MARK: - Tasks
+
+/// What the agent is working through, as one small capsule.
+///
+/// Above the composer rather than in the transcript, and that difference is the
+/// design. A plan is a document decided once, so it belongs where it happened. A
+/// task list is live state rewritten every turn: one transcript row that
+/// silently mutated would misdate itself, and one row per revision would bury
+/// the conversation it describes.
+///
+/// A capsule rather than a strip because at rest the only thing worth saying is
+/// "4 / 9". It sits above every other thing stacked over the composer — the
+/// approval card, a question, the steering queue — because it is the *state* of
+/// the work, and those are all interruptions to it.
+///
+/// The list opens on hover, as an overlay drawn upward over the transcript.
+/// Inserting it into the stack instead would push the conversation every time
+/// the pointer crossed the pill.
+private struct AgentTaskCapsuleView: View {
+    let conversation: ConversationModel
+    var isCompact = false
+
+    /// Two hover flags, not one. The list is an overlay outside the capsule's
+    /// own frame, so hovering it does not keep the capsule's `onHover` true —
+    /// and with one flag the list would vanish the moment the pointer reached
+    /// for it.
+    @State private var isHoveringCapsule = false
+    @State private var isHoveringList = false
+    @State private var isPinned = false
+    /// The rows' own height. A `ScrollView` reports none — left alone it takes
+    /// every point it is offered.
+    @State private var rowsHeight: CGFloat = 0
+    @State private var listHeight: CGFloat = 0
+
+    private var isComplete: Bool {
+        conversation.completedTaskCount == conversation.tasks.count
+    }
+
+    private var isExpanded: Bool { isPinned || isHoveringCapsule || isHoveringList }
+
+    var body: some View {
+        capsule
+            .overlay(alignment: .bottom) {
+                if isExpanded {
+                    list
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                            listHeight = $0
+                        }
+                        // Flush against the capsule, with no gap to lose the
+                        // pointer in on the way up. The block's own padding is
+                        // what separates them visually.
+                        .offset(y: -listHeight)
+                        .onHover { isHoveringList = $0 }
+                        .transition(.opacity)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, Metrics.Space.s)
+            .animation(.easeOut(duration: 0.12), value: isExpanded)
+    }
+
+    private var capsule: some View {
+        Button {
+            // Hover is not available to everyone, and a pinned list is also how
+            // you read one without holding the pointer still.
+            isPinned.toggle()
+        } label: {
+            HStack(spacing: Metrics.Space.xs) {
+                Image(systemName: isComplete ? "checkmark.circle.fill" : "checklist")
+                    .font(.caption2)
+                    .foregroundStyle(isComplete ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
+                Text("\(conversation.completedTaskCount) / \(conversation.tasks.count)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, Metrics.Space.m)
+            .padding(.vertical, 3)
+            .background(.quaternary.opacity(0.5), in: .capsule)
+            .overlay {
+                Capsule().stroke(.quaternary, lineWidth: 1)
+            }
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHoveringCapsule = $0 }
+        .help(Text("\(conversation.completedTaskCount) of \(conversation.tasks.count) tasks done"))
+        .accessibilityLabel(
+            Text("Tasks, \(conversation.completedTaskCount) of \(conversation.tasks.count) done")
+        )
+    }
+
+    private var list: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                ForEach(conversation.tasks) { task in
+                    row(task)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
+        }
+        .frame(height: min(rowsHeight, Metrics.Chat.taskListMaxHeight))
+        .scrollBounceBehavior(.basedOnSize)
+        .padding(Metrics.Space.m)
+        .frame(
+            width: isCompact
+                ? Metrics.Chat.compactTaskListWidth : Metrics.Chat.taskListWidth
+        )
+        .background(.bar, in: .rect(cornerRadius: Metrics.Radius.large))
+        .overlay {
+            RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Tasks"))
+    }
+
+    private func row(_ task: AgentTask) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
+            Image(systemName: symbol(task.status))
+                .font(.caption)
+                .foregroundStyle(tint(task.status))
+                .frame(width: Metrics.Sidebar.rowIcon)
+            Text(task.title)
+                .font(.callout)
+                .foregroundStyle(task.status == .completed ? .secondary : .primary)
+                .strikethrough(task.status == .completed, color: .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func symbol(_ status: AgentTask.Status) -> String {
+        switch status {
+        case .pending: "circle"
+        case .inProgress: "circle.lefthalf.filled"
+        case .completed: "checkmark.circle.fill"
+        }
+    }
+
+    private func tint(_ status: AgentTask.Status) -> Color {
+        switch status {
+        case .pending: .secondary
+        case .inProgress: .accentColor
+        case .completed: .green
+        }
+    }
+}
+
+// MARK: - Plans
+
+/// A finished plan, as a row the reader can open.
+///
+/// In the transcript rather than stacked above the composer, because nothing is
+/// suspended on it: the run that wrote it has already ended. It is part of what
+/// happened, in the order it happened, and it stays readable after it has been
+/// answered — which the panel treatment, dismissed on the first click, would not
+/// allow.
+private struct AgentPlanRowView: View {
+    let card: AgentPlanCard
+    let conversation: ConversationModel
+
+    @Environment(AppModel.self) private var app
+    /// Collapsed until the reader opens it. A plan is long by construction, and
+    /// one that unfurled on arrival would push the conversation it belongs to
+    /// off the screen at the moment the reader wants to see both.
+    @State private var isExpanded = false
+
+    private var blocks: [MarkdownBlock] {
+        MarkdownDocumentParser.parse(card.plan.body)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            header
+            // Shown either way. Collapsing to a bare title would make the row a
+            // thing to be opened before it says anything, and the first lines of
+            // a plan are usually its goal — enough to decide whether the rest is
+            // worth reading.
+            planBody
+            if card.outcome == .pending {
+                actions
+            }
+        }
+        .padding(Metrics.Space.l)
+        .background(.quaternary.opacity(0.2), in: .rect(cornerRadius: Metrics.Radius.large))
+        .overlay {
+            RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+    }
+
+    /// The plan, whole or as much of it as fits.
+    ///
+    /// Capped by height rather than by a block count, because a block is not a
+    /// unit of reading: one paragraph can be four lines and the next one word.
+    /// The gradient is the honest part — a hard clip looks like the plan simply
+    /// ends there, while a fade says there is more and the chevron opens it.
+    @ViewBuilder
+    private var planBody: some View {
+        let rendered = MarkdownBlockListView(blocks: blocks, isCompact: true)
+            .padding(.leading, Metrics.Sidebar.rowIcon + Metrics.Space.s)
+
+        if isExpanded {
+            rendered
+        } else {
+            // The preview opens the plan too. Fading the last line into nothing
+            // is a promise that there is more, and answering it by hunting for
+            // an 8pt chevron would be a poor return on having read that far.
+            Button {
+                isExpanded = true
+            } label: {
+                rendered
+                    .frame(maxHeight: Metrics.Chat.planPreviewHeight, alignment: .top)
+                    .clipped()
+                    .mask(alignment: .top) {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black, location: 0),
+                                .init(color: .black, location: 0.72),
+                                .init(color: .clear, location: 1),
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    }
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            // The header says the same thing to VoiceOver, and a faded
+            // duplicate of text that is about to be read in full is noise.
+            .accessibilityHidden(true)
+        }
+    }
+
+    private var header: some View {
+        Button {
+            isExpanded.toggle()
+        } label: {
+            HStack(spacing: Metrics.Space.s) {
+                Image(systemName: symbol)
+                    .foregroundStyle(tint)
+                    .frame(width: Metrics.Sidebar.rowIcon)
+                Text(card.plan.title)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(isExpanded ? nil : 1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer(minLength: Metrics.Space.s)
+                if let outcome = outcomeLabel {
+                    Text(outcome)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .bold))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .help(Text(isExpanded ? "Hide the plan" : "Show the plan"))
+    }
+
+    private var actions: some View {
+        HStack(spacing: Metrics.Space.m) {
+            Button("Discard", role: .destructive) {
+                conversation.resolvePlan(card.id, as: .discarded)
+            }
+            Spacer(minLength: 0)
+            // No button, deliberately. "Keep planning" is just typing the next
+            // message — the mode is still on and the composer is right there —
+            // and a button that only moves focus teaches nothing.
+            Text("Reply to keep planning")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Implement") { implement() }
+                .buttonStyle(.borderedProminent)
+                .disabled(conversation.isStreaming)
+        }
+    }
+
+    /// Leaves plan mode and starts the run that acts on it.
+    ///
+    /// A new run rather than resuming a suspended one: the plan was read by a
+    /// person on their own time, and a run held open across that would have kept
+    /// an SSH pool and a provider connection alive while nobody was there.
+    private func implement() {
+        conversation.resolvePlan(card.id, as: .implemented)
+        let prompt = ConversationModel.implementationPrompt(for: card.plan)
+        conversation.appendUserTurn(prompt)
+        app.startAgentRun(conversation, prompt: prompt)
+    }
+
+    private var symbol: String {
+        switch card.outcome {
+        // The same lit bulb the chip and the `/plan` row carry, so a plan is
+        // recognisable as one thing wherever it turns up. Once decided, the
+        // outcome is the more useful glyph.
+        case .pending: "lightbulb.max"
+        case .implemented: "checkmark.circle.fill"
+        case .discarded: "xmark.circle"
+        }
+    }
+
+    private var tint: Color {
+        switch card.outcome {
+        case .pending: .accentColor
+        case .implemented: .green
+        case .discarded: .secondary
+        }
+    }
+
+    private var outcomeLabel: LocalizedStringKey? {
+        switch card.outcome {
+        case .pending: nil
+        case .implemented: "Implemented"
+        case .discarded: "Discarded"
         }
     }
 }

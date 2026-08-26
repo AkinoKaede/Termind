@@ -194,6 +194,51 @@ nonisolated enum Metrics {
         /// much at a working agent is possible but rare, and this is a reminder
         /// of what is waiting, not a second transcript to read.
         static let steeringQueueMaxHeight: CGFloat = 88
+
+        /// How tall the slash palette may grow before it scrolls.
+        ///
+        /// Also a ceiling rather than a height: the palette is measured from the
+        /// commands that match, so it shrinks to one row as the name is typed
+        /// and closes when nothing matches. With today's three commands it never
+        /// reaches this — it exists so a longer list later cannot cover the
+        /// conversation it was opened over.
+        static let slashMenuMaxHeight: CGFloat = 220
+
+        /// How much of a collapsed plan is shown before it fades out.
+        ///
+        /// About four lines — enough for a `## Goal` heading and the sentence
+        /// under it, which is the part that decides whether the rest is worth
+        /// opening. A plan is long by construction, so this is what keeps a row
+        /// in the transcript from becoming the transcript.
+        static let planPreviewHeight: CGFloat = 96
+
+        /// How much of the task list is shown before it scrolls.
+        ///
+        /// Taller than the steering strip because this one is read rather than
+        /// glanced at — it is the answer to "what is left" — but still a ceiling
+        /// measured from the rows, so a three-item list is three items tall.
+        static let taskListMaxHeight: CGFloat = 160
+
+        /// How wide the hovered task list is.
+        ///
+        /// Narrow on purpose. It hangs off a capsule a few characters wide, and
+        /// a panel spanning the conversation would read as a new region rather
+        /// than as that capsule opening. Task titles are short phrases.
+        ///
+        /// Two values because an overlay is proposed its *parent's* size — the
+        /// capsule's, which is tiny — so this cannot be a `maxWidth` that adapts
+        /// on its own. The compact figure is what fits inside a 260pt sidebar
+        /// once the composer's own insets are taken off.
+        static let taskListWidth: CGFloat = 320
+        static let compactTaskListWidth: CGFloat = 232
+
+        /// The width the context breakdown's rows are laid out at.
+        ///
+        /// A menu item sizes to its content, so its rows need a stated width
+        /// before a `Spacer` inside one has anything to push against. Without it
+        /// every row is a different width and the counts stagger instead of
+        /// forming a column. See `ContextBreakdownMenuItems`.
+        static let contextBreakdownWidth: CGFloat = 210
     }
 
     enum TransferCenter {

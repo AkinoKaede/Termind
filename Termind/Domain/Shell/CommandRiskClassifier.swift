@@ -288,7 +288,12 @@ nonisolated enum CommandRiskClassifier {
 
         case "systemctl", "service":
             let sub = args.first { !$0.hasPrefix("-") } ?? ""
-            if sub == "status" || sub == "list-units" || sub == "show" || sub == "cat" {
+            // Every subcommand that only reports. The list was `status`,
+            // `list-units`, `show` and `cat`, which left the ordinary ways of
+            // asking "what is running, what is enabled, what failed" classified
+            // as state changes — and therefore behind an approval prompt, or
+            // refused outright while planning.
+            if systemctlReadOnlySubcommands.contains(sub) {
                 return RiskAssessment(risk: .safe, reasons: [])
             }
             if sub == "stop" || sub == "disable" || sub == "mask" {
@@ -581,6 +586,13 @@ nonisolated enum CommandRiskClassifier {
     /// Commands that only read. Anything not listed here is treated as at least
     /// `.caution`, so this list being incomplete is safe — it just means an
     /// extra click.
+    private static let systemctlReadOnlySubcommands: Set<String> = [
+        "status", "show", "cat", "help", "is-active", "is-enabled", "is-failed",
+        "is-system-running", "get-default", "show-environment",
+        "list-units", "list-unit-files", "list-timers", "list-sockets",
+        "list-jobs", "list-dependencies", "list-machines",
+    ]
+
     private static let readOnlyCommands: Set<String> = [
         "ls", "ll", "cat", "bat", "less", "more", "head", "tail", "df", "du",
         "ps", "top", "htop", "btop", "free", "uptime", "uname", "whoami", "id",
@@ -593,6 +605,24 @@ nonisolated enum CommandRiskClassifier {
         "dirname", "realpath", "readlink", "groups", "last", "w", "who",
         "lsblk", "blkid", "mount", "vmstat", "iostat", "sar", "nproc",
         "nvidia-smi", "sensors", "lscpu", "lsmem", "lspci", "lsusb", "true", "false",
+        // Reading a server's state is most of what the assistant does before it
+        // proposes anything, and this list is what decides whether that needs a
+        // prompt — or, while planning, happens at all.
+        //
+        // Membership means *no invocation of this writes*. That is why `swapon`,
+        // `rpm` and `ulimit` are deliberately absent despite reading in their
+        // common form: `swapon /dev/sdb1` enables swap, `rpm -i` installs, and
+        // `ulimit -n` sets a limit. A name whose verdict depends on its
+        // arguments belongs in `specificRule`, not here, and until it has one
+        // failing closed is the right answer.
+        "pgrep", "pidof", "pstree", "mpstat", "pidstat",
+        "findmnt", "getconf", "locale", "getent",
+        "timedatectl", "hostnamectl", "localectl", "loginctl", "resolvectl",
+        "sestatus", "getenforce", "lsattr", "lsns",
+        "dpkg-query", "apt-cache", "zcat", "zgrep", "zless", "bzcat",
+        "tac", "nl", "rev", "fold", "expand", "unexpand", "paste", "join",
+        "comm", "seq", "numfmt", "base64", "strings", "xxd", "od", "hexdump",
+        "ethtool", "arch",
     ]
 
     private static let cautionCommands: Set<String> = [

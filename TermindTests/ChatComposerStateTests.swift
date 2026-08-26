@@ -411,6 +411,8 @@ struct ChatComposerStateTests {
             switch item {
             case .message(let message): message.role == .user ? "user" : "assistant"
             case .tool: "tool"
+            case .plan: "plan"
+            case .compaction: "compaction"
             }
         }
         #expect(kinds == ["user", "assistant", "tool", "assistant"])

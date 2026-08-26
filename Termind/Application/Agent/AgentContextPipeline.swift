@@ -45,7 +45,8 @@ nonisolated struct AgentContextPipeline: Sendable {
     /// tool results sitting directly behind their assistant turn.
     static func chat(
         sessionContext: AgentTranscriptMessage?,
-        before promptID: AgentTranscriptMessage.ID?
+        before promptID: AgentTranscriptMessage.ID?,
+        isPlanning: Bool = false
     ) -> AgentContextPipeline {
         AgentContextPipeline([
             AgentUnansweredToolCallRepair(),
@@ -53,6 +54,10 @@ nonisolated struct AgentContextPipeline: Sendable {
             AgentOrphanedToolResultRepair(),
             AgentToolResultTrimming(),
             AgentSessionContextInjection(message: sessionContext, before: promptID),
+            // After the session context and before nothing: both ride the tail
+            // in front of this run's prompt, and the contract reads better
+            // second — "here is where you are" then "here is what you may do".
+            AgentPlanContractInjection(isPlanning: isPlanning, before: promptID),
         ])
     }
 }

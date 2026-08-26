@@ -51,6 +51,9 @@ final class PersistentAgentMessage {
     var toolCallID: String?
     var toolName: String?
     var isError = false
+    /// Defaulted, so adding it costs no SwiftData migration — the same reason
+    /// every other property in this schema carries a default.
+    var isCompaction = false
     var createdAt: Date = Date()
 
     init(_ message: AgentTranscriptMessage, runID: UUID) {
@@ -68,6 +71,7 @@ final class PersistentAgentMessage {
         toolCallID = message.toolCallID
         toolName = message.toolName
         isError = message.isError
+        isCompaction = message.isCompaction
         createdAt = message.createdAt
     }
 }
@@ -274,7 +278,8 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     return AgentTranscriptMessage(
                         id: row.id, role: role, text: row.text, toolCalls: calls,
                         toolCallID: row.toolCallID, toolName: row.toolName,
-                        isError: row.isError, createdAt: row.createdAt
+                        isError: row.isError, isCompaction: row.isCompaction,
+                        createdAt: row.createdAt
                     )
                 }
             let state = matchingRuns.last.flatMap { AgentRunState(rawValue: $0.state) }
@@ -284,11 +289,11 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 .compactMap { storedToolCard($0, results: results, reviews: reviews) }
             return StoredAgentConversation(
                 id: conversation.id,
-                messages: Self.recovering(
+                messages: Self.compacted(Self.recovering(
                     transcript,
                     results: results.filter { runIDs.contains($0.runID) },
                     invocations: invocations.filter { runIDs.contains($0.runID) }
-                ),
+                )),
                 toolCards: cards,
                 lastRunState: state, title: conversation.title
             )
@@ -358,6 +363,23 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
     /// gap, and does for anything still missing after this. Doing it here first
     /// is what gives the model the output the tool actually produced instead of
     /// being told the outcome is unknown when it is sitting in the database.
+    /// Re-applies a compaction that was recorded before the process ended.
+    ///
+    /// History is rebuilt from every stored message of every run, so a
+    /// conversation that was compacted would come back whole and be sent whole —
+    /// the compaction silently undone at exactly the point the window was
+    /// already tight. The synthetic summary turn carries `isCompaction`, and
+    /// everything before the newest one is dropped.
+    ///
+    /// The **last** marker, not the first: a conversation compacted twice has
+    /// two, and the older summary was itself folded into the newer one.
+    static func compacted(
+        _ messages: [AgentTranscriptMessage]
+    ) -> [AgentTranscriptMessage] {
+        guard let cut = messages.lastIndex(where: \.isCompaction) else { return messages }
+        return Array(messages[cut...])
+    }
+
     static func recovering(
         _ transcript: [AgentTranscriptMessage],
         results: [PersistentAgentToolResult],

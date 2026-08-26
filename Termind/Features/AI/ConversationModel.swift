@@ -60,7 +60,13 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
 
     /// Derived, not declared. A hand-passed count is a number that was true
     /// once, and the estimate exists to warn about payload size.
-    var approximateTokens: Int { max(1, content.count / 4) }
+    ///
+    /// Shares `AgentContextEstimator`'s divisor rather than repeating `/ 4`, so
+    /// a chip and the context gauge can never quote different sizes for the
+    /// same attachment.
+    var approximateTokens: Int {
+        max(1, AgentContextEstimator.tokens(inCharacters: content.count))
+    }
 }
 
 nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
@@ -144,11 +150,37 @@ nonisolated struct PendingSteeringMessage: Identifiable, Hashable, Sendable {
 nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     case message(ChatMessage)
     case tool(AgentToolCard)
+    case plan(AgentPlanCard)
+    case compaction(AgentCompactionMark)
 
     var id: UUID {
         switch self {
         case .message(let message): message.id
         case .tool(let card): card.id
+        case .plan(let card): card.id
+        case .compaction(let mark): mark.id
+        }
+    }
+
+    /// The run's clock, not the UI's — the same stamp `timeline` merges the two
+    /// existing lists on. See `AgentEvent.messageStarted`.
+    var orderedAt: Date {
+        switch self {
+        case .message(let message): message.createdAt
+        case .tool(let card): card.invocation.createdAt
+        case .plan(let card): card.createdAt
+        case .compaction(let mark): mark.createdAt
+        }
+    }
+
+    /// Breaks a tie at the same instant. A compaction mark is anchored to the
+    /// last message it summarized, so it belongs *after* that message rather
+    /// than in a position `sorted` is free to pick either way — Swift's sort is
+    /// not stable, so equal timestamps otherwise swap between redraws.
+    var sortRank: Int {
+        switch self {
+        case .compaction: 1
+        default: 0
         }
     }
 
@@ -164,9 +196,41 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         case .tool(let card):
             hasher.combine(card.state)
             hasher.combine(card.result?.content.count ?? 0)
+        case .plan(let card):
+            // The outcome, so answering a plan re-triggers the scroll the same
+            // way a tool card finishing does.
+            hasher.combine(card.outcome)
+        case .compaction(let mark):
+            hasher.combine(mark.keptTokens)
         }
         return hasher.finalize()
     }
+}
+
+/// The line in the transcript where history stopped being sent.
+///
+/// The messages above it are *not* deleted. Compaction shapes what is sent, and
+/// the codebase's rule is that transforms never shape what is kept — see
+/// `AgentContextPipeline`. So the conversation stays scrollable and this says
+/// where the model's memory of it now begins.
+nonisolated struct AgentCompactionMark: Identifiable, Hashable, Sendable {
+    var id: UUID = UUID()
+    var summarizedTokens: Int
+    var keptTokens: Int
+    var createdAt: Date = .now
+}
+
+/// A presented plan and what became of it.
+///
+/// A row of the transcript rather than a panel above the composer: it is part of
+/// what happened, in the order it happened, and it stays readable after it has
+/// been answered. Nothing is suspended waiting on it — see `AgentPlanModeHook`.
+nonisolated struct AgentPlanCard: Identifiable, Hashable, Sendable {
+    var id: UUID { plan.id }
+    var plan: AgentPlan
+    var outcome: AgentPlan.Outcome = .pending
+    /// Ordered against messages and tool cards by the same clock they use.
+    var createdAt: Date { plan.createdAt }
 }
 
 /// The approval posture selected for one conversation.
@@ -282,6 +346,70 @@ final class ConversationModel: Identifiable {
     private var sshAuthenticationWaiters:
         [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
 
+    /// Whether the agent may only look.
+    ///
+    /// Per conversation and deliberately not remembered app-wide the way
+    /// `lastSelectedPermissionMode` is. Permission mode is a standing preference
+    /// about how much you trust the agent; this is a posture for one task, and a
+    /// mode silently inherited by tomorrow's conversation is a mode nobody asked
+    /// for.
+    var isPlanning = false
+
+    /// Plans presented in this conversation, oldest first.
+    private(set) var plans: [AgentPlanCard] = []
+
+    /// Where history stopped being sent, oldest first. Display only — the
+    /// authoritative record of a compaction is the `isCompaction` turn in
+    /// `transcript`, which is what survives a relaunch.
+    private(set) var compactions: [AgentCompactionMark] = []
+
+    /// True while a compaction is in flight, so the composer can say so and not
+    /// start a second one.
+    private(set) var isCompacting = false
+
+    /// The current task list, whole. Replaced rather than patched — see
+    /// `AgentTask`.
+    private(set) var tasks: [AgentTask] = []
+
+    var completedTaskCount: Int { tasks.filter { $0.status == .completed }.count }
+
+    /// How many characters of tool schema the last run sent.
+    ///
+    /// Recorded when a run starts rather than derived on demand: the registry is
+    /// assembled per run from Vault hosts, MCP servers and the search plan, and
+    /// a composer redrawing on every keystroke must not rebuild it. Zero until
+    /// the first run, which is honest — nothing has been sent yet.
+    private(set) var toolSchemaCharacters = 0
+
+    func noteToolSchemas(_ descriptors: [AgentToolDescriptor]) {
+        toolSchemaCharacters = descriptors.reduce(0) { total, descriptor in
+            total + descriptor.name.count + descriptor.summary.count
+                + descriptor.inputSchema.encodedString.count
+        }
+    }
+
+    /// The conversation as a gauge sees it, provider-measured where possible.
+    var contextEstimate: AgentContextEstimate {
+        AgentContextEstimator.estimate(
+            systemPrompt: AgentSystemPrompt.default,
+            toolSchemaCharacters: toolSchemaCharacters,
+            transcript: transcript,
+            attachedCharacters: attachments.reduce(0) { $0 + $1.content.count },
+            measured: usage
+        )
+    }
+
+    /// What the most recent turn cost, as its provider counted it.
+    ///
+    /// The newest report wins rather than accumulating: a turn's input already
+    /// counts the whole conversation behind it, so this is the size of the
+    /// context, not a running total of what has been spent on it.
+    ///
+    /// `nil` until a turn reports one. A conversation restored from disk starts
+    /// here too — usage is not persisted, so a reopened chat shows an estimate
+    /// until it next runs. See `AgentContextEstimator`.
+    private(set) var usage: AgentTokenUsage?
+
     /// Per-conversation reasoning state, normalized against the resolved model
     /// by the composer before a request is made.
     var reasoningEffort: ReasoningEffort = .medium
@@ -355,7 +483,7 @@ final class ConversationModel: Identifiable {
     /// already chronological, so this is a merge rather than a sort.
     var timeline: [TimelineItem] {
         var items: [TimelineItem] = []
-        items.reserveCapacity(messages.count + toolCards.count)
+        items.reserveCapacity(messages.count + toolCards.count + plans.count)
         var cards = toolCards[...]
         for message in messages {
             while let card = cards.first, card.invocation.createdAt < message.createdAt {
@@ -369,7 +497,94 @@ final class ConversationModel: Identifiable {
             else { continue }
             items.append(.message(message))
         }
-        return items + cards.map(TimelineItem.tool)
+        items += cards.map(TimelineItem.tool)
+        guard !plans.isEmpty || !compactions.isEmpty else { return items }
+        // Merged by time rather than woven into the loop above. A plan ends its
+        // run and a compaction happens between runs, so there are never many of
+        // either, and two more cursors inside that loop would be two more things
+        // to keep right for no gain.
+        let extra = plans.map(TimelineItem.plan) + compactions.map(TimelineItem.compaction)
+        return (items + extra).sorted {
+            $0.orderedAt == $1.orderedAt
+                ? $0.sortRank < $1.sortRank : $0.orderedAt < $1.orderedAt
+        }
+    }
+
+    // MARK: - Compaction
+
+    /// What a compaction would summarize, or `nil` when there is not enough
+    /// history to be worth it.
+    func compactionSpan(
+        keepRecentTokens: Int = AgentCompaction.defaultKeepRecentTokens
+    ) -> (summarize: [AgentTranscriptMessage], cut: Int)? {
+        guard let cut = AgentCompaction.cutIndex(
+            in: transcript, keepRecentTokens: keepRecentTokens
+        ) else { return nil }
+        return (Array(transcript[..<cut]), cut)
+    }
+
+    func beginCompaction() { isCompacting = true }
+    func endCompaction() { isCompacting = false }
+
+    /// Replaces everything before `cut` with one synthetic turn carrying the
+    /// summary.
+    ///
+    /// `transcript` — what the model is sent — is rewritten. `messages` — what
+    /// the reader sees — is not: a marker is added instead, so the conversation
+    /// stays scrollable and nothing the user wrote disappears. That is the same
+    /// rule `AgentContextPipeline` states for every other transform.
+    func applyCompaction(summary: String, cut: Int) {
+        guard cut > 0, cut <= transcript.count else { return }
+        let summarized = transcript[..<cut]
+        let summarizedTokens = summarized.reduce(0) {
+            $0 + AgentContextEstimator.tokens(inCharacters: $1.text.count)
+        }
+        // Anchored to the *last summarized* message rather than the first kept
+        // one. `appendUserTurn` writes the visible `ChatMessage` a moment before
+        // the `AgentTranscriptMessage` beside it, so anchoring forward and
+        // subtracting an epsilon is a coin flip between the two lists whenever
+        // turns land close together. Anchoring backward is exact: everything
+        // summarized was stamped at or before this, and everything kept after.
+        let stamp = transcript[cut - 1].createdAt
+        let replacement = AgentTranscriptMessage(
+            role: .user, text: summary, isCompaction: true, createdAt: stamp
+        )
+        transcript.replaceSubrange(..<cut, with: [replacement])
+        compactions.append(AgentCompactionMark(
+            summarizedTokens: summarizedTokens,
+            keptTokens: AgentContextEstimator.tokens(inCharacters: summary.count),
+            createdAt: stamp
+        ))
+        // The gauge is measuring a context that no longer exists. Dropping it
+        // rather than scaling it means the next turn reports a real number and
+        // until then the estimate is shown as an estimate.
+        usage = nil
+    }
+
+    /// Records what the user decided about a plan.
+    ///
+    /// Implementing turns plan mode off, because that is what the decision
+    /// means: the next run is the one that acts. Keeping the mode on after
+    /// "Implement" would refuse every tool the plan asked for.
+    func resolvePlan(_ id: AgentPlan.ID, as outcome: AgentPlan.Outcome) {
+        guard let index = plans.firstIndex(where: { $0.id == id }) else { return }
+        plans[index].outcome = outcome
+        if outcome == .implemented { isPlanning = false }
+    }
+
+    /// What starting the implementation run should send.
+    ///
+    /// The plan itself is already in `transcript` — `present_plan` returned it —
+    /// so this is a pointer, not a copy. Naming the scratch path lets the model
+    /// re-read the exact text rather than work from what it remembers writing.
+    static func implementationPrompt(for plan: AgentPlan) -> String {
+        String(
+            localized: """
+                Implement the plan you presented ("\(plan.title)", drafted at \
+                \(plan.scratchPath)). Follow it; if something you find contradicts it, say so \
+                before departing from it.
+                """
+        )
     }
 
     func attach(_ chip: ContextChip) {
@@ -839,6 +1054,12 @@ final class ConversationModel: Identifiable {
         // Also card-only. `request(_:)` enqueues, for the same reason.
         case .userInputRequested:
             break
+        case .usageUpdated(let reported):
+            usage = reported
+        case .planPresented(let plan):
+            plans.append(AgentPlanCard(plan: plan))
+        case .tasksUpdated(let updated):
+            tasks = updated
         case .failed(let reason):
             messages.append(ChatMessage(role: .assistant, text: reason))
         }

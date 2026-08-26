@@ -434,11 +434,44 @@ enum TermindSchemaV6: VersionedSchema {
         TermindSchemaV5.models + [
             PersistentAgentConversation.self,
             PersistentAgentRun.self,
-            PersistentAgentMessage.self,
+            // Frozen, like V6 and V7 both had it. Naming the live type here
+            // would move this version's checksum every time a field is added to
+            // it, and a store recorded at V6 would then match no declared
+            // version at all.
+            TermindSchemaV7Models.PersistentAgentMessage.self,
             PersistentAgentToolInvocation.self,
             PersistentAgentToolResult.self,
             PersistentAgentReviewRecord.self,
         ]
+    }
+}
+
+/// The agent message as it stood before compaction existed.
+///
+/// Frozen here for the same reason `TermindSchemaV3Models` exists, and the
+/// comment there is the whole explanation: an older `VersionedSchema` that
+/// references the *live* type has its checksum change the moment a field is
+/// added to that type, so the store's recorded version stops matching any
+/// declared one and staged migration becomes impossible. Two versions that both
+/// point at the live type are worse — SwiftData rejects the plan outright with
+/// "Duplicate version checksums detected".
+enum TermindSchemaV7Models {
+    @Model
+    final class PersistentAgentMessage {
+        @Attribute(.unique) var id: UUID = UUID()
+        var runID: UUID = UUID()
+        var role = AgentTranscriptRole.user.rawValue
+        var text = ""
+        var toolCallsData = Data()
+        var toolCallID: String?
+        var toolName: String?
+        var isError = false
+        var createdAt: Date = Date()
+
+        /// Never called. This type exists to describe a shape to the migration
+        /// plan, and nothing writes rows through it — the live
+        /// `PersistentAgentMessage` is what the repository uses.
+        init() {}
     }
 }
 
@@ -449,12 +482,28 @@ enum TermindSchemaV7: VersionedSchema {
     }
 }
 
+/// Adds `PersistentAgentMessage.isCompaction`.
+///
+/// A new property with a default is still a new *version*: SwiftData compares
+/// the store's recorded schema against the current one and refuses an unknown
+/// shape outright — "Cannot use staged migration with an unknown model version"
+/// — rather than inferring the addition. The default is what makes the stage
+/// lightweight; declaring the stage is what makes it happen at all.
+enum TermindSchemaV8: VersionedSchema {
+    static let versionIdentifier = Schema.Version(8, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV7.models.filter {
+            $0 != TermindSchemaV7Models.PersistentAgentMessage.self
+        } + [PersistentAgentMessage.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self,
             TermindSchemaV3.self, TermindSchemaV4.self, TermindSchemaV5.self,
-            TermindSchemaV6.self, TermindSchemaV7.self,
+            TermindSchemaV6.self, TermindSchemaV7.self, TermindSchemaV8.self,
         ]
     }
 
@@ -497,13 +546,17 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV6.self,
                 toVersion: TermindSchemaV7.self
             ),
+            .lightweight(
+                fromVersion: TermindSchemaV7.self,
+                toVersion: TermindSchemaV8.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV7.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV8.self)
 
     let context: ModelContext
 

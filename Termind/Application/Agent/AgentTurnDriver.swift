@@ -8,6 +8,20 @@ import Foundation
 /// validated call — can be exercised without a runtime, a repository, or an
 /// approval gate around them.
 nonisolated struct AgentTurnDriver: Sendable {
+    /// What one turn produced.
+    ///
+    /// A named type rather than the tuple this used to return: `usage` is the
+    /// third member, and a three-member tuple destructured at the call site
+    /// stops saying which is which.
+    nonisolated struct Turn: Sendable {
+        var message: AgentTranscriptMessage
+        var reason: AgentStopReason
+        /// Empty when the provider reported nothing — a gateway that strips
+        /// usage, or a scripted model in a test. Callers must not treat that as
+        /// a turn that cost zero.
+        var usage: AgentTokenUsage = AgentTokenUsage()
+    }
+
     private struct PendingToolCall {
         var name = ""
         var arguments = ""
@@ -21,11 +35,12 @@ nonisolated struct AgentTurnDriver: Sendable {
 
     func run(
         _ context: AgentModelContext
-    ) async throws -> (message: AgentTranscriptMessage, reason: AgentStopReason) {
+    ) async throws -> Turn {
         var message = AgentTranscriptMessage(role: .assistant)
         var pending: [String: PendingToolCall] = [:]
         var order: [String] = []
         var stopReason = AgentStopReason.completed
+        var usage = AgentTokenUsage()
         // One card per distinct query. Gemini reports its grounding metadata on
         // more than one chunk of the same stream, and a card per chunk would
         // read as the model having searched four times for one thing.
@@ -75,12 +90,14 @@ nonisolated struct AgentTurnDriver: Sendable {
                 if recordedSearches.insert(activity.query).inserted {
                     recordNativeWebSearch(activity)
                 }
+            case .usage(let reported):
+                usage = usage.merging(reported)
             case .finished(let reason):
                 stopReason = reason
             }
         }
         message.toolCalls = try order.map { try assembled($0, pending: pending) }
-        return (message, stopReason)
+        return Turn(message: message, reason: stopReason, usage: usage)
     }
 
     private func assembled(

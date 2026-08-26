@@ -88,6 +88,7 @@ final class AppModel {
     /// per-run, because a handle taken in one turn is answered in a later one
     /// and a run ending is not a reason to stop a deploy.
     private let agentBackgroundCommands = AgentBackgroundCommands()
+    private let agentCompaction = AgentCompactionService()
     private let outboxRunner: OutboxRunner?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
     private var deletedAgentConversationIDs = Set<UUID>()
@@ -209,10 +210,19 @@ final class AppModel {
         // not match the one the conversation recorded.
         let prompt = conversation.appendUserTurn(draft)
         conversation.draft = ""
-        startAgentRun(
-            conversation, prompt: prompt, context: context,
-            includesTerminalSuggestion: includesTerminalSuggestion
-        )
+        // Compaction happens *after* the turn is recorded and before the run,
+        // so the message the user just typed is inside the kept window rather
+        // than being the first thing summarized away. When nothing needs
+        // compacting this is a synchronous check that starts the run in the same
+        // tick, which is what keeps the composer feeling immediate.
+        Task { [weak self, weak conversation] in
+            guard let self, let conversation else { return }
+            await compactIfNeeded(conversation)
+            startAgentRun(
+                conversation, prompt: prompt, context: context,
+                includesTerminalSuggestion: includesTerminalSuggestion
+            )
+        }
     }
 
     func startAgentRun(
@@ -303,16 +313,34 @@ final class AppModel {
                 workspace: scratch, connections: agentConnections,
                 authentication: agentAuthentication
             )))
+            // Both write through the one ordered channel the rest of the run
+            // uses, rather than reaching into the conversation directly: a tool
+            // that touched `@Observable` state from a task group would be
+            // mutating the UI from off the main actor.
+            providers.append(AgentStaticToolProvider(AgentPlanTools.make(
+                workspace: scratch,
+                tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
+                plans: AgentPlanRecorder { channel.emit(.planPresented($0)) }
+            )))
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
             }
             providers.append(AgentStaticToolProvider(AgentMCPTools.make(servers: servers)))
         }
+        let registry = AgentToolRegistry(providers)
+        // The one place the resolved tool set exists. Recorded on the
+        // conversation so the context gauge can account for the schemas without
+        // rebuilding a registry on every keystroke.
+        conversation.noteToolSchemas(registry.descriptors)
+        // Read once, here: the posture a run enforces is the one it started
+        // under, and the user is free to leave plan mode while it is thinking.
+        let isPlanning = conversation.isPlanning
         let runtime = AgentRuntime(
-            model: model, registry: AgentToolRegistry(providers),
+            model: model, registry: registry,
             approval: approval,
             repository: agentRunRepository,
             userInteraction: WeakAgentUserInteraction(conversation),
+            hooks: [AgentPlanModeHook(isPlanning: isPlanning)],
             channel: channel
         )
         // No second Shell Integration gate here. `Pane.remoteSystemInfo` already
@@ -321,7 +349,8 @@ final class AppModel {
         // cannot disagree.
         conversation.start(runtime: runtime, request: AgentRunRequest(
             conversationID: conversation.id, prompt: userPrompt,
-            permissionMode: mode, priorMessages: conversation.pendingPriorMessages,
+            permissionMode: mode, isPlanning: isPlanning,
+            priorMessages: conversation.pendingPriorMessages,
             sessionContext: context
         ))
         scheduleTitle(for: conversation)
@@ -335,6 +364,106 @@ final class AppModel {
     /// simply knows things. What it gives up is visibility, which
     /// `AgentRuntime.recordNativeWebSearch` buys back after the fact.
     ///
+    // MARK: - Compaction
+
+    /// Summarizes the older part of a conversation so it can keep going.
+    ///
+    /// Never while a run is in flight: the transcript it would rewrite is the
+    /// one the runtime is appending to, and the two would disagree about what
+    /// the conversation is. `/compact` during a run is refused rather than
+    /// queued, because by the time the run ends the thing the user wanted
+    /// compacted has changed.
+    @discardableResult
+    func compact(
+        _ conversation: ConversationModel,
+        instructions: String = "",
+        isManual: Bool = true
+    ) async -> Bool {
+        guard !conversation.isStreaming, !conversation.isCompacting else { return false }
+        guard let span = conversation.compactionSpan(keepRecentTokens: keepRecentTokens)
+        else {
+            // Only when asked for by hand. The automatic path calls this on
+            // every send and would otherwise narrate its own inaction after
+            // every message.
+            if isManual {
+                conversation.messages.append(ChatMessage(
+                    role: .assistant,
+                    text: AgentCompactionError.nothingToCompact.localizedDescription
+                ))
+            }
+            return false
+        }
+        guard let model = compactionModel() else {
+            conversation.messages.append(ChatMessage(
+                role: .assistant,
+                text: AgentCompactionError.missingModel.localizedDescription
+            ))
+            return false
+        }
+
+        conversation.beginCompaction()
+        defer { conversation.endCompaction() }
+        do {
+            let summary = try await agentCompaction.summarize(
+                span.summarize, instructions: instructions, model: model
+            )
+            conversation.applyCompaction(summary: summary, cut: span.cut)
+            return true
+        } catch {
+            // Said out loud rather than swallowed. A compaction that quietly
+            // failed leaves the user watching a context they were told would
+            // shrink, and the next thing they see is the window overflowing.
+            conversation.messages.append(ChatMessage(
+                role: .assistant,
+                text: String(localized: "Compaction failed. \(error.localizedDescription)")
+            ))
+            return false
+        }
+    }
+
+    /// Compacts before a run when the conversation is close to the window.
+    ///
+    /// Threshold only. Recovering a turn that has *already* overflowed means
+    /// recognising four providers' distinct context-length errors, which is its
+    /// own piece of work — this is what keeps a conversation from getting there.
+    private func compactIfNeeded(_ conversation: ConversationModel) async {
+        guard SettingsKey.isAutoCompactEnabled else { return }
+        guard let usage = conversation.usage else { return }
+        let window = ai.resolve(conversation: conversation.model)?.model.contextLength
+        guard AgentCompaction.shouldCompact(
+            contextTokens: usage.contextTokens, contextWindow: window,
+            reserveTokens: reserveTokens
+        ) else { return }
+        await compact(conversation, isManual: false)
+    }
+
+    /// Resolves the Chat model with reasoning clamped off, like titling does.
+    ///
+    /// Summarizing is not a task that improves with a thinking budget, and this
+    /// runs on the user's own key at the moment their conversation is already
+    /// expensive.
+    private func compactionModel() -> (any AgentModelCompleting)? {
+        guard let resolved = ai.resolve(.chat) else { return nil }
+        let credentialRef = resolved.provider.usesVertex && resolved.provider.kind == .google
+            ? resolved.provider.vertex.credentialRef : resolved.provider.credentialRef
+        guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else { return nil }
+        let reasoning = ModelCapabilityResolver.reasoning(
+            model: resolved.model, provider: resolved.provider
+        ).clamp(.off)
+        return AgentProviderClient(
+            provider: resolved.provider, model: resolved.model, secret: secret,
+            reasoning: reasoning
+        )
+    }
+
+    private var keepRecentTokens: Int {
+        SettingsKey.compactionKeepRecent
+    }
+
+    private var reserveTokens: Int {
+        SettingsKey.compactionReserve
+    }
+
     /// Exactly one path is ever live. Offering both would put two tools in
     /// front of the model for one job and leave it to guess which, and the
     /// guess would decide whether the search shows up as a card beforehand or a

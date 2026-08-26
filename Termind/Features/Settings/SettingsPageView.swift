@@ -4,7 +4,7 @@ import SwiftUI
 enum SettingsSection: String, CaseIterable, Identifiable {
     case app, startup, sidebar
     case terminalAppearance, sftp
-    case providers, modelRoles, webSearch, mcp, mcpServer
+    case providers, modelRoles, assistant, webSearch, mcp, mcpServer
     case iCloud
 
     var id: String { rawValue }
@@ -18,6 +18,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sftp: "SFTP"
         case .providers: "Providers"
         case .modelRoles: "Model Roles"
+        case .assistant: "Assistant"
         case .webSearch: "Web Search"
         case .mcp: "MCP"
         case .mcpServer: "MCP Server"
@@ -34,6 +35,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sftp: "arrow.up.arrow.down"
         case .providers: "network"
         case .modelRoles: "person.2.badge.gearshape"
+        case .assistant: "brain"
         case .webSearch: "magnifyingglass"
         case .mcp: "wrench.and.screwdriver"
         case .mcpServer: "server.rack"
@@ -149,6 +151,13 @@ struct SettingsPageView: View {
         case .modelRoles:
             SettingsFormPage(title: "Model Roles", subtitle: "Choose which model handles each assistant task.") {
                 ModelRoleSettings()
+            }
+        case .assistant:
+            SettingsFormPage(
+                title: "Assistant",
+                subtitle: "What happens as a conversation approaches the model's limit."
+            ) {
+                AssistantSettings()
             }
         case .webSearch:
             SettingsFormPage(

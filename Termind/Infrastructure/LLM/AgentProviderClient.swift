@@ -268,6 +268,12 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             var body: [String: Any] = [
                 "model": model.id, "stream": streaming, "messages": messages,
             ]
+            // The one provider that has to be asked for its own token counts.
+            // Responses, Anthropic and Gemini report usage unconditionally;
+            // Chat Completions omits it from a stream unless this is present.
+            // Only on the streaming path — sending it on a non-streaming request
+            // is what several OpenAI-compatible gateways reject outright.
+            if streaming { body["stream_options"] = ["include_usage": true] }
             if !tools.isEmpty { body["tools"] = tools.map { ["type": "function", "function": $0] } }
             if let reasoningValue { body["reasoning_effort"] = reasoningValue }
             return body
@@ -755,6 +761,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             }
         }
         if !completedText.isEmpty { events.append(.textSnapshot(completedText)) }
+        if let usage = responsesUsage(response) { events.append(usage) }
         let status = response["status"] as? String
         let reason: AgentStopReason
         if status == "incomplete" { reason = .length }
@@ -775,8 +782,12 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         _ root: [String: Any], callIDs: inout [Int: String],
         wireNames: [String: String] = [:]
     ) -> [AgentModelStreamEvent] {
-        guard let choice = (root["choices"] as? [[String: Any]])?.first else { return [] }
-        var events: [AgentModelStreamEvent] = []
+        // Before the `choices` guard, not after it. With `stream_options`
+        // requested, OpenAI sends usage on a final chunk whose `choices` is an
+        // empty array — the one chunk that carries the number would otherwise be
+        // the one chunk this parser drops on the floor.
+        var events: [AgentModelStreamEvent] = chatUsage(root).map { [$0] } ?? []
+        guard let choice = (root["choices"] as? [[String: Any]])?.first else { return events }
         if let message = choice["message"] as? [String: Any] {
             if let text = message["content"] as? String { events.append(.textDelta(text)) }
             for (index, call) in (message["tool_calls"] as? [[String: Any]] ?? []).enumerated() {
@@ -847,6 +858,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 continue
             }
         }
+        if let usage = anthropicUsage(root["usage"]) { events.append(usage) }
         events.append(.finished(events.containsToolCall ? .toolCalls : .completed))
         return events
     }
@@ -861,6 +873,17 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         wireNames: [String: String] = [:]
     ) -> [AgentModelStreamEvent] {
         let index = root["index"] as? Int ?? 0
+
+        // Anthropic splits one turn's count across two events: input arrives
+        // with `message_start`, output grows on each `message_delta`. Both are
+        // cumulative, which is what `AgentTokenUsage.merging` is built for.
+        if type == "message_start" {
+            let message = root["message"] as? [String: Any]
+            return anthropicUsage(message?["usage"]).map { [$0] } ?? []
+        }
+        if type == "message_delta" {
+            return anthropicUsage(root["usage"]).map { [$0] } ?? []
+        }
 
         if type == "content_block_start", let block = root["content_block"] as? [String: Any] {
             switch block["type"] as? String {
@@ -966,8 +989,11 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     static func parseGoogle(
         _ root: [String: Any], wireNames: [String: String] = [:]
     ) -> [AgentModelStreamEvent] {
-        guard let candidate = (root["candidates"] as? [[String: Any]])?.first else { return [] }
-        var events: [AgentModelStreamEvent] = []
+        // Read before the `candidates` guard for the same reason as Chat
+        // Completions: Gemini repeats `usageMetadata` on chunks that carry no
+        // candidate at all, and those are frequently the last ones.
+        var events: [AgentModelStreamEvent] = googleUsage(root).map { [$0] } ?? []
+        guard let candidate = (root["candidates"] as? [[String: Any]])?.first else { return events }
         // Grounding hangs off the candidate, beside `content`, not inside
         // `parts` — and it is read before the guard below, because a chunk can
         // carry the metadata for a search without carrying any content.
@@ -1015,6 +1041,65 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         return AgentWebSearchActivity(
             query: queries.joined(separator: ", "), sources: sources
         )
+    }
+
+    // MARK: - Usage
+
+    /// Four spellings of one fact, and one of them means something different.
+    ///
+    /// OpenAI, Responses and Gemini all report a prompt total that *includes*
+    /// whatever was served from cache, so their cached figure is a subset to be
+    /// shown, not added. Anthropic reports the three parts side by side and its
+    /// `input_tokens` is only the *uncached* remainder — so with prompt caching
+    /// working well it can be a few hundred against a hundred-thousand-token
+    /// conversation. Taking it at face value, as the other three can be taken,
+    /// would make the context gauge read near-empty exactly when the context is
+    /// nearly full.
+    private static func responsesUsage(_ response: [String: Any]) -> AgentModelStreamEvent? {
+        guard let usage = response["usage"] as? [String: Any] else { return nil }
+        let details = usage["input_tokens_details"] as? [String: Any]
+        return .usage(AgentTokenUsage(
+            inputTokens: count(usage["input_tokens"]),
+            outputTokens: count(usage["output_tokens"]),
+            cachedInputTokens: count(details?["cached_tokens"])
+        ))
+    }
+
+    private static func chatUsage(_ root: [String: Any]) -> AgentModelStreamEvent? {
+        guard let usage = root["usage"] as? [String: Any] else { return nil }
+        let details = usage["prompt_tokens_details"] as? [String: Any]
+        return .usage(AgentTokenUsage(
+            inputTokens: count(usage["prompt_tokens"]),
+            outputTokens: count(usage["completion_tokens"]),
+            cachedInputTokens: count(details?["cached_tokens"])
+        ))
+    }
+
+    private static func anthropicUsage(_ usage: Any?) -> AgentModelStreamEvent? {
+        guard let usage = usage as? [String: Any] else { return nil }
+        let read = count(usage["cache_read_input_tokens"])
+        return .usage(AgentTokenUsage(
+            inputTokens: count(usage["input_tokens"]) + read
+                + count(usage["cache_creation_input_tokens"]),
+            outputTokens: count(usage["output_tokens"]),
+            cachedInputTokens: read
+        ))
+    }
+
+    private static func googleUsage(_ root: [String: Any]) -> AgentModelStreamEvent? {
+        guard let usage = root["usageMetadata"] as? [String: Any] else { return nil }
+        return .usage(AgentTokenUsage(
+            inputTokens: count(usage["promptTokenCount"]),
+            outputTokens: count(usage["candidatesTokenCount"]),
+            cachedInputTokens: count(usage["cachedContentTokenCount"])
+        ))
+    }
+
+    /// `JSONSerialization` hands back `NSNumber` for every JSON number, and a
+    /// gateway is free to send `1024.0`. Reading these as `Int` directly works
+    /// often enough to look correct and then silently returns nil.
+    private static func count(_ value: Any?) -> Int {
+        (value as? NSNumber)?.intValue ?? 0
     }
 }
 

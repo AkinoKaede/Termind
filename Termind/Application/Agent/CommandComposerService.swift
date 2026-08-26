@@ -56,7 +56,7 @@ actor CommandComposerService {
                 text = snapshot
             case .toolCallDelta, .toolCallSnapshot:
                 throw CommandComposerError.invalidResponse
-            case .providerItem, .webSearch:
+            case .providerItem, .webSearch, .usage:
                 // Some reasoning providers require opaque output items in agent
                 // turns. This one-shot, tool-free request never replays them.
                 //
@@ -64,6 +64,10 @@ actor CommandComposerService {
                 // this client never asks for one, so its only source is a
                 // gateway that searches regardless, and failing to compose a
                 // command over that would help nobody.
+                //
+                // Usage is ignored because this request is not part of any
+                // conversation: its cost belongs to composing one command, not
+                // to a context window anything is measured against.
                 continue
             case .finished(let reason):
                 stopReason = reason
