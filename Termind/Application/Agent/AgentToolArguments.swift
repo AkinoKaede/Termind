@@ -138,6 +138,7 @@ nonisolated struct Arguments: Sendable {
 
 nonisolated enum AgentToolError: LocalizedError, Sendable {
     case invalidHost, invalidPath, notFound, cancelled, invalidArguments(String)
+    case userInputTimedOut(Int)
     case scratchPathEscapes
     case scratchNotFound(String)
     case scratchNotText(String)
@@ -149,6 +150,8 @@ nonisolated enum AgentToolError: LocalizedError, Sendable {
         case .invalidPath: "The remote path must be an absolute normalized path."
         case .notFound: "The remote path does not exist."
         case .cancelled: "The user cancelled the request."
+        case .userInputTimedOut(let seconds):
+            "User input timed out after \(seconds) seconds."
         case .invalidArguments(let message): message
         case .scratchPathEscapes:
             """
@@ -165,4 +168,3 @@ nonisolated enum AgentToolError: LocalizedError, Sendable {
         }
     }
 }
-

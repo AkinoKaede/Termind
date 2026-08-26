@@ -110,6 +110,72 @@ struct ExternalAuthCoordinatorTests {
         coordinator.cancel(runID: currentRunID)
         #expect(await current.value == .cancelled)
     }
+
+    @Test
+    func visibleSecretTimesOutAndLeavesNoPendingPopup() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let request = secretRequest(timeout: .milliseconds(40))
+        let task = Task {
+            await coordinator.enqueue(request, clientName: "Claude", runID: UUID())
+        }
+        try await waitUntil { coordinator.current?.id == request.id }
+
+        #expect(await task.value == .timedOut)
+        #expect(coordinator.pending.isEmpty)
+    }
+
+    @Test
+    func queuedSecretDoesNotSpendItsTimeoutBehindSSHPrompt() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let sshRequest = authenticationRequest(name: "Current")
+        let request = secretRequest(timeout: .milliseconds(40))
+        let ssh = Task {
+            await coordinator.enqueue(sshRequest, clientName: "Claude", runID: UUID())
+        }
+        try await waitUntil { coordinator.current?.id == sshRequest.id }
+        let secret = Task {
+            await coordinator.enqueue(request, clientName: "Codex", runID: UUID())
+        }
+        try await waitUntil { coordinator.pending.count == 2 }
+
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(coordinator.current?.id == sshRequest.id)
+        #expect(coordinator.pending.contains { $0.id == request.id })
+
+        coordinator.respondSSH(.cancelled)
+        #expect(await ssh.value == .cancelled)
+        #expect(coordinator.current?.id == request.id)
+        #expect(await secret.value == .timedOut)
+        #expect(coordinator.pending.isEmpty)
+    }
+
+    @Test
+    func answeredSecretCannotLaterRetireANewerPopup() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let request = secretRequest(timeout: .milliseconds(40))
+        let secret = Task {
+            await coordinator.enqueue(request, clientName: "Claude", runID: UUID())
+        }
+        try await waitUntil { coordinator.current?.id == request.id }
+        coordinator.respondSecret(.answered([
+            AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
+        ]))
+        guard case .answered = await secret.value else {
+            Issue.record("expected the secret request to be answered")
+            return
+        }
+
+        let sshRequest = authenticationRequest(name: "Next")
+        let ssh = Task {
+            await coordinator.enqueue(sshRequest, clientName: "Codex", runID: UUID())
+        }
+        try await waitUntil { coordinator.current?.id == sshRequest.id }
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(coordinator.current?.id == sshRequest.id)
+
+        coordinator.respondSSH(.cancelled)
+        #expect(await ssh.value == .cancelled)
+    }
 }
 
 @Suite(.serialized)
@@ -179,6 +245,13 @@ private func authenticationRequest(name: String) -> AgentSSHAuthenticationReques
     AgentSSHAuthenticationRequest(
         invocationID: UUID(), hostID: UUID(), displayName: name,
         address: "host.example", mode: .identity, username: "root"
+    )
+}
+
+private func secretRequest(timeout: Duration) -> AgentUserInputRequest {
+    AgentUserInputRequest(
+        questions: [AgentUserQuestion(id: "secret", prompt: "Secret", kind: .secret)],
+        purpose: "test", hostID: UUID(), timeout: timeout
     )
 }
 

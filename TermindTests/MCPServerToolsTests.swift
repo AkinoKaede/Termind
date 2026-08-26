@@ -87,6 +87,9 @@ struct MCPServerToolsTests {
             if case .secret? = authentication.current?.request { return true }
             return false
         }
+        if case .secret(let request)? = authentication.current?.request {
+            #expect(request.timeout == .seconds(300))
+        }
         authentication.respondSecret(.answered([
             AgentUserInputAnswer(questionID: "secret", value: .secret("TOP-SECRET"))
         ]))
@@ -116,6 +119,41 @@ struct MCPServerToolsTests {
                 )
             )
         }
+    }
+
+    @Test
+    func timedOutSecretPromptReturnsAnErrorAndIssuesNoHandle() async throws {
+        let authentication = ExternalAuthCoordinator()
+        let server = makeMCPServerTools(externalAuthentication: authentication)
+        let broker = SecretBroker()
+        let call = Task {
+            try await server.call(
+                name: "request_user_secret",
+                arguments: .object([
+                    "prompt": .string("Password for sudo"),
+                    "host_id": .string(UUID().uuidString),
+                    "consumer_tool": .string("ssh_exec"),
+                    "purpose": .string("sudo password"),
+                    "timeout_seconds": .number(17),
+                ]),
+                runID: UUID(), clientName: "Claude Code", callID: "secret-timeout",
+                secretBroker: broker
+            )
+        }
+        try await waitForMCPCondition {
+            if case .secret? = authentication.current?.request { return true }
+            return false
+        }
+        if case .secret(let request)? = authentication.current?.request {
+            #expect(request.timeout == .seconds(17))
+        }
+
+        authentication.respondSecret(.timedOut)
+
+        let result = try await call.value
+        #expect(result.isError)
+        #expect(result.content == "User input timed out after 17 seconds.")
+        #expect(await broker.count == 0)
     }
 
     @Test

@@ -10,6 +10,89 @@ struct AgentUserInputTests {
     // MARK: - Parsing the tool's questions
 
     @Test
+    func userInputToolsExposeOptionalBoundedTimeouts() throws {
+        for tool in [AgentBuiltInTools.requestUserInput(), AgentBuiltInTools.requestUserSecret()] {
+            let schema = tool.descriptor.inputSchema
+            let properties = try #require(schema.objectValue?["properties"]?.objectValue)
+            let timeout = try #require(properties["timeout_seconds"]?.objectValue)
+            let required = schema.objectValue?["required"]?.arrayValue?.compactMap(\.stringValue)
+
+            #expect(timeout["type"] == .string("integer"))
+            #expect(timeout["minimum"] == .number(1))
+            #expect(timeout["maximum"] == .number(1_800))
+            #expect(required?.contains("timeout_seconds") == false)
+
+            #expect(throws: Never.self) {
+                try AgentJSONSchemaValidator.validate(
+                    argumentsFor(tool.descriptor.name, timeout: 1), against: schema
+                )
+            }
+            #expect(throws: Never.self) {
+                try AgentJSONSchemaValidator.validate(
+                    argumentsFor(tool.descriptor.name, timeout: 1_800), against: schema
+                )
+            }
+            #expect(throws: AgentSchemaError.self) {
+                try AgentJSONSchemaValidator.validate(
+                    argumentsFor(tool.descriptor.name, timeout: 0), against: schema
+                )
+            }
+            #expect(throws: AgentSchemaError.self) {
+                try AgentJSONSchemaValidator.validate(
+                    argumentsFor(tool.descriptor.name, timeout: 1_801), against: schema
+                )
+            }
+        }
+    }
+
+    @Test
+    func requestsDefaultToFiveMinutes() {
+        #expect(request(multiple: false).timeout == .seconds(300))
+    }
+
+    @Test
+    func requestUserInputAppliesDefaultAndExplicitTimeoutsToThePresentedRequest() async {
+        let interaction = TimeoutRecordingUserInteraction()
+        let tool = AgentBuiltInTools.requestUserInput()
+
+        for expectedSeconds in [300, 17] {
+            var object: [String: AgentJSONValue] = [
+                "questions": .array([
+                    .object(["id": .string("q"), "prompt": .string("Question?")])
+                ])
+            ]
+            if expectedSeconds != 300 {
+                object["timeout_seconds"] = .number(Double(expectedSeconds))
+            }
+            let invocation = AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(
+                    id: "timeout-\(expectedSeconds)", name: "request_user_input",
+                    arguments: .object(object)
+                )
+            )
+
+            do {
+                _ = try await tool.execute(
+                    invocation,
+                    context: AgentToolExecutionContext(
+                        runID: invocation.runID, userIntent: "ask",
+                        secretBroker: SecretBroker(), userInteraction: interaction,
+                        preflightMetadata: [:], authorize: { _ in .allow }
+                    )
+                )
+                Issue.record("expected timeout to fail the tool")
+            } catch {
+                #expect(
+                    error.localizedDescription
+                        == "User input timed out after \(expectedSeconds) seconds."
+                )
+            }
+            #expect(await interaction.lastRequest?.timeout == .seconds(expectedSeconds))
+        }
+    }
+
+    @Test
     func questionsCarryTheirOptionsDescriptionsAndRecommendations() throws {
         let questions = try arguments([
             "questions": .array([
@@ -379,6 +462,123 @@ struct AgentUserInputTests {
     }
 
     @Test
+    func timingOutDiscardsEveryDraftAndReturnsNoPartialAnswers() async {
+        let conversation = ConversationModel()
+        var pending = threeQuestions()
+        pending.timeout = .milliseconds(40)
+        let answering = Task { await conversation.request(pending) }
+        await settle(conversation)
+
+        conversation.toggleUserInputOption("postgres", in: "storage")
+        conversation.advanceUserInputQuestion()
+        conversation.toggleUserInputOption("flyway", in: "migrations")
+
+        #expect(await answering.value == .timedOut)
+        #expect(conversation.pendingUserInput == nil)
+        #expect(conversation.userInputDrafts.isEmpty)
+        #expect(conversation.secretInputDraft.isEmpty)
+        #expect(conversation.skippedUserInputQuestionIDs.isEmpty)
+        #expect(conversation.currentUserInputQuestionIndex == 0)
+    }
+
+    @Test
+    func navigatingBetweenQuestionsDoesNotResetTheRequestDeadline() async throws {
+        let conversation = ConversationModel()
+        var pending = threeQuestions()
+        pending.timeout = .milliseconds(200)
+        let answering = Task { await conversation.request(pending) }
+        await settle(conversation)
+
+        try await Task.sleep(for: .milliseconds(150))
+        conversation.toggleUserInputOption("postgres", in: "storage")
+        conversation.advanceUserInputQuestion()
+        conversation.previousUserInputQuestion()
+        try await Task.sleep(for: .milliseconds(100))
+
+        #expect(conversation.pendingUserInput == nil)
+        if conversation.pendingUserInput != nil { conversation.cancelUserInput() }
+        #expect(await answering.value == .timedOut)
+    }
+
+    @Test
+    func timingOutASecretClearsItsDedicatedDraft() async {
+        let conversation = ConversationModel()
+        let pending = AgentUserInputRequest(
+            questions: [AgentUserQuestion(id: "secret", prompt: "Password?", kind: .secret)],
+            timeout: .milliseconds(40)
+        )
+        let answering = Task { await conversation.request(pending) }
+        await settle(conversation)
+        conversation.secretInputDraft = "never-return-this"
+
+        #expect(await answering.value == .timedOut)
+        #expect(conversation.secretInputDraft.isEmpty)
+        #expect(conversation.pendingUserInput == nil)
+    }
+
+    @Test
+    func queuedRequestGetsItsFullTimeoutOnlyAfterItBecomesVisible() async throws {
+        let conversation = ConversationModel()
+        var firstRequest = request(multiple: false)
+        firstRequest.timeout = .milliseconds(300)
+        var secondRequest = request(multiple: false)
+        secondRequest.timeout = .milliseconds(40)
+
+        let first = Task { await conversation.request(firstRequest) }
+        await settle(conversation)
+        let second = Task { await conversation.request(secondRequest) }
+        try await waitUntil { conversation.pendingUserInputs.count == 2 }
+
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(conversation.pendingUserInput?.id == firstRequest.id)
+        #expect(conversation.pendingUserInputs.contains { $0.id == secondRequest.id })
+
+        conversation.cancelUserInput()
+        #expect(await first.value == .cancelled)
+        #expect(conversation.pendingUserInput?.id == secondRequest.id)
+        #expect(await second.value == .timedOut)
+        #expect(conversation.pendingUserInput == nil)
+    }
+
+    @Test
+    func answeringCancelsTheOldDeadlineBeforeTheNextRequest() async throws {
+        let conversation = ConversationModel()
+        var firstRequest = request(multiple: false)
+        firstRequest.timeout = .milliseconds(40)
+        var secondRequest = request(multiple: false)
+        secondRequest.timeout = .milliseconds(200)
+
+        let first = Task { await conversation.request(firstRequest) }
+        await settle(conversation)
+        conversation.toggleUserInputOption("sqlite", in: "storage")
+        conversation.submitUserInput()
+        guard case .answered = await first.value else {
+            Issue.record("expected the first request to be answered")
+            return
+        }
+
+        let second = Task { await conversation.request(secondRequest) }
+        await settle(conversation)
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(conversation.pendingUserInput?.id == secondRequest.id)
+
+        conversation.cancelUserInput()
+        #expect(await second.value == .cancelled)
+    }
+
+    @Test
+    func cancellingTheWaitingTaskRemovesItsPrompt() async {
+        let conversation = ConversationModel()
+        let answering = Task { await conversation.request(request(multiple: false)) }
+        await settle(conversation)
+
+        answering.cancel()
+
+        #expect(await answering.value == .cancelled)
+        #expect(conversation.pendingUserInput == nil)
+    }
+
+    @Test
     func submittingNothingIsRefusedRatherThanSentAsAnEmptyAnswerList() async {
         let conversation = ConversationModel()
         let answering = Task { await conversation.request(request(multiple: false)) }
@@ -519,6 +719,22 @@ struct AgentUserInputTests {
         row.objectValue?[key]
     }
 
+    private func argumentsFor(_ toolName: String, timeout: Int) -> AgentJSONValue {
+        if toolName == "request_user_secret" {
+            return .object([
+                "prompt": .string("Password"), "host_id": .string(UUID().uuidString),
+                "consumer_tool": .string("ssh_exec"), "purpose": .string("sudo"),
+                "timeout_seconds": .number(Double(timeout)),
+            ])
+        }
+        return .object([
+            "questions": .array([
+                .object(["id": .string("q"), "prompt": .string("Question?")])
+            ]),
+            "timeout_seconds": .number(Double(timeout)),
+        ])
+    }
+
     private func arguments(_ object: [String: AgentJSONValue]) throws -> Arguments {
         try Arguments(
             AgentToolInvocation(
@@ -580,5 +796,30 @@ struct AgentUserInputTests {
             await Task.yield()
         }
         #expect(conversation.pendingUserInput != nil, "the request never became pending")
+    }
+
+    private func waitUntil(_ condition: @MainActor () -> Bool) async throws {
+        for _ in 0..<100 {
+            if condition() { return }
+            await Task.yield()
+        }
+        throw AgentUserInputTestFailure.timedOut
+    }
+}
+
+private enum AgentUserInputTestFailure: Error { case timedOut }
+
+private actor TimeoutRecordingUserInteraction: AgentUserInteractionHandling {
+    private(set) var lastRequest: AgentUserInputRequest?
+
+    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
+        lastRequest = request
+        return .timedOut
+    }
+
+    func requestSSHAuthentication(
+        _ request: AgentSSHAuthenticationRequest
+    ) async -> AgentSSHAuthenticationResponse {
+        .cancelled
     }
 }

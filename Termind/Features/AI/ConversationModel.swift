@@ -546,6 +546,7 @@ final class ConversationModel: Identifiable {
     private var eventTask: Task<Void, Never>?
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
     private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
+    private var userInputTimeoutTask: Task<Void, Never>?
     private var sshAuthenticationWaiters: [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
 
     /// Whether the agent may only look.
@@ -1476,8 +1477,16 @@ final class ConversationModel: Identifiable {
     }
 
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
-        present(request)
-        return await withCheckedContinuation { inputWaiters[request.id] = $0 }
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                inputWaiters[request.id] = continuation
+                present(request)
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.cancelUserInput(request.id)
+            }
+        }
     }
 
     func requestSSHAuthentication(
@@ -1505,7 +1514,10 @@ final class ConversationModel: Identifiable {
         pendingUserInputs.append(request)
         // Only the head is being answered, so only the head's drafts exist. A
         // queued question gets a blank sheet when it reaches the front.
-        if pendingUserInputs.count == 1 { clearUserInputDrafts() }
+        if pendingUserInputs.count == 1 {
+            clearUserInputDrafts()
+            scheduleUserInputTimeout()
+        }
         refreshRunState()
     }
 
@@ -1640,8 +1652,7 @@ final class ConversationModel: Identifiable {
 
     func cancelUserInput() {
         guard let request = pendingUserInput else { return }
-        advanceUserInput()
-        inputWaiters.removeValue(forKey: request.id)?.resume(returning: .cancelled)
+        cancelUserInput(request.id)
     }
 
     private func question(_ id: String) -> AgentUserQuestion? {
@@ -1650,9 +1661,51 @@ final class ConversationModel: Identifiable {
 
     /// Retires the answered question and hands a clean sheet to the next one.
     private func advanceUserInput() {
+        userInputTimeoutTask?.cancel()
+        userInputTimeoutTask = nil
         if !pendingUserInputs.isEmpty { pendingUserInputs.removeFirst() }
         clearUserInputDrafts()
+        scheduleUserInputTimeout()
         refreshRunState()
+    }
+
+    /// Removes one request by identity. Cancellation may target a queued call,
+    /// while timeout only targets the visible head; neither is allowed to
+    /// retire whichever request happens to be current by the time it arrives.
+    private func cancelUserInput(_ id: UUID) {
+        guard let index = pendingUserInputs.firstIndex(where: { $0.id == id }) else { return }
+        let wasCurrent = index == pendingUserInputs.startIndex
+        pendingUserInputs.remove(at: index)
+        if wasCurrent {
+            userInputTimeoutTask?.cancel()
+            userInputTimeoutTask = nil
+            clearUserInputDrafts()
+            scheduleUserInputTimeout()
+            refreshRunState()
+        }
+        inputWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
+    }
+
+    private func scheduleUserInputTimeout() {
+        userInputTimeoutTask?.cancel()
+        guard let request = pendingUserInput else {
+            userInputTimeoutTask = nil
+            return
+        }
+        userInputTimeoutTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: request.timeout)
+            } catch {
+                return
+            }
+            self?.timeOutUserInput(request.id)
+        }
+    }
+
+    private func timeOutUserInput(_ id: UUID) {
+        guard pendingUserInput?.id == id else { return }
+        advanceUserInput()
+        inputWaiters.removeValue(forKey: id)?.resume(returning: .timedOut)
     }
 
     private func clearUserInputDrafts() {

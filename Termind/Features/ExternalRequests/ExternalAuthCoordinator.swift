@@ -48,6 +48,7 @@ final class ExternalAuthCoordinator {
         [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
     private var secretWaiters:
         [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
+    private var secretTimeoutTask: Task<Void, Never>?
 
     var current: Pending? { pending.first }
 
@@ -58,9 +59,11 @@ final class ExternalAuthCoordinator {
     func enqueue(
         _ request: AgentSSHAuthenticationRequest, clientName: String, runID: UUID
     ) async -> AgentSSHAuthenticationResponse {
-        append(.ssh(request), clientName: clientName, runID: runID)
         return await withTaskCancellationHandler {
-            await withCheckedContinuation { sshWaiters[request.id] = $0 }
+            await withCheckedContinuation { continuation in
+                sshWaiters[request.id] = continuation
+                append(.ssh(request), clientName: clientName, runID: runID)
+            }
         } onCancel: {
             Task { @MainActor [weak self] in self?.cancel(request.id) }
         }
@@ -72,9 +75,11 @@ final class ExternalAuthCoordinator {
         guard request.questions.count == 1,
             request.questions.allSatisfy({ if case .secret = $0.kind { true } else { false } })
         else { return .cancelled }
-        append(.secret(request), clientName: clientName, runID: runID)
         return await withTaskCancellationHandler {
-            await withCheckedContinuation { secretWaiters[request.id] = $0 }
+            await withCheckedContinuation { continuation in
+                secretWaiters[request.id] = continuation
+                append(.secret(request), clientName: clientName, runID: runID)
+            }
         } onCancel: {
             Task { @MainActor [weak self] in self?.cancel(request.id) }
         }
@@ -93,6 +98,8 @@ final class ExternalAuthCoordinator {
     func windowClosed() { cancelAll() }
 
     func cancelAll() {
+        secretTimeoutTask?.cancel()
+        secretTimeoutTask = nil
         let sshContinuations = sshWaiters.values
         let secretContinuations = secretWaiters.values
         sshWaiters.removeAll()
@@ -117,6 +124,8 @@ final class ExternalAuthCoordinator {
 
     private func removeCurrent() -> Pending? {
         guard !pending.isEmpty else { return nil }
+        secretTimeoutTask?.cancel()
+        secretTimeoutTask = nil
         let request = pending.removeFirst()
         if !pending.isEmpty { presentCurrent() }
         return request
@@ -124,6 +133,7 @@ final class ExternalAuthCoordinator {
 
     private func presentCurrent() {
         presentationRevision &+= 1
+        scheduleSecretTimeout()
         #if canImport(AppKit)
             NSApp.activate(ignoringOtherApps: true)
         #endif
@@ -132,8 +142,35 @@ final class ExternalAuthCoordinator {
     private func cancel(_ id: UUID) {
         let wasCurrent = pending.first?.id == id
         pending.removeAll { $0.id == id }
+        if wasCurrent {
+            secretTimeoutTask?.cancel()
+            secretTimeoutTask = nil
+        }
         sshWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
         secretWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
         if wasCurrent, !pending.isEmpty { presentCurrent() }
+    }
+
+    private func scheduleSecretTimeout() {
+        secretTimeoutTask?.cancel()
+        guard case .secret(let request)? = current?.request else {
+            secretTimeoutTask = nil
+            return
+        }
+        secretTimeoutTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: request.timeout)
+            } catch {
+                return
+            }
+            self?.timeOutSecret(request.id)
+        }
+    }
+
+    private func timeOutSecret(_ id: UUID) {
+        guard case .secret? = current?.request, current?.id == id,
+            let request = removeCurrent()
+        else { return }
+        secretWaiters.removeValue(forKey: request.id)?.resume(returning: .timedOut)
     }
 }

@@ -49,7 +49,11 @@ nonisolated extension AgentBuiltInTools {
                         required: ["id", "prompt"]
                     ),
                     max: AgentUserInputLimits.maxQuestions
-                )
+                ),
+                "timeout_seconds": integer(
+                    min: AgentUserInputLimits.minimumTimeoutSeconds,
+                    max: AgentUserInputLimits.maximumTimeoutSeconds
+                ),
             ], required: ["questions"], target: .user, safety: .locallyReadOnly,
             presentation: .init(
                 symbol: "questionmark.circle",
@@ -60,14 +64,23 @@ nonisolated extension AgentBuiltInTools {
                 action: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
             )
         )) { invocation, context in
-            let questions = try Arguments(invocation).userQuestions()
+            let arguments = try Arguments(invocation)
+            let questions = try arguments.userQuestions()
+            let timeoutSeconds = arguments.optionalInt("timeout_seconds")
+                ?? AgentUserInputLimits.defaultTimeoutSeconds
             let response = await context.userInteraction.request(
-                AgentUserInputRequest(questions: questions)
+                AgentUserInputRequest(
+                    questions: questions, timeout: .seconds(timeoutSeconds)
+                )
             )
-            guard case .answered(let answers) = response else { throw AgentToolError.cancelled }
-            return result(invocation, .object([
-                "answers": .array(reported(questions, answers))
-            ]))
+            switch response {
+            case .answered(let answers):
+                return result(invocation, .object([
+                    "answers": .array(reported(questions, answers))
+                ]))
+            case .cancelled: throw AgentToolError.cancelled
+            case .timedOut: throw AgentToolError.userInputTimedOut(timeoutSeconds)
+            }
         }
     }
 
@@ -128,6 +141,10 @@ nonisolated extension AgentBuiltInTools {
             properties: [
                 "prompt": string(max: 4_096), "host_id": string(),
                 "consumer_tool": enumeration(["ssh_exec"]), "purpose": string(max: 256),
+                "timeout_seconds": integer(
+                    min: AgentUserInputLimits.minimumTimeoutSeconds,
+                    max: AgentUserInputLimits.maximumTimeoutSeconds
+                ),
             ], required: ["prompt", "host_id", "consumer_tool", "purpose"],
             // Sequential, by the default, and it should stay that way despite
             // being read-only: this and `request_user_input` are the two tools
@@ -143,6 +160,8 @@ nonisolated extension AgentBuiltInTools {
             let hostID = try arguments.uuid("host_id")
             let toolName = try arguments.string("consumer_tool")
             let purpose = try arguments.string("purpose")
+            let timeoutSeconds = arguments.optionalInt("timeout_seconds")
+                ?? AgentUserInputLimits.defaultTimeoutSeconds
             // One question, always. A secret is not a decision among options and
             // has no business sharing a form with one.
             let request = AgentUserInputRequest(
@@ -151,7 +170,8 @@ nonisolated extension AgentBuiltInTools {
                         id: "secret", prompt: try arguments.string("prompt"), kind: .secret
                     )
                 ],
-                purpose: purpose, hostID: hostID
+                purpose: purpose, hostID: hostID,
+                timeout: .seconds(timeoutSeconds)
             )
             switch await context.userInteraction.request(request) {
             case .answered(let answers):
@@ -174,6 +194,7 @@ nonisolated extension AgentBuiltInTools {
                     "secret_handle": .string(handle.id.uuidString), "single_use": .bool(true),
                 ]))
             case .cancelled: throw AgentToolError.cancelled
+            case .timedOut: throw AgentToolError.userInputTimedOut(timeoutSeconds)
             }
         }
     }

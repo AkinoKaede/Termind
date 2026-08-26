@@ -207,6 +207,9 @@ nonisolated enum AgentUserInputLimits {
     /// Codex's ceiling, and for the same reason: past three, a form stops being
     /// a decision and starts being a questionnaire.
     static let maxQuestions = 3
+    static let minimumTimeoutSeconds = 1
+    static let maximumTimeoutSeconds = 30 * 60
+    static let defaultTimeoutSeconds = 5 * 60
 }
 
 /// One thing the agent needs decided.
@@ -247,6 +250,9 @@ nonisolated struct AgentUserInputRequest: Identifiable, Hashable, Sendable {
     var questions: [AgentUserQuestion]
     var purpose: String = ""
     var hostID: UUID?
+    /// Starts when this request reaches the head of its presentation queue.
+    /// Time spent behind another prompt does not consume this duration.
+    var timeout: Duration = .seconds(AgentUserInputLimits.defaultTimeoutSeconds)
 }
 
 /// What has been filled into one question so far.
@@ -282,6 +288,7 @@ nonisolated enum AgentUserInputResponse: Hashable, Sendable {
     /// absence carries it, and the tool reports it to the model as a null.
     case answered([AgentUserInputAnswer])
     case cancelled
+    case timedOut
 }
 
 /// A local SSH checkpoint raised by an Agent Exec or SFTP connection. Unlike
