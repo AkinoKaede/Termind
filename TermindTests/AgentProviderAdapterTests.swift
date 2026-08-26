@@ -339,7 +339,7 @@ struct AgentProviderAdapterTests {
     }
 
     @Test
-    func openAIResponsesParsesCompatibleCompletedResponseWithEmptyArguments() {
+    func openAIResponsesParsesBufferedCompletedResponseWithEmptyArguments() {
         let response: [String: Any] = [
             "object": "response", "status": "completed",
             "output": [
@@ -361,15 +361,22 @@ struct AgentProviderAdapterTests {
         #expect(events.firstTool?.arguments == "")
         #expect(events.containsFinish == .toolCalls)
 
-        var ids: [String: String] = [:]
-        var names: [String: String] = [:]
-        let completedEvent = AgentProviderClient.parseResponses(
-            "response.completed", response,
-            callIDs: &ids, callNames: &names
+    }
+
+    @Test
+    func responseCompletedRejectsTopLevelResponseObject() {
+        let events = AgentProviderClient.parseResponses(
+            "response.completed",
+            [
+                "object": "response", "status": "completed",
+                "output": [[
+                    "type": "message",
+                    "content": [["type": "output_text", "text": "Wrong envelope"]],
+                ]],
+            ]
         )
-        #expect(completedEvent.firstText == "Checking hosts.")
-        #expect(completedEvent.firstTool?.name == "list_hosts")
-        #expect(completedEvent.containsFinish == .toolCalls)
+
+        #expect(events.isEmpty)
     }
 
     @Test

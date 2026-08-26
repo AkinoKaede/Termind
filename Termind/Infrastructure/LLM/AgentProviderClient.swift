@@ -136,7 +136,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                     }
                     for try await event in SSEStream.events(from: bytes) {
                         if event.data == "[DONE]" { break }
-                        for item in parse(
+                        for item in try parse(
                             event, chatCallIDs: &chatCallIDs,
                             anthropicState: &anthropicState,
                             responseCallIDs: &responseCallIDs,
@@ -373,7 +373,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         responseCallIDs: inout [String: String],
         responseCallNames: inout [String: String],
         wireNames: [String: String]
-    ) -> [AgentModelStreamEvent] {
+    ) throws -> [AgentModelStreamEvent] {
         guard let data = event.data.data(using: .utf8),
             let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return [] }
@@ -383,6 +383,11 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         let eventType = Self.streamEventType(event, root: root)
         switch provider.kind {
         case .openAI where provider.usesResponsesAPI:
+            if eventType == "response.completed",
+                root["response"] as? [String: Any] == nil
+            {
+                throw AgentProviderError.invalidResponse
+            }
             return Self.parseResponses(
                 eventType, root, callIDs: &responseCallIDs,
                 callNames: &responseCallNames
@@ -424,7 +429,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         var responseCallNames: [String: String] = [:]
         var output: [AgentModelStreamEvent] = []
         for event in SSEStream.events(in: data) where event.data != "[DONE]" {
-            output += parse(
+            output += try parse(
                 event, chatCallIDs: &chatCallIDs,
                 anthropicState: &anthropicState,
                 responseCallIDs: &responseCallIDs,
@@ -808,11 +813,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 arguments: item["arguments"] as? String ?? ""
             )]
         case "response.completed":
-            if root["response"] is [String: Any] || root["output"] is [[String: Any]] {
-                let events = parseCompletedResponses(root)
-                return events
-            }
-            return [.finished(.completed)]
+            guard root["response"] is [String: Any] else { return [] }
+            return parseCompletedResponses(root)
         case "response.incomplete": return [.finished(.length)]
         case "response.failed": return [.finished(.error)]
         default:
