@@ -5,11 +5,26 @@ import SwiftUI
 /// Shared by the session Assistant sidebar and full Assistant tab so the two can never drift; only
 /// the padding and the provider header differ.
 struct ConversationView: View {
+    private enum ScrollTarget: Hashable { case bottom }
+
+    private struct TranscriptScrollMetrics: Equatable {
+        let isAtBottom: Bool
+        let contentHeight: CGFloat
+    }
+
     let conversation: ConversationModel
     var isCompact: Bool = false
     /// Forwarded to the composer. Only the sidebar has a focused pane to
     /// describe, so only the sidebar passes one.
     var sessionContext: SessionContext = .none
+    /// A conversation can be shown on both surfaces. Terminal actions belong
+    /// to the Workspace sidebar displaying it, not to the conversation itself.
+    var showsTerminalActions = false
+
+    @State private var isAtTranscriptBottom = true
+    @State private var isFollowingTranscriptBottom = true
+    @State private var isUserScrollingTranscript = false
+    @State private var isTranscriptScrollPending = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,7 +59,8 @@ struct ConversationView: View {
             ComposerView(
                 conversation: conversation,
                 maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
-                sessionContext: sessionContext
+                sessionContext: sessionContext,
+                includesTerminalSuggestion: showsTerminalActions
             )
         }
     }
@@ -70,6 +86,9 @@ struct ConversationView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
+                        Color.clear
+                            .frame(height: 1)
+                            .id(ScrollTarget.bottom)
                     }
                 }
                 // Horizontal padding belongs to the column, not to each turn:
@@ -82,14 +101,73 @@ struct ConversationView: View {
                 )
                 .frame(maxWidth: .infinity)
             }
-            // Keyed on the last row's revision, not on a count. Streaming text
-            // grows one message without adding a row, so a count never changed
-            // and the transcript stopped following the reply it was showing.
-            .onChange(of: conversation.timeline.last?.revision) {
-                guard let last = conversation.timeline.last else { return }
-                withAnimation(Motion.tabSwitch) { proxy.scrollTo(last.id, anchor: .bottom) }
+            .onScrollGeometryChange(for: TranscriptScrollMetrics.self) { geometry in
+                TranscriptScrollMetrics(
+                    isAtBottom: geometry.visibleRect.maxY
+                        >= geometry.contentSize.height - Metrics.Space.l,
+                    contentHeight: geometry.contentSize.height
+                )
+            } action: { oldMetrics, newMetrics in
+                isAtTranscriptBottom = newMetrics.isAtBottom
+                if isUserScrollingTranscript {
+                    isFollowingTranscriptBottom = newMetrics.isAtBottom
+                }
+
+                // A token only needs a scroll when it actually wraps or adds a
+                // block. Watching text revisions scheduled work for every token
+                // even though most of them did not move the bottom at all.
+                if oldMetrics.contentHeight != newMetrics.contentHeight {
+                    requestScrollToBottom()
+                }
+            }
+            .onScrollPhaseChange { _, phase in
+                switch phase {
+                case .tracking, .interacting, .decelerating:
+                    isUserScrollingTranscript = true
+                    if !isAtTranscriptBottom {
+                        isFollowingTranscriptBottom = false
+                    }
+                case .idle:
+                    if isUserScrollingTranscript {
+                        isFollowingTranscriptBottom = isAtTranscriptBottom
+                    }
+                    isUserScrollingTranscript = false
+                case .animating:
+                    // Programmatic scrolling is not an instruction to stop
+                    // following. Only direct user interaction changes it.
+                    break
+                }
+            }
+            // Sending a new prompt is an explicit return to the live edge,
+            // even if the reader had previously scrolled up through history.
+            .onChange(of: conversation.messages.last(where: { $0.role == .user })?.id) {
+                requestScrollToBottom(force: true)
+            }
+            .task(id: isTranscriptScrollPending) {
+                // One view-owned debounce coalesces rapid layout changes.
+                // Unlike an unstructured Task per token, it is cancelled with
+                // the Sidebar and can never retain a stale ScrollViewProxy.
+                guard isTranscriptScrollPending else { return }
+                do {
+                    try await Task.sleep(for: .milliseconds(80))
+                } catch {
+                    return
+                }
+
+                guard isFollowingTranscriptBottom else {
+                    isTranscriptScrollPending = false
+                    return
+                }
+                proxy.scrollTo(ScrollTarget.bottom, anchor: .bottom)
+                isTranscriptScrollPending = false
             }
         }
+    }
+
+    private func requestScrollToBottom(force: Bool = false) {
+        guard force || isFollowingTranscriptBottom else { return }
+        if force { isFollowingTranscriptBottom = true }
+        isTranscriptScrollPending = true
     }
 
     @ViewBuilder
@@ -98,7 +176,10 @@ struct ConversationView: View {
         case .message(let message) where message.role == .user:
             UserMessageView(message: message, isCompact: isCompact)
         case .message(let message):
-            AssistantMessageView(message: message, isCompact: isCompact)
+            AssistantMessageView(
+                message: message, isCompact: isCompact,
+                showsTerminalActions: showsTerminalActions
+            )
         case .tool(let card):
             AgentToolRowView(card: card)
         }
@@ -148,6 +229,8 @@ private struct AgentToolRowView: View {
                         .font(MarkdownTypography.body)
                         .lineLimit(isExpanded ? nil : 1)
                         .truncationMode(.tail)
+                        .foregroundStyle(card.state == .running ? .secondary : .primary)
+                        .modifier(ScanningTextMask(isActive: card.state == .running))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Spacer(minLength: Metrics.Space.s)
                     if card.state == .reviewing {

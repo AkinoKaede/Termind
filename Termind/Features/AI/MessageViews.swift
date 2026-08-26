@@ -53,6 +53,7 @@ struct UserMessageView: View {
 struct AssistantMessageView: View {
     let message: ChatMessage
     var isCompact = false
+    var showsTerminalActions = false
 
     @State private var isHovering = false
 
@@ -78,7 +79,9 @@ struct AssistantMessageView: View {
             }
 
             ForEach(message.commands) { command in
-                CommandCardView(command: command)
+                CommandCardView(
+                    command: command, showsTerminalActions: showsTerminalActions
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -89,46 +92,97 @@ struct AssistantMessageView: View {
     }
 }
 
-/// A compact waveform rather than a generic spinner. Four offset bars make
-/// progress feel alive without implying a measurable percentage, while the
-/// label says plainly why the conversation is waiting.
+/// A quiet, text-only activity indicator. The wording changes occasionally so
+/// a long wait does not feel frozen, while the transparent scan supplies the
+/// continuous motion shared by running tool titles.
 private struct WorkingIndicator: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var statusIndex = 0
+
+    private static let statuses = [
+        "Working…",
+        "Thinking…",
+        "Reasoning…",
+    ]
 
     var body: some View {
-        HStack(spacing: Metrics.Space.m) {
-            if reduceMotion {
-                bars(phase: 0)
-            } else {
-                TimelineView(.animation) { timeline in
-                    bars(phase: timeline.date.timeIntervalSinceReferenceDate * 5)
+        Text(Self.statuses[statusIndex])
+            .font(.callout.weight(.medium))
+            .foregroundStyle(.secondary)
+            .modifier(ScanningTextMask(isActive: true))
+            .padding(.vertical, Metrics.Space.xs)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(Self.statuses[statusIndex]))
+            .task(id: reduceMotion) {
+                if reduceMotion {
+                    statusIndex = 0
+                    return
+                }
+
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2.8))
+                    guard !Task.isCancelled else { return }
+
+                    // Pick any other phrase, so a timer tick always produces a
+                    // visible change instead of randomly choosing the same item.
+                    let offset = Int.random(in: 1..<Self.statuses.count)
+                    statusIndex = (statusIndex + offset) % Self.statuses.count
                 }
             }
-
-            Text("Working…")
-                .font(.callout.weight(.medium))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.m)
-        .background(
-            .quaternary.opacity(0.36),
-            in: .capsule
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("Working"))
     }
+}
 
-    private func bars(phase: TimeInterval) -> some View {
-        HStack(alignment: .center, spacing: 3) {
-            ForEach(0..<4, id: \.self) { index in
-                let pulse = (sin(phase - Double(index) * 0.85) + 1) / 2
-                Capsule()
-                    .fill(Color.accentColor.opacity(0.48 + pulse * 0.5))
-                    .frame(width: 4, height: 6 + pulse * 12)
+/// Cuts a soft transparent notch out of active text and moves it from leading
+/// to trailing, matching the familiar "Thinking" text treatment. The text is
+/// the only moving surface; surrounding controls stay still.
+struct ScanningTextMask: ViewModifier {
+    let isActive: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        if isActive, !reduceMotion {
+            content.mask {
+                GeometryReader { geometry in
+                    TimelineView(.animation) { timeline in
+                        let duration = 1.55
+                        let progress = timeline.date.timeIntervalSinceReferenceDate
+                            .truncatingRemainder(dividingBy: duration) / duration
+                        // The reference treatment loses roughly one third of
+                        // the word at a time: a fully transparent center with
+                        // long, soft shoulders rather than a narrow glint.
+                        let bandWidth = min(max(geometry.size.width * 0.32, 40), 96)
+
+                        ZStack(alignment: .leading) {
+                            Rectangle().fill(.white)
+
+                            LinearGradient(
+                                colors: [
+                                    .clear,
+                                    .white.opacity(0.34),
+                                    .white.opacity(0.82),
+                                    .white,
+                                    .white.opacity(0.82),
+                                    .white.opacity(0.34),
+                                    .clear,
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: bandWidth)
+                            .offset(
+                                x: -bandWidth
+                                    + (geometry.size.width + bandWidth) * progress
+                            )
+                            .blendMode(.destinationOut)
+                        }
+                        .compositingGroup()
+                    }
+                }
             }
+        } else {
+            content
         }
-        .frame(width: 25, height: 20)
     }
 }
 

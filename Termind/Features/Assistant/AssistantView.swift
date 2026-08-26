@@ -79,10 +79,12 @@ struct AssistantPanelView: View {
                 conversation: window.sidebar.assistantDraft,
                 prompt: "Ask anything…",
                 sessionContext: window.sidebar.sessionContext,
+                includesTerminalSuggestion: true,
                 onSend: {
                     if let conversation = window.sendAssistantSidebarDraft() {
                         app.startAgentRun(
-                            conversation, context: window.sidebar.sessionContext
+                            conversation, context: window.sidebar.sessionContext,
+                            includesTerminalSuggestion: true
                         )
                     }
                 }
@@ -157,7 +159,8 @@ struct AssistantPanelView: View {
             Divider()
             ConversationView(
                 conversation: conversation, isCompact: true,
-                sessionContext: window.sidebar.sessionContext
+                sessionContext: window.sidebar.sessionContext,
+                showsTerminalActions: true
             )
         }
     }

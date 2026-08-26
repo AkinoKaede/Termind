@@ -197,7 +197,11 @@ final class AppModel {
         }
     }
 
-    func sendAgentDraft(_ conversation: ConversationModel, context: SessionContext = .none) {
+    func sendAgentDraft(
+        _ conversation: ConversationModel,
+        context: SessionContext = .none,
+        includesTerminalSuggestion: Bool = false
+    ) {
         let draft = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !draft.isEmpty else { return }
         // The *returned* text, not `draft`: attachments are folded in there, and
@@ -205,13 +209,17 @@ final class AppModel {
         // not match the one the conversation recorded.
         let prompt = conversation.appendUserTurn(draft)
         conversation.draft = ""
-        startAgentRun(conversation, prompt: prompt, context: context)
+        startAgentRun(
+            conversation, prompt: prompt, context: context,
+            includesTerminalSuggestion: includesTerminalSuggestion
+        )
     }
 
     func startAgentRun(
         _ conversation: ConversationModel,
         prompt: String? = nil,
-        context: SessionContext = .none
+        context: SessionContext = .none,
+        includesTerminalSuggestion: Bool = false
     ) {
         let userPrompt = prompt
             ?? conversation.messages.last(where: { $0.role == .user })?.text
@@ -288,7 +296,8 @@ final class AppModel {
             providers.append(AgentStaticToolProvider(AgentBuiltInTools.make(
                 hosts: agentHosts, connections: agentConnections,
                 authentication: agentAuthentication,
-                background: agentBackgroundCommands, search: searchPlan.local
+                background: agentBackgroundCommands, search: searchPlan.local,
+                includesTerminalSuggestion: includesTerminalSuggestion
             )))
             providers.append(AgentStaticToolProvider(AgentScratchTools.make(
                 workspace: scratch, connections: agentConnections,

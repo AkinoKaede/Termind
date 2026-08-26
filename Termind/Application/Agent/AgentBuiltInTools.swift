@@ -13,13 +13,16 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         authentication suppliedAuthentication: AgentSSHAuthenticationRegistry? = nil,
         background: AgentBackgroundCommands = AgentBackgroundCommands(),
         fetcher: RestrictedHTTPFetcher = RestrictedHTTPFetcher(),
-        search: WebSearchClient? = nil
+        search: WebSearchClient? = nil,
+        includesTerminalSuggestion: Bool = false
     ) -> [AnyAgentTool] {
         let authentication = suppliedAuthentication
             ?? AgentSSHAuthenticationRegistry(resolver: hosts)
+        let terminalTools = includesTerminalSuggestion ? [terminalSuggest()] : []
         return [
             listHosts(hosts), sshExec(authentication, connections, background),
-            sshWait(background), terminalSuggest(),
+            sshWait(background),
+        ] + terminalTools + [
             sftpList(authentication, connections), sftpStat(authentication, connections),
             sftpRead(authentication, connections), sftpWrite(authentication, connections),
             sftpMkdir(authentication, connections), sftpMove(authentication, connections),

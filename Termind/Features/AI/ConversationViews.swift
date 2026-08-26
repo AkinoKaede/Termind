@@ -127,6 +127,8 @@ struct ComposerView: View {
     /// Defaulting to `.none` is what makes a composer outside a Workspace — the
     /// Assistant tab — session-free by construction rather than by remembering.
     var sessionContext: SessionContext = .none
+    /// Only the Workspace sidebar gives its agent a command-card tool.
+    var includesTerminalSuggestion = false
     var onSend: (() -> Void)?
 
     @Environment(AppModel.self) private var app
@@ -523,7 +525,10 @@ struct ComposerView: View {
         if let onSend {
             onSend()
         } else {
-            app.sendAgentDraft(conversation, context: sessionContext)
+            app.sendAgentDraft(
+                conversation, context: sessionContext,
+                includesTerminalSuggestion: includesTerminalSuggestion
+            )
         }
     }
 

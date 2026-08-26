@@ -49,6 +49,7 @@ struct RiskBadge: View {
 /// ```
 struct CommandCardView: View {
     let command: SuggestedCommand
+    var showsTerminalActions = false
 
     @Environment(WindowModel.self) private var window
     @State private var isConfirming = false
@@ -91,10 +92,12 @@ struct CommandCardView: View {
             }
 
             HStack(spacing: Metrics.Space.s) {
-                Button("Insert") { insert(run: false) }
-                Button(runTitle) { run() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(assessment.risk == .destructive ? .red : .accentColor)
+                if showsTerminalActions {
+                    Button("Insert") { insert(run: false) }
+                    Button(runTitle) { run() }
+                        .buttonStyle(.borderedProminent)
+                        .tint(assessment.risk == .destructive ? .red : .accentColor)
+                }
                 Spacer()
                 Button {
                     copyToPasteboard(command.command)
