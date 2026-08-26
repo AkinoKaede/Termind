@@ -138,6 +138,45 @@ struct ChatSlashCommandTests {
         #expect(completion.rows.first?.id == "reasoning/high")
     }
 
+    @Test
+    func anOptionPageCanSelectItsCurrentValue() {
+        let completion = ChatSlashCommandCompletion.rows(
+            draft: "/reasoning ", commands: commands, options: options
+        )
+
+        #expect(completion.selectionIndex(commandID: "reasoning", optionID: "medium") == 1)
+    }
+
+    @Test
+    func preferredOptionMatchingUsesTheStableIDNotTheVisibleLabel() {
+        let model = ChatSlashCommand(
+            id: "model", displayName: "Model", summary: "Switch models",
+            icon: .symbol("sparkles")
+        )
+        let providerA = "11111111-1111-1111-1111-111111111111:same-model"
+        let providerB = "22222222-2222-2222-2222-222222222222:same-model"
+        let completion = ChatSlashCommandCompletion.rows(
+            draft: "/model ", commands: [model]
+        ) { _ in
+            [
+                ChatSlashCommand.Option(id: providerA, label: "Same model"),
+                ChatSlashCommand.Option(id: providerB, label: "Same model"),
+            ]
+        }
+
+        #expect(completion.selectionIndex(commandID: "model", optionID: providerB) == 1)
+    }
+
+    @Test
+    func anUnavailableOrFilteredPreferredOptionFallsBackToTheFirstRow() {
+        let completion = ChatSlashCommandCompletion.rows(
+            draft: "/reasoning hi", commands: commands, options: options
+        )
+
+        #expect(completion.selectionIndex(commandID: "reasoning", optionID: "medium") == 0)
+        #expect(completion.selectionIndex(commandID: "model", optionID: "high") == 0)
+    }
+
     /// `/compact` takes free text, not a menu. Once the name is complete the
     /// palette gets out of the way so the instructions can be typed.
     @Test

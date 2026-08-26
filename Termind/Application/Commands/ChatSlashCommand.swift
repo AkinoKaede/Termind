@@ -99,6 +99,18 @@ nonisolated struct ChatSlashCommandCompletion: Hashable, Sendable {
 
     var isEmpty: Bool { rows.isEmpty }
 
+    /// The keyboard selection to use when opening an option page.
+    ///
+    /// Matching both halves matters for model options: two providers can expose
+    /// models with the same visible label, while their option IDs remain unique.
+    /// A filtered or stale current value falls back to the first visible row.
+    func selectionIndex(commandID: String, optionID: String) -> Int {
+        rows.firstIndex { row in
+            guard case .option(let command, let option) = row else { return false }
+            return command.id == commandID && option.id == optionID
+        } ?? 0
+    }
+
     /// Builds the palette for a draft.
     ///
     /// While the name is incomplete this is every command it prefixes. Once the

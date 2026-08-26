@@ -577,8 +577,9 @@ struct ComposerView: View {
             }
             // Typing again after Escape re-opens the palette; the dismissal
             // was about one keystroke, not about the rest of the draft.
-            .onChange(of: conversation.draft) { _, _ in
+            .onChange(of: conversation.draft) { _, draft in
                 isSlashMenuDismissed = false
+                selectPreferredSlashOption(for: draft)
             }
             // The Stop button gives its slot to Send as soon as the draft
             // has a character in it — which is exactly when this field has
@@ -984,9 +985,45 @@ struct ComposerView: View {
 
     private var slashCompletion: ChatSlashCommandCompletion {
         guard !isSlashMenuDismissed else { return ChatSlashCommandCompletion(rows: []) }
-        return ChatSlashCommandCompletion.rows(
-            draft: conversation.draft, commands: slashCommands, options: slashOptions
+        return slashCompletion(for: conversation.draft)
+    }
+
+    private func slashCompletion(for draft: String) -> ChatSlashCommandCompletion {
+        ChatSlashCommandCompletion.rows(
+            draft: draft, commands: slashCommands, options: slashOptions
         )
+    }
+
+    /// Opening a single-choice page starts on the value this conversation
+    /// already uses. Other pages, including MCP's independent toggles, start at
+    /// the first row as before.
+    private func preferredSlashSelection(
+        in completion: ChatSlashCommandCompletion
+    ) -> Int {
+        guard case .option(let command, _) = completion.rows.first else { return 0 }
+
+        switch command.id {
+        case "reasoning":
+            return completion.selectionIndex(
+                commandID: command.id, optionID: effectiveReasoningEffort.rawValue
+            )
+        case "model":
+            guard let resolved else { return 0 }
+            let optionID =
+                "\(resolved.provider.id.uuidString.lowercased()):\(resolved.model.id)"
+            return completion.selectionIndex(commandID: command.id, optionID: optionID)
+        default:
+            return 0
+        }
+    }
+
+    private func selectPreferredSlashOption(for draft: String) {
+        let completion = slashCompletion(for: draft)
+        slashSelection = preferredSlashSelection(in: completion)
+        guard !completion.isEmpty else { return }
+        // Completion changes also ask the menu to scroll, but this explicit
+        // request runs after the preferred index has been installed.
+        slashScrollRequest += 1
     }
 
     @ViewBuilder
@@ -1047,10 +1084,19 @@ struct ComposerView: View {
             // chosen, so a command that takes it still runs on Return and the
             // argument is for whoever wants to type one.
             let hasOptions = !slashOptions(command).isEmpty
-            conversation.draft = ChatSlashCommandCompletion.accepted(
+            let acceptedDraft = ChatSlashCommandCompletion.accepted(
                 row, takesArgument: hasOptions
             )
-            slashSelection = 0
+            conversation.draft = acceptedDraft
+            if hasOptions {
+                // Install the correct index in the same action that opens the
+                // second page, avoiding a frame highlighted on its first row.
+                slashSelection = preferredSlashSelection(
+                    in: slashCompletion(for: acceptedDraft)
+                )
+            } else {
+                slashSelection = 0
+            }
             if !hasOptions { runSlashCommand() }
         case .option:
             conversation.draft = ChatSlashCommandCompletion.accepted(row, takesArgument: false)
