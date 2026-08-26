@@ -114,6 +114,9 @@ nonisolated struct AgentToolExecutor: Sendable {
     let runID: UUID
     let permissionMode: ChatPermissionMode
     let userIntent: String
+    /// Not behind the progress gate and not scoped to one call: a tool asks
+    /// this whenever it is about to wait a long time on purpose.
+    var interjection: @Sendable () async -> Void = { }
 
     func plan(_ call: AgentToolCall) async -> AgentPlannedToolCall {
         let proposed = AgentToolInvocation(runID: runID, call: call)
@@ -262,7 +265,8 @@ nonisolated struct AgentToolExecutor: Sendable {
             },
             report: gate.forward { [channel, invocation = ready.invocation] partial in
                 channel.emit(.toolProgress(invocation, partial))
-            }
+            },
+            whenUserInterjects: interjection
         )
     }
 

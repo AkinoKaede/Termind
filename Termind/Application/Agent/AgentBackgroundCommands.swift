@@ -88,6 +88,7 @@ actor AgentBackgroundCommands {
     func wait(
         _ handle: UUID, timeout: Duration,
         reporting: (@Sendable (String, String) -> Void)? = nil,
+        orWhen interjection: (@Sendable () async -> Void)? = nil,
         now: ContinuousClock.Instant = .now
     ) async throws -> AgentCommandOutcome {
         guard var entry = entries[handle] else { throw AgentBackgroundCommandError.unknownHandle }
@@ -98,7 +99,7 @@ actor AgentBackgroundCommands {
         // returned, and its progress gate is shut.
         if let reporting { entry.stream.redirect(to: reporting) }
 
-        guard await Self.settled(entry.task, within: timeout) else {
+        guard await Self.settled(entry.task, within: timeout, orWhen: interjection) else {
             let captured = entry.stream.captured
             return AgentCommandOutcome(
                 handle: handle, standardOut: captured.standardOut,
@@ -178,7 +179,8 @@ actor AgentBackgroundCommands {
     /// when the command does, and signals into a gate that by then has no
     /// listener.
     static func settled<T>(
-        _ task: Task<T, any Error>, within timeout: Duration
+        _ task: Task<T, any Error>, within timeout: Duration,
+        orWhen interjection: (@Sendable () async -> Void)? = nil
     ) async -> Bool {
         let arrival = AgentCompletionSignal()
         Task {
@@ -193,6 +195,15 @@ actor AgentBackgroundCommands {
             group.addTask {
                 try? await Task.sleep(for: timeout)
                 return false
+            }
+            if let interjection {
+                // Reported the same way a deadline is, because to the caller it
+                // is the same answer: not finished yet, ask again. Nothing is
+                // cancelled and nothing is lost by stopping here.
+                group.addTask {
+                    await interjection()
+                    return false
+                }
             }
             let first = await group.next() ?? false
             // Both children answer to cancellation — the sleeper by throwing,
@@ -251,6 +262,57 @@ nonisolated final class AgentCommandHandover: @unchecked Sendable {
 /// Thrown by a command that was abandoned before it started, so the connection
 /// it was waiting on is kept while the command itself is not.
 nonisolated struct AgentCommandNotStarted: Error {}
+
+/// Says that the user has interjected and is waiting for a model boundary.
+///
+/// Broadcast and re-armable, unlike `AgentCompletionSignal`: a run has many
+/// boundaries and a user may interject at any of them, so every waiter is
+/// released and the next waiter waits again for the next one.
+///
+/// This exists so a tool whose whole job is waiting can stop. It is offered to
+/// tools rather than done to them, because whether an interruption is free
+/// depends entirely on what is being interrupted: giving up on `ssh_wait` costs
+/// nothing — the command runs on, its session stays, its handle stays valid —
+/// while giving up on `ssh_exec` would strand a half-finished command on a host.
+nonisolated final class AgentInterjectionSignal: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isPending = false
+    private var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
+
+    /// Something is queued for the next boundary. Stateful rather than a pure
+    /// broadcast, because a wait that began a moment *after* the user typed
+    /// would otherwise sit through its whole deadline with a message already
+    /// waiting behind it.
+    func arm() {
+        let released = lock.withLock {
+            isPending = true
+            defer { waiters.removeAll() }
+            return waiters.values
+        }
+        for waiter in released { waiter.resume() }
+    }
+
+    /// The queue has been drained into the turn about to start, so there is
+    /// nothing left to hurry for.
+    func disarm() { lock.withLock { isPending = false } }
+
+    func wait() async {
+        let id = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                let armed: Bool = lock.withLock {
+                    if isPending { return true }
+                    waiters[id] = continuation
+                    return false
+                }
+                if armed { continuation.resume() }
+            }
+        } onCancel: {
+            let waiter = lock.withLock { waiters.removeValue(forKey: id) }
+            waiter?.resume()
+        }
+    }
+}
 
 /// A one-shot arrival bell whose wait can be abandoned.
 ///

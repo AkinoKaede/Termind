@@ -214,6 +214,62 @@ struct AgentBackgroundCommandTests {
         await released.release()
     }
 
+    // MARK: - Stopping a wait because someone spoke
+
+    /// The point of the whole seam: a model that decided to wait five minutes
+    /// does not make the user wait five minutes to be heard. Nothing is
+    /// cancelled by stopping — the command runs on — which is the only reason
+    /// this is safe to do to `ssh_wait` and not to `ssh_exec`.
+    @Test
+    func aWaitEndsEarlyWhenTheUserInterjects() async throws {
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
+        let released = AsyncRelease()
+        let signal = AgentInterjectionSignal()
+        let task = Task<SSHExecResult, any Error> { await released.wait(); return exited(0) }
+        let handle = await commands.adopt(
+            hostID: UUID(), command: "deploy", stream: AgentCommandOutputStream { _, _ in },
+            task: task, session: StubSession()
+        )
+
+        async let outcome = commands.wait(
+            handle, timeout: .seconds(900), orWhen: { await signal.wait() }
+        )
+        try await Task.sleep(for: .milliseconds(20))
+        signal.arm()
+
+        // Reported exactly as a deadline would be — not finished, ask again.
+        #expect(try await outcome.isRunning)
+        #expect(!task.isCancelled, "the command is not what was interrupted")
+        #expect(await commands.count == 1, "and the handle is still good")
+        await released.release()
+    }
+
+    /// Stateful rather than a pure broadcast. A wait that begins a moment after
+    /// the user typed would otherwise sit out its whole deadline with a message
+    /// already queued behind it.
+    @Test
+    func aWaitStartedAfterTheInterjectionDoesNotMissIt() async throws {
+        let signal = AgentInterjectionSignal()
+        signal.arm()
+        await signal.wait()
+    }
+
+    @Test
+    func drainingTheQueueDisarmsIt() async throws {
+        let signal = AgentInterjectionSignal()
+        signal.arm()
+        signal.disarm()
+
+        let finished = Sink()
+        let waiter = Task { await signal.wait(); finished.append("released") }
+        try await Task.sleep(for: .milliseconds(30))
+
+        #expect(finished.values.isEmpty, "nothing is queued, so nothing to hurry for")
+        signal.arm()
+        await waiter.value
+        #expect(finished.values == ["released"])
+    }
+
     // MARK: - Shape
 
     @Test @MainActor

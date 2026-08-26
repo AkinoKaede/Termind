@@ -44,6 +44,10 @@ actor AgentRuntime {
     private let channel: AgentEventChannel
     private var runTask: Task<Void, Never>?
     private var steering: [AgentTranscriptMessage] = []
+    /// Armed while something the user typed is waiting for a boundary, so a
+    /// tool that is only waiting can stop waiting. Offered to tools rather than
+    /// imposed on them — see `AgentInterjectionSignal`.
+    private let interjection = AgentInterjectionSignal()
     /// Whether a message queued *now* would still be delivered.
     ///
     /// Not the same question as "is there a run task". `complete` awaits its
@@ -127,6 +131,7 @@ actor AgentRuntime {
             return false
         }
         steering.append(message)
+        interjection.arm()
         return true
     }
 
@@ -172,7 +177,8 @@ actor AgentRuntime {
                 tools: tools, approval: approval, hooks: hooks, channel: channel,
                 secretBroker: secretBroker, userInteraction: userInteraction,
                 runID: runID, permissionMode: request.permissionMode,
-                userIntent: request.prompt
+                userIntent: request.prompt,
+                interjection: { [interjection] in await interjection.wait() }
             ),
             mode: configuration.toolExecution,
             maximumConcurrency: configuration.maximumToolConcurrency
@@ -283,6 +289,7 @@ actor AgentRuntime {
             return message
         }
         steering.removeAll()
+        interjection.disarm()
         for message in delivered { channel.emit(.steeringDelivered(message)) }
         return delivered
     }

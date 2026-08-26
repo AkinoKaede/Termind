@@ -17,6 +17,16 @@ nonisolated struct AgentToolExecutionContext: Sendable {
     /// for. Defaults to discarding, so a caller assembling a context by hand —
     /// a test, a preview — need not care.
     var report: @Sendable (AgentToolResult) -> Void = { _ in }
+    /// Returns once the user has said something that is queued for the next
+    /// model boundary — immediately, if something already is.
+    ///
+    /// For a tool that is deliberately waiting, so a person interjecting does
+    /// not have to sit out a fifteen-minute deadline first. A tool opts into
+    /// this rather than having it done to it, because whether stopping early is
+    /// free depends entirely on what is being stopped: giving up on `ssh_wait`
+    /// costs nothing, while giving up on `ssh_exec` would strand a
+    /// half-finished command on a host.
+    var whenUserInterjects: @Sendable () async -> Void = { }
 }
 
 nonisolated protocol AgentTool: Sendable {

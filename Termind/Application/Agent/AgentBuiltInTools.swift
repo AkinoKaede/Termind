@@ -794,7 +794,12 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                 let outcome = try await background.wait(
                     handle,
                     timeout: .seconds(arguments.optionalInt("timeout_seconds") ?? 60),
-                    reporting: reporting(invocation, context.report)
+                    reporting: reporting(invocation, context.report),
+                    // Waiting is all this call does, so there is nothing to lose
+                    // by stopping: the command runs on, its session stays, and
+                    // the handle is still good. That is what makes a long
+                    // `timeout_seconds` safe to ask for.
+                    orWhen: context.whenUserInterjects
                 )
                 guard let exitCode = outcome.exitCode else {
                     return result(invocation, .object([
