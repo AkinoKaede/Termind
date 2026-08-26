@@ -412,7 +412,7 @@ struct ChatComposerStateTests {
     /// Stop released the runtime reference before the cancelling task read it,
     /// so the run carried on executing tools with nobody listening.
     @Test
-    func stopCancelsTheRunAndNotOnlyItsEventStream() async {
+    func stopCancelsTheRunAndNotOnlyItsEventStream() async throws {
         let probe = ConversationCancellationProbe()
         let tool = AnyAgentTool(
             descriptor: AgentToolDescriptor(
@@ -460,6 +460,9 @@ struct ChatComposerStateTests {
         #expect(await probe.cancelled)
         #expect(conversation.runState == .cancelled)
         #expect(!conversation.isStreaming)
+        let stoppedRun = try #require(conversation.workGroups.first?.run)
+        #expect(stoppedRun.state == .cancelled)
+        #expect(stoppedRun.finishedAt != nil)
     }
 
     /// Tool-producing prose and its cards belong to one disclosure before the
@@ -530,6 +533,40 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func stoppedDirectAnswerStillShowsItsStoppedDurationBeforeThePartialAnswer() {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("Explain")
+        let runID = UUID()
+        let start = Date(timeIntervalSince1970: 1_000)
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: start
+        )))
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            role: .assistant, text: "Partial answer"
+        )))
+        conversation.handle(.runFinished(AgentRunSummary(
+            id: runID, state: .cancelled, startedAt: start,
+            finishedAt: start.addingTimeInterval(62)
+        )))
+
+        let order = conversation.timeline.map { item in
+            switch item {
+            case .message(let message): return message.role == .user ? "user" : "assistant"
+            case .work: return "work"
+            default: return "other"
+            }
+        }
+        #expect(order == ["user", "work", "assistant"])
+        #expect(conversation.workGroups.first?.items.isEmpty == true)
+        let run = conversation.workGroups.first?.run
+        #expect(run.map {
+            AgentWorkPresentation.title(
+                for: $0.state, from: $0.startedAt, to: $0.finishedAt ?? start
+            )
+        } == "You stopped after 1m 2s")
+    }
+
+    @Test
     func providerSearchReportedAfterTextStillAppearsBeforeTheFinalAnswer() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("search")
@@ -589,6 +626,15 @@ struct ChatComposerStateTests {
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .failed))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .cancelled))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .interrupted))
+        #expect(AgentWorkPresentation.title(
+            for: .running, from: start, to: start.addingTimeInterval(68)
+        ) == "Working for 1m 8s")
+        #expect(AgentWorkPresentation.title(
+            for: .completed, from: start, to: start.addingTimeInterval(68)
+        ) == "Worked for 1m 8s")
+        #expect(AgentWorkPresentation.title(
+            for: .cancelled, from: start, to: start.addingTimeInterval(62)
+        ) == "You stopped after 1m 2s")
     }
 
     /// A turn that only called tools has nothing to say, and an empty bubble

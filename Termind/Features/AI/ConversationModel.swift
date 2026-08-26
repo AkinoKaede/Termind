@@ -344,6 +344,20 @@ nonisolated enum AgentWorkPresentation {
         }
         return "\(remainingSeconds)s"
     }
+
+    static func title(
+        for state: AgentRunState, from startedAt: Date, to finishedAt: Date
+    ) -> String {
+        let elapsed = duration(from: startedAt, to: finishedAt)
+        switch state {
+        case .idle, .running, .waitingForUser, .waitingForApproval, .reviewing:
+            return "Working for \(elapsed)"
+        case .cancelled:
+            return "You stopped after \(elapsed)"
+        case .completed, .failed, .interrupted:
+            return "Worked for \(elapsed)"
+        }
+    }
 }
 
 nonisolated struct AgentCompactionActivity: Identifiable, Hashable, Sendable {
@@ -857,7 +871,12 @@ final class ConversationModel: Identifiable {
             }
         }
 
-        let runIDs = Set(cardsByRun.keys).union(processRunIDs.values)
+        let stoppedRunIDs = runSummaries.values.compactMap { run in
+            run.state == .cancelled ? run.id : nil
+        }
+        let runIDs = Set(cardsByRun.keys)
+            .union(processRunIDs.values)
+            .union(stoppedRunIDs)
         return runIDs.compactMap { runID in
             let cards = cardsByRun[runID] ?? []
             let processMessages = processRunIDs.compactMap { messageID, owner -> ChatMessage? in
@@ -877,7 +896,10 @@ final class ConversationModel: Identifiable {
                 default: return $0.id.uuidString < $1.id.uuidString
                 }
             }
-            guard !items.isEmpty else { return nil }
+            let stored = runSummaries[runID]
+            // A user stop is useful transcript state even when it interrupted a
+            // direct response before any tool or process item was produced.
+            guard !items.isEmpty || stored?.state == .cancelled else { return nil }
 
             let anchorID = processMessages.min(by: { $0.createdAt < $1.createdAt })?.id
                 ?? cards.compactMap(\.invocation.sourceMessageID).first(where: {
@@ -891,14 +913,15 @@ final class ConversationModel: Identifiable {
                     return cards.contains { $0.invocation.createdAt <= message.createdAt }
                 })?.id
             let anchorAt = anchorID.flatMap { visibleByID[$0]?.createdAt }
-                ?? items[0].orderedAt
-            let stored = runSummaries[runID]
+                ?? items.first?.orderedAt
+                ?? stored?.startedAt
+                ?? .now
             let fallbackState: AgentRunState = cards.allSatisfy {
                 $0.state == .completed
             } ? .completed : .interrupted
             let run = stored ?? AgentRunSummary(
                 id: runID, state: fallbackState,
-                startedAt: items[0].orderedAt,
+                startedAt: items.first?.orderedAt ?? anchorAt,
                 finishedAt: items.last?.orderedAt
             )
             return AgentWorkGroup(
@@ -1209,7 +1232,18 @@ final class ConversationModel: Identifiable {
         // nobody listening.
         if let runtime { Task { await runtime.cancel() } }
         runtime = nil
-        if !runtimeState.isTerminal { runtimeState = .cancelled }
+        if !runtimeState.isTerminal {
+            runtimeState = .cancelled
+            // The event consumer was just cancelled, so it cannot receive the
+            // runtime's eventual finish event. Freeze the visible elapsed time
+            // here instead of letting a stopped run keep counting forever.
+            if let activeRunID, var summary = runSummaries[activeRunID] {
+                summary.state = .cancelled
+                summary.finishedAt = .now
+                runSummaries[activeRunID] = summary
+                self.activeRunID = nil
+            }
+        }
         returnAllSteeringToDraft()
         refreshRunState()
     }

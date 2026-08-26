@@ -301,8 +301,8 @@ struct ConversationView: View {
 // MARK: - Tool calls
 
 /// One run's process, collapsed after a successful finish and kept open while
-/// attention or recovery may still be needed. The disclosure owns only process
-/// prose and tool rows; the final answer remains a normal transcript message.
+/// attention or recovery may still be needed. A horizontal rule separates the
+/// process from the transcript without making its contents look nested.
 private struct AgentWorkGroupView: View {
     let group: AgentWorkGroup
     let isCompact: Bool
@@ -324,16 +324,14 @@ private struct AgentWorkGroupView: View {
             } label: {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     HStack(spacing: Metrics.Space.s) {
+                        Text(title(at: context.date))
+                            .font(MarkdownTypography.body)
+                            .foregroundStyle(.secondary)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 8, weight: .bold))
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
                             .foregroundStyle(.tertiary)
-                            .frame(width: Metrics.Sidebar.rowIcon)
-                        Text(title(at: context.date))
-                            .font(MarkdownTypography.body)
-                            .foregroundStyle(.secondary)
-                            .modifier(ScanningTextMask(isActive: isActive))
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Spacer(minLength: 0)
                     }
                     .contentShape(.rect)
                 }
@@ -344,25 +342,20 @@ private struct AgentWorkGroupView: View {
             .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
             .accessibilityHint(Text(isExpanded ? "Collapse work process" : "Expand work process"))
 
-            if isExpanded {
-                HStack(alignment: .top, spacing: Metrics.Space.m) {
-                    RoundedRectangle(cornerRadius: Metrics.Chat.rule / 2)
-                        .fill(.quaternary)
-                        .frame(width: Metrics.Chat.rule)
+            Divider()
 
-                    LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
-                        ForEach(group.items) { item in
-                            switch item {
-                            case .message(let message):
-                                processMessage(message)
-                            case .tool(let card):
-                                AgentToolRowView(card: card)
-                            }
+            if isExpanded {
+                LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
+                    ForEach(group.items) { item in
+                        switch item {
+                        case .message(let message):
+                            processMessage(message)
+                        case .tool(let card):
+                            AgentToolRowView(card: card)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.leading, Metrics.Sidebar.rowIcon)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .onChange(of: group.run.state) { _, state in
@@ -390,14 +383,11 @@ private struct AgentWorkGroupView: View {
         }
     }
 
-    private var isActive: Bool {
-        !group.run.state.isTerminal && group.run.state != .idle
-    }
-
     private func title(at now: Date) -> String {
         let end = group.run.finishedAt ?? now
-        let duration = AgentWorkPresentation.duration(from: group.run.startedAt, to: end)
-        return "\(isActive ? "Working" : "Worked") for \(duration)"
+        return AgentWorkPresentation.title(
+            for: group.run.state, from: group.run.startedAt, to: end
+        )
     }
 }
 
@@ -431,18 +421,18 @@ private struct AgentToolRowView: View {
                         .truncationMode(.tail)
                         .foregroundStyle(card.state == .running ? .secondary : .primary)
                         .modifier(ScanningTextMask(isActive: card.state == .running))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Spacer(minLength: Metrics.Space.s)
+                        .layoutPriority(1)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(.tertiary)
+                    Spacer(minLength: 0)
                     if card.state == .reviewing {
                         Image(systemName: "checkmark.shield")
                             .font(.caption)
                             .foregroundStyle(.orange)
                             .accessibilityLabel(Text("Security Review in progress"))
                     }
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .bold))
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .foregroundStyle(.tertiary)
                 }
                 .opacity(card.state == .interrupted ? 0.5 : 1)
                 .contentShape(.rect)
