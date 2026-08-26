@@ -379,7 +379,7 @@ struct ComposerView: View {
     }
 
     private var modelProviders: [ModelProvider] {
-        app.aiConfiguration.enabledModelProviders.filter { !$0.chatModels.isEmpty }
+        app.aiConfiguration.enabledModelProviders.filter { !$0.assistantModels.isEmpty }
     }
 
     private var resolvedModelLabel: String {
@@ -966,7 +966,7 @@ struct ComposerView: View {
         argument: String, provider: ModelProvider, model: AIModel
     )] {
         modelProviders.flatMap { provider in
-            provider.chatModels.map { model in
+            provider.assistantModels.map { model in
                 (
                     argument: "\(provider.id.uuidString.lowercased()):\(model.id)",
                     provider: provider,
@@ -1577,7 +1577,7 @@ struct ComposerView: View {
                                 .foregroundStyle(.tertiary)
                                 .padding(.horizontal, Metrics.Space.m)
 
-                            ForEach(provider.chatModels) { model in
+                            ForEach(provider.assistantModels) { model in
                                 Button {
                                     select(model, on: provider)
                                 } label: {
@@ -1605,7 +1605,7 @@ struct ComposerView: View {
 
     private var modelOptionsHeight: CGFloat {
         guard !modelProviders.isEmpty else { return 34 }
-        let modelCount = modelProviders.reduce(0) { $0 + $1.chatModels.count }
+        let modelCount = modelProviders.reduce(0) { $0 + $1.assistantModels.count }
         let providerCount = modelProviders.count
         let estimated = CGFloat(modelCount) * 25
             + CGFloat(providerCount) * 18

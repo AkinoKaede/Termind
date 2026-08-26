@@ -184,6 +184,9 @@ nonisolated enum ModelCapabilityResolver {
         if result.maxOutputTokens == nil, let maxOutputTokens = record.maxOutputTokens {
             result.maxOutputTokens = maxOutputTokens
         }
+        if let showInAssistant = record.showInAssistant {
+            result.isShownInAssistant = showInAssistant
+        }
         return result
     }
 
@@ -434,6 +437,7 @@ nonisolated enum ModelCapabilityResolver {
         var abilities: [String]?
         var contextWindow: Int
         var maxOutputTokens: Int?
+        var showInAssistant: Bool?
         var supportedEfforts: [String]?
         var unsupportedEfforts: [String]?
         var effortWireValues: [String: String] = [:]

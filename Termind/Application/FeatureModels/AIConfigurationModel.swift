@@ -307,6 +307,8 @@ final class AIConfigurationModel {
             let merged = fetched.map { fresh in
                 var fresh = fresh
                 fresh.reasoningProfile = previous[fresh.id]?.reasoningProfile
+                fresh.isShownInAssistant =
+                    previous[fresh.id]?.isShownInAssistant ?? fresh.isShownInAssistant
                 return fresh
             }
             let kept = modelProviders[index].models.filter {

@@ -416,12 +416,41 @@ enum TermindSchemaV4: VersionedSchema {
     }
 }
 
+/// The model row before Assistant picker visibility was persisted.
+///
+/// V5 through V9 all shipped with this shape. Keeping those schemas pointed at
+/// a frozen type preserves their recorded checksums when the live model gains
+/// the V10 field.
+enum TermindSchemaV9AIModels {
+    @Model
+    final class PersistentAIModel {
+        @Attribute(.unique) var recordID: UUID = UUID()
+        var providerID: UUID = UUID()
+        var modelID = ""
+        var displayName = ""
+        var ownedBy = ""
+        var kind = AIModel.Kind.chat.rawValue
+        var input: [String] = []
+        var output: [String] = []
+        var abilities: [String] = []
+        var contextLength: Int?
+        var maxOutputTokens: Int?
+        var iconHint = ""
+        var createdAt: Date?
+        var origin = AIModel.Origin.manual.rawValue
+        var reasoningProfileData: Data?
+        var sortIndex = 0
+
+        init() {}
+    }
+}
+
 enum TermindSchemaV5: VersionedSchema {
     static let versionIdentifier = Schema.Version(5, 0, 0)
     static var models: [any PersistentModel.Type] {
         TermindSchemaV4.models + [
             PersistentModelProvider.self,
-            PersistentAIModel.self,
+            TermindSchemaV9AIModels.PersistentAIModel.self,
             PersistentAIRoleAssignment.self,
             PersistentAISelection.self,
         ]
@@ -527,13 +556,24 @@ enum TermindSchemaV9: VersionedSchema {
     }
 }
 
+/// Adds per-model visibility in the Assistant picker. The default keeps every
+/// model from an older store visible after the lightweight migration.
+enum TermindSchemaV10: VersionedSchema {
+    static let versionIdentifier = Schema.Version(10, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV9.models.filter {
+            $0 != TermindSchemaV9AIModels.PersistentAIModel.self
+        } + [PersistentAIModel.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self,
             TermindSchemaV3.self, TermindSchemaV4.self, TermindSchemaV5.self,
             TermindSchemaV6.self, TermindSchemaV7.self, TermindSchemaV8.self,
-            TermindSchemaV9.self,
+            TermindSchemaV9.self, TermindSchemaV10.self,
         ]
     }
 
@@ -584,13 +624,17 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV8.self,
                 toVersion: TermindSchemaV9.self
             ),
+            .lightweight(
+                fromVersion: TermindSchemaV9.self,
+                toVersion: TermindSchemaV10.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV9.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV10.self)
 
     let context: ModelContext
 

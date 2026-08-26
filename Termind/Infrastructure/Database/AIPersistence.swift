@@ -76,6 +76,7 @@ final class PersistentAIModel {
     var iconHint = ""
     var createdAt: Date?
     var origin = AIModel.Origin.manual.rawValue
+    var isShownInAssistant = true
     var reasoningProfileData: Data?
     var sortIndex = 0
 
@@ -93,6 +94,7 @@ final class PersistentAIModel {
         iconHint = value.iconHint
         createdAt = value.createdAt
         origin = value.origin.rawValue
+        isShownInAssistant = value.isShownInAssistant
         reasoningProfileData = value.reasoningProfile.flatMap { try? JSONEncoder().encode($0) }
         self.sortIndex = sortIndex
     }
@@ -112,6 +114,7 @@ final class PersistentAIModel {
         model.iconHint = iconHint
         model.createdAt = createdAt
         model.origin = AIModel.Origin(rawValue: origin) ?? .manual
+        model.isShownInAssistant = isShownInAssistant
         model.reasoningProfile = reasoningProfileData.flatMap {
             try? JSONDecoder().decode(ReasoningProfile.self, from: $0)
         }

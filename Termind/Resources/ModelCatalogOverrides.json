@@ -16,6 +16,7 @@
         "toolCall",
         "reasoning"
       ],
+      "showInAssistant": false,
       "contextWindow": 272000,
       "supportedEfforts": [
         "low",

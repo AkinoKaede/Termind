@@ -350,6 +350,12 @@ struct ModelListEditor: View {
                         ForEach(AIModel.Kind.allCases) { Text($0.displayName).tag($0) }
                     }
 
+                    Toggle(
+                        "Show in Assistant",
+                        isOn: field(model, \AIModel.isShownInAssistant)
+                    )
+                    .help("Offer this model in the Assistant model picker and /model command.")
+
                     modalityToggles("Input", model: model, keyPath: \.input)
                     abilityToggles(model)
                     if model.abilities.contains(.reasoning), let provider {

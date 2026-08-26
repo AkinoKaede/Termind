@@ -17,6 +17,7 @@ struct AIProviderPersistenceTests {
         model.contextLength = 272_000
         model.maxOutputTokens = 128_000
         model.origin = .fetched
+        model.isShownInAssistant = false
         model.reasoningProfile = ReasoningProfile(levels: [
             .off: ReasoningLevelMapping(isSupported: true, wireValue: "none"),
             .high: ReasoningLevelMapping(isSupported: true, wireValue: "maximum"),
@@ -129,8 +130,9 @@ struct AIProviderPersistenceTests {
     }
 
     @Test
-    func catalogReplacementKeepsManualReasoningOverride() {
+    func catalogReplacementKeepsManualModelOverrides() {
         var original = reasoningModel("custom-reasoner")
+        original.isShownInAssistant = false
         original.reasoningProfile = ReasoningProfile(levels: [
             .high: ReasoningLevelMapping(isSupported: true, wireValue: "strong")
         ])
@@ -143,6 +145,28 @@ struct AIProviderPersistenceTests {
             store.modelProvider(provider.id)?.model(original.id)?.reasoningProfile
                 == original.reasoningProfile
         )
+        #expect(
+            store.modelProvider(provider.id)?.model(original.id)?.isShownInAssistant == false
+        )
+    }
+
+    @Test
+    func hiddenAssistantModelRemainsAvailableToSettingsAndResolution() {
+        var hidden = reasoningModel("review-only")
+        hidden.isShownInAssistant = false
+        let visible = reasoningModel("chat")
+        let provider = ModelProvider(name: "OpenAI", models: [hidden, visible])
+        let hiddenRef = AIModelRef(modelProviderID: provider.id, modelID: hidden.id)
+        let store = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+
+        #expect(provider.chatModels.map(\.id) == [hidden.id, visible.id])
+        #expect(provider.assistantModels.map(\.id) == [visible.id])
+
+        store.assign(hiddenRef, to: .securityReview)
+        store.select(hiddenRef)
+        #expect(store.assignment(for: .securityReview) == hiddenRef)
+        #expect(store.resolve(.securityReview)?.model.id == hidden.id)
+        #expect(store.resolve(conversation: nil)?.model.id == hidden.id)
     }
 
     @Test
@@ -175,7 +199,48 @@ struct AIProviderPersistenceTests {
                 == [host]
         )
         #expect(try container.mainContext.fetch(FetchDescriptor<PersistentModelProvider>()).isEmpty)
-        #expect(try container.mainContext.fetch(FetchDescriptor<PersistentAIModel>()).isEmpty)
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<TermindSchemaV9AIModels.PersistentAIModel>()
+            ).isEmpty
+        )
+    }
+
+    @Test
+    func versionNineModelsMigrateAsShownInAssistant() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "TermindModelVisibilityMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "Termind.store")
+        let provider = ModelProvider(name: "Existing Provider")
+
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV9.self)
+            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            container.mainContext.insert(PersistentModelProvider(provider, sortIndex: 0))
+            let model = TermindSchemaV9AIModels.PersistentAIModel()
+            model.providerID = provider.id
+            model.modelID = "existing-model"
+            container.mainContext.insert(model)
+            try container.mainContext.save()
+        }
+
+        let configuration = ModelConfiguration(
+            "Migration", schema: HostPersistence.schema, url: storeURL
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema,
+            migrationPlan: TermindMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let model = try #require(
+            container.mainContext.fetch(FetchDescriptor<PersistentAIModel>()).first
+        )
+
+        #expect(model.modelID == "existing-model")
+        #expect(model.isShownInAssistant)
     }
 
     private func makeContainer(_ name: String) throws -> ModelContainer {
@@ -212,6 +277,7 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.model.abilities == [.toolCall, .reasoning, .webSearch])
         #expect(resolution.model.contextLength == 272_000)
         #expect(resolution.model.maxOutputTokens == 128_000)
+        #expect(resolution.model.isShownInAssistant)
         #expect(resolution.supported == [.off, .low, .medium, .high, .xHigh])
     }
 
@@ -353,6 +419,7 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.model.abilities == [.toolCall, .reasoning])
         #expect(resolution.model.contextLength == 272_000)
         #expect(resolution.model.maxOutputTokens == nil)
+        #expect(!resolution.model.isShownInAssistant)
         #expect(resolution.supported == [.low, .medium, .high, .xHigh, .max])
         #expect(resolution.wireValue(for: .xHigh) == "xhigh")
         #expect(resolution.wireValue(for: .max) == "max")

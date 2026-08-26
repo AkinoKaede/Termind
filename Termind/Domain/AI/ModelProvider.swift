@@ -253,6 +253,13 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
         models.filter { $0.kind == .chat }
     }
 
+    /// Chat models offered by the Assistant's model picker and `/model`
+    /// completion. Settings deliberately continues to use `chatModels` so a
+    /// model hidden from the Assistant can still serve a configured role.
+    var assistantModels: [AIModel] {
+        chatModels.filter(\.isShownInAssistant)
+    }
+
     func model(_ id: String) -> AIModel? {
         models.first { $0.id == id }
     }
@@ -294,6 +301,10 @@ nonisolated struct AIModel: Identifiable, Hashable, Sendable {
     var iconHint: String = ""
     var createdAt: Date?
     var origin: Origin = .manual
+    /// Whether the Assistant offers this model as a new conversation choice.
+    /// Existing references and Settings role assignments remain valid when it
+    /// is off.
+    var isShownInAssistant = true
     /// `nil` follows the built-in model-family rules. A value is an explicit
     /// per-model override and survives catalog refreshes.
     var reasoningProfile: ReasoningProfile?
