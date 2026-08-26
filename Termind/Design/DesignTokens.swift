@@ -138,6 +138,46 @@ nonisolated enum Metrics {
         static let height: CGFloat = 22
     }
 
+    /// The assistant transcript: message bubbles and the Markdown inside them.
+    ///
+    /// Turns are separated by space rather than by rules, so `turnSpacing` is
+    /// doing the work a `Divider` used to. That is the whole reason it needs to
+    /// be noticeably larger than `Space.xl` — at ordinary padding the gap reads
+    /// as a wrap, not as a change of speaker.
+    enum Chat {
+        static let turnSpacing: CGFloat = 20
+        static let blockSpacing: CGFloat = 10
+        static let bubbleRadius: CGFloat = 14
+        /// The narrowest the empty column beside a user bubble may get.
+        ///
+        /// A fixed gutter rather than a percentage width: it needs no
+        /// `GeometryReader`, and the bubble still hugs its content instead of
+        /// being stretched to a share of the column.
+        static let gutter: CGFloat = 56
+        /// The same idea at 260pt, where 56 would leave a bubble two words wide.
+        static let compactGutter: CGFloat = 24
+        /// The column a list marker sits in, so a wrapped second line aligns
+        /// under the text rather than under the bullet.
+        static let markerColumn: CGFloat = 20
+        static let codeInset: CGFloat = 10
+        static let tableCellPadding: CGFloat = 6
+        /// The leading rule on a block quote and on expanded tool output.
+        static let rule: CGFloat = 2
+        /// The caret shown while a reply is still arriving.
+        static let caretWidth: CGFloat = 2
+        static let caretHeight: CGFloat = 16
+
+        /// The draft editor's floor and ceiling.
+        ///
+        /// `TextEditor` has no content-based ideal height — left alone it takes
+        /// every point it is offered, so a `maxHeight` alone made an empty
+        /// composer stand at its maximum with the caret marooned at the top and
+        /// a hand's width of nothing under it. The height is measured from the
+        /// draft instead; these two bound the result.
+        static let composerMinHeight: CGFloat = 40
+        static let composerMaxHeight: CGFloat = 132
+    }
+
     enum TransferCenter {
         static let width: CGFloat = 360
         static let maxListHeight: CGFloat = 420

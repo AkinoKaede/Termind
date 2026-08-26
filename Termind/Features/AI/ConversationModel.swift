@@ -25,7 +25,10 @@ nonisolated struct SuggestedCommand: Identifiable, Hashable, Sendable {
 /// its data travels by some other route — as the SSH-failure attachment did, by
 /// pasting the log into the draft — discloses nothing.
 nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
-    nonisolated enum Kind: Hashable, Sendable {
+    /// `CaseIterable` so `blockName` can be read backwards: a composed message
+    /// carries these tags into the transcript, and rendering one as an
+    /// attachment row means recognising the tag it came from.
+    nonisolated enum Kind: Hashable, Sendable, CaseIterable {
         case host, directory, output, selection, file
 
         var symbol: String {
@@ -80,6 +83,33 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
 nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
     nonisolated enum State: String, Hashable, Sendable {
         case proposed, waitingForApproval, reviewing, running, completed, denied, failed
+
+        /// The transcript used to show `rawValue.capitalized`, which put the
+        /// case name itself on screen — `WaitingForApproval`. The raw value is
+        /// a storage key; this is the label.
+        var displayName: String {
+            switch self {
+            case .proposed: String(localized: "Proposed")
+            case .waitingForApproval: String(localized: "Waiting for approval")
+            case .reviewing: String(localized: "Reviewing")
+            case .running: String(localized: "Running")
+            case .completed: String(localized: "Completed")
+            case .denied: String(localized: "Denied")
+            case .failed: String(localized: "Failed")
+            }
+        }
+
+        /// Whether a card in this state opens itself.
+        ///
+        /// Anything still in flight, or anything that went wrong, is what the
+        /// reader is actually looking for. A call that simply worked is noise
+        /// once it has worked.
+        var revealsDetailByDefault: Bool {
+            switch self {
+            case .waitingForApproval, .reviewing, .running, .denied, .failed: true
+            case .proposed, .completed: false
+            }
+        }
     }
 
     var id: UUID { invocation.id }

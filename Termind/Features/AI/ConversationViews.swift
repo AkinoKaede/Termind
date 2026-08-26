@@ -115,47 +115,6 @@ struct FlowLayout: Layout {
     }
 }
 
-// MARK: - Messages
-
-struct MessageView: View {
-    let message: ChatMessage
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            HStack(spacing: Metrics.Space.s) {
-                Image(systemName: message.role == .user ? "person.crop.circle" : "sparkles")
-                    .foregroundStyle(message.role == .user ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-                Text(message.role == .user ? "You" : "Assistant")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                if message.isStreaming {
-                    ProgressView().controlSize(.mini)
-                }
-            }
-
-            Text(markdown(message.text))
-                .font(.callout)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            ForEach(message.commands) { command in
-                CommandCardView(command: command)
-            }
-        }
-        .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(message.role == .user ? AnyShapeStyle(.quaternary.opacity(0.25)) : AnyShapeStyle(.clear))
-    }
-
-    /// Inline markdown only — full block rendering (lists, tables, fenced code)
-    /// arrives with P3, where streaming makes partial-parse handling necessary
-    /// anyway.
-    private func markdown(_ text: String) -> AttributedString {
-        (try? AttributedString(markdown: text)) ?? AttributedString(text)
-    }
-}
-
 // MARK: - Composer
 
 struct ComposerView: View {
@@ -172,6 +131,7 @@ struct ComposerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
     @State private var draftBeforeTranscription = ""
+    @State private var draftHeight = Metrics.Chat.composerMinHeight
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
         app.ai.resolve(conversation: conversation.model)
@@ -223,27 +183,7 @@ struct ComposerView: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
-            TextEditor(text: $conversation.draft)
-                .font(.callout)
-                .scrollContentBackground(.hidden)
-                .frame(minHeight: 46, maxHeight: 120)
-                .focused($isFocused)
-                .overlay(alignment: .topLeading) {
-                    if conversation.draft.isEmpty {
-                        Text(prompt)
-                            .font(.callout)
-                            .foregroundStyle(.tertiary)
-                            .padding(.leading, 5)
-                            .allowsHitTesting(false)
-                    }
-                }
-                .onKeyPress(.return, phases: .down) { press in
-                    guard !press.modifiers.contains(.shift) else { return .ignored }
-                    let disallowed: EventModifiers = [.control, .option]
-                    guard press.modifiers.intersection(disallowed).isEmpty else { return .ignored }
-                    sendDraft()
-                    return .handled
-                }
+            draftEditor($conversation.draft)
 
             ZStack {
                 if showsTranscriptionControls {
@@ -282,6 +222,60 @@ struct ComposerView: View {
             }
         }
     }
+
+    /// The draft field, sized by what is in it.
+    ///
+    /// The height comes from a hidden twin of the draft laid out at its own
+    /// ideal size, because `TextEditor` will not report one: given a range it
+    /// takes the top of the range, which is why an empty composer used to be as
+    /// tall as a five-line one. Measuring a `Text` instead means the box starts
+    /// at one comfortable line and grows only as the draft does.
+    private func draftEditor(_ draft: Binding<String>) -> some View {
+        ZStack(alignment: .topLeading) {
+            Text(draft.wrappedValue.isEmpty ? " " : draft.wrappedValue)
+                .font(.body)
+                .padding(.leading, Self.editorTextInset)
+                .padding(.vertical, Metrics.Space.xs)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // Ignores the height it is offered and reports its own, which
+                // is what keeps this out of a measurement loop.
+                .fixedSize(horizontal: false, vertical: true)
+                .hidden()
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { draftHeight = $0 }
+
+            TextEditor(text: draft)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .focused($isFocused)
+                .overlay(alignment: .topLeading) {
+                    if draft.wrappedValue.isEmpty {
+                        Text(prompt)
+                            .font(.body)
+                            .foregroundStyle(.tertiary)
+                            .padding(.leading, Self.editorTextInset)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .onKeyPress(.return, phases: .down) { press in
+                    guard !press.modifiers.contains(.shift) else { return .ignored }
+                    let disallowed: EventModifiers = [.control, .option]
+                    guard press.modifiers.intersection(disallowed).isEmpty else { return .ignored }
+                    sendDraft()
+                    return .handled
+                }
+        }
+        .frame(
+            height: min(
+                max(draftHeight, Metrics.Chat.composerMinHeight),
+                Metrics.Chat.composerMaxHeight
+            )
+        )
+    }
+
+    /// `TextEditor`'s own leading text-container inset, which the placeholder
+    /// and the measuring twin both have to match or the text jumps sideways
+    /// when the field gains content.
+    private static let editorTextInset: CGFloat = 5
 
     private var standardControls: some View {
         HStack(spacing: Metrics.Space.s) {
