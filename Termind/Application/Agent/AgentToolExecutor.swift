@@ -231,6 +231,9 @@ nonisolated struct AgentToolExecutor: Sendable {
             preflightMetadata: ready.executionMetadata,
             authorize: { [approval, permissionMode] request in
                 await approval.authorize(request, mode: permissionMode)
+            },
+            report: { [channel, invocation = ready.invocation] partial in
+                channel.emit(.toolProgress(invocation, partial))
             }
         )
     }

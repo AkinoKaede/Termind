@@ -782,6 +782,14 @@ final class ConversationModel: Identifiable {
         case .toolProposed(let invocation, let descriptor):
             toolCards.append(AgentToolCard(invocation: invocation, descriptor: descriptor))
         case .toolStarted(let invocation): setToolState(invocation.id, .running)
+        // The card only, and the card's state is left alone: this is a call
+        // still running, showing its work. Nothing here reaches `transcript` —
+        // the model is owed one result per call, and it gets that from
+        // `toolFinished`.
+        case .toolProgress(let invocation, let partial):
+            if let index = toolCards.firstIndex(where: { $0.id == invocation.id }) {
+                toolCards[index].result = partial
+            }
         case .toolFinished(let invocation, let result):
             if let index = toolCards.firstIndex(where: { $0.id == invocation.id }) {
                 toolCards[index].result = result

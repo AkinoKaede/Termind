@@ -40,9 +40,32 @@ nonisolated protocol SSHExecSessionProtocol: Sendable {
     func connect(using configuration: SSHConnectionConfiguration) async throws
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int
+        timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult
     func disconnect() async
+}
+
+/// Called with each chunk the command produces, and which stream it came from —
+/// `false` for stdout, `true` for stderr.
+///
+/// It runs on the session's own serial queue, between two `libssh2` reads, so it
+/// must return promptly and must never await: anything it blocks on stalls every
+/// command on that host. Appending to a lock-guarded buffer is the intended
+/// shape.
+typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
+
+nonisolated extension SSHExecSessionProtocol {
+    /// For the callers that only want the finished result — which is most of
+    /// them, and all of the ones that predate streaming.
+    func execute(
+        _ command: String, workingDirectory: String?, stdin: Data?,
+        timeout: TimeInterval, outputLimit: Int
+    ) async throws -> SSHExecResult {
+        try await execute(
+            command, workingDirectory: workingDirectory, stdin: stdin,
+            timeout: timeout, outputLimit: outputLimit, onOutput: nil
+        )
+    }
 }
 
 actor SSHExecSession: SSHExecSessionProtocol {
@@ -57,13 +80,14 @@ actor SSHExecSession: SSHExecSessionProtocol {
     /// once, and the worker's queue would serialize them anyway.
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int
+        timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         let cancellation = TransferCancellationToken()
         return try await withTaskCancellationHandler {
             try await worker.execute(
                 command, workingDirectory: workingDirectory, stdin: stdin,
-                timeout: timeout, outputLimit: outputLimit, cancellation: cancellation
+                timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
+                onOutput: onOutput
             )
         } onCancel: {
             cancellation.cancel()
@@ -104,13 +128,15 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
 
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int, cancellation: TransferCancellationToken
+        timeout: TimeInterval, outputLimit: Int, cancellation: TransferCancellationToken,
+        onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         try await perform {
             do {
                 return try self.executeOnQueue(
                     command, workingDirectory: workingDirectory, stdin: stdin,
-                    timeout: timeout, outputLimit: outputLimit, cancellation: cancellation
+                    timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
+                    onOutput: onOutput
                 )
             } catch {
                 // Still on the queue, and the channel defer has already run, so
@@ -124,7 +150,8 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
 
     private func executeOnQueue(
         _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int, cancellation: TransferCancellationToken
+        timeout: TimeInterval, outputLimit: Int, cancellation: TransferCancellationToken,
+        onOutput: SSHExecOutputHandler?
     ) throws -> SSHExecResult {
         guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw TermindSSHError.library("The command is empty.")
@@ -216,6 +243,7 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
                     if count > 0 {
                         progressed = true
                         let chunk = Data(bytes: buffer, count: count)
+                        onOutput?(chunk, stream != 0)
                         if stream == 0 {
                             Self.appendCapped(
                                 chunk, to: &standardOut, limit: outputLimit,
@@ -251,6 +279,7 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
                 let count = libssh2_channel_read_ex(channel, stream, &buffer, buffer.count)
                 guard count > 0 else { break }
                 let chunk = Data(bytes: buffer, count: count)
+                onOutput?(chunk, stream != 0)
                 if stream == 0 {
                     Self.appendCapped(
                         chunk, to: &standardOut, limit: outputLimit, truncated: &outTruncated

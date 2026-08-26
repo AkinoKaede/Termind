@@ -7,6 +7,16 @@ nonisolated struct AgentToolExecutionContext: Sendable {
     var userInteraction: any AgentUserInteractionHandling
     var preflightMetadata: [String: AgentJSONValue]
     var authorize: @Sendable (AgentApprovalRequest) async -> AgentApprovalDecision
+    /// What the call has produced so far.
+    ///
+    /// Pi's `onUpdate`, which it passes as a fourth argument to `execute`
+    /// because it has no per-call context object to put it in. This is
+    /// addressed to the reader and not to the model: the transcript gets the
+    /// value the tool finally returns, never a partial one, so a tool may
+    /// report as often as it likes without inflating anything the model pays
+    /// for. Defaults to discarding, so a caller assembling a context by hand —
+    /// a test, a preview — need not care.
+    var report: @Sendable (AgentToolResult) -> Void = { _ in }
 }
 
 nonisolated protocol AgentTool: Sendable {

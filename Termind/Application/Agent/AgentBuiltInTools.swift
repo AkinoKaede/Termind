@@ -490,18 +490,19 @@ actor AgentConnectionPool {
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
         timeout: TimeInterval, outputLimit: Int, hostID: UUID,
-        configuration override: ConfigurationResolving? = nil
+        configuration override: ConfigurationResolving? = nil,
+        onOutput: SSHExecOutputHandler? = nil
     ) async throws -> SSHExecResult {
         do {
             return try await exec(hostID: hostID, configuration: override).execute(
                 command, workingDirectory: workingDirectory, stdin: stdin,
-                timeout: timeout, outputLimit: outputLimit
+                timeout: timeout, outputLimit: outputLimit, onOutput: onOutput
             )
         } catch SSHExecSessionError.channelUnavailable {
             await disconnect(hostID: hostID, kind: .exec)
             return try await exec(hostID: hostID, configuration: override).execute(
                 command, workingDirectory: workingDirectory, stdin: stdin,
-                timeout: timeout, outputLimit: outputLimit
+                timeout: timeout, outputLimit: outputLimit, onOutput: onOutput
             )
         }
     }
@@ -776,6 +777,15 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                 let interactiveConfiguration: AgentConnectionPool.ConfigurationResolving = { _ in
                     try await authentication.configuration()
                 }
+                // Live output, so a command that takes a minute is a card
+                // filling in rather than a spinner. Reported, never returned:
+                // the model is owed one result per call and gets it below.
+                let stream = AgentCommandOutputStream { [report = context.report] out, error in
+                    report(result(invocation, .object([
+                        "status": .string("running"),
+                        "stdout": .string(out), "stderr": .string(error),
+                    ])))
+                }
                 let output: SSHExecResult
                 while true {
                     do {
@@ -783,7 +793,8 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                             command, workingDirectory: arguments.optionalString("cwd"), stdin: input,
                             timeout: TimeInterval(arguments.optionalInt("timeout_seconds") ?? 60),
                             outputLimit: 256 * 1_024, hostID: hostID,
-                            configuration: interactiveConfiguration
+                            configuration: interactiveConfiguration,
+                            onOutput: stream.handler
                         )
                         break
                     } catch let error as TermindSSHError where error.shouldRequestAuthentication {

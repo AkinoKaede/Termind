@@ -301,10 +301,11 @@ private actor StubExecSession: SSHExecSessionProtocol {
 
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int
+        timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         executeCount += 1
         if !failures.isEmpty { throw failures.removeFirst() }
+        onOutput?(Data(command.utf8), false)
         return SSHExecResult(
             stdout: command, stderr: "", exitCode: 0, signal: nil,
             stdoutTruncated: false, stderrTruncated: false

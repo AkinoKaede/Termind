@@ -304,6 +304,14 @@ nonisolated enum AgentEvent: Hashable, Sendable {
     case steeringDelivered(AgentTranscriptMessage)
     case toolProposed(AgentToolInvocation, AgentToolDescriptor)
     case toolStarted(AgentToolInvocation)
+    /// What a call has produced so far, for a reader watching it happen.
+    ///
+    /// Deliberately absent from `isDurable` and from the model-facing
+    /// transcript, on the same grounds as `messageDelta`: history is written
+    /// from run snapshots, so a card that fills in as output arrives must not
+    /// also stream database writes, and the model is owed one result per call
+    /// rather than a running commentary.
+    case toolProgress(AgentToolInvocation, AgentToolResult)
     case toolFinished(AgentToolInvocation, AgentToolResult)
     case approvalRequested(AgentApprovalRequest)
     case reviewStarted(AgentApprovalRequest)
@@ -317,7 +325,7 @@ nonisolated enum AgentEvent: Hashable, Sendable {
         case .runStarted(let id):
             id
         case .toolProposed(let invocation, _), .toolStarted(let invocation),
-            .toolFinished(let invocation, _):
+            .toolProgress(let invocation, _), .toolFinished(let invocation, _):
             invocation.runID
         case .approvalRequested(let request), .reviewStarted(let request),
             .reviewFinished(let request, _), .reviewFailed(let request, _, _):
