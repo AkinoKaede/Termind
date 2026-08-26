@@ -6,6 +6,8 @@ struct VaultSidebarView: View {
     @Environment(WindowModel.self) private var window
     @AppStorage(SettingsKey.compactSidebar) private var compactSidebar = false
     @AppStorage(SettingsKey.showRecents) private var showRecents = true
+    @State private var hoveredPage: VaultPage?
+    @State private var hoveredRecentHostID: Host.ID?
 
     var body: some View {
         List {
@@ -29,7 +31,9 @@ struct VaultSidebarView: View {
     }
 
     private func row(_ page: VaultPage, count: Int = 0) -> some View {
-        Button {
+        let isSelected = window.vaultDestination.page == page
+
+        return Button {
             window.openPage(page)
         } label: {
             HStack(spacing: Metrics.Space.s) {
@@ -42,14 +46,18 @@ struct VaultSidebarView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: Metrics.Sidebar.navigationRowHeight)
+            .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .onHover { setPageHover($0, page: page) }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .listRowBackground(
-            window.vaultDestination.page == page
-                ? Color.accentColor.opacity(0.16)
-                : Color.clear
+            rowFill(isSelected: isSelected, isHovering: hoveredPage == page)
         )
+        .listRowInsets(EdgeInsets())
     }
 
     private var recentHosts: [Host] {
@@ -76,14 +84,47 @@ struct VaultSidebarView: View {
                 }
                 Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: Metrics.Sidebar.navigationRowHeight)
+            .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .onHover { setRecentHover($0, hostID: host.id) }
+        .listRowBackground(
+            rowFill(
+                isSelected: false,
+                isHovering: hoveredRecentHostID == host.id
+            )
+        )
+        .listRowInsets(EdgeInsets())
         .contextMenu {
             HostContextMenu(host: host)
         }
         .help(Text("Quick Connect to \(app.hostLibrary.loginAddress(for: host))"))
         .accessibilityHint("Quick Connect with SSH")
+    }
+
+    private func rowFill(isSelected: Bool, isHovering: Bool) -> Color {
+        if isSelected { return Color.accentColor.opacity(0.16) }
+        if isHovering { return Color.primary.opacity(0.055) }
+        return .clear
+    }
+
+    private func setPageHover(_ hovering: Bool, page: VaultPage) {
+        if hovering {
+            hoveredPage = page
+        } else if hoveredPage == page {
+            hoveredPage = nil
+        }
+    }
+
+    private func setRecentHover(_ hovering: Bool, hostID: Host.ID) {
+        if hovering {
+            hoveredRecentHostID = hostID
+        } else if hoveredRecentHostID == hostID {
+            hoveredRecentHostID = nil
+        }
     }
 
 }

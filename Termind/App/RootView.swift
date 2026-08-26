@@ -39,7 +39,7 @@ struct RootView: View {
         }
         .overlay { ExternalAuthWindowPresenter() }
         .frame(
-            minWidth: Metrics.Window.detailMin,
+            minWidth: Metrics.Window.minWidth,
             maxWidth: .infinity,
             minHeight: Metrics.Window.minHeight,
             maxHeight: .infinity
@@ -136,7 +136,7 @@ struct RootView: View {
                 .frame(
                     minWidth: Metrics.Window.detailMin,
                     maxWidth: .infinity,
-                    minHeight: Metrics.Window.minHeight,
+                    minHeight: Metrics.Window.detailMinHeight,
                     maxHeight: .infinity
                 )
                 .onGeometryChange(for: CGFloat.self) {

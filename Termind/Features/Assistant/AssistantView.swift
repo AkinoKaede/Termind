@@ -14,7 +14,11 @@ struct AssistantSidebarView: View {
                     window.openAssistant()
                 } label: {
                     Label("New Chat", systemImage: "plus.bubble")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(
+                            maxWidth: .infinity,
+                            minHeight: Metrics.Sidebar.navigationRowHeight,
+                            alignment: .leading
+                        )
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
@@ -23,7 +27,10 @@ struct AssistantSidebarView: View {
                     window.showAssistantArchive()
                 } label: {
                     Image(systemName: "archivebox")
-                        .frame(width: 28, height: 24)
+                        .frame(
+                            width: Metrics.Sidebar.navigationRowHeight,
+                            height: Metrics.Sidebar.navigationRowHeight
+                        )
                         .background(
                             window.isAssistantArchivePresented
                                 ? Color.accentColor.opacity(0.16) : Color.clear,
@@ -34,7 +41,8 @@ struct AssistantSidebarView: View {
                 .help(Text("Archived"))
                 .accessibilityLabel(Text("Archived"))
             }
-            .padding(Metrics.Space.m)
+            .padding(.horizontal, Metrics.Space.m)
+            .padding(.vertical, Metrics.Space.s)
         }
     }
 
@@ -214,43 +222,52 @@ private struct AssistantConversationList: View {
     }
 
     private var activeList: some View {
-        List {
-            if !window.assistantLibrary.pinnedConversations.isEmpty {
-                Section("Pinned") {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if !window.assistantLibrary.pinnedConversations.isEmpty {
+                    sectionTitle("Pinned")
                     rows(window.assistantLibrary.pinnedConversations)
                 }
-            }
-            if !window.assistantLibrary.activeConversations.isEmpty {
-                Section("Chats") {
+                if !window.assistantLibrary.activeConversations.isEmpty {
+                    sectionTitle("Chats")
                     rows(window.assistantLibrary.activeConversations)
                 }
             }
         }
-        .listStyle(.sidebar)
+        .background(Color.clear)
     }
 
     private var archivedList: some View {
         ScrollView {
-            LazyVStack(spacing: Metrics.Space.xs) {
-                rows(window.assistantLibrary.archivedConversations, isArchiveManagement: true)
+            LazyVStack(spacing: 0) {
+                rows(window.assistantLibrary.archivedConversations)
             }
             .frame(maxWidth: archiveMaxWidth ?? .infinity)
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .padding(.horizontal, Metrics.Space.xl)
+            .padding(
+                .horizontal,
+                archiveMaxWidth == nil ? 0 : Metrics.Space.xl
+            )
             .padding(.vertical, Metrics.Space.m)
         }
         .background(Color.clear)
     }
 
+    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
+            .padding(.top, Metrics.Space.m)
+            .padding(.bottom, Metrics.Space.xs)
+    }
+
     @ViewBuilder
-    private func rows(
-        _ conversations: [ConversationModel], isArchiveManagement: Bool = false
-    ) -> some View {
+    private func rows(_ conversations: [ConversationModel]) -> some View {
         ForEach(conversations) { conversation in
             AssistantConversationRow(
                 conversation: conversation,
                 isSelected: selectedID == conversation.id,
-                isArchiveManagement: isArchiveManagement,
                 onOpen: { onOpen(conversation.id) },
                 onDelete: { deleteTarget = conversation }
             )
@@ -318,7 +335,6 @@ private struct AssistantArchiveView: View {
 private struct AssistantConversationRow: View {
     let conversation: ConversationModel
     let isSelected: Bool
-    var isArchiveManagement = false
     let onOpen: () -> Void
     let onDelete: () -> Void
 
@@ -329,6 +345,46 @@ private struct AssistantConversationRow: View {
     @FocusState private var titleFocused: Bool
 
     var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(
+                    isSelected
+                        ? Color.accentColor.opacity(0.16)
+                        : hovering
+                            ? Color.primary.opacity(0.055)
+                            : Color.clear
+                )
+
+            rowContent
+                .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: Metrics.Sidebar.navigationRowHeight)
+        .contentShape(.rect)
+        .onTapGesture { if !renaming { onOpen() } }
+        .onHover { hovering = $0 }
+        .focusable(false)
+        .focusEffectDisabled()
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .overlay {
+            ConversationContextMenuHost(
+                isArchived: conversation.isArchived,
+                isPinned: conversation.isPinned,
+                managementDisabled: conversation.isStreaming || conversation.isCompacting,
+                onTogglePin: { window.toggleAssistantPin(conversation.id) },
+                onRename: beginRename,
+                onToggleArchive: {
+                    window.setAssistantArchived(
+                        conversation.id, archived: !conversation.isArchived
+                    )
+                },
+                onDelete: onDelete
+            )
+            .accessibilityHidden(true)
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: conversation.isArchived ? "archivebox" : "sparkles")
                 .foregroundStyle(.tint)
@@ -355,38 +411,6 @@ private struct AssistantConversationRow: View {
                 .help(Text(conversation.isArchived ? "Unarchive" : "Archive"))
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, isArchiveManagement ? Metrics.Space.l : Metrics.Space.s)
-        .padding(.vertical, isArchiveManagement ? Metrics.Space.m : Metrics.Space.xs)
-        .background(rowFill, in: .rect(cornerRadius: Metrics.Radius.medium))
-        .contentShape(.rect(cornerRadius: Metrics.Radius.medium))
-        .onTapGesture { if !renaming { onOpen() } }
-        .onHover { hovering = $0 }
-        .focusable(false)
-        .focusEffectDisabled()
-        .listRowBackground(Color.clear)
-        .overlay {
-            ConversationContextMenuHost(
-                isArchived: conversation.isArchived,
-                isPinned: conversation.isPinned,
-                managementDisabled: conversation.isStreaming || conversation.isCompacting,
-                onTogglePin: { window.toggleAssistantPin(conversation.id) },
-                onRename: beginRename,
-                onToggleArchive: {
-                    window.setAssistantArchived(
-                        conversation.id, archived: !conversation.isArchived
-                    )
-                },
-                onDelete: onDelete
-            )
-            .accessibilityHidden(true)
-        }
-    }
-
-    private var rowFill: Color {
-        if isSelected { return Color.accentColor.opacity(0.14) }
-        if hovering { return Color.primary.opacity(0.055) }
-        return .clear
     }
 
     private func beginRename() {

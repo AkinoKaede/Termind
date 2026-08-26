@@ -30,6 +30,11 @@ nonisolated enum Metrics {
         /// Color stripe on the leading edge of a host row.
         static let stripeWidth: CGFloat = 2.5
         static let statusDot: CGFloat = 7
+        /// Vault and Assistant navigation use one comfortable target so every
+        /// destination, chat, archive, and new-chat action keeps a steady rhythm.
+        static let navigationRowHeight: CGFloat = 36
+        /// Shared content inset for the leading glyph and trailing accessory.
+        static let navigationRowInset: CGFloat = 8
         /// The fixed column every sidebar row's leading glyph sits in.
         ///
         /// Fixed rather than left to `Label`, whose icon takes the symbol's own
@@ -260,17 +265,21 @@ nonisolated enum Metrics {
     }
 
     enum Window {
-        /// The detail column's own floor, applied to the detail `VStack` itself.
-        ///
-        /// Deliberately *not* summed into a window-level `minWidth`: wrapping a
-        /// `NavigationSplitView` in a `.frame` takes the width negotiation away
-        /// from the split view, which then lays out at the sum of its columns'
-        /// ideal widths and centres that inside the window — clipping the
-        /// sidebar on the left. The window
-        /// minimum comes from `.windowResizability(.contentMinSize)` instead,
-        /// which reads these three floors through the view tree.
+        /// The detail column's own floors. The window-level values below add
+        /// the chrome that sits beside or above it; keeping the two concepts
+        /// separate prevents accidentally counting the tab strip twice.
         static let detailMin: CGFloat = 320
-        static let minHeight: CGFloat = 440
+        static let detailMinHeight: CGFloat = 440
+
+        /// The narrowest permanent two-column layout is Vault: one minimum
+        /// sidebar, the native split-view divider, and Vault's main surface.
+        /// Optional Vault work details keep contributing their own active
+        /// minimum through `.contentMinSize` when one is presented.
+        static let minWidth: CGFloat = Metrics.Sidebar.min + 1 + Metrics.VaultContent.min
+
+        /// Root content includes the pinned tab strip and its divider above the
+        /// detail floor. The macOS title bar is outside this measurement.
+        static let minHeight: CGFloat = Metrics.TabBar.height + 1 + detailMinHeight
         static let defaultWidth: CGFloat = 1180
         static let defaultHeight: CGFloat = 740
     }

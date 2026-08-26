@@ -70,8 +70,8 @@ struct TermindApp: App {
                 #endif
         }
         .defaultSize(width: Metrics.Window.defaultWidth, height: Metrics.Window.defaultHeight)
-        // Lets the window shrink to what the columns actually need, instead of
-        // AppKit's default of never going below the size it launched at.
+        // RootView publishes the calculated two-column floor. Active optional
+        // panes may raise it, but the window can never shrink below the base UI.
         .windowResizability(.contentMinSize)
         .commands { TermindCommands(app: app) }
 
