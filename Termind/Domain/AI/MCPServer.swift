@@ -41,6 +41,9 @@ nonisolated struct MCPServer: Identifiable, Hashable, Sendable {
 
     var id: UUID = UUID()
     var name: String
+    /// Stable model-facing namespace. An empty value is used only while a new
+    /// server draft is still deriving its ID from `name`.
+    var namespaceID: String
     var transport: Transport = .streamableHTTP
     /// The MCP endpoint. One URL for Streamable HTTP; for SSE this is the URL
     /// the stream is opened on, and the POST endpoint arrives on that stream.
@@ -59,6 +62,31 @@ nonisolated struct MCPServer: Identifiable, Hashable, Sendable {
     var negotiatedVersion: String = ""
     var lastConnectedAt: Date?
 
+    init(
+        id: UUID = UUID(), name: String, namespaceID: String? = nil,
+        transport: Transport = .streamableHTTP, url: String = "",
+        isEnabled: Bool = true, credentialRef: String = "",
+        headers: [MCPHeader] = [], tools: [MCPTool] = [],
+        negotiatedVersion: String = "", lastConnectedAt: Date? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.namespaceID = namespaceID ?? MCPToolNaming.namespaceID(from: name)
+        self.transport = transport
+        self.url = url
+        self.isEnabled = isEnabled
+        self.credentialRef = credentialRef
+        self.headers = headers
+        self.tools = tools
+        self.negotiatedVersion = negotiatedVersion
+        self.lastConnectedAt = lastConnectedAt
+    }
+
+    /// The locked namespace, or the live derived value for an unlocked draft.
+    var effectiveNamespaceID: String {
+        namespaceID.isEmpty ? MCPToolNaming.namespaceID(from: name) : namespaceID
+    }
+
     var enabledTools: [MCPTool] {
         tools.filter(\.isEnabled)
     }
@@ -71,6 +99,68 @@ nonisolated struct MCPServer: Identifiable, Hashable, Sendable {
         guard !query.isEmpty else { return true }
         let q = query.lowercased()
         return name.lowercased().contains(q) || url.lowercased().contains(q)
+    }
+}
+
+/// Shared naming rules for MCP namespaces and their model-visible functions.
+nonisolated enum MCPToolNaming {
+    static func namespaceID(from name: String) -> String {
+        normalize(name, emptyFallback: "")
+    }
+
+    static func functionName(from remoteName: String) -> String {
+        normalize(remoteName, emptyFallback: "tool")
+    }
+
+    /// Returns stable, unique leaf names keyed by the server-reported tool ID.
+    static func functionNames(for tools: [MCPTool]) -> [String: String] {
+        var taken = Set<String>()
+        var result: [String: String] = [:]
+        for tool in tools.sorted(by: { $0.id < $1.id }) {
+            let base = functionName(from: tool.id)
+            var candidate = base
+            var suffix = 2
+            while taken.contains(candidate) {
+                candidate = "\(base)_\(suffix)"
+                suffix += 1
+            }
+            taken.insert(candidate)
+            result[tool.id] = candidate
+        }
+        return result
+    }
+
+    static func qualifiedName(namespace: String, function: String) -> String {
+        "\(namespace).\(function)"
+    }
+
+    private static func normalize(_ value: String, emptyFallback: String) -> String {
+        var result = ""
+        var pendingSeparator = false
+        for scalar in value.unicodeScalars {
+            let code = scalar.value
+            let isUppercase = (65...90).contains(code)
+            let isLowercase = (97...122).contains(code)
+            let isDigit = (48...57).contains(code)
+            if isUppercase || isLowercase || isDigit || code == 95 || code == 45 {
+                if pendingSeparator, !result.isEmpty,
+                    result.last != "_", result.last != "-"
+                {
+                    result.append("_")
+                }
+                pendingSeparator = false
+                if isUppercase {
+                    result.unicodeScalars.append(UnicodeScalar(code + 32)!)
+                } else {
+                    result.unicodeScalars.append(scalar)
+                }
+            } else {
+                pendingSeparator = true
+            }
+        }
+        return result.trimmingCharacters(in: CharacterSet(charactersIn: "_-")).isEmpty
+            ? emptyFallback
+            : result.trimmingCharacters(in: CharacterSet(charactersIn: "_-"))
     }
 }
 

@@ -33,17 +33,54 @@ struct SettingsNavigationTests {
 
     @Test
     func emptyServerDraftIsDiscarded() {
-        let server = MCPServer(name: String(localized: "New Server"))
+        let server = MCPServer(name: "", namespaceID: "")
         #expect(SettingsDraftPolicy.shouldDiscard(server))
     }
 
     @Test
     func configuredServerDraftIsKept() {
-        var server = MCPServer(name: String(localized: "New Server"))
+        var server = MCPServer(name: "", namespaceID: "")
         server.url = "https://example.com/mcp"
-        #expect(!SettingsDraftPolicy.shouldDiscard(server))
+        #expect(SettingsDraftPolicy.shouldDiscard(server))
 
         server = MCPServer(name: "Production")
         #expect(!SettingsDraftPolicy.shouldDiscard(server))
+    }
+
+    @Test(arguments: [
+        ("A B C-D", "a_b_c-d"),
+        ("  Alpha!!!Beta  ", "alpha_beta"),
+        ("__Alpha--", "alpha"),
+        ("MIXED_case-42", "mixed_case-42"),
+        ("中文", ""),
+        ("A中B", "a_b"),
+        ("...", ""),
+    ])
+    func mcpNamespaceIDNormalization(input: String, expected: String) {
+        #expect(MCPToolNaming.namespaceID(from: input) == expected)
+    }
+
+    @Test
+    func mcpNamespaceLocksAndRejectsDuplicates() throws {
+        let existing = MCPServer(name: "A B C-D")
+        var draft = MCPServer(name: "", namespaceID: "")
+        let store = AIConfigurationModel(
+            mcpServers: [existing, draft], persistsSecrets: false
+        )
+
+        draft.name = "Other Gateway"
+        store.upsert(draft)
+        #expect(store.lockMCPNamespace(for: draft.id))
+        #expect(store.mcpServer(draft.id)?.namespaceID == "other_gateway")
+
+        var renamed = try #require(store.mcpServer(draft.id))
+        renamed.name = "Renamed"
+        store.upsert(renamed)
+        #expect(store.mcpServer(draft.id)?.effectiveNamespaceID == "other_gateway")
+
+        let duplicate = MCPServer(name: "A!!!B C-D", namespaceID: "")
+        store.upsert(duplicate)
+        #expect(!store.lockMCPNamespace(for: duplicate.id))
+        #expect(store.mcpServer(duplicate.id)?.namespaceID == "")
     }
 }

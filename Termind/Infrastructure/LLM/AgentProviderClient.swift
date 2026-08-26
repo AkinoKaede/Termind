@@ -1,5 +1,53 @@
 import Foundation
 
+/// Reversible names for providers whose tool protocols have no namespace field.
+nonisolated struct AgentProviderToolNameMap: Sendable {
+    var qualifiedToWire: [String: String]
+    var wireToQualified: [String: String]
+
+    static func flat(_ descriptors: [AgentToolDescriptor]) -> Self {
+        var qualifiedToWire: [String: String] = [:]
+        var wireToQualified: [String: String] = [:]
+        var taken = Set<String>()
+        let builtIns = descriptors.filter { $0.namespace == nil }
+            .sorted { $0.name < $1.name }
+        for descriptor in builtIns {
+            taken.insert(descriptor.name)
+            qualifiedToWire[descriptor.qualifiedName] = descriptor.name
+            wireToQualified[descriptor.name] = descriptor.qualifiedName
+        }
+        let namespaced = descriptors.filter { $0.namespace != nil }
+            .sorted { $0.qualifiedName < $1.qualifiedName }
+        for descriptor in namespaced {
+            let base = "mcp__\(descriptor.namespace!)__\(descriptor.name)"
+            var wire = base
+            var suffix = 2
+            while taken.contains(wire) {
+                wire = "\(base)_\(suffix)"
+                suffix += 1
+            }
+            taken.insert(wire)
+            qualifiedToWire[descriptor.qualifiedName] = wire
+            wireToQualified[wire] = descriptor.qualifiedName
+        }
+        return Self(qualifiedToWire: qualifiedToWire, wireToQualified: wireToQualified)
+    }
+
+    func wireName(for qualifiedName: String) -> String {
+        if let wire = qualifiedToWire[qualifiedName] { return wire }
+        guard let separator = qualifiedName.firstIndex(of: ".") else {
+            return qualifiedName
+        }
+        let namespace = qualifiedName[..<separator]
+        let name = qualifiedName[qualifiedName.index(after: separator)...]
+        return "mcp__\(namespace)__\(name)"
+    }
+
+    func qualifiedName(for wireName: String) -> String {
+        wireToQualified[wireName] ?? wireName
+    }
+}
+
 /// Provider-neutral streaming client. It keeps each provider's native message/tool
 /// envelope at the boundary while exposing one event stream to AgentRuntime.
 nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
@@ -50,6 +98,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
+                    let toolNames = AgentProviderToolNameMap.flat(request.tools)
                     var chatCallIDs: [Int: String] = [:]
                     var anthropicState = AnthropicStreamState()
                     var responseCallIDs: [String: String] = [:]
@@ -77,7 +126,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                             }
                             data.append(byte)
                         }
-                        for item in try parseBufferedResponse(data) {
+                        for item in try parseBufferedResponse(
+                            data, wireNames: toolNames.wireToQualified
+                        ) {
                             continuation.yield(item)
                         }
                         continuation.finish()
@@ -89,7 +140,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                             event, chatCallIDs: &chatCallIDs,
                             anthropicState: &anthropicState,
                             responseCallIDs: &responseCallIDs,
-                            responseCallNames: &responseCallNames
+                            responseCallNames: &responseCallNames,
+                            wireNames: toolNames.wireToQualified
                         ) {
                             continuation.yield(item)
                         }
@@ -102,6 +154,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     }
 
     func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent] {
+        let toolNames = AgentProviderToolNameMap.flat(request.tools)
         var urlRequest = try buildRequest(request, streaming: false)
         try await authorize(&urlRequest)
         let (bytes, response) = try await session.bytes(for: urlRequest)
@@ -120,7 +173,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 http.statusCode, String(decoding: data.prefix(4096), as: UTF8.self)
             )
         }
-        return try parseBufferedResponse(data)
+        return try parseBufferedResponse(data, wireNames: toolNames.wireToQualified)
     }
 
     /// Reads only as much of a failed response as the message will show.
@@ -179,6 +232,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     func body(
         _ request: AgentModelRequest, streaming: Bool
     ) -> [String: Any] {
+        let toolNames = AgentProviderToolNameMap.flat(request.tools)
         let reasoningResolution = ModelCapabilityResolver.reasoning(
             model: model, provider: provider
         )
@@ -186,11 +240,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         let reasoningValue = reasoningResolution.wireValue(for: normalizedReasoning)
         switch provider.kind {
         case .openAI where provider.usesResponsesAPI:
-            var tools: [[String: Any]] = request.tools.map(Self.openAIToolObject).map { tool in
-                var responseTool = tool
-                responseTool["type"] = "function"
-                return responseTool
-            }
+            var tools = Self.responsesToolObjects(request.tools)
             if webSearch { tools.append(["type": "web_search"]) }
             var body: [String: Any] = [
                 "model": model.id, "stream": streaming,
@@ -208,9 +258,13 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             // every OpenAI-compatible gateway Termind talks to — see
             // `ModelProvider.supportsNativeWebSearch`, which is what actually
             // prevents it reaching this far.
-            let tools = request.tools.map(Self.openAIToolObject)
+            let tools = request.tools.map {
+                Self.openAIToolObject($0, name: toolNames.wireName(for: $0.qualifiedName))
+            }
             var messages: [[String: Any]] = [["role": "system", "content": request.systemPrompt]]
-            messages += request.messages.flatMap(Self.chatMessages)
+            messages += request.messages.flatMap {
+                Self.chatMessages($0, toolNames: toolNames)
+            }
             var body: [String: Any] = [
                 "model": model.id, "stream": streaming, "messages": messages,
             ]
@@ -218,7 +272,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if let reasoningValue { body["reasoning_effort"] = reasoningValue }
             return body
         case .anthropic:
-            var tools: [[String: Any]] = request.tools.map(Self.providerToolObject).map { tool in
+            var tools: [[String: Any]] = request.tools.map {
+                Self.providerToolObject($0, name: toolNames.wireName(for: $0.qualifiedName))
+            }.map { tool in
                 ["name": tool["name"]!, "description": tool["description"]!, "input_schema": tool["parameters"]!]
             }
             if webSearch {
@@ -231,7 +287,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 "model": model.id, "stream": streaming,
                 "max_tokens": model.maxOutputTokens ?? 4096,
                 "system": request.systemPrompt,
-                "messages": request.messages.flatMap(Self.anthropicMessages),
+                "messages": request.messages.flatMap {
+                    Self.anthropicMessages($0, toolNames: toolNames)
+                },
             ]
             if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
@@ -239,7 +297,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             }
             return body
         case .google:
-            let declarations = request.tools.map(Self.providerToolObject)
+            let declarations = request.tools.map {
+                Self.providerToolObject($0, name: toolNames.wireName(for: $0.qualifiedName))
+            }
             // Two entries, not two keys in one entry. Gemini's `tools` is a
             // list of tool *groups*, and putting `google_search` beside
             // `functionDeclarations` inside one object is the arrangement it
@@ -249,7 +309,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if webSearch { tools.append(["google_search": [String: Any]()]) }
             var body: [String: Any] = [
                 "systemInstruction": ["parts": [["text": request.systemPrompt]]],
-                "contents": request.messages.map(Self.googleMessage),
+                "contents": request.messages.map {
+                    Self.googleMessage($0, toolNames: toolNames)
+                },
             ]
             if !tools.isEmpty { body["tools"] = tools }
             if let reasoningValue {
@@ -284,7 +346,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         _ event: SSEEvent, chatCallIDs: inout [Int: String],
         anthropicState: inout AnthropicStreamState,
         responseCallIDs: inout [String: String],
-        responseCallNames: inout [String: String]
+        responseCallNames: inout [String: String],
+        wireNames: [String: String]
     ) -> [AgentModelStreamEvent] {
         guard let data = event.data.data(using: .utf8),
             let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -299,26 +362,31 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 eventType, root, callIDs: &responseCallIDs,
                 callNames: &responseCallNames
             )
-        case .openAI: return Self.parseChat(root, callIDs: &chatCallIDs)
+        case .openAI:
+            return Self.parseChat(root, callIDs: &chatCallIDs, wireNames: wireNames)
         case .anthropic:
-            return Self.parseAnthropic(eventType, root, state: &anthropicState)
-        case .google: return Self.parseGoogle(root)
+            return Self.parseAnthropic(
+                eventType, root, state: &anthropicState, wireNames: wireNames
+            )
+        case .google: return Self.parseGoogle(root, wireNames: wireNames)
         }
     }
 
     /// A number of OpenAI-compatible gateways accept `stream: true` but return
     /// one ordinary JSON response. Treat that as a valid completed stream.
-    private func parseBufferedResponse(_ data: Data) throws -> [AgentModelStreamEvent] {
+    private func parseBufferedResponse(
+        _ data: Data, wireNames: [String: String]
+    ) throws -> [AgentModelStreamEvent] {
         if let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             switch provider.kind {
             case .openAI where provider.usesResponsesAPI:
                 return Self.parseCompletedResponses(root)
             case .openAI:
-                return Self.parseChat(root)
+                return Self.parseChat(root, wireNames: wireNames)
             case .anthropic:
-                return Self.parseCompletedAnthropic(root)
+                return Self.parseCompletedAnthropic(root, wireNames: wireNames)
             case .google:
-                return Self.parseGoogle(root)
+                return Self.parseGoogle(root, wireNames: wireNames)
             }
         }
 
@@ -335,16 +403,19 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 event, chatCallIDs: &chatCallIDs,
                 anthropicState: &anthropicState,
                 responseCallIDs: &responseCallIDs,
-                responseCallNames: &responseCallNames
+                responseCallNames: &responseCallNames,
+                wireNames: wireNames
             )
         }
         guard !output.isEmpty else { throw AgentProviderError.invalidResponse }
         return output
     }
 
-    private static func providerToolObject(_ descriptor: AgentToolDescriptor) -> [String: Any] {
+    private static func providerToolObject(
+        _ descriptor: AgentToolDescriptor, name: String
+    ) -> [String: Any] {
         [
-            "name": descriptor.name,
+            "name": name,
             "description": descriptor.summary,
             "parameters": foundationObject(descriptor.inputSchema),
         ]
@@ -354,13 +425,41 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         event.event == "message" ? root["type"] as? String ?? event.event : event.event
     }
 
-    private static func openAIToolObject(_ descriptor: AgentToolDescriptor) -> [String: Any] {
+    private static func openAIToolObject(
+        _ descriptor: AgentToolDescriptor, name: String? = nil
+    ) -> [String: Any] {
         [
-            "name": descriptor.name,
+            "name": name ?? descriptor.name,
             "description": descriptor.summary,
             "parameters": foundationObject(openAIStrictSchema(descriptor.inputSchema)),
             "strict": true,
         ]
+    }
+
+    private static func responsesToolObjects(
+        _ descriptors: [AgentToolDescriptor]
+    ) -> [[String: Any]] {
+        var tools = descriptors.filter { $0.namespace == nil }.map { descriptor in
+            var tool = openAIToolObject(descriptor)
+            tool["type"] = "function"
+            return tool
+        }
+        let grouped = Dictionary(grouping: descriptors.compactMap { descriptor in
+            descriptor.namespace.map { ($0, descriptor) }
+        }, by: { $0.0 })
+        for namespace in grouped.keys.sorted() {
+            let members = (grouped[namespace] ?? []).map(\.1)
+                .sorted { $0.name < $1.name }
+            let children = members.map { descriptor -> [String: Any] in
+                var tool = openAIToolObject(descriptor)
+                tool["type"] = "function"
+                return tool
+            }
+            tools.append([
+                "type": "namespace", "name": namespace, "tools": children,
+            ])
+        }
+        return tools
     }
 
     /// OpenAI strict function schemas require every property to appear in
@@ -440,45 +539,92 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             ])
         }
         rows += message.toolCalls.map { call in
+            let parts = splitQualifiedName(call.name)
             var item: [String: Any] = [
                 "type": "function_call", "call_id": call.id,
-                "name": call.name, "arguments": call.arguments.encodedString,
+                "name": parts.name, "arguments": call.arguments.encodedString,
             ]
+            if let namespace = parts.namespace { item["namespace"] = namespace }
             if let providerItemID = call.providerItemID { item["id"] = providerItemID }
             return item
         }
         return rows
     }
 
-    private static func chatMessages(_ message: AgentTranscriptMessage) -> [[String: Any]] {
+    private static func chatMessages(
+        _ message: AgentTranscriptMessage, toolNames: AgentProviderToolNameMap
+    ) -> [[String: Any]] {
         if message.role == .tool {
             return [["role": "tool", "tool_call_id": message.toolCallID ?? "", "content": message.text]]
         }
         var row: [String: Any] = ["role": message.role.rawValue, "content": message.text]
         if !message.toolCalls.isEmpty {
             row["tool_calls"] = message.toolCalls.map {
-                ["id": $0.id, "type": "function", "function": ["name": $0.name, "arguments": $0.arguments.encodedString]]
+                ["id": $0.id, "type": "function", "function": [
+                    "name": toolNames.wireName(for: $0.name),
+                    "arguments": $0.arguments.encodedString,
+                ]]
             }
         }
         return [row]
     }
 
-    private static func anthropicMessages(_ message: AgentTranscriptMessage) -> [[String: Any]] {
+    private static func anthropicMessages(
+        _ message: AgentTranscriptMessage, toolNames: AgentProviderToolNameMap
+    ) -> [[String: Any]] {
         if message.role == .tool {
             return [["role": "user", "content": [["type": "tool_result", "tool_use_id": message.toolCallID ?? "", "content": message.text, "is_error": message.isError]]]]
         }
         var content: [[String: Any]] = message.text.isEmpty ? [] : [["type": "text", "text": message.text]]
-        content += message.toolCalls.map { ["type": "tool_use", "id": $0.id, "name": $0.name, "input": foundationObject($0.arguments)] }
+        content += message.toolCalls.map { [
+            "type": "tool_use", "id": $0.id,
+            "name": toolNames.wireName(for: $0.name),
+            "input": foundationObject($0.arguments),
+        ] }
         return [["role": message.role == .assistant ? "assistant" : "user", "content": content]]
     }
 
-    private static func googleMessage(_ message: AgentTranscriptMessage) -> [String: Any] {
+    private static func googleMessage(
+        _ message: AgentTranscriptMessage, toolNames: AgentProviderToolNameMap
+    ) -> [String: Any] {
         if message.role == .tool {
-            return ["role": "user", "parts": [["functionResponse": ["name": message.toolName ?? "tool", "response": ["output": message.text]]]]]
+            return ["role": "user", "parts": [["functionResponse": [
+                "name": toolNames.wireName(for: message.toolName ?? "tool"),
+                "response": ["output": message.text],
+            ]]]]
         }
         var parts: [[String: Any]] = message.text.isEmpty ? [] : [["text": message.text]]
-        parts += message.toolCalls.map { ["functionCall": ["name": $0.name, "args": foundationObject($0.arguments)]] }
+        parts += message.toolCalls.map { ["functionCall": [
+            "name": toolNames.wireName(for: $0.name),
+            "args": foundationObject($0.arguments),
+        ]] }
         return ["role": message.role == .assistant ? "model" : "user", "parts": parts]
+    }
+
+    private static func splitQualifiedName(
+        _ qualifiedName: String
+    ) -> (namespace: String?, name: String) {
+        guard let separator = qualifiedName.firstIndex(of: ".") else {
+            return (nil, qualifiedName)
+        }
+        return (
+            String(qualifiedName[..<separator]),
+            String(qualifiedName[qualifiedName.index(after: separator)...])
+        )
+    }
+
+    private static func responseName(_ object: [String: Any]) -> String? {
+        guard let name = object["name"] as? String else { return nil }
+        guard let namespace = object["namespace"] as? String, !namespace.isEmpty else {
+            return name
+        }
+        return "\(namespace).\(name)"
+    }
+
+    private static func canonicalName(
+        _ wireName: String, wireNames: [String: String]
+    ) -> String {
+        wireNames[wireName] ?? wireName
     }
 
     static func parseResponses(_ type: String, _ root: [String: Any]) -> [AgentModelStreamEvent] {
@@ -503,7 +649,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 return []
             }
             let id = root["call_id"] as? String ?? callIDs[sourceID] ?? sourceID
-            let name = root["name"] as? String ?? callNames[sourceID]
+            let name = responseName(root) ?? callNames[sourceID]
             callIDs[sourceID] = id
             if let name { callNames[sourceID] = name }
             return [.toolCallDelta(
@@ -515,7 +661,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             }
             let id = root["call_id"] as? String ?? callIDs[sourceID] ?? sourceID
             callIDs[sourceID] = id
-            guard let name = root["name"] as? String ?? callNames[sourceID] else {
+            guard let name = responseName(root) ?? callNames[sourceID] else {
                 return []
             }
             return [.toolCallSnapshot(
@@ -528,9 +674,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             else { return [] }
             let id = item["call_id"] as? String ?? sourceID
             callIDs[sourceID] = id
-            if let name = item["name"] as? String { callNames[sourceID] = name }
+            if let name = responseName(item) { callNames[sourceID] = name }
             return [.toolCallDelta(
-                id: id, name: item["name"] as? String,
+                id: id, name: responseName(item),
                 arguments: item["arguments"] as? String ?? ""
             )]
         case "response.output_item.done":
@@ -545,7 +691,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             }
             guard item["type"] as? String == "function_call",
                 let sourceID = (item["id"] ?? item["call_id"]) as? String,
-                let name = item["name"] as? String ?? callNames[sourceID]
+                let name = responseName(item) ?? callNames[sourceID]
             else { return [] }
             let id = item["call_id"] as? String ?? callIDs[sourceID] ?? sourceID
             callIDs[sourceID] = id
@@ -597,7 +743,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                     }
                 }
             case "function_call":
-                guard let name = item["name"] as? String else { continue }
+                guard let name = responseName(item) else { continue }
                 let id = (item["call_id"] ?? item["id"]) as? String
                     ?? UUID().uuidString
                 events.append(.toolCallSnapshot(
@@ -618,13 +764,16 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         return events
     }
 
-    static func parseChat(_ root: [String: Any]) -> [AgentModelStreamEvent] {
+    static func parseChat(
+        _ root: [String: Any], wireNames: [String: String] = [:]
+    ) -> [AgentModelStreamEvent] {
         var callIDs: [Int: String] = [:]
-        return parseChat(root, callIDs: &callIDs)
+        return parseChat(root, callIDs: &callIDs, wireNames: wireNames)
     }
 
     static func parseChat(
-        _ root: [String: Any], callIDs: inout [Int: String]
+        _ root: [String: Any], callIDs: inout [Int: String],
+        wireNames: [String: String] = [:]
     ) -> [AgentModelStreamEvent] {
         guard let choice = (root["choices"] as? [[String: Any]])?.first else { return [] }
         var events: [AgentModelStreamEvent] = []
@@ -634,7 +783,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 let function = call["function"] as? [String: Any]
                 guard let name = function?["name"] as? String else { continue }
                 events.append(.toolCallDelta(
-                    id: call["id"] as? String ?? "index-\(index)", name: name,
+                    id: call["id"] as? String ?? "index-\(index)",
+                    name: canonicalName(name, wireNames: wireNames),
                     arguments: function?["arguments"] as? String ?? ""
                 ))
             }
@@ -647,7 +797,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 let function = call["function"] as? [String: Any]
                 events.append(.toolCallDelta(
                     id: callIDs[index] ?? "index-\(index)",
-                    name: function?["name"] as? String,
+                    name: (function?["name"] as? String).map {
+                        canonicalName($0, wireNames: wireNames)
+                    },
                     arguments: function?["arguments"] as? String ?? ""
                 ))
             }
@@ -660,7 +812,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         return events
     }
 
-    static func parseCompletedAnthropic(_ root: [String: Any]) -> [AgentModelStreamEvent] {
+    static func parseCompletedAnthropic(
+        _ root: [String: Any], wireNames: [String: String] = [:]
+    ) -> [AgentModelStreamEvent] {
         guard root["type"] as? String == "message" else { return [] }
         var events: [AgentModelStreamEvent] = []
         // The buffered body has both halves of a search in hand, so the query
@@ -678,7 +832,8 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 } ?? Data("{}".utf8)
                 events.append(.toolCallDelta(
                     id: block["id"] as? String ?? UUID().uuidString,
-                    name: name, arguments: String(decoding: data, as: UTF8.self)
+                    name: canonicalName(name, wireNames: wireNames),
+                    arguments: String(decoding: data, as: UTF8.self)
                 ))
             case "server_tool_use":
                 guard let id = block["id"] as? String else { continue }
@@ -698,11 +853,12 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
 
     static func parseAnthropic(_ type: String, _ root: [String: Any]) -> [AgentModelStreamEvent] {
         var state = AnthropicStreamState()
-        return parseAnthropic(type, root, state: &state)
+        return parseAnthropic(type, root, state: &state, wireNames: [:])
     }
 
     static func parseAnthropic(
-        _ type: String, _ root: [String: Any], state: inout AnthropicStreamState
+        _ type: String, _ root: [String: Any], state: inout AnthropicStreamState,
+        wireNames: [String: String] = [:]
     ) -> [AgentModelStreamEvent] {
         let index = root["index"] as? Int ?? 0
 
@@ -713,7 +869,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                 state.callIDs[index] = id
                 return [.toolCallDelta(
                     id: id,
-                    name: block["name"] as? String, arguments: ""
+                    name: (block["name"] as? String).map {
+                        canonicalName($0, wireNames: wireNames)
+                    }, arguments: ""
                 )]
             case "server_tool_use":
                 // The provider's own call, not the model's. Claiming the index
@@ -805,7 +963,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         }
     }
 
-    static func parseGoogle(_ root: [String: Any]) -> [AgentModelStreamEvent] {
+    static func parseGoogle(
+        _ root: [String: Any], wireNames: [String: String] = [:]
+    ) -> [AgentModelStreamEvent] {
         guard let candidate = (root["candidates"] as? [[String: Any]])?.first else { return [] }
         var events: [AgentModelStreamEvent] = []
         // Grounding hangs off the candidate, beside `content`, not inside
@@ -822,7 +982,11 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             if let text = part["text"] as? String { events.append(.textDelta(text)) }
             if let call = part["functionCall"] as? [String: Any], let name = call["name"] as? String {
                 let args = call["args"].flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data("{}".utf8)
-                events.append(.toolCallDelta(id: UUID().uuidString, name: name, arguments: String(decoding: args, as: UTF8.self)))
+                events.append(.toolCallDelta(
+                    id: UUID().uuidString,
+                    name: canonicalName(name, wireNames: wireNames),
+                    arguments: String(decoding: args, as: UTF8.self)
+                ))
             }
         }
         if candidate["finishReason"] != nil { events.append(.finished(events.containsToolCall ? .toolCalls : .completed)) }

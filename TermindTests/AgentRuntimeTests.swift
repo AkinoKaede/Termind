@@ -762,11 +762,17 @@ struct AgentRuntimeTests {
         server.tools = [
             MCPTool(id: "list-hosts"), MCPTool(id: "list.hosts"), MCPTool(id: "list_hosts"),
         ]
-        let names = AgentMCPTools.make(servers: [(server: server, bearerToken: nil)])
-            .map(\.descriptor.name)
+        let descriptors = AgentMCPTools.make(servers: [(server: server, bearerToken: nil)])
+            .map(\.descriptor)
+        let names = descriptors.map(\.qualifiedName)
 
         #expect(Set(names).count == 3)
-        #expect(names.allSatisfy { $0.hasPrefix("mcp__") })
+        #expect(names.allSatisfy { $0.hasPrefix("gateway.") })
+        #expect(descriptors.allSatisfy { $0.namespace == "gateway" })
+        #expect(descriptors.map(\.name).contains("list_hosts_2"))
+        #expect(descriptors.allSatisfy {
+            $0.presentation?.activity == .label($0.qualifiedName)
+        })
     }
 
     @Test

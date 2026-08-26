@@ -100,7 +100,7 @@ final class ToolAuditModel {
         let row = ExternalToolCall(
             runID: invocation.runID,
             clientName: clients[invocation.runID] ?? String(localized: "Unknown MCP client"),
-            toolName: descriptor.name,
+            toolName: descriptor.qualifiedName,
             hostID: hostID,
             hostDisplayName: hostID.flatMap(hostName),
             summary: Self.summary(for: invocation.call),

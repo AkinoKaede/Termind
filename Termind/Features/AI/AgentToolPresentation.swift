@@ -105,7 +105,7 @@ nonisolated enum AgentToolPresentation {
 
     private static func operationName(for card: AgentToolCard) -> String {
         guard let presentation = card.descriptor.presentation else {
-            return humanized(card.descriptor.name)
+            return humanized(card.descriptor.qualifiedName)
         }
         switch presentation.activity {
         case .label(let label): return label

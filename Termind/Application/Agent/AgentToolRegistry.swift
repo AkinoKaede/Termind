@@ -29,7 +29,8 @@ nonisolated struct AgentToolRegistry: Sendable {
     /// listed first by every caller, so a remote name can never shadow one.
     init(_ tools: [AnyAgentTool]) {
         byName = Dictionary(
-            tools.map { ($0.descriptor.name, $0) }, uniquingKeysWith: { first, _ in first }
+            tools.map { ($0.descriptor.qualifiedName, $0) },
+            uniquingKeysWith: { first, _ in first }
         )
     }
 
@@ -45,7 +46,7 @@ nonisolated struct AgentToolRegistry: Sendable {
     /// Sorted, because the tool list is part of the request's cacheable prefix
     /// and a dictionary's iteration order is not stable across launches.
     var descriptors: [AgentToolDescriptor] {
-        byName.values.map(\.descriptor).sorted { $0.name < $1.name }
+        byName.values.map(\.descriptor).sorted { $0.qualifiedName < $1.qualifiedName }
     }
 }
 

@@ -169,8 +169,13 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         case sequential
     }
 
-    var id: String { name }
+    var id: String { qualifiedName }
     var name: String
+    /// MCP server namespace. Built-in tools deliberately leave this unset.
+    var namespace: String? = nil
+    var qualifiedName: String {
+        namespace.map { "\($0).\(name)" } ?? name
+    }
     var summary: String
     var inputSchema: AgentJSONValue
     var target: Target

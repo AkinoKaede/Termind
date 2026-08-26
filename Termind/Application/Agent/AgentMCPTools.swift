@@ -5,39 +5,17 @@ nonisolated enum AgentMCPTools {
         servers: [(server: MCPServer, bearerToken: String?)],
         client: MCPClient = MCPClient()
     ) -> [AnyAgentTool] {
-        // Sanitizing is lossy — `list-hosts` and `list.hosts` both become
-        // `list_hosts` — and two servers can share a UUID prefix. Names are
-        // therefore disambiguated here, in a stable order, rather than left to
-        // collide in whatever registry receives them.
-        var taken = Set<String>()
-        return servers.flatMap { entry in
-            entry.server.enabledTools.map { tool in
+        return servers.flatMap { entry -> [AnyAgentTool] in
+            guard !entry.server.effectiveNamespaceID.isEmpty else { return [] }
+            let names = MCPToolNaming.functionNames(for: entry.server.tools)
+            return entry.server.enabledTools.map { tool in
                 make(
                     server: entry.server, tool: tool,
-                    name: unique(name(server: entry.server, tool: tool), taken: &taken),
+                    name: names[tool.id] ?? MCPToolNaming.functionName(from: tool.id),
                     bearerToken: entry.bearerToken, client: client
                 )
             }
         }
-    }
-
-    private static func name(server: MCPServer, tool: MCPTool) -> String {
-        let safeServer = server.id.uuidString.lowercased().prefix(8)
-        let safeTool = tool.id.map { character in
-            character.isLetter || character.isNumber || character == "_" ? character : "_"
-        }
-        return "mcp__\(safeServer)__\(String(safeTool))"
-    }
-
-    private static func unique(_ base: String, taken: inout Set<String>) -> String {
-        var candidate = base
-        var suffix = 2
-        while taken.contains(candidate) {
-            candidate = "\(base)_\(suffix)"
-            suffix += 1
-        }
-        taken.insert(candidate)
-        return candidate
     }
 
     private static func make(
@@ -46,6 +24,7 @@ nonisolated enum AgentMCPTools {
     ) -> AnyAgentTool {
         let descriptor = AgentToolDescriptor(
             name: name,
+            namespace: server.effectiveNamespaceID,
             summary: "\(server.name): \(tool.summary)",
             inputSchema: normalizedSchema(tool.inputSchema), target: .mcp,
             // A server's readOnlyHint is not proof. Every MCP call stays inside
@@ -63,7 +42,11 @@ nonisolated enum AgentMCPTools {
                 ? .sequential : .parallel,
             alwaysAskUser: tool.requiresApproval,
             presentation: .init(
-                symbol: "puzzlepiece.extension", activity: .label(tool.id), output: .json,
+                symbol: "puzzlepiece.extension",
+                activity: .label(MCPToolNaming.qualifiedName(
+                    namespace: server.effectiveNamespaceID, function: name
+                )),
+                output: .json,
                 action: .init(infinitive: "run", progressive: "Running", past: "Ran")
             )
         )

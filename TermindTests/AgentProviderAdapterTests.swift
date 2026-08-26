@@ -88,6 +88,125 @@ struct AgentProviderAdapterTests {
     }
 
     @Test
+    func responsesUsesNativeNamespacesForDeclarationsReplayAndCalls() throws {
+        var provider = ModelProvider(name: "OpenAI")
+        provider.usesResponsesAPI = true
+        let tool = Self.namespacedTool
+        let assistant = AgentTranscriptMessage(role: .assistant, toolCalls: [
+            AgentToolCall(
+                id: "call-1", name: tool.qualifiedName,
+                arguments: .object(["query": .string("swift")])
+            )
+        ])
+        let body = AgentProviderClient(
+            provider: provider, model: AIModel(id: "gpt-test"), secret: "test"
+        ).body(AgentModelRequest(
+            systemPrompt: "test", messages: [assistant], tools: [tool]
+        ))
+
+        let tools = try #require(body["tools"] as? [[String: Any]])
+        let namespace = try #require(tools.first { $0["type"] as? String == "namespace" })
+        #expect(namespace["name"] as? String == "a_b_c-d")
+        let children = try #require(namespace["tools"] as? [[String: Any]])
+        #expect(children.first?["type"] as? String == "function")
+        #expect(children.first?["name"] as? String == "lookup")
+
+        let input = try #require(body["input"] as? [[String: Any]])
+        let replay = try #require(input.first { $0["type"] as? String == "function_call" })
+        #expect(replay["namespace"] as? String == "a_b_c-d")
+        #expect(replay["name"] as? String == "lookup")
+
+        let parsed = AgentProviderClient.parseCompletedResponses([
+            "object": "response", "status": "completed",
+            "output": [[
+                "type": "function_call", "call_id": "call-2",
+                "namespace": "a_b_c-d", "name": "lookup", "arguments": "{}",
+            ]],
+        ])
+        #expect(parsed.firstTool?.name == "a_b_c-d.lookup")
+    }
+
+    @Test
+    func flatProvidersEncodeReplayAndDecodeCanonicalNames() throws {
+        let tool = Self.namespacedTool
+        let wire = "mcp__a_b_c-d__lookup"
+        let assistant = AgentTranscriptMessage(role: .assistant, toolCalls: [
+            AgentToolCall(id: "call-1", name: tool.qualifiedName, arguments: .object([:]))
+        ])
+        let result = AgentTranscriptMessage(
+            role: .tool, text: "ok", toolCallID: "call-1", toolName: tool.qualifiedName
+        )
+
+        let openAIBody = Self.body(
+            ModelProvider(name: "OpenAI"), webSearch: false, tools: [tool],
+            messages: [assistant, result]
+        )
+        let openAITools = try #require(openAIBody["tools"] as? [[String: Any]])
+        #expect((openAITools.first?["function"] as? [String: Any])?["name"] as? String == wire)
+        let openAIMessages = try #require(openAIBody["messages"] as? [[String: Any]])
+        let toolCallRows = openAIMessages.compactMap {
+            $0["tool_calls"] as? [[String: Any]]
+        }
+        let openAICall = try #require(toolCallRows.first?.first)
+        #expect((openAICall["function"] as? [String: Any])?["name"] as? String == wire)
+
+        let anthropicBody = Self.body(
+            ModelProvider(name: "Anthropic", kind: .anthropic), webSearch: false,
+            tools: [tool], messages: [assistant, result]
+        )
+        #expect((anthropicBody["tools"] as? [[String: Any]])?.first?["name"] as? String == wire)
+        let anthropicMessages = try #require(anthropicBody["messages"] as? [[String: Any]])
+        let anthropicCall = try #require((anthropicMessages.first?["content"] as? [[String: Any]])?.first)
+        #expect(anthropicCall["name"] as? String == wire)
+
+        let googleBody = Self.body(
+            ModelProvider(name: "Google", kind: .google), webSearch: false,
+            tools: [tool], messages: [assistant, result]
+        )
+        let googleGroups = try #require(googleBody["tools"] as? [[String: Any]])
+        let declarations = try #require(googleGroups.first?["functionDeclarations"] as? [[String: Any]])
+        #expect(declarations.first?["name"] as? String == wire)
+        let contents = try #require(googleBody["contents"] as? [[String: Any]])
+        let functionResponse = try #require(
+            ((contents.last?["parts"] as? [[String: Any]])?.first?["functionResponse"])
+                as? [String: Any]
+        )
+        #expect(functionResponse["name"] as? String == wire)
+
+        let names = AgentProviderToolNameMap.flat([tool]).wireToQualified
+        #expect(AgentProviderClient.parseChat([
+            "choices": [["message": ["tool_calls": [[
+                "id": "call", "function": ["name": wire, "arguments": "{}"],
+            ]]]]],
+        ], wireNames: names).firstTool?.name == tool.qualifiedName)
+        #expect(AgentProviderClient.parseCompletedAnthropic([
+            "type": "message", "content": [[
+                "type": "tool_use", "id": "call", "name": wire, "input": [:],
+            ]],
+        ], wireNames: names).firstTool?.name == tool.qualifiedName)
+        #expect(AgentProviderClient.parseGoogle([
+            "candidates": [["content": ["parts": [[
+                "functionCall": ["name": wire, "args": [:]],
+            ]]], "finishReason": "STOP"]],
+        ], wireNames: names).firstTool?.name == tool.qualifiedName)
+    }
+
+    @Test
+    func flatNameCollisionsNeverRenameBuiltInTools() {
+        let builtIn = AgentToolDescriptor(
+            name: "mcp__a_b_c-d__lookup", summary: "Built in",
+            inputSchema: .object([:]), target: .local, safety: .locallyReadOnly
+        )
+        let names = AgentProviderToolNameMap.flat([Self.namespacedTool, builtIn])
+
+        #expect(names.wireName(for: builtIn.qualifiedName) == builtIn.name)
+        #expect(names.wireName(for: Self.namespacedTool.qualifiedName)
+            == "mcp__a_b_c-d__lookup_2")
+        #expect(names.qualifiedName(for: "mcp__a_b_c-d__lookup_2")
+            == Self.namespacedTool.qualifiedName)
+    }
+
+    @Test
     func openAIResponsesParsesTextAndPartialArguments() {
         #expect(AgentProviderClient.parseResponses(
             "response.output_text.delta", ["delta": "hello"]
@@ -650,13 +769,23 @@ struct AgentProviderAdapterTests {
         target: .local, safety: .locallyReadOnly
     )
 
+    private static let namespacedTool = AgentToolDescriptor(
+        name: "lookup", namespace: "a_b_c-d", summary: "Look something up.",
+        inputSchema: .object([
+            "type": .string("object"), "properties": .object([:]),
+            "required": .array([]), "additionalProperties": .bool(false),
+        ]),
+        target: .mcp, safety: .requiresAuthorization
+    )
+
     private static func body(
-        _ provider: ModelProvider, webSearch: Bool, tools: [AgentToolDescriptor]
+        _ provider: ModelProvider, webSearch: Bool, tools: [AgentToolDescriptor],
+        messages: [AgentTranscriptMessage] = []
     ) -> [String: Any] {
         AgentProviderClient(
             provider: provider, model: AIModel(id: "model-test"), secret: "test",
             webSearch: webSearch
-        ).body(AgentModelRequest(systemPrompt: "test", messages: [], tools: tools))
+        ).body(AgentModelRequest(systemPrompt: "test", messages: messages, tools: tools))
     }
 }
 

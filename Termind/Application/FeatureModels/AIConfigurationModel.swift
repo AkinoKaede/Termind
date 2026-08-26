@@ -187,6 +187,12 @@ final class AIConfigurationModel {
         mcpStatuses[id] ?? .disconnected
     }
 
+    func hasMCPNamespaceConflict(_ namespaceID: String, excluding id: MCPServer.ID) -> Bool {
+        !namespaceID.isEmpty && mcpServers.contains {
+            $0.id != id && $0.effectiveNamespaceID == namespaceID
+        }
+    }
+
     /// Every tool the model may be offered: enabled tools on enabled servers.
     var availableTools: [(server: MCPServer, tool: MCPTool)] {
         mcpServers.filter(\.isEnabled).flatMap { server in
@@ -421,6 +427,19 @@ final class AIConfigurationModel {
         } else {
             mcpServers.append(server)
         }
+    }
+
+    /// Locks a valid, unique draft namespace without changing the UUID identity.
+    @discardableResult
+    func lockMCPNamespace(for id: MCPServer.ID) -> Bool {
+        guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return false }
+        if !mcpServers[index].namespaceID.isEmpty { return true }
+        let namespaceID = mcpServers[index].effectiveNamespaceID
+        guard !namespaceID.isEmpty,
+            !hasMCPNamespaceConflict(namespaceID, excluding: id)
+        else { return false }
+        mcpServers[index].namespaceID = namespaceID
+        return true
     }
 
     func delete(serverID: MCPServer.ID) {

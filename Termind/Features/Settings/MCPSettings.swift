@@ -17,7 +17,7 @@ struct MCPSettings: View {
             }
 
             FormNavigationAction(title: "Add Server") {
-                let server = MCPServer(name: String(localized: "New Server"))
+                let server = MCPServer(name: "", namespaceID: "")
                 app.aiConfiguration.upsert(server)
                 edit(server.id, true)
             }
@@ -48,6 +48,12 @@ private struct MCPServerRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(server.name)
                     .lineLimit(1)
+                if !server.namespaceID.isEmpty {
+                    Text(server.namespaceID)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Text(server.url.isEmpty ? String(localized: "No URL") : server.url)
                     .font(.caption)
                     .foregroundStyle(.secondary)

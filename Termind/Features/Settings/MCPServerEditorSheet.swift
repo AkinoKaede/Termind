@@ -36,6 +36,7 @@ final class MCPServerEditorSession {
 /// Edits write straight through and the page returns to the MCP list in place.
 struct MCPServerEditorPage: View {
     let serverID: MCPServer.ID
+    let isNew: Bool
     let back: () -> Void
     let deleted: () -> Void
 
@@ -44,6 +45,17 @@ struct MCPServerEditorPage: View {
     @State private var session = MCPServerEditorSession()
 
     private var server: MCPServer? { app.aiConfiguration.mcpServer(serverID) }
+
+    private var namespaceID: String { server?.effectiveNamespaceID ?? "" }
+
+    private var isNameEmpty: Bool {
+        server?.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+    }
+
+    private var hasNamespaceConflict: Bool {
+        guard !namespaceID.isEmpty else { return false }
+        return app.aiConfiguration.hasMCPNamespaceConflict(namespaceID, excluding: serverID)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -88,6 +100,27 @@ struct MCPServerEditorPage: View {
         Section {
             TextField("Name", text: binding(\.name))
 
+            LabeledContent("ID") {
+                Text(namespaceID)
+                    .font(.callout.monospaced())
+                    .foregroundStyle(namespaceID.isEmpty ? .secondary : .primary)
+                    .textSelection(.enabled)
+            }
+
+            if isNameEmpty {
+                Label("Name is required.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else if namespaceID.isEmpty {
+                Label("Name must produce an ID containing ASCII letters or numbers.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else if hasNamespaceConflict {
+                Label("Another MCP server already uses this ID.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+
             Picker("Transport", selection: binding(\.transport)) {
                 ForEach(MCPServer.Transport.allCases) { Text($0.displayName).tag($0) }
             }
@@ -109,7 +142,10 @@ struct MCPServerEditorPage: View {
     private func connectRow(_ server: MCPServer) -> some View {
         HStack(spacing: Metrics.Space.m) {
             Button("Connect") { connect(server) }
-                .disabled(!server.isReachable || session.connection == .running)
+                .disabled(
+                    !server.isReachable || namespaceID.isEmpty || hasNamespaceConflict
+                        || session.connection == .running
+                )
 
             switch session.connection {
             case .idle:
@@ -218,6 +254,8 @@ struct MCPServerEditorPage: View {
     // MARK: - Actions
 
     private func connect(_ server: MCPServer) {
+        guard !namespaceID.isEmpty, !hasNamespaceConflict else { return }
+        guard app.aiConfiguration.lockMCPNamespace(for: serverID) else { return }
         session.connection = .running
         app.aiConfiguration.setMCPStatus(.connecting, for: serverID)
         let bearer = session.token.isEmpty ? nil : session.token
@@ -305,10 +343,19 @@ private struct ToolRow: View {
 
     @Environment(AppModel.self) private var app
 
+    private var qualifiedToolName: String {
+        guard let server = app.aiConfiguration.mcpServer(serverID) else { return tool.id }
+        let leaf = MCPToolNaming.functionNames(for: server.tools)[tool.id]
+            ?? MCPToolNaming.functionName(from: tool.id)
+        return MCPToolNaming.qualifiedName(
+            namespace: server.effectiveNamespaceID, function: leaf
+        )
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: Metrics.Space.m) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(tool.id)
+                Text(qualifiedToolName)
                     .font(.callout.monospaced())
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -338,7 +385,7 @@ private struct ToolRow: View {
                 .disabled(!tool.isEnabled)
         }
         .font(.caption)
-        .help(Text(tool.summary.isEmpty ? tool.id : tool.summary))
+        .help(Text(tool.summary.isEmpty ? qualifiedToolName : tool.summary))
     }
 
     private var enabled: Binding<Bool> {

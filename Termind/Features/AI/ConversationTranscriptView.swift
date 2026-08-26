@@ -328,7 +328,7 @@ private struct AgentApprovalCard: View {
                 Spacer()
                 QueueDepthLabel(remaining: conversation.pendingApprovals.count)
             }
-            Text(request.descriptor.name).font(.callout.weight(.semibold))
+            Text(request.descriptor.qualifiedName).font(.callout.weight(.semibold))
             if let host = request.invocation.targetHostID {
                 Text("Host: \(host.uuidString)").font(.caption).foregroundStyle(.secondary)
             }

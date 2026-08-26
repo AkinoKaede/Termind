@@ -100,9 +100,9 @@ struct SettingsPageView: View {
                 modelProviderID: id,
                 back: { route = .modelProvider(id, isNew: isNew) }
             )
-        case .mcpServer(let id, _):
+        case .mcpServer(let id, let isNew):
             MCPServerEditorPage(
-                serverID: id,
+                serverID: id, isNew: isNew,
                 back: { route = .section(.mcp) },
                 deleted: { route = .section(.mcp) }
             )
@@ -183,7 +183,11 @@ struct SettingsPageView: View {
             if SettingsDraftPolicy.shouldDiscard(provider) { app.aiConfiguration.delete(modelProviderID: id) }
         case .mcpServer(let id, isNew: true):
             guard let server = app.aiConfiguration.mcpServer(id) else { return }
-            if SettingsDraftPolicy.shouldDiscard(server) { app.aiConfiguration.delete(serverID: id) }
+            if SettingsDraftPolicy.shouldDiscard(server)
+                || !app.aiConfiguration.lockMCPNamespace(for: id)
+            {
+                app.aiConfiguration.delete(serverID: id)
+            }
         default:
             break
         }
@@ -201,9 +205,8 @@ enum SettingsDraftPolicy {
     }
 
     static func shouldDiscard(_ server: MCPServer) -> Bool {
-        let hasDefaultName = server.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            == String(localized: "New Server")
-        return hasDefaultName && server.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        server.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || server.effectiveNamespaceID.isEmpty
     }
 }
 
