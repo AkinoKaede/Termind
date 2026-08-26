@@ -43,13 +43,49 @@ connection registry and is never persisted onto domain records.
 
 ## Agent runtime and security
 
-`AgentRuntime` is an actor-owned, provider-neutral event loop. It streams one
-assistant turn, assembles and schema-validates tool calls, executes calls in
-source order, displays/persists their cards, and feeds the results into the next
-turn. OpenAI Responses, OpenAI Chat Completions, Anthropic Messages, and Gemini
-are adapters at the LLM boundary. Models without tool capability receive no
-tools. Stop cancels the active stream and actions that have not started;
-steering messages are consumed at the next turn boundary.
+`AgentRuntime` is an actor holding a run's state — transcript snapshot, tool
+registry, steering queue, secret broker — and the loop over it. Each phase of
+the loop is a separate value it drives:
+
+- `AgentContextPipeline` rewrites what is sent at the model boundary: tool
+  results reordered to match the calls they answer, orphaned results dropped,
+  older results trimmed head-and-tail, session context inserted in front of the
+  turn it describes. It shapes only the request. Run snapshots and stored
+  history keep everything.
+- `AgentTurnDriver` streams one assistant turn and assembles its tool calls.
+- `AgentToolScheduler` plans and runs the turn's batch.
+- `AgentToolExecutor` takes one call through schema validation, preflight, the
+  card, hooks, authorization, and execution, in that order.
+- `AgentEventChannel` is the single ordered path for events, fanning out to the
+  UI and to a serial durable recorder.
+
+OpenAI Responses, OpenAI Chat Completions, Anthropic Messages, and Gemini are
+adapters at the LLM boundary. Models without tool capability receive no tools.
+Stop cancels the active stream and actions that have not started; steering
+messages are consumed at the next turn boundary.
+
+A turn's tool calls run concurrently only when every call in it is marked
+parallel; one sequential call makes the whole turn serial rather than being
+fenced into its own segment. Concurrency is declared per tool and may be
+overridden per call by preflight — `ssh_exec` is parallel exactly when
+`CommandRiskClassifier` proves the command safe, the same evidence that decides
+its safety. MCP tools are parallel by default; a server's destructive hint or
+Ask First makes them sequential, so remote metadata can only tighten
+concurrency, never grant it. Whatever the order of execution, results reach the
+transcript in the order the model asked for them, and every call is answered
+even when the turn is cancelled or refused — an assistant turn with unanswered
+tool calls is rejected outright on the next request.
+
+Approvals and agent questions are queued and presented one at a time. Run state
+is derived from what is outstanding rather than asserted by whichever call moved
+last.
+
+Extension points, all additive: `AgentToolProviding` for tool sources,
+`AgentLoopHook` for `willExecute` / `didExecute` / `shouldStop`,
+`AgentContextTransforming` for the model boundary, `AgentModelStreaming` for
+providers. Authorization is deliberately not among them — `AgentApprovalHandling`
+is a structural stage of the executor that no configuration can remove, and
+hooks run on either side of it.
 
 Tools never receive a reference to the interactive PTY. Server commands use a
 dedicated SSH exec channel and file operations use run-scoped SFTP clients.

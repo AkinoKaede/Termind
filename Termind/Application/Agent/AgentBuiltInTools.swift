@@ -361,7 +361,8 @@ nonisolated enum AgentBuiltInTools {
     private static func listHosts(_ hosts: AgentHostResolver) -> AnyAgentTool {
         AnyAgentTool(descriptor: descriptor(
             "list_hosts", "List Vault and temporary Termind SSH targets without credentials.",
-            properties: [:], required: [], target: .host, safety: .locallyReadOnly
+            properties: [:], required: [], target: .host, safety: .locallyReadOnly,
+            concurrency: .parallel
         )) { invocation, _ in
             let rows = await hosts.targets().map { target in
                 AgentJSONValue.object([
@@ -395,10 +396,25 @@ nonisolated enum AgentBuiltInTools {
                     throw AgentToolError.invalidArguments("stdin and secret_handle are mutually exclusive.")
                 }
                 let assessment = CommandRiskClassifier.assess(command)
+                let safe = assessment.risk == .safe
                 return AgentToolPreflight(
                     invocation: checked,
-                    safety: assessment.risk == .safe ? .locallyReadOnly : .requiresAuthorization,
-                    reasons: assessment.reasons
+                    safety: safe ? .locallyReadOnly : .requiresAuthorization,
+                    reasons: assessment.reasons,
+                    // Whether a command may run beside another is a property of
+                    // the command, not of `ssh_exec`, and it is decided by the
+                    // same locally-proven evidence that just decided `safety`.
+                    // A command the classifier cannot vouch for makes its whole
+                    // turn serial, so nothing observes the host while it is
+                    // being changed.
+                    //
+                    // The ceiling on what this buys is worth stating: commands
+                    // aimed at one host queue behind each other inside
+                    // `SSHExecSession` regardless, because a libssh2 session
+                    // cannot be driven from two places at once. The win is
+                    // several hosts at once, and host work overlapping `fetch`,
+                    // `web_search`, and MCP.
+                    concurrency: safe ? .parallel : .sequential
                 )
             },
             execute: { invocation, context in
@@ -440,7 +456,10 @@ nonisolated enum AgentBuiltInTools {
         AnyAgentTool(descriptor: descriptor(
             "terminal_suggest", "Create a command card. Only the user can insert or run it in a PTY.",
             properties: ["command": string(max: 32_768), "explanation": string(max: 4_096)],
-            required: ["command"], target: .user, safety: .locallyReadOnly
+            required: ["command"], target: .user, safety: .locallyReadOnly,
+            // It writes a card and touches nothing else. Whatever the command
+            // would do if the user ran it is the user's action, later.
+            concurrency: .parallel
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
             let command = try arguments.string("command")
@@ -567,7 +586,11 @@ nonisolated enum AgentBuiltInTools {
                 "url": string(max: 8_192), "method": enumeration(["GET", "HEAD"]),
                 "headers": array(items: header, max: RestrictedHTTPHeaderValidator.maximumCount),
             ],
-            required: ["url"], target: .network, safety: .locallyReadOnly
+            required: ["url"], target: .network, safety: .locallyReadOnly,
+            // GET and HEAD only, over separate connections, against a server
+            // that already expects concurrency. This is where parallel tool
+            // calls pay for themselves.
+            concurrency: .parallel
         )
         return AnyAgentTool(
             descriptor: tool,
@@ -653,7 +676,8 @@ nonisolated enum AgentBuiltInTools {
             "Search the public web. Returns titles, URLs and snippets only; use fetch to read a "
                 + "result page in full.",
             properties: ["query": string(max: 1_024), "count": integer(min: 1, max: 10)],
-            required: ["query"], target: .network, safety: .locallyReadOnly
+            required: ["query"], target: .network, safety: .locallyReadOnly,
+            concurrency: .parallel
         )
         return AnyAgentTool(
             descriptor: tool,
@@ -769,6 +793,10 @@ nonisolated enum AgentBuiltInTools {
                 "prompt": string(max: 4_096), "host_id": string(),
                 "consumer_tool": enumeration(["ssh_exec"]), "purpose": string(max: 256),
             ], required: ["prompt", "host_id", "consumer_tool", "purpose"],
+            // Sequential, by the default, and it should stay that way despite
+            // being read-only: this and `request_user_input` are the two tools
+            // whose work is done by a person. Racing them against other calls
+            // means output arriving under a question that is still being read.
             target: .user, safety: .locallyReadOnly
         )) { invocation, context in
             let arguments = try Arguments(invocation)
@@ -810,7 +838,11 @@ nonisolated enum AgentBuiltInTools {
     ) -> AnyAgentTool {
         let tool = descriptor(
             name, summary, properties: ["host_id": string(), "path": string(max: 4_096)],
-            required: ["host_id", "path"], target: .host, safety: .locallyReadOnly
+            required: ["host_id", "path"], target: .host, safety: .locallyReadOnly,
+            // Reads only. Two of them cannot disagree about what they saw
+            // unless something else is writing, and a writer in the same turn
+            // makes the whole turn serial.
+            concurrency: .parallel
         )
         return AnyAgentTool(
             descriptor: tool,
@@ -909,7 +941,8 @@ nonisolated enum AgentBuiltInTools {
     private static func descriptor(
         _ name: String, _ summary: String, properties: [String: AgentJSONValue],
         required: [String], target: AgentToolDescriptor.Target,
-        safety: AgentToolDescriptor.Safety
+        safety: AgentToolDescriptor.Safety,
+        concurrency: AgentToolDescriptor.Concurrency = .sequential
     ) -> AgentToolDescriptor {
         AgentToolDescriptor(
             name: name, summary: summary,
@@ -918,7 +951,7 @@ nonisolated enum AgentBuiltInTools {
                 "required": .array(required.map(AgentJSONValue.string)),
                 "additionalProperties": .bool(false),
             ]),
-            target: target, safety: safety
+            target: target, safety: safety, concurrency: concurrency
         )
     }
 

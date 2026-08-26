@@ -1,193 +1,50 @@
 import Foundation
 
-nonisolated struct AgentModelRequest: Sendable {
-    var systemPrompt: String
-    var messages: [AgentTranscriptMessage]
-    var tools: [AgentToolDescriptor]
+/// Everything about a run that is a policy rather than a dependency.
+///
+/// Held as one value so a caller can change how a run behaves without a
+/// twelve-argument initializer, and so the defaults live in one readable place.
+nonisolated struct AgentLoopConfiguration: Sendable {
+    var maxTurns = 24
+    var maxToolCalls = 64
+    /// The run-wide default. Individual tools may still force their batch
+    /// serial; none can force it parallel. See `AgentToolScheduler`.
+    var toolExecution: AgentToolExecutionMode = .parallel
+    var maximumToolConcurrency = 8
+    /// The `transformContext` seam, replaceable whole. Given the run's session
+    /// context block and the id of the turn it belongs in front of, it returns
+    /// the chain applied to every request this run makes.
+    var contextPipeline:
+        @Sendable (AgentTranscriptMessage?, AgentTranscriptMessage.ID?) -> AgentContextPipeline =
+            AgentContextPipeline.chat
+
+    init() {}
 }
 
-nonisolated enum AgentModelStreamEvent: Sendable {
-    case textDelta(String)
-    /// Authoritative complete text used by buffered/final provider responses.
-    case textSnapshot(String)
-    case toolCallDelta(id: String, name: String?, arguments: String)
-    /// The authoritative completed tool call. Arguments replace, rather than
-    /// append to, the partial streaming buffer.
-    case toolCallSnapshot(
-        id: String, providerItemID: String?, name: String, arguments: String
-    )
-    case providerItem(AgentJSONValue)
-    /// A search the provider ran itself. Distinct from `providerItem`, which is
-    /// the *replay* channel and must stay byte-shaped the way its provider
-    /// sent it; this one is normalized for display and is never sent back.
-    case webSearch(AgentWebSearchActivity)
-    case finished(AgentStopReason)
-}
-
-nonisolated protocol AgentModelStreaming: Sendable {
-    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error>
-}
-
-/// A single buffered model response. Short, tool-free features use this path so
-/// their success does not depend on SSE framing or a provider-specific [DONE]
-/// event.
-nonisolated protocol AgentModelCompleting: Sendable {
-    func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent]
-}
-
-nonisolated struct AgentToolExecutionContext: Sendable {
-    var runID: UUID
-    var userIntent: String
-    var secretBroker: SecretBroker
-    var userInteraction: any AgentUserInteractionHandling
-    var preflightMetadata: [String: AgentJSONValue]
-    var authorize: @Sendable (AgentApprovalRequest) async -> AgentApprovalDecision
-}
-
-nonisolated private struct EventingAgentUserInteraction: AgentUserInteractionHandling, Sendable {
-    var base: any AgentUserInteractionHandling
-    var event: @Sendable (AgentEvent) async -> Void
-
-    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
-        await event(.userInputRequested(request))
-        await event(.runState(.waitingForUser))
-        let response = await base.request(request)
-        await event(.runState(.running))
-        return response
-    }
-}
-
-nonisolated protocol AgentTool: Sendable {
-    var descriptor: AgentToolDescriptor { get }
-    func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight
-    func execute(
-        _ invocation: AgentToolInvocation,
-        context: AgentToolExecutionContext
-    ) async throws -> AgentToolResult
-}
-
-nonisolated extension AgentTool {
-    func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {
-        AgentToolPreflight(invocation: invocation, safety: descriptor.safety)
-    }
-}
-
-nonisolated struct AnyAgentTool: AgentTool, Sendable {
-    let descriptor: AgentToolDescriptor
-    private let executeClosure:
-        @Sendable (AgentToolInvocation, AgentToolExecutionContext) async throws -> AgentToolResult
-    private let preflightClosure: @Sendable (AgentToolInvocation) async throws -> AgentToolPreflight
-
-    init<T: AgentTool>(_ tool: T) {
-        descriptor = tool.descriptor
-        preflightClosure = tool.preflight
-        executeClosure = tool.execute
-    }
-
-    init(
-        descriptor: AgentToolDescriptor,
-        preflight: (@Sendable (AgentToolInvocation) async throws -> AgentToolPreflight)? = nil,
-        execute: @escaping @Sendable (
-            AgentToolInvocation, AgentToolExecutionContext
-        ) async throws -> AgentToolResult
-    ) {
-        self.descriptor = descriptor
-        preflightClosure = preflight ?? { invocation in
-            AgentToolPreflight(invocation: invocation, safety: descriptor.safety)
-        }
-        executeClosure = execute
-    }
-
-    func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {
-        try await preflightClosure(invocation)
-    }
-
-    func execute(
-        _ invocation: AgentToolInvocation,
-        context: AgentToolExecutionContext
-    ) async throws -> AgentToolResult {
-        try await executeClosure(invocation, context)
-    }
-}
-
-nonisolated protocol AgentRunPersisting: Sendable {
-    func save(_ snapshot: AgentRunSnapshot) async throws
-    func record(_ event: AgentEvent, runID: UUID) async throws
-    func loadConversations() async throws -> [StoredAgentConversation]
-    func deleteConversation(_ id: UUID) async throws
-    /// Records the generated summary. Separate from `save` because it arrives
-    /// after the run that produced it has already been written, and because a
-    /// run snapshot is not where a name for the whole conversation belongs.
-    func setTitle(_ title: String, conversationID: UUID) async throws
-}
-
-// No default implementations here, deliberately. A protocol extension that
-// satisfies a requirement is also the thing that *silently* satisfies it when a
-// conformer's own method stops being a valid witness — an isolation change, a
-// renamed label — and run history would then be dropped with no diagnostic.
-// Both conformers implement the whole protocol.
-
-nonisolated struct StoredAgentConversation: Sendable {
-    var id: UUID
-    var messages: [AgentTranscriptMessage]
-    var toolCards: [StoredAgentToolCard] = []
-    var lastRunState: AgentRunState
-    /// The generated summary, or empty for a conversation that never got one.
-    var title: String = ""
-}
-
-nonisolated struct StoredAgentToolCard: Sendable {
-    var invocation: AgentToolInvocation
-    var descriptor: AgentToolDescriptor
-    var state: String
-    var result: AgentToolResult?
-    var review: SecurityReviewDecision?
-}
-
-actor InMemoryAgentRunRepository: AgentRunPersisting {
-    private var snapshots: [UUID: AgentRunSnapshot] = [:]
-    private var titles: [UUID: String] = [:]
-    private var deletedConversationIDs = Set<UUID>()
-    func save(_ snapshot: AgentRunSnapshot) {
-        guard !deletedConversationIDs.contains(snapshot.conversationID) else { return }
-        snapshots[snapshot.id] = snapshot
-    }
-    func record(_ event: AgentEvent, runID: UUID) {}
-    func loadConversations() -> [StoredAgentConversation] { [] }
-    func snapshot(_ id: UUID) -> AgentRunSnapshot? { snapshots[id] }
-    func setTitle(_ title: String, conversationID: UUID) {
-        guard !deletedConversationIDs.contains(conversationID) else { return }
-        titles[conversationID] = title
-    }
-    func title(_ conversationID: UUID) -> String? { titles[conversationID] }
-    func deleteConversation(_ id: UUID) {
-        deletedConversationIDs.insert(id)
-        titles.removeValue(forKey: id)
-        snapshots = snapshots.filter { $0.value.conversationID != id }
-    }
-}
-
-/// Low-level Pi-style loop: stream one assistant turn, collect complete tool calls,
-/// authorize and execute them in source order, append results, then ask the model again.
+/// The agent's state and its loop.
+///
+/// State: the transcript snapshot, the tool registry, the steering queue, the
+/// secret broker, and the task a run is executing on. Loop: stream one
+/// assistant turn, schedule the tools it asked for, feed the results back, ask
+/// again.
+///
+/// The phases themselves live elsewhere — `AgentTurnDriver`,
+/// `AgentToolScheduler`, `AgentToolExecutor`, `AgentContextPipeline` — so that
+/// each is testable without a run around it, and so this file stays short
+/// enough to read as a description of the loop.
 actor AgentRuntime {
-    private struct PendingToolCall {
-        var name = ""
-        var arguments = ""
-        var providerItemID: String?
-    }
-
     private let model: any AgentModelStreaming
     private let approval: any AgentApprovalHandling
     private let repository: any AgentRunPersisting
     private let userInteraction: any AgentUserInteractionHandling
     let secretBroker: SecretBroker
-    private var tools: [String: AnyAgentTool]
+    private let tools: AgentToolRegistry
+    private let hooks: AgentLoopHooks
+    private let configuration: AgentLoopConfiguration
+    private let channel: AgentEventChannel
     private var runTask: Task<Void, Never>?
     private var steering: [AgentTranscriptMessage] = []
-    private var continuation: AsyncStream<AgentEvent>.Continuation?
     private var activeRunID: UUID?
-    private let maxTurns: Int
-    private let maxToolCalls: Int
 
     init(
         model: any AgentModelStreaming,
@@ -196,38 +53,53 @@ actor AgentRuntime {
         repository: any AgentRunPersisting = InMemoryAgentRunRepository(),
         secretBroker: SecretBroker = SecretBroker(),
         userInteraction: any AgentUserInteractionHandling = UnavailableAgentUserInteraction(),
-        maxTurns: Int = 24,
-        maxToolCalls: Int = 64
+        hooks: [any AgentLoopHook] = [],
+        configuration: AgentLoopConfiguration = AgentLoopConfiguration(),
+        channel: AgentEventChannel? = nil
+    ) {
+        self.init(
+            model: model, registry: AgentToolRegistry(tools), approval: approval,
+            repository: repository, secretBroker: secretBroker,
+            userInteraction: userInteraction, hooks: hooks,
+            configuration: configuration, channel: channel
+        )
+    }
+
+    init(
+        model: any AgentModelStreaming,
+        registry: AgentToolRegistry,
+        approval: any AgentApprovalHandling,
+        repository: any AgentRunPersisting = InMemoryAgentRunRepository(),
+        secretBroker: SecretBroker = SecretBroker(),
+        userInteraction: any AgentUserInteractionHandling = UnavailableAgentUserInteraction(),
+        hooks: [any AgentLoopHook] = [],
+        configuration: AgentLoopConfiguration = AgentLoopConfiguration(),
+        channel: AgentEventChannel? = nil
     ) {
         self.model = model
-        // First registration wins. `uniqueKeysWithValues` traps on a duplicate,
-        // and one MCP server whose two tool names sanitize to the same string is
-        // enough to take the app down — from data a remote server controls. The
-        // built-ins are registered first, so a remote name can never shadow one.
-        self.tools = Dictionary(
-            tools.map { ($0.descriptor.name, $0) }, uniquingKeysWith: { first, _ in first }
-        )
+        self.tools = registry
         self.approval = approval
         self.repository = repository
         self.secretBroker = secretBroker
         self.userInteraction = userInteraction
-        self.maxTurns = maxTurns
-        self.maxToolCalls = maxToolCalls
+        self.hooks = AgentLoopHooks(hooks)
+        self.configuration = configuration
+        // A caller that also has to publish events — `AgentApprovalBroker` does
+        // — passes the channel in so both writers share one ordered path. On
+        // its own, a runtime makes the channel it needs.
+        self.channel = channel ?? AgentEventChannel(repository: repository)
     }
 
+    /// Begins a run and hands back the events it will produce.
+    ///
+    /// One runtime serves one run: the returned sequence is the channel's, and
+    /// an `AsyncStream` has a single consumer.
     func start(_ request: AgentRunRequest) -> AsyncStream<AgentEvent> {
         cancel()
-        // Whoever was reading the previous run is about to be orphaned by the
-        // reassignment below; end their sequence rather than leaving it
-        // suspended for the life of the process.
-        continuation?.finish()
-        let stream = AsyncStream<AgentEvent> { continuation in
-            self.continuation = continuation
-        }
         runTask = Task { [weak self] in
             await self?.run(request)
         }
-        return stream
+        return channel.events
     }
 
     func steer(_ text: String) {
@@ -242,394 +114,133 @@ actor AgentRuntime {
         if let runID = activeRunID { Task { await secretBroker.discardSecrets(for: runID) } }
     }
 
-    private func emit(_ event: AgentEvent) {
-        continuation?.yield(event)
-        // Only run-scoped events reach storage. Handing every event to the
-        // repository meant one unstructured task and one `ModelContext.save()`
-        // per streamed token, all of it on the main actor — the UI stalled
-        // while a reply arrived, and none of those writes recorded anything.
-        guard let runID = activeRunID, event.isDurable else { return }
-        Task { try? await repository.record(event, runID: runID) }
-    }
-
-    /// Puts the session context into what is *sent* without putting it into
-    /// what is *kept*.
-    ///
-    /// `snapshot.messages` is the durable transcript, so a context block added
-    /// there would be persisted, replayed, and — since restore projects user
-    /// rows into the visible list — eventually shown in the user's own chat
-    /// bubble. Dropping it costs the next run one uncached message at the tail
-    /// and nothing before it, because history the model already saw is
-    /// unchanged either way.
-    private static func injecting(
-        _ context: AgentTranscriptMessage?,
-        at index: Int,
-        into messages: [AgentTranscriptMessage]
-    ) -> [AgentTranscriptMessage] {
-        guard let context, index <= messages.count else { return messages }
-        var result = messages
-        result.insert(context, at: index)
-        return result
-    }
-
-    /// Drops tool results that answer no call in the same history.
-    ///
-    /// A `tool` message only means anything beside the assistant turn that
-    /// asked for it. One left on its own is rejected outright — OpenAI answers
-    /// `No tool call found for function call output with call_id ...`, and the
-    /// other two reject the equivalent — so a single orphan makes a
-    /// conversation permanently unusable rather than degrading it.
-    ///
-    /// Applied to incoming history rather than inside each provider's encoder,
-    /// which is what makes it a repair and not just a guard: `priorMessages`
-    /// seeds the snapshot that gets persisted *before* the request goes out, so
-    /// filtering here also stops a stored orphan from being written forward
-    /// into the next run.
-    ///
-    /// Messages with no call id at all are kept. Google addresses a tool result
-    /// by name rather than by id, so absence here is not evidence of an orphan.
-    static func withoutOrphanedToolResults(
-        _ messages: [AgentTranscriptMessage]
-    ) -> [AgentTranscriptMessage] {
-        let answered = Set(
-            messages.lazy
-                .filter { $0.role == .assistant }
-                .flatMap { $0.toolCalls.map(\.id) }
-        )
-        return messages.filter { message in
-            guard message.role == .tool, let id = message.toolCallID, !id.isEmpty else {
-                return true
-            }
-            return answered.contains(id)
-        }
-    }
-
     private func run(_ request: AgentRunRequest) async {
         var snapshot = AgentRunSnapshot(
             conversationID: request.conversationID,
             state: .running,
             permissionMode: request.permissionMode,
-            messages: Self.withoutOrphanedToolResults(request.priorMessages)
+            // Applied to incoming history as well as at the model boundary,
+            // which is what makes it a repair and not just a guard: this
+            // snapshot is persisted, so filtering here stops a stored orphan
+            // from being written forward into the next run.
+            messages: AgentOrphanedToolResultRepair.apply(request.priorMessages)
         )
         activeRunID = snapshot.id
         let runID = snapshot.id
-        // Session context rides the tail of the message list, not the system
-        // prompt. Every cache these providers keep is a *prefix* cache, and the
-        // working directory of a terminal is the most volatile thing we know:
-        // one `cd` between turns used to change byte zero of the request and
-        // miss the entire replayed conversation. Here the divergence is the
-        // newest turn, which was never cacheable anyway, and the system prompt
-        // stays byte-identical across every run, conversation, and user.
         let sessionContext = request.sessionContext.modelContext.map {
             AgentTranscriptMessage(role: .user, text: $0)
         }
-        // Prior history ends here, and everything a run appends — tool results,
-        // steering, assistant turns — goes after the prompt, so this index
-        // stays put for the whole run.
-        let sessionContextIndex = snapshot.messages.count
-        snapshot.messages.append(AgentTranscriptMessage(role: .user, text: request.prompt))
-        emit(.runState(.running))
+        let prompt = AgentTranscriptMessage(role: .user, text: request.prompt)
+        snapshot.messages.append(prompt)
+        let pipeline = configuration.contextPipeline(sessionContext, prompt.id)
+
+        channel.emit(.runStarted(runID))
+        channel.emit(.runState(.running))
         await persist(snapshot)
+
+        let driver = AgentTurnDriver(
+            model: model, tools: tools, channel: channel, runID: runID
+        )
+        let scheduler = AgentToolScheduler(
+            executor: AgentToolExecutor(
+                tools: tools, approval: approval, hooks: hooks, channel: channel,
+                secretBroker: secretBroker, userInteraction: userInteraction,
+                runID: runID, permissionMode: request.permissionMode,
+                userIntent: request.prompt
+            ),
+            mode: configuration.toolExecution,
+            maximumConcurrency: configuration.maximumToolConcurrency
+        )
 
         var toolCount = 0
         do {
-            for _ in 0..<maxTurns {
+            for index in 0..<configuration.maxTurns {
                 try Task.checkCancellation()
                 if !steering.isEmpty {
                     snapshot.messages.append(contentsOf: steering)
                     steering.removeAll()
                 }
-                let turn = try await assistantTurn(
+                channel.emit(.turnStarted(index: index))
+                let turn = try await driver.run(pipeline(AgentModelContext(
                     systemPrompt: request.systemPrompt,
-                    messages: Self.injecting(
-                        sessionContext, at: sessionContextIndex, into: snapshot.messages
-                    )
-                )
+                    messages: snapshot.messages,
+                    tools: tools.descriptors
+                )))
                 snapshot.messages.append(turn.message)
-                emit(.messageFinished(turn.message))
+                channel.emit(.messageFinished(turn.message))
+                channel.emit(.turnFinished(index: index, stopReason: turn.reason))
                 await persist(snapshot)
 
-                if turn.reason == .error {
-                    throw AgentRuntimeError.providerFailed
-                }
-                if turn.reason == .length, !turn.message.toolCalls.isEmpty {
-                    throw AgentRuntimeError.truncatedToolCall
-                }
+                if turn.reason == .error { throw AgentRuntimeError.providerFailed }
                 guard !turn.message.toolCalls.isEmpty else {
-                    snapshot.state = .completed
-                    snapshot.finishedAt = .now
-                    emit(.runState(.completed))
-                    await persist(snapshot)
-                    finish(runID: runID)
-                    return
+                    return await complete(snapshot, runID: runID)
                 }
 
-                for call in turn.message.toolCalls {
-                    try Task.checkCancellation()
-                    toolCount += 1
-                    guard toolCount <= maxToolCalls else { throw AgentRuntimeError.toolBudgetExceeded }
-                    let result = await execute(
-                        call,
-                        runID: runID,
-                        mode: request.permissionMode,
-                        userIntent: request.prompt
+                // Refusals still produce one result per call, then throw. An
+                // assistant turn whose tool calls are left unanswered is
+                // rejected outright by every provider on the *next* request, so
+                // giving up here without answering would turn a stopped run
+                // into a permanently unusable conversation.
+                var refusal: AgentRuntimeError?
+                let results: [AgentToolResult]
+                if turn.reason == .length {
+                    refusal = .truncatedToolCall
+                    results = scheduler.fail(
+                        turn.message.toolCalls,
+                        reason: AgentRuntimeError.truncatedToolCall.localizedDescription
                     )
-                    snapshot.messages.append(
-                        AgentTranscriptMessage(
-                            role: .tool,
-                            text: result.content,
-                            toolCallID: result.callID,
-                            toolName: call.name,
-                            isError: result.isError
-                        )
+                } else if toolCount + turn.message.toolCalls.count > configuration.maxToolCalls {
+                    refusal = .toolBudgetExceeded
+                    results = scheduler.fail(
+                        turn.message.toolCalls,
+                        reason: AgentRuntimeError.toolBudgetExceeded.localizedDescription
                     )
-                    await persist(snapshot)
+                } else {
+                    toolCount += turn.message.toolCalls.count
+                    results = await scheduler.run(turn.message.toolCalls)
+                }
+                for (call, result) in zip(turn.message.toolCalls, results) {
+                    snapshot.messages.append(AgentTranscriptMessage(
+                        role: .tool, text: result.content, toolCallID: result.callID,
+                        toolName: call.name, isError: result.isError
+                    ))
+                }
+                await persist(snapshot)
+                if let refusal { throw refusal }
+                // After the results are recorded, not before: a cancelled batch
+                // still leaves the transcript answerable.
+                try Task.checkCancellation()
+
+                if await hooks.shouldStop(after: AgentTurnSummary(
+                    index: index, message: turn.message, results: results
+                )) {
+                    return await complete(snapshot, runID: runID)
                 }
             }
             throw AgentRuntimeError.turnBudgetExceeded
         } catch is CancellationError {
             snapshot.state = .cancelled
             snapshot.finishedAt = .now
-            emit(.runState(.cancelled))
+            channel.emit(.runState(.cancelled))
             await persist(snapshot)
         } catch {
             snapshot.state = .failed
             snapshot.failure = error.localizedDescription
             snapshot.finishedAt = .now
-            emit(.failed(error.localizedDescription))
-            emit(.runState(.failed))
+            channel.emit(.failed(error.localizedDescription))
+            channel.emit(.runState(.failed))
             await persist(snapshot)
         }
         finish(runID: runID)
     }
 
-    /// Raises an ordinary tool card for a search the provider already ran.
-    ///
-    /// Proposed and finished in one breath, with no approval between, because
-    /// by the time this event exists there is nothing left to authorize — the
-    /// search happened on the provider's servers during the turn. The card is a
-    /// record rather than a gate, which is the honest thing to show and better
-    /// than an answer that cites pages the transcript never mentions reaching.
-    ///
-    /// The result content deliberately carries no `<untrusted-data>` wrapper.
-    /// That wrapper is addressed to a model, and this content is never sent to
-    /// one: it exists only for the card and for run history.
-    private func recordNativeWebSearch(_ activity: AgentWebSearchActivity) {
-        guard let runID = activeRunID else { return }
-        let invocation = AgentToolInvocation(
-            runID: runID,
-            call: AgentToolCall(
-                id: "provider-web-search-\(UUID().uuidString)",
-                name: "web_search",
-                arguments: .object(["query": .string(activity.query)])
-            )
-        )
-        let descriptor = AgentToolDescriptor(
-            name: "web_search",
-            summary: String(localized: "Web search run by the model provider."),
-            inputSchema: .object([
-                "type": .string("object"),
-                "properties": .object(["query": .object(["type": .string("string")])]),
-                "required": .array([.string("query")]),
-                "additionalProperties": .bool(false),
-            ]),
-            target: .network,
-            safety: .locallyReadOnly
-        )
-        let sources = AgentJSONValue.array(activity.sources.map { source in
-            .object(["title": .string(source.title), "url": .string(source.url)])
-        })
-        emit(.toolProposed(invocation, descriptor))
-        emit(.toolFinished(invocation, AgentToolResult(
-            callID: invocation.call.id,
-            content: sources.encodedString,
-            // The flag every reader of this event needs: `callID` here names
-            // nothing the provider ever asked for, so anything that replays
-            // tool results must leave this one out. See
-            // `AgentToolResult.isProviderNative`.
-            metadata: [AgentToolResult.providerNativeKey: .bool(true)]
-        )))
-    }
-
-    private func assistantTurn(
-        systemPrompt: String,
-        messages: [AgentTranscriptMessage]
-    ) async throws -> (message: AgentTranscriptMessage, reason: AgentStopReason) {
-        var message = AgentTranscriptMessage(role: .assistant)
-        var pending: [String: PendingToolCall] = [:]
-        var order: [String] = []
-        var stopReason = AgentStopReason.completed
-        // One card per distinct query. Gemini reports its grounding metadata on
-        // more than one chunk of the same stream, and a card per chunk would
-        // read as the model having searched four times for one thing.
-        var recordedSearches: Set<String> = []
-        emit(.messageStarted(message.id))
-
-        let request = AgentModelRequest(
-            systemPrompt: systemPrompt,
-            messages: messages,
-            tools: tools.values.map(\.descriptor).sorted { $0.name < $1.name }
-        )
-        for try await event in model.stream(request) {
-            try Task.checkCancellation()
-            switch event {
-            case .textDelta(let text):
-                message.text += text
-                emit(.messageDelta(messageID: message.id, text: text))
-            case .textSnapshot(let text):
-                // The UI is reconciled by messageFinished after the provider
-                // stream closes, so replacing here cannot duplicate deltas.
-                message.text = text
-            case .toolCallDelta(let id, let name, let arguments):
-                if pending[id] == nil { order.append(id) }
-                var entry = pending[id] ?? PendingToolCall()
-                if let name { entry.name = name }
-                entry.arguments += arguments
-                pending[id] = entry
-            case .toolCallSnapshot(let id, let providerItemID, let name, let arguments):
-                if pending[id] == nil { order.append(id) }
-                pending[id] = PendingToolCall(
-                    name: name, arguments: arguments,
-                    providerItemID: providerItemID
-                )
-            case .providerItem(let item):
-                if let id = item.objectValue?["id"]?.stringValue,
-                    let index = message.providerItems.firstIndex(where: {
-                        $0.objectValue?["id"]?.stringValue == id
-                    })
-                {
-                    // `response.completed` can carry a richer final reasoning
-                    // item (notably encrypted_content) than output_item.done.
-                    message.providerItems[index] = item
-                } else {
-                    message.providerItems.append(item)
-                }
-            case .webSearch(let activity):
-                if recordedSearches.insert(activity.query).inserted {
-                    recordNativeWebSearch(activity)
-                }
-            case .finished(let reason):
-                stopReason = reason
-            }
-        }
-        message.toolCalls = try order.map { id in
-            guard let call = pending[id], !call.name.isEmpty else {
-                throw AgentRuntimeError.invalidToolCall
-            }
-            // A zero-parameter tool has exactly one valid argument value. Do
-            // not let an OpenAI-compatible gateway's empty/null/duplicated
-            // serialization turn `list_hosts` into a JSON decoding failure.
-            if let schema = tools[call.name]?.descriptor.inputSchema.objectValue,
-                schema["properties"]?.objectValue?.isEmpty == true,
-                schema["additionalProperties"]?.boolValue == false
-            {
-                return AgentToolCall(
-                    id: id, name: call.name, arguments: .object([:]),
-                    providerItemID: call.providerItemID
-                )
-            }
-            // Several OpenAI-compatible gateways stream an empty argument
-            // string for a no-parameter function instead of the canonical `{}`.
-            let arguments = call.arguments.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let data = (arguments.isEmpty ? "{}" : arguments).data(using: .utf8) else {
-                throw AgentRuntimeError.invalidToolCall
-            }
-            do {
-                return AgentToolCall(
-                    id: id, name: call.name,
-                    arguments: try AgentJSONValue.decode(data),
-                    providerItemID: call.providerItemID
-                )
-            } catch {
-                throw AgentRuntimeError.invalidToolArguments(tool: call.name)
-            }
-        }
-        return (message, stopReason)
-    }
-
-    private func execute(
-        _ call: AgentToolCall,
-        runID: UUID,
-        mode: ChatPermissionMode,
-        userIntent: String
-    ) async -> AgentToolResult {
-        guard let tool = tools[call.name] else {
-            // Still a card. Returning silently left the transcript showing an
-            // empty assistant turn and nothing else, which reads as "the model
-            // said nothing" rather than "the model called a tool we do not
-            // have" — the one thing the user needs to see here.
-            let invocation = AgentToolInvocation(runID: runID, call: call)
-            let result = AgentToolResult(
-                callID: call.id,
-                content: String(localized: "Unknown tool: \(call.name)"),
-                isError: true
-            )
-            emit(.toolProposed(invocation, AgentToolDescriptor(
-                name: call.name,
-                summary: String(localized: "This tool is not available in this run."),
-                inputSchema: .object(["type": .string("object")]),
-                target: .local, safety: .requiresAuthorization
-            )))
-            emit(.toolFinished(invocation, result))
-            return result
-        }
-        let proposed = AgentToolInvocation(runID: runID, call: call)
-        let preflight: AgentToolPreflight
-        do {
-            try AgentJSONSchemaValidator.validate(call.arguments, against: tool.descriptor.inputSchema)
-            preflight = try await tool.preflight(proposed)
-        } catch {
-            let result = AgentToolResult(
-                callID: call.id,
-                content: String(localized: "Tool input was rejected: \(error.localizedDescription)"),
-                isError: true
-            )
-            emit(.toolProposed(proposed, tool.descriptor))
-            emit(.toolFinished(proposed, result))
-            return result
-        }
-        let invocation = preflight.invocation
-        var effectiveDescriptor = tool.descriptor
-        effectiveDescriptor.safety = preflight.safety
-        emit(.toolProposed(invocation, effectiveDescriptor))
-        let request = AgentApprovalRequest(
-            invocation: invocation,
-            descriptor: effectiveDescriptor,
-            userIntent: userIntent,
-            localReasons: preflight.reasons
-        )
-        switch await approval.authorize(request, mode: mode) {
-        case .deny(let reason):
-            let result = AgentToolResult(callID: call.id, content: reason, isError: true)
-            emit(.toolFinished(invocation, result))
-            return result
-        case .allow:
-            emit(.toolStarted(invocation))
-            do {
-                let result = try await tool.execute(
-                    invocation,
-                    context: AgentToolExecutionContext(
-                        runID: runID, userIntent: userIntent, secretBroker: secretBroker,
-                        userInteraction: EventingAgentUserInteraction(
-                            base: userInteraction,
-                            event: { [weak self] event in await self?.emit(event) }
-                        ),
-                        preflightMetadata: preflight.executionMetadata,
-                        authorize: { [approval] request in
-                            await approval.authorize(request, mode: mode)
-                        }
-                    )
-                )
-                emit(.toolFinished(invocation, result))
-                return result
-            } catch {
-                let result = AgentToolResult(
-                    callID: call.id, content: error.localizedDescription, isError: true
-                )
-                emit(.toolFinished(invocation, result))
-                return result
-            }
-        }
+    private func complete(_ snapshot: AgentRunSnapshot, runID: UUID) async {
+        var finished = snapshot
+        finished.state = .completed
+        finished.finishedAt = .now
+        channel.emit(.runState(.completed))
+        await persist(finished)
+        finish(runID: runID)
     }
 
     private func persist(_ snapshot: AgentRunSnapshot) async {
@@ -643,8 +254,7 @@ actor AgentRuntime {
         Task { await secretBroker.discardSecrets(for: runID) }
         activeRunID = nil
         runTask = nil
-        continuation?.finish()
-        continuation = nil
+        channel.finish()
     }
 }
 

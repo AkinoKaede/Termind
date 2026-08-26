@@ -489,7 +489,7 @@ struct WebSearchTests {
             AgentTranscriptMessage(role: .assistant, text: "Done."),
         ]
 
-        let repaired = AgentRuntime.withoutOrphanedToolResults(history)
+        let repaired = AgentOrphanedToolResultRepair.apply(history)
 
         #expect(repaired.count == 4)
         #expect(!repaired.contains { $0.toolCallID?.hasPrefix("provider-web-search") == true })
@@ -504,7 +504,7 @@ struct WebSearchTests {
         let history = [
             AgentTranscriptMessage(role: .tool, text: "ok", toolName: "list_hosts")
         ]
-        #expect(AgentRuntime.withoutOrphanedToolResults(history).count == 1)
+        #expect(AgentOrphanedToolResultRepair.apply(history).count == 1)
     }
 
     private func invocation(query: String) -> AgentToolInvocation {

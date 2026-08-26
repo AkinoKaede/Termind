@@ -215,7 +215,11 @@ private struct AgentApprovalCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            Label("Approval required", systemImage: "hand.raised.fill").font(.headline)
+            HStack {
+                Label("Approval required", systemImage: "hand.raised.fill").font(.headline)
+                Spacer()
+                QueueDepthLabel(remaining: conversation.pendingApprovals.count)
+            }
             Text(request.descriptor.name).font(.callout.weight(.semibold))
             if let host = request.invocation.targetHostID {
                 Text("Host: \(host.uuidString)").font(.caption).foregroundStyle(.secondary)
@@ -237,6 +241,23 @@ private struct AgentApprovalCard: View {
     }
 }
 
+/// How much else is waiting behind this card.
+///
+/// A parallel turn can raise several questions, and they are answered one at a
+/// time. Without this, dismissing one card and finding another in its place
+/// reads as the same card having failed to go away.
+private struct QueueDepthLabel: View {
+    let remaining: Int
+
+    var body: some View {
+        if remaining > 1 {
+            Text("1 of \(remaining)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 /// The agent asking the user to decide something.
 ///
 /// Options are a list rather than a `Picker` because each one carries a
@@ -250,10 +271,14 @@ private struct AgentUserInputCard: View {
     var body: some View {
         @Bindable var conversation = conversation
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            if !request.header.isEmpty {
-                Text(request.header)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            HStack {
+                if !request.header.isEmpty {
+                    Text(request.header)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                QueueDepthLabel(remaining: conversation.pendingUserInputs.count)
             }
             Text(request.prompt)
                 .font(.callout.weight(.medium))

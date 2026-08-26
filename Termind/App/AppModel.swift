@@ -228,11 +228,18 @@ final class AppModel {
                 reasoning: reasoning
             ))
         }()
-        // Weakly, all three times. The conversation owns the runtime, the
-        // runtime owns the broker and the interaction handler, and both of those
-        // used to own the conversation back — so every chat that had ever run an
-        // agent stayed alive, with its runtime, for the life of the process.
-        // A conversation that is gone denies and cancels: fail closed.
+        // One channel for the whole run, shared by everything that publishes
+        // into it. The broker used to raise its review events through a closure
+        // of its own, each wrapped in an unstructured `Task` — so a review's
+        // events had no defined order against the tool events they belong
+        // between, and its durable writes had no defined order against
+        // anything. See `AgentEventChannel`.
+        let channel = AgentEventChannel(repository: agentRunRepository)
+        // Weakly. The conversation owns the runtime, the runtime owns the broker
+        // and the interaction handler, and both of those used to own the
+        // conversation back — so every chat that had ever run an agent stayed
+        // alive, with its runtime, for the life of the process. A conversation
+        // that is gone denies and cancels: fail closed.
         let approval = AgentApprovalBroker(
             reviewer: reviewer,
             manualApproval: { [weak conversation] request in
@@ -241,31 +248,28 @@ final class AppModel {
                 }
                 return await conversation.requestApproval(request)
             },
-            event: { [agentRunRepository, weak conversation] event in
-                Task {
-                    if let runID = event.associatedRunID {
-                        try? await agentRunRepository.record(event, runID: runID)
-                    }
-                    await MainActor.run { conversation?.handle(event) }
-                }
-            }
+            event: channel.emit
         )
 
-        var tools: [AnyAgentTool] = []
+        // Built-ins first, so a remote MCP name can never shadow one — the
+        // registry resolves providers in precedence order.
+        var providers: [any AgentToolProviding] = []
         if chat.model.abilities.contains(.toolCall) {
-            tools = AgentBuiltInTools.make(
+            providers.append(AgentStaticToolProvider(AgentBuiltInTools.make(
                 hosts: agentHosts, connections: agentConnections,
                 search: searchPlan.local
-            )
+            )))
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
             }
-            tools += AgentMCPTools.make(servers: servers)
+            providers.append(AgentStaticToolProvider(AgentMCPTools.make(servers: servers)))
         }
         let runtime = AgentRuntime(
-            model: model, tools: tools, approval: approval,
+            model: model, registry: AgentToolRegistry(providers),
+            approval: approval,
             repository: agentRunRepository,
-            userInteraction: WeakAgentUserInteraction(conversation)
+            userInteraction: WeakAgentUserInteraction(conversation),
+            channel: channel
         )
         // No second Shell Integration gate here. `Pane.remoteSystemInfo` already
         // withholds the probe when the setting is off, and `context` is the same

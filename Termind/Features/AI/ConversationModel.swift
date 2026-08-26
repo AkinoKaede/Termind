@@ -192,11 +192,32 @@ final class ConversationModel: Identifiable {
     /// that message is sent the content is in the transcript already.
     var attachments: [ContextChip] = []
     var draft: String = ""
-    var isStreaming: Bool = false
-    var runState: AgentRunState = .idle
+    private(set) var isStreaming: Bool = false
+    /// What the transcript shows. Derived — see `refreshRunState`.
+    private(set) var runState: AgentRunState = .idle
+    /// The last state the *run* reported, before anything outstanding in the UI
+    /// is taken into account.
+    private var runtimeState: AgentRunState = .idle
     var toolCards: [AgentToolCard] = []
-    var pendingApproval: AgentApprovalRequest?
-    var pendingUserInput: AgentUserInputRequest?
+
+    /// Questions waiting on the user, oldest first.
+    ///
+    /// A queue rather than a slot because tools no longer run one at a time. A
+    /// turn where two calls both need approval used to overwrite the first
+    /// request with the second, and the continuation the first was suspended on
+    /// was never resumed — the run simply stopped, with no error and nothing on
+    /// screen to answer.
+    ///
+    /// Only the head is presented. Showing three cards at once would ask
+    /// someone to authorize three things while reading one.
+    private(set) var pendingApprovals: [AgentApprovalRequest] = []
+    private(set) var pendingUserInputs: [AgentUserInputRequest] = []
+    /// Reviews in flight. Counted rather than flagged: they run concurrently,
+    /// so the last one to finish must not be able to announce that none are.
+    private var reviewing: Set<UUID> = []
+
+    var pendingApproval: AgentApprovalRequest? { pendingApprovals.first }
+    var pendingUserInput: AgentUserInputRequest? { pendingUserInputs.first }
     /// The free-form answer, for a text question and for the "something else"
     /// field beside a set of options.
     var userInputDraft = ""
@@ -257,6 +278,7 @@ final class ConversationModel: Identifiable {
         self.messages = messages
         self.transcript = transcript
         self.runState = runState
+        runtimeState = runState
     }
 
     var estimatedContextTokens: Int {
@@ -397,8 +419,8 @@ final class ConversationModel: Identifiable {
         // nobody listening.
         if let runtime { Task { await runtime.cancel() } }
         runtime = nil
-        isStreaming = false
-        if !runState.isTerminal { runState = .cancelled }
+        if !runtimeState.isTerminal { runtimeState = .cancelled }
+        refreshRunState()
     }
 
     func steer(_ text: String) {
@@ -416,30 +438,43 @@ final class ConversationModel: Identifiable {
         steer(text)
     }
 
+    /// Owns the approval queue.
+    ///
+    /// `AgentApprovalBroker` both publishes `approvalRequested` and calls this,
+    /// and the two used to write the same slot, which made the duplication
+    /// invisible. Against a queue it would not be: `handle` deliberately only
+    /// moves the card's state, and enqueueing happens here — on the path that
+    /// holds the continuation and can therefore actually answer.
     func requestApproval(_ request: AgentApprovalRequest) async -> AgentApprovalDecision {
-        pendingApproval = request
-        runState = .waitingForApproval
+        pendingApprovals.append(request)
         setToolState(request.invocation.id, .waitingForApproval)
+        refreshRunState()
         return await withCheckedContinuation { approvalWaiters[request.id] = $0 }
     }
 
     func respondToApproval(allow: Bool) {
-        guard let request = pendingApproval else { return }
-        pendingApproval = nil
-        runState = .running
+        guard !pendingApprovals.isEmpty else { return }
+        let request = pendingApprovals.removeFirst()
         let decision: AgentApprovalDecision = allow
             ? .allow : .deny(String(localized: "The user denied this action."))
         if !allow { setToolState(request.invocation.id, .denied) }
+        refreshRunState()
         approvalWaiters.removeValue(forKey: request.id)?.resume(returning: decision)
     }
 
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
-        pendingUserInput = request
-        userInputDraft = ""
-        userInputSelection = []
-        secretInputDraft = ""
-        runState = .waitingForUser
+        present(request)
         return await withCheckedContinuation { inputWaiters[request.id] = $0 }
+    }
+
+    /// Puts a question on screen. The queue path uses it, and so does any
+    /// caller that wants the card without a run behind it.
+    func present(_ request: AgentUserInputRequest) {
+        pendingUserInputs.append(request)
+        // Only the head is being answered, so only the head's drafts exist. A
+        // queued question gets a blank sheet when it reaches the front.
+        if pendingUserInputs.count == 1 { clearUserInputDrafts() }
+        refreshRunState()
     }
 
     /// Nothing is preselected, so this is what stops Continue from returning an
@@ -498,14 +533,13 @@ final class ConversationModel: Identifiable {
                 custom: custom.isEmpty ? nil : custom
             )
         }
-        clearUserInput()
-        runState = .running
+        advanceUserInput()
         inputWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
     func cancelUserInput() {
         guard let request = pendingUserInput else { return }
-        clearUserInput()
+        advanceUserInput()
         inputWaiters.removeValue(forKey: request.id)?.resume(returning: .cancelled)
     }
 
@@ -513,26 +547,65 @@ final class ConversationModel: Identifiable {
         userInputDraft.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func clearUserInput() {
+    /// Retires the answered question and hands a clean sheet to the next one.
+    private func advanceUserInput() {
+        if !pendingUserInputs.isEmpty { pendingUserInputs.removeFirst() }
+        clearUserInputDrafts()
+        refreshRunState()
+    }
+
+    private func clearUserInputDrafts() {
         secretInputDraft = ""
         userInputDraft = ""
         userInputSelection = []
-        pendingUserInput = nil
+    }
+
+    /// What the transcript shows, from what is actually outstanding.
+    ///
+    /// Assigning run state at each event only worked while one thing happened
+    /// at a time. With a batch in flight, the tool whose review just finished
+    /// would announce `running` while another was still waiting on the user, so
+    /// the composer unlocked over an unanswered question. Ranked instead: a
+    /// person being waited on outranks a review, which outranks the run's own
+    /// idea of itself, and a terminal state outranks everything.
+    private func refreshRunState() {
+        if runtimeState.isTerminal || runtimeState == .idle {
+            runState = runtimeState
+        } else if !pendingUserInputs.isEmpty {
+            runState = .waitingForUser
+        } else if !pendingApprovals.isEmpty {
+            runState = .waitingForApproval
+        } else if !reviewing.isEmpty {
+            runState = .reviewing
+        } else {
+            runState = runtimeState
+        }
+        isStreaming = runState != .idle && !runState.isTerminal
     }
 
     func handle(_ event: AgentEvent) {
         switch event {
         case .runState(let state):
-            runState = state
-            isStreaming = state != .idle && !state.isTerminal
+            runtimeState = state
+            refreshRunState()
             if state.isTerminal { runDidFinish?() }
-        case .messageStarted(let id):
-            if let index = messages.firstIndex(where: { $0.id == id }) {
+        // Run and turn boundaries are for readers that group by turn. The
+        // conversation draws a flat timeline, so it has nothing to do with
+        // them — but they are listed rather than swept into a `default` so
+        // adding an event stays a compile error here.
+        case .runStarted, .turnStarted, .turnFinished:
+            break
+        case .messageStarted(let started):
+            if let index = messages.firstIndex(where: { $0.id == started.id }) {
                 messages[index].isStreaming = true
             } else {
-                messages.append(ChatMessage(id: id, role: .assistant, text: "", isStreaming: true))
+                messages.append(ChatMessage(
+                    id: started.id, role: .assistant, text: "", isStreaming: true,
+                    // The run's clock, not the UI's. See `AgentEvent.messageStarted`.
+                    createdAt: started.createdAt
+                ))
             }
-            isStreaming = true
+            refreshRunState()
         case .messageDelta(let id, let text):
             if let index = messages.firstIndex(where: { $0.id == id }) {
                 messages[index].text += text
@@ -542,7 +615,7 @@ final class ConversationModel: Identifiable {
                     id: id, role: .assistant, text: text, isStreaming: true
                 ))
             }
-            isStreaming = true
+            refreshRunState()
         case .messageFinished(let message):
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[index].text = message.text
@@ -550,7 +623,7 @@ final class ConversationModel: Identifiable {
             } else {
                 messages.append(ChatMessage(
                     id: message.id, role: .assistant, text: message.text,
-                    isStreaming: false
+                    isStreaming: false, createdAt: message.createdAt
                 ))
             }
             // Whole message, not just its text: the tool calls and the opaque
@@ -566,7 +639,13 @@ final class ConversationModel: Identifiable {
         case .toolFinished(let invocation, let result):
             if let index = toolCards.firstIndex(where: { $0.id == invocation.id }) {
                 toolCards[index].result = result
-                toolCards[index].state = result.isError ? .failed : .completed
+                // A denied call did not fail — someone said no. The denial is
+                // an error to the *model*, which is what makes the turn
+                // replayable, but the card kept being relabelled `Failed` the
+                // instant it was refused, so `denied` never reached the screen.
+                if toolCards[index].state != .denied {
+                    toolCards[index].state = result.isError ? .failed : .completed
+                }
             }
             // A card, but not a turn. A provider-native search happened inside
             // the assistant's own turn and was never a tool call here, so
@@ -578,24 +657,29 @@ final class ConversationModel: Identifiable {
                 role: .tool, text: result.content, toolCallID: result.callID,
                 toolName: invocation.call.name, isError: result.isError
             ))
+        // The card only. The queue belongs to `requestApproval`, which is the
+        // path that also holds the continuation — see its comment.
         case .approvalRequested(let request):
-            pendingApproval = request
             setToolState(request.invocation.id, .waitingForApproval)
         case .reviewStarted(let request):
-            runState = .reviewing
+            reviewing.insert(request.invocation.id)
             setToolState(request.invocation.id, .reviewing)
+            refreshRunState()
         case .reviewFinished(let request, let decision):
-            runState = .running
+            reviewing.remove(request.invocation.id)
             if let index = toolCards.firstIndex(where: { $0.id == request.invocation.id }) {
                 toolCards[index].review = decision
             }
+            refreshRunState()
         case .reviewFailed(let request, _, _):
-            runState = .running
+            reviewing.remove(request.invocation.id)
             setToolState(request.invocation.id, .failed)
-        case .userInputRequested(let request): pendingUserInput = request
+            refreshRunState()
+        // Also card-only. `request(_:)` enqueues, for the same reason.
+        case .userInputRequested:
+            break
         case .failed(let reason):
             messages.append(ChatMessage(role: .assistant, text: reason))
-            isStreaming = false
         }
     }
 

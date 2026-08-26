@@ -81,12 +81,28 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         case requiresAuthorization
     }
 
+    /// Whether this tool may run beside the other calls of the same turn.
+    ///
+    /// Separate from `Safety`, which answers a different question: safety is
+    /// about who must authorize the call, concurrency is about what else may be
+    /// happening while it runs. A write can be approved and still be the only
+    /// thing allowed to touch the host at that moment.
+    nonisolated enum Concurrency: String, Hashable, Sendable, Codable {
+        case parallel
+        case sequential
+    }
+
     var id: String { name }
     var name: String
     var summary: String
     var inputSchema: AgentJSONValue
     var target: Target
     var safety: Safety
+    /// Defaults to the strict value on purpose. A batch runs in parallel only
+    /// when *every* call in it is marked parallel, so an unannotated tool — a
+    /// new one, or one a future contributor forgets about — makes its turn
+    /// serial rather than quietly racing whatever else the model asked for.
+    var concurrency: Concurrency = .sequential
     /// MCP's Ask First override. Full access intentionally ignores it.
     var alwaysAskUser: Bool = false
 }
@@ -115,6 +131,15 @@ nonisolated struct AgentToolPreflight: Hashable, Sendable {
     var invocation: AgentToolInvocation
     var safety: AgentToolDescriptor.Safety
     var reasons: [String] = []
+    /// Overrides the descriptor's declared concurrency for this one call, or
+    /// `nil` to keep it.
+    ///
+    /// `ssh_exec` is the reason this exists: whether one command may run beside
+    /// another is a property of the command, not of the tool, and
+    /// `CommandRiskClassifier` is already consulted here to decide the same
+    /// call's `safety`. Both answers come from the same locally-proven evidence
+    /// rather than from anything the model or a remote server asserted.
+    var concurrency: AgentToolDescriptor.Concurrency?
     /// Locally established, execution-only facts. They are deliberately absent
     /// from tool arguments, model replay, approval UI, and persistence.
     var executionMetadata: [String: AgentJSONValue] = [:]
@@ -218,7 +243,29 @@ nonisolated struct AgentRunSnapshot: Identifiable, Hashable, Sendable, Codable {
 
 nonisolated enum AgentEvent: Hashable, Sendable {
     case runState(AgentRunState)
-    case messageStarted(AgentTranscriptMessage.ID)
+    /// The run has an identity. Emitted once, before anything else, so a reader
+    /// can bind what follows to a run without waiting for the first tool call
+    /// to tell it which one this is.
+    case runStarted(AgentRunSnapshot.ID)
+    /// Brackets one model round trip and the tool batch it asks for.
+    ///
+    /// These are what make a parallel batch legible: every tool card emitted
+    /// between `turnStarted(n)` and the next `turnStarted(n + 1)` belongs to
+    /// turn *n*. Deriving that from the cards alone is impossible once they
+    /// stop arriving one at a time, and the alternative — stamping a turn onto
+    /// `AgentToolInvocation` — would cost a stored schema change for something
+    /// no reader needs after the run is over.
+    case turnStarted(index: Int)
+    case turnFinished(index: Int, stopReason: AgentStopReason)
+    /// The whole message, empty, rather than just its id.
+    ///
+    /// `createdAt` is the part that matters: the transcript orders assistant
+    /// turns against tool cards by time, and both are stamped inside the run.
+    /// Stamping the visible message when the *UI* got around to handling the
+    /// event instead made the ordering depend on scheduling — a card proposed
+    /// later in the run could carry an earlier timestamp than the turn that
+    /// asked for it, and sort above it.
+    case messageStarted(AgentTranscriptMessage)
     case messageDelta(messageID: AgentTranscriptMessage.ID, text: String)
     case messageFinished(AgentTranscriptMessage)
     case toolProposed(AgentToolInvocation, AgentToolDescriptor)
@@ -233,6 +280,8 @@ nonisolated enum AgentEvent: Hashable, Sendable {
 
     var associatedRunID: UUID? {
         switch self {
+        case .runStarted(let id):
+            id
         case .toolProposed(let invocation, _), .toolStarted(let invocation),
             .toolFinished(let invocation, _):
             invocation.runID

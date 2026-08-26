@@ -51,6 +51,16 @@ nonisolated enum AgentMCPTools {
             // A server's readOnlyHint is not proof. Every MCP call stays inside
             // the action approval boundary unless Full access is selected.
             safety: .requiresAuthorization,
+            // Parallel by default, following Pi, because an MCP call is a
+            // network round trip and that is where concurrency pays. Note which
+            // direction the remote metadata is allowed to push: a hint can only
+            // make this *stricter*. Nothing a server asserts can grant
+            // parallelism, so the rule that remote annotations are risk hints
+            // rather than proof of safety still holds — and a tool the server
+            // marks destructive, or wants asked about every time, takes its
+            // whole turn serial.
+            concurrency: tool.annotations.destructiveHint == true || tool.requiresApproval
+                ? .sequential : .parallel,
             alwaysAskUser: tool.requiresApproval
         )
         return AnyAgentTool(

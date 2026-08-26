@@ -377,8 +377,9 @@ struct ChatComposerStateTests {
     func aSilentToolOnlyTurnDoesNotLeaveAnEmptyBubble() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("go")
-        let id = UUID()
-        conversation.handle(.messageStarted(id))
+        let started = AgentTranscriptMessage(role: .assistant)
+        let id = started.id
+        conversation.handle(.messageStarted(started))
         #expect(conversation.timeline.count == 2, "a streaming turn still shows progress")
 
         conversation.handle(.messageFinished(AgentTranscriptMessage(

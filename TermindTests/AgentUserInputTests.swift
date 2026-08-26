@@ -77,7 +77,7 @@ struct AgentUserInputTests {
     @Test
     func nothingIsPreselectedEvenWhenAnOptionIsRecommended() {
         let conversation = ConversationModel()
-        conversation.pendingUserInput = request(multiple: false)
+        conversation.present(request(multiple: false))
 
         #expect(conversation.userInputSelection.isEmpty)
         // A recommendation is a label, not a default — Continue stays off until
@@ -88,7 +88,7 @@ struct AgentUserInputTests {
     @Test
     func choosingAnOptionInASingleAnswerQuestionClearsATypedOne() {
         let conversation = ConversationModel()
-        conversation.pendingUserInput = request(multiple: false)
+        conversation.present(request(multiple: false))
 
         conversation.setUserInputCustomAnswer("MySQL")
         #expect(conversation.canSubmitUserInput)
@@ -101,7 +101,7 @@ struct AgentUserInputTests {
     @Test
     func typingInASingleAnswerQuestionClearsTheChosenOption() {
         let conversation = ConversationModel()
-        conversation.pendingUserInput = request(multiple: false)
+        conversation.present(request(multiple: false))
 
         conversation.toggleUserInputOption("postgres")
         conversation.setUserInputCustomAnswer("MySQL")
@@ -113,7 +113,7 @@ struct AgentUserInputTests {
     @Test
     func singleAnswerSelectionReplacesRatherThanAccumulates() {
         let conversation = ConversationModel()
-        conversation.pendingUserInput = request(multiple: false)
+        conversation.present(request(multiple: false))
 
         conversation.toggleUserInputOption("postgres")
         conversation.toggleUserInputOption("sqlite")
@@ -129,7 +129,7 @@ struct AgentUserInputTests {
     @Test
     func severalAnswersMayIncludeATypedOne() {
         let conversation = ConversationModel()
-        conversation.pendingUserInput = request(multiple: true)
+        conversation.present(request(multiple: true))
 
         conversation.toggleUserInputOption("postgres")
         conversation.toggleUserInputOption("sqlite")
