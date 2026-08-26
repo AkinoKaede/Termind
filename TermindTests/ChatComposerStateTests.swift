@@ -263,6 +263,87 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func stoppingBeforeAnswerHidesTheWorkingPlaceholder() throws {
+        let (conversation, _, assistant) = beginStreamingConversation()
+
+        conversation.stop()
+
+        let stoppedMessage = try #require(
+            conversation.messages.first { $0.id == assistant.id }
+        )
+        #expect(!stoppedMessage.isStreaming)
+        #expect(conversation.runState == .cancelled)
+        #expect(conversation.timeline.map(timelineKind) == ["user", "work"])
+        #expect(conversation.workGroups.first?.run.state == .cancelled)
+    }
+
+    @Test
+    func stoppingDuringReasoningEndsItsActivePresentation() throws {
+        let (conversation, _, assistant) = beginStreamingConversation()
+        conversation.handle(.reasoningDelta(
+            messageID: assistant.id, text: "Evaluating the request."
+        ))
+        #expect(conversation.workGroups.first?.activeReasoningBlockID != nil)
+
+        conversation.stop()
+
+        let stoppedMessage = try #require(
+            conversation.messages.first { $0.id == assistant.id }
+        )
+        #expect(!stoppedMessage.isStreaming)
+        #expect(stoppedMessage.reasoning.map(\.text) == ["Evaluating the request."])
+        #expect(conversation.workGroups.first?.activeReasoningBlockID == nil)
+        #expect(conversation.timeline.map(timelineKind) == ["user", "work"])
+    }
+
+    @Test
+    func stoppingAPartialAnswerKeepsItsTextWithoutAStreamingCaret() throws {
+        let (conversation, _, assistant) = beginStreamingConversation()
+        conversation.handle(.messageDelta(messageID: assistant.id, text: "Partial answer"))
+
+        conversation.stop()
+
+        let stoppedMessage = try #require(
+            conversation.messages.first { $0.id == assistant.id }
+        )
+        #expect(stoppedMessage.text == "Partial answer")
+        #expect(!stoppedMessage.isStreaming)
+        #expect(conversation.timeline.map(timelineKind) == ["user", "assistant", "work"])
+    }
+
+    @Test
+    func stoppingAWorkingToolInterruptsItAndSettlesItsMessage() throws {
+        let (conversation, runID, assistant) = beginStreamingConversation()
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(id: "call-1", name: "lookup", arguments: .object([:])),
+            sourceMessageID: assistant.id
+        )
+        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )))
+        conversation.handle(.toolStarted(invocation))
+
+        conversation.stop()
+
+        #expect(conversation.toolCards.first?.state == .interrupted)
+        #expect(conversation.messages.allSatisfy { !$0.isStreaming })
+        #expect(conversation.workGroups.first?.run.state == .cancelled)
+    }
+
+    @Test
+    func terminalRunEventSettlesAnUnfinishedMessage() {
+        let (conversation, runID, assistant) = beginStreamingConversation()
+
+        conversation.handle(.runFinished(AgentRunSummary(
+            id: runID, state: .failed, startedAt: .now, finishedAt: .now
+        )))
+
+        #expect(conversation.messages.first { $0.id == assistant.id }?.isStreaming == false)
+    }
+
+    @Test
     func immediatelyCompletedRuntimeStillReachesTheConversation() async {
         let conversation = ConversationModel()
         let runtime = AgentRuntime(
@@ -1107,6 +1188,34 @@ struct ChatComposerStateTests {
 
         #expect(AppModel.titleContext(for: conversation) == nil)
         #expect(conversation.derivedTitle == "Root volume filling up")
+    }
+
+    private func beginStreamingConversation() -> (
+        conversation: ConversationModel, runID: UUID, assistant: AgentTranscriptMessage
+    ) {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("Explain")
+        let runID = UUID()
+        // Keep both event stamps before the stop that follows in each test,
+        // matching the runtime's monotonic event order.
+        let startedAt = Date().addingTimeInterval(-2)
+        let assistant = AgentTranscriptMessage(
+            role: .assistant, createdAt: startedAt.addingTimeInterval(1)
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: startedAt
+        )))
+        conversation.handle(.runState(.running))
+        conversation.handle(.messageStarted(assistant))
+        return (conversation, runID, assistant)
+    }
+
+    private func timelineKind(_ item: TimelineItem) -> String {
+        switch item {
+        case .message(let message): return message.role == .user ? "user" : "assistant"
+        case .work: return "work"
+        default: return "other"
+        }
     }
 
     @Test

@@ -1299,7 +1299,7 @@ final class ConversationModel: Identifiable {
     }
 
     func stop() {
-        activeReasoningMessageID = nil
+        settleStreamingPresentation(for: activeRunID)
         for index in toolCards.indices where toolCards[index].state == .running {
             toolCards[index].state = .interrupted
         }
@@ -1627,11 +1627,29 @@ final class ConversationModel: Identifiable {
         isStreaming = runState != .idle && !runState.isTerminal
     }
 
+    /// Ends presentation that only makes sense while a provider stream is
+    /// live. A cancelled turn never emits `messageFinished`, so without this
+    /// explicit cleanup its empty placeholder keeps drawing Working forever
+    /// (and a partial answer keeps its streaming caret) after the run ends.
+    ///
+    /// There can only be one active run in a conversation. `nil` is therefore
+    /// the safe fallback for a terminal event whose run boundary was missed:
+    /// settle every orphaned streaming message rather than leave the UI live.
+    private func settleStreamingPresentation(for runID: UUID?) {
+        activeReasoningMessageID = nil
+        for index in messages.indices where messages[index].isStreaming {
+            guard runID == nil || messageRunIDs[messages[index].id] == runID else {
+                continue
+            }
+            messages[index].isStreaming = false
+        }
+    }
+
     func handle(_ event: AgentEvent) {
         switch event {
         case .runState(let state):
             runtimeState = state
-            if state.isTerminal { activeReasoningMessageID = nil }
+            if state.isTerminal { settleStreamingPresentation(for: activeRunID) }
             refreshRunState()
             if state.isTerminal {
                 returnAllSteeringToDraft()
@@ -1650,7 +1668,7 @@ final class ConversationModel: Identifiable {
                 messageRunIDs[prompt.id] = run.id
             }
         case .runFinished(let run):
-            activeReasoningMessageID = nil
+            settleStreamingPresentation(for: run.id)
             runSummaries[run.id] = run
             if activeRunID == run.id { activeRunID = nil }
         case .turnStarted:
