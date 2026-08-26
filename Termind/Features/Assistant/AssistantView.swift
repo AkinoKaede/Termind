@@ -160,7 +160,8 @@ struct AssistantPanelView: View {
             ConversationView(
                 conversation: conversation, isCompact: true,
                 sessionContext: window.sidebar.sessionContext,
-                showsTerminalActions: true
+                showsTerminalActions: true,
+                onNewChat: { window.closeAssistantInSidebar() }
             )
         }
     }
@@ -176,7 +177,10 @@ struct AssistantView: View {
 
     var body: some View {
         if let conversation = window.assistantLibrary.selectedConversation {
-            ConversationView(conversation: conversation)
+            ConversationView(
+                conversation: conversation,
+                onNewChat: { window.openAssistant() }
+            )
                 .background(.background)
         } else {
             ContentUnavailableView {

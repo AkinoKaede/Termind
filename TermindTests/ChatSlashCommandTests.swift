@@ -7,11 +7,18 @@ import Testing
 struct ChatSlashCommandTests {
     private let commands = [
         ChatSlashCommand(
-            id: "compact", summary: "Summarize older turns", icon: .contextRing,
+            id: "compact", displayName: "Compact",
+            summary: "Summarize older turns", icon: .contextRing,
             argumentHint: "instructions"
         ),
-        ChatSlashCommand(id: "plan", summary: "Research first", icon: .symbol("sparkles")),
-        ChatSlashCommand(id: "reasoning", summary: "Thinking effort", icon: .symbol("brain")),
+        ChatSlashCommand(
+            id: "plan", displayName: "Plan mode",
+            summary: "Research first", icon: .symbol("sparkles")
+        ),
+        ChatSlashCommand(
+            id: "reasoning", displayName: "Reasoning",
+            summary: "Thinking effort", icon: .symbol("brain")
+        ),
     ]
 
     private func options(_ command: ChatSlashCommand) -> [ChatSlashCommand.Option] {
@@ -71,6 +78,17 @@ struct ChatSlashCommandTests {
     // MARK: - Completion
 
     @Test
+    func displayNamesDoNotChangeTheTypedCommands() {
+        #expect(commands[1].displayName == "Plan mode")
+        #expect(commands[1].name == "/plan")
+        #expect(
+            ChatSlashCommandCompletion.accepted(
+                .command(commands[1]), takesArgument: false
+            ) == "/plan"
+        )
+    }
+
+    @Test
     func anEmptyNameOffersEveryCommand() {
         let completion = ChatSlashCommandCompletion.rows(
             draft: "/", commands: commands, options: options
@@ -101,6 +119,13 @@ struct ChatSlashCommandTests {
 
         #expect(completion.rows.count == 3)
         #expect(completion.rows.first?.id == "reasoning/low")
+        guard let first = completion.rows.first,
+            case .option(let command, _) = first
+        else {
+            Issue.record("Expected an option row")
+            return
+        }
+        #expect(command.icon == .symbol("brain"))
     }
 
     @Test

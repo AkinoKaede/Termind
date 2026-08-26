@@ -284,6 +284,7 @@ struct ComposerView: View {
     var sessionContext: SessionContext = .none
     /// Only the Workspace sidebar gives its agent a command-card tool.
     var includesTerminalSuggestion = false
+    var onNewChat: (() -> Void)?
     var onSend: (() -> Void)?
 
     @Environment(AppModel.self) private var app
@@ -292,6 +293,7 @@ struct ComposerView: View {
     @FocusState private var isFocused: Bool
     @State private var draftBeforeTranscription = ""
     @State private var slashSelection = 0
+    @State private var slashScrollRequest = 0
     @State private var slashMenuHeight: CGFloat = 0
     /// Escape closes the palette without clearing the draft, so the draft alone
     /// cannot decide whether it is open.
@@ -755,9 +757,18 @@ struct ComposerView: View {
     /// has more than one effort to choose between — a command that can only
     /// confirm what is already true is a row that wastes the reader's time.
     private var slashCommands: [ChatSlashCommand] {
-        var commands: [ChatSlashCommand] = [
+        var commands: [ChatSlashCommand] = []
+        if !conversation.isEmpty, onNewChat != nil {
+            commands.append(
+                ChatSlashCommand(
+                    id: "new", displayName: String(localized: "New chat"),
+                    summary: String(localized: "Start a new conversation"),
+                    icon: .symbol("plus.bubble")
+                ))
+        }
+        commands.append(
             ChatSlashCommand(
-                id: "plan",
+                id: "plan", displayName: String(localized: "Plan mode"),
                 summary: conversation.isPlanning
                     ? String(localized: "Stop planning and act")
                     : String(localized: "Research and propose before acting"),
@@ -765,39 +776,97 @@ struct ComposerView: View {
                 // Free text, so `/plan why is root at 99%` both enters the mode
                 // and asks the question. Typing `/plan` alone toggles it.
                 argumentHint: String(localized: "what to plan")
-            )
-        ]
-        // Always listed, whether or not there is enough history to act on.
-        // Gating this on the compaction threshold hid it in every ordinary
-        // conversation — a command that appears only once you are near the
-        // context limit is one nobody knows exists. Running it early says so
-        // rather than doing nothing.
-        commands.append(
-            ChatSlashCommand(
-                id: "compact",
-                summary: String(localized: "Summarize older turns to free context"),
-                icon: .contextRing,
-                argumentHint: String(localized: "what to emphasize")
             ))
+        // Existing conversations always expose Compact, even before enough
+        // history has accumulated to compact. A blank New chat has nothing it
+        // could summarize, so the command would only be noise there.
+        if !conversation.isEmpty {
+            commands.append(
+                ChatSlashCommand(
+                    id: "compact", displayName: String(localized: "Compact"),
+                    summary: String(localized: "Summarize older turns to free context"),
+                    icon: .contextRing,
+                    argumentHint: String(localized: "what to emphasize")
+                ))
+        }
         if supportsThinking {
             commands.append(
                 ChatSlashCommand(
-                    id: "reasoning",
+                    id: "reasoning", displayName: String(localized: "Reasoning"),
                     summary: String(localized: "How hard the model thinks"),
                     icon: .symbol("brain"),
                     argumentHint: String(localized: "effort")
                 ))
         }
-        return commands
+        if !slashModelChoices.isEmpty {
+            commands.append(
+                ChatSlashCommand(
+                    id: "model", displayName: String(localized: "Model"),
+                    summary: String(localized: "Switch the model for this conversation"),
+                    icon: .symbol("sparkles"),
+                    argumentHint: String(localized: "model")
+                ))
+        }
+        if !app.aiConfiguration.mcpServers.isEmpty {
+            commands.append(
+                ChatSlashCommand(
+                    id: "mcp", displayName: String(localized: "MCP"),
+                    summary: String(localized: "Enable or disable MCP servers"),
+                    icon: .symbol("server.rack"),
+                    argumentHint: String(localized: "server")
+                ))
+        }
+        // Only the first page is alphabetical. A command's second page keeps
+        // its semantic order — especially Reasoning's effort scale and the
+        // configured order of providers and MCP servers.
+        return commands.sorted { lhs, rhs in
+            let order = lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName)
+            return order == .orderedSame ? lhs.id < rhs.id : order == .orderedAscending
+        }
     }
 
     private var slashOptions: (ChatSlashCommand) -> [ChatSlashCommand.Option] {
         { command in
-            guard command.id == "reasoning", let reasoningResolution else { return [] }
-            return reasoningResolution.supported.map { effort in
-                ChatSlashCommand.Option(id: effort.rawValue, label: effort.displayName)
+            switch command.id {
+            case "reasoning":
+                guard let reasoningResolution else { return [] }
+                return reasoningResolution.supported.map { effort in
+                    ChatSlashCommand.Option(id: effort.rawValue, label: effort.displayName)
+                }
+            case "model":
+                return slashModelChoices.map { choice in
+                    ChatSlashCommand.Option(id: choice.argument, label: choice.model.label)
+                }
+            case "mcp":
+                return app.aiConfiguration.mcpServers.map { server in
+                    ChatSlashCommand.Option(
+                        id: server.id.uuidString.lowercased(), label: server.name
+                    )
+                }
+            default:
+                return []
             }
         }
+    }
+
+    private var slashModelChoices: [(
+        argument: String, provider: ModelProvider, model: AIModel
+    )] {
+        modelProviders.flatMap { provider in
+            provider.chatModels.map { model in
+                (
+                    argument: "\(provider.id.uuidString.lowercased()):\(model.id)",
+                    provider: provider,
+                    model: model
+                )
+            }
+        }
+    }
+
+    private func slashModelChoice(
+        for argument: String
+    ) -> (argument: String, provider: ModelProvider, model: AIModel)? {
+        slashModelChoices.first { $0.argument == argument }
     }
 
     private var slashCompletion: ChatSlashCommandCompletion {
@@ -814,6 +883,7 @@ struct ComposerView: View {
             SlashCommandMenuView(
                 completion: completion,
                 selection: min(slashSelection, completion.rows.count - 1),
+                scrollRequest: slashScrollRequest,
                 contextShare: contextShare,
                 trailingText: slashTrailingText,
                 onHover: { slashSelection = $0 },
@@ -838,6 +908,17 @@ struct ComposerView: View {
         case .option(let command, let option) where command.id == "reasoning":
             return option.id == effectiveReasoningEffort.rawValue
                 ? String(localized: "Current") : nil
+        case .command(let command) where command.id == "model":
+            return resolvedModelLabel
+        case .option(let command, let option) where command.id == "model":
+            return slashModelChoice(for: option.id)?.provider.name
+        case .option(let command, let option) where command.id == "mcp":
+            guard
+                let id = UUID(uuidString: option.id),
+                let server = app.aiConfiguration.mcpServer(id)
+            else { return nil }
+            return server.isEnabled
+                ? String(localized: "Enabled") : String(localized: "Disabled")
         default:
             return nil
         }
@@ -877,6 +958,11 @@ struct ComposerView: View {
         else { return false }
 
         switch command.id {
+        case "new":
+            guard !conversation.isEmpty, let onNewChat else { return false }
+            clearSlashDraft()
+            onNewChat()
+            return true
         case "plan":
             // The one command that runs on its bare name: `/plan` toggles the
             // mode, and `/plan <question>` turns it on and asks. Both are the
@@ -901,6 +987,17 @@ struct ComposerView: View {
                 reasoningResolution?.supported.contains(effort) == true
             else { return false }
             conversation.reasoningEffort = effort
+        case "model":
+            guard case .argument(_, let argument) = input,
+                let choice = slashModelChoice(for: argument)
+            else { return false }
+            select(choice.model, on: choice.provider)
+        case "mcp":
+            guard case .argument(_, let argument) = input,
+                let id = UUID(uuidString: argument),
+                let server = app.aiConfiguration.mcpServer(id)
+            else { return false }
+            app.aiConfiguration.setServerEnabled(!server.isEnabled, for: id)
         default:
             return false
         }
@@ -932,6 +1029,7 @@ struct ComposerView: View {
         let count = slashCompletion.rows.count
         guard count > 0 else { return false }
         slashSelection = (min(slashSelection, count - 1) + delta + count) % count
+        slashScrollRequest += 1
         return true
     }
 

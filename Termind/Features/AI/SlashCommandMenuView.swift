@@ -13,6 +13,9 @@ import SwiftUI
 struct SlashCommandMenuView: View {
     let completion: ChatSlashCommandCompletion
     let selection: Int
+    /// Advanced only by keyboard navigation. Hover still changes the highlight,
+    /// but must not recenter a list underneath a stationary pointer.
+    let scrollRequest: Int
     var contextShare: Double?
     /// The value a row currently holds — the resolved effort beside
     /// `/reasoning`. Returning `nil` leaves the trailing column empty.
@@ -21,20 +24,30 @@ struct SlashCommandMenuView: View {
     var onSelect: (ChatSlashCommandCompletion.Row) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(completion.rows.enumerated()), id: \.element.id) { index, row in
-                    self.row(row, isSelected: index == selection)
-                        .onHover { inside in
-                            if inside { onHover(index) }
-                        }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(completion.rows.enumerated()), id: \.element.id) { index, row in
+                        self.row(row, isSelected: index == selection)
+                            .id(row.id)
+                            .onHover { inside in
+                                if inside { onHover(index) }
+                            }
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .onAppear { scrollSelectionIntoView(using: proxy) }
+            .onChange(of: scrollRequest) { _, _ in
+                scrollSelectionIntoView(using: proxy)
+            }
+            .onChange(of: completion.rows) { _, _ in
+                scrollSelectionIntoView(using: proxy)
+            }
         }
-        // Naturally sized until it would be taller than this, which three
-        // commands never are. `basedOnSize` is what stops an un-scrollable list
-        // from rubber-banding when the pointer crosses it.
+        // Naturally sized until it would be taller than this. `basedOnSize` is
+        // what stops a short list from rubber-banding when the pointer crosses
+        // it while longer command and option lists remain scrollable.
         .frame(maxHeight: Metrics.Chat.slashMenuMaxHeight)
         .scrollBounceBehavior(.basedOnSize)
         .fixedSize(horizontal: false, vertical: true)
@@ -87,23 +100,24 @@ struct SlashCommandMenuView: View {
     @ViewBuilder
     private func icon(for row: ChatSlashCommandCompletion.Row) -> some View {
         switch row {
-        case .command(let command):
-            switch command.icon {
-            case .symbol(let name):
-                Image(systemName: name).font(.caption)
-            case .contextRing:
-                ContextRing(share: contextShare ?? 0)
-            }
-        case .option:
-            // Options are children of the row above them, and a second glyph
-            // column would make them read as commands of their own.
-            Color.clear
+        case .command(let command), .option(let command, _):
+            icon(for: command)
+        }
+    }
+
+    @ViewBuilder
+    private func icon(for command: ChatSlashCommand) -> some View {
+        switch command.icon {
+        case .symbol(let name):
+            Image(systemName: name).font(.caption)
+        case .contextRing:
+            ContextRing(share: contextShare ?? 0)
         }
     }
 
     private func title(of row: ChatSlashCommandCompletion.Row) -> String {
         switch row {
-        case .command(let command): command.name
+        case .command(let command): command.displayName
         case .option(_, let option): option.label
         }
     }
@@ -113,5 +127,15 @@ struct SlashCommandMenuView: View {
         case .command(let command): command.summary
         case .option(_, let option): option.detail
         }
+    }
+
+    private var selectedRowID: ChatSlashCommandCompletion.Row.ID? {
+        guard completion.rows.indices.contains(selection) else { return nil }
+        return completion.rows[selection].id
+    }
+
+    private func scrollSelectionIntoView(using proxy: ScrollViewProxy) {
+        guard let selectedRowID else { return }
+        proxy.scrollTo(selectedRowID)
     }
 }

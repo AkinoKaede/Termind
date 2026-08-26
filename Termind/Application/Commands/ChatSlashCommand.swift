@@ -24,6 +24,9 @@ nonisolated struct ChatSlashCommand: Identifiable, Hashable, Sendable {
     }
 
     var id: String
+    /// The human-facing title in the palette. `id` remains the text accepted
+    /// after `/`, so presentation can say “Plan mode” without changing `/plan`.
+    var displayName: String
     var summary: String
     var icon: Icon
     /// Shown after the name when the command takes free text. Empty for a

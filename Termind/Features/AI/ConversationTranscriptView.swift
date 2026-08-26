@@ -20,6 +20,9 @@ struct ConversationView: View {
     /// A conversation can be shown on both surfaces. Terminal actions belong
     /// to the Workspace sidebar displaying it, not to the conversation itself.
     var showsTerminalActions = false
+    /// Surface-owned navigation. `nil` means this composer already is the new
+    /// chat surface, so offering New chat there would be a circular action.
+    var onNewChat: (() -> Void)?
 
     @State private var isAtTranscriptBottom = true
     @State private var isFollowingTranscriptBottom = true
@@ -59,7 +62,8 @@ struct ConversationView: View {
                     conversation: conversation,
                     maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
                     sessionContext: sessionContext,
-                    includesTerminalSuggestion: showsTerminalActions
+                    includesTerminalSuggestion: showsTerminalActions,
+                    onNewChat: onNewChat
                 )
                 .zIndex(100)
             }
