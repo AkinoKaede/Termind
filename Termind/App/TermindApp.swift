@@ -88,7 +88,7 @@ struct TermindApp: App {
                 .environment(app)
                 .modelContainer(modelContainer)
         }
-        .defaultSize(width: 560, height: 360)
+        .defaultSize(width: 560, height: 240)
         .windowResizability(.contentSize)
     }
 }

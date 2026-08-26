@@ -39,7 +39,11 @@ struct ExternalAuthWindow: View {
                 ProgressView().padding(Metrics.Space.xxl)
             }
         }
-        .frame(minWidth: 520, minHeight: 310)
+        // Authentication requests vary substantially in height. A passphrase
+        // request has only one field, while identity and secret requests can
+        // contain several rows. Let the content establish the window height so
+        // compact requests do not inherit the empty space needed by larger ones.
+        .frame(minWidth: 520)
         .onChange(of: pending?.id) {
             if pending == nil {
                 dismissWindow(id: ExternalAuthWindowPresenter.sceneID)
