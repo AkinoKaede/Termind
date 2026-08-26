@@ -444,10 +444,23 @@ nonisolated enum AgentTranscriptRole: String, Hashable, Sendable, Codable {
     case user, assistant, tool
 }
 
+/// A user-supplied image kept as a real multimodal part rather than encoded in
+/// message text. Normalized PNG/JPEG bytes can be replayed across providers and
+/// survive conversation persistence.
+nonisolated struct AgentImageAttachment: Identifiable, Hashable, Sendable, Codable {
+    var id: UUID = UUID()
+    var label: String
+    var mimeType: String
+    var data: Data
+    var pixelWidth: Int
+    var pixelHeight: Int
+}
+
 nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Codable {
     var id: UUID = UUID()
     var role: AgentTranscriptRole
     var text: String = ""
+    var images: [AgentImageAttachment] = []
     var toolCalls: [AgentToolCall] = []
     var toolCallID: String?
     var toolName: String?
@@ -578,6 +591,7 @@ nonisolated enum AgentEvent: Hashable, Sendable {
 nonisolated struct AgentRunRequest: Sendable {
     var conversationID: UUID
     var prompt: String
+    var promptImages: [AgentImageAttachment]
     var permissionMode: ChatPermissionMode
     /// Whether this run may only look.
     ///
@@ -595,6 +609,7 @@ nonisolated struct AgentRunRequest: Sendable {
     init(
         conversationID: UUID,
         prompt: String,
+        promptImages: [AgentImageAttachment] = [],
         permissionMode: ChatPermissionMode,
         isPlanning: Bool = false,
         systemPrompt: String = AgentSystemPrompt.default,
@@ -603,6 +618,7 @@ nonisolated struct AgentRunRequest: Sendable {
     ) {
         self.conversationID = conversationID
         self.prompt = prompt
+        self.promptImages = promptImages
         self.permissionMode = permissionMode
         self.isPlanning = isPlanning
         self.systemPrompt = systemPrompt

@@ -12,6 +12,8 @@
 		TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
 		TRMD00000000000000100003 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
 		TRMD00000000000000100004 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100014 /* OpenSSL */; };
+		TRMD00000000000000100005 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
+		TRMD00000000000000100006 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,6 +89,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				TRMD00000000000000100005 /* ZIPFoundation in Frameworks */,
 				TRMD00000000000000100001 /* CSSH2 in Frameworks */,
 				TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */,
 				TRMD00000000000000100003 /* GhosttyTheme in Frameworks */,
@@ -98,6 +101,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				TRMD00000000000000100006 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -157,6 +161,7 @@
 				TRMD00000000000000100012 /* GhosttyTerminal */,
 				TRMD00000000000000100013 /* GhosttyTheme */,
 				TRMD00000000000000100014 /* OpenSSL */,
+				TRMD00000000000000100015 /* ZIPFoundation */,
 			);
 			productName = Termind;
 			productReference = TRMD00000000000000000001 /* Termind.app */;
@@ -180,6 +185,7 @@
 			);
 			name = TermindTests;
 			packageProductDependencies = (
+				TRMD00000000000000100015 /* ZIPFoundation */,
 			);
 			productName = TermindTests;
 			productReference = TRMD00000000000000020001 /* TermindTests.xctest */;
@@ -241,6 +247,7 @@
 				TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */,
 				TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
 				TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */,
+				TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = TRMD00000000000000000040 /* Products */;
@@ -571,6 +578,14 @@
 				minimumVersion = 3.6.2;
 			};
 		};
+		TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -593,6 +608,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */;
 			productName = OpenSSL;
+		};
+		TRMD00000000000000100015 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

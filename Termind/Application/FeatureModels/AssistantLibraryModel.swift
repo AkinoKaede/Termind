@@ -43,7 +43,12 @@ final class AssistantConversationStore {
                     switch message.role {
                     case .user:
                         ChatMessage(
-                            id: message.id, role: .user, text: message.text,
+                            id: message.id, role: .user,
+                            text: ContextChip.visiblePrompt(in: message.text),
+                            contextChips: ContextChip.visibleReferences(
+                                in: message.text, images: message.images
+                            ),
+                            images: message.images,
                             createdAt: message.createdAt
                         )
                     case .assistant:
@@ -93,10 +98,14 @@ final class AssistantConversationStore {
 final class AssistantLibraryModel {
     private var store: AssistantConversationStore
     var selectedConversationID: ConversationModel.ID?
+    /// Window-local scratch space for the Assistant tab's New Chat surface.
+    /// It is promoted into the shared history only after its first real send,
+    /// so merely entering Assistant never creates an empty list row.
+    private(set) var draftConversation = ConversationModel()
 
     init(store: AssistantConversationStore = AssistantConversationStore()) {
         self.store = store
-        selectedConversationID = store.conversations.first?.id
+        selectedConversationID = nil
     }
 
     var conversations: [ConversationModel] { store.conversations }
@@ -109,8 +118,10 @@ final class AssistantLibraryModel {
         guard store !== shared else { return }
         for conversation in store.conversations.reversed() { shared.insert(conversation) }
         store = shared
-        if selectedConversationID.flatMap(shared.conversation(id:)) == nil {
-            selectedConversationID = shared.conversations.first?.id
+        if let selectedConversationID,
+            shared.conversation(id: selectedConversationID) == nil
+        {
+            self.selectedConversationID = nil
         }
     }
 
@@ -129,6 +140,25 @@ final class AssistantLibraryModel {
         store.insert(conversation)
         selectedConversationID = conversation.id
         return conversation
+    }
+
+    /// Shows New Chat without manufacturing an empty history item. Keeping one
+    /// scratch model also preserves an unfinished draft while the user briefly
+    /// opens an older conversation and comes back.
+    @discardableResult
+    func selectNewConversation() -> ConversationModel {
+        selectedConversationID = nil
+        return draftConversation
+    }
+
+    /// Promotes the New Chat scratch model on its first send, then prepares a
+    /// fresh scratch model for the next visit to New Chat.
+    @discardableResult
+    func startDraftConversation() -> ConversationModel? {
+        let conversation = draftConversation
+        guard let started = startConversation(conversation) else { return nil }
+        draftConversation = ConversationModel()
+        return started
     }
 
     /// Promotes the sidebar's scratch conversation into history on its first
@@ -164,8 +194,10 @@ final class AssistantLibraryModel {
 
     func restore(_ stored: [StoredAgentConversation]) {
         store.restore(stored)
-        if selectedConversationID.flatMap(conversation(id:)) == nil {
-            selectedConversationID = conversations.first?.id
+        if let selectedConversationID,
+            conversation(id: selectedConversationID) == nil
+        {
+            self.selectedConversationID = nil
         }
     }
 }

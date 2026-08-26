@@ -384,7 +384,11 @@ final class WindowModel {
     }
 
     func selectAssistant(_ id: ConversationModel.ID? = nil) {
-        if let id { assistantLibrary.select(id) }
+        if let id {
+            assistantLibrary.select(id)
+        } else {
+            assistantLibrary.selectNewConversation()
+        }
         selectedTopLevelTab = .assistant
     }
 
@@ -585,7 +589,7 @@ final class WindowModel {
 
     @discardableResult
     func openAssistant() -> ConversationModel {
-        let conversation = assistantLibrary.createConversation()
+        let conversation = assistantLibrary.selectNewConversation()
         selectedTopLevelTab = .assistant
         return conversation
     }

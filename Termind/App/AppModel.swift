@@ -208,7 +208,7 @@ final class AppModel {
         // The *returned* text, not `draft`: attachments are folded in there, and
         // running on the pre-fold string would show the model a turn that does
         // not match the one the conversation recorded.
-        let prompt = conversation.appendUserTurn(draft)
+        let prompt = conversation.appendUserTurnContent(draft)
         conversation.draft = ""
         // Compaction happens *after* the turn is recorded and before the run,
         // so the message the user just typed is inside the kept window rather
@@ -219,7 +219,7 @@ final class AppModel {
             guard let self, let conversation else { return }
             await compactIfNeeded(conversation)
             startAgentRun(
-                conversation, prompt: prompt, context: context,
+                conversation, prompt: prompt.text, promptImages: prompt.images, context: context,
                 includesTerminalSuggestion: includesTerminalSuggestion
             )
         }
@@ -228,13 +228,18 @@ final class AppModel {
     func startAgentRun(
         _ conversation: ConversationModel,
         prompt: String? = nil,
+        promptImages: [AgentImageAttachment]? = nil,
         context: SessionContext = .none,
         includesTerminalSuggestion: Bool = false
     ) {
+        let lastUserTurn = conversation.transcript.last(where: { $0.role == .user })
         let userPrompt =
             prompt
-            ?? conversation.messages.last(where: { $0.role == .user })?.text
+            ?? lastUserTurn?.text
             ?? ""
+        let userImages = promptImages
+            ?? lastUserTurn?.images
+            ?? []
         guard !userPrompt.isEmpty else { return }
         guard let chat = ai.resolve(conversation: conversation.model) else {
             conversation.messages.append(
@@ -363,6 +368,7 @@ final class AppModel {
             runtime: runtime,
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: userPrompt,
+                promptImages: userImages,
                 permissionMode: mode, isPlanning: isPlanning,
                 priorMessages: conversation.pendingPriorMessages,
                 sessionContext: context

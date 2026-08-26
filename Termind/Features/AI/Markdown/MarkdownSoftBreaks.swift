@@ -25,10 +25,9 @@ import Foundation
 /// Every guard below marks a place where appending a backslash would corrupt
 /// something rather than break a line. The failure mode when a guard is missing
 /// is benign — a stray break where a join was meant — with one exception that
-/// is not: **HTML blocks carry composed attachments verbatim**, and
-/// `ConversationModel.composed(_:)` promises the bubble shows exactly what was
-/// uploaded. Editing a byte inside one would break that promise, so they are
-/// skipped wholesale.
+/// is not: **HTML blocks carry composed attachments verbatim** in the
+/// model-facing transcript. Editing a byte inside one would alter the context
+/// sent to the provider, so they are skipped wholesale.
 nonisolated enum MarkdownSoftBreaks {
 
     static func hardened(_ source: String) -> String {

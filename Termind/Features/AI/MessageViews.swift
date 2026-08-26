@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import SwiftUI
 
 /// A turn the user sent, drawn as a bubble against the trailing edge.
@@ -20,7 +21,25 @@ struct UserMessageView: View {
                 // being stretched to a fraction of the width.
                 Spacer(minLength: isCompact ? Metrics.Chat.compactGutter : Metrics.Chat.gutter)
 
-                MarkdownView(text: message.text, isAssistant: false, isCompact: isCompact)
+                VStack(alignment: .leading, spacing: Metrics.Space.s) {
+                    if !message.contextChips.isEmpty {
+                        FlowLayout(spacing: Metrics.Space.xs, fillsWidth: false) {
+                            ForEach(message.contextChips) { chip in
+                                BubbleContextChipView(chip: chip)
+                            }
+                        }
+                    }
+                    if !message.images.isEmpty {
+                        FlowLayout(spacing: Metrics.Space.s, fillsWidth: false) {
+                            ForEach(message.images) { image in
+                                BubbleImageView(attachment: image, isCompact: isCompact)
+                            }
+                        }
+                    }
+                    if !message.text.isEmpty {
+                        MarkdownView(text: message.text, isAssistant: false, isCompact: isCompact)
+                    }
+                }
                     // The bubble is sized by what is in it. Without this the block
                     // views claim every point they are offered, and "ok" gets a
                     // bubble as wide as an essay.
@@ -43,6 +62,49 @@ struct UserMessageView: View {
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("You said"))
+    }
+}
+
+private struct BubbleContextChipView: View {
+    let chip: ContextChipReference
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.xs) {
+            Image(systemName: chip.kind.symbol)
+                .font(.caption2)
+                .frame(width: 12, height: 12)
+            Text(chip.label)
+                .font(.caption)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, Metrics.Space.s)
+        .padding(.vertical, 3)
+        .background(.quaternary.opacity(0.5), in: .capsule)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct BubbleImageView: View {
+    let attachment: AgentImageAttachment
+    let isCompact: Bool
+
+    var body: some View {
+        if let image = NSImage(data: attachment.data) {
+            Image(nsImage: image)
+                .resizable()
+                // Fill a fixed square from the centre. Portrait, landscape and
+                // screenshot batches therefore align instead of producing a
+                // different row height for every attachment.
+                .scaledToFill()
+                .frame(width: tileSide, height: tileSide)
+                .clipped()
+                .clipShape(.rect(cornerRadius: Metrics.Radius.medium))
+                .accessibilityLabel(Text(attachment.label))
+        }
+    }
+
+    private var tileSide: CGFloat {
+        isCompact ? Metrics.Chat.compactImageTile : Metrics.Chat.imageTile
     }
 }
 

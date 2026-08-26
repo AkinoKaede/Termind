@@ -44,6 +44,36 @@ private actor ConversationCancellationProbe {
 @MainActor
 struct ChatComposerStateTests {
     @Test
+    func largePasteThresholdUsesCharactersOrLines() {
+        #expect(!ContextAttachmentImporter.shouldAttachPastedText(String(repeating: "x", count: 1_999)))
+        #expect(ContextAttachmentImporter.shouldAttachPastedText(String(repeating: "x", count: 2_000)))
+        #expect(!ContextAttachmentImporter.shouldAttachPastedText(
+            Array(repeating: "line", count: 19).joined(separator: "\n")
+        ))
+        #expect(ContextAttachmentImporter.shouldAttachPastedText(
+            Array(repeating: "line", count: 20).joined(separator: "\n")
+        ))
+    }
+
+    @Test
+    func imageAttachmentIsConsumedIntoVisibleAndModelFacingTurn() throws {
+        let image = AgentImageAttachment(
+            label: "graph.png", mimeType: "image/png", data: Data([9, 8, 7]),
+            pixelWidth: 40, pixelHeight: 30
+        )
+        let conversation = ConversationModel()
+        conversation.attach(ContextChip(kind: .image, label: image.label, image: image))
+
+        let sent = conversation.appendUserTurnContent("What does this show?")
+
+        #expect(sent.images == [image])
+        #expect(conversation.messages.last?.contextChips.map(\.label) == ["graph.png"])
+        #expect(conversation.messages.last?.images == [image])
+        #expect(conversation.transcript.last?.images == [image])
+        #expect(conversation.attachments.isEmpty)
+    }
+
+    @Test
     func activeFormKeysYieldToImeAndConsumeOnlyPlainReturnOrEscape() {
         #expect(
             ActiveFormKeyDecision.resolve(
@@ -564,10 +594,44 @@ struct ChatComposerStateTests {
         #expect(sent.hasPrefix("What should I check?"))
         #expect(sent.contains(#"<output label="Connection error">"#))
         #expect(sent.contains("ssh: connect refused"))
-        // The run must be started with this text, so the visible turn, the
-        // model-facing transcript, and the request all say the same thing.
-        #expect(conversation.messages.last?.text == sent)
+        // The model keeps the payload, while the bubble renders only what the
+        // user typed so a large extraction never becomes a Markdown tree.
+        #expect(conversation.messages.last?.text == "What should I check?")
         #expect(conversation.transcript.last?.text == sent)
+    }
+
+    @Test
+    func pastedTextStaysOutOfTheVisibleBubble() {
+        let conversation = ConversationModel()
+        let pasted = String(repeating: "large pasted context\n", count: 2_000)
+        conversation.attach(ContextChip(kind: .pastedText, label: "Pasted text", content: pasted))
+
+        let sent = conversation.appendUserTurn("Summarize it")
+
+        #expect(sent.contains(pasted))
+        #expect(conversation.transcript.last?.text.contains(pasted) == true)
+        #expect(conversation.messages.last?.text == "Summarize it")
+        #expect(conversation.messages.last?.contextChips.map(\.label) == ["Pasted text"])
+    }
+
+    @Test
+    func restoredAttachmentPayloadStaysOutOfTheVisibleBubble() {
+        let payload = String(repeating: "PDF extraction\n", count: 10_000)
+        let modelText = "Review this\n\n<file label=\"manual.pdf\">\n\(payload)\n</file>"
+        let message = AgentTranscriptMessage(role: .user, text: modelText)
+        let store = AssistantConversationStore()
+
+        store.restore([
+            StoredAgentConversation(
+                id: UUID(), messages: [message], lastRunState: .completed
+            )
+        ])
+
+        #expect(store.conversations.first?.messages.first?.text == "Review this")
+        #expect(store.conversations.first?.messages.first?.contextChips.map(\.label) == [
+            "manual.pdf"
+        ])
+        #expect(store.conversations.first?.transcript.first?.text == modelText)
     }
 
     /// Consumed, not kept: the payload is in the transcript from here on, and

@@ -538,10 +538,22 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             return [["type": "function_call_output", "call_id": message.toolCallID ?? "", "output": message.text]]
         }
         var rows = message.providerItems.compactMap { foundationObject($0) as? [String: Any] }
-        if !message.text.isEmpty {
+        if !message.text.isEmpty || !message.images.isEmpty {
+            var content: [[String: Any]] = []
+            if !message.text.isEmpty {
+                content.append([
+                    "type": message.role == .assistant ? "output_text" : "input_text",
+                    "text": message.text,
+                ])
+            }
+            if message.role == .user {
+                content += message.images.map {
+                    ["type": "input_image", "image_url": dataURI(for: $0)]
+                }
+            }
             rows.append([
                 "type": "message", "role": message.role.rawValue,
-                "content": [["type": message.role == .assistant ? "output_text" : "input_text", "text": message.text]],
+                "content": content,
             ])
         }
         rows += message.toolCalls.map { call in
@@ -563,7 +575,17 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
         if message.role == .tool {
             return [["role": "tool", "tool_call_id": message.toolCallID ?? "", "content": message.text]]
         }
-        var row: [String: Any] = ["role": message.role.rawValue, "content": message.text]
+        var row: [String: Any] = ["role": message.role.rawValue]
+        if message.role == .user, !message.images.isEmpty {
+            var content: [[String: Any]] = []
+            if !message.text.isEmpty { content.append(["type": "text", "text": message.text]) }
+            content += message.images.map {
+                ["type": "image_url", "image_url": ["url": dataURI(for: $0)]]
+            }
+            row["content"] = content
+        } else {
+            row["content"] = message.text
+        }
         if !message.toolCalls.isEmpty {
             row["tool_calls"] = message.toolCalls.map {
                 ["id": $0.id, "type": "function", "function": [
@@ -582,6 +604,17 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             return [["role": "user", "content": [["type": "tool_result", "tool_use_id": message.toolCallID ?? "", "content": message.text, "is_error": message.isError]]]]
         }
         var content: [[String: Any]] = message.text.isEmpty ? [] : [["type": "text", "text": message.text]]
+        if message.role == .user {
+            content += message.images.map { image in
+                [
+                    "type": "image",
+                    "source": [
+                        "type": "base64", "media_type": image.mimeType,
+                        "data": image.data.base64EncodedString(),
+                    ],
+                ]
+            }
+        }
         content += message.toolCalls.map { [
             "type": "tool_use", "id": $0.id,
             "name": toolNames.wireName(for: $0.name),
@@ -600,6 +633,14 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             ]]]]
         }
         var parts: [[String: Any]] = message.text.isEmpty ? [] : [["text": message.text]]
+        if message.role == .user {
+            parts += message.images.map { image in
+                ["inlineData": [
+                    "mimeType": image.mimeType,
+                    "data": image.data.base64EncodedString(),
+                ]]
+            }
+        }
         parts += message.toolCalls.map { ["functionCall": [
             "name": toolNames.wireName(for: $0.name),
             "args": foundationObject($0.arguments),
@@ -617,6 +658,10 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             String(qualifiedName[..<separator]),
             String(qualifiedName[qualifiedName.index(after: separator)...])
         )
+    }
+
+    private static func dataURI(for image: AgentImageAttachment) -> String {
+        "data:\(image.mimeType);base64,\(image.data.base64EncodedString())"
     }
 
     private static func responseName(_ object: [String: Any]) -> String? {

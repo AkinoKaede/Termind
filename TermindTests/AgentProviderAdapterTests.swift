@@ -6,6 +6,51 @@ import Testing
 @Suite
 struct AgentProviderAdapterTests {
     @Test
+    func everyProviderEncodesUserImagesAsNativeMultimodalParts() throws {
+        let image = AgentImageAttachment(
+            label: "diagram.png", mimeType: "image/png", data: Data([1, 2, 3]),
+            pixelWidth: 10, pixelHeight: 20
+        )
+        let message = AgentTranscriptMessage(role: .user, text: "Explain", images: [image])
+
+        var responses = ModelProvider(name: "Responses")
+        responses.usesResponsesAPI = true
+        let responsesBody = Self.body(
+            responses, webSearch: false, tools: [], messages: [message]
+        )
+        let input = try #require(responsesBody["input"] as? [[String: Any]])
+        let responseContent = try #require(input.first?["content"] as? [[String: Any]])
+        #expect(responseContent.contains { $0["type"] as? String == "input_image" })
+
+        let chatBody = Self.body(
+            ModelProvider(name: "Chat"), webSearch: false, tools: [], messages: [message]
+        )
+        let chatMessages = try #require(chatBody["messages"] as? [[String: Any]])
+        let chatContent = try #require(chatMessages.last?["content"] as? [[String: Any]])
+        #expect(chatContent.contains { $0["type"] as? String == "image_url" })
+
+        let anthropicBody = Self.body(
+            ModelProvider(name: "Anthropic", kind: .anthropic), webSearch: false,
+            tools: [], messages: [message]
+        )
+        let anthropicMessages = try #require(
+            anthropicBody["messages"] as? [[String: Any]]
+        )
+        let anthropicContent = try #require(
+            anthropicMessages.first?["content"] as? [[String: Any]]
+        )
+        #expect(anthropicContent.contains { $0["type"] as? String == "image" })
+
+        let googleBody = Self.body(
+            ModelProvider(name: "Google", kind: .google), webSearch: false,
+            tools: [], messages: [message]
+        )
+        let contents = try #require(googleBody["contents"] as? [[String: Any]])
+        let parts = try #require(contents.first?["parts"] as? [[String: Any]])
+        #expect(parts.contains { $0["inlineData"] != nil })
+    }
+
+    @Test
     func commandComposerRequestUsesBufferedJSONInsteadOfSSE() throws {
         var provider = ModelProvider(name: "OpenAI")
         provider.usesResponsesAPI = true

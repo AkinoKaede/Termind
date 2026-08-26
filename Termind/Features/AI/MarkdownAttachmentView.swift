@@ -3,8 +3,8 @@ import SwiftUI
 /// One attachment recovered from a composed user turn.
 ///
 /// `ConversationModel.composed(_:)` folds each chip into the message body as
-/// `<kind label="…">…</kind>` so that what was uploaded is literally what the
-/// transcript holds. Foundation's Markdown parser hands that back as a single
+/// `<kind label="…">…</kind>` so the model-facing transcript retains the
+/// payload. Foundation's Markdown parser hands that back as a single
 /// untouched HTML block — verbatim, down to characters like `*` that emphasis
 /// would otherwise eat — which is what makes recognising it here safe.
 ///
@@ -51,62 +51,25 @@ extension String {
     fileprivate var trimmed: String { trimmingCharacters(in: .whitespaces) }
 }
 
-/// The folded form of an attachment inside a user bubble.
+/// A compact fallback for attachment markup stored by older builds.
 ///
-/// Folded rather than laid out in full: a two-hundred-line log printed into a
-/// right-aligned bubble is not readable by anyone. The payload is one click
-/// away and unaltered, so `composed(_:)`'s promise that the bubble shows what
-/// was uploaded still holds.
+/// New user bubbles are projected from the original prompt and never reach
+/// this view. Keeping the fallback non-expandable prevents a legacy PDF or
+/// pasted-text payload from producing an enormous SwiftUI text tree.
 struct MarkdownAttachmentView: View {
     let attachment: AttachmentBlock
 
-    @State private var isExpanded = false
     @Environment(\.markdownFillsWidth) private var fillsWidth
 
-    private var lineCount: Int {
-        attachment.content.isEmpty ? 0 : attachment.content.components(separatedBy: "\n").count
-    }
-
-    private var sizeLabel: String {
-        lineCount == 1 ? String(localized: "1 line") : String(localized: "\(lineCount) lines")
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            Button {
-                isExpanded.toggle()
-            } label: {
-                HStack(spacing: Metrics.Space.xs) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .bold))
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .foregroundStyle(.tertiary)
-                    Image(systemName: attachment.kind.symbol)
-                        .font(.caption)
-                    Text(attachment.label)
-                        .font(.callout)
-                        // No `textSelection` here, deliberately: a click that
-                        // starts a selection in truncated text drags it out of
-                        // the bubble it belongs to.
-                        .lineLimit(1)
-                    Text(sizeLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                // No trailing `Spacer` — inside a bubble it would be greedy and
-                // stretch the bubble to the full column for a one-word label.
-                .markdownWidth(fills: fillsWidth)
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .help(Text(isExpanded ? "Hide attached content" : "Show attached content"))
-
-            if isExpanded {
-                Text(attachment.content)
-                    .font(MarkdownTypography.monospaced)
-                    .textSelection(.enabled)
-                    .markdownWidth(fills: fillsWidth)
-            }
+        HStack(spacing: Metrics.Space.xs) {
+            Image(systemName: attachment.kind.symbol)
+                .font(.caption)
+            Text(attachment.label)
+                .font(.callout)
+                .lineLimit(1)
         }
+        .markdownWidth(fills: fillsWidth)
+        .accessibilityElement(children: .combine)
     }
 }

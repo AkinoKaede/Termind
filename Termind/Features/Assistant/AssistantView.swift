@@ -174,24 +174,27 @@ struct AssistantPanelView: View {
 /// honestly claim to be sending.
 struct AssistantView: View {
     @Environment(WindowModel.self) private var window
+    @Environment(AppModel.self) private var app
 
     var body: some View {
         if let conversation = window.assistantLibrary.selectedConversation {
             ConversationView(
                 conversation: conversation,
-                onNewChat: { window.openAssistant() }
+                onNewChat: { window.selectAssistant() }
             )
                 .background(.background)
         } else {
-            ContentUnavailableView {
-                Label("No Conversations", systemImage: "bubble.left.and.bubble.right")
-            } description: {
-                Text("Start a chat for questions that are not tied to one Workspace.")
-            } actions: {
-                Button("New Chat") { window.openAssistant() }
-                    .buttonStyle(.borderedProminent)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ConversationView(
+                conversation: window.assistantLibrary.draftConversation,
+                onSend: sendNewConversation
+            )
+            .background(.background)
         }
+    }
+
+    private func sendNewConversation() {
+        guard let conversation = window.assistantLibrary.startDraftConversation()
+        else { return }
+        app.startAgentRun(conversation)
     }
 }

@@ -494,6 +494,35 @@ enum TermindSchemaV8: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         TermindSchemaV7.models.filter {
             $0 != TermindSchemaV7Models.PersistentAgentMessage.self
+        } + [TermindSchemaV8Models.PersistentAgentMessage.self]
+    }
+}
+
+/// The agent message before native image parts were persisted.
+enum TermindSchemaV8Models {
+    @Model
+    final class PersistentAgentMessage {
+        @Attribute(.unique) var id: UUID = UUID()
+        var runID: UUID = UUID()
+        var role = AgentTranscriptRole.user.rawValue
+        var text = ""
+        var toolCallsData = Data()
+        var toolCallID: String?
+        var toolName: String?
+        var isError = false
+        var isCompaction = false
+        var createdAt: Date = Date()
+
+        init() {}
+    }
+}
+
+/// Adds the encoded native image parts to persisted agent messages.
+enum TermindSchemaV9: VersionedSchema {
+    static let versionIdentifier = Schema.Version(9, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV8.models.filter {
+            $0 != TermindSchemaV8Models.PersistentAgentMessage.self
         } + [PersistentAgentMessage.self]
     }
 }
@@ -504,6 +533,7 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV1.self, TermindSchemaV2.self,
             TermindSchemaV3.self, TermindSchemaV4.self, TermindSchemaV5.self,
             TermindSchemaV6.self, TermindSchemaV7.self, TermindSchemaV8.self,
+            TermindSchemaV9.self,
         ]
     }
 
@@ -550,13 +580,17 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV7.self,
                 toVersion: TermindSchemaV8.self
             ),
+            .lightweight(
+                fromVersion: TermindSchemaV8.self,
+                toVersion: TermindSchemaV9.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV8.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV9.self)
 
     let context: ModelContext
 

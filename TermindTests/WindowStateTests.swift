@@ -35,8 +35,9 @@ struct WindowStateTests {
     @Test
     func assistantFeatureOwnsConversationLifecycleOutsideWorkspaces() {
         let window = WindowModel()
-        let first = window.openAssistant()
-        let second = window.openAssistant()
+        let first = window.assistantLibrary.createConversation()
+        let second = window.assistantLibrary.createConversation()
+        window.selectAssistant(second.id)
 
         #expect(window.selectedTopLevelTab == .assistant)
         #expect(window.tabs.isEmpty)
@@ -57,8 +58,8 @@ struct WindowStateTests {
         first.assistantLibrary.adopt(shared)
         second.assistantLibrary.adopt(shared)
 
-        let conversation = first.openAssistant()
-        let other = first.openAssistant()
+        let conversation = first.assistantLibrary.createConversation()
+        let other = first.assistantLibrary.createConversation()
 
         #expect(second.assistantLibrary.conversations.map(\.id) == [other.id, conversation.id])
         #expect(second.assistantLibrary.conversation(id: conversation.id) === conversation)
@@ -77,7 +78,7 @@ struct WindowStateTests {
     @Test
     func aWindowThatAdoptsTheStoreLateKeepsWhatItAlreadyHad() {
         let window = WindowModel()
-        let early = window.openAssistant()
+        let early = window.assistantLibrary.createConversation()
 
         let shared = AssistantConversationStore()
         window.assistantLibrary.adopt(shared)
@@ -95,6 +96,44 @@ struct WindowStateTests {
         #expect(window.selectedTopLevelTab == .assistant)
         #expect(window.assistantLibrary.conversations.isEmpty)
         #expect(window.assistantLibrary.selectedConversation == nil)
+    }
+
+    @Test
+    func assistantDefaultsToNewChatEvenWhenHistoryExists() {
+        let previousID = UUID()
+        let library = AssistantLibraryModel()
+        library.restore([
+            StoredAgentConversation(
+                id: previousID,
+                messages: [AgentTranscriptMessage(role: .user, text: "Previous question")],
+                lastRunState: .completed
+            )
+        ])
+        let window = WindowModel(assistantLibrary: library)
+
+        window.selectAssistant()
+
+        #expect(window.selectedTopLevelTab == .assistant)
+        #expect(window.assistantLibrary.selectedConversation == nil)
+        #expect(window.assistantLibrary.draftConversation.isEmpty)
+        #expect(window.assistantLibrary.conversations.map(\.id) == [previousID])
+    }
+
+    @Test
+    func newChatJoinsHistoryOnlyAfterItsFirstSend() {
+        let window = WindowModel()
+        let draft = window.openAssistant()
+
+        #expect(window.assistantLibrary.selectedConversation == nil)
+        #expect(window.assistantLibrary.conversations.isEmpty)
+
+        draft.draft = "Hello from a new chat"
+        let started = window.assistantLibrary.startDraftConversation()
+
+        #expect(started === draft)
+        #expect(window.assistantLibrary.selectedConversation === draft)
+        #expect(window.assistantLibrary.conversations.map(\.id) == [draft.id])
+        #expect(window.assistantLibrary.draftConversation !== draft)
     }
 
     @Test
@@ -239,9 +278,8 @@ struct WindowStateTests {
 
         _ = AssistantLibraryModel().startConversation(conversation)
 
-        let first = conversation.messages.first?.text ?? ""
-        #expect(first.hasPrefix("Explain this"))
-        #expect(first.contains("ssh: refused"))
+        #expect(conversation.messages.first?.text == "Explain this")
+        #expect(conversation.transcript.first?.text.contains("ssh: refused") == true)
         #expect(conversation.attachments.isEmpty, "the attachment went with the turn")
     }
 

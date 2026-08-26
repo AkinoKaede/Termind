@@ -98,6 +98,11 @@ nonisolated enum AgentContextEstimator {
             let part: AgentContextEstimate.Part =
                 message.role == .tool ? .toolResults : .conversation
             counted[part, default: 0] += tokens(inCharacters: characters)
+            counted[part, default: 0] += message.images.reduce(0) { total, image in
+                let wide = max(1, Int(ceil(Double(image.pixelWidth) / 512)))
+                let high = max(1, Int(ceil(Double(image.pixelHeight) / 512)))
+                return total + 85 + 170 * wide * high
+            }
         }
 
         let estimated = counted.values.reduce(0, +)

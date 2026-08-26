@@ -59,6 +59,9 @@ struct AgentSteeringTests {
     func deliveryMovesAQueuedMessageIntoBothTranscripts() {
         let conversation = ConversationModel()
         startRun(conversation)
+        conversation.attach(
+            ContextChip(kind: .pastedText, label: "Pasted text", content: "large context")
+        )
         conversation.draft = "check nginx too"
         conversation.submitSteeringDraft()
         let queued = try! #require(conversation.pendingSteering.first).message
@@ -74,6 +77,9 @@ struct AgentSteeringTests {
         #expect(conversation.messages[0].role == .user)
         #expect(conversation.messages[0].id == queued.id)
         #expect(conversation.messages[0].text == "check nginx too")
+        #expect(conversation.messages[0].contextChips.map(\.label) == ["Pasted text"])
+        #expect(!conversation.messages[0].text.contains("large context"))
+        #expect(delivered.text.contains("large context"))
         #expect(conversation.messages[0].createdAt == delivered.createdAt)
         #expect(conversation.transcript == [delivered])
     }

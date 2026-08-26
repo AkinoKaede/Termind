@@ -72,6 +72,11 @@ nonisolated enum AgentCompaction {
             switch message.role {
             case .user:
                 if !message.text.isEmpty { lines.append("[User] \(message.text)") }
+                if !message.images.isEmpty {
+                    lines.append(
+                        "[User images] " + message.images.map(\.label).joined(separator: ", ")
+                    )
+                }
             case .assistant:
                 if !message.text.isEmpty { lines.append("[Assistant] \(message.text)") }
                 if !message.toolCalls.isEmpty {
@@ -111,7 +116,12 @@ nonisolated enum AgentCompaction {
     private static func estimatedTokens(of message: AgentTranscriptMessage) -> Int {
         let characters = message.text.count
             + message.toolCalls.reduce(0) { $0 + $1.arguments.encodedString.count }
-        return AgentContextEstimator.tokens(inCharacters: characters)
+        let imageTokens = message.images.reduce(0) { total, image in
+            let wide = max(1, Int(ceil(Double(image.pixelWidth) / 512)))
+            let high = max(1, Int(ceil(Double(image.pixelHeight) / 512)))
+            return total + 85 + 170 * wide * high
+        }
+        return AgentContextEstimator.tokens(inCharacters: characters) + imageTokens
     }
 }
 

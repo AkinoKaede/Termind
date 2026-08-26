@@ -23,6 +23,9 @@ struct ConversationView: View {
     /// Surface-owned navigation. `nil` means this composer already is the new
     /// chat surface, so offering New chat there would be a circular action.
     var onNewChat: (() -> Void)?
+    /// Used by a scratch New Chat surface that must be promoted into history
+    /// before the app starts its first run.
+    var onSend: (() -> Void)?
 
     @State private var isAtTranscriptBottom = true
     @State private var isFollowingTranscriptBottom = true
@@ -63,7 +66,8 @@ struct ConversationView: View {
                     maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
                     sessionContext: sessionContext,
                     includesTerminalSuggestion: showsTerminalActions,
-                    onNewChat: onNewChat
+                    onNewChat: onNewChat,
+                    onSend: onSend
                 )
                 .zIndex(100)
             }

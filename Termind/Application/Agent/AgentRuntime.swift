@@ -162,7 +162,9 @@ actor AgentRuntime {
         let sessionContext = request.sessionContext.modelContext.map {
             AgentTranscriptMessage(role: .user, text: $0)
         }
-        let prompt = AgentTranscriptMessage(role: .user, text: request.prompt)
+        let prompt = AgentTranscriptMessage(
+            role: .user, text: request.prompt, images: request.promptImages
+        )
         snapshot.messages.append(prompt)
         let pipeline = configuration.contextPipeline(
             sessionContext, prompt.id, request.isPlanning

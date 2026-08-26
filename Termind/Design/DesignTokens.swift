@@ -154,6 +154,10 @@ nonisolated enum Metrics {
         static let turnSpacing: CGFloat = 20
         static let blockSpacing: CGFloat = 10
         static let bubbleRadius: CGFloat = 14
+        /// Sent images are center-cropped thumbnails rather than variable-height
+        /// rows, so a batch reads as one compact grid.
+        static let imageTile: CGFloat = 160
+        static let compactImageTile: CGFloat = 104
         /// The composer is one inset object containing context, draft and controls.
         static let composerRadius: CGFloat = 18
         /// The narrowest the empty column beside a user bubble may get.

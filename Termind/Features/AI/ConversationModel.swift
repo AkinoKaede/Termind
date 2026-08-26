@@ -29,7 +29,7 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     /// carries these tags into the transcript, and rendering one as an
     /// attachment row means recognising the tag it came from.
     nonisolated enum Kind: Hashable, Sendable, CaseIterable {
-        case host, directory, output, selection, file
+        case host, directory, output, selection, file, image, pastedText
 
         var symbol: String {
             switch self {
@@ -38,6 +38,8 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
             case .output: "text.alignleft"
             case .selection: "text.cursor"
             case .file: "doc"
+            case .image: "photo"
+            case .pastedText: "doc.on.clipboard"
             }
         }
 
@@ -49,6 +51,8 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
             case .output: "output"
             case .selection: "selection"
             case .file: "file"
+            case .image: "image"
+            case .pastedText: "pasted_text"
             }
         }
     }
@@ -57,6 +61,7 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     var kind: Kind
     var label: String
     var content: String = ""
+    var image: AgentImageAttachment? = nil
 
     /// Derived, not declared. A hand-passed count is a number that was true
     /// once, and the estimate exists to warn about payload size.
@@ -65,8 +70,78 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     /// a chip and the context gauge can never quote different sizes for the
     /// same attachment.
     var approximateTokens: Int {
-        max(1, AgentContextEstimator.tokens(inCharacters: content.count))
+        if let image {
+            let tilesWide = max(1, Int(ceil(Double(image.pixelWidth) / 512)))
+            let tilesHigh = max(1, Int(ceil(Double(image.pixelHeight) / 512)))
+            return 85 + 170 * tilesWide * tilesHigh
+        }
+        return max(1, AgentContextEstimator.tokens(inCharacters: content.count))
     }
+
+    /// Recovers the text the user actually typed from a persisted model-facing
+    /// turn. Attachment payloads remain in that turn for replay, but projecting
+    /// a 200,000-character PDF extraction into Markdown makes opening history
+    /// unnecessarily expensive and is not useful conversation UI.
+    static func visiblePrompt(in composedText: String) -> String {
+        let boundaries = Kind.allCases.compactMap { kind in
+            composedText.range(of: "\n\n<\(kind.blockName) label=\"")?.lowerBound
+        }
+        guard let boundary = boundaries.min() else { return composedText }
+        return String(composedText[..<boundary])
+    }
+
+    /// Rebuilds lightweight bubble chips from the model-facing markup without
+    /// retaining or rendering the payload between the tags.
+    static func visibleReferences(
+        in composedText: String, images: [AgentImageAttachment] = []
+    ) -> [ContextChipReference] {
+        let boundary = Kind.allCases.compactMap { kind in
+            composedText.range(of: "\n\n<\(kind.blockName) label=\"")?.lowerBound
+        }.min()
+
+        var matches: [(String.Index, ContextChipReference)] = []
+        if let boundary {
+            let suffix = composedText[boundary...]
+            for kind in Kind.allCases where kind != .image {
+                let prefix = "<\(kind.blockName) label=\""
+                var cursor = suffix.startIndex
+                while let opening = suffix.range(of: prefix, range: cursor..<suffix.endIndex) {
+                    let labelStart = opening.upperBound
+                    guard let labelEnd = suffix.range(
+                        of: "\">", range: labelStart..<suffix.endIndex
+                    ) else { break }
+                    matches.append((
+                        opening.lowerBound,
+                        ContextChipReference(
+                            kind: kind, label: String(suffix[labelStart..<labelEnd.lowerBound])
+                        )
+                    ))
+                    cursor = labelEnd.upperBound
+                }
+            }
+        }
+
+        let textReferences = matches.sorted { $0.0 < $1.0 }.map(\.1)
+        let imageReferences = images.map {
+            ContextChipReference(id: $0.id, kind: .image, label: $0.label)
+        }
+        return textReferences + imageReferences
+    }
+}
+
+/// The non-payload part of a Context Chip kept by the display projection.
+///
+/// A sent PDF can contain 200,000 characters; the bubble needs only these few
+/// bytes to show what accompanied the prompt.
+nonisolated struct ContextChipReference: Identifiable, Hashable, Sendable {
+    var id: UUID = UUID()
+    var kind: ContextChip.Kind
+    var label: String
+}
+
+nonisolated struct PendingContextAttachment: Identifiable, Hashable, Sendable {
+    var id: UUID = UUID()
+    var label: String
 }
 
 nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
@@ -77,6 +152,8 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
     var id: UUID = UUID()
     var role: Role
     var text: String
+    var contextChips: [ContextChipReference] = []
+    var images: [AgentImageAttachment] = []
     var commands: [SuggestedCommand] = []
     /// True while tokens are still arriving, so the view can show a caret.
     var isStreaming: Bool = false
@@ -195,6 +272,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         switch self {
         case .message(let message):
             hasher.combine(message.text.count)
+            hasher.combine(message.images.count)
             hasher.combine(message.isStreaming)
         case .tool(let card):
             hasher.combine(card.state)
@@ -291,6 +369,8 @@ final class ConversationModel: Identifiable {
     /// by the next user turn: an attachment belongs to one message, and once
     /// that message is sent the content is in the transcript already.
     var attachments: [ContextChip] = []
+    var pendingAttachments: [PendingContextAttachment] = []
+    var attachmentImportError: String?
     var draft: String = ""
     private(set) var isStreaming: Bool = false
     /// What the transcript shows. Derived — see `refreshRunState`.
@@ -414,7 +494,9 @@ final class ConversationModel: Identifiable {
             systemPrompt: AgentSystemPrompt.default,
             toolSchemaCharacters: toolSchemaCharacters,
             transcript: transcript,
-            attachedCharacters: attachments.reduce(0) { $0 + $1.content.count },
+            attachedCharacters: attachments.reduce(0) {
+                $0 + ($1.image == nil ? $1.content.count : $1.approximateTokens * 4)
+            },
             measured: usage
         )
     }
@@ -631,13 +713,46 @@ final class ConversationModel: Identifiable {
     }
 
     func attach(_ chip: ContextChip) {
-        guard !attachments.contains(where: { $0.kind == chip.kind && $0.label == chip.label })
+        guard !attachments.contains(where: {
+            if let image = chip.image, let existing = $0.image {
+                return existing.data == image.data
+            }
+            return $0.kind == chip.kind && $0.content == chip.content
+        })
         else { return }
         attachments.append(chip)
     }
 
     func detach(_ id: ContextChip.ID) {
         attachments.removeAll { $0.id == id }
+    }
+
+    func beginAttachmentImport(label: String) -> PendingContextAttachment? {
+        guard attachments.count + pendingAttachments.count < ContextAttachmentImporter.maximumAttachments
+        else {
+            attachmentImportError = String(localized: "A message can include at most 20 attachments.")
+            return nil
+        }
+        let pending = PendingContextAttachment(label: label)
+        pendingAttachments.append(pending)
+        return pending
+    }
+
+    func finishAttachmentImport(_ id: PendingContextAttachment.ID, with chip: ContextChip) {
+        guard pendingAttachments.contains(where: { $0.id == id }) else { return }
+        pendingAttachments.removeAll { $0.id == id }
+        attach(chip)
+    }
+
+    func failAttachmentImport(_ id: PendingContextAttachment.ID, message: String) {
+        guard pendingAttachments.contains(where: { $0.id == id }) else { return }
+        pendingAttachments.removeAll { $0.id == id }
+        attachmentImportError = [attachmentImportError, message]
+            .compactMap { $0 }.joined(separator: "\n")
+    }
+
+    func cancelAttachmentImport(_ id: PendingContextAttachment.ID) {
+        pendingAttachments.removeAll { $0.id == id }
     }
 
     /// Records a local user turn. Agent-backed composers use AppModel's runtime
@@ -650,8 +765,8 @@ final class ConversationModel: Identifiable {
     }
 
     /// Adds one user turn to both the visible transcript and the model-facing
-    /// one, folding in whatever was attached, and hands back the text that
-    /// actually went.
+    /// one, folding attachments into only the latter, and hands back the text
+    /// that actually went.
     ///
     /// The caller must start its run with the *returned* string. The run request
     /// carries the prompt separately and `AgentRuntime` appends it to its own
@@ -664,20 +779,40 @@ final class ConversationModel: Identifiable {
     /// sees that the payload was sent.
     @discardableResult
     func appendUserTurn(_ text: String) -> String {
+        appendUserTurnContent(text).text
+    }
+
+    struct ComposedUserTurn: Sendable {
+        var text: String
+        var images: [AgentImageAttachment]
+    }
+
+    @discardableResult
+    func appendUserTurnContent(_ text: String) -> ComposedUserTurn {
         let composed = composed(text)
+        let contextChips = attachments.map {
+            ContextChipReference(id: $0.id, kind: $0.kind, label: $0.label)
+        }
         attachments.removeAll()
-        messages.append(ChatMessage(role: .user, text: composed))
-        transcript.append(AgentTranscriptMessage(role: .user, text: composed))
+        messages.append(
+            ChatMessage(
+                role: .user, text: text, contextChips: contextChips, images: composed.images
+            )
+        )
+        transcript.append(
+            AgentTranscriptMessage(role: .user, text: composed.text, images: composed.images)
+        )
         return composed
     }
 
-    /// Renders attachments into the message body rather than smuggling them
-    /// past it. What was uploaded is then literally what the bubble shows,
-    /// which is the BYOK rule the chips exist to serve, and it costs no hidden
-    /// message kind in the transcript or its stored schema.
-    private func composed(_ text: String) -> String {
-        guard !attachments.isEmpty else { return text }
-        let blocks = attachments.map { chip in
+    /// Renders attachments into the model-facing message body. The visible
+    /// `ChatMessage` deliberately keeps only the prompt: extracted documents
+    /// and pasted text can be hundreds of thousands of characters and do not
+    /// belong in a Markdown bubble.
+    private func composed(_ text: String) -> ComposedUserTurn {
+        guard !attachments.isEmpty else { return ComposedUserTurn(text: text, images: []) }
+        let blocks = attachments.compactMap { chip -> String? in
+            guard chip.image == nil else { return nil }
             // A label can be a filename, and a filename can contain a quote —
             // which would close the attribute and leave the block malformed.
             let label = chip.label.replacingOccurrences(of: "\"", with: "'")
@@ -687,7 +822,10 @@ final class ConversationModel: Identifiable {
                 </\(chip.kind.blockName)>
                 """
         }
-        return ([text] + blocks).joined(separator: "\n\n")
+        return ComposedUserTurn(
+            text: ([text] + blocks).joined(separator: "\n\n"),
+            images: attachments.compactMap(\.image)
+        )
     }
 
     /// The history to replay for a run whose prompt is the last user turn.
@@ -741,9 +879,12 @@ final class ConversationModel: Identifiable {
     func submitSteeringDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let runtime else { return }
+        let composed = composed(text)
         let pending = PendingSteeringMessage(
             draft: text, attachments: attachments,
-            message: AgentTranscriptMessage(role: .user, text: composed(text))
+            message: AgentTranscriptMessage(
+                role: .user, text: composed.text, images: composed.images
+            )
         )
         pendingSteering.append(pending)
         attachments.removeAll()
@@ -1023,10 +1164,16 @@ final class ConversationModel: Identifiable {
         // the conversation — in both lists, at the position the run put it, and
         // no longer in the queue the composer is drawing.
         case .steeringDelivered(let message):
+            let pending = pendingSteering.first(where: { $0.id == message.id })
+            let visibleText = pending?.draft ?? ContextChip.visiblePrompt(in: message.text)
+            let contextChips = pending?.attachments.map {
+                ContextChipReference(id: $0.id, kind: $0.kind, label: $0.label)
+            } ?? ContextChip.visibleReferences(in: message.text, images: message.images)
             pendingSteering.removeAll { $0.id == message.id }
             messages.append(
                 ChatMessage(
-                    id: message.id, role: .user, text: message.text,
+                    id: message.id, role: .user, text: visibleText,
+                    contextChips: contextChips, images: message.images,
                     createdAt: message.createdAt
                 ))
             transcript.append(message)

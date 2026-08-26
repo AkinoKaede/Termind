@@ -47,6 +47,8 @@ final class PersistentAgentMessage {
     var runID: UUID = UUID()
     var role = AgentTranscriptRole.user.rawValue
     var text = ""
+    /// Defaults to an encoded empty array so older stores migrate in place.
+    var imagesData = Data()
     var toolCallsData = Data()
     var toolCallID: String?
     var toolName: String?
@@ -61,6 +63,7 @@ final class PersistentAgentMessage {
         self.runID = runID
         role = message.role.rawValue
         text = AgentPersistenceRedactor.visibleText(message.text)
+        imagesData = (try? JSONEncoder().encode(message.images)) ?? Data()
         toolCallsData = AgentPersistenceRedactor.encoded(message.toolCalls.map { call in
             AgentToolCall(
                 id: call.id, name: call.name,
@@ -275,8 +278,12 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     let calls = (try? JSONDecoder().decode(
                         [AgentToolCall].self, from: row.toolCallsData
                     )) ?? []
+                    let images = (try? JSONDecoder().decode(
+                        [AgentImageAttachment].self, from: row.imagesData
+                    )) ?? []
                     return AgentTranscriptMessage(
-                        id: row.id, role: role, text: row.text, toolCalls: calls,
+                        id: row.id, role: role, text: row.text, images: images,
+                        toolCalls: calls,
                         toolCallID: row.toolCallID, toolName: row.toolName,
                         isError: row.isError, isCompaction: row.isCompaction,
                         createdAt: row.createdAt

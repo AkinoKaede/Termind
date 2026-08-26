@@ -8,6 +8,68 @@ import Testing
 @MainActor
 struct AgentPersistenceTests {
     @Test
+    func versionEightMessagesMigrateWithAnEmptyImageList() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "TermindImageMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "Termind.store")
+        let messageID = UUID()
+
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV8.self)
+            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let row = TermindSchemaV8Models.PersistentAgentMessage()
+            row.id = messageID
+            row.text = "Before images"
+            container.mainContext.insert(row)
+            try container.mainContext.save()
+        }
+
+        let configuration = ModelConfiguration(
+            "Migration", schema: HostPersistence.schema, url: storeURL
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, migrationPlan: TermindMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let row = try #require(
+            container.mainContext.fetch(FetchDescriptor<PersistentAgentMessage>()).first
+        )
+
+        #expect(row.id == messageID)
+        #expect(row.text == "Before images")
+        #expect(row.imagesData.isEmpty)
+    }
+
+    @Test
+    func imagePartsRoundTripThroughConversationPersistence() async throws {
+        let configuration = ModelConfiguration(
+            "AgentImagePersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let image = AgentImageAttachment(
+            label: "screen.png", mimeType: "image/png", data: Data([4, 5, 6]),
+            pixelWidth: 80, pixelHeight: 60
+        )
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(role: .user, text: "Look", images: [image])]
+        )
+
+        try await repository.save(snapshot)
+        let restored = try await repository.loadConversations()
+
+        #expect(restored.first?.messages.first?.images == [image])
+    }
+
+    @Test
     func unfinishedRunsInterruptAndVisibleHistoryRestoresWithoutSecrets() async throws {
         let configuration = ModelConfiguration(
             "AgentPersistenceTests", schema: HostPersistence.schema,

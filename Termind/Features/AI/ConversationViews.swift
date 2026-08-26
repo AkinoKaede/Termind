@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Reports composition text that SwiftUI's String binding has not committed.
 /// The observer lives beside the TextEditor and follows the field editor in
@@ -7,9 +8,11 @@ import SwiftUI
 /// the bound draft.
 private struct TextViewMarkedTextObserver: NSViewRepresentable {
     @Binding var hasMarkedText: Bool
+    var paste: () -> Bool = { false }
 
     final class ObserverView: NSView {
         var report: (Bool) -> Void = { _ in }
+        var paste: () -> Bool = { false }
         private var monitors: [any NSObjectProtocol] = []
         private var eventMonitor: Any?
 
@@ -33,6 +36,12 @@ private struct TextViewMarkedTextObserver: NSViewRepresentable {
             eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) {
                 [weak self, weak window] event in
                 guard event.window === window else { return event }
+                if event.type == .keyDown, event.modifierFlags.contains(.command),
+                    event.charactersIgnoringModifiers?.lowercased() == "v",
+                    self?.paste() == true
+                {
+                    return nil
+                }
                 DispatchQueue.main.async { self?.refresh() }
                 return event
             }
@@ -58,11 +67,13 @@ private struct TextViewMarkedTextObserver: NSViewRepresentable {
     func makeNSView(context: Context) -> ObserverView {
         let view = ObserverView(frame: .zero)
         view.report = update
+        view.paste = paste
         return view
     }
 
     func updateNSView(_ nsView: ObserverView, context: Context) {
         nsView.report = update
+        nsView.paste = paste
     }
 
     static func dismantleNSView(_ nsView: ObserverView, coordinator: ()) {
@@ -91,6 +102,7 @@ private struct TextViewMarkedTextObserver: NSViewRepresentable {
 struct ContextChipsView: View {
     let sessionContext: SessionContext
     let conversation: ConversationModel
+    var cancelPending: (PendingContextAttachment.ID) -> Void = { _ in }
 
     var body: some View {
         FlowLayout(spacing: Metrics.Space.xs) {
@@ -100,9 +112,14 @@ struct ContextChipsView: View {
             ForEach(conversation.attachments) { chip in
                 ChipView(chip: chip) { conversation.detach(chip.id) }
             }
+            ForEach(conversation.pendingAttachments) { pending in
+                PendingChipView(pending: pending) {
+                    cancelPending(pending.id)
+                }
+            }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("Attached session information"))
+        .accessibilityLabel(Text("Attached context"))
     }
 }
 
@@ -112,26 +129,69 @@ private struct ChipView: View {
     /// pane has focus, not a per-turn checkbox.
     let remove: (() -> Void)?
 
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
     var body: some View {
-        HStack(spacing: Metrics.Space.xs) {
-            Image(systemName: chip.kind.symbol)
-                .font(.caption2)
-            Text(chip.label)
-                .font(.caption)
-                .lineLimit(1)
+        Group {
             if let remove {
-                Button(action: remove) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 7, weight: .bold))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                Button(action: remove) { styledContent(removable: true) }
+                    .buttonStyle(.plain)
+                    .onHover { isHovering = $0 }
+                    .focused($isFocused)
+                    .accessibilityLabel(Text("Remove \(chip.label)"))
+            } else {
+                styledContent(removable: false)
             }
+        }
+        .help(Text(remove == nil ? "Always included" : "Remove attachment"))
+    }
+
+    private func styledContent(removable: Bool) -> some View {
+        HStack(spacing: Metrics.Space.xs) {
+            Image(
+                systemName: removable && (isHovering || isFocused)
+                    ? "xmark" : chip.kind.symbol
+            )
+                .font(.caption2)
+                .frame(width: 12, height: 12)
+                .contentTransition(.symbolEffect(.replace))
+            Text(chip.label).font(.caption).lineLimit(1)
         }
         .padding(.horizontal, Metrics.Space.s)
         .padding(.vertical, 3)
         .background(.quaternary.opacity(0.5), in: .capsule)
-        .help(Text(remove == nil ? "Always included" : "Remove attachment"))
+        .contentShape(.capsule)
+    }
+}
+
+private struct PendingChipView: View {
+    let pending: PendingContextAttachment
+    let cancel: () -> Void
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button(action: cancel) {
+            HStack(spacing: Metrics.Space.xs) {
+                if isHovering || isFocused {
+                    Image(systemName: "xmark").font(.caption2)
+                } else {
+                    ProgressView().controlSize(.mini)
+                }
+                Text(pending.label).font(.caption).lineLimit(1)
+            }
+            .frame(minHeight: 12)
+            .padding(.horizontal, Metrics.Space.s)
+            .padding(.vertical, 3)
+            .background(.quaternary.opacity(0.5), in: .capsule)
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .focused($isFocused)
+        .onHover { isHovering = $0 }
+        .help(Text("Cancel import"))
+        .accessibilityLabel(Text("Cancel importing \(pending.label)"))
     }
 }
 
@@ -139,12 +199,20 @@ private struct ChipView: View {
 /// `LazyVGrid` would force a column width that fits the longest path.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 4
+    var fillsWidth = true
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.replacingUnspecifiedDimensions().width
+        let naturalWidth = subviews.enumerated().reduce(CGFloat.zero) { total, item in
+            total + item.element.sizeThatFits(.unspecified).width
+                + (item.offset == 0 ? 0 : spacing)
+        }
+        let width = proposal.width ?? naturalWidth
         let rows = arrange(subviews: subviews, in: width)
         let height = rows.last.map { $0.y + $0.height } ?? 0
-        return CGSize(width: width, height: height)
+        let usedWidth = rows.map { row in
+            row.items.last.map { $0.x + $0.size.width } ?? 0
+        }.max() ?? 0
+        return CGSize(width: fillsWidth ? width : usedWidth, height: height)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
@@ -303,6 +371,8 @@ struct ComposerView: View {
     @State private var isPermissionPickerPresented = false
     @State private var isModelPickerPresented = false
     @State private var expandedModelPickerSection: ModelPickerSection?
+    @State private var isDropTargeted = false
+    @State private var attachmentTasks: [PendingContextAttachment.ID: Task<Void, Never>] = [:]
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
         app.aiConfiguration.resolve(conversation: conversation.model)
@@ -349,8 +419,13 @@ struct ComposerView: View {
         @Bindable var conversation = conversation
 
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            if !sessionContext.isEmpty || !conversation.attachments.isEmpty {
-                ContextChipsView(sessionContext: sessionContext, conversation: conversation)
+            if !sessionContext.isEmpty || !conversation.attachments.isEmpty
+                || !conversation.pendingAttachments.isEmpty
+            {
+                ContextChipsView(
+                    sessionContext: sessionContext, conversation: conversation,
+                    cancelPending: cancelAttachmentImport
+                )
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
@@ -371,6 +446,18 @@ struct ComposerView: View {
             .animation(Motion.panel(reduceMotion: reduceMotion), value: showsTranscriptionControls)
         }
         .composerBlock()
+        .overlay {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                    .stroke(.tint, lineWidth: 2)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onDrop(
+            of: [UTType.fileURL.identifier, UTType.image.identifier],
+            isTargeted: $isDropTargeted,
+            perform: receiveDroppedContext
+        )
         // Anchored to the whole surface rather than the TextEditor. The editor
         // begins inside the surface padding (and can have Context chips above
         // it), which let the palette overlap the Chat frame.
@@ -402,6 +489,17 @@ struct ComposerView: View {
             if let error = transcriptionError {
                 Text(error.message)
             }
+        }
+        .alert(
+            "Attachment Error",
+            isPresented: Binding(
+                get: { conversation.attachmentImportError != nil },
+                set: { if !$0 { conversation.attachmentImportError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(conversation.attachmentImportError ?? "")
         }
     }
 
@@ -441,7 +539,13 @@ struct ComposerView: View {
                     }
             }
             .background {
-                TextViewMarkedTextObserver(hasMarkedText: $hasMarkedText)
+                TextViewMarkedTextObserver(
+                    hasMarkedText: $hasMarkedText,
+                    paste: { isFocused && handleContextPaste() }
+                )
+            }
+            .onPasteCommand(of: [.fileURL, .image, .text]) { _ in
+                if !handleContextPaste() { insertShortPasteIntoEditor() }
             }
             // Before Return, so an open palette gets first refusal on the
             // keys that drive it. Each handler declines when the palette is
@@ -538,7 +642,7 @@ struct ComposerView: View {
                 stopButton
             } else {
                 sendButton(
-                    enabled: !trimmedDraft.isEmpty,
+                    enabled: !trimmedDraft.isEmpty && conversation.pendingAttachments.isEmpty,
                     help: conversation.isStreaming
                         ? "Queue for the running agent — ⏎" : "Send — ⌘⏎",
                     action: sendDraft
@@ -724,6 +828,15 @@ struct ComposerView: View {
         // it is not queued at a busy agent either. `/reasoning high` mid-run
         // changes the next request, which is exactly when someone would type it.
         if runSlashCommand() { return }
+        if !conversation.pendingAttachments.isEmpty { return }
+        if conversation.attachments.contains(where: { $0.image != nil }),
+            resolved?.model.isVision != true
+        {
+            conversation.attachmentImportError = String(
+                localized: "The selected model cannot read images. Choose a vision-capable model before sending."
+            )
+            return
+        }
         if conversation.isStreaming {
             conversation.submitSteeringDraft()
             return
@@ -1035,6 +1148,7 @@ struct ComposerView: View {
 
     private func composerMenus(compact: Bool) -> some View {
         HStack(spacing: Metrics.Space.s) {
+            addContextButton
             permissionMenu(compact: compact)
             if conversation.isPlanning {
                 PlanModeChip(compact: compact) { conversation.isPlanning = false }
@@ -1044,6 +1158,151 @@ struct ComposerView: View {
             modelAndThinkingMenu(compact: compact)
         }
         .animation(Motion.panel(reduceMotion: reduceMotion), value: conversation.isPlanning)
+    }
+
+    private var addContextButton: some View {
+        Button(action: chooseContextFiles) {
+            Image(systemName: "plus")
+                .font(.callout.weight(.medium))
+                .frame(width: 24, height: 24)
+        }
+        .buttonStyle(.plain)
+        .contentShape(.circle)
+        .help(Text("Add context"))
+        .accessibilityLabel(Text("Add context"))
+    }
+
+    private func chooseContextFiles() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = ContextAttachmentImporter.supportedContentTypes
+        guard panel.runModal() == .OK else { return }
+        importFiles(panel.urls)
+    }
+
+    private func importFiles(_ urls: [URL]) {
+        for url in urls.prefix(ContextAttachmentImporter.maximumAttachments) {
+            guard let pending = conversation.beginAttachmentImport(label: url.lastPathComponent)
+            else { break }
+            let task = Task {
+                do {
+                    let chip = try await ContextAttachmentImporter.importFile(at: url)
+                    conversation.finishAttachmentImport(pending.id, with: chip)
+                } catch is CancellationError {
+                    conversation.cancelAttachmentImport(pending.id)
+                } catch {
+                    conversation.failAttachmentImport(
+                        pending.id,
+                        message: "\(url.lastPathComponent): \(error.localizedDescription)"
+                    )
+                }
+                attachmentTasks[pending.id] = nil
+            }
+            attachmentTasks[pending.id] = task
+        }
+    }
+
+    private func importImages(_ images: [Data]) {
+        for data in images.prefix(ContextAttachmentImporter.maximumAttachments) {
+            guard let pending = conversation.beginAttachmentImport(
+                label: String(localized: "Dropped image")
+            ) else { break }
+            let task = Task {
+                do {
+                    let chip = try await ContextAttachmentImporter.importImage(
+                        data: data, label: String(localized: "Dropped image")
+                    )
+                    conversation.finishAttachmentImport(pending.id, with: chip)
+                } catch {
+                    conversation.failAttachmentImport(
+                        pending.id, message: error.localizedDescription
+                    )
+                }
+                attachmentTasks[pending.id] = nil
+            }
+            attachmentTasks[pending.id] = task
+        }
+    }
+
+    private func receiveDroppedContext(_ providers: [NSItemProvider]) -> Bool {
+        var accepted = false
+        for provider in providers.prefix(ContextAttachmentImporter.maximumAttachments) {
+            // An image dragged from Finder advertises both file-url and image.
+            // Prefer the URL so its real filename survives into the Context Chip.
+            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                accepted = true
+                provider.loadDataRepresentation(
+                    forTypeIdentifier: UTType.fileURL.identifier
+                ) { data, _ in
+                    guard let data,
+                        let url = URL(dataRepresentation: data, relativeTo: nil),
+                        url.isFileURL
+                    else { return }
+                    Task { @MainActor in importFiles([url]) }
+                }
+                continue
+            }
+
+            guard let typeIdentifier = provider.registeredTypeIdentifiers.first(where: {
+                UTType($0)?.conforms(to: .image) == true
+            }) else { continue }
+            accepted = true
+            provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
+                guard let data else { return }
+                Task { @MainActor in importImages([data]) }
+            }
+        }
+        return accepted
+    }
+
+    private func handleContextPaste() -> Bool {
+        let pasteboard = NSPasteboard.general
+        let urls = pasteboard.readObjects(
+            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL] ?? []
+        if !urls.isEmpty {
+            importFiles(urls)
+            return true
+        }
+        if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+            guard let pending = conversation.beginAttachmentImport(
+                label: String(localized: "Pasted image")
+            ) else { return true }
+            let task = Task {
+                do {
+                    let chip = try await ContextAttachmentImporter.importImage(data: data)
+                    conversation.finishAttachmentImport(pending.id, with: chip)
+                } catch {
+                    conversation.failAttachmentImport(
+                        pending.id, message: error.localizedDescription
+                    )
+                }
+                attachmentTasks[pending.id] = nil
+            }
+            attachmentTasks[pending.id] = task
+            return true
+        }
+        guard let text = pasteboard.string(forType: .string),
+            ContextAttachmentImporter.shouldAttachPastedText(text)
+        else { return false }
+        do { conversation.attach(try ContextAttachmentImporter.pastedText(text)) }
+        catch { conversation.attachmentImportError = error.localizedDescription }
+        return true
+    }
+
+    private func insertShortPasteIntoEditor() {
+        guard isFocused, let text = NSPasteboard.general.string(forType: .string),
+            let editor = NSApp.keyWindow?.firstResponder as? NSTextView
+        else { return }
+        editor.insertText(text, replacementRange: editor.selectedRange())
+    }
+
+    private func cancelAttachmentImport(_ id: PendingContextAttachment.ID) {
+        attachmentTasks[id]?.cancel()
+        attachmentTasks[id] = nil
+        conversation.cancelAttachmentImport(id)
     }
 
     private func permissionMenu(compact: Bool) -> some View {

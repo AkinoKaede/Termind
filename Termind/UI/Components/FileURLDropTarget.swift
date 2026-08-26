@@ -59,10 +59,29 @@ nonisolated struct LocalFileDropRequest: Identifiable, Sendable {
         /// this process. Inspecting the drag pasteboard makes the view present
         /// only for external file drags and transparent to ordinary controls.
         override func hitTest(_ point: NSPoint) -> NSView? {
-            guard isEnabled, bounds.contains(point), Self.hasFileURLsOnDragPasteboard else {
+            guard
+                isEnabled,
+                bounds.contains(point),
+                !Self.isOrdinaryPointerEvent(NSApp.currentEvent?.type),
+                Self.hasSupportedDragPasteboard
+            else {
                 return nil
             }
             return self
+        }
+
+        /// `.drag` is a named pasteboard, not an "is dragging" flag. Finder can
+        /// leave its last file URL there after a drop, so pasteboard contents
+        /// alone must never make this full-composer view win normal hit tests.
+        static func isOrdinaryPointerEvent(_ type: NSEvent.EventType?) -> Bool {
+            switch type {
+            case .leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp,
+                .otherMouseDown, .otherMouseUp, .mouseMoved, .cursorUpdate,
+                .scrollWheel:
+                true
+            default:
+                false
+            }
         }
 
         override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
@@ -90,7 +109,7 @@ nonisolated struct LocalFileDropRequest: Identifiable, Sendable {
             super.concludeDragOperation(sender)
         }
 
-        private static var hasFileURLsOnDragPasteboard: Bool {
+        private static var hasSupportedDragPasteboard: Bool {
             NSPasteboard(name: .drag).availableType(from: [.fileURL]) != nil
         }
 
