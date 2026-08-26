@@ -36,9 +36,6 @@ struct RootView: View {
             TabBarView(pinnedTabStripWidth: pinnedTabStripWidth)
             Divider()
             splitContent
-            if window.selectedTab != nil {
-                StatusBarView()
-            }
         }
         .frame(
             minWidth: Metrics.Window.detailMin,
@@ -118,18 +115,23 @@ struct RootView: View {
                         max: Metrics.Sidebar.max
                     )
             } detail: {
-                detail
-                    .frame(
-                        minWidth: Metrics.Window.detailMin,
-                        maxWidth: .infinity,
-                        minHeight: Metrics.Window.minHeight,
-                        maxHeight: .infinity
-                    )
-                    .onGeometryChange(for: CGFloat.self) {
-                        $0.frame(in: .named(Self.layoutSpace)).minX
-                    } action: {
-                        recordPinnedTabStripWidth($0)
+                VStack(spacing: 0) {
+                    detail
+                    if case .workspace = window.selectedTopLevelTab {
+                        StatusBarView()
                     }
+                }
+                .frame(
+                    minWidth: Metrics.Window.detailMin,
+                    maxWidth: .infinity,
+                    minHeight: Metrics.Window.minHeight,
+                    maxHeight: .infinity
+                )
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.frame(in: .named(Self.layoutSpace)).minX
+                } action: {
+                    recordPinnedTabStripWidth($0)
+                }
             }
             .navigationSplitViewStyle(.balanced)
         }

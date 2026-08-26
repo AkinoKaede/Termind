@@ -22,9 +22,16 @@ struct ConversationView: View {
                 Divider()
                 AgentApprovalCard(request: approval, conversation: conversation)
             }
-            if let input = conversation.pendingUserInput {
+            if let interaction = conversation.pendingUserInteraction {
                 Divider()
-                AgentUserInputCard(request: input, conversation: conversation)
+                switch interaction {
+                case .questions(let input):
+                    AgentUserInputCard(request: input, conversation: conversation)
+                case .sshAuthentication(let authentication):
+                    AgentSSHAuthenticationCard(
+                        request: authentication, conversation: conversation
+                    )
+                }
             }
             if !conversation.pendingSteering.isEmpty {
                 Divider()
@@ -195,6 +202,7 @@ private struct AgentToolRowView: View {
     private var symbol: String {
         switch card.state {
         case .reviewing: "checkmark.shield"
+        case .waitingForUser: "key.fill"
         case .running: "gearshape.2"
         case .completed: "checkmark.circle.fill"
         case .denied, .failed: "xmark.octagon"
@@ -205,7 +213,7 @@ private struct AgentToolRowView: View {
     private var tint: Color {
         switch card.state {
         case .denied, .failed: .red
-        case .reviewing, .waitingForApproval: .orange
+        case .reviewing, .waitingForApproval, .waitingForUser: .orange
         case .completed: .green
         default: .secondary
         }
@@ -263,6 +271,74 @@ private struct QueueDepthLabel: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+/// SSH authentication presented in the Agent surface. Agent owns placement and
+/// queue state; the actual credential form is shared with the Journey.
+private struct AgentSSHAuthenticationCard: View {
+    let request: AgentSSHAuthenticationRequest
+    let conversation: ConversationModel
+
+    private var requiresPassphrase: Bool {
+        if case .passphrase = request.mode { return true }
+        return false
+    }
+
+    private var prompt: SSHAuthenticationPrompt {
+        SSHAuthenticationPrompt(
+            host: Host(
+                id: request.hostID, name: request.displayName,
+                host: request.address
+            ),
+            selectedIdentityID: request.selectedIdentityID,
+            username: request.username,
+            selectedKeyID: request.selectedKeyID,
+            failureMessage: request.failureMessage,
+            requiresPassphrase: requiresPassphrase,
+            mode: request.failureMessage == nil ? .localIdentity : .serverChallenge
+        )
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if conversation.pendingSSHAuthentications.count > 1 {
+                HStack {
+                    Spacer()
+                    QueueDepthLabel(
+                        remaining: conversation.pendingSSHAuthentications.count
+                    )
+                }
+                .padding(.bottom, Metrics.Space.s)
+            }
+
+            SSHAuthenticationForm(
+                prompt: prompt,
+                submit: submit,
+                cancel: {
+                    conversation.respondToSSHAuthentication(.cancelled)
+                }
+            )
+            // A retry or the next route node must start with fresh SecureFields.
+            .id(request.id)
+        }
+        .padding(Metrics.Space.l)
+    }
+
+    private func submit(
+        identityID: Identity.ID?, username: String, password: String?,
+        passphrase: String?, keyID: SSHKeyRef.ID?, save: Bool
+    ) {
+        conversation.respondToSSHAuthentication(.submit(
+            AgentSSHAuthenticationAnswer(
+                identityID: identityID,
+                username: username,
+                password: password,
+                passphrase: passphrase,
+                keyID: keyID,
+                save: requiresPassphrase ? false : save
+            )
+        ))
     }
 }
 

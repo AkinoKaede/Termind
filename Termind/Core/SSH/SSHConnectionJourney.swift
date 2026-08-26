@@ -34,7 +34,7 @@ nonisolated enum SSHRouteEvent: Hashable, Sendable {
 
 typealias SSHRouteProgressHandler = @Sendable (SSHRouteEvent) -> Void
 
-nonisolated struct SSHAuthenticationSubmission: Sendable {
+nonisolated struct SSHAuthenticationSubmission: Hashable, Sendable {
     var username: String
     var password: String?
     var passphrase: String?

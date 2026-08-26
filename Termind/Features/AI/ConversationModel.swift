@@ -82,7 +82,7 @@ nonisolated struct ChatMessage: Identifiable, Hashable, Sendable {
 
 nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
     nonisolated enum State: String, Hashable, Sendable {
-        case proposed, waitingForApproval, reviewing, running, completed, denied, failed
+        case proposed, waitingForApproval, waitingForUser, reviewing, running, completed, denied, failed
 
         /// The transcript used to show `rawValue.capitalized`, which put the
         /// case name itself on screen — `WaitingForApproval`. The raw value is
@@ -91,6 +91,7 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
             switch self {
             case .proposed: String(localized: "Proposed")
             case .waitingForApproval: String(localized: "Waiting for approval")
+            case .waitingForUser: String(localized: "Waiting for authentication")
             case .reviewing: String(localized: "Reviewing")
             case .running: String(localized: "Running")
             case .completed: String(localized: "Completed")
@@ -106,7 +107,7 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
         /// once it has worked.
         var revealsDetailByDefault: Bool {
             switch self {
-            case .waitingForApproval, .reviewing, .running, .denied, .failed: true
+            case .waitingForApproval, .waitingForUser, .reviewing, .running, .denied, .failed: true
             case .proposed, .completed: false
             }
         }
@@ -228,6 +229,7 @@ final class ConversationModel: Identifiable {
     /// someone to authorize three things while reading one.
     private(set) var pendingApprovals: [AgentApprovalRequest] = []
     private(set) var pendingUserInputs: [AgentUserInputRequest] = []
+    private(set) var pendingSSHAuthentications: [AgentSSHAuthenticationRequest] = []
     /// What the user typed at a busy agent, oldest first, none of it delivered
     /// yet. See `submitSteeringDraft`.
     private(set) var pendingSteering: [PendingSteeringMessage] = []
@@ -237,6 +239,23 @@ final class ConversationModel: Identifiable {
 
     var pendingApproval: AgentApprovalRequest? { pendingApprovals.first }
     var pendingUserInput: AgentUserInputRequest? { pendingUserInputs.first }
+    var pendingSSHAuthentication: AgentSSHAuthenticationRequest? {
+        pendingSSHAuthentications.first
+    }
+    enum PendingUserInteraction {
+        case questions(AgentUserInputRequest)
+        case sshAuthentication(AgentSSHAuthenticationRequest)
+    }
+    var pendingUserInteraction: PendingUserInteraction? {
+        switch (pendingUserInput, pendingSSHAuthentication) {
+        case (let input?, let authentication?):
+            return input.createdAt <= authentication.createdAt
+                ? .questions(input) : .sshAuthentication(authentication)
+        case (let input?, nil): return .questions(input)
+        case (nil, let authentication?): return .sshAuthentication(authentication)
+        case (nil, nil): return nil
+        }
+    }
     /// What has been filled in so far, keyed by question. One request can now
     /// carry several questions, so the drafts are per question rather than one
     /// pair of fields shared by whichever one happened to be on screen.
@@ -257,6 +276,8 @@ final class ConversationModel: Identifiable {
     private var eventTask: Task<Void, Never>?
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
     private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
+    private var sshAuthenticationWaiters:
+        [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
 
     /// Per-conversation reasoning state, normalized against the resolved model
     /// by the composer before a request is made.
@@ -521,6 +542,25 @@ final class ConversationModel: Identifiable {
         return await withCheckedContinuation { inputWaiters[request.id] = $0 }
     }
 
+    func requestSSHAuthentication(
+        _ request: AgentSSHAuthenticationRequest
+    ) async -> AgentSSHAuthenticationResponse {
+        pendingSSHAuthentications.append(request)
+        setToolState(request.invocationID, .waitingForUser)
+        refreshRunState()
+        return await withCheckedContinuation {
+            sshAuthenticationWaiters[request.id] = $0
+        }
+    }
+
+    func respondToSSHAuthentication(_ response: AgentSSHAuthenticationResponse) {
+        guard !pendingSSHAuthentications.isEmpty else { return }
+        let request = pendingSSHAuthentications.removeFirst()
+        setToolState(request.invocationID, .running)
+        refreshRunState()
+        sshAuthenticationWaiters.removeValue(forKey: request.id)?.resume(returning: response)
+    }
+
     /// Puts a question on screen. The queue path uses it, and so does any
     /// caller that wants the card without a run behind it.
     func present(_ request: AgentUserInputRequest) {
@@ -654,7 +694,7 @@ final class ConversationModel: Identifiable {
     private func refreshRunState() {
         if runtimeState.isTerminal || runtimeState == .idle {
             runState = runtimeState
-        } else if !pendingUserInputs.isEmpty {
+        } else if !pendingUserInputs.isEmpty || !pendingSSHAuthentications.isEmpty {
             runState = .waitingForUser
         } else if !pendingApprovals.isEmpty {
             runState = .waitingForApproval
@@ -827,6 +867,13 @@ final class WeakAgentUserInteraction {
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
         guard let conversation else { return .cancelled }
         return await conversation.request(request)
+    }
+
+    func requestSSHAuthentication(
+        _ request: AgentSSHAuthenticationRequest
+    ) async -> AgentSSHAuthenticationResponse {
+        guard let conversation else { return .cancelled }
+        return await conversation.requestSSHAuthentication(request)
     }
 }
 

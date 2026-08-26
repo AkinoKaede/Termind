@@ -7,6 +7,20 @@ nonisolated struct AgentHostTarget: Identifiable, Hashable, Sendable, Codable {
     var tags: [String]
     var connectionState: String
     var isTemporary: Bool
+    var groupID: HostGroup.ID?
+    var groupPath: String?
+}
+
+nonisolated struct AgentHostGroupTarget: Identifiable, Hashable, Sendable {
+    var id: HostGroup.ID
+    var name: String
+    var path: String
+    var children: [AgentHostGroupTarget]
+}
+
+nonisolated struct AgentHostListing: Hashable, Sendable {
+    var groups: [AgentHostGroupTarget]
+    var hosts: [AgentHostTarget]
 }
 
 /// Main-actor bridge over the Vault. The Agent receives only public host
@@ -39,21 +53,257 @@ final class AgentHostResolver: Sendable {
         temporaryConfiguration = configuration
     }
 
-    func targets() -> [AgentHostTarget] {
+    func listing() -> AgentHostListing {
+        let paths = groupPaths()
         let saved = store.hosts.map { host in
             AgentHostTarget(
                 id: host.id, displayName: host.name, address: store.loginAddress(for: host),
                 tags: host.tags, connectionState: Self.stateName(store.status(of: host.id)),
-                isTemporary: false
+                isTemporary: false, groupID: host.groupID,
+                groupPath: host.groupID.flatMap { paths[$0] }
             )
         }
-        return saved + temporaryTargets()
+        return AgentHostListing(
+            groups: groupTree(paths: paths),
+            hosts: saved + temporaryTargets().map { target in
+                var target = target
+                target.groupID = nil
+                target.groupPath = nil
+                return target
+            }
+        )
+    }
+
+    func targets() -> [AgentHostTarget] { listing().hosts }
+
+    /// Produces every valid path without trusting persisted parent links to be
+    /// acyclic. A broken parent simply ends the path; a cycle never recurses.
+    private func groupPaths() -> [HostGroup.ID: String] {
+        var result: [HostGroup.ID: String] = [:]
+        for group in store.groups {
+            var names: [String] = []
+            var current: HostGroup? = group
+            var visited: Set<HostGroup.ID> = []
+            while let node = current, visited.insert(node.id).inserted {
+                names.append(node.name)
+                current = node.parentID.flatMap(store.group)
+            }
+            result[group.id] = names.reversed().joined(separator: " / ")
+        }
+        return result
+    }
+
+    /// Roots include ordinary top-level groups and groups whose parent is
+    /// missing. Any cyclic component that has no root is appended afterwards,
+    /// exactly once, so corrupt metadata cannot make a group disappear.
+    private func groupTree(paths: [HostGroup.ID: String]) -> [AgentHostGroupTarget] {
+        let all = Dictionary(uniqueKeysWithValues: store.groups.map { ($0.id, $0) })
+        func ordered(_ groups: [HostGroup]) -> [HostGroup] {
+            groups.sorted {
+                if $0.sortIndex != $1.sortIndex { return $0.sortIndex < $1.sortIndex }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+        }
+        var emitted: Set<HostGroup.ID> = []
+        func build(_ group: HostGroup, ancestors: Set<HostGroup.ID>) -> AgentHostGroupTarget {
+            emitted.insert(group.id)
+            let nextAncestors = ancestors.union([group.id])
+            let children = ordered(store.groups.filter { $0.parentID == group.id })
+                .filter { !nextAncestors.contains($0.id) }
+                .map { build($0, ancestors: nextAncestors) }
+            return AgentHostGroupTarget(
+                id: group.id, name: group.name, path: paths[group.id] ?? group.name,
+                children: children
+            )
+        }
+        let roots = ordered(store.groups.filter { group in
+            guard let parentID = group.parentID else { return true }
+            return all[parentID] == nil
+        })
+        var result = roots.map { build($0, ancestors: []) }
+        for group in ordered(store.groups) where !emitted.contains(group.id) {
+            result.append(build(group, ancestors: []))
+        }
+        return result
     }
 
     func configuration(for id: UUID) throws -> SSHConnectionConfiguration {
         if let host = store.host(id) { return try store.sshConnectionConfiguration(for: host) }
         if let configuration = try temporaryConfiguration(id) { return configuration }
         throw AgentToolError.invalidHost
+    }
+
+    fileprivate struct InteractiveResolution: Sendable {
+        var configuration: SSHConnectionConfiguration
+        var submissions: [Host.ID: SSHAuthenticationSubmission]
+    }
+
+    /// Resolves every local authentication checkpoint in route order. The
+    /// interaction handler receives public metadata and returns secrets
+    /// directly to this main-actor bridge; none of it becomes tool content.
+    fileprivate func interactiveConfiguration(
+        for id: UUID,
+        invocationID: AgentToolInvocation.ID,
+        interaction: any AgentUserInteractionHandling,
+        submissions initial: [Host.ID: SSHAuthenticationSubmission],
+        forcedHostID initialForcedHostID: Host.ID? = nil,
+        failure initialFailure: String? = nil
+    ) async throws -> InteractiveResolution {
+        guard let destination = store.host(id) else {
+            // Pane-backed targets already carry a complete configuration and
+            // cannot be saved back to the Vault from an Agent card.
+            if let configuration = try temporaryConfiguration(id) {
+                return InteractiveResolution(
+                    configuration: configuration, submissions: initial
+                )
+            }
+            throw AgentToolError.invalidHost
+        }
+
+        var submissions = initial
+        var forcedHostID = initialForcedHostID
+        var failure = initialFailure
+        while let requirement = authenticationRequirement(
+            for: destination, submissions: submissions, forcedHostID: forcedHostID
+        ) {
+            let node = requirement.host
+            let existing = submissions[node.id]
+            let identity = existing?.identityID.flatMap(store.identity)
+                ?? store.identity(for: node)
+            let request = AgentSSHAuthenticationRequest(
+                invocationID: invocationID, hostID: node.id,
+                displayName: node.name, address: node.displayAddress,
+                mode: requirement.mode,
+                selectedIdentityID: existing?.identityID ?? identity?.id,
+                username: existing?.username ?? identity?.username ?? "",
+                selectedKeyID: existing?.keyID ?? identity?.keyID,
+                failureMessage: failure
+            )
+            switch await interaction.requestSSHAuthentication(request) {
+            case .cancelled:
+                throw AgentToolError.cancelled
+            case .submit(let answer):
+                if case .passphrase = requirement.mode,
+                    var retained = submissions[node.id]
+                {
+                    // A protected key may have been chosen beside a password
+                    // in the preceding Identity step. The passphrase card only
+                    // returns the newly-entered secret, so merge it into that
+                    // staged submission instead of replacing (and silently
+                    // dropping) the password and other choices.
+                    guard let passphrase = answer.passphrase, !passphrase.isEmpty else {
+                        throw TermindSSHError.keyPassphraseRequired
+                    }
+                    retained.passphrase = passphrase
+                    submissions[node.id] = retained
+                } else {
+                    submissions[node.id] = try submission(from: answer, for: node)
+                }
+            }
+            forcedHostID = nil
+            failure = nil
+        }
+
+        return InteractiveResolution(
+            configuration: try store.sshConnectionConfiguration(
+                for: destination, submissions: submissions
+            ),
+            submissions: submissions
+        )
+    }
+
+    private struct AuthenticationRequirement {
+        var host: Host
+        var mode: AgentSSHAuthenticationRequest.Mode
+    }
+
+    private func authenticationRequirement(
+        for destination: Host,
+        submissions: [Host.ID: SSHAuthenticationSubmission],
+        forcedHostID: Host.ID?
+    ) -> AuthenticationRequirement? {
+        let route = store.route(for: destination)
+        for node in route {
+            guard forcedHostID == nil || forcedHostID == node.id else { continue }
+            if let submission = submissions[node.id] {
+                if let keyID = submission.keyID,
+                    store.key(keyID)?.requiresPassphraseEntry == true,
+                    submission.passphrase?.isEmpty != false
+                {
+                    return AuthenticationRequirement(host: node, mode: .passphrase(keyID: keyID))
+                }
+                if submission.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || (submission.keyID == nil && submission.password == nil)
+                {
+                    return AuthenticationRequirement(host: node, mode: .identity)
+                }
+                if forcedHostID == node.id {
+                    return AuthenticationRequirement(host: node, mode: .identity)
+                }
+                continue
+            }
+            guard let identity = store.identity(for: node) else {
+                return AuthenticationRequirement(host: node, mode: .identity)
+            }
+            let resolution = store.sshCredentials(for: identity)
+            if let keyID = resolution.requiredPassphraseKeyID {
+                return AuthenticationRequirement(host: node, mode: .passphrase(keyID: keyID))
+            }
+            if identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || resolution.credentials.isEmpty
+            {
+                return AuthenticationRequirement(host: node, mode: .identity)
+            }
+            if forcedHostID == node.id {
+                return AuthenticationRequirement(host: node, mode: .identity)
+            }
+        }
+        return nil
+    }
+
+    private func submission(
+        from answer: AgentSSHAuthenticationAnswer, for host: Host
+    ) throws -> SSHAuthenticationSubmission {
+        if let identityID = answer.identityID {
+            guard let identity = store.identity(identityID) else {
+                throw TermindSSHError.missingCredential
+            }
+            let password = try store.passwordCredential(for: identity)
+            if answer.save {
+                var updated = host
+                updated.identityID = identity.id
+                store.upsert(updated)
+            }
+            return SSHAuthenticationSubmission(
+                username: identity.username, password: password,
+                passphrase: answer.passphrase, keyID: identity.keyID,
+                identityID: identity.id
+            )
+        }
+
+        let username = answer.username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !username.isEmpty else { throw TermindSSHError.missingUsername }
+        var identityID: Identity.ID?
+        if answer.save {
+            let name = answer.identityName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let identity = Identity(
+                name: name?.isEmpty == false ? name! : username,
+                username: username, keyID: answer.keyID
+            )
+            try store.upsert(
+                identity,
+                passwordUpdate: answer.password.map(IdentityPasswordUpdate.replace) ?? .remove
+            )
+            var updated = host
+            updated.identityID = identity.id
+            store.upsert(updated)
+            identityID = identity.id
+        }
+        return SSHAuthenticationSubmission(
+            username: username, password: answer.password,
+            passphrase: answer.passphrase, keyID: answer.keyID,
+            identityID: identityID
+        )
     }
 
     /// A stable description of *which machine, reached how, and as whom* — the
@@ -98,6 +348,56 @@ final class AgentHostResolver: Sendable {
         case .reconnecting: "reconnecting"
         case .failed: "failed"
         }
+    }
+}
+
+/// Keeps temporary credentials alive for exactly one command-opening journey,
+/// including the pool's one safe reconnect. Once `ssh_exec` returns, this actor
+/// and its cached configuration are released.
+actor AgentSSHConfigurationSession {
+    private let resolver: AgentHostResolver
+    private let hostID: Host.ID
+    private let invocationID: AgentToolInvocation.ID
+    private let interaction: any AgentUserInteractionHandling
+    private var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
+    private var cached: SSHConnectionConfiguration?
+    private var forcedHostID: Host.ID?
+    private var failure: String?
+
+    init(
+        resolver: AgentHostResolver, hostID: Host.ID,
+        invocationID: AgentToolInvocation.ID,
+        interaction: any AgentUserInteractionHandling
+    ) {
+        self.resolver = resolver
+        self.hostID = hostID
+        self.invocationID = invocationID
+        self.interaction = interaction
+    }
+
+    func configuration() async throws -> SSHConnectionConfiguration {
+        if let cached { return cached }
+        let resolution = try await resolver.interactiveConfiguration(
+            for: hostID, invocationID: invocationID, interaction: interaction,
+            submissions: submissions, forcedHostID: forcedHostID, failure: failure
+        )
+        submissions = resolution.submissions
+        cached = resolution.configuration
+        forcedHostID = nil
+        failure = nil
+        return resolution.configuration
+    }
+
+    func retry(after error: TermindSSHError) {
+        let target = error.routeHostID ?? hostID
+        if var retained = submissions[target] {
+            retained.password = nil
+            retained.passphrase = nil
+            submissions[target] = retained
+        }
+        cached = nil
+        forcedHostID = target
+        failure = error.localizedDescription
     }
 }
 
@@ -189,30 +489,37 @@ actor AgentConnectionPool {
     /// half of an `rm` is worse than a failed tool call.
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int, hostID: UUID
+        timeout: TimeInterval, outputLimit: Int, hostID: UUID,
+        configuration override: ConfigurationResolving? = nil
     ) async throws -> SSHExecResult {
         do {
-            return try await exec(hostID: hostID).execute(
+            return try await exec(hostID: hostID, configuration: override).execute(
                 command, workingDirectory: workingDirectory, stdin: stdin,
                 timeout: timeout, outputLimit: outputLimit
             )
         } catch SSHExecSessionError.channelUnavailable {
             await disconnect(hostID: hostID, kind: .exec)
-            return try await exec(hostID: hostID).execute(
+            return try await exec(hostID: hostID, configuration: override).execute(
                 command, workingDirectory: workingDirectory, stdin: stdin,
                 timeout: timeout, outputLimit: outputLimit
             )
         }
     }
 
-    func exec(hostID: UUID) async throws -> any SSHExecSessionProtocol {
-        guard case .exec(let session) = try await resolve(hostID: hostID, kind: .exec)
+    func exec(
+        hostID: UUID, configuration override: ConfigurationResolving? = nil
+    ) async throws -> any SSHExecSessionProtocol {
+        guard case .exec(let session) = try await resolve(
+            hostID: hostID, kind: .exec, configuration: override
+        )
         else { throw AgentToolError.invalidHost }
         return session
     }
 
     func sftp(hostID: UUID) async throws -> any SFTPClientProtocol {
-        guard case .sftp(let client) = try await resolve(hostID: hostID, kind: .sftp)
+        guard case .sftp(let client) = try await resolve(
+            hostID: hostID, kind: .sftp, configuration: nil
+        )
         else { throw AgentToolError.invalidHost }
         return client
     }
@@ -262,7 +569,9 @@ actor AgentConnectionPool {
 
     var openConnectionCount: Int { entries.count }
 
-    private func resolve(hostID: UUID, kind: Kind) async throws -> Client {
+    private func resolve(
+        hostID: UUID, kind: Kind, configuration override: ConfigurationResolving?
+    ) async throws -> Client {
         let fingerprint: String
         do {
             fingerprint = try await routeFingerprint(hostID)
@@ -279,26 +588,31 @@ actor AgentConnectionPool {
                 // libssh2 session in `deinit`, so dropping the reference alone
                 // would be safe; this just makes it prompt.
                 Task { await entry.client.disconnect() }
-                return try await open(key: key, fingerprint: fingerprint)
+                return try await open(
+                    key: key, fingerprint: fingerprint, configuration: override
+                )
             }
             entries[key] = Entry(
                 client: entry.client, fingerprint: fingerprint, lastUsedAt: .now
             )
             return entry.client
         }
-        return try await open(key: key, fingerprint: fingerprint)
+        return try await open(key: key, fingerprint: fingerprint, configuration: override)
     }
 
-    private func open(key: Key, fingerprint: String) async throws -> Client {
+    private func open(
+        key: Key, fingerprint: String, configuration override: ConfigurationResolving?
+    ) async throws -> Client {
         // Without this join, two tool calls that both miss the cache would each
         // build a connection and one of them would never be pooled — or closed.
         if let inFlight = pending[key], inFlight.fingerprint == fingerprint {
             let client = try await inFlight.task.value
-            commit(client, key: key, fingerprint: fingerprint)
+            let committedFingerprint = try await routeFingerprint(key.hostID)
+            commit(client, key: key, fingerprint: committedFingerprint)
             return client
         }
         let task = Task { [configuration, openExec, openSFTP] () async throws -> Client in
-            let resolved = try await configuration(key.hostID)
+            let resolved = try await (override ?? configuration)(key.hostID)
             switch key.kind {
             case .exec: return .exec(try await openExec(resolved))
             case .sftp: return .sftp(try await openSFTP(resolved))
@@ -310,7 +624,11 @@ actor AgentConnectionPool {
         // that started the task: whoever started it may have been cancelled
         // while a second caller was still waiting on the same connection.
         let client = try await task.value
-        commit(client, key: key, fingerprint: fingerprint)
+        // Saving/binding an Identity while the connection prompt is open
+        // legitimately changes the route fingerprint. Bind the authenticated
+        // session to that post-save route so the next command can reuse it.
+        let committedFingerprint = try await routeFingerprint(key.hostID)
+        commit(client, key: key, fingerprint: committedFingerprint)
         return client
     }
 
@@ -350,7 +668,7 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         search: WebSearchClient? = nil
     ) -> [AnyAgentTool] {
         [
-            listHosts(hosts), sshExec(connections), terminalSuggest(),
+            listHosts(hosts), sshExec(hosts, connections), terminalSuggest(),
             sftpList(connections), sftpStat(connections), sftpRead(connections),
             sftpWrite(connections), sftpMkdir(connections), sftpMove(connections),
             sftpChmod(connections), sftpDelete(connections), fetch(fetcher),
@@ -364,19 +682,34 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
             properties: [:], required: [], target: .host, safety: .locallyReadOnly,
             concurrency: .parallel
         )) { invocation, _ in
-            let rows = await hosts.targets().map { target in
+            let listing = await hosts.listing()
+            let rows = listing.hosts.map { target in
                 AgentJSONValue.object([
                     "id": .string(target.id.uuidString), "display_name": .string(target.displayName),
                     "address": .string(target.address), "tags": .array(target.tags.map(AgentJSONValue.string)),
                     "connection_state": .string(target.connectionState),
                     "temporary": .bool(target.isTemporary),
+                    "group_id": target.groupID.map { .string($0.uuidString) } ?? .null,
+                    "group_path": target.groupPath.map(AgentJSONValue.string) ?? .null,
                 ])
             }
-            return result(invocation, .array(rows))
+            func groupJSON(_ group: AgentHostGroupTarget) -> AgentJSONValue {
+                .object([
+                    "id": .string(group.id.uuidString), "name": .string(group.name),
+                    "path": .string(group.path),
+                    "children": .array(group.children.map(groupJSON)),
+                ])
+            }
+            return result(invocation, .object([
+                "groups": .array(listing.groups.map(groupJSON)),
+                "hosts": .array(rows),
+            ]))
         }
     }
 
-    private static func sshExec(_ pool: AgentConnectionPool) -> AnyAgentTool {
+    private static func sshExec(
+        _ hosts: AgentHostResolver, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
         let tool = descriptor(
             "ssh_exec", "Execute one command over a dedicated non-PTY SSH exec channel.",
             properties: [
@@ -436,11 +769,32 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                     )
                     input = Data(secret.utf8)
                 }
-                let output = try await pool.execute(
-                    command, workingDirectory: arguments.optionalString("cwd"), stdin: input,
-                    timeout: TimeInterval(arguments.optionalInt("timeout_seconds") ?? 60),
-                    outputLimit: 256 * 1_024, hostID: hostID
+                let authentication = AgentSSHConfigurationSession(
+                    resolver: hosts, hostID: hostID, invocationID: invocation.id,
+                    interaction: context.userInteraction
                 )
+                let interactiveConfiguration: AgentConnectionPool.ConfigurationResolving = { _ in
+                    try await authentication.configuration()
+                }
+                let output: SSHExecResult
+                while true {
+                    do {
+                        output = try await pool.execute(
+                            command, workingDirectory: arguments.optionalString("cwd"), stdin: input,
+                            timeout: TimeInterval(arguments.optionalInt("timeout_seconds") ?? 60),
+                            outputLimit: 256 * 1_024, hostID: hostID,
+                            configuration: interactiveConfiguration
+                        )
+                        break
+                    } catch let error as TermindSSHError where error.shouldRequestAuthentication {
+                        // Authentication failed before an exec channel — and
+                        // therefore before the command could run. It is safe to
+                        // collect another credential and reopen; command errors
+                        // never enter this path.
+                        await pool.disconnect(hostID: hostID, kind: .exec)
+                        await authentication.retry(after: error)
+                    }
+                }
                 return result(invocation, .object([
                     "stdout": .string(output.stdout), "stderr": .string(output.stderr),
                     "exit_code": .number(Double(output.exitCode)),

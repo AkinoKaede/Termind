@@ -150,7 +150,7 @@ struct SSHConnectionJourneyView: View {
         if journey.showsLogs {
             logs
         } else if let prompt = authenticationPrompt {
-            JourneyAuthenticationCard(
+            SSHAuthenticationForm(
                 prompt: prompt,
                 submit: submitAuthentication,
                 cancel: cancel
@@ -526,7 +526,10 @@ private struct JourneyActivityRing: View {
     }
 }
 
-private struct JourneyAuthenticationCard: View {
+/// Shared SSH credential form used by both the connection Journey and Agent.
+/// The containing surface owns placement and queue state; this view owns the
+/// established Custom/Identity choices, button language, and submission flow.
+struct SSHAuthenticationForm: View {
     let prompt: SSHAuthenticationPrompt
     let submit: (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void
     let cancel: () -> Void

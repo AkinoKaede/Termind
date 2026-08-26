@@ -234,4 +234,13 @@ private nonisolated struct EventingAgentUserInteraction: AgentUserInteractionHan
         channel.emit(.userInputRequested(request))
         return await base.request(request)
     }
+
+    func requestSSHAuthentication(
+        _ request: AgentSSHAuthenticationRequest
+    ) async -> AgentSSHAuthenticationResponse {
+        // The request is locally derived rather than model-authored. The
+        // conversation queues it directly; deliberately no event or durable
+        // record is produced on the path that will return credentials.
+        await base.requestSSHAuthentication(request)
+    }
 }

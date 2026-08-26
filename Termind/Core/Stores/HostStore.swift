@@ -21,7 +21,7 @@ final class HostStore {
     /// The latest local persistence failure. Secret text is never included.
     private(set) var storageError: String?
     private var persistence: HostPersistence?
-    private let keychain: KeychainSecretStore
+    private let keychain: any HostSecretStoring
     /// Runtime resources live in AppModel, so deletion announces before model
     /// references are removed and the controller can stop listeners cleanly.
     var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
@@ -58,7 +58,7 @@ final class HostStore {
         portForwardings: [PortForwardingRule] = [],
         sftpTransfers: [SFTPTransfer] = [],
         knownHosts: [KnownHostEntry] = [],
-        keychain: KeychainSecretStore = KeychainSecretStore()
+        keychain: any HostSecretStoring = KeychainSecretStore()
     ) {
         self.hosts = hosts
         self.groups = groups
@@ -132,7 +132,10 @@ final class HostStore {
         }
     }
 
-    convenience init(modelContext: ModelContext, keychain: KeychainSecretStore = KeychainSecretStore()) {
+    convenience init(
+        modelContext: ModelContext,
+        keychain: any HostSecretStoring = KeychainSecretStore()
+    ) {
         self.init(keychain: keychain)
         let persistence = HostPersistence(context: modelContext)
         self.persistence = persistence
@@ -369,22 +372,28 @@ final class HostStore {
         submissions: [Host.ID: SSHAuthenticationSubmission] = [:],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
     ) throws -> SSHConnectionConfiguration {
-        guard let identity = identity(for: host) else {
-            throw TermindSSHError.missingCredential
+        let username: String
+        let credentials: [SSHCredentials]
+        if let submission = submissions[host.id] {
+            username = submission.username.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !username.isEmpty else { throw TermindSSHError.missingUsername }
+            credentials = try sshCredentials(for: submission)
+        } else {
+            guard let identity = identity(for: host) else {
+                throw TermindSSHError.missingCredential
+            }
+            username = identity.username.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !username.isEmpty else { throw TermindSSHError.missingUsername }
+            let resolution = sshCredentials(for: identity)
+            guard resolution.requiredPassphraseKeyID == nil else {
+                throw TermindSSHError.keyPassphraseRequired
+            }
+            credentials = resolution.credentials
         }
-        let username = identity.username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !username.isEmpty else { throw TermindSSHError.missingUsername }
+        guard !credentials.isEmpty else { throw TermindSSHError.missingCredential }
         let expectedHostKeys = try expectedHostKeys(
             for: host, temporaryHostKeys: temporaryHostKeys
         )
-
-        let credentialResolution = sshCredentials(for: identity)
-        guard credentialResolution.requiredPassphraseKeyID == nil else {
-            throw TermindSSHError.keyPassphraseRequired
-        }
-        guard !credentialResolution.credentials.isEmpty else {
-            throw TermindSSHError.missingCredential
-        }
 
         guard let route = validatedRoute(for: host) else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
@@ -421,7 +430,7 @@ final class HostStore {
 
         return SSHConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.port, username: username,
-            credentials: credentialResolution.credentials,
+            credentials: credentials,
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(for: host), jumps: jumps
         )
@@ -503,24 +512,37 @@ final class HostStore {
         let expectedHostKeys = try expectedHostKeys(
             for: host, temporaryHostKeys: temporaryHostKeys
         )
-        var credentials: [SSHCredentials] = []
-        if let keyID = submission.keyID, let key = key(keyID),
-            let stored = try keyCredential(for: key)
-        {
-            credentials.append(
-                stored.sshCredential(
-                    publicKey: key.publicKey, certificate: key.certificate,
-                    passphraseOverride: submission.passphrase
-                )
-            )
-        }
-        if let password = submission.password { credentials.append(.password(password)) }
+        let credentials = try sshCredentials(for: submission)
+        guard !credentials.isEmpty else { throw TermindSSHError.missingCredential }
         return SSHRouteHopConfiguration(
             id: host.id, name: host.name, host: host.host, port: host.port,
             username: username, credentials: credentials,
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(for: host)
         )
+    }
+
+    private func sshCredentials(
+        for submission: SSHAuthenticationSubmission
+    ) throws -> [SSHCredentials] {
+        var credentials: [SSHCredentials] = []
+        if let keyID = submission.keyID, let key = key(keyID) {
+            if key.requiresPassphraseEntry,
+                submission.passphrase?.isEmpty != false
+            {
+                throw TermindSSHError.keyPassphraseRequired
+            }
+            if let stored = try keyCredential(for: key) {
+                credentials.append(
+                    stored.sshCredential(
+                        publicKey: key.publicKey, certificate: key.certificate,
+                        passphraseOverride: submission.passphrase
+                    )
+                )
+            }
+        }
+        if let password = submission.password { credentials.append(.password(password)) }
+        return credentials
     }
 
     func transportProxy(for host: Host) throws -> SSHTransportProxy? {

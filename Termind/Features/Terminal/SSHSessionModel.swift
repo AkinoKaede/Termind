@@ -356,7 +356,8 @@ final class SSHSessionModel: Identifiable {
         }
         return AgentHostTarget(
             id: host.id, displayName: host.name, address: host.displayAddress,
-            tags: host.tags, connectionState: state, isTemporary: true
+            tags: host.tags, connectionState: state, isTemporary: true,
+            groupID: nil, groupPath: nil
         )
     }
 

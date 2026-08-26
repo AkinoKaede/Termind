@@ -24,9 +24,25 @@ nonisolated enum KeychainSecretError: LocalizedError {
     }
 }
 
+/// The Vault's typed secret boundary. Keeping the store behind this small
+/// interface lets connection tests prove password/passphrase lifetime rules
+/// without depending on a signed Keychain-enabled test host.
+nonisolated protocol HostSecretStoring: Sendable {
+    func string(for account: String, storage: PasswordStorage) throws -> String?
+    func setString(_ value: String?, for account: String, storage: PasswordStorage) throws
+    func keyCredential(
+        for account: String, storage: KeyStorage
+    ) throws -> StoredSSHKeyCredential?
+    func setKeyCredential(
+        _ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage
+    ) throws
+    func removePassword(_ account: String, storage: PasswordStorage) throws
+    func removeKeyCredential(_ account: String, storage: KeyStorage) throws
+}
+
 /// Typed storage in the macOS Data Protection Keychain. Independent services
 /// prevent a damaged reference from reinterpreting one credential as another.
-nonisolated struct KeychainSecretStore: Sendable {
+nonisolated struct KeychainSecretStore: HostSecretStoring, Sendable {
     private static let passwordService = "com.akinokaede.termind.passwords.v1"
     private static let softwareKeyService = "com.akinokaede.termind.ssh-software-keys.v1"
     private static let enclaveService = "com.akinokaede.termind.secure-enclave-handles.v1"

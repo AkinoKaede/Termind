@@ -241,6 +241,7 @@ nonisolated struct AgentUserQuestion: Identifiable, Hashable, Sendable {
 /// answering twice in a row; this makes it one form instead.
 nonisolated struct AgentUserInputRequest: Identifiable, Hashable, Sendable {
     var id: UUID = UUID()
+    var createdAt: Date = .now
     var questions: [AgentUserQuestion]
     var purpose: String = ""
     var hostID: UUID?
@@ -281,10 +282,55 @@ nonisolated enum AgentUserInputResponse: Hashable, Sendable {
     case cancelled
 }
 
+/// A local SSH checkpoint raised by `ssh_exec`. Unlike `request_user_input`,
+/// this request is never model-authored and its answer is never serialized into
+/// a tool result. Only public Vault metadata crosses into the view.
+nonisolated struct AgentSSHAuthenticationRequest: Identifiable, Hashable, Sendable {
+    nonisolated enum Mode: Hashable, Sendable {
+        case identity
+        case passphrase(keyID: SSHKeyRef.ID)
+    }
+
+    var id: UUID = UUID()
+    var createdAt: Date = .now
+    var invocationID: AgentToolInvocation.ID
+    var hostID: Host.ID
+    var displayName: String
+    var address: String
+    var mode: Mode
+    var selectedIdentityID: Identity.ID?
+    var username: String
+    var selectedKeyID: SSHKeyRef.ID?
+    var failureMessage: String?
+}
+
+nonisolated struct AgentSSHAuthenticationAnswer: Hashable, Sendable {
+    /// Existing identity when selected; nil means the inline Custom form.
+    var identityID: Identity.ID?
+    var identityName: String?
+    var username: String
+    var password: String?
+    var passphrase: String?
+    var keyID: SSHKeyRef.ID?
+    /// Existing identities are bound; inline values create an Identity.
+    var save: Bool
+}
+
+nonisolated enum AgentSSHAuthenticationResponse: Hashable, Sendable {
+    case submit(AgentSSHAuthenticationAnswer)
+    case cancelled
+}
+
 nonisolated protocol AgentUserInteractionHandling: Sendable {
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse
+    func requestSSHAuthentication(
+        _ request: AgentSSHAuthenticationRequest
+    ) async -> AgentSSHAuthenticationResponse
 }
 
 nonisolated struct UnavailableAgentUserInteraction: AgentUserInteractionHandling, Sendable {
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse { .cancelled }
+    func requestSSHAuthentication(
+        _ request: AgentSSHAuthenticationRequest
+    ) async -> AgentSSHAuthenticationResponse { .cancelled }
 }
