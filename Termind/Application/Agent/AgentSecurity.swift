@@ -201,30 +201,83 @@ nonisolated struct AgentUserInputChoice: Hashable, Sendable {
     var customPlaceholder: String = ""
 }
 
-nonisolated struct AgentUserInputRequest: Identifiable, Hashable, Sendable {
+nonisolated enum AgentUserInputLimits {
+    /// Codex's ceiling, and for the same reason: past three, a form stops being
+    /// a decision and starts being a questionnaire.
+    static let maxQuestions = 3
+}
+
+/// One thing the agent needs decided.
+nonisolated struct AgentUserQuestion: Identifiable, Hashable, Sendable {
     nonisolated enum Kind: Hashable, Sendable {
         case text
         case choice(AgentUserInputChoice)
         case secret
     }
 
-    var id: UUID = UUID()
-    var prompt: String
-    var kind: Kind
+    /// Named by the model, unique within its request. It wrote the questions
+    /// and it reads the answers back by these names, so they are its own
+    /// vocabulary rather than an index we assign.
+    var id: String
     /// Short label naming the decision, shown above the prompt.
     var header: String = ""
+    var prompt: String
+    var kind: Kind
+
+    /// The choices this question offers, or none for a free-form one. Saves
+    /// every reader of a question from re-matching on `kind` to find out.
+    var options: [AgentUserInputOption] {
+        guard case .choice(let choice) = kind else { return [] }
+        return choice.options
+    }
+}
+
+/// A set of questions put to the user at once.
+///
+/// Several rather than one because a group of decisions is usually a group —
+/// asking about storage, then about migrations only once storage is answered,
+/// hides the second question at the moment it would have informed the first.
+/// The tool's calls are `.sequential`, so asking twice in a turn already meant
+/// answering twice in a row; this makes it one form instead.
+nonisolated struct AgentUserInputRequest: Identifiable, Hashable, Sendable {
+    var id: UUID = UUID()
+    var questions: [AgentUserQuestion]
     var purpose: String = ""
     var hostID: UUID?
 }
 
+/// What has been filled into one question so far.
+nonisolated struct AgentUserInputDraft: Hashable, Sendable {
+    /// The "something else" field, and the whole answer for a free-form
+    /// question.
+    var text = ""
+    var selection: Set<String> = []
+
+    var trimmedText: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+}
+
+nonisolated struct AgentUserInputAnswer: Hashable, Sendable {
+    nonisolated enum Value: Hashable, Sendable {
+        case text(String)
+        /// Selected option ids in the order the question listed them, plus
+        /// whatever the user typed instead of — or, when several answers are
+        /// allowed, alongside — them. Kept structured rather than flattened to
+        /// a string so the tool can hand the model ids it chose itself.
+        case choice(selectedIDs: [String], custom: String?)
+        case secret(String)
+    }
+
+    var questionID: String
+    var value: Value
+}
+
 nonisolated enum AgentUserInputResponse: Hashable, Sendable {
-    case text(String)
-    /// Selected option ids in the order the request listed them, plus whatever
-    /// the user typed instead of — or, when several answers are allowed,
-    /// alongside — them. Kept structured rather than flattened to a string so
-    /// the tool can hand the model ids it chose itself.
-    case choice(selectedIDs: [String], custom: String?)
-    case secret(String)
+    /// Only the questions the user actually answered.
+    ///
+    /// An absent question was skipped, and skipping is itself an answer — the
+    /// user declining to decide that one. So there is no `.skipped` case: the
+    /// absence carries it, and the tool reports it to the model as a null.
+    case answered([AgentUserInputAnswer])
     case cancelled
 }
 

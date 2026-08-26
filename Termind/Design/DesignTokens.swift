@@ -176,6 +176,13 @@ nonisolated enum Metrics {
         /// draft instead; these two bound the result.
         static let composerMinHeight: CGFloat = 40
         static let composerMaxHeight: CGFloat = 132
+
+        /// How tall the agent's question form may grow before it scrolls.
+        ///
+        /// Three questions with four described options each runs past 500pt,
+        /// and this card sits between the transcript and the composer — past
+        /// this it would push the conversation it is about off the screen.
+        static let userInputMaxHeight: CGFloat = 320
     }
 
     enum TransferCenter {

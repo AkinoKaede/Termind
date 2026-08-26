@@ -176,7 +176,11 @@ struct AgentApprovalQueueTests {
         conversation.handle(.reviewStarted(request))
         #expect(conversation.runState == .reviewing)
 
-        conversation.present(AgentUserInputRequest(prompt: "which host?", kind: .text))
+        conversation.present(
+            AgentUserInputRequest(
+                questions: [AgentUserQuestion(id: "host", prompt: "which host?", kind: .text)]
+            )
+        )
         #expect(conversation.runState == .waitingForUser)
 
         // The review finishing must not announce that nothing is outstanding.

@@ -258,71 +258,121 @@ private struct QueueDepthLabel: View {
     }
 }
 
-/// The agent asking the user to decide something.
+/// The agent asking the user to decide one or more things.
+///
+/// A form rather than a run of cards. A turn's questions are usually one group
+/// of decisions, and revealing the second only once the first is answered hides
+/// it at the moment it would have informed the first.
 ///
 /// Options are a list rather than a `Picker` because each one carries a
 /// sentence explaining what it costs, and a pop-up menu has nowhere to put
 /// that. Nothing is preselected — including the recommendation, which is a
 /// label and not a default, so that an answer always takes a deliberate click.
+/// A question may also be left alone: the tool reports that as a null and the
+/// model decides it itself, so the count in the footer is a count and not a
+/// validation error, and an unanswered question is marked in no way at all.
 private struct AgentUserInputCard: View {
     let request: AgentUserInputRequest
     let conversation: ConversationModel
 
+    private var isForm: Bool { request.questions.count > 1 }
+
     var body: some View {
-        @Bindable var conversation = conversation
-        VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            HStack {
-                if !request.header.isEmpty {
-                    Text(request.header)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            if conversation.pendingUserInputs.count > 1 {
+                HStack {
+                    Spacer()
+                    QueueDepthLabel(remaining: conversation.pendingUserInputs.count)
                 }
-                Spacer()
-                QueueDepthLabel(remaining: conversation.pendingUserInputs.count)
-            }
-            Text(request.prompt)
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-
-            switch request.kind {
-            case .secret:
-                SecureField("Secret", text: $conversation.secretInputDraft)
-                    .textFieldStyle(.roundedBorder)
-            case .choice(let choice):
-                choiceList(choice)
-            case .text:
-                TextField("Answer", text: $conversation.userInputDraft)
-                    .textFieldStyle(.roundedBorder)
             }
 
-            HStack {
-                Button("Cancel") { conversation.cancelUserInput() }
-                Spacer()
-                Button("Continue") { conversation.submitUserInput() }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!conversation.canSubmitUserInput)
+            // Three questions with four described options each runs past 500pt,
+            // and this card sits between the transcript and the composer. But a
+            // bare `ScrollView` is greedy: capped at the same height it would
+            // hand a one-question card 320pt of box for 120pt of question. So
+            // the natural stack is preferred and the scrolling one is the
+            // fallback, which is what `ViewThatFits` is for.
+            ViewThatFits(in: .vertical) {
+                questionStack
+                ScrollView { questionStack }
+                    .scrollBounceBehavior(.basedOnSize)
             }
+            .frame(maxHeight: Metrics.Chat.userInputMaxHeight)
+
+            footer
         }
         .padding(Metrics.Space.l)
     }
 
-    private func choiceList(_ choice: AgentUserInputChoice) -> some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            ForEach(choice.options) { option in
-                optionRow(option, choice: choice)
+    private var questionStack: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.l) {
+            ForEach(request.questions) { question in
+                questionBlock(question)
             }
-            if choice.allowsCustomAnswer {
-                customRow(choice)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var footer: some View {
+        HStack(spacing: Metrics.Space.m) {
+            Button("Cancel") { conversation.cancelUserInput() }
+            Spacer(minLength: 0)
+            if isForm {
+                Text(
+                    "\(conversation.answeredUserInputCount) of \(request.questions.count) answered"
+                )
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+            }
+            Button("Continue") { conversation.submitUserInput() }
+                .buttonStyle(.borderedProminent)
+                .disabled(!conversation.canSubmitUserInput)
+        }
+    }
+
+    @ViewBuilder
+    private func questionBlock(_ question: AgentUserQuestion) -> some View {
+        @Bindable var conversation = conversation
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            if !question.header.isEmpty {
+                Text(question.header)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            Text(question.prompt)
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+
+            switch question.kind {
+            case .secret:
+                SecureField("Secret", text: $conversation.secretInputDraft)
+                    .textFieldStyle(.roundedBorder)
+            case .choice(let choice):
+                choiceList(choice, in: question.id)
+            case .text:
+                TextField("Answer", text: customBinding(for: question.id))
+                    .textFieldStyle(.roundedBorder)
             }
         }
     }
 
-    private func optionRow(_ option: AgentUserInputOption, choice: AgentUserInputChoice)
-        -> some View
-    {
-        let isSelected = conversation.userInputSelection.contains(option.id)
+    private func choiceList(_ choice: AgentUserInputChoice, in questionID: String) -> some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
+            ForEach(choice.options) { option in
+                optionRow(option, choice: choice, in: questionID)
+            }
+            if choice.allowsCustomAnswer {
+                customRow(choice, in: questionID)
+            }
+        }
+    }
+
+    private func optionRow(
+        _ option: AgentUserInputOption, choice: AgentUserInputChoice, in questionID: String
+    ) -> some View {
+        let isSelected = conversation.userInputDraft(for: questionID).selection.contains(option.id)
         return Button {
-            conversation.toggleUserInputOption(option.id)
+            conversation.toggleUserInputOption(option.id, in: questionID)
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
                 Image(systemName: marker(isSelected: isSelected, choice: choice))
@@ -358,29 +408,27 @@ private struct AgentUserInputCard: View {
     /// The escape hatch, sitting in the list as one more choice rather than
     /// below it as an afterthought — an answer the model did not think of is
     /// not a lesser kind of answer.
-    private func customRow(_ choice: AgentUserInputChoice) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
-            Image(
-                systemName: marker(
-                    isSelected: !conversation.userInputDraft.isEmpty, choice: choice
-                )
-            )
-            .foregroundStyle(
-                conversation.userInputDraft.isEmpty
-                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint)
-            )
-            .frame(width: Metrics.Sidebar.rowIcon)
+    private func customRow(_ choice: AgentUserInputChoice, in questionID: String) -> some View {
+        let typed = conversation.userInputDraft(for: questionID).text
+        return HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
+            Image(systemName: marker(isSelected: !typed.isEmpty, choice: choice))
+                .foregroundStyle(typed.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+                .frame(width: Metrics.Sidebar.rowIcon)
 
             TextField(
                 choice.customPlaceholder.isEmpty
                     ? String(localized: "Something else…") : choice.customPlaceholder,
-                text: Binding(
-                    get: { conversation.userInputDraft },
-                    set: { conversation.setUserInputCustomAnswer($0) }
-                )
+                text: customBinding(for: questionID)
             )
             .textFieldStyle(.roundedBorder)
         }
+    }
+
+    private func customBinding(for questionID: String) -> Binding<String> {
+        Binding(
+            get: { conversation.userInputDraft(for: questionID).text },
+            set: { conversation.setUserInputCustomAnswer($0, for: questionID) }
+        )
     }
 
     private func marker(isSelected: Bool, choice: AgentUserInputChoice) -> String {

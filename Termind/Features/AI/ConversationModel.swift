@@ -218,10 +218,12 @@ final class ConversationModel: Identifiable {
 
     var pendingApproval: AgentApprovalRequest? { pendingApprovals.first }
     var pendingUserInput: AgentUserInputRequest? { pendingUserInputs.first }
-    /// The free-form answer, for a text question and for the "something else"
-    /// field beside a set of options.
-    var userInputDraft = ""
-    var userInputSelection: Set<String> = []
+    /// What has been filled in so far, keyed by question. One request can now
+    /// carry several questions, so the drafts are per question rather than one
+    /// pair of fields shared by whichever one happened to be on screen.
+    private(set) var userInputDrafts: [String: AgentUserInputDraft] = [:]
+    /// Kept out of `userInputDrafts` on purpose: a secret does not belong in
+    /// the same dictionary as text that is echoed back to the model.
     var secretInputDraft = ""
     /// The model-facing history, which is not what `messages` holds.
     ///
@@ -477,64 +479,94 @@ final class ConversationModel: Identifiable {
         refreshRunState()
     }
 
-    /// Nothing is preselected, so this is what stops Continue from returning an
-    /// answer the user never gave.
-    var canSubmitUserInput: Bool {
-        guard let request = pendingUserInput else { return false }
-        switch request.kind {
+    func userInputDraft(for questionID: String) -> AgentUserInputDraft {
+        userInputDrafts[questionID] ?? AgentUserInputDraft()
+    }
+
+    /// Whether this one question has been answered. Skipping is allowed, so
+    /// this drives a count rather than a validation error.
+    func isUserInputAnswered(_ question: AgentUserQuestion) -> Bool {
+        switch question.kind {
         case .secret: return !secretInputDraft.isEmpty
-        case .text: return !trimmedUserInputDraft.isEmpty
-        case .choice: return !userInputSelection.isEmpty || !trimmedUserInputDraft.isEmpty
+        default:
+            let draft = userInputDraft(for: question.id)
+            return !draft.selection.isEmpty || !draft.trimmedText.isEmpty
         }
     }
 
-    func toggleUserInputOption(_ id: String) {
-        guard case .choice(let choice)? = pendingUserInput?.kind else { return }
+    var answeredUserInputCount: Int {
+        pendingUserInput?.questions.filter(isUserInputAnswered).count ?? 0
+    }
+
+    /// Nothing is preselected, so this is what stops Continue from returning an
+    /// answer the user never gave.
+    ///
+    /// One answer is enough — a question may be left alone, and the tool
+    /// reports that as a null the model has to decide for itself. Zero is not
+    /// enough: answering nothing is Cancel, and dressing it as success would
+    /// hand the model a result that says only that it was not refused.
+    var canSubmitUserInput: Bool { answeredUserInputCount > 0 }
+
+    func toggleUserInputOption(_ optionID: String, in questionID: String) {
+        guard case .choice(let choice)? = question(questionID)?.kind else { return }
+        var draft = userInputDraft(for: questionID)
         if choice.allowsMultipleAnswers {
-            if userInputSelection.contains(id) {
-                userInputSelection.remove(id)
+            if draft.selection.contains(optionID) {
+                draft.selection.remove(optionID)
             } else {
-                userInputSelection.insert(id)
+                draft.selection.insert(optionID)
             }
         } else {
-            userInputSelection = userInputSelection.contains(id) ? [] : [id]
+            draft.selection = draft.selection.contains(optionID) ? [] : [optionID]
             // One answer means one answer: a half-typed "something else" left
             // sitting under a chosen radio would be a second, contradicting one.
-            userInputDraft = ""
+            draft.text = ""
         }
+        userInputDrafts[questionID] = draft
     }
 
     /// The other half of that rule — typing clears the radio it would otherwise
     /// silently disagree with. Left alone in a multi-answer question, where the
     /// two are additive rather than exclusive.
-    func setUserInputCustomAnswer(_ text: String) {
-        userInputDraft = text
-        guard case .choice(let choice)? = pendingUserInput?.kind,
+    func setUserInputCustomAnswer(_ text: String, for questionID: String) {
+        var draft = userInputDraft(for: questionID)
+        draft.text = text
+        if case .choice(let choice)? = question(questionID)?.kind,
             !choice.allowsMultipleAnswers, !text.isEmpty
-        else { return }
-        userInputSelection.removeAll()
+        {
+            draft.selection.removeAll()
+        }
+        userInputDrafts[questionID] = draft
     }
 
     func submitUserInput() {
         guard let request = pendingUserInput, canSubmitUserInput else { return }
-        let response: AgentUserInputResponse
-        switch request.kind {
-        case .secret:
-            response = .secret(secretInputDraft)
-        case .text:
-            response = .text(userInputDraft)
-        case .choice(let choice):
-            let custom = trimmedUserInputDraft
-            response = .choice(
-                // Ordered by the request, not by whatever order the user
-                // clicked in — the model wrote the list and reads the answer
-                // against it.
-                selectedIDs: choice.options.map(\.id).filter(userInputSelection.contains),
-                custom: custom.isEmpty ? nil : custom
-            )
+        let answers = request.questions.compactMap { question -> AgentUserInputAnswer? in
+            guard isUserInputAnswered(question) else { return nil }
+            let draft = userInputDraft(for: question.id)
+            switch question.kind {
+            case .secret:
+                return AgentUserInputAnswer(
+                    questionID: question.id, value: .secret(secretInputDraft)
+                )
+            case .text:
+                return AgentUserInputAnswer(questionID: question.id, value: .text(draft.text))
+            case .choice(let choice):
+                let custom = draft.trimmedText
+                return AgentUserInputAnswer(
+                    questionID: question.id,
+                    // Ordered by the question, not by whatever order the user
+                    // clicked in — the model wrote the list and reads the
+                    // answer against it.
+                    value: .choice(
+                        selectedIDs: choice.options.map(\.id).filter(draft.selection.contains),
+                        custom: custom.isEmpty ? nil : custom
+                    )
+                )
+            }
         }
         advanceUserInput()
-        inputWaiters.removeValue(forKey: request.id)?.resume(returning: response)
+        inputWaiters.removeValue(forKey: request.id)?.resume(returning: .answered(answers))
     }
 
     func cancelUserInput() {
@@ -543,8 +575,8 @@ final class ConversationModel: Identifiable {
         inputWaiters.removeValue(forKey: request.id)?.resume(returning: .cancelled)
     }
 
-    private var trimmedUserInputDraft: String {
-        userInputDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func question(_ id: String) -> AgentUserQuestion? {
+        pendingUserInput?.questions.first { $0.id == id }
     }
 
     /// Retires the answered question and hands a clean sheet to the next one.
@@ -556,8 +588,7 @@ final class ConversationModel: Identifiable {
 
     private func clearUserInputDrafts() {
         secretInputDraft = ""
-        userInputDraft = ""
-        userInputSelection = []
+        userInputDrafts = [:]
     }
 
     /// What the transcript shows, from what is actually outstanding.
