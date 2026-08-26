@@ -597,26 +597,8 @@ private struct AgentToolRowView: View {
             }
 
             if let result = card.result {
-                if let output = AgentToolPresentation.detailOutput(
-                    from: result,
-                    presentation: card.descriptor.presentation,
-                    review: card.review
-                ) {
-                    let preview = AgentToolPresentation.preview(output)
-                    Text(preview.displayed)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(result.isError ? .red : .secondary)
-                        .textSelection(.enabled)
-
-                    if preview.isShortened {
-                        HStack(spacing: Metrics.Space.s) {
-                            Text("Output shortened for display")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            CopyButton(text: preview.full, title: "Copy Full Output")
-                        }
-                    }
+                if let detail = AgentToolPresentation.detail(for: card) {
+                    AgentToolDetailView(detail: detail, isError: result.isError)
                 }
 
                 if result.isTruncated {
@@ -642,6 +624,184 @@ private struct AgentToolRowView: View {
         case .reviewing, .waitingForApproval, .waitingForUser: .orange
         case .completed: .green
         default: .secondary
+        }
+    }
+}
+
+/// Structured, deliberately low-chrome tool output. Protocol keys never reach
+/// this view: labels, sections and text styles have already been chosen by the
+/// presentation projection, leaving SwiftUI responsible only for hierarchy.
+private struct AgentToolDetailView: View {
+    let detail: AgentToolPresentation.Detail
+    let isError: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            ForEach(Array(detail.items.enumerated()), id: \.offset) { _, item in
+                switch item {
+                case .field(let field):
+                    fieldView(field)
+                case .message(let message, let tint):
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(color(tint))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                case .text(let block):
+                    textBlock(block)
+                case .list(let list):
+                    listBlock(list)
+                case .groupedList(let list):
+                    groupedList(list)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func fieldView(_ field: AgentToolPresentation.DetailField) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
+            Text(field.label)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 76, alignment: .leading)
+            if let rawURL = field.url, let url = URL(string: rawURL) {
+                Link(field.value, destination: url)
+                    .font(field.isMonospaced ? .caption.monospaced() : .caption)
+            } else {
+                Text(field.value)
+                    .font(field.isMonospaced ? .caption.monospaced() : .caption)
+                    .foregroundStyle(isError ? .red : .primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func textBlock(_ block: AgentToolPresentation.DetailTextBlock) -> some View {
+        if let title = block.title {
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        let preview = AgentToolPresentation.preview(block.text)
+        Text(preview.displayed)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .font(block.style == .monospaced ? .caption.monospaced() : .caption)
+            .foregroundStyle(isError ? .red : .secondary)
+            .textSelection(.enabled)
+
+        if preview.isShortened {
+            HStack(spacing: Metrics.Space.s) {
+                Text("Output shortened for display")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                CopyButton(text: preview.full, title: "Copy Full Output")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func listBlock(_ list: AgentToolPresentation.DetailListBlock) -> some View {
+        if let title = list.title {
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        if list.rows.isEmpty, let empty = list.emptyMessage {
+            Text(empty).font(.caption).foregroundStyle(.secondary)
+        } else {
+            VStack(alignment: .leading, spacing: Metrics.Space.s) {
+                ForEach(Array(list.rows.enumerated()), id: \.offset) { _, row in
+                    detailRow(row)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func groupedList(_ list: AgentToolPresentation.DetailGroupedList) -> some View {
+        Text(list.summary)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+        if list.isScrollable {
+            ScrollView {
+                groupedListContents(list)
+            }
+            .frame(maxHeight: 360)
+            .scrollBounceBehavior(.basedOnSize)
+        } else {
+            groupedListContents(list)
+        }
+    }
+
+    private func groupedListContents(
+        _ list: AgentToolPresentation.DetailGroupedList
+    ) -> some View {
+        LazyVStack(alignment: .leading, spacing: Metrics.Space.m) {
+            ForEach(Array(list.sections.enumerated()), id: \.offset) { _, section in
+                VStack(alignment: .leading, spacing: Metrics.Space.s) {
+                    Text(section.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in
+                        detailRow(row)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func detailRow(_ row: AgentToolPresentation.DetailListRow) -> some View {
+        HStack(alignment: .top, spacing: Metrics.Space.s) {
+            if let symbol = row.symbol {
+                Image(systemName: symbol)
+                    .font(.caption)
+                    .foregroundStyle(color(row.tint))
+                    .frame(width: Metrics.Sidebar.rowIcon)
+            }
+            VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                if let rawURL = row.url, let url = URL(string: rawURL) {
+                    Link(row.title, destination: url)
+                        .font(.caption.weight(.medium))
+                } else {
+                    Text(row.title).font(.caption.weight(.medium))
+                }
+                if let subtitle = row.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+                if let detail = row.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+                if !row.badges.isEmpty {
+                    FlowLayout(spacing: Metrics.Space.xs, fillsWidth: false) {
+                        ForEach(Array(row.badges.enumerated()), id: \.offset) { _, badge in
+                            CardChip(text: badge)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func color(_ tint: AgentToolPresentation.DetailTint) -> Color {
+        switch tint {
+        case .secondary: .secondary
+        case .warning: .orange
+        case .success: .green
+        case .failure: .red
         }
     }
 }

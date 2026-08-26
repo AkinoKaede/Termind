@@ -184,6 +184,292 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func userInputDetailShowsOneQuestionAndAnswerFieldPerLine() throws {
+        let arguments: [String: AgentJSONValue] = [
+            "questions": .array([
+                .object([
+                    "id": .string("storage"), "header": .string("Storage"),
+                    "prompt": .string("Which format should we use?"),
+                    "options": .array([
+                        .object(["id": .string("jsonb"), "label": .string("JSONB")])
+                    ]),
+                ]),
+                .object([
+                    "id": .string("region"), "prompt": .string("Which region?")
+                ]),
+            ])
+        ]
+        var card = makeCard(
+            name: "request_user_input", target: .user, arguments: arguments,
+            presentation: AgentBuiltInTools.requestUserInput().descriptor.presentation
+        )
+        card.state = .completed
+        card.result = AgentToolResult(
+            callID: "call",
+            content: AgentJSONValue.object([
+                "answers": .array([
+                    .object([
+                        "question_id": .string("storage"), "answer": .string("With audit log"),
+                        "selected_option_ids": .array([.string("jsonb")]),
+                        "custom_text": .string("With audit log"),
+                    ]),
+                    .object([
+                        "question_id": .string("region"), "answer": .null,
+                        "selected_option_ids": .array([]), "custom_text": .null,
+                    ]),
+                ])
+            ]).encodedString
+        )
+
+        let detail = try #require(AgentToolPresentation.detail(for: card))
+        #expect(detail.items == [
+            .field(.init(label: "Question", value: "Storage — Which format should we use?")),
+            .field(.init(label: "Answer", value: "JSONB, With audit log")),
+            .field(.init(label: "Question", value: "Which region?")),
+            .field(.init(label: "Answer", value: "Skipped")),
+        ])
+        #expect(!String(describing: detail).contains("selected_option_ids"))
+        #expect(!String(describing: detail).contains("jsonb"))
+    }
+
+    @Test
+    func hostListingDetailPreservesGroupsAndHidesProtocolIdentifiers() throws {
+        let productionID = "11111111-1111-1111-1111-111111111111"
+        let childID = "22222222-2222-2222-2222-222222222222"
+        let result = AgentJSONValue.object([
+            "groups": .array([
+                .object([
+                    "id": .string(productionID), "name": .string("Production"),
+                    "path": .string("Production"),
+                    "children": .array([
+                        .object([
+                            "id": .string(childID), "name": .string("Edge"),
+                            "path": .string("Production / Edge"), "children": .array([]),
+                        ])
+                    ]),
+                ])
+            ]),
+            "hosts": .array([
+                hostJSON(
+                    id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "API Server",
+                    address: "deploy@api.example.com", state: "connected",
+                    tags: ["prod", "nginx"], groupID: productionID
+                ),
+                hostJSON(
+                    id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", name: "Loose Box",
+                    address: "root@10.0.0.2", state: "failed", tags: [],
+                    groupID: "ffffffff-ffff-ffff-ffff-ffffffffffff"
+                ),
+                hostJSON(
+                    id: "cccccccc-cccc-cccc-cccc-cccccccccccc", name: "Current Terminal",
+                    address: "root@10.0.0.8", state: "reconnecting", tags: [],
+                    temporary: true
+                ),
+            ]),
+        ])
+        var card = makeCard(name: "list_hosts", target: .host)
+        card.state = .completed
+        card.result = AgentToolResult(callID: "call", content: result.encodedString)
+
+        let detail = try #require(AgentToolPresentation.detail(for: card))
+        guard case .groupedList(let listing) = try #require(detail.items.first) else {
+            Issue.record("Expected a grouped host listing")
+            return
+        }
+        #expect(listing.summary == "3 hosts · 1 connected · 1 temporary")
+        #expect(listing.sections.map(\.title) == [
+            "Production · 1 host", "Production / Edge · 0 hosts",
+            "Ungrouped · 1 host", "Temporary · 1 host",
+        ])
+        #expect(listing.sections[0].rows[0].title == "API Server")
+        #expect(listing.sections[0].rows[0].subtitle == "deploy@api.example.com · Connected")
+        #expect(listing.sections[0].rows[0].badges == ["prod", "nginx"])
+        #expect(listing.sections[2].rows[0].subtitle == "root@10.0.0.2 · Failed")
+        #expect(listing.sections[3].rows[0].subtitle == "root@10.0.0.8 · Reconnecting")
+        let rendered = String(describing: detail)
+        #expect(!rendered.contains(productionID))
+        #expect(!rendered.contains("aaaaaaaa-aaaa"))
+        #expect(!rendered.contains("group_id"))
+        #expect(!rendered.contains("connection_state"))
+    }
+
+    @Test
+    func hostListingBecomesScrollablePastTwelveHosts() throws {
+        let hosts = (0..<13).map { index in
+            hostJSON(
+                id: UUID().uuidString, name: "Host \(index)",
+                address: "host\(index).example.com", state: "disconnected", tags: []
+            )
+        }
+        var card = makeCard(name: "list_hosts", target: .host)
+        card.result = AgentToolResult(
+            callID: "call",
+            content: AgentJSONValue.object([
+                "groups": .array([]), "hosts": .array(hosts),
+            ]).encodedString
+        )
+
+        let detail = try #require(AgentToolPresentation.detail(for: card))
+        guard case .groupedList(let listing) = try #require(detail.items.first) else {
+            Issue.record("Expected a grouped host listing")
+            return
+        }
+        #expect(listing.isScrollable)
+        #expect(listing.sections[0].rows.count == 13)
+    }
+
+    @Test
+    func builtInFallbackUsesFieldsWhileMCPKeepsJSON() throws {
+        let payload = AgentJSONValue.object([
+            "internal_flag": .bool(true), "count": .number(2),
+        ]).encodedString
+        var builtIn = makeCard(name: "future_tool", target: .local)
+        builtIn.result = AgentToolResult(callID: "call", content: payload)
+        let builtInDetail = try #require(AgentToolPresentation.detail(for: builtIn))
+        #expect(builtInDetail.items == [
+            .field(.init(label: "Count", value: "2")),
+            .field(.init(label: "Internal Flag", value: "Yes")),
+        ])
+        #expect(!String(describing: builtInDetail).contains("{"))
+
+        var mcp = makeCard(
+            name: "remote_tool", target: .mcp,
+            presentation: .init(
+                symbol: "puzzlepiece.extension", activity: .label("remote tool"), output: .json
+            )
+        )
+        mcp.result = AgentToolResult(callID: "call", content: payload)
+        let mcpDetail = try #require(AgentToolPresentation.detail(for: mcp))
+        guard case .text(let block) = try #require(mcpDetail.items.first) else {
+            Issue.record("Expected MCP JSON text")
+            return
+        }
+        #expect(block.text.contains("{"))
+        #expect(block.text.contains("\"internal_flag\""))
+    }
+
+    @Test
+    func everyBuiltInJSONToolProducesStructuredDetailWithoutJSONSyntax() throws {
+        let file = AgentJSONValue.object([
+            "path": .string("/tmp/a"), "name": .string("a"), "kind": .string("file"),
+            "size": .number(4), "permissions": .string("644"), "modified_at": .null,
+        ])
+        let cases: [(String, AgentToolDescriptor.Target, [String: AgentJSONValue], AgentJSONValue)] = [
+            ("list_hosts", .host, [:], .object(["groups": .array([]), "hosts": .array([])])),
+            ("ssh_exec", .host, [:], .object([
+                "status": .string("exited"), "stdout": .string("ok"),
+                "stderr": .string(""), "exit_code": .number(0),
+            ])),
+            ("ssh_wait", .host, [:], .object([
+                "status": .string("running"), "stdout": .string(""),
+                "stderr": .string(""), "note": .string("Still running"),
+            ])),
+            ("terminal_suggest", .user, ["command": .string("pwd")], .object([
+                "command": .string("pwd"), "requires_user_action": .bool(true),
+            ])),
+            ("sftp_list", .host, [:], .array([file])),
+            ("sftp_stat", .host, [:], file),
+            ("sftp_read", .host, [:], .object([
+                "path": .string("/tmp/a"), "content": .string("text"), "bytes": .number(4),
+            ])),
+            ("sftp_write", .host, ["content": .string("text")], .object([
+                "path": .string("/tmp/a"), "written": .bool(true),
+            ])),
+            ("sftp_mkdir", .host, [:], .object([
+                "path": .string("/tmp/new"), "created": .bool(true),
+            ])),
+            ("sftp_move", .host, [:], .object([
+                "source": .string("/tmp/a"), "destination": .string("/tmp/b"),
+                "moved": .bool(true),
+            ])),
+            ("sftp_chmod", .host, [:], .object([
+                "path": .string("/tmp/a"), "mode": .string("644"),
+            ])),
+            ("sftp_delete", .host, ["kind": .string("file")], .object([
+                "path": .string("/tmp/a"), "deleted": .bool(true),
+            ])),
+            ("fetch", .network, ["method": .string("GET")], .object([
+                "url": .string("https://example.com"), "status": .number(200),
+                "headers": .object(["content-type": .string("text/plain")]),
+                "body": .string("hello"),
+            ])),
+            ("web_search", .network, [:], .array([
+                .object([
+                    "title": .string("Example"), "url": .string("https://example.com"),
+                    "snippet": .string("Snippet"), "published_at": .null,
+                ])
+            ])),
+            ("request_user_input", .user, [
+                "questions": .array([
+                    .object(["id": .string("q"), "prompt": .string("Question?")])
+                ])
+            ], .object([
+                "answers": .array([
+                    .object(["question_id": .string("q"), "answer": .string("Answer")])
+                ])
+            ])),
+            ("request_user_secret", .user, [
+                "prompt": .string("Password"), "purpose": .string("Login"),
+                "consumer_tool": .string("ssh_exec"),
+            ], .object(["secret_handle": .string("hidden"), "single_use": .bool(true)])),
+            ("scratch_list", .local, [:], .object([
+                "entries": .array([]), "entry_count": .number(0),
+                "entry_quota": .number(100), "total_bytes": .number(0),
+                "byte_quota": .number(1000),
+            ])),
+            ("scratch_read", .local, [:], .object([
+                "path": .string("a"), "content": .string("text"), "bytes": .number(4),
+                "offset": .number(1), "returned_lines": .number(1),
+                "total_lines": .number(1), "line_ending": .string("lf"),
+            ])),
+            ("scratch_write", .local, [:], .object([
+                "path": .string("a"), "bytes": .number(4), "sha256": .string("abcd"),
+                "created": .bool(true), "total_bytes": .number(4),
+            ])),
+            ("scratch_edit", .local, [:], .object([
+                "path": .string("a"), "edits_applied": .number(1),
+                "diff": .string("-old\n+new"), "bytes": .number(3),
+                "line_ending": .string("lf"), "sha256": .string("abcd"),
+                "total_bytes": .number(3),
+            ])),
+            ("scratch_diff", .local, [:], .object([
+                "path_a": .string("a"), "path_b": .string("b"),
+                "identical": .bool(true), "diff": .string(""),
+                "line_ending_a": .string("lf"), "line_ending_b": .string("lf"),
+            ])),
+            ("scratch_delete", .local, [:], .object([
+                "path": .string("a"), "kind": .string("file"), "deleted": .bool(true),
+                "entry_count": .number(0), "total_bytes": .number(0),
+            ])),
+            ("scratch_pull", .host, [:], .object([
+                "remote_path": .string("/tmp/a"), "scratch_path": .string("a"),
+                "bytes": .number(4), "sha256": .string("abcd"),
+                "is_utf8": .bool(true), "lines": .number(1), "total_bytes": .number(4),
+            ])),
+            ("scratch_push", .host, [:], .object([
+                "scratch_path": .string("a"), "remote_path": .string("/tmp/a"),
+                "bytes": .number(4), "sha256": .string("abcd"), "written": .bool(true),
+            ])),
+            ("present_plan", .user, [:], .object([
+                "presented": .bool(true), "scratch_path": .string("plan.md"),
+                "plan": .string("Plan"),
+            ])),
+            ("manage_tasks", .user, [:], .object([
+                "tasks": .number(3), "completed": .number(1),
+            ])),
+        ]
+
+        for (name, target, arguments, result) in cases {
+            var card = makeCard(name: name, target: target, arguments: arguments)
+            card.result = AgentToolResult(callID: "call", content: result.encodedString)
+            let detail = try #require(AgentToolPresentation.detail(for: card), "Missing \(name)")
+            let rendered = String(describing: detail)
+            #expect(!rendered.contains("{"), "\(name) exposed JSON")
+            #expect(!rendered.contains("}"), "\(name) exposed JSON")
+        }
+    }
+
+    @Test
     func finishedBatchSummaryCountsRepeatedActivitiesAndPreservesFailures() {
         let questionPresentation = AgentBuiltInTools.requestUserInput().descriptor.presentation
         var firstQuestion = makeCard(
@@ -478,5 +764,18 @@ struct AgentToolPresentationTests {
                 target: target, safety: .locallyReadOnly, presentation: presentation
             )
         )
+    }
+
+    private func hostJSON(
+        id: String, name: String, address: String, state: String, tags: [String],
+        groupID: String? = nil, temporary: Bool = false
+    ) -> AgentJSONValue {
+        .object([
+            "id": .string(id), "display_name": .string(name), "address": .string(address),
+            "tags": .array(tags.map(AgentJSONValue.string)),
+            "connection_state": .string(state), "temporary": .bool(temporary),
+            "group_id": groupID.map(AgentJSONValue.string) ?? .null,
+            "group_path": .null,
+        ])
     }
 }
