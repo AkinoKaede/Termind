@@ -154,24 +154,6 @@ struct AgentSteeringTests {
         #expect(conversation.draft == "hello")
     }
 
-    /// A background command finishing is addressed to the model, which asked
-    /// for it. It is not addressed to the user, and the transcript has only
-    /// three roles — so a visible version would be a bubble attributed to
-    /// someone who never said it.
-    @Test
-    func aNoticeReachesTheModelWithoutAppearingInTheConversation() {
-        let conversation = ConversationModel()
-        let notice = AgentTranscriptMessage(
-            role: .user, text: "The background command `deploy.sh` has finished."
-        )
-
-        conversation.handle(.noticeDelivered(notice))
-
-        #expect(conversation.transcript == [notice])
-        #expect(conversation.messages.isEmpty)
-        #expect(conversation.timeline.isEmpty)
-    }
-
     private func startRun(_ conversation: ConversationModel) {
         conversation.start(
             runtime: AgentRuntime(

@@ -294,15 +294,6 @@ nonisolated enum AgentEvent: Hashable, Sendable {
     case messageStarted(AgentTranscriptMessage)
     case messageDelta(messageID: AgentTranscriptMessage.ID, text: String)
     case messageFinished(AgentTranscriptMessage)
-    /// Something the run told the model that the user was not shown.
-    ///
-    /// A background command finishing is addressed to the model: it asked for
-    /// the command and is owed the outcome. It is not addressed to the user,
-    /// and the transcript has only three roles — so a visible version would be
-    /// a bubble attributed to a person who did not say it. This lands in the
-    /// model-facing history only; the user learns about the command from its
-    /// card.
-    case noticeDelivered(AgentTranscriptMessage)
     /// A message the user queued mid-run has entered the model's context.
     ///
     /// The one moment at which a steered turn becomes part of the conversation.

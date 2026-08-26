@@ -114,9 +114,6 @@ nonisolated struct AgentToolExecutor: Sendable {
     let runID: UUID
     let permissionMode: ChatPermissionMode
     let userIntent: String
-    /// Deliberately not behind the progress gate: this exists for what a tool
-    /// says *after* it has returned.
-    var notify: @Sendable (String) -> Void = { _ in }
 
     func plan(_ call: AgentToolCall) async -> AgentPlannedToolCall {
         let proposed = AgentToolInvocation(runID: runID, call: call)
@@ -265,8 +262,7 @@ nonisolated struct AgentToolExecutor: Sendable {
             },
             report: gate.forward { [channel, invocation = ready.invocation] partial in
                 channel.emit(.toolProgress(invocation, partial))
-            },
-            notify: notify
+            }
         )
     }
 

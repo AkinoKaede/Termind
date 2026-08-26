@@ -44,12 +44,6 @@ actor AgentBackgroundCommands {
         let task: Task<SSHExecResult, any Error>
         let session: any SSHExecSessionProtocol
         var lastAskedAt: ContinuousClock.Instant
-        /// How many `ssh_wait` calls are blocked on this right now. A command
-        /// somebody is already watching needs no announcement — they will
-        /// report the outcome themselves, and hearing it twice is worse than
-        /// hearing it once.
-        var waiters = 0
-        var hasBeenAnnounced = false
     }
 
     private var entries: [UUID: Entry] = [:]
@@ -75,8 +69,7 @@ actor AgentBackgroundCommands {
     func adopt(
         hostID: UUID, command: String, stream: AgentCommandOutputStream,
         task: Task<SSHExecResult, any Error>, session: any SSHExecSessionProtocol,
-        now: ContinuousClock.Instant = .now,
-        announce: (@Sendable (String) -> Void)? = nil
+        now: ContinuousClock.Instant = .now
     ) -> UUID {
         let handle = UUID()
         entries[handle] = Entry(
@@ -84,50 +77,7 @@ actor AgentBackgroundCommands {
             session: session, lastAskedAt: now
         )
         startSweeping()
-        if let announce {
-            // Unstructured, and nothing awaits it: it lives exactly as long as
-            // the command does. See `settled` for what happens to a structured
-            // watcher of a task that ignores cancellation.
-            Task { [weak self] in
-                _ = await task.result
-                await self?.announceCompletion(handle, announce)
-            }
-        }
         return handle
-    }
-
-    /// Tells whoever asked that a command nobody was watching has finished.
-    ///
-    /// The alternative is silence. A model that takes a handle and never comes
-    /// back never learns the outcome, and the output is swept ten minutes later
-    /// having been read by no one — a deploy whose result vanishes because the
-    /// agent got distracted is the quietest possible failure.
-    private func announceCompletion(
-        _ handle: UUID, _ announce: @Sendable (String) -> Void
-    ) async {
-        guard var entry = entries[handle], entry.waiters == 0, !entry.hasBeenAnnounced
-        else { return }
-        entry.hasBeenAnnounced = true
-        entries[handle] = entry
-        guard let result = try? await entry.task.value else { return }
-        let captured = entry.stream.captured
-        announce(Self.completionNotice(
-            handle: handle, command: entry.command, result: result,
-            standardOut: captured.standardOut, standardError: captured.standardError
-        ))
-    }
-
-    static func completionNotice(
-        handle: UUID, command: String, result: SSHExecResult,
-        standardOut: String, standardError: String
-    ) -> String {
-        var notice = String(
-            localized:
-                "The background command `\(command)` has finished with exit code \(result.exitCode). Its handle was \(handle.uuidString)."
-        )
-        if !standardOut.isEmpty { notice += "\n\nstdout:\n\(standardOut)" }
-        if !standardError.isEmpty { notice += "\n\nstderr:\n\(standardError)" }
-        return notice
     }
 
     /// Waits up to `timeout` for the command behind `handle` to finish.
@@ -148,12 +98,7 @@ actor AgentBackgroundCommands {
         // returned, and its progress gate is shut.
         if let reporting { entry.stream.redirect(to: reporting) }
 
-        // Counted across the wait so a completion that lands mid-wait is
-        // reported by this call rather than announced behind its back.
-        entries[handle]?.waiters += 1
-        let didSettle = await Self.settled(entry.task, within: timeout)
-        entries[handle]?.waiters -= 1
-        guard didSettle else {
+        guard await Self.settled(entry.task, within: timeout) else {
             let captured = entry.stream.captured
             return AgentCommandOutcome(
                 handle: handle, standardOut: captured.standardOut,

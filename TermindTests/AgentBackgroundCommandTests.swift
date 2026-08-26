@@ -214,55 +214,6 @@ struct AgentBackgroundCommandTests {
         await released.release()
     }
 
-    // MARK: - Telling the model when nobody asked
-
-    /// The quietest possible failure this design could have: a model takes a
-    /// handle, gets distracted, and the deploy's outcome is swept ten minutes
-    /// later having been read by no one.
-    @Test
-    func aCommandNobodyWaitedOnAnnouncesItself() async throws {
-        let commands = AgentBackgroundCommands(sweepInterval: nil)
-        let announced = Sink()
-        _ = await commands.adopt(
-            hostID: UUID(), command: "deploy.sh",
-            stream: AgentCommandOutputStream { _, _ in },
-            task: Task { exited(0, stdout: "done") }, session: StubSession(),
-            announce: { announced.append($0) }
-        )
-
-        for _ in 0..<50 where announced.values.isEmpty {
-            try await Task.sleep(for: .milliseconds(10))
-        }
-
-        #expect(announced.values.count == 1)
-        #expect(announced.values.first?.contains("deploy.sh") == true)
-        #expect(announced.values.first?.contains("exit code 0") == true)
-    }
-
-    /// The other half: somebody watching reports it themselves, so announcing
-    /// it as well would tell the model the same thing twice.
-    @Test
-    func aCommandSomebodyIsWaitingOnIsNotAlsoAnnounced() async throws {
-        let commands = AgentBackgroundCommands(sweepInterval: nil)
-        let announced = Sink()
-        let released = AsyncRelease()
-        let handle = await commands.adopt(
-            hostID: UUID(), command: "deploy.sh",
-            stream: AgentCommandOutputStream { _, _ in },
-            task: Task { await released.wait(); return exited(0, stdout: "done") },
-            session: StubSession(),
-            announce: { announced.append($0) }
-        )
-
-        async let outcome = commands.wait(handle, timeout: .seconds(30))
-        try await Task.sleep(for: .milliseconds(20))
-        await released.release()
-
-        #expect(try await outcome.exitCode == 0)
-        try await Task.sleep(for: .milliseconds(50))
-        #expect(announced.values.isEmpty, "the waiter already reported it")
-    }
-
     // MARK: - Shape
 
     @Test @MainActor
