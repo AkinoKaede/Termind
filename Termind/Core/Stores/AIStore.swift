@@ -27,8 +27,8 @@ final class AIStore {
     private(set) var lastSelectedModel: AIModelRef?
 
     /// The approval posture new and otherwise-unset conversations follow.
-    /// Session-only. Unlike the model selection, approval posture is not part
-    /// of provider configuration and is deliberately not persisted here.
+    /// Stored in local preferences rather than provider configuration so it
+    /// survives relaunches without becoming part of the synced SwiftData model.
     private(set) var lastSelectedPermissionMode: ChatPermissionMode
 
     /// Live MCP connection state, keyed by server.
@@ -44,6 +44,7 @@ final class AIStore {
     private var secrets: [String: String] = [:]
     private let keychain: KeychainSecretStore
     private let persistsSecrets: Bool
+    private let permissionDefaults: UserDefaults?
     private(set) var secretStorageError: String?
     private var persistence: AIPersistence?
     private(set) var storageError: String?
@@ -55,23 +56,33 @@ final class AIStore {
         lastSelectedModel: AIModelRef? = nil,
         lastSelectedPermissionMode: ChatPermissionMode = .askForApproval,
         keychain: KeychainSecretStore = KeychainSecretStore(),
-        persistsSecrets: Bool = true
+        persistsSecrets: Bool = true,
+        permissionDefaults: UserDefaults? = nil
     ) {
         self.modelProviders = modelProviders
         self.mcpServers = mcpServers
         self.roles = roles
         self.lastSelectedModel = lastSelectedModel
-        self.lastSelectedPermissionMode = lastSelectedPermissionMode
+        self.lastSelectedPermissionMode = permissionDefaults
+            .flatMap { $0.string(forKey: SettingsKey.agentPermissionMode) }
+            .flatMap(ChatPermissionMode.init(rawValue:))
+            ?? lastSelectedPermissionMode
         self.keychain = keychain
         self.persistsSecrets = persistsSecrets
+        self.permissionDefaults = permissionDefaults
     }
 
     convenience init(
         modelContext: ModelContext,
         keychain: KeychainSecretStore = KeychainSecretStore(),
-        persistsSecrets: Bool = true
+        persistsSecrets: Bool = true,
+        permissionDefaults: UserDefaults = .standard
     ) {
-        self.init(keychain: keychain, persistsSecrets: persistsSecrets)
+        self.init(
+            keychain: keychain,
+            persistsSecrets: persistsSecrets,
+            permissionDefaults: permissionDefaults
+        )
         let persistence = AIPersistence(context: modelContext)
         self.persistence = persistence
         do {
@@ -378,10 +389,11 @@ final class AIStore {
         mutatePersistedState { lastSelectedModel = ref }
     }
 
-    /// Records a composer permission choice for subsequent unset conversations.
-    /// It does not alter command or MCP execution policy.
+    /// Records a composer permission choice for subsequent unset conversations
+    /// and future app launches. It does not alter command or MCP execution policy.
     func select(_ permissionMode: ChatPermissionMode) {
         lastSelectedPermissionMode = permissionMode
+        permissionDefaults?.set(permissionMode.rawValue, forKey: SettingsKey.agentPermissionMode)
     }
 
     // MARK: - Provider persistence

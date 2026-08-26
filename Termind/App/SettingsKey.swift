@@ -30,6 +30,8 @@ nonisolated enum SettingsKey {
     }
     /// Restore the previous window's tabs on launch.
     static let restoreTabs = "window.restoreTabs"
+    /// The last approval posture selected in the Assistant composer.
+    static let agentPermissionMode = "assistant.permissionMode"
     static let sftpGlobalTransferLimit = "sftp.transfers.globalLimit"
     static let sftpPerHostTransferLimit = "sftp.transfers.perHostLimit"
     static let defaultSFTPGlobalTransferLimit = 3

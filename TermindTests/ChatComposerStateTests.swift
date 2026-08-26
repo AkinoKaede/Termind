@@ -102,6 +102,51 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func permissionDefaultPersistsAcrossStoreInstancesIncludingFullAccess() throws {
+        let suiteName = "ChatPermissionMode-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        first.select(ChatPermissionMode.approveForMe)
+
+        let second = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        #expect(second.lastSelectedPermissionMode == .approveForMe)
+
+        second.select(ChatPermissionMode.fullAccess)
+
+        let third = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+        #expect(third.lastSelectedPermissionMode == .fullAccess)
+
+        let explicit = ConversationModel()
+        explicit.permissionMode = .askForApproval
+        #expect(third.resolve(conversation: explicit.permissionMode) == .askForApproval)
+    }
+
+    @Test
+    func missingPersistedPermissionDefaultsToAskForApproval() throws {
+        let suiteName = "ChatPermissionMode-Missing-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+
+        #expect(store.lastSelectedPermissionMode == .askForApproval)
+    }
+
+    @Test
+    func invalidPersistedPermissionDefaultsToAskForApproval() throws {
+        let suiteName = "ChatPermissionMode-Invalid-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set("unknown-mode", forKey: SettingsKey.agentPermissionMode)
+
+        let store = AIStore(persistsSecrets: false, permissionDefaults: defaults)
+
+        #expect(store.lastSelectedPermissionMode == .askForApproval)
+    }
+
+    @Test
     func modelSelectionStillFeedsUnsetConversationsWithoutOverridingExplicitOnes() {
         let firstModel = AIModel(id: "first")
         let secondModel = AIModel(id: "second")
