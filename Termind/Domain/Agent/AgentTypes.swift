@@ -268,6 +268,14 @@ nonisolated enum AgentEvent: Hashable, Sendable {
     case messageStarted(AgentTranscriptMessage)
     case messageDelta(messageID: AgentTranscriptMessage.ID, text: String)
     case messageFinished(AgentTranscriptMessage)
+    /// A message the user queued mid-run has entered the model's context.
+    ///
+    /// The one moment at which a steered turn becomes part of the conversation.
+    /// A reader that posts the bubble when the user pressed send instead
+    /// records it in a place the model never saw it — before the assistant text
+    /// that actually preceded it — and replays that order as history on the
+    /// next run. `createdAt` is restamped at delivery for the same reason.
+    case steeringDelivered(AgentTranscriptMessage)
     case toolProposed(AgentToolInvocation, AgentToolDescriptor)
     case toolStarted(AgentToolInvocation)
     case toolFinished(AgentToolInvocation, AgentToolResult)

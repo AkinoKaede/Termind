@@ -79,6 +79,33 @@ private struct CapturingAgentModel: AgentModelStreaming {
     }
 }
 
+/// Holds its first response open until released, and never asks for a tool.
+///
+/// The gate has to be inside the *model* rather than inside a tool for this to
+/// mean anything: the case under test is a turn that ends the run all by
+/// itself, which is precisely the turn with no tool to hold open.
+private struct GatedAgentModel: AgentModelStreaming {
+    let requests: RequestRecorder
+    let gate: AsyncGate
+    let counter = ScriptedAgentModel.Counter()
+
+    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                await requests.append(request)
+                if await counter.next() == 0 {
+                    continuation.yield(.textDelta("looking into it"))
+                    await gate.beginAndWait()
+                } else {
+                    continuation.yield(.textDelta("done"))
+                }
+                continuation.yield(.finished(.completed))
+                continuation.finish()
+            }
+        }
+    }
+}
+
 private struct RecordingScriptedAgentModel: AgentModelStreaming {
     let turns: [[AgentModelStreamEvent]]
     let requests: RequestRecorder
@@ -222,6 +249,7 @@ struct AgentRuntimeTests {
     func steeringJoinsTheTranscriptAtTheNextModelBoundary() async {
         let requests = RequestRecorder()
         let gate = AsyncGate()
+        let events = EventRecorder()
         let model = CapturingAgentModel(requests: requests)
         let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
             name: "wait", summary: "wait",
@@ -238,10 +266,11 @@ struct AgentRuntimeTests {
         let stream = await runtime.start(AgentRunRequest(
             conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
         ))
-        let consumer = Task { for await _ in stream {} }
+        let consumer = Task { for await event in stream { await events.append(event) } }
 
         await gate.waitUntilStarted()
-        await runtime.steer("also inspect logs")
+        let steered = AgentTranscriptMessage(role: .user, text: "also inspect logs")
+        #expect(await runtime.steer(steered))
         await gate.release()
         await consumer.value
 
@@ -250,6 +279,12 @@ struct AgentRuntimeTests {
         #expect(captured.last?.messages.contains {
             $0.role == .user && $0.text == "also inspect logs"
         } == true)
+        // Announced by identity, so a reader can retire the queued row it drew
+        // without comparing one piece of text against another.
+        #expect(await events.values.contains { event in
+            guard case .steeringDelivered(let message) = event else { return false }
+            return message.id == steered.id && message.text == steered.text
+        })
         let providerItems = captured.last?.messages
             .first(where: { $0.role == .assistant })?.providerItems
         #expect(providerItems?.count == 1)
@@ -257,6 +292,68 @@ struct AgentRuntimeTests {
             providerItems?.first?.objectValue?["encrypted_content"]?.stringValue
                 == "final-state"
         )
+    }
+
+    /// The regression that made steering pointless: a reply with nothing to run
+    /// ended the run on the spot, so anything typed while it was being written
+    /// was left on screen as a turn the model was never shown.
+    @Test
+    func steeringKeepsARunAliveThroughATurnThatAsksForNoTools() async {
+        let requests = RequestRecorder()
+        let gate = AsyncGate()
+        let repository = InMemoryAgentRunRepository()
+        let runtime = AgentRuntime(
+            model: GatedAgentModel(requests: requests, gate: gate), tools: [],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+            repository: repository
+        )
+        var runID: UUID?
+        var states: [AgentRunState] = []
+        let stream = await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+        ))
+        let consumer = Task {
+            for await event in stream {
+                if case .runState(let state) = event { states.append(state) }
+                runID = runID ?? event.associatedRunID
+            }
+            return (runID, states)
+        }
+
+        await gate.waitUntilStarted()
+        #expect(await runtime.steer(AgentTranscriptMessage(role: .user, text: "one more thing")))
+        await gate.release()
+        let (id, observed) = await consumer.value
+
+        let captured = await requests.values
+        #expect(captured.count == 2, "the queued message has to buy another turn")
+        #expect(captured.last?.messages.contains { $0.text == "one more thing" } == true)
+        #expect(observed.contains(.completed))
+        let saved = await repository.snapshot(try! #require(id))?.messages
+        #expect(saved?.contains { $0.text == "one more thing" } == true)
+    }
+
+    /// A queue nobody will drain is worse than a refusal: the caller still has
+    /// the words and can put them back in front of the user.
+    @Test
+    func steeringIsRefusedOnceThereIsNoRunLeftToDeliverIt() async {
+        let repository = InMemoryAgentRunRepository()
+        let runtime = AgentRuntime(
+            model: ScriptedAgentModel(turns: [[.textDelta("done"), .finished(.completed)]]),
+            tools: [],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+            repository: repository
+        )
+        var runID: UUID?
+        for await event in await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+        )) {
+            runID = runID ?? event.associatedRunID
+        }
+
+        #expect(await runtime.steer(AgentTranscriptMessage(role: .user, text: "too late")) == false)
+        let saved = await repository.snapshot(try! #require(runID))?.messages
+        #expect(saved?.contains { $0.text == "too late" } == false)
     }
 
     @Test

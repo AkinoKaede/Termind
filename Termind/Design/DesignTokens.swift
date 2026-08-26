@@ -183,6 +183,14 @@ nonisolated enum Metrics {
         /// and this card sits between the transcript and the composer — past
         /// this it would push the conversation it is about off the screen.
         static let userInputMaxHeight: CGFloat = 320
+
+        /// How much of the steering queue is shown before it scrolls.
+        ///
+        /// A ceiling, not a height — the strip is measured from its rows and
+        /// only reaches this with four or five of them waiting. Queuing that
+        /// much at a working agent is possible but rare, and this is a reminder
+        /// of what is waiting, not a second transcript to read.
+        static let steeringQueueMaxHeight: CGFloat = 88
     }
 
     enum TransferCenter {

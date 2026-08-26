@@ -120,6 +120,22 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
     var review: SecurityReviewDecision?
 }
 
+/// One message the user sent while a run was in flight, waiting on the next
+/// model boundary.
+///
+/// `draft` and `attachments` are kept beside the composed message because the
+/// queue is a promise that can be broken — a stopped run hands these back to the
+/// composer, and handing back `message.text` would return the user their own
+/// attachment blocks to edit.
+nonisolated struct PendingSteeringMessage: Identifiable, Hashable, Sendable {
+    /// The message's own id, so delivery is matched on identity rather than on
+    /// comparing text with text.
+    var id: AgentTranscriptMessage.ID { message.id }
+    var draft: String
+    var attachments: [ContextChip] = []
+    var message: AgentTranscriptMessage
+}
+
 /// One row of a conversation, whichever of the two lists it came from.
 nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     case message(ChatMessage)
@@ -212,6 +228,9 @@ final class ConversationModel: Identifiable {
     /// someone to authorize three things while reading one.
     private(set) var pendingApprovals: [AgentApprovalRequest] = []
     private(set) var pendingUserInputs: [AgentUserInputRequest] = []
+    /// What the user typed at a busy agent, oldest first, none of it delivered
+    /// yet. See `submitSteeringDraft`.
+    private(set) var pendingSteering: [PendingSteeringMessage] = []
     /// Reviews in flight. Counted rather than flagged: they run concurrently,
     /// so the last one to finish must not be able to announce that none are.
     private var reviewing: Set<UUID> = []
@@ -422,22 +441,55 @@ final class ConversationModel: Identifiable {
         if let runtime { Task { await runtime.cancel() } }
         runtime = nil
         if !runtimeState.isTerminal { runtimeState = .cancelled }
+        returnAllSteeringToDraft()
         refreshRunState()
     }
 
-    func steer(_ text: String) {
-        guard let runtime else { return }
-        Task { await runtime.steer(text) }
-    }
-
-    /// Queues a visible user turn for the next model boundary without replacing
-    /// the active runtime or interrupting an in-flight tool.
+    /// Queues the draft for the running agent instead of starting a second run.
+    ///
+    /// Nothing reaches `messages` or `transcript` here. A bubble posted at the
+    /// keystroke sits above the assistant text that actually preceded it, and
+    /// `transcript` is replayed as the next run's history — so the model would
+    /// later be shown a conversation that never happened. The bubble appears
+    /// when the runtime reports the message delivered, which is where the model
+    /// really saw it.
     func submitSteeringDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, runtime != nil else { return }
-        appendUserTurn(text)
+        guard !text.isEmpty, let runtime else { return }
+        let pending = PendingSteeringMessage(
+            draft: text, attachments: attachments,
+            message: AgentTranscriptMessage(role: .user, text: composed(text))
+        )
+        pendingSteering.append(pending)
+        attachments.removeAll()
         draft = ""
-        steer(text)
+        Task { [weak self] in
+            guard await runtime.steer(pending.message) == false else { return }
+            // The run ended between the keystroke and this hop. Everything
+            // still queued is undeliverable, not just this one — and returning
+            // the whole queue at once is also what keeps the words in the order
+            // they were typed, which racing hops resolving one at a time would
+            // not.
+            self?.returnAllSteeringToDraft()
+        }
+    }
+
+    /// Hands one queued message back to the composer.
+    ///
+    /// Called by the ✕ on a queued row, and by every path that ends a run with
+    /// something still undelivered. Dropping the text instead would be the
+    /// second time the same words disappeared without being sent.
+    func returnSteeringToDraft(_ id: AgentTranscriptMessage.ID) {
+        guard let index = pendingSteering.firstIndex(where: { $0.id == id }) else { return }
+        let pending = pendingSteering.remove(at: index)
+        draft = [pending.draft, draft].filter { !$0.isEmpty }.joined(separator: "\n\n")
+        for chip in pending.attachments { attach(chip) }
+    }
+
+    /// Reversed because each entry is put back *above* the draft, so walking
+    /// the queue backwards is what leaves it in the order it was typed.
+    private func returnAllSteeringToDraft() {
+        for pending in pendingSteering.reversed() { returnSteeringToDraft(pending.id) }
     }
 
     /// Owns the approval queue.
@@ -619,7 +671,10 @@ final class ConversationModel: Identifiable {
         case .runState(let state):
             runtimeState = state
             refreshRunState()
-            if state.isTerminal { runDidFinish?() }
+            if state.isTerminal {
+                returnAllSteeringToDraft()
+                runDidFinish?()
+            }
         // Run and turn boundaries are for readers that group by turn. The
         // conversation draws a flat timeline, so it has nothing to do with
         // them — but they are listed rather than swept into a `default` so
@@ -647,6 +702,16 @@ final class ConversationModel: Identifiable {
                 ))
             }
             refreshRunState()
+        // A queued turn has entered the model's context, so now it is part of
+        // the conversation — in both lists, at the position the run put it, and
+        // no longer in the queue the composer is drawing.
+        case .steeringDelivered(let message):
+            pendingSteering.removeAll { $0.id == message.id }
+            messages.append(ChatMessage(
+                id: message.id, role: .user, text: message.text,
+                createdAt: message.createdAt
+            ))
+            transcript.append(message)
         case .messageFinished(let message):
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[index].text = message.text

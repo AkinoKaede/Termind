@@ -44,6 +44,14 @@ actor AgentRuntime {
     private let channel: AgentEventChannel
     private var runTask: Task<Void, Never>?
     private var steering: [AgentTranscriptMessage] = []
+    /// Whether a message queued *now* would still be delivered.
+    ///
+    /// Not the same question as "is there a run task". `complete` awaits its
+    /// final persist before it ends the run, and an actor is reentrant at every
+    /// await — so a message accepted during that window would land in a queue
+    /// nobody drains again. Cleared as the *first* statement of every path that
+    /// ends a run, which is what makes the window empty rather than narrow.
+    private var acceptsSteering = false
     private var activeRunID: UUID?
 
     init(
@@ -96,19 +104,34 @@ actor AgentRuntime {
     /// an `AsyncStream` has a single consumer.
     func start(_ request: AgentRunRequest) -> AsyncStream<AgentEvent> {
         cancel()
+        // Before the task exists, not inside it. A message queued in the gap
+        // would otherwise be refused for want of a run that is already on its
+        // way, and the first drain happens ahead of the first provider request
+        // — so even something typed this early is delivered rather than lost.
+        acceptsSteering = true
         runTask = Task { [weak self] in
             await self?.run(request)
         }
         return channel.events
     }
 
-    func steer(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        steering.append(AgentTranscriptMessage(role: .user, text: trimmed))
+    /// Queues a message for the next model boundary.
+    ///
+    /// `false` means there is no run left to steer and the caller still owns
+    /// the text — it must put it somewhere the user can see, because nothing
+    /// here will ever send it.
+    @discardableResult
+    func steer(_ message: AgentTranscriptMessage) -> Bool {
+        guard acceptsSteering else { return false }
+        guard !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        steering.append(message)
+        return true
     }
 
     func cancel() {
+        acceptsSteering = false
         runTask?.cancel()
         runTask = nil
         if let runID = activeRunID { Task { await secretBroker.discardSecrets(for: runID) } }
@@ -159,11 +182,11 @@ actor AgentRuntime {
         do {
             for index in 0..<configuration.maxTurns {
                 try Task.checkCancellation()
-                if !steering.isEmpty {
-                    snapshot.messages.append(contentsOf: steering)
-                    steering.removeAll()
-                }
                 channel.emit(.turnStarted(index: index))
+                if !steering.isEmpty {
+                    snapshot.messages.append(contentsOf: deliverSteering())
+                    await persist(snapshot)
+                }
                 let turn = try await driver.run(pipeline(AgentModelContext(
                     systemPrompt: request.systemPrompt,
                     messages: snapshot.messages,
@@ -176,7 +199,14 @@ actor AgentRuntime {
 
                 if turn.reason == .error { throw AgentRuntimeError.providerFailed }
                 guard !turn.message.toolCalls.isEmpty else {
-                    return await complete(snapshot, runID: runID)
+                    // A reply with nothing to run used to end the run right
+                    // here, which threw away whatever the user had typed while
+                    // it was being written — on screen as a turn the model was
+                    // never shown. Pi keeps its inner loop alive while messages
+                    // are pending for exactly this reason; the next iteration
+                    // delivers them and asks again.
+                    if steering.isEmpty { return await complete(snapshot, runID: runID) }
+                    continue
                 }
 
                 // Refusals still produce one result per call, then throw. An
@@ -222,11 +252,13 @@ actor AgentRuntime {
             }
             throw AgentRuntimeError.turnBudgetExceeded
         } catch is CancellationError {
+            acceptsSteering = false
             snapshot.state = .cancelled
             snapshot.finishedAt = .now
             channel.emit(.runState(.cancelled))
             await persist(snapshot)
         } catch {
+            acceptsSteering = false
             snapshot.state = .failed
             snapshot.failure = error.localizedDescription
             snapshot.finishedAt = .now
@@ -237,7 +269,26 @@ actor AgentRuntime {
         finish(runID: runID)
     }
 
+    /// Empties the queue into the turn that is about to start, and says so.
+    ///
+    /// The timestamp is rewritten here rather than kept from the keystroke that
+    /// queued it. A conversation orders assistant turns and tool cards by time,
+    /// and a message stamped while the previous turn was still streaming sorts
+    /// above the reply the user was reading when they typed it — which is not
+    /// where the model saw it.
+    private func deliverSteering() -> [AgentTranscriptMessage] {
+        let delivered = steering.map { queued in
+            var message = queued
+            message.createdAt = .now
+            return message
+        }
+        steering.removeAll()
+        for message in delivered { channel.emit(.steeringDelivered(message)) }
+        return delivered
+    }
+
     private func complete(_ snapshot: AgentRunSnapshot, runID: UUID) async {
+        acceptsSteering = false
         var finished = snapshot
         finished.state = .completed
         finished.finishedAt = .now

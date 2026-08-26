@@ -263,6 +263,17 @@ struct ComposerView: View {
                     sendDraft()
                     return .handled
                 }
+                // The Stop button gives its slot to Send as soon as the draft
+                // has a character in it — which is exactly when this field has
+                // focus. Without this, typing would make a run unstoppable
+                // until the draft was cleared again.
+                .onKeyPress(KeyEquivalent("."), phases: .down) { press in
+                    guard conversation.isStreaming, press.modifiers.contains(.command) else {
+                        return .ignored
+                    }
+                    conversation.stop()
+                    return .handled
+                }
         }
         .frame(
             height: min(
@@ -277,6 +288,18 @@ struct ComposerView: View {
     /// when the field gains content.
     private static let editorTextInset: CGFloat = 5
 
+    private var trimmedDraft: String {
+        conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Stop and Send share one slot rather than standing side by side.
+    ///
+    /// Drawn together they read as a pair of equals, and the primary action
+    /// moved under the pointer the moment the draft gained a character. With a
+    /// draft to send, Send is what the button is for; with nothing to send,
+    /// stopping is the only thing left to do.
+    private var showsStopButton: Bool { conversation.isStreaming && trimmedDraft.isEmpty }
+
     private var standardControls: some View {
         HStack(spacing: Metrics.Space.s) {
             ViewThatFits(in: .horizontal) {
@@ -286,29 +309,33 @@ struct ComposerView: View {
             .frame(maxWidth: .infinity)
 
             transcribeButton
-            if conversation.isStreaming {
-                sendButton(
-                    enabled: !conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                    action: sendDraft
-                )
-                .help(Text("Queue message for the running agent"))
-                Button(action: conversation.stop) {
-                    Label("Stop", systemImage: "stop.circle.fill")
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.plain)
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(.red)
-                .frame(width: 32, height: 32)
-                .help(Text("Stop current run"))
+            if showsStopButton {
+                stopButton
             } else {
                 sendButton(
-                    enabled: !conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    enabled: !trimmedDraft.isEmpty,
+                    help: conversation.isStreaming
+                        ? "Queue for the running agent — ⏎" : "Send — ⌘⏎",
                     action: sendDraft
                 )
             }
         }
+        .animation(Motion.panel(reduceMotion: reduceMotion), value: showsStopButton)
         .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
+    }
+
+    private var stopButton: some View {
+        Button(action: conversation.stop) {
+            Label("Stop", systemImage: "stop.circle.fill")
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.plain)
+        .keyboardShortcut(".", modifiers: .command)
+        .font(.system(size: 26, weight: .semibold))
+        .foregroundStyle(.red)
+        .frame(width: 32, height: 32)
+        .contentShape(.circle)
+        .help(Text("Stop current run — ⌘."))
     }
 
     private var transcribeButton: some View {
@@ -397,7 +424,11 @@ struct ComposerView: View {
         }
     }
 
-    private func sendButton(enabled: Bool, action: @escaping () -> Void) -> some View {
+    private func sendButton(
+        enabled: Bool,
+        help: LocalizedStringKey = "Send — ⌘⏎",
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Label("Send", systemImage: "arrow.up.circle.fill")
         }
@@ -407,7 +438,7 @@ struct ComposerView: View {
         .frame(width: 32, height: 32)
         .contentShape(.circle)
         .disabled(!enabled)
-        .help(Text("Send — ⌘⏎"))
+        .help(Text(help))
     }
 
     private func circularControl(

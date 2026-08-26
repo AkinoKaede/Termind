@@ -14,13 +14,21 @@ struct ConversationView: View {
     var body: some View {
         VStack(spacing: 0) {
             transcript
+            // Each region rules itself off from whatever is above it, so every
+            // pair gets exactly one hairline. Ruling *below* instead, which is
+            // what these did, put two adjacent lines under any card that was
+            // showing — the card's own and the composer's.
             if let approval = conversation.pendingApproval {
-                AgentApprovalCard(request: approval, conversation: conversation)
                 Divider()
+                AgentApprovalCard(request: approval, conversation: conversation)
             }
             if let input = conversation.pendingUserInput {
-                AgentUserInputCard(request: input, conversation: conversation)
                 Divider()
+                AgentUserInputCard(request: input, conversation: conversation)
+            }
+            if !conversation.pendingSteering.isEmpty {
+                Divider()
+                SteeringQueueView(conversation: conversation)
             }
             Divider()
             ComposerView(conversation: conversation, sessionContext: sessionContext)
@@ -436,6 +444,94 @@ private struct AgentUserInputCard: View {
             isSelected ? "checkmark.square.fill" : "square"
         } else {
             isSelected ? "largecircle.fill.circle" : "circle"
+        }
+    }
+}
+
+// MARK: - Steering
+
+/// What the user has said to a busy agent that it has not been told yet.
+///
+/// Deliberately outside the transcript. These are not turns of the conversation
+/// until the run delivers them, and drawing them as bubbles would put words in
+/// a place the model never read them. The strip empties itself: each row leaves
+/// as its message enters the transcript proper.
+private struct SteeringQueueView: View {
+    let conversation: ConversationModel
+
+    /// The rows' own height, because a `ScrollView` will not report one — left
+    /// alone it takes every point it is offered, and the strip would stand at
+    /// its ceiling with one line in it. Same problem, and same answer, as the
+    /// draft editor's height in `ComposerView`.
+    @State private var rowsHeight: CGFloat = 0
+
+    /// The wait has two different causes, and only one of them resolves on its
+    /// own. While a card above is holding the run, saying "next step" would be
+    /// a promise nothing is working towards.
+    private var caption: LocalizedStringKey {
+        switch conversation.runState {
+        case .waitingForApproval, .waitingForUser: "Steering — held until you answer above"
+        default: "Steering — delivered at the next step"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
+            Label(caption, systemImage: "arrow.turn.down.right")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                    ForEach(conversation.pendingSteering) { pending in
+                        row(pending)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
+            }
+            .frame(height: min(rowsHeight, Metrics.Chat.steeringQueueMaxHeight))
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .padding(.horizontal, Metrics.Space.l)
+        .padding(.vertical, Metrics.Space.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.25))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Queued messages"))
+    }
+
+    /// What was typed, not what will be sent: `message.text` carries the
+    /// attachment blocks folded in for the model, and a row of markup is not a
+    /// reminder of anything.
+    private func row(_ pending: PendingSteeringMessage) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            Text(pending.draft)
+                .font(.callout)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            if !pending.attachments.isEmpty {
+                Label("\(pending.attachments.count)", systemImage: "paperclip")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .labelStyle(.titleAndIcon)
+            }
+
+            Spacer(minLength: Metrics.Space.s)
+
+            Button {
+                conversation.returnSteeringToDraft(pending.id)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .frame(width: Metrics.Sidebar.rowIcon, height: Metrics.Sidebar.rowIcon)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help(Text("Take this back and edit it"))
+            .accessibilityLabel(Text("Unqueue message"))
         }
     }
 }
