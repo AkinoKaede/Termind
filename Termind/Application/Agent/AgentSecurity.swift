@@ -173,17 +173,57 @@ actor SecretBroker {
     var count: Int { entries.count }
 }
 
+/// One choice offered by `request_user_input`.
+///
+/// A bare string used to be the whole option, which left the model nowhere to
+/// put the tradeoff: it either crammed it into the label or lost it, and the
+/// reader was left choosing between four words with no way to tell them apart.
+nonisolated struct AgentUserInputOption: Identifiable, Hashable, Sendable {
+    var id: String
+    var label: String
+    /// One sentence on what this choice means or costs. Optional, and the
+    /// reason this type exists.
+    var detail: String = ""
+    /// Advisory only. It marks the model's recommendation; it never preselects,
+    /// because a preselected answer is one the user can submit without reading.
+    var isRecommended: Bool = false
+}
+
+nonisolated struct AgentUserInputChoice: Hashable, Sendable {
+    var options: [AgentUserInputOption]
+    /// Whether the user may answer with something the model did not think of.
+    ///
+    /// Defaults to true, and that default is the whole point: an agent that
+    /// offers four wrong answers and no fifth field leaves Cancel as the only
+    /// honest response, and a cancelled run tells it nothing about why.
+    var allowsCustomAnswer: Bool = true
+    var allowsMultipleAnswers: Bool = false
+    var customPlaceholder: String = ""
+}
+
 nonisolated struct AgentUserInputRequest: Identifiable, Hashable, Sendable {
-    nonisolated enum Kind: Hashable, Sendable { case text, choice([String]), secret }
+    nonisolated enum Kind: Hashable, Sendable {
+        case text
+        case choice(AgentUserInputChoice)
+        case secret
+    }
+
     var id: UUID = UUID()
     var prompt: String
     var kind: Kind
+    /// Short label naming the decision, shown above the prompt.
+    var header: String = ""
     var purpose: String = ""
     var hostID: UUID?
 }
 
 nonisolated enum AgentUserInputResponse: Hashable, Sendable {
     case text(String)
+    /// Selected option ids in the order the request listed them, plus whatever
+    /// the user typed instead of — or, when several answers are allowed,
+    /// alongside — them. Kept structured rather than flattened to a string so
+    /// the tool can hand the model ids it chose itself.
+    case choice(selectedIDs: [String], custom: String?)
     case secret(String)
     case cancelled
 }

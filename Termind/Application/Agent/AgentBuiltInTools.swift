@@ -689,22 +689,75 @@ nonisolated enum AgentBuiltInTools {
 
     private static func requestUserInput() -> AnyAgentTool {
         AnyAgentTool(descriptor: descriptor(
-            "request_user_input", "Pause and ask the user for text or one structured choice.",
+            "request_user_input",
+            """
+            Ask the user to decide something you cannot decide yourself, and wait for the answer. \
+            Use it only when the answer is genuinely theirs: a preference, a tradeoff with no \
+            defensible default, or a fact only they hold — which host is production, where a \
+            credential lives. If the repository, the request, or an obvious convention already \
+            answers it, choose, say which assumption you made, and keep going; a question the \
+            user has to stop and think about costs more than a decision you make and flag. Never \
+            use it to ask whether to proceed. Give 2-4 options, each with a description saying \
+            what it costs rather than restating the label, and put your recommendation on the \
+            option itself instead of in its wording. A free-form field is offered alongside them \
+            unless you set allow_custom false, so never write an "Other" option yourself. Omit \
+            options entirely for a question no menu can answer, such as a URL or a name.
+            """,
             properties: [
                 "prompt": string(max: 4_096),
-                "choices": array(items: string(max: 256), max: 20),
+                "header": string(max: 24),
+                "options": array(
+                    items: object(
+                        properties: [
+                            "id": string(max: 64),
+                            "label": string(max: 120),
+                            "description": string(max: 400),
+                            "recommended": boolean(),
+                        ],
+                        required: ["id", "label"]
+                    ),
+                    max: 4
+                ),
+                "multi_select": boolean(),
+                "allow_custom": boolean(),
+                "custom_placeholder": string(max: 120),
             ], required: ["prompt"], target: .user, safety: .locallyReadOnly
         )) { invocation, context in
             let arguments = try Arguments(invocation)
-            let choices = arguments.optionalStrings("choices")
+            let options = try arguments.userInputOptions()
             let request = AgentUserInputRequest(
                 prompt: try arguments.string("prompt"),
-                kind: choices.isEmpty ? .text : .choice(choices)
+                kind: options.isEmpty
+                    ? .text
+                    : .choice(
+                        AgentUserInputChoice(
+                            options: options,
+                            allowsCustomAnswer: arguments.optionalBool("allow_custom") ?? true,
+                            allowsMultipleAnswers: arguments.optionalBool("multi_select") ?? false,
+                            customPlaceholder: arguments.optionalString("custom_placeholder") ?? ""
+                        )
+                    ),
+                header: arguments.optionalString("header") ?? ""
             )
             switch await context.userInteraction.request(request) {
-            case .text(let answer): return result(invocation, .object(["answer": .string(answer)]))
-            case .secret: throw AgentToolError.invalidArguments("Secret input must use request_user_secret.")
-            case .cancelled: throw AgentToolError.cancelled
+            case .text(let answer):
+                return result(invocation, .object(["answer": .string(answer)]))
+            case .choice(let selectedIDs, let custom):
+                let labels = selectedIDs.compactMap { id in
+                    options.first { $0.id == id }?.label
+                }
+                return result(invocation, .object([
+                    // The canonical human answer, whichever route produced it,
+                    // so a model that reads only one field still reads the
+                    // right one.
+                    "answer": .string(custom ?? labels.joined(separator: ", ")),
+                    "selected_option_ids": .array(selectedIDs.map(AgentJSONValue.string)),
+                    "custom_text": custom.map(AgentJSONValue.string) ?? .null,
+                ]))
+            case .secret:
+                throw AgentToolError.invalidArguments("Secret input must use request_user_secret.")
+            case .cancelled:
+                throw AgentToolError.cancelled
             }
         }
     }
@@ -737,7 +790,11 @@ nonisolated enum AgentBuiltInTools {
                 return result(invocation, .object([
                     "secret_handle": .string(handle.id.uuidString), "single_use": .bool(true),
                 ]))
-            case .text: throw AgentToolError.invalidArguments("The secret prompt returned ordinary text.")
+            case .text, .choice:
+                // A secret must come back through `SecureField` and the broker.
+                // Anything else means it took the ordinary-answer path, where it
+                // would have been echoed on screen and kept in plain state.
+                throw AgentToolError.invalidArguments("The secret prompt returned ordinary text.")
             case .cancelled: throw AgentToolError.cancelled
             }
         }
@@ -930,6 +987,35 @@ nonisolated struct Arguments: Sendable {
     func optionalBool(_ key: String) -> Bool? { object[key]?.boolValue }
     func optionalStrings(_ key: String) -> [String] {
         object[key]?.arrayValue?.compactMap(\.stringValue) ?? []
+    }
+
+    /// The `options` array of `request_user_input`.
+    ///
+    /// Malformed rows are rejected rather than dropped. A menu silently missing
+    /// the option the user wanted is a worse failure than an error the model
+    /// can see and retry.
+    func userInputOptions() throws -> [AgentUserInputOption] {
+        guard let value = object["options"], value != .null else { return [] }
+        guard let rows = value.arrayValue else {
+            throw AgentToolError.invalidArguments("options must be an array.")
+        }
+        var seen: Set<String> = []
+        return try rows.map { row in
+            guard let fields = row.objectValue,
+                let id = fields["id"]?.stringValue, !id.isEmpty,
+                let label = fields["label"]?.stringValue, !label.isEmpty
+            else {
+                throw AgentToolError.invalidArguments("Each option requires id and label.")
+            }
+            guard seen.insert(id).inserted else {
+                throw AgentToolError.invalidArguments("Option ids must be unique: \(id).")
+            }
+            return AgentUserInputOption(
+                id: id, label: label,
+                detail: fields["description"]?.stringValue ?? "",
+                isRecommended: fields["recommended"]?.boolValue ?? false
+            )
+        }
     }
 
     func requestHeaders() throws -> [RestrictedHTTPHeader] {

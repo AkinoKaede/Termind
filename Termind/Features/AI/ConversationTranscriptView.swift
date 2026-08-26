@@ -237,6 +237,12 @@ private struct AgentApprovalCard: View {
     }
 }
 
+/// The agent asking the user to decide something.
+///
+/// Options are a list rather than a `Picker` because each one carries a
+/// sentence explaining what it costs, and a pop-up menu has nowhere to put
+/// that. Nothing is preselected — including the recommendation, which is a
+/// label and not a default, so that an answer always takes a deliberate click.
 private struct AgentUserInputCard: View {
     let request: AgentUserInputRequest
     let conversation: ConversationModel
@@ -244,27 +250,119 @@ private struct AgentUserInputCard: View {
     var body: some View {
         @Bindable var conversation = conversation
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            Text(request.prompt).font(.callout.weight(.medium))
+            if !request.header.isEmpty {
+                Text(request.header)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            Text(request.prompt)
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+
             switch request.kind {
             case .secret:
                 SecureField("Secret", text: $conversation.secretInputDraft)
                     .textFieldStyle(.roundedBorder)
-            case .choice(let choices):
-                Picker("Answer", selection: $conversation.userInputDraft) {
-                    Text("Choose…").tag("")
-                    ForEach(choices, id: \.self) { Text($0).tag($0) }
-                }
+            case .choice(let choice):
+                choiceList(choice)
             case .text:
                 TextField("Answer", text: $conversation.userInputDraft)
                     .textFieldStyle(.roundedBorder)
             }
+
             HStack {
                 Button("Cancel") { conversation.cancelUserInput() }
                 Spacer()
                 Button("Continue") { conversation.submitUserInput() }
                     .buttonStyle(.borderedProminent)
+                    .disabled(!conversation.canSubmitUserInput)
             }
         }
         .padding(Metrics.Space.l)
+    }
+
+    private func choiceList(_ choice: AgentUserInputChoice) -> some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
+            ForEach(choice.options) { option in
+                optionRow(option, choice: choice)
+            }
+            if choice.allowsCustomAnswer {
+                customRow(choice)
+            }
+        }
+    }
+
+    private func optionRow(_ option: AgentUserInputOption, choice: AgentUserInputChoice)
+        -> some View
+    {
+        let isSelected = conversation.userInputSelection.contains(option.id)
+        return Button {
+            conversation.toggleUserInputOption(option.id)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
+                Image(systemName: marker(isSelected: isSelected, choice: choice))
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                    .frame(width: Metrics.Sidebar.rowIcon)
+
+                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                    HStack(spacing: Metrics.Space.s) {
+                        Text(option.label).font(.callout)
+                        if option.isRecommended {
+                            Text("Recommended")
+                                .font(.caption2.weight(.medium))
+                                .padding(.horizontal, Metrics.Space.s)
+                                .padding(.vertical, 1)
+                                .background(.tint.opacity(0.15), in: .capsule)
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                    if !option.detail.isEmpty {
+                        Text(option.detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The escape hatch, sitting in the list as one more choice rather than
+    /// below it as an afterthought — an answer the model did not think of is
+    /// not a lesser kind of answer.
+    private func customRow(_ choice: AgentUserInputChoice) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
+            Image(
+                systemName: marker(
+                    isSelected: !conversation.userInputDraft.isEmpty, choice: choice
+                )
+            )
+            .foregroundStyle(
+                conversation.userInputDraft.isEmpty
+                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint)
+            )
+            .frame(width: Metrics.Sidebar.rowIcon)
+
+            TextField(
+                choice.customPlaceholder.isEmpty
+                    ? String(localized: "Something else…") : choice.customPlaceholder,
+                text: Binding(
+                    get: { conversation.userInputDraft },
+                    set: { conversation.setUserInputCustomAnswer($0) }
+                )
+            )
+            .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    private func marker(isSelected: Bool, choice: AgentUserInputChoice) -> String {
+        if choice.allowsMultipleAnswers {
+            isSelected ? "checkmark.square.fill" : "square"
+        } else {
+            isSelected ? "largecircle.fill.circle" : "circle"
+        }
     }
 }

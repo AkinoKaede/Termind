@@ -197,7 +197,10 @@ final class ConversationModel: Identifiable {
     var toolCards: [AgentToolCard] = []
     var pendingApproval: AgentApprovalRequest?
     var pendingUserInput: AgentUserInputRequest?
+    /// The free-form answer, for a text question and for the "something else"
+    /// field beside a set of options.
     var userInputDraft = ""
+    var userInputSelection: Set<String> = []
     var secretInputDraft = ""
     /// The model-facing history, which is not what `messages` holds.
     ///
@@ -433,31 +436,88 @@ final class ConversationModel: Identifiable {
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
         pendingUserInput = request
         userInputDraft = ""
+        userInputSelection = []
         secretInputDraft = ""
         runState = .waitingForUser
         return await withCheckedContinuation { inputWaiters[request.id] = $0 }
     }
 
+    /// Nothing is preselected, so this is what stops Continue from returning an
+    /// answer the user never gave.
+    var canSubmitUserInput: Bool {
+        guard let request = pendingUserInput else { return false }
+        switch request.kind {
+        case .secret: return !secretInputDraft.isEmpty
+        case .text: return !trimmedUserInputDraft.isEmpty
+        case .choice: return !userInputSelection.isEmpty || !trimmedUserInputDraft.isEmpty
+        }
+    }
+
+    func toggleUserInputOption(_ id: String) {
+        guard case .choice(let choice)? = pendingUserInput?.kind else { return }
+        if choice.allowsMultipleAnswers {
+            if userInputSelection.contains(id) {
+                userInputSelection.remove(id)
+            } else {
+                userInputSelection.insert(id)
+            }
+        } else {
+            userInputSelection = userInputSelection.contains(id) ? [] : [id]
+            // One answer means one answer: a half-typed "something else" left
+            // sitting under a chosen radio would be a second, contradicting one.
+            userInputDraft = ""
+        }
+    }
+
+    /// The other half of that rule — typing clears the radio it would otherwise
+    /// silently disagree with. Left alone in a multi-answer question, where the
+    /// two are additive rather than exclusive.
+    func setUserInputCustomAnswer(_ text: String) {
+        userInputDraft = text
+        guard case .choice(let choice)? = pendingUserInput?.kind,
+            !choice.allowsMultipleAnswers, !text.isEmpty
+        else { return }
+        userInputSelection.removeAll()
+    }
+
     func submitUserInput() {
-        guard let request = pendingUserInput else { return }
+        guard let request = pendingUserInput, canSubmitUserInput else { return }
         let response: AgentUserInputResponse
         switch request.kind {
-        case .secret: response = .secret(secretInputDraft)
-        case .text, .choice: response = .text(userInputDraft)
+        case .secret:
+            response = .secret(secretInputDraft)
+        case .text:
+            response = .text(userInputDraft)
+        case .choice(let choice):
+            let custom = trimmedUserInputDraft
+            response = .choice(
+                // Ordered by the request, not by whatever order the user
+                // clicked in — the model wrote the list and reads the answer
+                // against it.
+                selectedIDs: choice.options.map(\.id).filter(userInputSelection.contains),
+                custom: custom.isEmpty ? nil : custom
+            )
         }
-        secretInputDraft = ""
-        userInputDraft = ""
-        pendingUserInput = nil
+        clearUserInput()
         runState = .running
         inputWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
     func cancelUserInput() {
         guard let request = pendingUserInput else { return }
+        clearUserInput()
+        inputWaiters.removeValue(forKey: request.id)?.resume(returning: .cancelled)
+    }
+
+    private var trimmedUserInputDraft: String {
+        userInputDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func clearUserInput() {
         secretInputDraft = ""
         userInputDraft = ""
+        userInputSelection = []
         pendingUserInput = nil
-        inputWaiters.removeValue(forKey: request.id)?.resume(returning: .cancelled)
     }
 
     func handle(_ event: AgentEvent) {
