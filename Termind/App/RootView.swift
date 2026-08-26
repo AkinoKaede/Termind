@@ -19,6 +19,9 @@ struct RootView: View {
     /// split view's minimum sidebar width are rejected so the tab strip keeps
     /// the user's last visible boundary.
     @State private var pinnedTabStripWidth = Metrics.Sidebar.ideal
+    /// Drives the sidebar's responsive upper bound. Start at the default so the
+    /// first layout pass already has a sensible value before geometry reports.
+    @State private var layoutWidth = Metrics.Window.defaultWidth
 
     /// `nonisolated` because geometry transforms are `Sendable` closures and
     /// this coordinate-space name is immutable, not main-actor state.
@@ -45,6 +48,11 @@ struct RootView: View {
             maxHeight: .infinity
         )
         .coordinateSpace(.named(Self.layoutSpace))
+        .onGeometryChange(for: CGFloat.self) {
+            $0.size.width
+        } action: {
+            layoutWidth = $0
+        }
         .toolbarBackground(WindowChrome.background(for: colorScheme), for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
         // ⌘T and every Connect entry land here. A sheet rather than a page,
@@ -123,8 +131,8 @@ struct RootView: View {
                 SidebarView(detailCatalog: .standard(store: app.hostLibrary))
                     .navigationSplitViewColumnWidth(
                         min: Metrics.Sidebar.min,
-                        ideal: Metrics.Sidebar.ideal,
-                        max: Metrics.Sidebar.max
+                        ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
+                        max: sidebarMaxWidth
                     )
             } detail: {
                 VStack(spacing: 0) {
@@ -153,9 +161,13 @@ struct RootView: View {
         VaultSidebarView()
             .navigationSplitViewColumnWidth(
                 min: Metrics.Sidebar.min,
-                ideal: Metrics.Sidebar.ideal,
-                max: Metrics.Sidebar.max
+                ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
+                max: sidebarMaxWidth
             )
+    }
+
+    private var sidebarMaxWidth: CGFloat {
+        Metrics.Window.sidebarMaxWidth(for: layoutWidth)
     }
 
     private func recordPinnedTabStripWidth(_ measuredDetailLeadingEdge: CGFloat) {

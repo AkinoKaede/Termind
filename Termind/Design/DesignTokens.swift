@@ -271,16 +271,30 @@ nonisolated enum Metrics {
         static let detailMin: CGFloat = 320
         static let detailMinHeight: CGFloat = 440
 
+        /// Space to the right of the navigation sidebar in Vault's complete
+        /// working layout: two dividers, the main surface, and an Edit/New
+        /// detail panel.
+        static let trailingContentMinWidth: CGFloat = 1
+            + Metrics.VaultContent.min
+            + 1
+            + Metrics.VaultDetail.min
+
         /// Vault's complete working layout sets the application floor: the
         /// navigation sidebar, main surface, and an Edit/New detail panel, plus
         /// the two dividers between them. Reserving the third column even while
         /// it is closed prevents opening an editor inside an already-too-narrow
         /// window and keeps every host form usable from the moment it appears.
-        static let minWidth: CGFloat = Metrics.Sidebar.min
-            + 1
-            + Metrics.VaultContent.min
-            + 1
-            + Metrics.VaultDetail.min
+        static let minWidth: CGFloat = Metrics.Sidebar.min + trailingContentMinWidth
+
+        /// The sidebar may use only width left after the complete Vault work
+        /// area has been reserved. It grows with the window, but never outside
+        /// its own usability bounds.
+        static func sidebarMaxWidth(for availableWidth: CGFloat) -> CGFloat {
+            min(
+                Metrics.Sidebar.max,
+                max(Metrics.Sidebar.min, availableWidth - trailingContentMinWidth)
+            )
+        }
 
         /// Root content includes the pinned tab strip and its divider above the
         /// detail floor. The macOS title bar is outside this measurement.
