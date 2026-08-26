@@ -4,7 +4,7 @@ import SwiftUI
 enum SettingsSection: String, CaseIterable, Identifiable {
     case app, startup, sidebar
     case terminalAppearance, sftp
-    case providers, modelRoles, webSearch, mcp
+    case providers, modelRoles, webSearch, mcp, toolServer
     case iCloud
 
     var id: String { rawValue }
@@ -20,6 +20,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .modelRoles: "Model Roles"
         case .webSearch: "Web Search"
         case .mcp: "MCP"
+        case .toolServer: "Tool Server"
         case .iCloud: "Sync"
         }
     }
@@ -35,6 +36,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .modelRoles: "person.2.badge.gearshape"
         case .webSearch: "magnifyingglass"
         case .mcp: "wrench.and.screwdriver"
+        case .toolServer: "server.rack"
         case .iCloud: "icloud"
         }
     }
@@ -159,6 +161,11 @@ struct SettingsPageView: View {
             SettingsCollectionPage(title: "MCP", subtitle: "Remote tool servers available to the assistant.") {
                 MCPSettings { id, isNew in route = .mcpServer(id, isNew: isNew) }
             }
+        case .toolServer:
+            SettingsFormPage(
+                title: "Tool Server",
+                subtitle: "Expose Termind's SSH and SFTP tools to local MCP clients."
+            ) { ToolServerSettings() }
         case .iCloud:
             SettingsFormPage(title: "iCloud", subtitle: "Sync status and data protection.") { SyncSettings() }
         }
@@ -209,7 +216,7 @@ private struct SettingsSidebar: View {
             LazyVStack(alignment: .leading, spacing: Metrics.Space.xl) {
                 group("GENERAL", sections: [.app, .startup, .sidebar])
                 group("TERMINAL", sections: [.terminalAppearance, .sftp])
-                group("AI", sections: [.providers, .modelRoles, .webSearch, .mcp])
+                group("AI", sections: [.providers, .modelRoles, .webSearch, .mcp, .toolServer])
                 group("iCloud", sections: [.iCloud])
             }
             .padding(.horizontal, Metrics.Space.m)

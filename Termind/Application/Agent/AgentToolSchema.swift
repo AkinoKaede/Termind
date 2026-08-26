@@ -21,7 +21,8 @@ nonisolated extension AgentToolSchemaBuilding {
     ) -> AgentToolResult {
         AgentToolResult(
             callID: invocation.call.id,
-            content: "<untrusted-data>\n\(value.encodedString)\n</untrusted-data>",
+            content: "\(AgentToolResult.untrustedDataOpeningMarker)\(value.encodedString)"
+                + AgentToolResult.untrustedDataClosingMarker,
             isTruncated: truncated,
             metadata: ["untrusted": .bool(true)]
         )

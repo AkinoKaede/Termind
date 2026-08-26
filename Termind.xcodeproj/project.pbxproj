@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		TRMD00000000000000030001 /* termind-mcp in Embed MCP Bridge */ = {isa = PBXBuildFile; fileRef = TRMD00000000000000030002 /* termind-mcp */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		TRMD00000000000000100001 /* CSSH2 in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100011 /* CSSH2 */; };
 		TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
 		TRMD00000000000000100003 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
@@ -21,11 +22,33 @@
 			remoteGlobalIDString = TRMD00000000000000000050;
 			remoteInfo = Termind;
 		};
+		TRMD00000000000000030090 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = TRMD00000000000000030050;
+			remoteInfo = TermindMCPBridge;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		TRMD00000000000000000085 /* Embed MCP Bridge */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				TRMD00000000000000030001 /* termind-mcp in Embed MCP Bridge */,
+			);
+			name = "Embed MCP Bridge";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000020001 /* TermindTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermindTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		TRMD00000000000000030002 /* termind-mcp */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -52,6 +75,11 @@
 			path = TermindTests;
 			sourceTree = "<group>";
 		};
+		TRMD00000000000000030010 /* TermindMCPBridge */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TermindMCPBridge;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +101,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		TRMD00000000000000030020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -81,6 +116,7 @@
 			children = (
 				TRMD00000000000000000010 /* Termind */,
 				TRMD00000000000000020010 /* TermindTests */,
+				TRMD00000000000000030010 /* TermindMCPBridge */,
 				TRMD00000000000000000040 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +126,7 @@
 			children = (
 				TRMD00000000000000000001 /* Termind.app */,
 				TRMD00000000000000020001 /* TermindTests.xctest */,
+				TRMD00000000000000030002 /* termind-mcp */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -104,10 +141,12 @@
 				TRMD00000000000000000070 /* Sources */,
 				TRMD00000000000000000020 /* Frameworks */,
 				TRMD00000000000000000080 /* Resources */,
+				TRMD00000000000000000085 /* Embed MCP Bridge */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				TRMD00000000000000030091 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				TRMD00000000000000000010 /* Termind */,
@@ -146,6 +185,27 @@
 			productReference = TRMD00000000000000020001 /* TermindTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		TRMD00000000000000030050 /* TermindMCPBridge */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TRMD00000000000000030060 /* Build configuration list for PBXNativeTarget "TermindMCPBridge" */;
+			buildPhases = (
+				TRMD00000000000000030070 /* Sources */,
+				TRMD00000000000000030020 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				TRMD00000000000000030010 /* TermindMCPBridge */,
+			);
+			name = TermindMCPBridge;
+			packageProductDependencies = (
+			);
+			productName = "termind-mcp";
+			productReference = TRMD00000000000000030002 /* termind-mcp */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -162,6 +222,9 @@
 					TRMD00000000000000020050 = {
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = TRMD00000000000000000050;
+					};
+					TRMD00000000000000030050 = {
+						CreatedOnToolsVersion = 26.6;
 					};
 				};
 			};
@@ -186,6 +249,7 @@
 			targets = (
 				TRMD00000000000000000050 /* Termind */,
 				TRMD00000000000000020050 /* TermindTests */,
+				TRMD00000000000000030050 /* TermindMCPBridge */,
 			);
 		};
 /* End PBXProject section */
@@ -222,6 +286,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		TRMD00000000000000030070 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -229,6 +300,11 @@
 			isa = PBXTargetDependency;
 			target = TRMD00000000000000000050 /* Termind */;
 			targetProxy = TRMD00000000000000020090 /* PBXContainerItemProxy */;
+		};
+		TRMD00000000000000030091 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = TRMD00000000000000030050 /* TermindMCPBridge */;
+			targetProxy = TRMD00000000000000030090 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -391,6 +467,44 @@
 			};
 			name = Release;
 		};
+		TRMD000000000000000300D0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.mcpbridge;
+				PRODUCT_NAME = "termind-mcp";
+				SKIP_INSTALL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		TRMD000000000000000300E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.mcpbridge;
+				PRODUCT_NAME = "termind-mcp";
+				SKIP_INSTALL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -417,6 +531,15 @@
 			buildConfigurations = (
 				TRMD000000000000000200D0 /* Debug */,
 				TRMD000000000000000200E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TRMD00000000000000030060 /* Build configuration list for PBXNativeTarget "TermindMCPBridge" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TRMD000000000000000300D0 /* Debug */,
+				TRMD000000000000000300E0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

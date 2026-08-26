@@ -202,6 +202,23 @@ nonisolated struct AgentToolResult: Hashable, Sendable, Codable {
 
     /// Marks a result the provider produced inside its own turn.
     static let providerNativeKey = "provider_native"
+    static let untrustedDataOpeningMarker = "<untrusted-data>\n"
+    static let untrustedDataClosingMarker = "\n</untrusted-data>"
+
+    /// The JSON payload inside the prompt-injection framing used by Termind's
+    /// own model. Protocol adapters such as the local MCP server return the
+    /// payload itself; the framing is an instruction to our model, not data an
+    /// external client should have to understand.
+    var untrustedPayload: String? {
+        guard metadata["untrusted"]?.boolValue == true,
+            content.hasPrefix(Self.untrustedDataOpeningMarker),
+            content.hasSuffix(Self.untrustedDataClosingMarker)
+        else { return nil }
+        return String(
+            content.dropFirst(Self.untrustedDataOpeningMarker.count)
+                .dropLast(Self.untrustedDataClosingMarker.count)
+        )
+    }
 
     /// Whether this is a *record* of something that already happened rather
     /// than a result the model is still owed.

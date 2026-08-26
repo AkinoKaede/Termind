@@ -25,11 +25,16 @@ struct TermindApp: App {
             let repository = SwiftDataHostRepository(context: container.mainContext)
             let outboxStore = SwiftDataOutboxStore(context: container.mainContext)
             let outboxRunner = OutboxRunner(store: outboxStore)
+            let externalToolCalls = ExternalToolCallStore(
+                modelContext: container.mainContext,
+                hostName: { [weak hosts] id in hosts?.host(id)?.name }
+            )
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,
                     ai: AIStore(modelContext: container.mainContext),
                     commandHistory: CommandHistoryStore(modelContext: container.mainContext),
+                    externalToolCalls: externalToolCalls,
                     dependencies: AppDependencies(
                         hostRepository: repository,
                         outboxRunner: outboxRunner,
@@ -67,10 +72,19 @@ struct TermindApp: App {
 
         Settings {
             SettingsPageView()
+                .overlay { ExternalAuthWindowPresenter() }
                 .environment(app)
                 .modelContainer(modelContainer)
                 .frame(minWidth: 920, minHeight: 640)
         }
+
+        Window("Authentication Request", id: ExternalAuthWindowPresenter.sceneID) {
+            ExternalAuthWindow()
+                .environment(app)
+                .modelContainer(modelContainer)
+        }
+        .defaultSize(width: 560, height: 360)
+        .windowResizability(.contentSize)
     }
 }
 

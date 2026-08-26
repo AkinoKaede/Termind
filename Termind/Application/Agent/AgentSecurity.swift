@@ -170,6 +170,8 @@ actor SecretBroker {
         entries = entries.filter { $0.value.binding.runID != runID }
     }
 
+    func discardAll() { entries.removeAll() }
+
     var count: Int { entries.count }
 }
 

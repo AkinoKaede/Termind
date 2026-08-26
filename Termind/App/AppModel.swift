@@ -49,6 +49,9 @@ final class AppModel {
 
     let hosts: HostStore
     let commandHistory: CommandHistoryStore
+    let externalToolCalls: ExternalToolCallStore
+    let externalAuthentication: ExternalAuthCoordinator
+    let toolServer: ToolServerController
     /// Repository-backed projection used by newly migrated features. HostStore
     /// remains temporarily available until all legacy features have moved.
     let hostLibrary: HostLibraryModel
@@ -91,6 +94,7 @@ final class AppModel {
     init(
         hosts: HostStore, ai: AIStore = AIStore(),
         commandHistory: CommandHistoryStore = CommandHistoryStore(),
+        externalToolCalls: ExternalToolCallStore = ExternalToolCallStore(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil
     ) {
@@ -98,6 +102,8 @@ final class AppModel {
         let connectionCoordinator = dependencies.connectionCoordinator
         self.hosts = hosts
         self.commandHistory = commandHistory
+        self.externalToolCalls = externalToolCalls
+        externalAuthentication = ExternalAuthCoordinator()
         connections = connectionCoordinator
         agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
         agentHosts = AgentHostResolver(store: hosts)
@@ -125,6 +131,11 @@ final class AppModel {
                 service: AppleSpeechTranscriptionService(audioInput: MacOSSpeechAudioInput())
             )
         outboxRunner = dependencies.outboxRunner
+        toolServer = ToolServerController(
+            ai: ai, hosts: agentHosts, connections: agentConnections,
+            authentication: agentAuthentication, background: agentBackgroundCommands,
+            externalAuthentication: externalAuthentication, history: externalToolCalls
+        )
         agentHosts.configureTemporaryTargets(
             targets: { [weak self] in self?.temporaryAgentTargets() ?? [] },
             configuration: { [weak self] hostID in
@@ -474,7 +485,8 @@ final class AppModel {
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
         forwarding.stopAll()
-        Task { [agentConnections, agentBackgroundCommands] in
+        Task { [toolServer, agentConnections, agentBackgroundCommands] in
+            await toolServer.stop()
             await agentBackgroundCommands.closeAll()
             await agentConnections.closeAll()
         }

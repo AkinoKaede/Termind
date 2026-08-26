@@ -37,6 +37,7 @@ struct RootView: View {
             Divider()
             splitContent
         }
+        .overlay { ExternalAuthWindowPresenter() }
         .frame(
             minWidth: Metrics.Window.detailMin,
             maxWidth: .infinity,
