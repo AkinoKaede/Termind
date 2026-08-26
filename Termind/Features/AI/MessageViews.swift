@@ -69,9 +69,7 @@ struct AssistantMessageView: View {
 
             if message.isStreaming {
                 if message.text.isEmpty {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .accessibilityLabel(Text("Thinking"))
+                    WorkingIndicator()
                 } else {
                     StreamingCaret()
                 }
@@ -88,6 +86,49 @@ struct AssistantMessageView: View {
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Assistant said"))
+    }
+}
+
+/// A compact waveform rather than a generic spinner. Four offset bars make
+/// progress feel alive without implying a measurable percentage, while the
+/// label says plainly why the conversation is waiting.
+private struct WorkingIndicator: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.m) {
+            if reduceMotion {
+                bars(phase: 0)
+            } else {
+                TimelineView(.animation) { timeline in
+                    bars(phase: timeline.date.timeIntervalSinceReferenceDate * 5)
+                }
+            }
+
+            Text("Working…")
+                .font(.callout.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, Metrics.Space.l)
+        .padding(.vertical, Metrics.Space.m)
+        .background(
+            .quaternary.opacity(0.36),
+            in: .capsule
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Working"))
+    }
+
+    private func bars(phase: TimeInterval) -> some View {
+        HStack(alignment: .center, spacing: 3) {
+            ForEach(0..<4, id: \.self) { index in
+                let pulse = (sin(phase - Double(index) * 0.85) + 1) / 2
+                Capsule()
+                    .fill(Color.accentColor.opacity(0.48 + pulse * 0.5))
+                    .frame(width: 4, height: 6 + pulse * 12)
+            }
+        }
+        .frame(width: 25, height: 20)
     }
 }
 
