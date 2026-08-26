@@ -14,6 +14,7 @@
 		TRMD00000000000000100004 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100014 /* OpenSSL */; };
 		TRMD00000000000000100005 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
 		TRMD00000000000000100006 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
+		TRMD00000000000000100007 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +92,7 @@
 			files = (
 				TRMD00000000000000100005 /* ZIPFoundation in Frameworks */,
 				TRMD00000000000000100001 /* CSSH2 in Frameworks */,
+				TRMD00000000000000100007 /* GhosttyKit in Frameworks */,
 				TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */,
 				TRMD00000000000000100003 /* GhosttyTheme in Frameworks */,
 				TRMD00000000000000100004 /* OpenSSL in Frameworks */,
@@ -158,6 +160,7 @@
 			name = Termind;
 			packageProductDependencies = (
 				TRMD00000000000000100011 /* CSSH2 */,
+				TRMD00000000000000100016 /* GhosttyKit */,
 				TRMD00000000000000100012 /* GhosttyTerminal */,
 				TRMD00000000000000100013 /* GhosttyTheme */,
 				TRMD00000000000000100014 /* OpenSSL */,
@@ -613,6 +616,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
+		};
+		TRMD00000000000000100016 /* GhosttyKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */;
+			productName = GhosttyKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

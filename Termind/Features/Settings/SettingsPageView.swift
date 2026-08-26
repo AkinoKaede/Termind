@@ -351,9 +351,18 @@ struct SettingsDetailHeader: View {
 
 private struct AppSettings: View {
     var body: some View {
-        Section("App") {
-            LabeledContent("Version") {
+        Section("Version") {
+            LabeledContent("App") {
                 Text(Bundle.termindDisplayVersion).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+            LabeledContent("Ghostty") {
+                Text(RuntimeVersions.ghostty).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+            LabeledContent("libssh2") {
+                Text(RuntimeVersions.libssh2).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+            LabeledContent("OpenSSL") {
+                Text(RuntimeVersions.openSSL).foregroundStyle(.secondary).textSelection(.enabled)
             }
         }
     }
