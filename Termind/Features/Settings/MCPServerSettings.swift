@@ -4,16 +4,16 @@ import SwiftUI
     import AppKit
 #endif
 
-struct ToolServerSettings: View {
+struct MCPServerSettings: View {
     @Environment(AppModel.self) private var app
     @State private var revealsToken = false
     @State private var historyQuery = ""
 
-    private var server: ToolServerController { app.toolServer }
+    private var server: MCPServerController { app.mcpServer }
 
     var body: some View {
         Section("Server") {
-            Toggle("Enable Tool Server", isOn: Binding(
+            Toggle("Enable MCP Server", isOn: Binding(
                 get: { server.isEnabled },
                 set: { server.setEnabled($0) }
             ))
@@ -66,13 +66,8 @@ struct ToolServerSettings: View {
             }
         }
 
-        Section("Connect") {
-            commandRow("Claude Code — HTTP", command: httpCommand)
-            commandRow("Claude Code — stdio", command: stdioCommand)
-        }
-
         Section("Exposed Tools") {
-            ForEach(MCPToolServer.exportedNames.sorted(), id: \.self) { name in
+            ForEach(MCPServerTools.exportedNames.sorted(), id: \.self) { name in
                 Toggle(name, isOn: Binding(
                     get: { !server.disabledTools.contains(name) },
                     set: { server.setToolEnabled($0, name: name) }
@@ -92,7 +87,7 @@ struct ToolServerSettings: View {
                     "No external calls", systemImage: "clock.arrow.circlepath",
                     description: Text("Calls appear here after an MCP client invokes a tool.")
                 )
-                .frame(minHeight: 120)
+                .frame(maxWidth: .infinity, minHeight: 160, alignment: .center)
             } else {
                 ForEach(rows.prefix(200)) { row in ExternalToolCallRow(row: row) }
             }
@@ -117,37 +112,11 @@ struct ToolServerSettings: View {
         }
     }
 
-    private var httpCommand: String {
-        "claude mcp add --transport http termind http://127.0.0.1:\(server.port)/mcp --header \"Authorization: Bearer \(displayToken)\""
-    }
-
-    private var stdioCommand: String {
-        let executable = Bundle.main.bundleURL
-            .appendingPathComponent("Contents/MacOS/termind-mcp").path
-        return "claude mcp add termind -- \(shellQuote(executable)) --url http://127.0.0.1:\(server.port)/mcp --token \(shellQuote(displayToken))"
-    }
-
-    private func commandRow(_ title: LocalizedStringKey, command: String) -> some View {
-        LabeledContent(title) {
-            HStack {
-                Text(command)
-                    .font(.caption.monospaced())
-                    .lineLimit(2)
-                    .textSelection(.enabled)
-                Button("Copy") { copy(command) }
-            }
-        }
-    }
-
     private func copy(_ value: String) {
         #if canImport(AppKit)
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(value, forType: .string)
         #endif
-    }
-
-    private func shellQuote(_ value: String) -> String {
-        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
     }
 }
 

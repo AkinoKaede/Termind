@@ -5,14 +5,14 @@ import Testing
 
 @Suite(.serialized)
 @MainActor
-struct MCPToolServerTests {
+struct MCPServerToolsTests {
     @Test
     func exportsTheCompleteSSHAndSFTPToolSet() {
-        let server = makeMCPToolServer()
+        let server = makeMCPServerTools()
         let descriptors = server.descriptors
 
         #expect(descriptors.count == 12)
-        #expect(Set(descriptors.map(\.name)) == MCPToolServer.exportedNames)
+        #expect(Set(descriptors.map(\.name)) == MCPServerTools.exportedNames)
         for descriptor in descriptors {
             #expect(descriptor.inputSchema.objectValue?["type"]?.stringValue == "object")
         }
@@ -21,7 +21,7 @@ struct MCPToolServerTests {
     @Test
     func externalSSHExecSchemaOffersBoundSecretBrokerFields() throws {
         let descriptor = try #require(
-            makeMCPToolServer().descriptors.first { $0.name == "ssh_exec" }
+            makeMCPServerTools().descriptors.first { $0.name == "ssh_exec" }
         )
         let properties = try #require(
             descriptor.inputSchema.objectValue?["properties"]?.objectValue
@@ -30,16 +30,16 @@ struct MCPToolServerTests {
         #expect(properties["secret_handle"] != nil)
         #expect(properties["stdin_purpose"] != nil)
         #expect(properties["command"] != nil)
-        #expect(makeMCPToolServer().contains("request_user_secret"))
+        #expect(makeMCPServerTools().contains("request_user_secret"))
     }
 
     @Test
     func disabledToolsAreAbsentAndCannotBeCalled() async {
-        let server = makeMCPToolServer(disabledTools: ["sftp_delete"])
+        let server = makeMCPServerTools(disabledTools: ["sftp_delete"])
 
         #expect(!server.descriptors.contains { $0.name == "sftp_delete" })
         #expect(!server.contains("sftp_delete"))
-        await #expect(throws: MCPToolServerError.unknownTool("sftp_delete")) {
+        await #expect(throws: MCPServerToolsError.unknownTool("sftp_delete")) {
             _ = try await server.call(
                 name: "sftp_delete", arguments: .object([:]), runID: UUID(),
                 clientName: "Tests", callID: "disabled", secretBroker: SecretBroker()
@@ -49,7 +49,7 @@ struct MCPToolServerTests {
 
     @Test
     func listHostsReturnsUntrustedStructuredJSONWithoutPromptFraming() async throws {
-        let server = makeMCPToolServer()
+        let server = makeMCPServerTools()
         let result = try await server.call(
             name: "list_hosts", arguments: .object([:]), runID: UUID(),
             clientName: "Tests", callID: "list", secretBroker: SecretBroker()
@@ -66,7 +66,7 @@ struct MCPToolServerTests {
     @Test
     func secretPromptReturnsOnlyASessionBoundOneShotHandle() async throws {
         let authentication = ExternalAuthCoordinator()
-        let server = makeMCPToolServer(externalAuthentication: authentication)
+        let server = makeMCPServerTools(externalAuthentication: authentication)
         let broker = SecretBroker()
         let runID = UUID()
         let hostID = UUID()
@@ -121,7 +121,7 @@ struct MCPToolServerTests {
     @Test
     func endingASessionCancelsItsPromptAndDiscardsSecrets() async throws {
         let authentication = ExternalAuthCoordinator()
-        let server = makeMCPToolServer(externalAuthentication: authentication)
+        let server = makeMCPServerTools(externalAuthentication: authentication)
         let broker = SecretBroker()
         let runID = UUID()
         _ = await broker.issue(
@@ -145,13 +145,13 @@ struct MCPToolServerTests {
 }
 
 @MainActor
-func makeMCPToolServer(
+func makeMCPServerTools(
     disabledTools: Set<String> = [],
     externalAuthentication: ExternalAuthCoordinator = ExternalAuthCoordinator()
-) -> MCPToolServer {
+) -> MCPServerTools {
     let store = HostLibraryModel()
     let resolver = AgentHostResolver(store: store)
-    return MCPToolServer(
+    return MCPServerTools(
         hosts: resolver,
         connections: AgentConnectionPool(
             configuration: { _ in throw MCPTestFailure.unused },

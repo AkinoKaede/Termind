@@ -3,8 +3,9 @@ import Security
 
 @MainActor
 @Observable
-final class ToolServerController {
-    static let tokenReference = "termind.ai.toolserver.token"
+final class MCPServerController {
+    static let tokenReference = "termind.ai.mcpserver.token"
+    private static let legacyTokenReference = "termind.ai.toolserver.token"
 
     enum Status: Equatable {
         case stopped, starting, ready(port: UInt16), failed(String)
@@ -28,7 +29,7 @@ final class ToolServerController {
     private let externalAuthentication: ExternalAuthCoordinator
     private let http = LoopbackHTTPServer()
     private let protocolServer: MCPServerProtocol
-    let tools: MCPToolServer
+    let tools: MCPServerTools
 
     private(set) var status: Status = .stopped
     private(set) var connectedClients = 0
@@ -51,13 +52,14 @@ final class ToolServerController {
         self.background = background
         self.externalAuthentication = externalAuthentication
         self.defaults = defaults
-        isEnabled = defaults.object(forKey: SettingsKey.toolServerEnabled) as? Bool
-            ?? SettingsKey.defaultToolServerEnabled
-        port = defaults.object(forKey: SettingsKey.toolServerPort) as? Int
-            ?? SettingsKey.defaultToolServerPort
+        Self.migrateLegacyDefaults(defaults)
+        isEnabled = defaults.object(forKey: SettingsKey.mcpServerEnabled) as? Bool
+            ?? SettingsKey.defaultMCPServerEnabled
+        port = defaults.object(forKey: SettingsKey.mcpServerPort) as? Int
+            ?? SettingsKey.defaultMCPServerPort
         let initialDisabledTools = Self.readDisabledTools(defaults)
         disabledTools = initialDisabledTools
-        tools = MCPToolServer(
+        tools = MCPServerTools(
             hosts: hosts, connections: connections, authentication: authentication,
             background: background, externalAuthentication: externalAuthentication,
             history: history, disabledTools: initialDisabledTools
@@ -71,15 +73,22 @@ final class ToolServerController {
         if isEnabled { Task { [weak self] in await self?.start() } }
     }
 
-    var token: String { ai.secret(for: Self.tokenReference) ?? "" }
+    var token: String {
+        if let token = ai.secret(for: Self.tokenReference) { return token }
+        guard let legacyToken = ai.secret(for: Self.legacyTokenReference) else { return "" }
+        ai.setSecret(legacyToken, for: Self.tokenReference)
+        guard ai.secretStorageError == nil else { return legacyToken }
+        ai.setSecret(nil, for: Self.legacyTokenReference)
+        return legacyToken
+    }
 
     var enabledToolNames: [String] {
-        MCPToolServer.exportedNames.subtracting(disabledTools).sorted()
+        MCPServerTools.exportedNames.subtracting(disabledTools).sorted()
     }
 
     func setEnabled(_ enabled: Bool) {
         isEnabled = enabled
-        defaults.set(enabled, forKey: SettingsKey.toolServerEnabled)
+        defaults.set(enabled, forKey: SettingsKey.mcpServerEnabled)
         Task { [weak self] in
             if enabled { await self?.start() } else { await self?.stop() }
         }
@@ -89,14 +98,14 @@ final class ToolServerController {
         let clamped = min(max(value, 1_024), 65_535)
         guard clamped != port else { return }
         port = clamped
-        defaults.set(clamped, forKey: SettingsKey.toolServerPort)
+        defaults.set(clamped, forKey: SettingsKey.mcpServerPort)
         if isEnabled { Task { [weak self] in await self?.restart() } }
     }
 
     func setToolEnabled(_ enabled: Bool, name: String) {
-        guard MCPToolServer.exportedNames.contains(name) else { return }
+        guard MCPServerTools.exportedNames.contains(name) else { return }
         if enabled { disabledTools.remove(name) } else { disabledTools.insert(name) }
-        defaults.set(Array(disabledTools).sorted(), forKey: SettingsKey.toolServerDisabledTools)
+        defaults.set(Array(disabledTools).sorted(), forKey: SettingsKey.mcpServerDisabledTools)
         tools.replaceDisabledTools(
             disabledTools, hosts: hosts, connections: connections,
             authentication: authentication, background: background
@@ -138,7 +147,7 @@ final class ToolServerController {
         guard isEnabled else { return }
         guard let token = ensureToken(), let validPort = UInt16(exactly: port) else {
             isEnabled = false
-            defaults.set(false, forKey: SettingsKey.toolServerEnabled)
+            defaults.set(false, forKey: SettingsKey.mcpServerEnabled)
             return
         }
         status = .starting
@@ -173,14 +182,30 @@ final class ToolServerController {
     }
 
     private static func readDisabledTools(_ defaults: UserDefaults) -> Set<String> {
-        Set((defaults.array(forKey: SettingsKey.toolServerDisabledTools) as? [String]) ?? [])
-            .intersection(MCPToolServer.exportedNames)
+        Set((defaults.array(forKey: SettingsKey.mcpServerDisabledTools) as? [String]) ?? [])
+            .intersection(MCPServerTools.exportedNames)
+    }
+
+    private static func migrateLegacyDefaults(_ defaults: UserDefaults) {
+        let keys = [
+            ("toolServer.enabled", SettingsKey.mcpServerEnabled),
+            ("toolServer.port", SettingsKey.mcpServerPort),
+            ("toolServer.disabledTools", SettingsKey.mcpServerDisabledTools),
+        ]
+        for (legacy, current) in keys {
+            if defaults.object(forKey: current) == nil,
+                let value = defaults.object(forKey: legacy)
+            {
+                defaults.set(value, forKey: current)
+            }
+            defaults.removeObject(forKey: legacy)
+        }
     }
 
     private static func makeToken() throws -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
-            throw ToolServerTokenError.generationFailed
+            throw MCPServerTokenError.generationFailed
         }
         return Data(bytes).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
@@ -189,4 +214,4 @@ final class ToolServerController {
     }
 }
 
-private enum ToolServerTokenError: Error { case generationFailed }
+private enum MCPServerTokenError: Error { case generationFailed }

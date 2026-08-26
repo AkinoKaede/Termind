@@ -57,7 +57,7 @@ final class AppModel {
     private let externalToolCalls: ToolAuditModel
     var toolAudit: ToolAuditModel { externalToolCalls }
     let externalAuthentication: ExternalAuthCoordinator
-    let toolServer: ToolServerController
+    let mcpServer: MCPServerController
     let commands = AppCommandRegistry()
     let connections: RemoteConnectionCoordinator
     let hostRepository: any HostRepository
@@ -138,7 +138,7 @@ final class AppModel {
                 service: AppleSpeechTranscriptionService(audioInput: MacOSSpeechAudioInput())
             )
         outboxRunner = dependencies.outboxRunner
-        toolServer = ToolServerController(
+        mcpServer = MCPServerController(
             ai: ai, hosts: agentHosts, connections: agentConnections,
             authentication: agentAuthentication, background: agentBackgroundCommands,
             externalAuthentication: externalAuthentication, history: externalToolCalls
@@ -492,8 +492,8 @@ final class AppModel {
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
         forwarding.stopAll()
-        Task { [toolServer, agentConnections, agentBackgroundCommands] in
-            await toolServer.stop()
+        Task { [mcpServer, agentConnections, agentBackgroundCommands] in
+            await mcpServer.stop()
             await agentBackgroundCommands.closeAll()
             await agentConnections.closeAll()
         }

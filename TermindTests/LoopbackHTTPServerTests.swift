@@ -6,9 +6,9 @@ import Testing
 @Suite
 struct LoopbackHTTPServerTests {
     @Test
-    func toolServerIsOffByDefault() {
-        #expect(SettingsKey.defaultToolServerEnabled == false)
-        #expect(SettingsKey.defaultToolServerPort == 7_391)
+    func mcpServerIsOffByDefault() {
+        #expect(SettingsKey.defaultMCPServerEnabled == false)
+        #expect(SettingsKey.defaultMCPServerPort == 7_391)
     }
 
     @Test

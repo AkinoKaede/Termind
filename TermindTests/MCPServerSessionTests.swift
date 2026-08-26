@@ -8,7 +8,7 @@ import Testing
 struct MCPServerSessionTests {
     @Test
     func streamableHandshakeMintsASessionAndPreservesStringIDs() async throws {
-        let protocolServer = MCPServerProtocol(tools: makeMCPToolServer())
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
         let initialize = await protocolServer.handle(jsonRequest("""
             {"jsonrpc":"2.0","id":"request-001","method":"initialize","params":{
               "protocolVersion":"1900-01-01","clientInfo":{"name":"Tests","version":"1"},
@@ -48,7 +48,7 @@ struct MCPServerSessionTests {
 
     @Test
     func establishedSessionsRequireTheirVersionHeader() async throws {
-        let protocolServer = MCPServerProtocol(tools: makeMCPToolServer())
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
         let initialize = await protocolServer.handle(jsonRequest("""
             {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
               "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
@@ -71,7 +71,7 @@ struct MCPServerSessionTests {
 
     @Test
     func malformedToolCallsUseInvalidParams() async throws {
-        let protocolServer = MCPServerProtocol(tools: makeMCPToolServer())
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
         let initialize = await protocolServer.handle(jsonRequest("""
             {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
               "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
@@ -94,7 +94,7 @@ struct MCPServerSessionTests {
 
     @Test
     func legacySSEEmitsEndpointBeforeMessages() async throws {
-        let protocolServer = MCPServerProtocol(tools: makeMCPToolServer())
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
         let opened = await protocolServer.handle(HTTPRequest(
             method: "GET", target: "/sse", version: "HTTP/1.1", headers: [:], body: Data()
         ))
@@ -122,7 +122,7 @@ struct MCPServerSessionTests {
     @Test
     func deletingASessionCancelsItsSecretPopupWithoutResurrectingTheSession() async throws {
         let authentication = ExternalAuthCoordinator()
-        let protocolServer = MCPServerProtocol(tools: makeMCPToolServer(
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools(
             externalAuthentication: authentication
         ))
         let initialize = await protocolServer.handle(jsonRequest("""

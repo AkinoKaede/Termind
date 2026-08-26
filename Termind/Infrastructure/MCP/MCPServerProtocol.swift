@@ -9,13 +9,13 @@ actor MCPServerProtocol {
 
     typealias ClientCountHandler = @Sendable (Int) -> Void
 
-    private let tools: MCPToolServer
+    private let tools: MCPServerTools
     private var clientCountChanged: ClientCountHandler
     private var sessions: [String: MCPServerSession] = [:]
     private var sweeper: Task<Void, Never>?
 
     init(
-        tools: MCPToolServer,
+        tools: MCPServerTools,
         clientCountChanged: @escaping ClientCountHandler = { _ in }
     ) {
         self.tools = tools
@@ -195,7 +195,7 @@ actor MCPServerProtocol {
                 "capabilities": .object(["tools": .object([:])]),
                 "serverInfo": .object([
                     "name": .string("termind"),
-                    "title": .string("Termind Tool Server"),
+                    "title": .string("Termind MCP Server"),
                     "version": .string(Bundle.termindDisplayVersion),
                 ]),
                 "instructions": .string(

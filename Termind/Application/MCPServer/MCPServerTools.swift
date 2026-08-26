@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class MCPToolServer {
+final class MCPServerTools {
     static let exportedNames: Set<String> = [
         "list_hosts", "request_user_secret", "ssh_exec", "ssh_wait",
         "sftp_list", "sftp_stat", "sftp_read", "sftp_write",
@@ -59,7 +59,7 @@ final class MCPToolServer {
         name: String, arguments: AgentJSONValue, runID: UUID, clientName: String,
         callID: String, secretBroker: SecretBroker
     ) async throws -> AgentToolResult {
-        guard registry[name] != nil else { throw MCPToolServerError.unknownTool(name) }
+        guard registry[name] != nil else { throw MCPServerToolsError.unknownTool(name) }
         history.register(runID: runID, clientName: clientName)
         let executor = AgentToolExecutor(
             tools: registry, approval: approval, hooks: AgentLoopHooks([]),
@@ -96,7 +96,7 @@ final class MCPToolServer {
     }
 }
 
-nonisolated enum MCPToolServerError: LocalizedError, Sendable, Equatable {
+nonisolated enum MCPServerToolsError: LocalizedError, Sendable, Equatable {
     case unknownTool(String)
 
     var errorDescription: String? {

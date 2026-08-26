@@ -6,11 +6,11 @@ import Foundation
 /// into two preferences that disagree. Everything user-facing that lives in
 /// `UserDefaults` rather than SwiftData is named here.
 nonisolated enum SettingsKey {
-    static let toolServerEnabled = "toolServer.enabled"
-    static let toolServerPort = "toolServer.port"
-    static let toolServerDisabledTools = "toolServer.disabledTools"
-    static let defaultToolServerEnabled = false
-    static let defaultToolServerPort = 7_391
+    static let mcpServerEnabled = "mcpServer.enabled"
+    static let mcpServerPort = "mcpServer.port"
+    static let mcpServerDisabledTools = "mcpServer.disabledTools"
+    static let defaultMCPServerEnabled = false
+    static let defaultMCPServerPort = 7_391
 
     /// Hide the `user@host` second line in sidebar rows.
     static let compactSidebar = "sidebar.compact"
