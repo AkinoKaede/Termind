@@ -521,7 +521,17 @@ final class ConversationModel: Identifiable {
     /// moves the card's state, and enqueueing happens here — on the path that
     /// holds the continuation and can therefore actually answer.
     func requestApproval(_ request: AgentApprovalRequest) async -> AgentApprovalDecision {
-        pendingApprovals.append(request)
+        // Inserted by when the call was *planned*, not by when it got here. A
+        // parallel batch races to this queue, so appending put the cards in
+        // whichever order the scheduler happened to resolve — the same two
+        // calls could be presented either way round on two runs. Planning is
+        // sequential, so `createdAt` is the model's own order, and asking about
+        // the second thing first is a needless surprise in the one place the
+        // user is being asked to authorize something.
+        let index = pendingApprovals.firstIndex {
+            $0.invocation.createdAt > request.invocation.createdAt
+        }
+        pendingApprovals.insert(request, at: index ?? pendingApprovals.endIndex)
         setToolState(request.invocation.id, .waitingForApproval)
         refreshRunState()
         return await withCheckedContinuation { approvalWaiters[request.id] = $0 }
