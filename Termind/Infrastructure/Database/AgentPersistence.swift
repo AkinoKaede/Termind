@@ -5,6 +5,9 @@ import SwiftData
 final class PersistentAgentConversation {
     @Attribute(.unique) var id: UUID = UUID()
     var title = ""
+    var customTitle = ""
+    var isPinned = false
+    var archivedAt: Date?
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 
@@ -47,6 +50,7 @@ final class PersistentAgentMessage {
     var runID: UUID = UUID()
     var role = AgentTranscriptRole.user.rawValue
     var text = ""
+    var authoredText: String?
     /// Defaults to an encoded empty array so older stores migrate in place.
     var imagesData = Data()
     var toolCallsData = Data()
@@ -56,13 +60,18 @@ final class PersistentAgentMessage {
     /// Defaulted, so adding it costs no SwiftData migration — the same reason
     /// every other property in this schema carries a default.
     var isCompaction = false
+    /// Position inside the run's replay transcript. Timestamps are presentation
+    /// data and can collide at database precision, so they cannot be the sole
+    /// ordering key for model history.
+    var sequence = 0
     var createdAt: Date = Date()
 
-    init(_ message: AgentTranscriptMessage, runID: UUID) {
+    init(_ message: AgentTranscriptMessage, runID: UUID, sequence: Int) {
         id = message.id
         self.runID = runID
         role = message.role.rawValue
         text = AgentPersistenceRedactor.visibleText(message.text)
+        authoredText = message.authoredText.map(AgentPersistenceRedactor.visibleText)
         imagesData = (try? JSONEncoder().encode(message.images)) ?? Data()
         toolCallsData = AgentPersistenceRedactor.encoded(message.toolCalls.map { call in
             AgentToolCall(
@@ -75,6 +84,7 @@ final class PersistentAgentMessage {
         toolName = message.toolName
         isError = message.isError
         isCompaction = message.isCompaction
+        self.sequence = sequence
         createdAt = message.createdAt
     }
 }
@@ -86,6 +96,8 @@ final class PersistentAgentToolInvocation {
     var callID = ""
     var toolName = ""
     var argumentsData = Data()
+    /// Optional so existing stores migrate in place.
+    var sourceMessageID: UUID?
     var targetHostID: UUID?
     var state = "proposed"
     var createdAt: Date = Date()
@@ -96,6 +108,7 @@ final class PersistentAgentToolInvocation {
         callID = invocation.call.id
         toolName = invocation.call.name
         argumentsData = AgentPersistenceRedactor.redactedJSON(invocation.call.arguments).encodedData
+        sourceMessageID = invocation.sourceMessageID
         targetHostID = invocation.targetHostID
         self.state = state
         createdAt = invocation.createdAt
@@ -204,8 +217,12 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         ))
         let storedIDs = Set(stored.map(\.id))
         var inserted = false
-        for message in snapshot.messages where !storedIDs.contains(message.id) {
-            context.insert(PersistentAgentMessage(message, runID: runID))
+        for (sequence, message) in snapshot.messages.enumerated()
+            where !storedIDs.contains(message.id)
+        {
+            context.insert(PersistentAgentMessage(
+                message, runID: runID, sequence: sequence
+            ))
             inserted = true
         }
         guard inserted || context.hasChanges else { return }
@@ -271,7 +288,20 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     let left = runOrder[lhs.runID] ?? 0
                     let right = runOrder[rhs.runID] ?? 0
                     if left != right { return left < right }
-                    return lhs.createdAt < rhs.createdAt
+                    if lhs.sequence != rhs.sequence { return lhs.sequence < rhs.sequence }
+                    if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+                    // Migrated V10 rows all receive sequence zero. For the rare
+                    // timestamp tie, transcript grammar gives them a stable and
+                    // useful fallback until the next run writes real positions.
+                    let rank = { role in
+                        switch AgentTranscriptRole(rawValue: role) {
+                        case .user: 0
+                        case .assistant: 1
+                        case .tool: 2
+                        case nil: 3
+                        }
+                    }
+                    return rank(lhs.role) < rank(rhs.role)
                 }
                 .compactMap { row -> AgentTranscriptMessage? in
                     guard let role = AgentTranscriptRole(rawValue: row.role) else { return nil }
@@ -282,13 +312,18 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                         [AgentImageAttachment].self, from: row.imagesData
                     )) ?? []
                     return AgentTranscriptMessage(
-                        id: row.id, role: role, text: row.text, images: images,
+                        id: row.id, role: role, text: row.text,
+                        authoredText: row.authoredText, images: images,
                         toolCalls: calls,
                         toolCallID: row.toolCallID, toolName: row.toolName,
                         isError: row.isError, isCompaction: row.isCompaction,
                         createdAt: row.createdAt
                     )
                 }
+            let messageRunIDs = Dictionary(
+                uniqueKeysWithValues: messages.filter { runIDs.contains($0.runID) }
+                    .map { ($0.id, $0.runID) }
+            )
             let state = matchingRuns.last.flatMap { AgentRunState(rawValue: $0.state) }
                 ?? .completed
             let cards = invocations.filter { runIDs.contains($0.runID) }
@@ -301,8 +336,23 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     results: results.filter { runIDs.contains($0.runID) },
                     invocations: invocations.filter { runIDs.contains($0.runID) }
                 )),
+                messageRunIDs: messageRunIDs,
+                runs: matchingRuns.compactMap { run in
+                    guard let state = AgentRunState(rawValue: run.state) else { return nil }
+                    return AgentRunSummary(
+                        id: run.id, state: state, startedAt: run.startedAt,
+                        finishedAt: run.finishedAt
+                    )
+                },
                 toolCards: cards,
-                lastRunState: state, title: conversation.title
+                lastRunState: state, title: conversation.title,
+                metadata: StoredAgentConversationMetadata(
+                    customTitle: conversation.customTitle,
+                    isPinned: conversation.isPinned,
+                    archivedAt: conversation.archivedAt,
+                    createdAt: conversation.createdAt,
+                    updatedAt: conversation.updatedAt
+                )
             )
         }
     }
@@ -322,6 +372,154 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
     }
 
     @MainActor
+    func setConversationMetadata(
+        _ metadata: StoredAgentConversationMetadata, conversationID: UUID
+    ) async throws {
+        guard !deletedConversationIDs.contains(conversationID) else {
+            throw AgentConversationPersistenceError.conversationNotFound
+        }
+        let descriptor = FetchDescriptor<PersistentAgentConversation>(
+            predicate: #Predicate { $0.id == conversationID }
+        )
+        guard let row = try context.fetch(descriptor).first else {
+            throw AgentConversationPersistenceError.conversationNotFound
+        }
+        row.customTitle = AgentPersistenceRedactor.visibleText(
+            String(metadata.customTitle.prefix(80))
+        )
+        row.isPinned = metadata.isPinned
+        row.archivedAt = metadata.archivedAt
+        row.updatedAt = metadata.updatedAt
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
+    }
+
+    @MainActor
+    func truncateConversation(
+        _ id: UUID, fromUserMessageID messageID: UUID,
+        replacingWith replacement: AgentTranscriptMessage
+    ) async throws {
+        let allRuns = try context.fetch(FetchDescriptor<PersistentAgentRun>())
+        let runs = allRuns.filter { $0.conversationID == id }
+            .sorted { $0.startedAt < $1.startedAt }
+        let allMessages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
+        guard let target = allMessages.first(where: { message in
+            message.id == messageID && runs.contains { $0.id == message.runID }
+        }),
+            let targetIndex = runs.firstIndex(where: { $0.id == target.runID })
+        else { throw AgentConversationPersistenceError.messageNotFound }
+
+        let removedRuns = Array(runs[targetIndex...])
+        let removedRunIDs = Set(removedRuns.map(\.id))
+        deletedRunIDs.formUnion(removedRunIDs)
+        let earlierRunIDs = Set(runs[..<targetIndex].map(\.id))
+        let removesOpeningTurn = !allMessages.contains {
+            earlierRunIDs.contains($0.runID) && $0.role == AgentTranscriptRole.user.rawValue
+                && !$0.isCompaction
+        }
+        do {
+            try deleteGraph(runIDs: removedRunIDs, runs: removedRuns)
+
+            let replacementRun = AgentRunSnapshot(
+                conversationID: id, state: .completed,
+                permissionMode: .askForApproval, messages: [replacement],
+                startedAt: replacement.createdAt, finishedAt: replacement.createdAt
+            )
+            context.insert(PersistentAgentRun(replacementRun))
+            context.insert(PersistentAgentMessage(
+                replacement, runID: replacementRun.id, sequence: 0
+            ))
+
+            let descriptor = FetchDescriptor<PersistentAgentConversation>(
+                predicate: #Predicate { $0.id == id }
+            )
+            if let conversation = try context.fetch(descriptor).first {
+                if removesOpeningTurn { conversation.title = "" }
+                conversation.updatedAt = .now
+            }
+            try context.save()
+        } catch {
+            context.rollback()
+            deletedRunIDs.subtract(removedRunIDs)
+            throw error
+        }
+    }
+
+    @MainActor
+    func createConversation(_ value: StoredAgentConversation) async throws {
+        guard !deletedConversationIDs.contains(value.id) else {
+            throw AgentConversationPersistenceError.conversationAlreadyExists
+        }
+        let conversationID = value.id
+        let descriptor = FetchDescriptor<PersistentAgentConversation>(
+            predicate: #Predicate { $0.id == conversationID }
+        )
+        guard try context.fetch(descriptor).isEmpty else {
+            throw AgentConversationPersistenceError.conversationAlreadyExists
+        }
+
+        let metadata = value.metadata
+        let conversation = PersistentAgentConversation(
+            id: value.id, title: value.title,
+            createdAt: metadata.createdAt, updatedAt: metadata.updatedAt
+        )
+        conversation.customTitle = metadata.customTitle
+        conversation.isPinned = metadata.isPinned
+        conversation.archivedAt = metadata.archivedAt
+        do {
+            context.insert(conversation)
+
+            let summaries = value.runs.isEmpty
+                ? [AgentRunSummary(
+                    id: UUID(), state: value.lastRunState,
+                    startedAt: metadata.createdAt, finishedAt: metadata.updatedAt
+                )]
+                : value.runs.sorted { $0.startedAt < $1.startedAt }
+            for summary in summaries {
+                context.insert(PersistentAgentRun(AgentRunSnapshot(
+                    id: summary.id, conversationID: value.id, state: summary.state,
+                    permissionMode: .askForApproval, messages: [],
+                    startedAt: summary.startedAt, finishedAt: summary.finishedAt
+                )))
+            }
+            let validRunIDs = Set(summaries.map(\.id))
+            let fallbackRunID = summaries[0].id
+            for (sequence, message) in value.messages.enumerated() {
+                context.insert(PersistentAgentMessage(
+                    message,
+                    runID: value.messageRunIDs[message.id].flatMap {
+                        validRunIDs.contains($0) ? $0 : nil
+                    } ?? fallbackRunID,
+                    sequence: sequence
+                ))
+            }
+            for card in value.toolCards {
+                var invocation = card.invocation
+                if !validRunIDs.contains(invocation.runID) {
+                    invocation.runID = fallbackRunID
+                }
+                context.insert(PersistentAgentToolInvocation(invocation, state: card.state))
+                if let result = card.result {
+                    context.insert(PersistentAgentToolResult(result, invocation: invocation))
+                }
+                if let review = card.review {
+                    context.insert(PersistentAgentReviewRecord(
+                        runID: invocation.runID, invocationID: invocation.id, decision: review
+                    ))
+                }
+            }
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
+    }
+
+    @MainActor
     func deleteConversation(_ id: UUID) async throws {
         deletedConversationIDs.insert(id)
         let runs = try context.fetch(FetchDescriptor<PersistentAgentRun>())
@@ -329,31 +527,23 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let runIDs = Set(runs.map(\.id))
         deletedRunIDs.formUnion(runIDs)
 
-        for row in try context.fetch(FetchDescriptor<PersistentAgentToolResult>())
-            where runIDs.contains(row.runID)
-        {
-            context.delete(row)
-        }
-        for row in try context.fetch(FetchDescriptor<PersistentAgentReviewRecord>())
-            where runIDs.contains(row.runID)
-        {
-            context.delete(row)
-        }
-        for row in try context.fetch(FetchDescriptor<PersistentAgentToolInvocation>())
-            where runIDs.contains(row.runID)
-        {
-            context.delete(row)
-        }
-        for row in try context.fetch(FetchDescriptor<PersistentAgentMessage>())
-            where runIDs.contains(row.runID)
-        {
-            context.delete(row)
-        }
-        for row in runs { context.delete(row) }
+        try deleteGraph(runIDs: runIDs, runs: runs)
 
         let conversations = try context.fetch(FetchDescriptor<PersistentAgentConversation>())
         for row in conversations where row.id == id { context.delete(row) }
         try context.save()
+    }
+
+    private func deleteGraph(runIDs: Set<UUID>, runs: [PersistentAgentRun]) throws {
+        for row in try context.fetch(FetchDescriptor<PersistentAgentToolResult>())
+            where runIDs.contains(row.runID) { context.delete(row) }
+        for row in try context.fetch(FetchDescriptor<PersistentAgentReviewRecord>())
+            where runIDs.contains(row.runID) { context.delete(row) }
+        for row in try context.fetch(FetchDescriptor<PersistentAgentToolInvocation>())
+            where runIDs.contains(row.runID) { context.delete(row) }
+        for row in try context.fetch(FetchDescriptor<PersistentAgentMessage>())
+            where runIDs.contains(row.runID) { context.delete(row) }
+        for row in runs { context.delete(row) }
     }
 
     /// Puts back tool results that were recorded but never made it into the
@@ -436,6 +626,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         if let row = try context.fetch(fetch).first {
             let rank = ["proposed": 0, "started": 1, "finished": 2]
             if rank[state, default: 0] > rank[row.state, default: 0] { row.state = state }
+            if row.sourceMessageID == nil { row.sourceMessageID = invocation.sourceMessageID }
         } else {
             context.insert(PersistentAgentToolInvocation(invocation, state: state))
         }
@@ -450,6 +641,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let invocation = AgentToolInvocation(
             id: row.id, runID: row.runID,
             call: AgentToolCall(id: row.callID, name: row.toolName, arguments: arguments),
+            sourceMessageID: row.sourceMessageID,
             targetHostID: row.targetHostID, createdAt: row.createdAt
         )
         let result = results.last(where: { $0.invocationID == row.id }).map { stored in

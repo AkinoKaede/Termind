@@ -457,18 +457,36 @@ enum TermindSchemaV5: VersionedSchema {
     }
 }
 
+/// Tool invocation rows as they shipped through V12. V13 adds the optional
+/// Assistant source-message id used to keep provider-native search and local
+/// tools attached to the turn that produced them.
+enum TermindSchemaV12AgentModels {
+    @Model
+    final class PersistentAgentToolInvocation {
+        @Attribute(.unique) var id: UUID = UUID()
+        var runID: UUID = UUID()
+        var callID = ""
+        var toolName = ""
+        var argumentsData = Data()
+        var targetHostID: UUID?
+        var state = "proposed"
+        var createdAt: Date = Date()
+        init() {}
+    }
+}
+
 enum TermindSchemaV6: VersionedSchema {
     static let versionIdentifier = Schema.Version(6, 0, 0)
     static var models: [any PersistentModel.Type] {
         TermindSchemaV5.models + [
-            PersistentAgentConversation.self,
+            TermindSchemaV10AgentModels.PersistentAgentConversation.self,
             PersistentAgentRun.self,
             // Frozen, like V6 and V7 both had it. Naming the live type here
             // would move this version's checksum every time a field is added to
             // it, and a store recorded at V6 would then match no declared
             // version at all.
             TermindSchemaV7Models.PersistentAgentMessage.self,
-            PersistentAgentToolInvocation.self,
+            TermindSchemaV12AgentModels.PersistentAgentToolInvocation.self,
             PersistentAgentToolResult.self,
             PersistentAgentReviewRecord.self,
         ]
@@ -552,7 +570,36 @@ enum TermindSchemaV9: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         TermindSchemaV8.models.filter {
             $0 != TermindSchemaV8Models.PersistentAgentMessage.self
-        } + [PersistentAgentMessage.self]
+        } + [TermindSchemaV10AgentModels.PersistentAgentMessage.self]
+    }
+}
+
+/// The conversation graph as it stood through V10. V11 adds conversation
+/// management metadata and the user's pre-attachment authored text.
+enum TermindSchemaV10AgentModels {
+    @Model
+    final class PersistentAgentConversation {
+        @Attribute(.unique) var id: UUID = UUID()
+        var title = ""
+        var createdAt: Date = Date()
+        var updatedAt: Date = Date()
+        init() {}
+    }
+
+    @Model
+    final class PersistentAgentMessage {
+        @Attribute(.unique) var id: UUID = UUID()
+        var runID: UUID = UUID()
+        var role = AgentTranscriptRole.user.rawValue
+        var text = ""
+        var imagesData = Data()
+        var toolCallsData = Data()
+        var toolCallID: String?
+        var toolName: String?
+        var isError = false
+        var isCompaction = false
+        var createdAt: Date = Date()
+        init() {}
     }
 }
 
@@ -567,13 +614,79 @@ enum TermindSchemaV10: VersionedSchema {
     }
 }
 
+enum TermindSchemaV11: VersionedSchema {
+    static let versionIdentifier = Schema.Version(11, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV10.models.filter {
+            $0 != TermindSchemaV10AgentModels.PersistentAgentConversation.self
+                && $0 != TermindSchemaV10AgentModels.PersistentAgentMessage.self
+        } + [
+            TermindSchemaV11AgentModels.PersistentAgentConversation.self,
+            TermindSchemaV11AgentModels.PersistentAgentMessage.self,
+        ]
+    }
+}
+
+/// Frozen V11 shapes. V12 adds an explicit transcript sequence so two messages
+/// with database-equal timestamps cannot change order after relaunch.
+enum TermindSchemaV11AgentModels {
+    @Model
+    final class PersistentAgentConversation {
+        @Attribute(.unique) var id: UUID = UUID()
+        var title = ""
+        var customTitle = ""
+        var isPinned = false
+        var archivedAt: Date?
+        var createdAt: Date = Date()
+        var updatedAt: Date = Date()
+        init() {}
+    }
+
+    @Model
+    final class PersistentAgentMessage {
+        @Attribute(.unique) var id: UUID = UUID()
+        var runID: UUID = UUID()
+        var role = AgentTranscriptRole.user.rawValue
+        var text = ""
+        var authoredText: String?
+        var imagesData = Data()
+        var toolCallsData = Data()
+        var toolCallID: String?
+        var toolName: String?
+        var isError = false
+        var isCompaction = false
+        var createdAt: Date = Date()
+        init() {}
+    }
+}
+
+enum TermindSchemaV12: VersionedSchema {
+    static let versionIdentifier = Schema.Version(12, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV11.models.filter {
+            $0 != TermindSchemaV11AgentModels.PersistentAgentConversation.self
+                && $0 != TermindSchemaV11AgentModels.PersistentAgentMessage.self
+        } + [PersistentAgentConversation.self, PersistentAgentMessage.self]
+    }
+}
+
+enum TermindSchemaV13: VersionedSchema {
+    static let versionIdentifier = Schema.Version(13, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV12.models.filter {
+            $0 != TermindSchemaV12AgentModels.PersistentAgentToolInvocation.self
+        } + [PersistentAgentToolInvocation.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self,
             TermindSchemaV3.self, TermindSchemaV4.self, TermindSchemaV5.self,
             TermindSchemaV6.self, TermindSchemaV7.self, TermindSchemaV8.self,
-            TermindSchemaV9.self, TermindSchemaV10.self,
+            TermindSchemaV9.self, TermindSchemaV10.self, TermindSchemaV11.self,
+            TermindSchemaV12.self, TermindSchemaV13.self,
         ]
     }
 
@@ -628,13 +741,25 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV9.self,
                 toVersion: TermindSchemaV10.self
             ),
+            .lightweight(
+                fromVersion: TermindSchemaV10.self,
+                toVersion: TermindSchemaV11.self
+            ),
+            .lightweight(
+                fromVersion: TermindSchemaV11.self,
+                toVersion: TermindSchemaV12.self
+            ),
+            .lightweight(
+                fromVersion: TermindSchemaV12.self,
+                toVersion: TermindSchemaV13.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV10.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV13.self)
 
     let context: ModelContext
 

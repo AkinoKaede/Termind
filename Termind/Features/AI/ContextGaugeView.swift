@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 /// How full the model's context window is, as a ring.
@@ -64,69 +63,6 @@ struct ContextRing: View {
         case ..<0.75: .accentColor
         case ..<0.9: .orange
         default: .red
-        }
-    }
-}
-
-/// An image-backed variant for places macOS bridges into `NSMenu`.
-///
-/// `Menu` labels accept arbitrary SwiftUI content in source, but AppKit keeps
-/// only image and text primitives when it builds the actual control. A ring
-/// made from two `Circle` shapes therefore disappears from the model picker.
-/// Rendering the same geometry as an `NSImage` makes the icon a native menu
-/// primitive while preserving the transparent centre and separate grey track.
-struct ContextRingMenuIcon: View {
-    let share: Double
-    var diameter: CGFloat = 11
-    var lineWidth: CGFloat = 2
-
-    var body: some View {
-        Image(nsImage: Self.image(share: share, diameter: diameter, lineWidth: lineWidth))
-            .renderingMode(.original)
-            .frame(width: diameter, height: diameter)
-            .accessibilityHidden(true)
-    }
-
-    private static func image(
-        share: Double, diameter: CGFloat, lineWidth: CGFloat
-    ) -> NSImage {
-        let clampedShare = max(0, min(1, share))
-        return NSImage(
-            size: NSSize(width: diameter, height: diameter),
-            flipped: false
-        ) { bounds in
-            let center = NSPoint(x: bounds.midX, y: bounds.midY)
-            let radius = max(0, min(bounds.width, bounds.height) / 2 - lineWidth / 2)
-
-            let track = NSBezierPath()
-            track.appendArc(
-                withCenter: center, radius: radius,
-                startAngle: 0, endAngle: 360
-            )
-            track.lineWidth = lineWidth
-            NSColor.quaternaryLabelColor.setStroke()
-            track.stroke()
-
-            guard clampedShare > 0 else { return true }
-            let progress = NSBezierPath()
-            progress.appendArc(
-                withCenter: center, radius: radius,
-                startAngle: 90, endAngle: 90 - 360 * clampedShare,
-                clockwise: true
-            )
-            progress.lineWidth = lineWidth
-            progress.lineCapStyle = .round
-            tint(for: clampedShare).setStroke()
-            progress.stroke()
-            return true
-        }
-    }
-
-    private static func tint(for share: Double) -> NSColor {
-        switch share {
-        case ..<0.75: .controlAccentColor
-        case ..<0.9: .systemOrange
-        default: .systemRed
         }
     }
 }

@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 /// The observer lives beside the TextEditor and follows the field editor in
 /// the same window, so Pinyin candidates hide the hint before they are put into
 /// the bound draft.
-private struct TextViewMarkedTextObserver: NSViewRepresentable {
+struct TextViewMarkedTextObserver: NSViewRepresentable {
     @Binding var hasMarkedText: Bool
     var paste: () -> Bool = { false }
 
@@ -1714,11 +1714,10 @@ struct ComposerView: View {
     /// the model it is being sent to, which is what this menu is about.
     @ViewBuilder
     private func modelGlyph(compact: Bool) -> some View {
-        ContextRingMenuIcon(
-            share: contextShare ?? 0,
-            diameter: 13,
-            lineWidth: 2
-        )
+        // This is a SwiftUI popover button, not an AppKit `NSMenu` label. Use
+        // the same live shape as `/compact` so its transparent centre and
+        // semantic track resolve against the current light/dark appearance.
+        ContextRing(share: contextShare ?? 0)
             // One column for both. The ring arrives the moment the first turn
             // reports its usage, and a glyph that changed width at that moment
             // would shift the model name sideways mid-reply.

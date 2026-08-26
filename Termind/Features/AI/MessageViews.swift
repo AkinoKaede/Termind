@@ -10,8 +10,15 @@ import SwiftUI
 struct UserMessageView: View {
     let message: ChatMessage
     var isCompact = false
+    var canEdit = false
+    var onEdit: ((String) -> Void)?
 
     @State private var isHovering = false
+    @State private var isEditing = false
+    @State private var editText = ""
+    @State private var bubbleWidth: CGFloat = 0
+    @State private var hasMarkedText = false
+    @FocusState private var editFocused: Bool
 
     var body: some View {
         VStack(alignment: .trailing, spacing: Metrics.Chat.blockSpacing) {
@@ -21,38 +28,13 @@ struct UserMessageView: View {
                 // being stretched to a fraction of the width.
                 Spacer(minLength: isCompact ? Metrics.Chat.compactGutter : Metrics.Chat.gutter)
 
-                VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                    if !message.contextChips.isEmpty {
-                        FlowLayout(spacing: Metrics.Space.xs, fillsWidth: false) {
-                            ForEach(message.contextChips) { chip in
-                                BubbleContextChipView(chip: chip)
-                            }
-                        }
-                    }
-                    if !message.images.isEmpty {
-                        FlowLayout(spacing: Metrics.Space.s, fillsWidth: false) {
-                            ForEach(message.images) { image in
-                                BubbleImageView(attachment: image, isCompact: isCompact)
-                            }
-                        }
-                    }
-                    if !message.text.isEmpty {
-                        MarkdownView(text: message.text, isAssistant: false, isCompact: isCompact)
-                    }
-                }
-                    // The bubble is sized by what is in it. Without this the block
-                    // views claim every point they are offered, and "ok" gets a
-                    // bubble as wide as an essay.
-                    .environment(\.markdownFillsWidth, false)
-                    .padding(.horizontal, Metrics.Space.l)
-                    .padding(.vertical, Metrics.Space.m)
-                    .background(
-                        .quaternary.opacity(0.5),
-                        in: .rect(cornerRadius: Metrics.Chat.bubbleRadius)
-                    )
+                messageContent
             }
 
-            MessageActionRow(message: message, isUser: true, isVisible: isHovering)
+            MessageActionRow(
+                message: message, isUser: true, isVisible: isHovering && !isEditing,
+                onEdit: canEdit ? { beginEdit() } : nil
+            )
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
         // Includes the otherwise-empty gap above the action row. Without a
@@ -62,6 +44,105 @@ struct UserMessageView: View {
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("You said"))
+    }
+
+    private func beginEdit() {
+        editText = message.text
+        isEditing = true
+        editFocused = true
+    }
+
+    private var messageContent: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+            if !message.contextChips.isEmpty {
+                FlowLayout(spacing: Metrics.Space.xs, fillsWidth: false) {
+                    ForEach(message.contextChips) { BubbleContextChipView(chip: $0) }
+                }
+            }
+            if !message.images.isEmpty {
+                FlowLayout(spacing: Metrics.Space.s, fillsWidth: false) {
+                    ForEach(message.images) {
+                        BubbleImageView(attachment: $0, isCompact: isCompact)
+                    }
+                }
+            }
+            if isEditing { editor } else if !message.text.isEmpty {
+                MarkdownView(text: message.text, isAssistant: false, isCompact: isCompact)
+            }
+        }
+        .environment(\.markdownFillsWidth, false)
+        .padding(.horizontal, Metrics.Space.l)
+        .padding(.vertical, Metrics.Space.m)
+        .background(
+            .quaternary.opacity(0.5),
+            in: .rect(cornerRadius: Metrics.Chat.bubbleRadius)
+        )
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { width in
+            // Capture the resting bubble, not the editor. The edit control can
+            // then occupy the same silhouette instead of accepting the list's
+            // full-width proposal and turning into a second composer.
+            if !isEditing { bubbleWidth = width }
+        }
+    }
+
+    private var editor: some View {
+        VStack(alignment: .trailing, spacing: Metrics.Space.s) {
+            TextEditor(text: $editText)
+                .scrollContentBackground(.hidden)
+                .font(.body)
+                .focused($editFocused)
+                .frame(width: editorContentWidth, height: editorHeight)
+                .background {
+                    TextViewMarkedTextObserver(hasMarkedText: $hasMarkedText)
+                }
+                .onKeyPress(.return, phases: .down) { press in
+                    guard !hasMarkedText, !press.modifiers.contains(.shift) else {
+                        return .ignored
+                    }
+                    let disallowed: EventModifiers = [.control, .option]
+                    guard press.modifiers.intersection(disallowed).isEmpty else {
+                        return .ignored
+                    }
+                    commitEdit()
+                    return .handled
+                }
+                .onKeyPress(.escape, phases: .down) { _ in
+                    isEditing = false
+                    return .handled
+                }
+                .onAppear { editFocused = true }
+            HStack(spacing: Metrics.Space.s) {
+                Button("Cancel") { isEditing = false }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                Button("Send", action: commitEdit)
+                    .buttonStyle(.borderedProminent)
+            }
+            .controlSize(.small)
+        }
+    }
+
+    private var editorContentWidth: CGFloat {
+        let captured = bubbleWidth - (Metrics.Space.l * 2)
+        return max(captured, isCompact ? 160 : 200)
+    }
+
+    private var editorHeight: CGFloat {
+        let estimatedLines = editText.split(
+            separator: "\n", omittingEmptySubsequences: false
+        ).reduce(0) { count, line in
+            count + max(1, Int(ceil(Double(line.count) / 48)))
+        }
+        return min(160, max(44, CGFloat(estimatedLines * 19 + 12)))
+    }
+
+    private func commitEdit() {
+        let text = editText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        isEditing = false
+        onEdit?(text)
     }
 }
 
@@ -116,6 +197,8 @@ struct AssistantMessageView: View {
     let message: ChatMessage
     var isCompact = false
     var showsTerminalActions = false
+    var canFork = false
+    var onFork: (() -> Void)?
 
     @State private var isHovering = false
 
@@ -137,7 +220,10 @@ struct AssistantMessageView: View {
                     StreamingCaret()
                 }
             } else {
-                MessageActionRow(message: message, isUser: false, isVisible: isHovering)
+                MessageActionRow(
+                    message: message, isUser: false, isVisible: isHovering,
+                    onFork: canFork ? onFork : nil
+                )
             }
 
             ForEach(message.commands) { command in
@@ -255,21 +341,39 @@ private struct MessageActionRow: View {
     let message: ChatMessage
     let isUser: Bool
     let isVisible: Bool
+    var onEdit: (() -> Void)?
+    var onFork: (() -> Void)?
 
     var body: some View {
         HStack(spacing: Metrics.Space.s) {
             if isUser {
                 Spacer(minLength: 0)
                 timestamp
+                if let onEdit { actionButton("Edit", symbol: "pencil", action: onEdit) }
                 CopyButton(text: message.text)
             } else {
                 CopyButton(text: message.text)
+                if let onFork {
+                    actionButton("Fork", symbol: "arrow.triangle.branch", action: onFork)
+                }
                 timestamp
                 Spacer(minLength: 0)
             }
         }
         .opacity(isVisible ? 1 : 0)
         .animation(.easeOut(duration: 0.12), value: isVisible)
+    }
+
+    private func actionButton(
+        _ label: LocalizedStringKey, symbol: String, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.caption2)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help(Text(label))
+        .accessibilityLabel(Text(label))
     }
 
     private var timestamp: some View {

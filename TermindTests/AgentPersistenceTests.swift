@@ -44,6 +44,125 @@ struct AgentPersistenceTests {
     }
 
     @Test
+    func versionTenConversationsMigrateWithManagementDefaults() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "TermindConversationMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "Termind.store")
+        let conversationID = UUID()
+        let messageID = UUID()
+
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV10.self)
+            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let conversation = TermindSchemaV10AgentModels.PersistentAgentConversation()
+            conversation.id = conversationID
+            conversation.title = "Existing"
+            container.mainContext.insert(conversation)
+            let message = TermindSchemaV10AgentModels.PersistentAgentMessage()
+            message.id = messageID
+            message.text = "Existing prompt"
+            container.mainContext.insert(message)
+            try container.mainContext.save()
+        }
+
+        let configuration = ModelConfiguration(
+            "Migration", schema: HostPersistence.schema, url: storeURL
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, migrationPlan: TermindMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let conversation = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentConversation>()
+        ).first)
+        let message = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessage>()
+        ).first)
+
+        #expect(conversation.id == conversationID)
+        #expect(conversation.customTitle.isEmpty)
+        #expect(!conversation.isPinned)
+        #expect(conversation.archivedAt == nil)
+        #expect(message.id == messageID)
+        #expect(message.authoredText == nil)
+    }
+
+    @Test
+    func versionElevenMessagesMigrateWithAReplaySequenceDefault() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "TermindSequenceMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "Termind.store")
+        let messageID = UUID()
+
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV11.self)
+            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let message = TermindSchemaV11AgentModels.PersistentAgentMessage()
+            message.id = messageID
+            message.text = "Existing prompt"
+            container.mainContext.insert(message)
+            try container.mainContext.save()
+        }
+
+        let configuration = ModelConfiguration(
+            "Migration", schema: HostPersistence.schema, url: storeURL
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, migrationPlan: TermindMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let message = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessage>()
+        ).first)
+
+        #expect(message.id == messageID)
+        #expect(message.sequence == 0)
+    }
+
+    @Test
+    func versionTwelveToolInvocationsMigrateWithoutASourceMessage() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "TermindToolSourceMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "Termind.store")
+        let invocationID = UUID()
+
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV12.self)
+            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let invocation = TermindSchemaV12AgentModels.PersistentAgentToolInvocation()
+            invocation.id = invocationID
+            invocation.callID = "legacy-call"
+            invocation.toolName = "web_search"
+            container.mainContext.insert(invocation)
+            try container.mainContext.save()
+        }
+
+        let configuration = ModelConfiguration(
+            "Migration", schema: HostPersistence.schema, url: storeURL
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, migrationPlan: TermindMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let invocation = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentToolInvocation>()
+        ).first)
+
+        #expect(invocation.id == invocationID)
+        #expect(invocation.callID == "legacy-call")
+        #expect(invocation.sourceMessageID == nil)
+    }
+
+    @Test
     func imagePartsRoundTripThroughConversationPersistence() async throws {
         let configuration = ModelConfiguration(
             "AgentImagePersistenceTests", schema: HostPersistence.schema,
@@ -67,6 +186,49 @@ struct AgentPersistenceTests {
         let restored = try await repository.loadConversations()
 
         #expect(restored.first?.messages.first?.images == [image])
+    }
+
+    @Test
+    func runOwnershipAndToolSourceMessageRoundTrip() async throws {
+        let configuration = ModelConfiguration(
+            "AgentWorkPersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let startedAt = Date(timeIntervalSince1970: 1_000)
+        let user = AgentTranscriptMessage(role: .user, text: "Search")
+        let assistant = AgentTranscriptMessage(
+            role: .assistant, text: "Searching",
+            toolCalls: [AgentToolCall(id: "call", name: "web_search", arguments: .object([:]))]
+        )
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval, messages: [user, assistant],
+            startedAt: startedAt, finishedAt: startedAt.addingTimeInterval(8)
+        )
+        try await repository.save(snapshot)
+        let invocation = AgentToolInvocation(
+            runID: snapshot.id, call: assistant.toolCalls[0],
+            sourceMessageID: assistant.id
+        )
+        let descriptor = AgentToolDescriptor(
+            name: "web_search", summary: "Search", inputSchema: .object([:]),
+            target: .network, safety: .locallyReadOnly
+        )
+        try await repository.record(.toolProposed(invocation, descriptor), runID: snapshot.id)
+        try await repository.record(.toolFinished(
+            invocation, AgentToolResult(callID: "call", content: "[]")
+        ), runID: snapshot.id)
+
+        let restored = try #require(try await repository.loadConversations().first)
+        #expect(restored.messageRunIDs[user.id] == snapshot.id)
+        #expect(restored.messageRunIDs[assistant.id] == snapshot.id)
+        #expect(restored.runs.first?.startedAt == startedAt)
+        #expect(restored.runs.first?.finishedAt == startedAt.addingTimeInterval(8))
+        #expect(restored.toolCards.first?.invocation.sourceMessageID == assistant.id)
     }
 
     @Test
@@ -361,5 +523,148 @@ struct AgentPersistenceTests {
         try await repository.deleteConversation(conversationID)
         try await repository.setTitle("late", conversationID: conversationID)
         #expect(try await repository.loadConversations().isEmpty)
+    }
+
+    @Test
+    func metadataAndAuthoredTextSurviveRestore() async throws {
+        let configuration = ModelConfiguration(
+            "AgentConversationMetadataTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let id = UUID()
+        try await repository.save(AgentRunSnapshot(
+            conversationID: id, state: .completed,
+            permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(
+                role: .user, text: "Prompt\n\n<file label=\"a\">payload</file>",
+                authoredText: "Prompt"
+            )]
+        ))
+        let archived = Date(timeIntervalSince1970: 10)
+        try await repository.setConversationMetadata(
+            StoredAgentConversationMetadata(
+                customTitle: "Named", isPinned: false, archivedAt: archived,
+                createdAt: .now, updatedAt: .now
+            ), conversationID: id
+        )
+
+        let restored = try #require(try await repository.loadConversations().first)
+        #expect(restored.messages.first?.authoredText == "Prompt")
+        #expect(restored.metadata.customTitle == "Named")
+        #expect(restored.metadata.archivedAt == archived)
+    }
+
+    @Test
+    func truncationRemovesTheTargetRunAndEverythingAfterIt() async throws {
+        let configuration = ModelConfiguration(
+            "AgentConversationTruncationTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let id = UUID()
+        let firstUser = AgentTranscriptMessage(role: .user, text: "One", authoredText: "One")
+        let firstAssistant = AgentTranscriptMessage(role: .assistant, text: "Answer one")
+        var first = AgentRunSnapshot(
+            conversationID: id, state: .completed, permissionMode: .askForApproval,
+            messages: [firstUser, firstAssistant], startedAt: Date(timeIntervalSince1970: 1)
+        )
+        first.finishedAt = Date(timeIntervalSince1970: 2)
+        try await repository.save(first)
+        let secondUser = AgentTranscriptMessage(role: .user, text: "Two", authoredText: "Two")
+        var second = AgentRunSnapshot(
+            conversationID: id, state: .completed, permissionMode: .askForApproval,
+            messages: [firstUser, firstAssistant, secondUser],
+            startedAt: Date(timeIntervalSince1970: 3)
+        )
+        second.finishedAt = Date(timeIntervalSince1970: 4)
+        try await repository.save(second)
+
+        try await repository.truncateConversation(
+            id, fromUserMessageID: secondUser.id,
+            replacingWith: AgentTranscriptMessage(
+                role: .user, text: "Edited", authoredText: "Edited"
+            )
+        )
+
+        let restored = try #require(try await repository.loadConversations().first)
+        #expect(restored.messages.map(\.text) == ["One", "Answer one", "Edited"])
+    }
+
+    @Test
+    func truncationRejectsAMessageOutsideThePersistedConversation() async throws {
+        let configuration = ModelConfiguration(
+            "AgentConversationMissingEditTargetTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let id = UUID()
+        let original = AgentTranscriptMessage(
+            role: .user, text: "Original", authoredText: "Original"
+        )
+        try await repository.save(AgentRunSnapshot(
+            conversationID: id, state: .completed,
+            permissionMode: .askForApproval, messages: [original]
+        ))
+
+        await #expect(throws: AgentConversationPersistenceError.self) {
+            try await repository.truncateConversation(
+                id, fromUserMessageID: UUID(),
+                replacingWith: AgentTranscriptMessage(
+                    role: .user, text: "Edited", authoredText: "Edited"
+                )
+            )
+        }
+
+        let restored = try #require(try await repository.loadConversations().first)
+        #expect(restored.messages.map(\.id) == [original.id])
+        #expect(restored.messages.map(\.text) == ["Original"])
+    }
+
+    @Test
+    func creatingAForkPersistsAnIndependentConversationGraph() async throws {
+        let configuration = ModelConfiguration(
+            "AgentConversationForkTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let originalID = UUID()
+        let forkID = UUID()
+        let originalMessageID = UUID()
+        let forkMessageID = UUID()
+        try await repository.save(AgentRunSnapshot(
+            conversationID: originalID, state: .completed,
+            permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(
+                id: originalMessageID, role: .user, text: "Original", authoredText: "Original"
+            )]
+        ))
+        try await repository.createConversation(StoredAgentConversation(
+            id: forkID,
+            messages: [AgentTranscriptMessage(
+                id: forkMessageID, role: .user, text: "Original", authoredText: "Original"
+            )], lastRunState: .completed,
+            metadata: StoredAgentConversationMetadata(customTitle: "Original (1)")
+        ))
+
+        let restored = try await repository.loadConversations()
+        #expect(Set(restored.map(\.id)) == Set([originalID, forkID]))
+        #expect(restored.first { $0.id == forkID }?.messages.first?.id == forkMessageID)
+        #expect(restored.first { $0.id == forkID }?.metadata.customTitle == "Original (1)")
+
+        try await repository.deleteConversation(originalID)
+        #expect(try await repository.loadConversations().map(\.id) == [forkID])
     }
 }

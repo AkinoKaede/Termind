@@ -835,6 +835,14 @@ private actor RecordingRunRepository: AgentRunPersisting {
     func loadConversations() -> [StoredAgentConversation] { [] }
     func deleteConversation(_ id: UUID) {}
     func setTitle(_ title: String, conversationID: UUID) {}
+    func setConversationMetadata(
+        _ metadata: StoredAgentConversationMetadata, conversationID: UUID
+    ) {}
+    func truncateConversation(
+        _ id: UUID, fromUserMessageID messageID: UUID,
+        replacingWith message: AgentTranscriptMessage
+    ) {}
+    func createConversation(_ conversation: StoredAgentConversation) {}
 }
 
 private actor Counter {

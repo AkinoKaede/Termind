@@ -47,6 +47,109 @@ struct WindowStateTests {
         #expect(window.assistantLibrary.selectedConversationID == first.id)
     }
 
+    @Test
+    func assistantLibrarySeparatesPinnedActiveAndArchivedByRecentActivity() {
+        let old = ConversationModel(updatedAt: Date(timeIntervalSince1970: 1))
+        let recent = ConversationModel(updatedAt: Date(timeIntervalSince1970: 3))
+        let pinned = ConversationModel(updatedAt: Date(timeIntervalSince1970: 2))
+        pinned.isPinned = true
+        let archived = ConversationModel(updatedAt: Date(timeIntervalSince1970: 4))
+        archived.archivedAt = .now
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [old, recent, pinned, archived]
+        ))
+
+        #expect(library.pinnedConversations.map(\.id) == [pinned.id])
+        #expect(library.activeConversations.map(\.id) == [recent.id, old.id])
+        #expect(library.archivedConversations.map(\.id) == [archived.id])
+    }
+
+    @Test
+    func archivingClearsPinAndUnarchivingReturnsTheConversationToChats() {
+        let conversation = ConversationModel()
+        conversation.isPinned = true
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(assistantLibrary: library)
+
+        window.setAssistantArchived(conversation.id, archived: true)
+        #expect(conversation.isArchived)
+        #expect(!conversation.isPinned)
+        #expect(library.archivedConversations.map(\.id) == [conversation.id])
+
+        window.setAssistantArchived(conversation.id, archived: false)
+        #expect(!conversation.isArchived)
+        #expect(library.activeConversations.map(\.id) == [conversation.id])
+    }
+
+    @Test
+    func archiveIsASeparateWindowDestinationAndConversationNavigationLeavesIt() {
+        let conversation = ConversationModel()
+        conversation.archivedAt = .now
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(assistantLibrary: library)
+
+        window.showAssistantArchive()
+        #expect(window.isAssistantArchivePresented)
+        #expect(window.selectedTopLevelTab == .assistant)
+
+        window.selectAssistant(conversation.id)
+        #expect(!window.isAssistantArchivePresented)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+
+        window.showAssistantArchiveInSidebar()
+        #expect(window.sidebar.isAssistantArchivePresented)
+        #expect(window.sidebarAssistantConversation == nil)
+
+        window.openAssistantInSidebar(conversation.id)
+        #expect(!window.sidebar.isAssistantArchivePresented)
+        #expect(window.sidebarAssistantConversation === conversation)
+    }
+
+    @Test
+    func forkTitlesUseTheLowestFreeTabStyleNumber() {
+        let source = ConversationModel()
+        source.customTitle = "Question"
+        let store = AssistantConversationStore(conversations: [source])
+
+        #expect(store.nextForkTitle(for: source) == "Question (1)")
+
+        let firstFork = ConversationModel()
+        firstFork.customTitle = "Question (1)"
+        store.insert(firstFork)
+        #expect(store.nextForkTitle(for: source) == "Question (2)")
+        #expect(store.nextForkTitle(for: firstFork) == "Question (2)")
+
+        store.remove(firstFork.id)
+        #expect(store.nextForkTitle(for: source) == "Question (1)")
+    }
+
+    @Test
+    func failedMetadataSaveKeepsConversationStateAndReportsTheError() async {
+        let repository = FailingConversationOperationRepository()
+        let hosts = HostLibraryModel()
+        let dependencies = AppDependencies(
+            hostRepository: InMemoryHostRepository(), outboxRunner: nil,
+            agentRunRepository: repository
+        )
+        let app = AppModel(hosts: hosts, dependencies: dependencies)
+        let window = WindowModel()
+        app.registerWindow(window)
+        let conversation = window.assistantLibrary.createConversation()
+
+        window.toggleAssistantPin(conversation.id)
+        for _ in 0..<100 {
+            if window.assistantOperationError != nil { break }
+            await Task.yield()
+        }
+
+        #expect(!conversation.isPinned)
+        #expect(window.assistantOperationError == "Storage unavailable")
+    }
+
     /// Each window used to build its own `ConversationModel` for the same
     /// conversation id, so a reply streaming in one window was invisible in the
     /// other and both could start a run against the same stored history.
@@ -732,5 +835,31 @@ struct WindowStateTests {
             Issue.record("Expected transport failure to remain visible")
             return
         }
+    }
+}
+
+private actor FailingConversationOperationRepository: AgentRunPersisting {
+    private struct StorageFailure: LocalizedError {
+        var errorDescription: String? { "Storage unavailable" }
+    }
+
+    func save(_ snapshot: AgentRunSnapshot) {}
+    func record(_ event: AgentEvent, runID: UUID) {}
+    func loadConversations() -> [StoredAgentConversation] { [] }
+    func deleteConversation(_ id: UUID) {}
+    func setTitle(_ title: String, conversationID: UUID) {}
+    func setConversationMetadata(
+        _ metadata: StoredAgentConversationMetadata, conversationID: UUID
+    ) throws {
+        throw StorageFailure()
+    }
+    func truncateConversation(
+        _ id: UUID, fromUserMessageID messageID: UUID,
+        replacingWith message: AgentTranscriptMessage
+    ) throws {
+        throw StorageFailure()
+    }
+    func createConversation(_ conversation: StoredAgentConversation) throws {
+        throw StorageFailure()
     }
 }

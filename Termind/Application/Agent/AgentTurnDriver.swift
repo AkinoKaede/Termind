@@ -88,7 +88,7 @@ nonisolated struct AgentTurnDriver: Sendable {
                 }
             case .webSearch(let activity):
                 if recordedSearches.insert(activity.query).inserted {
-                    recordNativeWebSearch(activity)
+                    recordNativeWebSearch(activity, sourceMessageID: message.id)
                 }
             case .usage(let reported):
                 usage = usage.merging(reported)
@@ -146,14 +146,17 @@ nonisolated struct AgentTurnDriver: Sendable {
     /// The result content deliberately carries no `<untrusted-data>` wrapper.
     /// That wrapper is addressed to a model, and this content is never sent to
     /// one: it exists only for the card and for run history.
-    private func recordNativeWebSearch(_ activity: AgentWebSearchActivity) {
+    private func recordNativeWebSearch(
+        _ activity: AgentWebSearchActivity, sourceMessageID: UUID
+    ) {
         let invocation = AgentToolInvocation(
             runID: runID,
             call: AgentToolCall(
                 id: "provider-web-search-\(UUID().uuidString)",
                 name: "web_search",
                 arguments: .object(["query": .string(activity.query)])
-            )
+            ),
+            sourceMessageID: sourceMessageID
         )
         let descriptor = AgentToolDescriptor(
             name: "web_search",

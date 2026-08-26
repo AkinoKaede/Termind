@@ -28,7 +28,9 @@ nonisolated struct AgentToolScheduler: Sendable {
     /// eight at a time, rather than thirty sockets at once.
     var maximumConcurrency = 8
 
-    func run(_ calls: [AgentToolCall]) async -> [AgentToolResult] {
+    func run(
+        _ calls: [AgentToolCall], sourceMessageID: UUID? = nil
+    ) async -> [AgentToolResult] {
         guard !calls.isEmpty else { return [] }
 
         var plan: [AgentPlannedToolCall] = []
@@ -38,12 +40,13 @@ nonisolated struct AgentToolScheduler: Sendable {
             // a card and a result — silence would leave the model with calls
             // nothing ever answered.
             guard !Task.isCancelled else { break }
-            plan.append(await executor.plan(call))
+            plan.append(await executor.plan(call, sourceMessageID: sourceMessageID))
         }
         guard plan.count == calls.count else {
             // Whatever was already planned still runs to completion — it may
             // have started before the cancellation — and the rest are refused.
-            return await sequential(plan) + cancelled(Array(calls[plan.count...]))
+            return await sequential(plan)
+                + cancelled(Array(calls[plan.count...]), sourceMessageID: sourceMessageID)
         }
 
         // Pi's rule, and the reason a batch is all-or-nothing rather than
@@ -64,8 +67,10 @@ nonisolated struct AgentToolScheduler: Sendable {
     /// the provider truncated the response mid-arguments. Salvaged arguments
     /// can parse and validate and still be silently incomplete, so a truncated
     /// call is never executed.
-    func fail(_ calls: [AgentToolCall], reason: String) -> [AgentToolResult] {
-        calls.map { executor.fail($0, reason: reason) }
+    func fail(
+        _ calls: [AgentToolCall], reason: String, sourceMessageID: UUID? = nil
+    ) -> [AgentToolResult] {
+        calls.map { executor.fail($0, reason: reason, sourceMessageID: sourceMessageID) }
     }
 
     private func resolved(_ plan: [AgentPlannedToolCall]) -> AgentToolExecutionMode {
@@ -73,9 +78,13 @@ nonisolated struct AgentToolScheduler: Sendable {
         return plan.contains { $0.concurrency == .sequential } ? .sequential : .parallel
     }
 
-    private func cancelled(_ calls: [AgentToolCall]) -> [AgentToolResult] {
+    private func cancelled(
+        _ calls: [AgentToolCall], sourceMessageID: UUID?
+    ) -> [AgentToolResult] {
         let reason = String(localized: "The run was cancelled before this tool ran.")
-        return calls.map { executor.fail($0, reason: reason) }
+        return calls.map {
+            executor.fail($0, reason: reason, sourceMessageID: sourceMessageID)
+        }
     }
 
     private func sequential(_ plan: [AgentPlannedToolCall]) async -> [AgentToolResult] {

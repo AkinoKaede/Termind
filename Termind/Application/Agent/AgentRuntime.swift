@@ -163,14 +163,17 @@ actor AgentRuntime {
             AgentTranscriptMessage(role: .user, text: $0)
         }
         let prompt = AgentTranscriptMessage(
-            role: .user, text: request.prompt, images: request.promptImages
+            id: request.promptID, role: .user, text: request.prompt,
+            authoredText: request.authoredPrompt, images: request.promptImages
         )
         snapshot.messages.append(prompt)
         let pipeline = configuration.contextPipeline(
             sessionContext, prompt.id, request.isPlanning
         )
 
-        channel.emit(.runStarted(runID))
+        channel.emit(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: snapshot.startedAt
+        )))
         channel.emit(.runState(.running))
         await persist(snapshot)
 
@@ -236,17 +239,21 @@ actor AgentRuntime {
                     refusal = .truncatedToolCall
                     results = scheduler.fail(
                         turn.message.toolCalls,
-                        reason: AgentRuntimeError.truncatedToolCall.localizedDescription
+                        reason: AgentRuntimeError.truncatedToolCall.localizedDescription,
+                        sourceMessageID: turn.message.id
                     )
                 } else if toolCount + turn.message.toolCalls.count > configuration.maxToolCalls {
                     refusal = .toolBudgetExceeded
                     results = scheduler.fail(
                         turn.message.toolCalls,
-                        reason: AgentRuntimeError.toolBudgetExceeded.localizedDescription
+                        reason: AgentRuntimeError.toolBudgetExceeded.localizedDescription,
+                        sourceMessageID: turn.message.id
                     )
                 } else {
                     toolCount += turn.message.toolCalls.count
-                    results = await scheduler.run(turn.message.toolCalls)
+                    results = await scheduler.run(
+                        turn.message.toolCalls, sourceMessageID: turn.message.id
+                    )
                 }
                 for (call, result) in zip(turn.message.toolCalls, results) {
                     snapshot.messages.append(AgentTranscriptMessage(
@@ -271,6 +278,10 @@ actor AgentRuntime {
             acceptsSteering = false
             snapshot.state = .cancelled
             snapshot.finishedAt = .now
+            channel.emit(.runFinished(AgentRunSummary(
+                id: runID, state: .cancelled, startedAt: snapshot.startedAt,
+                finishedAt: snapshot.finishedAt
+            )))
             channel.emit(.runState(.cancelled))
             await persist(snapshot)
         } catch {
@@ -279,6 +290,10 @@ actor AgentRuntime {
             snapshot.failure = error.localizedDescription
             snapshot.finishedAt = .now
             channel.emit(.failed(error.localizedDescription))
+            channel.emit(.runFinished(AgentRunSummary(
+                id: runID, state: .failed, startedAt: snapshot.startedAt,
+                finishedAt: snapshot.finishedAt
+            )))
             channel.emit(.runState(.failed))
             await persist(snapshot)
         }
@@ -309,6 +324,10 @@ actor AgentRuntime {
         var finished = snapshot
         finished.state = .completed
         finished.finishedAt = .now
+        channel.emit(.runFinished(AgentRunSummary(
+            id: runID, state: .completed, startedAt: finished.startedAt,
+            finishedAt: finished.finishedAt
+        )))
         channel.emit(.runState(.completed))
         await persist(finished)
         finish(runID: runID)

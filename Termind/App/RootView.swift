@@ -64,6 +64,17 @@ struct RootView: View {
                 QuickOpenView()
             }
         }
+        .alert(
+            "Conversation Operation Failed",
+            isPresented: Binding(
+                get: { window.assistantOperationError != nil },
+                set: { if !$0 { window.assistantOperationError = nil } }
+            )
+        ) {
+            Button("OK") { window.assistantOperationError = nil }
+        } message: {
+            Text(window.assistantOperationError ?? "")
+        }
         // Do not put a catch-all `.onDrop` here. On macOS an ancestor accepting
         // the same text payload can win over the pane and tab-strip delegates,
         // clear `dragging`, and turn a valid merge into a cancelled drop. Each

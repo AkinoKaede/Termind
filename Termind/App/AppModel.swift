@@ -219,7 +219,8 @@ final class AppModel {
             guard let self, let conversation else { return }
             await compactIfNeeded(conversation)
             startAgentRun(
-                conversation, prompt: prompt.text, promptImages: prompt.images, context: context,
+                conversation, promptID: prompt.id, prompt: prompt.text,
+                authoredPrompt: prompt.authoredText, promptImages: prompt.images, context: context,
                 includesTerminalSuggestion: includesTerminalSuggestion
             )
         }
@@ -227,7 +228,9 @@ final class AppModel {
 
     func startAgentRun(
         _ conversation: ConversationModel,
+        promptID: UUID? = nil,
         prompt: String? = nil,
+        authoredPrompt: String? = nil,
         promptImages: [AgentImageAttachment]? = nil,
         context: SessionContext = .none,
         includesTerminalSuggestion: Bool = false
@@ -367,7 +370,9 @@ final class AppModel {
         conversation.start(
             runtime: runtime,
             request: AgentRunRequest(
-                conversationID: conversation.id, prompt: userPrompt,
+                conversationID: conversation.id,
+                promptID: promptID ?? lastUserTurn?.id ?? UUID(), prompt: userPrompt,
+                authoredPrompt: authoredPrompt ?? lastUserTurn?.authoredText,
                 promptImages: userImages,
                 permissionMode: mode, isPlanning: isPlanning,
                 priorMessages: conversation.pendingPriorMessages,
@@ -559,6 +564,27 @@ final class AppModel {
         window.assistantConversationDeletionHandler = { [weak self] id in
             self?.deleteAgentConversation(id)
         }
+        window.assistantPinHandler = { [weak self, weak window] id in
+            self?.togglePin(id, reportingTo: window)
+        }
+        window.assistantRenameHandler = { [weak self, weak window] id, title in
+            self?.renameConversation(id, to: title, reportingTo: window)
+        }
+        window.assistantArchiveHandler = { [weak self, weak window] id, archived in
+            self?.setArchived(id, archived: archived, reportingTo: window)
+        }
+        window.assistantForkHandler = { [weak self, weak window] id, messageID, inSidebar in
+            self?.forkConversation(
+                id, at: messageID, selectingIn: window, inSidebar: inSidebar
+            )
+        }
+        window.assistantEditHandler = {
+            [weak self, weak window] id, messageID, text, context, includes in
+            self?.editConversation(
+                id, messageID: messageID, text: text, context: context,
+                includesTerminalSuggestion: includes, reportingTo: window
+            )
+        }
         Task { [agentRunRepository, weak window, weak self] in
             guard let restored = try? await agentRunRepository.loadConversations() else { return }
             let visible = restored.filter {
@@ -579,13 +605,21 @@ final class AppModel {
     }
 
     private func deleteAgentConversation(_ id: UUID) {
+        let wasArchived = conversation(id)?.isArchived == true
         deletedAgentConversationIDs.insert(id)
         titledConversationIDs.remove(id)
         windows = windows.filter { $0.value.value != nil }
         for window in windows.values.compactMap(\.value) {
+            let wasSelected = window.assistantLibrary.selectedConversationID == id
             window.assistantLibrary.delete(id)
+            if wasArchived, wasSelected {
+                window.isAssistantArchivePresented = true
+            }
             if window.sidebar.assistantConversationID == id {
                 window.sidebar.assistantConversationID = nil
+                if wasArchived {
+                    window.sidebar.isAssistantArchivePresented = true
+                }
             }
         }
         Task { [agentRunRepository] in
@@ -595,6 +629,142 @@ final class AppModel {
             // staged files — possibly a copy of a production config — on disk for
             // the life of the install.
             try? await AgentScratchWorkspace(conversationID: id).removeScope()
+        }
+    }
+
+    private func conversation(_ id: UUID) -> ConversationModel? {
+        assistantConversations.conversation(id: id)
+    }
+
+    private func togglePin(_ id: UUID, reportingTo window: WindowModel?) {
+        guard let conversation = conversation(id), !conversation.isArchived,
+            !conversation.isStreaming, !conversation.isCompacting
+        else { return }
+        var metadata = conversation.metadata
+        metadata.isPinned.toggle()
+        Task { [weak conversation, weak window, agentRunRepository] in
+            do {
+                try await agentRunRepository.setConversationMetadata(
+                    metadata, conversationID: id
+                )
+                conversation?.isPinned = metadata.isPinned
+            } catch {
+                window?.assistantOperationError = error.localizedDescription
+            }
+        }
+    }
+
+    private func renameConversation(
+        _ id: UUID, to value: String, reportingTo window: WindowModel?
+    ) {
+        let title = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let conversation = conversation(id), !title.isEmpty else { return }
+        let customTitle = String(title.prefix(80))
+        var metadata = conversation.metadata
+        metadata.customTitle = customTitle
+        Task { [weak conversation, weak window, agentRunRepository] in
+            do {
+                try await agentRunRepository.setConversationMetadata(
+                    metadata, conversationID: id
+                )
+                conversation?.customTitle = customTitle
+            } catch {
+                window?.assistantOperationError = error.localizedDescription
+            }
+        }
+    }
+
+    private func setArchived(
+        _ id: UUID, archived: Bool, reportingTo window: WindowModel?
+    ) {
+        guard let conversation = conversation(id), !conversation.isStreaming,
+            !conversation.isCompacting
+        else { return }
+        var metadata = conversation.metadata
+        metadata.archivedAt = archived ? .now : nil
+        if archived { metadata.isPinned = false }
+        Task { [weak conversation, weak window, agentRunRepository] in
+            do {
+                try await agentRunRepository.setConversationMetadata(
+                    metadata, conversationID: id
+                )
+                conversation?.archivedAt = metadata.archivedAt
+                conversation?.isPinned = metadata.isPinned
+            } catch {
+                window?.assistantOperationError = error.localizedDescription
+            }
+        }
+    }
+
+    private func forkConversation(
+        _ id: UUID, at messageID: UUID, selectingIn window: WindowModel?,
+        inSidebar: Bool
+    ) {
+        guard let source = conversation(id) else { return }
+        let title = assistantConversations.nextForkTitle(for: source)
+        guard let fork = source.forked(
+            throughAssistantMessage: messageID, title: title
+        )
+        else { return }
+        let stored = StoredAgentConversation(
+            id: fork.id, messages: fork.transcript,
+            messageRunIDs: fork.messageRunIDs,
+            runs: Array(fork.runSummaries.values),
+            toolCards: fork.toolCards.map {
+                StoredAgentToolCard(
+                    invocation: $0.invocation, descriptor: $0.descriptor,
+                    state: $0.state.rawValue, result: $0.result, review: $0.review
+                )
+            }, lastRunState: .completed, title: "", metadata: fork.metadata
+        )
+        Task { [weak self, weak window, agentRunRepository] in
+            do {
+                try await Task.detached(priority: .utility) {
+                    try AgentScratchWorkspace.copyScope(from: id, to: fork.id)
+                }.value
+                try await agentRunRepository.createConversation(stored)
+                guard let self else { return }
+                self.assistantConversations.insert(fork)
+                if inSidebar { window?.openAssistantInSidebar(fork.id) }
+                else { window?.selectAssistant(fork.id) }
+            } catch {
+                try? await AgentScratchWorkspace(conversationID: fork.id).removeScope()
+                window?.assistantOperationError = error.localizedDescription
+            }
+        }
+    }
+
+    private func editConversation(
+        _ id: UUID, messageID: UUID, text value: String,
+        context: SessionContext, includesTerminalSuggestion: Bool,
+        reportingTo window: WindowModel?
+    ) {
+        let text = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, let conversation = conversation(id),
+            let replacement = conversation.editedUserMessage(
+                messageID, authoredText: text
+            )
+        else { return }
+        Task { [weak self, weak conversation, weak window, agentRunRepository] in
+            do {
+                try await agentRunRepository.truncateConversation(
+                    id, fromUserMessageID: messageID, replacingWith: replacement
+                )
+                guard let self, let conversation,
+                    let prompt = conversation.editUserMessage(
+                        messageID, replacement: replacement
+                    )
+                else { return }
+                self.titledConversationIDs.remove(id)
+                self.startAgentRun(
+                    conversation, promptID: prompt.id, prompt: prompt.text,
+                    authoredPrompt: prompt.authoredText, promptImages: prompt.images,
+                    context: context,
+                    includesTerminalSuggestion: includesTerminalSuggestion
+                )
+            } catch {
+                window?.assistantOperationError = error.localizedDescription
+            }
         }
     }
 

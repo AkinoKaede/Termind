@@ -118,8 +118,12 @@ nonisolated struct AgentToolExecutor: Sendable {
     /// this whenever it is about to wait a long time on purpose.
     var interjection: @Sendable () async -> Void = { }
 
-    func plan(_ call: AgentToolCall) async -> AgentPlannedToolCall {
-        let proposed = AgentToolInvocation(runID: runID, call: call)
+    func plan(
+        _ call: AgentToolCall, sourceMessageID: UUID? = nil
+    ) async -> AgentPlannedToolCall {
+        let proposed = AgentToolInvocation(
+            runID: runID, call: call, sourceMessageID: sourceMessageID
+        )
         guard let tool = tools[call.name] else {
             // Still a card. Returning silently left the transcript showing an
             // empty assistant turn and nothing else, which reads as "the model
@@ -236,8 +240,12 @@ nonisolated struct AgentToolExecutor: Sendable {
     /// four things and three cards appeared reads as the fourth having been
     /// quietly ignored; this is what makes "the budget ran out" or "the run was
     /// cancelled" a visible outcome of a specific call.
-    func fail(_ call: AgentToolCall, reason: String) -> AgentToolResult {
-        let invocation = AgentToolInvocation(runID: runID, call: call)
+    func fail(
+        _ call: AgentToolCall, reason: String, sourceMessageID: UUID? = nil
+    ) -> AgentToolResult {
+        let invocation = AgentToolInvocation(
+            runID: runID, call: call, sourceMessageID: sourceMessageID
+        )
         let result = AgentToolResult(callID: call.id, content: reason, isError: true)
         let descriptor = tools[call.name]?.descriptor ?? AgentToolDescriptor(
             name: call.name,

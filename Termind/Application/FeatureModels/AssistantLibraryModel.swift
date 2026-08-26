@@ -24,6 +24,37 @@ final class AssistantConversationStore {
         conversations.insert(conversation, at: 0)
     }
 
+    /// Forks use the same lowest-free numbering as duplicated terminal tabs:
+    /// `Title (1)`, `Title (2)`, and a vacated number can be reused. Forking a
+    /// fork continues the original sequence instead of producing `(1) (1)`.
+    func nextForkTitle(for source: ConversationModel) -> String {
+        let sourceTitle = source.derivedTitle
+        let root = forkRoot(for: sourceTitle, sourceID: source.id)
+        let taken = Set(conversations.map(\.derivedTitle))
+        var index = 1
+        while taken.contains(ConversationModel.numberedForkTitle(base: root, index: index)) {
+            index += 1
+        }
+        return ConversationModel.numberedForkTitle(base: root, index: index)
+    }
+
+    private func forkRoot(for title: String, sourceID: UUID) -> String {
+        guard let range = title.range(
+            of: #" \([0-9]+\)$"#, options: .regularExpression
+        ) else { return title }
+        let candidate = String(title[..<range.lowerBound])
+        let belongsToExistingSequence = conversations.contains { conversation in
+            guard conversation.id != sourceID else { return false }
+            let other = conversation.derivedTitle
+            if other == candidate { return true }
+            guard let suffix = other.range(
+                of: #" \([0-9]+\)$"#, options: .regularExpression
+            ) else { return false }
+            return other[..<suffix.lowerBound] == candidate
+        }
+        return belongsToExistingSequence ? candidate : title
+    }
+
     /// Removes one conversation and hands back where it was, so each window can
     /// move its own selection to whatever took its place.
     @discardableResult
@@ -44,7 +75,7 @@ final class AssistantConversationStore {
                     case .user:
                         ChatMessage(
                             id: message.id, role: .user,
-                            text: ContextChip.visiblePrompt(in: message.text),
+                            text: message.authoredText ?? ContextChip.visiblePrompt(in: message.text),
                             contextChips: ContextChip.visibleReferences(
                                 in: message.text, images: message.images
                             ),
@@ -62,11 +93,19 @@ final class AssistantConversationStore {
                 // Tool rows are dropped from the visible list because they are
                 // drawn as cards, but the model still needs them next turn.
                 transcript: value.messages,
-                runState: value.lastRunState
+                runState: value.lastRunState,
+                messageRunIDs: value.messageRunIDs,
+                runs: value.runs,
+                createdAt: value.metadata.createdAt,
+                updatedAt: value.metadata.updatedAt
             )
             // Empty is "never summarized", not a name of nothing — `derivedTitle`
             // has to be able to tell those apart to fall back.
             conversation.title = value.title.isEmpty ? nil : value.title
+            conversation.customTitle = value.metadata.customTitle.isEmpty
+                ? nil : value.metadata.customTitle
+            conversation.isPinned = value.metadata.isPinned
+            conversation.archivedAt = value.metadata.archivedAt
             conversation.toolCards = value.toolCards.map { card in
                 let state: AgentToolCard.State
                 if card.result?.isInterrupted == true { state = .interrupted }
@@ -109,6 +148,17 @@ final class AssistantLibraryModel {
     }
 
     var conversations: [ConversationModel] { store.conversations }
+    var pinnedConversations: [ConversationModel] {
+        conversations.filter { !$0.isArchived && $0.isPinned }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+    var activeConversations: [ConversationModel] {
+        conversations.filter { !$0.isArchived && !$0.isPinned }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+    var archivedConversations: [ConversationModel] {
+        conversations.filter(\.isArchived).sorted { $0.updatedAt > $1.updatedAt }
+    }
 
     /// Joins the app-wide store, carrying over anything this window made before
     /// it was registered. Windows are registered on appear, so in practice that
@@ -140,6 +190,11 @@ final class AssistantLibraryModel {
         store.insert(conversation)
         selectedConversationID = conversation.id
         return conversation
+    }
+
+    func insertAndSelect(_ conversation: ConversationModel) {
+        store.insert(conversation)
+        selectedConversationID = conversation.id
     }
 
     /// Shows New Chat without manufacturing an empty history item. Keeping one
@@ -181,15 +236,12 @@ final class AssistantLibraryModel {
     }
 
     func delete(_ id: ConversationModel.ID) {
-        // `remove` returns nil when another window already took it out of the
-        // shared store; this window still has a stale selection to repair.
-        let index = store.remove(id)
+        store.remove(id)
         guard selectedConversationID == id else { return }
-        let successor = index ?? 0
-        selectedConversationID =
-            store.conversations.indices.contains(successor)
-            ? store.conversations[successor].id
-            : store.conversations.first?.id
+        // Archived chats no longer live in the ordinary navigator. Deleting a
+        // live chat must therefore never select a hidden archived row as its
+        // successor; return to the most relevant visible chat, or New Chat.
+        selectedConversationID = (pinnedConversations + activeConversations).first?.id
     }
 
     func restore(_ stored: [StoredAgentConversation]) {

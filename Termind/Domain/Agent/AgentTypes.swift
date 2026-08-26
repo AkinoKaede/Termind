@@ -231,6 +231,9 @@ nonisolated struct AgentToolInvocation: Identifiable, Hashable, Sendable, Codabl
     var id: UUID = UUID()
     var runID: UUID
     var call: AgentToolCall
+    /// Assistant message that requested this work. Provider-native tools also
+    /// use it even though they never become model-facing function calls.
+    var sourceMessageID: UUID? = nil
     var targetHostID: UUID?
     var createdAt: Date = .now
 }
@@ -441,6 +444,15 @@ nonisolated enum AgentRunState: String, Hashable, Sendable, Codable {
     }
 }
 
+/// Presentation metadata for one complete agent run. The transcript itself is
+/// provider-facing; run timing and UI grouping deliberately live beside it.
+nonisolated struct AgentRunSummary: Identifiable, Hashable, Sendable {
+    var id: UUID
+    var state: AgentRunState
+    var startedAt: Date
+    var finishedAt: Date?
+}
+
 nonisolated enum AgentStopReason: String, Hashable, Sendable, Codable {
     case completed, toolCalls, length, cancelled, error
 }
@@ -465,6 +477,9 @@ nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Cod
     var id: UUID = UUID()
     var role: AgentTranscriptRole
     var text: String = ""
+    /// The text the user typed before context blocks were appended to `text`.
+    /// Nil on assistant/tool turns and on stores created before message editing.
+    var authoredText: String?
     var images: [AgentImageAttachment] = []
     var toolCalls: [AgentToolCall] = []
     var toolCallID: String?
@@ -500,7 +515,8 @@ nonisolated enum AgentEvent: Hashable, Sendable {
     /// The run has an identity. Emitted once, before anything else, so a reader
     /// can bind what follows to a run without waiting for the first tool call
     /// to tell it which one this is.
-    case runStarted(AgentRunSnapshot.ID)
+    case runStarted(AgentRunSummary)
+    case runFinished(AgentRunSummary)
     /// Brackets one model round trip and the tool batch it asks for.
     ///
     /// These are what make a parallel batch legible: every tool card emitted
@@ -565,8 +581,8 @@ nonisolated enum AgentEvent: Hashable, Sendable {
 
     var associatedRunID: UUID? {
         switch self {
-        case .runStarted(let id):
-            id
+        case .runStarted(let run), .runFinished(let run):
+            run.id
         case .toolProposed(let invocation, _), .toolStarted(let invocation),
             .toolProgress(let invocation, _), .toolFinished(let invocation, _):
             invocation.runID
@@ -595,7 +611,9 @@ nonisolated enum AgentEvent: Hashable, Sendable {
 
 nonisolated struct AgentRunRequest: Sendable {
     var conversationID: UUID
+    var promptID: UUID
     var prompt: String
+    var authoredPrompt: String?
     var promptImages: [AgentImageAttachment]
     var permissionMode: ChatPermissionMode
     /// Whether this run may only look.
@@ -613,7 +631,9 @@ nonisolated struct AgentRunRequest: Sendable {
 
     init(
         conversationID: UUID,
+        promptID: UUID = UUID(),
         prompt: String,
+        authoredPrompt: String? = nil,
         promptImages: [AgentImageAttachment] = [],
         permissionMode: ChatPermissionMode,
         isPlanning: Bool = false,
@@ -622,7 +642,9 @@ nonisolated struct AgentRunRequest: Sendable {
         sessionContext: SessionContext = .none
     ) {
         self.conversationID = conversationID
+        self.promptID = promptID
         self.prompt = prompt
+        self.authoredPrompt = authoredPrompt
         self.promptImages = promptImages
         self.permissionMode = permissionMode
         self.isPlanning = isPlanning

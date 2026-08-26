@@ -127,6 +127,22 @@ actor AgentScratchWorkspace {
         .appending(path: "Scratch", directoryHint: .isDirectory)
     }
 
+    static func copyScope(from sourceID: UUID, to destinationID: UUID) throws {
+        let base = try defaultBase()
+        let source = base.appending(path: sourceID.uuidString, directoryHint: .isDirectory)
+        guard FileManager.default.fileExists(atPath: source.path(percentEncoded: false)) else {
+            return
+        }
+        let destination = base.appending(
+            path: destinationID.uuidString, directoryHint: .isDirectory
+        )
+        guard !FileManager.default.fileExists(
+            atPath: destination.path(percentEncoded: false)
+        ) else { return }
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: source, to: destination)
+    }
+
     // MARK: Reading
 
     func usage() throws -> ScratchUsage { try measure(in: try root()) }

@@ -462,9 +462,8 @@ struct ChatComposerStateTests {
         #expect(!conversation.isStreaming)
     }
 
-    /// Messages and tool cards were two lists drawn one after the other, so a
-    /// run that alternated between talking and acting read back as all the text
-    /// followed by all the cards.
+    /// Tool-producing prose and its cards belong to one disclosure before the
+    /// final answer, instead of being ordered by when provider events arrived.
     @Test
     func timelineInterleavesToolCardsWithTheMessagesTheyBelongTo() async {
         let conversation = ConversationModel()
@@ -506,12 +505,90 @@ struct ChatComposerStateTests {
             switch item {
             case .message(let message): message.role == .user ? "user" : "assistant"
             case .tool: "tool"
+            case .work: "work"
             case .plan: "plan"
             case .compaction: "compaction"
             case .compactionActivity: "compaction-activity"
             }
         }
-        #expect(kinds == ["user", "assistant", "tool", "assistant"])
+        #expect(kinds == ["user", "work", "assistant"])
+        let work = conversation.workGroups.first
+        #expect(work?.items.count == 2)
+        #expect(work?.run.state == .completed)
+    }
+
+    @Test
+    func directAnswerDoesNotCreateAWorkGroup() {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("hello")
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            role: .assistant, text: "Hello!"
+        )))
+
+        #expect(conversation.workGroups.isEmpty)
+        #expect(conversation.timeline.count == 2)
+    }
+
+    @Test
+    func providerSearchReportedAfterTextStillAppearsBeforeTheFinalAnswer() {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("search")
+        let runID = UUID()
+        let startedAt = Date(timeIntervalSince1970: 1_000)
+        let answer = AgentTranscriptMessage(
+            role: .assistant, text: "The answer", createdAt: startedAt.addingTimeInterval(1)
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: startedAt
+        )))
+        conversation.handle(.messageStarted(answer))
+        conversation.handle(.messageFinished(answer))
+
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(
+                id: "provider-search", name: "web_search",
+                arguments: .object(["query": .string("search")])
+            ),
+            sourceMessageID: answer.id,
+            createdAt: startedAt.addingTimeInterval(2)
+        )
+        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
+            name: "web_search", summary: "Provider search",
+            inputSchema: .object([:]), target: .network, safety: .locallyReadOnly
+        )))
+        conversation.handle(.toolFinished(invocation, AgentToolResult(
+            callID: invocation.call.id, content: "[]",
+            metadata: [AgentToolResult.providerNativeKey: .bool(true)]
+        )))
+        conversation.handle(.runFinished(AgentRunSummary(
+            id: runID, state: .completed, startedAt: startedAt,
+            finishedAt: startedAt.addingTimeInterval(3)
+        )))
+
+        let order = conversation.timeline.map { item in
+            switch item {
+            case .message(let message): return message.role == .user ? "user" : "assistant"
+            case .work: return "work"
+            default: return "other"
+            }
+        }
+        #expect(order == ["user", "work", "assistant"])
+        #expect(conversation.workGroups.first?.items.count == 1)
+    }
+
+    @Test
+    func workDurationUsesAtMostTwoUnitsAndSuccessfulRunsCollapseByDefault() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        #expect(AgentWorkPresentation.duration(from: start, to: start.addingTimeInterval(42)) == "42s")
+        #expect(AgentWorkPresentation.duration(from: start, to: start.addingTimeInterval(68)) == "1m 8s")
+        #expect(AgentWorkPresentation.duration(from: start, to: start.addingTimeInterval(4_320)) == "1h 12m")
+        #expect(!AgentWorkPresentation.isExpandedByDefault(for: .completed))
+        #expect(AgentWorkPresentation.isExpandedByDefault(for: .running))
+        #expect(AgentWorkPresentation.isExpandedByDefault(for: .waitingForUser))
+        #expect(AgentWorkPresentation.isExpandedByDefault(for: .failed))
+        #expect(AgentWorkPresentation.isExpandedByDefault(for: .cancelled))
+        #expect(AgentWorkPresentation.isExpandedByDefault(for: .interrupted))
     }
 
     /// A turn that only called tools has nothing to say, and an empty bubble
@@ -749,6 +826,125 @@ struct ChatComposerStateTests {
 
         conversation.title = "Disk pressure on root"
         #expect(conversation.derivedTitle == "Disk pressure on root")
+    }
+
+    @Test
+    func editingAUserTurnTruncatesTheVisibleAndModelHistoryAndKeepsAttachments() throws {
+        let image = AgentImageAttachment(
+            label: "screen.png", mimeType: "image/png", data: Data([1, 2, 3]),
+            pixelWidth: 10, pixelHeight: 10
+        )
+        let conversation = ConversationModel()
+        conversation.attach(ContextChip(kind: .image, label: image.label, image: image))
+        let opening = conversation.appendUserTurnContent("Original")
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            role: .assistant, text: "First answer", createdAt: .now.addingTimeInterval(1)
+        )))
+        _ = conversation.appendUserTurnContent("Follow-up")
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            role: .assistant, text: "Second answer", createdAt: .now.addingTimeInterval(2)
+        )))
+
+        let replacement = try #require(
+            conversation.editUserMessage(opening.id, authoredText: "Edited")
+        )
+
+        #expect(conversation.messages.map(\.text) == ["Edited"])
+        #expect(conversation.transcript.count == 1)
+        #expect(conversation.transcript.first?.authoredText == "Edited")
+        #expect(replacement.images == [image])
+    }
+
+    @Test
+    func onlyAssistantMessagesInReplayableHistoryCanBeForked() throws {
+        let conversation = ConversationModel()
+        let user = conversation.appendUserTurnContent("Question")
+        let assistant = AgentTranscriptMessage(role: .assistant, text: "Answer")
+        conversation.handle(.messageFinished(assistant))
+
+        #expect(!conversation.canForkAssistantMessage(user.id))
+        #expect(conversation.canForkAssistantMessage(assistant.id))
+        let fork = try #require(conversation.forked(throughAssistantMessage: assistant.id))
+        #expect(fork.id != conversation.id)
+        #expect(fork.messages.map(\.text) == ["Question", "Answer"])
+        #expect(Set(fork.transcript.map(\.id)).isDisjoint(with: conversation.transcript.map(\.id)))
+        #expect(fork.customTitle == "Question (1)")
+    }
+
+    @Test
+    func forkRemapsWorkRunAndSourceMessageIDs() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("Question")
+        let runID = UUID()
+        let startedAt = Date()
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: startedAt
+        )))
+        let process = AgentTranscriptMessage(
+            role: .assistant, text: "Checking",
+            toolCalls: [AgentToolCall(id: "call", name: "lookup", arguments: .object([:]))],
+            createdAt: startedAt.addingTimeInterval(1)
+        )
+        conversation.handle(.messageFinished(process))
+        let invocation = AgentToolInvocation(
+            runID: runID, call: process.toolCalls[0], sourceMessageID: process.id,
+            createdAt: startedAt.addingTimeInterval(2)
+        )
+        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
+            name: "lookup", summary: "Lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )))
+        conversation.handle(.toolFinished(
+            invocation, AgentToolResult(callID: "call", content: "result")
+        ))
+        let final = AgentTranscriptMessage(
+            role: .assistant, text: "Answer", createdAt: startedAt.addingTimeInterval(3)
+        )
+        conversation.handle(.messageFinished(final))
+        conversation.handle(.runFinished(AgentRunSummary(
+            id: runID, state: .completed, startedAt: startedAt,
+            finishedAt: startedAt.addingTimeInterval(4)
+        )))
+
+        let fork = try #require(conversation.forked(throughAssistantMessage: final.id))
+        let forkRunIDs = Set(fork.runSummaries.keys)
+        let clonedProcess = try #require(fork.transcript.first {
+            $0.role == .assistant && !$0.toolCalls.isEmpty
+        })
+        let clonedCard = try #require(fork.toolCards.first)
+        #expect(!forkRunIDs.contains(runID))
+        #expect(forkRunIDs.contains(clonedCard.invocation.runID))
+        #expect(clonedCard.invocation.sourceMessageID == clonedProcess.id)
+        #expect(Set(fork.messageRunIDs.values).isSubset(of: forkRunIDs))
+    }
+
+    @Test
+    func editingAUserTurnRemovesItsDownstreamWorkGroup() throws {
+        let conversation = ConversationModel()
+        let user = conversation.appendUserTurnContent("Question")
+        let runID = UUID()
+        let process = AgentTranscriptMessage(
+            role: .assistant, text: "Checking",
+            toolCalls: [AgentToolCall(id: "call", name: "lookup", arguments: .object([:]))]
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: .now
+        )))
+        conversation.handle(.messageFinished(process))
+        let invocation = AgentToolInvocation(
+            runID: runID, call: process.toolCalls[0], sourceMessageID: process.id
+        )
+        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
+            name: "lookup", summary: "Lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )))
+        #expect(conversation.workGroups.count == 1)
+
+        _ = try #require(conversation.editUserMessage(user.id, authoredText: "Edited"))
+
+        #expect(conversation.workGroups.isEmpty)
+        #expect(conversation.toolCards.isEmpty)
+        #expect(conversation.runSummaries.isEmpty)
     }
 
     private func waitForTerminal(_ conversation: ConversationModel) async {

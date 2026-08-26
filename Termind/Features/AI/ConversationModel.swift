@@ -227,6 +227,7 @@ nonisolated struct PendingSteeringMessage: Identifiable, Hashable, Sendable {
 nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     case message(ChatMessage)
     case tool(AgentToolCard)
+    case work(AgentWorkGroup)
     case plan(AgentPlanCard)
     case compaction(AgentCompactionMark)
     case compactionActivity(AgentCompactionActivity)
@@ -235,6 +236,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         switch self {
         case .message(let message): message.id
         case .tool(let card): card.id
+        case .work(let group): group.id
         case .plan(let card): card.id
         case .compaction(let mark): mark.id
         case .compactionActivity(let activity): activity.id
@@ -247,6 +249,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         switch self {
         case .message(let message): message.createdAt
         case .tool(let card): card.invocation.createdAt
+        case .work(let group): group.orderedAt
         case .plan(let card): card.createdAt
         case .compaction(let mark): mark.createdAt
         case .compactionActivity(let activity): activity.createdAt
@@ -259,6 +262,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     /// not stable, so equal timestamps otherwise swap between redraws.
     var sortRank: Int {
         switch self {
+        case .work: -1
         case .compaction, .compactionActivity: 1
         default: 0
         }
@@ -277,6 +281,8 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         case .tool(let card):
             hasher.combine(card.state)
             hasher.combine(card.result?.content.count ?? 0)
+        case .work(let group):
+            hasher.combine(group)
         case .plan(let card):
             // The outcome, so answering a plan re-triggers the scroll the same
             // way a tool card finishing does.
@@ -287,6 +293,56 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
             hasher.combine(activity.state)
         }
         return hasher.finalize()
+    }
+}
+
+nonisolated enum AgentWorkItem: Identifiable, Hashable, Sendable {
+    case message(ChatMessage)
+    case tool(AgentToolCard)
+
+    var id: UUID {
+        switch self {
+        case .message(let message): message.id
+        case .tool(let card): card.id
+        }
+    }
+
+    var orderedAt: Date {
+        switch self {
+        case .message(let message): message.createdAt
+        case .tool(let card): card.invocation.createdAt
+        }
+    }
+}
+
+nonisolated struct AgentWorkGroup: Identifiable, Hashable, Sendable {
+    var id: UUID { run.id }
+    var run: AgentRunSummary
+    var items: [AgentWorkItem]
+    var orderedAt: Date
+    var anchorMessageID: UUID?
+}
+
+nonisolated enum AgentWorkPresentation {
+    static func isExpandedByDefault(for state: AgentRunState) -> Bool {
+        state != .completed
+    }
+
+    /// A compact, stable duration for the work disclosure. Seconds are floored
+    /// so a completed run never appears to gain time after its finish event.
+    static func duration(from startedAt: Date, to finishedAt: Date) -> String {
+        let seconds = max(0, Int(finishedAt.timeIntervalSince(startedAt)))
+        let hours = seconds / 3_600
+        let minutes = (seconds % 3_600) / 60
+        let remainingSeconds = seconds % 60
+        if hours > 0 {
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        }
+        if minutes > 0 {
+            return remainingSeconds > 0
+                ? "\(minutes)m \(remainingSeconds)s" : "\(minutes)m"
+        }
+        return "\(remainingSeconds)s"
     }
 }
 
@@ -364,6 +420,11 @@ nonisolated enum ChatPermissionMode: String, Codable, Sendable, CaseIterable, Id
 @Observable
 final class ConversationModel: Identifiable {
     let id: UUID
+    var createdAt: Date
+    var updatedAt: Date
+    var customTitle: String?
+    var isPinned = false
+    var archivedAt: Date?
     var messages: [ChatMessage] = []
     /// What the user attached by hand, each carrying its own payload. Consumed
     /// by the next user turn: an attachment belongs to one message, and once
@@ -379,6 +440,9 @@ final class ConversationModel: Identifiable {
     /// is taken into account.
     private var runtimeState: AgentRunState = .idle
     var toolCards: [AgentToolCard] = []
+    private(set) var runSummaries: [UUID: AgentRunSummary] = [:]
+    private(set) var messageRunIDs: [UUID: UUID] = [:]
+    private var activeRunID: UUID?
 
     /// Questions waiting on the user, oldest first.
     ///
@@ -549,11 +613,18 @@ final class ConversationModel: Identifiable {
     init(
         id: UUID = UUID(), messages: [ChatMessage] = [],
         transcript: [AgentTranscriptMessage] = [],
-        runState: AgentRunState = .idle
+        runState: AgentRunState = .idle,
+        messageRunIDs: [UUID: UUID] = [:],
+        runs: [AgentRunSummary] = [],
+        createdAt: Date = .now, updatedAt: Date = .now
     ) {
         self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
         self.messages = messages
         self.transcript = transcript
+        self.messageRunIDs = messageRunIDs
+        runSummaries = Dictionary(uniqueKeysWithValues: runs.map { ($0.id, $0) })
         self.runState = runState
         runtimeState = runState
     }
@@ -569,6 +640,7 @@ final class ConversationModel: Identifiable {
     /// never ran: no model configured, the request failed, or the first reply
     /// has not arrived yet.
     var derivedTitle: String {
+        if let customTitle, !customTitle.isEmpty { return customTitle }
         if let title, !title.isEmpty { return title }
         guard let first = messages.first(where: { $0.role == .user }) else {
             return String(localized: "New Chat")
@@ -578,22 +650,281 @@ final class ConversationModel: Identifiable {
     }
 
     var isEmpty: Bool { timeline.isEmpty }
+    var isArchived: Bool { archivedAt != nil }
 
-    /// Messages and tool cards in the order they happened.
-    ///
-    /// Drawing the two lists one after the other put every tool card below
-    /// every message, so a run that alternated between talking and acting read
-    /// back as a wall of text followed by a wall of cards. Both lists are
-    /// already chronological, so this is a merge rather than a sort.
+    var metadata: StoredAgentConversationMetadata {
+        StoredAgentConversationMetadata(
+            customTitle: customTitle ?? "", isPinned: isPinned,
+            archivedAt: archivedAt, createdAt: createdAt, updatedAt: updatedAt
+        )
+    }
+
+    func canEditUserMessage(_ id: UUID) -> Bool {
+        guard !isStreaming, !isCompacting, !isArchived else { return false }
+        return transcript.contains { $0.id == id && $0.role == .user && !$0.isCompaction }
+    }
+
+    func canForkAssistantMessage(_ id: UUID) -> Bool {
+        guard !isStreaming, !isCompacting, !isArchived else { return false }
+        return transcript.contains { $0.id == id && $0.role == .assistant }
+    }
+
+    func editedUserMessage(_ id: UUID, authoredText: String) -> AgentTranscriptMessage? {
+        guard canEditUserMessage(id),
+            let target = transcript.firstIndex(where: { $0.id == id })
+        else { return nil }
+        let original = transcript[target]
+        let visible = original.authoredText ?? ContextChip.visiblePrompt(in: original.text)
+        let suffix = original.text.hasPrefix(visible)
+            ? String(original.text.dropFirst(visible.count)) : ""
+        return AgentTranscriptMessage(
+            role: .user, text: authoredText + suffix, authoredText: authoredText,
+            images: original.images, createdAt: .now
+        )
+    }
+
+    func editUserMessage(
+        _ id: UUID, replacement: AgentTranscriptMessage
+    ) -> ComposedUserTurn? {
+        guard canEditUserMessage(id),
+            let target = transcript.firstIndex(where: { $0.id == id })
+        else { return nil }
+        let original = transcript[target]
+        let removedMessageIDs = Set(transcript[target...].map(\.id))
+        let removedRunIDs = Set(removedMessageIDs.compactMap { messageRunIDs[$0] })
+        transcript.replaceSubrange(target..., with: [replacement])
+
+        if let visibleIndex = messages.firstIndex(where: { $0.id == id }) {
+            messages.replaceSubrange(visibleIndex..., with: [ChatMessage(
+                id: replacement.id, role: .user,
+                text: replacement.authoredText ?? ContextChip.visiblePrompt(in: replacement.text),
+                contextChips: ContextChip.visibleReferences(
+                    in: replacement.text, images: replacement.images
+                ), images: replacement.images, createdAt: replacement.createdAt
+            )])
+        }
+        toolCards.removeAll {
+            removedRunIDs.contains($0.invocation.runID)
+                || $0.invocation.createdAt >= original.createdAt
+        }
+        for messageID in removedMessageIDs { messageRunIDs[messageID] = nil }
+        for runID in removedRunIDs { runSummaries[runID] = nil }
+        plans.removeAll { $0.createdAt >= original.createdAt }
+        compactions.removeAll { $0.createdAt >= original.createdAt }
+        tasks.removeAll()
+        usage = nil
+        runtimeState = .idle
+        refreshRunState()
+        updatedAt = replacement.createdAt
+        if !transcript[..<target].contains(where: { $0.role == .user && !$0.isCompaction }) {
+            title = nil
+        }
+        return ComposedUserTurn(
+            id: replacement.id, text: replacement.text,
+            authoredText: replacement.authoredText ?? "", images: replacement.images
+        )
+    }
+
+    func editUserMessage(_ id: UUID, authoredText: String) -> ComposedUserTurn? {
+        guard let replacement = editedUserMessage(id, authoredText: authoredText) else {
+            return nil
+        }
+        return editUserMessage(id, replacement: replacement)
+    }
+
+    func forked(
+        throughAssistantMessage id: UUID, title forkTitle: String? = nil
+    ) -> ConversationModel? {
+        guard canForkAssistantMessage(id),
+            let selected = transcript.firstIndex(where: { $0.id == id })
+        else { return nil }
+        var end = selected
+        let requiredCalls = Set(transcript[selected].toolCalls.map(\.id))
+        if !requiredCalls.isEmpty {
+            var cursor = transcript.index(after: selected)
+            while cursor < transcript.endIndex, transcript[cursor].role == .tool {
+                if let callID = transcript[cursor].toolCallID, requiredCalls.contains(callID) {
+                    end = cursor
+                }
+                cursor = transcript.index(after: cursor)
+            }
+        }
+        let source = Array(transcript[...end])
+        var messageIDMap: [UUID: UUID] = [:]
+        let cloned = source.map { message -> AgentTranscriptMessage in
+            var copy = message
+            let newID = UUID()
+            messageIDMap[message.id] = newID
+            copy.id = newID
+            return copy
+        }
+        let visibleMessages = cloned.compactMap { message -> ChatMessage? in
+            guard !message.isCompaction else { return nil }
+            switch message.role {
+            case .user:
+                return ChatMessage(
+                    id: message.id, role: .user,
+                    text: message.authoredText ?? ContextChip.visiblePrompt(in: message.text),
+                    contextChips: ContextChip.visibleReferences(
+                        in: message.text, images: message.images
+                    ), images: message.images, createdAt: message.createdAt
+                )
+            case .assistant:
+                guard !message.text.isEmpty else { return nil }
+                return ChatMessage(
+                    id: message.id, role: .assistant, text: message.text,
+                    createdAt: message.createdAt
+                )
+            case .tool: return nil
+            }
+        }
+        let cutoff = transcript[end].createdAt
+        let includedMessageIDs = Set(source.map(\.id))
+        let includedCards = toolCards.filter { card in
+            if let sourceMessageID = card.invocation.sourceMessageID {
+                return includedMessageIDs.contains(sourceMessageID)
+            }
+            return card.invocation.createdAt <= cutoff
+        }
+        let originalRunIDs = Set(
+            source.compactMap { messageRunIDs[$0.id] }
+                + includedCards.map(\.invocation.runID)
+        )
+        let runIDMap = Dictionary(uniqueKeysWithValues: originalRunIDs.map { ($0, UUID()) })
+        let clonedMessageRunIDs: [UUID: UUID] = Dictionary(
+            uniqueKeysWithValues: source.compactMap { message -> (UUID, UUID)? in
+            guard let oldRunID = messageRunIDs[message.id],
+                let newRunID = runIDMap[oldRunID], let newMessageID = messageIDMap[message.id]
+            else { return nil }
+            return (newMessageID, newRunID)
+            }
+        )
+        let clonedRuns = originalRunIDs.compactMap { oldRunID -> AgentRunSummary? in
+            guard var run = runSummaries[oldRunID], let newID = runIDMap[oldRunID]
+            else { return nil }
+            run.id = newID
+            return run
+        }
+        let fork = ConversationModel(
+            messages: visibleMessages, transcript: cloned, runState: .completed,
+            messageRunIDs: clonedMessageRunIDs, runs: clonedRuns,
+            createdAt: .now, updatedAt: .now
+        )
+        let resolvedTitle = forkTitle ?? Self.numberedForkTitle(base: derivedTitle, index: 1)
+        fork.customTitle = resolvedTitle
+        fork.model = model
+        fork.permissionMode = permissionMode
+        fork.reasoningEffort = reasoningEffort
+        fork.isPlanning = isPlanning
+        fork.toolCards = includedCards.map { card in
+            var copy = card
+            copy.invocation.id = UUID()
+            copy.invocation.runID = runIDMap[card.invocation.runID] ?? UUID()
+            copy.invocation.sourceMessageID = card.invocation.sourceMessageID.flatMap {
+                messageIDMap[$0]
+            }
+            return copy
+        }
+        return fork
+    }
+
+    /// Keeps the disambiguating number visible even when the source title is
+    /// already at the persistence limit. A plain `prefix(80)` would trim the
+    /// suffix off and leave the fork indistinguishable from its source.
+    nonisolated static func numberedForkTitle(base: String, index: Int) -> String {
+        let suffix = " (\(index))"
+        return String(base.prefix(max(0, 80 - suffix.count))) + suffix
+    }
+
+    /// One collapsible work group per run. Source-message ownership is the
+    /// primary key; call ids and run-local order are compatibility fallbacks
+    /// for rows written before `sourceMessageID` existed.
+    var workGroups: [AgentWorkGroup] {
+        let visibleByID = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
+        let cardsByRun = Dictionary(grouping: toolCards, by: { $0.invocation.runID })
+        var processRunIDs: [UUID: UUID] = [:]
+        for message in transcript where message.role == .assistant && !message.toolCalls.isEmpty {
+            if let runID = messageRunIDs[message.id] {
+                processRunIDs[message.id] = runID
+                continue
+            }
+            let callIDs = Set(message.toolCalls.map(\.id))
+            if let card = toolCards.first(where: {
+                $0.invocation.sourceMessageID == message.id
+                    || callIDs.contains($0.invocation.call.id)
+            }) {
+                processRunIDs[message.id] = card.invocation.runID
+            }
+        }
+
+        let runIDs = Set(cardsByRun.keys).union(processRunIDs.values)
+        return runIDs.compactMap { runID in
+            let cards = cardsByRun[runID] ?? []
+            let processMessages = processRunIDs.compactMap { messageID, owner -> ChatMessage? in
+                guard owner == runID else { return nil }
+                return visibleByID[messageID]
+            }
+            let visibleProcess = processMessages.filter {
+                !$0.text.isEmpty || $0.isStreaming
+            }
+            var items = visibleProcess.map(AgentWorkItem.message)
+                + cards.map(AgentWorkItem.tool)
+            items.sort {
+                if $0.orderedAt != $1.orderedAt { return $0.orderedAt < $1.orderedAt }
+                switch ($0, $1) {
+                case (.message, .tool): return true
+                case (.tool, .message): return false
+                default: return $0.id.uuidString < $1.id.uuidString
+                }
+            }
+            guard !items.isEmpty else { return nil }
+
+            let anchorID = processMessages.min(by: { $0.createdAt < $1.createdAt })?.id
+                ?? cards.compactMap(\.invocation.sourceMessageID).first(where: {
+                    visibleByID[$0] != nil
+                })
+                ?? messages.last(where: {
+                    $0.role == .assistant && messageRunIDs[$0.id] == runID
+                })?.id
+                ?? messages.first(where: { message in
+                    guard message.role == .assistant else { return false }
+                    return cards.contains { $0.invocation.createdAt <= message.createdAt }
+                })?.id
+            let anchorAt = anchorID.flatMap { visibleByID[$0]?.createdAt }
+                ?? items[0].orderedAt
+            let stored = runSummaries[runID]
+            let fallbackState: AgentRunState = cards.allSatisfy {
+                $0.state == .completed
+            } ? .completed : .interrupted
+            let run = stored ?? AgentRunSummary(
+                id: runID, state: fallbackState,
+                startedAt: items[0].orderedAt,
+                finishedAt: items.last?.orderedAt
+            )
+            return AgentWorkGroup(
+                run: run, items: items, orderedAt: anchorAt,
+                anchorMessageID: anchorID
+            )
+        }.sorted { $0.orderedAt < $1.orderedAt }
+    }
+
+    /// Messages and run-scoped work in the order the reader experienced them.
     var timeline: [TimelineItem] {
         var items: [TimelineItem] = []
-        items.reserveCapacity(messages.count + toolCards.count + plans.count + 1)
-        var cards = toolCards[...]
-        for message in messages {
-            while let card = cards.first, card.invocation.createdAt < message.createdAt {
-                items.append(.tool(card))
-                cards = cards.dropFirst()
+        let groups = workGroups
+        let groupedProcessIDs: Set<UUID> = Set(groups.flatMap { group -> [UUID] in
+            group.items.compactMap { item -> UUID? in
+                guard case .message(let message) = item else { return nil }
+                return message.id
             }
+        })
+        var emittedGroups = Set<UUID>()
+        for message in messages {
+            for group in groups where group.anchorMessageID == message.id {
+                items.append(.work(group))
+                emittedGroups.insert(group.id)
+            }
+            if groupedProcessIDs.contains(message.id) { continue }
             // A turn that only called tools has no text to show, and an empty
             // bubble reads as the model having said nothing. While it is still
             // streaming it stays, because that is the "working" indicator.
@@ -601,7 +932,7 @@ final class ConversationModel: Identifiable {
             else { continue }
             items.append(.message(message))
         }
-        items += cards.map(TimelineItem.tool)
+        items += groups.filter { !emittedGroups.contains($0.id) }.map(TimelineItem.work)
         guard !plans.isEmpty || !compactions.isEmpty || compactionActivity != nil else {
             return items
         }
@@ -785,26 +1116,36 @@ final class ConversationModel: Identifiable {
     }
 
     struct ComposedUserTurn: Sendable {
+        var id: UUID
         var text: String
+        var authoredText: String
         var images: [AgentImageAttachment]
     }
 
     @discardableResult
     func appendUserTurnContent(_ text: String) -> ComposedUserTurn {
         let composed = composed(text)
+        let messageID = UUID()
         let contextChips = attachments.map {
             ContextChipReference(id: $0.id, kind: $0.kind, label: $0.label)
         }
         attachments.removeAll()
         messages.append(
             ChatMessage(
-                role: .user, text: text, contextChips: contextChips, images: composed.images
+                id: messageID, role: .user, text: text,
+                contextChips: contextChips, images: composed.images
             )
         )
         transcript.append(
-            AgentTranscriptMessage(role: .user, text: composed.text, images: composed.images)
+            AgentTranscriptMessage(
+                id: messageID, role: .user, text: composed.text,
+                authoredText: text, images: composed.images
+            )
         )
-        return composed
+        updatedAt = .now
+        return ComposedUserTurn(
+            id: messageID, text: composed.text, authoredText: text, images: composed.images
+        )
     }
 
     /// Renders attachments into the model-facing message body. The visible
@@ -812,7 +1153,9 @@ final class ConversationModel: Identifiable {
     /// and pasted text can be hundreds of thousands of characters and do not
     /// belong in a Markdown bubble.
     private func composed(_ text: String) -> ComposedUserTurn {
-        guard !attachments.isEmpty else { return ComposedUserTurn(text: text, images: []) }
+        guard !attachments.isEmpty else {
+            return ComposedUserTurn(id: UUID(), text: text, authoredText: text, images: [])
+        }
         let blocks = attachments.compactMap { chip -> String? in
             guard chip.image == nil else { return nil }
             // A label can be a filename, and a filename can contain a quote —
@@ -825,7 +1168,8 @@ final class ConversationModel: Identifiable {
                 """
         }
         return ComposedUserTurn(
-            text: ([text] + blocks).joined(separator: "\n\n"),
+            id: UUID(), text: ([text] + blocks).joined(separator: "\n\n"),
+            authoredText: text,
             images: attachments.compactMap(\.image)
         )
     }
@@ -885,7 +1229,8 @@ final class ConversationModel: Identifiable {
         let pending = PendingSteeringMessage(
             draft: text, attachments: attachments,
             message: AgentTranscriptMessage(
-                role: .user, text: composed.text, images: composed.images
+                role: .user, text: composed.text, authoredText: text,
+                images: composed.images
             )
         )
         pendingSteering.append(pending)
@@ -1162,6 +1507,10 @@ final class ConversationModel: Identifiable {
         } else {
             runState = runtimeState
         }
+        if let activeRunID, var summary = runSummaries[activeRunID] {
+            summary.state = runState
+            runSummaries[activeRunID] = summary
+        }
         isStreaming = runState != .idle && !runState.isTerminal
     }
 
@@ -1178,9 +1527,21 @@ final class ConversationModel: Identifiable {
         // conversation draws a flat timeline, so it has nothing to do with
         // them — but they are listed rather than swept into a `default` so
         // adding an event stays a compile error here.
-        case .runStarted, .turnStarted, .turnFinished:
+        case .runStarted(let run):
+            activeRunID = run.id
+            runSummaries[run.id] = run
+            if let prompt = transcript.last, prompt.role == .user,
+                messageRunIDs[prompt.id] == nil
+            {
+                messageRunIDs[prompt.id] = run.id
+            }
+        case .runFinished(let run):
+            runSummaries[run.id] = run
+            if activeRunID == run.id { activeRunID = nil }
+        case .turnStarted, .turnFinished:
             break
         case .messageStarted(let started):
+            if let activeRunID { messageRunIDs[started.id] = activeRunID }
             if let index = messages.firstIndex(where: { $0.id == started.id }) {
                 messages[index].isStreaming = true
             } else {
@@ -1193,6 +1554,7 @@ final class ConversationModel: Identifiable {
             }
             refreshRunState()
         case .messageDelta(let id, let text):
+            if let activeRunID { messageRunIDs[id] = activeRunID }
             if let index = messages.firstIndex(where: { $0.id == id }) {
                 messages[index].text += text
                 messages[index].isStreaming = true
@@ -1207,6 +1569,7 @@ final class ConversationModel: Identifiable {
         // the conversation — in both lists, at the position the run put it, and
         // no longer in the queue the composer is drawing.
         case .steeringDelivered(let message):
+            if let activeRunID { messageRunIDs[message.id] = activeRunID }
             let pending = pendingSteering.first(where: { $0.id == message.id })
             let visibleText = pending?.draft ?? ContextChip.visiblePrompt(in: message.text)
             let contextChips = pending?.attachments.map {
@@ -1221,6 +1584,7 @@ final class ConversationModel: Identifiable {
                 ))
             transcript.append(message)
         case .messageFinished(let message):
+            if let activeRunID { messageRunIDs[message.id] = activeRunID }
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[index].text = message.text
                 messages[index].isStreaming = false
@@ -1238,6 +1602,7 @@ final class ConversationModel: Identifiable {
             } else {
                 transcript.append(message)
             }
+            updatedAt = .now
         case .toolProposed(let invocation, let descriptor):
             toolCards.append(AgentToolCard(invocation: invocation, descriptor: descriptor))
         case .toolStarted(let invocation): setToolState(invocation.id, .running)

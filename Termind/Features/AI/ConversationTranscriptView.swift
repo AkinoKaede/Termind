@@ -27,6 +27,8 @@ struct ConversationView: View {
     /// before the app starts its first run.
     var onSend: (() -> Void)?
 
+    @Environment(WindowModel.self) private var window
+
     @State private var isAtTranscriptBottom = true
     @State private var isFollowingTranscriptBottom = true
     @State private var isUserScrollingTranscript = false
@@ -35,7 +37,9 @@ struct ConversationView: View {
     var body: some View {
         VStack(spacing: 0) {
             transcript
-            if let interaction = conversation.pendingUserInteraction {
+            if conversation.isArchived {
+                archivedSurface
+            } else if let interaction = conversation.pendingUserInteraction {
                 blockingSurface { userInteraction(interaction) }
             } else if let approval = conversation.pendingApproval {
                 blockingSurface {
@@ -72,6 +76,21 @@ struct ConversationView: View {
                 .zIndex(100)
             }
         }
+    }
+
+    private var archivedSurface: some View {
+        HStack(spacing: Metrics.Space.m) {
+            Label("Archived conversations are read-only.", systemImage: "archivebox")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Unarchive") {
+                window.setAssistantArchived(conversation.id, archived: false)
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(Metrics.Space.l)
+        .background(.bar)
     }
 
     private func chatColumn<Content: View>(
@@ -230,14 +249,32 @@ struct ConversationView: View {
     private func row(for item: TimelineItem) -> some View {
         switch item {
         case .message(let message) where message.role == .user:
-            UserMessageView(message: message, isCompact: isCompact)
+            UserMessageView(
+                message: message, isCompact: isCompact,
+                canEdit: conversation.canEditUserMessage(message.id),
+                onEdit: { text in
+                    window.editAssistantUserMessage(
+                        conversation.id, messageID: message.id, text: text,
+                        context: sessionContext,
+                        includesTerminalSuggestion: showsTerminalActions
+                    )
+                }
+            )
         case .message(let message):
             AssistantMessageView(
                 message: message, isCompact: isCompact,
-                showsTerminalActions: showsTerminalActions
+                showsTerminalActions: showsTerminalActions,
+                canFork: conversation.canForkAssistantMessage(message.id),
+                onFork: {
+                    window.forkAssistantConversation(
+                        conversation.id, at: message.id, inSidebar: isCompact
+                    )
+                }
             )
         case .tool(let card):
             AgentToolRowView(card: card)
+        case .work(let group):
+            AgentWorkGroupView(group: group, isCompact: isCompact)
         case .plan(let card):
             AgentPlanRowView(card: card, conversation: conversation)
         case .compaction(let mark):
@@ -262,6 +299,107 @@ struct ConversationView: View {
 }
 
 // MARK: - Tool calls
+
+/// One run's process, collapsed after a successful finish and kept open while
+/// attention or recovery may still be needed. The disclosure owns only process
+/// prose and tool rows; the final answer remains a normal transcript message.
+private struct AgentWorkGroupView: View {
+    let group: AgentWorkGroup
+    let isCompact: Bool
+
+    @State private var isExpanded: Bool
+
+    init(group: AgentWorkGroup, isCompact: Bool) {
+        self.group = group
+        self.isCompact = isCompact
+        _isExpanded = State(
+            initialValue: AgentWorkPresentation.isExpandedByDefault(for: group.run.state)
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    HStack(spacing: Metrics.Space.s) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .bold))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .foregroundStyle(.tertiary)
+                            .frame(width: Metrics.Sidebar.rowIcon)
+                        Text(title(at: context.date))
+                            .font(MarkdownTypography.body)
+                            .foregroundStyle(.secondary)
+                            .modifier(ScanningTextMask(isActive: isActive))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .contentShape(.rect)
+                }
+            }
+            .buttonStyle(.plain)
+            .help(Text(isExpanded ? "Hide work" : "Show work"))
+            .accessibilityLabel(Text(title(at: group.run.finishedAt ?? .now)))
+            .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+            .accessibilityHint(Text(isExpanded ? "Collapse work process" : "Expand work process"))
+
+            if isExpanded {
+                HStack(alignment: .top, spacing: Metrics.Space.m) {
+                    RoundedRectangle(cornerRadius: Metrics.Chat.rule / 2)
+                        .fill(.quaternary)
+                        .frame(width: Metrics.Chat.rule)
+
+                    LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
+                        ForEach(group.items) { item in
+                            switch item {
+                            case .message(let message):
+                                processMessage(message)
+                            case .tool(let card):
+                                AgentToolRowView(card: card)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.leading, Metrics.Sidebar.rowIcon)
+            }
+        }
+        .onChange(of: group.run.state) { _, state in
+            // Runtime transitions are authoritative. Once a run has ended,
+            // later user toggles remain untouched because the state is frozen.
+            isExpanded = AgentWorkPresentation.isExpandedByDefault(for: state)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private func processMessage(_ message: ChatMessage) -> some View {
+        if message.text.isEmpty {
+            if message.isStreaming {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel(Text("Working"))
+            }
+        } else {
+            MarkdownView(
+                text: message.text, isStreaming: message.isStreaming,
+                isAssistant: true, isCompact: isCompact
+            )
+            .textSelection(.enabled)
+        }
+    }
+
+    private var isActive: Bool {
+        !group.run.state.isTerminal && group.run.state != .idle
+    }
+
+    private func title(at now: Date) -> String {
+        let end = group.run.finishedAt ?? now
+        let duration = AgentWorkPresentation.duration(from: group.run.startedAt, to: end)
+        return "\(isActive ? "Working" : "Worked") for \(duration)"
+    }
+}
 
 /// One tool call, as a line the reader can open.
 ///

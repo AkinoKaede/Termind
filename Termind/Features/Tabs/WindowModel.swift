@@ -22,6 +22,10 @@ final class WindowModel {
     let sidebar = WindowSidebarState()
     let presentations = WindowPresentationState()
     let dragState = WorkspaceDragState()
+    /// Archived chats are a destination, not a third section in live history.
+    /// This remains window-local so two windows may independently manage the
+    /// archive and continue a conversation.
+    var isAssistantArchivePresented = false
     var connectionCoordinator: RemoteConnectionCoordinator? {
         didSet {
             guard let connectionCoordinator else { return }
@@ -37,6 +41,12 @@ final class WindowModel {
         }
     }
     var assistantConversationDeletionHandler: ((ConversationModel.ID) -> Void)?
+    var assistantPinHandler: ((ConversationModel.ID) -> Void)?
+    var assistantRenameHandler: ((ConversationModel.ID, String) -> Void)?
+    var assistantArchiveHandler: ((ConversationModel.ID, Bool) -> Void)?
+    var assistantForkHandler: ((ConversationModel.ID, UUID, Bool) -> Void)?
+    var assistantEditHandler: ((ConversationModel.ID, UUID, String, SessionContext, Bool) -> Void)?
+    var assistantOperationError: String?
     var hostStore: HostLibraryModel? {
         didSet { refreshSessionContext() }
     }
@@ -384,11 +394,17 @@ final class WindowModel {
     }
 
     func selectAssistant(_ id: ConversationModel.ID? = nil) {
+        isAssistantArchivePresented = false
         if let id {
             assistantLibrary.select(id)
         } else {
             assistantLibrary.selectNewConversation()
         }
+        selectedTopLevelTab = .assistant
+    }
+
+    func showAssistantArchive() {
+        isAssistantArchivePresented = true
         selectedTopLevelTab = .assistant
     }
 
@@ -399,12 +415,20 @@ final class WindowModel {
 
     func openAssistantInSidebar(_ id: ConversationModel.ID) {
         guard assistantLibrary.conversation(id: id) != nil else { return }
+        sidebar.isAssistantArchivePresented = false
         sidebar.assistantConversationID = id
         refreshSessionContext()
     }
 
     func closeAssistantInSidebar() {
+        sidebar.isAssistantArchivePresented = false
         sidebar.assistantConversationID = nil
+        refreshSessionContext()
+    }
+
+    func showAssistantArchiveInSidebar() {
+        sidebar.assistantConversationID = nil
+        sidebar.isAssistantArchivePresented = true
         refreshSessionContext()
     }
 
@@ -413,10 +437,50 @@ final class WindowModel {
             assistantConversationDeletionHandler(id)
             return
         }
+        let wasArchived = assistantLibrary.conversation(id: id)?.isArchived == true
+        let wasSelected = assistantLibrary.selectedConversationID == id
         assistantLibrary.delete(id)
+        if wasArchived, wasSelected { isAssistantArchivePresented = true }
         if sidebar.assistantConversationID == id {
             sidebar.assistantConversationID = nil
+            if wasArchived { sidebar.isAssistantArchivePresented = true }
         }
+    }
+
+    func toggleAssistantPin(_ id: ConversationModel.ID) {
+        if let assistantPinHandler { assistantPinHandler(id) }
+        else if let conversation = assistantLibrary.conversation(id: id),
+            !conversation.isArchived, !conversation.isStreaming, !conversation.isCompacting
+        { conversation.isPinned.toggle() }
+    }
+    func renameAssistantConversation(_ id: ConversationModel.ID, to title: String) {
+        if let assistantRenameHandler { assistantRenameHandler(id, title) }
+        else {
+            let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !value.isEmpty {
+                assistantLibrary.conversation(id: id)?.customTitle = String(value.prefix(80))
+            }
+        }
+    }
+    func setAssistantArchived(_ id: ConversationModel.ID, archived: Bool) {
+        if let assistantArchiveHandler { assistantArchiveHandler(id, archived) }
+        else if let conversation = assistantLibrary.conversation(id: id),
+            !conversation.isStreaming, !conversation.isCompacting
+        {
+            conversation.archivedAt = archived ? .now : nil
+            if archived { conversation.isPinned = false }
+        }
+    }
+    func forkAssistantConversation(
+        _ id: ConversationModel.ID, at messageID: UUID, inSidebar: Bool = false
+    ) {
+        assistantForkHandler?(id, messageID, inSidebar)
+    }
+    func editAssistantUserMessage(
+        _ id: ConversationModel.ID, messageID: UUID, text: String,
+        context: SessionContext = .none, includesTerminalSuggestion: Bool = false
+    ) {
+        assistantEditHandler?(id, messageID, text, context, includesTerminalSuggestion)
     }
 
     @discardableResult
@@ -589,6 +653,7 @@ final class WindowModel {
 
     @discardableResult
     func openAssistant() -> ConversationModel {
+        isAssistantArchivePresented = false
         let conversation = assistantLibrary.selectNewConversation()
         selectedTopLevelTab = .assistant
         return conversation
