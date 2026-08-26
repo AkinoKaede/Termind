@@ -34,7 +34,10 @@ struct ExternalAuthWindow: View {
                         .foregroundStyle(.secondary)
                     requestView(pending)
                 }
-                .padding(Metrics.Space.l)
+                // The window is already the visual container. Keep one generous
+                // inset around both request kinds instead of nesting the SSH
+                // form's material card inside it.
+                .padding(Metrics.Space.xxl)
             } else {
                 ProgressView().padding(Metrics.Space.xxl)
             }
@@ -84,7 +87,8 @@ struct ExternalAuthWindow: View {
                 cancel: {
                     app.externalAuthentication.respondSSH(.cancelled)
                     dismissIfFinished()
-                }
+                },
+                usesContainerChrome: false
             )
             .id(pending.id)
         case .secret(let request):
