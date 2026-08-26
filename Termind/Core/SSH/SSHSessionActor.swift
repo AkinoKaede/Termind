@@ -120,6 +120,16 @@ nonisolated enum TermindSSHError: LocalizedError, Sendable {
         return false
     }
 
+    /// Configuration could not reach the transport because local Vault data is
+    /// incomplete. Agent tools may collect these values without labelling the
+    /// prompt as a server rejection.
+    var isLocalAuthenticationRequirement: Bool {
+        switch self {
+        case .missingCredential, .keyPassphraseRequired, .missingUsername: true
+        default: false
+        }
+    }
+
     var isServerAuthenticationChallenge: Bool {
         if case .authenticationFailed = self { return true }
         if case .routeHost(_, _, let serverChallenge, _, _) = self {

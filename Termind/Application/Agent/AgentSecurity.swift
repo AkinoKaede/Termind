@@ -282,9 +282,10 @@ nonisolated enum AgentUserInputResponse: Hashable, Sendable {
     case cancelled
 }
 
-/// A local SSH checkpoint raised by `ssh_exec`. Unlike `request_user_input`,
-/// this request is never model-authored and its answer is never serialized into
-/// a tool result. Only public Vault metadata crosses into the view.
+/// A local SSH checkpoint raised by an Agent Exec or SFTP connection. Unlike
+/// `request_user_input`, this request is never model-authored and its answer is
+/// never serialized into a tool result. Only public Vault metadata crosses
+/// into the view.
 nonisolated struct AgentSSHAuthenticationRequest: Identifiable, Hashable, Sendable {
     nonisolated enum Mode: Hashable, Sendable {
         case identity

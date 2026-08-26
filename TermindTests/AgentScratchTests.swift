@@ -436,7 +436,8 @@ struct AgentScratchTests {
         // Transfer is absent until a connection pool is supplied, on the same terms
         // as `web_search`: a tool that cannot work is not offered.
         let withHosts = AgentScratchTools.make(
-            workspace: workspace, connections: Fixture.pool(StubTransferSFTPClient())
+            workspace: workspace, connections: Fixture.pool(StubTransferSFTPClient()),
+            authentication: Fixture.authentication()
         )
         let transfer = withHosts.filter { ["scratch_pull", "scratch_push"].contains($0.descriptor.name) }
         #expect(transfer.count == 2)
@@ -492,7 +493,10 @@ struct AgentScratchTests {
         let body = (1...50).map { "line \($0)" }.joined(separator: "\n") + "\n"
         let client = StubTransferSFTPClient(files: ["/etc/app.conf": Data(body.utf8)])
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace, connections: Fixture.pool(client))
+            AgentScratchTools.make(
+                workspace: workspace, connections: Fixture.pool(client),
+                authentication: Fixture.authentication()
+            )
                 .first { $0.descriptor.name == "scratch_pull" }
         )
 
@@ -515,7 +519,8 @@ struct AgentScratchTests {
         let client = StubTransferSFTPClient(files: ["/etc/app.conf": Data("x".utf8)])
         let tool = try #require(
             AgentScratchTools.make(
-                workspace: Fixture.workspace(), connections: Fixture.pool(client)
+                workspace: Fixture.workspace(), connections: Fixture.pool(client),
+                authentication: Fixture.authentication()
             ).first { $0.descriptor.name == "scratch_pull" }
         )
         for (remote, scratch) in [("relative/path", "ok.conf"), ("/etc/app.conf", "../out.conf")] {
@@ -539,7 +544,10 @@ struct AgentScratchTests {
         _ = try await workspace.write("app.conf", data: Data(body.utf8))
         let client = StubTransferSFTPClient()
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace, connections: Fixture.pool(client))
+            AgentScratchTools.make(
+                workspace: workspace, connections: Fixture.pool(client),
+                authentication: Fixture.authentication()
+            )
                 .first { $0.descriptor.name == "scratch_push" }
         )
 
@@ -573,7 +581,10 @@ struct AgentScratchTests {
         _ = try await workspace.write("app.conf", data: Data("approved\n".utf8))
         let client = StubTransferSFTPClient()
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace, connections: Fixture.pool(client))
+            AgentScratchTools.make(
+                workspace: workspace, connections: Fixture.pool(client),
+                authentication: Fixture.authentication()
+            )
                 .first { $0.descriptor.name == "scratch_push" }
         )
         let invocation = Fixture.invocation("scratch_push", [
@@ -603,7 +614,8 @@ struct AgentScratchTests {
         let binary = Data((0...255).map { UInt8($0) })
         let client = StubTransferSFTPClient(files: ["/opt/blob.bin": binary])
         let tools = AgentScratchTools.make(
-            workspace: workspace, connections: Fixture.pool(client)
+            workspace: workspace, connections: Fixture.pool(client),
+            authentication: Fixture.authentication()
         )
         let pull = try #require(tools.first { $0.descriptor.name == "scratch_pull" })
         let push = try #require(tools.first { $0.descriptor.name == "scratch_push" })
@@ -655,6 +667,13 @@ private enum Fixture {
             openExec: { _ in throw AgentToolError.invalidHost },
             openSFTP: { _ in client },
             sweepInterval: nil
+        )
+    }
+
+    @MainActor
+    static func authentication() -> AgentSSHAuthenticationRegistry {
+        AgentSSHAuthenticationRegistry(
+            resolver: AgentHostResolver(store: HostStore())
         )
     }
 

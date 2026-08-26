@@ -76,6 +76,7 @@ final class AppModel {
     private let agentRunRepository: any AgentRunPersisting
     private let agentHosts: AgentHostResolver
     private let agentConnections: AgentConnectionPool
+    private let agentAuthentication: AgentSSHAuthenticationRegistry
     /// Commands that outlived the turn that started them. App-wide rather than
     /// per-run, because a handle taken in one turn is answered in a later one
     /// and a run ending is not a reason to stop a deploy.
@@ -101,6 +102,7 @@ final class AppModel {
         agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
         agentHosts = AgentHostResolver(store: hosts)
         let agentHostResolver = agentHosts
+        agentAuthentication = AgentSSHAuthenticationRegistry(resolver: agentHostResolver)
         agentConnections = AgentConnectionPool(
             configuration: { try await agentHostResolver.configuration(for: $0) },
             routeFingerprint: { try await agentHostResolver.routeFingerprint(for: $0) },
@@ -267,10 +269,12 @@ final class AppModel {
             let scratch = AgentScratchWorkspace(conversationID: conversation.id)
             providers.append(AgentStaticToolProvider(AgentBuiltInTools.make(
                 hosts: agentHosts, connections: agentConnections,
+                authentication: agentAuthentication,
                 background: agentBackgroundCommands, search: searchPlan.local
             )))
             providers.append(AgentStaticToolProvider(AgentScratchTools.make(
-                workspace: scratch, connections: agentConnections
+                workspace: scratch, connections: agentConnections,
+                authentication: agentAuthentication
             )))
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))

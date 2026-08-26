@@ -351,16 +351,28 @@ final class AgentHostResolver: Sendable {
     }
 }
 
-/// Keeps temporary credentials alive for exactly one command-opening journey,
-/// including the pool's one safe reconnect. Once `ssh_exec` returns, this actor
-/// and its cached configuration are released.
+/// Keeps temporary credentials alive for one overlapping wave of Agent SSH
+/// connection attempts. Exec and SFTP use separate transports, but may need the
+/// same user answer at the same time; this actor resolves that answer once.
 actor AgentSSHConfigurationSession {
+    struct Attempt: Sendable {
+        var configuration: SSHConnectionConfiguration
+        var generation: UInt64
+    }
+
+    private struct Pending {
+        var generation: UInt64
+        var task: Task<AgentHostResolver.InteractiveResolution, any Error>
+    }
+
     private let resolver: AgentHostResolver
     private let hostID: Host.ID
     private let invocationID: AgentToolInvocation.ID
     private let interaction: any AgentUserInteractionHandling
     private var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
     private var cached: SSHConnectionConfiguration?
+    private var generation: UInt64 = 0
+    private var pending: Pending?
     private var forcedHostID: Host.ID?
     private var failure: String?
 
@@ -375,29 +387,223 @@ actor AgentSSHConfigurationSession {
         self.interaction = interaction
     }
 
-    func configuration() async throws -> SSHConnectionConfiguration {
-        if let cached { return cached }
-        let resolution = try await resolver.interactiveConfiguration(
-            for: hostID, invocationID: invocationID, interaction: interaction,
-            submissions: submissions, forcedHostID: forcedHostID, failure: failure
-        )
-        submissions = resolution.submissions
-        cached = resolution.configuration
-        forcedHostID = nil
-        failure = nil
-        return resolution.configuration
+    func configurationAttempt() async throws -> Attempt {
+        if let cached { return Attempt(configuration: cached, generation: generation) }
+
+        let active: Pending
+        if let pending, pending.generation == generation {
+            active = pending
+        } else {
+            let currentGeneration = generation
+            let resolver = resolver
+            let hostID = hostID
+            let invocationID = invocationID
+            let interaction = interaction
+            let submissions = submissions
+            let forcedHostID = forcedHostID
+            let failure = failure
+            let task = Task {
+                try await resolver.interactiveConfiguration(
+                    for: hostID, invocationID: invocationID, interaction: interaction,
+                    submissions: submissions, forcedHostID: forcedHostID, failure: failure
+                )
+            }
+            active = Pending(generation: currentGeneration, task: task)
+            pending = active
+        }
+
+        do {
+            let resolution = try await active.task.value
+            if generation == active.generation {
+                submissions = resolution.submissions
+                cached = resolution.configuration
+                forcedHostID = nil
+                failure = nil
+                if pending?.generation == active.generation { pending = nil }
+            }
+            return Attempt(
+                configuration: resolution.configuration, generation: active.generation
+            )
+        } catch {
+            if pending?.generation == active.generation { pending = nil }
+            throw error
+        }
     }
 
-    func retry(after error: TermindSSHError) {
+    /// Convenience for focused resolver tests that do not need to simulate a
+    /// rejected transport attempt.
+    func configuration() async throws -> SSHConnectionConfiguration {
+        try await configurationAttempt().configuration
+    }
+
+    var currentGeneration: UInt64 { generation }
+
+    func retry(after error: TermindSSHError, generation failedGeneration: UInt64) {
+        // Exec and SFTP may reject the same configuration concurrently. Only
+        // the first failure advances the attempt; a late failure from the old
+        // generation must not erase credentials the user has just re-entered.
+        guard failedGeneration == generation else { return }
         let target = error.routeHostID ?? hostID
         if var retained = submissions[target] {
             retained.password = nil
             retained.passphrase = nil
             submissions[target] = retained
         }
+        generation &+= 1
         cached = nil
+        pending?.task.cancel()
+        pending = nil
         forcedHostID = target
         failure = error.localizedDescription
+    }
+}
+
+nonisolated struct AgentSSHExecConnection: Sendable {
+    var authentication: AgentSSHConfigurationSession
+    var client: any SSHExecSessionProtocol
+}
+
+/// Shares one temporary authentication session among connection attempts that
+/// overlap for the same destination. The entry disappears with the last lease,
+/// so Custom passwords and passphrases never become a time-based credential
+/// cache between otherwise unrelated tool calls.
+actor AgentSSHAuthenticationRegistry {
+    private struct Entry {
+        var token: UUID
+        var session: AgentSSHConfigurationSession
+        var leases: Int
+    }
+
+    private let resolver: AgentHostResolver
+    private var entries: [Host.ID: Entry] = [:]
+
+    init(resolver: AgentHostResolver) { self.resolver = resolver }
+
+    func exec(
+        hostID: Host.ID, invocationID: AgentToolInvocation.ID,
+        interaction: any AgentUserInteractionHandling, pool: AgentConnectionPool
+    ) async throws -> any SSHExecSessionProtocol {
+        try await withSession(
+            hostID: hostID, invocationID: invocationID, interaction: interaction
+        ) { authentication in
+            try await self.openExec(
+                hostID: hostID, authentication: authentication, pool: pool
+            )
+        }
+    }
+
+    func execConnection(
+        hostID: Host.ID, invocationID: AgentToolInvocation.ID,
+        interaction: any AgentUserInteractionHandling, pool: AgentConnectionPool
+    ) async throws -> AgentSSHExecConnection {
+        try await withSession(
+            hostID: hostID, invocationID: invocationID, interaction: interaction
+        ) { authentication in
+            let client = try await self.openExec(
+                hostID: hostID, authentication: authentication, pool: pool
+            )
+            return AgentSSHExecConnection(
+                authentication: authentication, client: client
+            )
+        }
+    }
+
+    fileprivate func openExec(
+        hostID: Host.ID, authentication: AgentSSHConfigurationSession,
+        pool: AgentConnectionPool
+    ) async throws -> any SSHExecSessionProtocol {
+        var override: AgentSSHConfigurationSession.Attempt?
+        while true {
+            let attemptedGeneration: UInt64
+            if let override {
+                attemptedGeneration = override.generation
+            } else {
+                attemptedGeneration = await authentication.currentGeneration
+            }
+            do {
+                if let override {
+                    return try await pool.exec(hostID: hostID) { _ in
+                        override.configuration
+                    }
+                }
+                return try await pool.exec(hostID: hostID)
+            } catch let error as TermindSSHError where error.shouldRequestAuthentication {
+                await pool.disconnect(hostID: hostID, kind: .exec)
+                await authentication.retry(after: error, generation: attemptedGeneration)
+                override = try await authentication.configurationAttempt()
+            } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
+                override = try await authentication.configurationAttempt()
+            }
+        }
+    }
+
+    func sftp(
+        hostID: Host.ID, invocationID: AgentToolInvocation.ID,
+        interaction: any AgentUserInteractionHandling, pool: AgentConnectionPool
+    ) async throws -> any SFTPClientProtocol {
+        try await withSession(
+            hostID: hostID, invocationID: invocationID, interaction: interaction
+        ) { authentication in
+            var override: AgentSSHConfigurationSession.Attempt?
+            while true {
+                let attemptedGeneration: UInt64
+                if let override {
+                    attemptedGeneration = override.generation
+                } else {
+                    attemptedGeneration = await authentication.currentGeneration
+                }
+                do {
+                    if let override {
+                        return try await pool.sftp(hostID: hostID) { _ in
+                            override.configuration
+                        }
+                    }
+                    return try await pool.sftp(hostID: hostID)
+                } catch let error as TermindSSHError where error.shouldRequestAuthentication {
+                    await pool.disconnect(hostID: hostID, kind: .sftp)
+                    await authentication.retry(
+                        after: error, generation: attemptedGeneration
+                    )
+                    override = try await authentication.configurationAttempt()
+                } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
+                    override = try await authentication.configurationAttempt()
+                }
+            }
+        }
+    }
+
+    fileprivate func withSession<Value: Sendable>(
+        hostID: Host.ID, invocationID: AgentToolInvocation.ID,
+        interaction: any AgentUserInteractionHandling,
+        operation: @Sendable (AgentSSHConfigurationSession) async throws -> Value
+    ) async throws -> Value {
+        let token: UUID
+        let session: AgentSSHConfigurationSession
+        if var entry = entries[hostID] {
+            entry.leases += 1
+            entries[hostID] = entry
+            token = entry.token
+            session = entry.session
+        } else {
+            token = UUID()
+            session = AgentSSHConfigurationSession(
+                resolver: resolver, hostID: hostID, invocationID: invocationID,
+                interaction: interaction
+            )
+            entries[hostID] = Entry(token: token, session: session, leases: 1)
+        }
+        defer { release(hostID: hostID, token: token) }
+        return try await operation(session)
+    }
+
+    private func release(hostID: Host.ID, token: UUID) {
+        guard var entry = entries[hostID], entry.token == token else { return }
+        entry.leases -= 1
+        if entry.leases == 0 {
+            entries[hostID] = nil
+        } else {
+            entries[hostID] = entry
+        }
     }
 }
 
@@ -517,9 +723,11 @@ actor AgentConnectionPool {
         return session
     }
 
-    func sftp(hostID: UUID) async throws -> any SFTPClientProtocol {
+    func sftp(
+        hostID: UUID, configuration override: ConfigurationResolving? = nil
+    ) async throws -> any SFTPClientProtocol {
         guard case .sftp(let client) = try await resolve(
-            hostID: hostID, kind: .sftp, configuration: nil
+            hostID: hostID, kind: .sftp, configuration: override
         )
         else { throw AgentToolError.invalidHost }
         return client
@@ -682,16 +890,21 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
     static func make(
         hosts: AgentHostResolver,
         connections: AgentConnectionPool,
+        authentication suppliedAuthentication: AgentSSHAuthenticationRegistry? = nil,
         background: AgentBackgroundCommands = AgentBackgroundCommands(),
         fetcher: RestrictedHTTPFetcher = RestrictedHTTPFetcher(),
         search: WebSearchClient? = nil
     ) -> [AnyAgentTool] {
-        [
-            listHosts(hosts), sshExec(hosts, connections, background),
+        let authentication = suppliedAuthentication
+            ?? AgentSSHAuthenticationRegistry(resolver: hosts)
+        return [
+            listHosts(hosts), sshExec(authentication, connections, background),
             sshWait(background), terminalSuggest(),
-            sftpList(connections), sftpStat(connections), sftpRead(connections),
-            sftpWrite(connections), sftpMkdir(connections), sftpMove(connections),
-            sftpChmod(connections), sftpDelete(connections), fetch(fetcher),
+            sftpList(authentication, connections), sftpStat(authentication, connections),
+            sftpRead(authentication, connections), sftpWrite(authentication, connections),
+            sftpMkdir(authentication, connections), sftpMove(authentication, connections),
+            sftpChmod(authentication, connections), sftpDelete(authentication, connections),
+            fetch(fetcher),
             requestUserInput(), requestUserSecret(),
         ] + (search.map { [webSearch($0)] } ?? [])
     }
@@ -821,7 +1034,7 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
     }
 
     private static func sshExec(
-        _ hosts: AgentHostResolver, _ pool: AgentConnectionPool,
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool,
         _ background: AgentBackgroundCommands
     ) -> AnyAgentTool {
         let tool = descriptor(
@@ -883,13 +1096,6 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                     )
                     input = Data(secret.utf8)
                 }
-                let authentication = AgentSSHConfigurationSession(
-                    resolver: hosts, hostID: hostID, invocationID: invocation.id,
-                    interaction: context.userInteraction
-                )
-                let interactiveConfiguration: AgentConnectionPool.ConfigurationResolving = { _ in
-                    try await authentication.configuration()
-                }
                 // Live output, so a command that takes a minute is a card
                 // filling in rather than a spinner. Reported, never returned:
                 // the model is owed one result per call and gets it below.
@@ -908,46 +1114,40 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
                 // ends on time is what lets the user be heard at all.
                 let handover = AgentCommandHandover()
                 let running = Task { () async throws -> SSHExecResult in
+                    var connection = try await authentication.execConnection(
+                        hostID: hostID, invocationID: invocation.id,
+                        interaction: context.userInteraction, pool: pool
+                    )
                     var retriedDeadSession = false
                     while true {
-                        let session: any SSHExecSessionProtocol
-                        do {
-                            session = try await pool.exec(
-                                hostID: hostID, configuration: interactiveConfiguration
-                            )
-                        } catch let error as TermindSSHError
-                            where error.shouldRequestAuthentication
-                        {
-                            // Authentication failed before an exec channel — and
-                            // therefore before the command could run. It is safe
-                            // to collect another credential and reopen; command
-                            // errors never enter this path.
-                            await pool.disconnect(hostID: hostID, kind: .exec)
-                            await authentication.retry(after: error)
-                            continue
-                        }
+                        let session = connection.client
                         // The call may already have given up while this was
                         // connecting. Starting anyway would leave a command
-                        // running, printing and finishing with nobody holding a
-                        // handle to it.
+                        // running, printing and finishing with nobody holding
+                        // a handle to it.
                         guard retriedDeadSession || handover.beginRunning(on: session) else {
                             throw AgentCommandNotStarted()
                         }
                         do {
                             return try await session.execute(
                                 command, workingDirectory: cwd, stdin: stdin,
-                                timeout: maximumCommandLifetime, outputLimit: 256 * 1_024,
+                                timeout: maximumCommandLifetime,
+                                outputLimit: 256 * 1_024,
                                 onOutput: stream.handler
                             )
                         } catch SSHExecSessionError.channelUnavailable
                             where !retriedDeadSession
                         {
-                            // A pooled session that died quietly between commands
-                            // is invisible until it is used. Thrown only while the
-                            // command is provably not running, so reopening cannot
-                            // run half of an `rm` twice.
+                            // Safe because no command channel opened. The
+                            // authentication actor returned with the connection
+                            // keeps one-use credentials for this retry, while its
+                            // shared registry lease already ended.
                             retriedDeadSession = true
                             await pool.disconnect(hostID: hostID, kind: .exec)
+                            connection.client = try await authentication.openExec(
+                                hostID: hostID, authentication: connection.authentication,
+                                pool: pool
+                            )
                         }
                     }
                 }
@@ -1022,16 +1222,26 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         }
     }
 
-    private static func sftpList(_ pool: AgentConnectionPool) -> AnyAgentTool {
-        readOnlySFTP("sftp_list", "List a remote directory.", pool: pool) {
+    private static func sftpList(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
+        readOnlySFTP(
+            "sftp_list", "List a remote directory.",
+            authentication: authentication, pool: pool
+        ) {
             client, path, invocation in
             let files = try await client.listDirectory(at: path)
             return result(invocation, .array(files.map(remoteFileJSON)))
         }
     }
 
-    private static func sftpStat(_ pool: AgentConnectionPool) -> AnyAgentTool {
-        readOnlySFTP("sftp_stat", "Read remote file metadata.", pool: pool) {
+    private static func sftpStat(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
+        readOnlySFTP(
+            "sftp_stat", "Read remote file metadata.",
+            authentication: authentication, pool: pool
+        ) {
             client, path, invocation in
             guard let file = try await client.attributes(at: path) else {
                 throw AgentToolError.notFound
@@ -1040,8 +1250,13 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         }
     }
 
-    private static func sftpRead(_ pool: AgentConnectionPool) -> AnyAgentTool {
-        readOnlySFTP("sftp_read", "Read a bounded UTF-8 remote file inline.", pool: pool) {
+    private static func sftpRead(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
+        readOnlySFTP(
+            "sftp_read", "Read a bounded UTF-8 remote file inline.",
+            authentication: authentication, pool: pool
+        ) {
             client, path, invocation in
             let data = try await client.readFile(at: path, maximumBytes: 128 * 1_024)
             guard let text = String(data: data, encoding: .utf8) else {
@@ -1053,8 +1268,12 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         }
     }
 
-    private static func sftpWrite(_ pool: AgentConnectionPool) -> AnyAgentTool {
-        writeSFTP("sftp_write", "Write a bounded UTF-8 remote file atomically.", pool: pool,
+    private static func sftpWrite(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
+        writeSFTP(
+            "sftp_write", "Write a bounded UTF-8 remote file atomically.",
+            authentication: authentication, pool: pool,
             extra: ["content": string(max: 131_072), "overwrite": boolean()],
             extraRequired: ["content"]
         ) { client, path, arguments, invocation in
@@ -1066,17 +1285,25 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         }
     }
 
-    private static func sftpMkdir(_ pool: AgentConnectionPool) -> AnyAgentTool {
-        writeSFTP("sftp_mkdir", "Create a remote directory.", pool: pool) {
+    private static func sftpMkdir(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
+        writeSFTP(
+            "sftp_mkdir", "Create a remote directory.",
+            authentication: authentication, pool: pool
+        ) {
             client, path, _, invocation in
             try await client.createDirectory(at: path)
             return result(invocation, .object(["path": .string(path), "created": .bool(true)]))
         }
     }
 
-    private static func sftpMove(_ pool: AgentConnectionPool) -> AnyAgentTool {
+    private static func sftpMove(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
         writeSFTP(
-            "sftp_move", "Move or rename a remote path.", pool: pool,
+            "sftp_move", "Move or rename a remote path.",
+            authentication: authentication, pool: pool,
             extra: ["destination": string(max: 4_096), "overwrite": boolean()],
             extraRequired: ["destination"]
         ) { client, path, arguments, invocation in
@@ -1091,9 +1318,12 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         }
     }
 
-    private static func sftpChmod(_ pool: AgentConnectionPool) -> AnyAgentTool {
+    private static func sftpChmod(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
         writeSFTP(
-            "sftp_chmod", "Change remote POSIX permissions.", pool: pool,
+            "sftp_chmod", "Change remote POSIX permissions.",
+            authentication: authentication, pool: pool,
             extra: ["mode": string(max: 4)], extraRequired: ["mode"]
         ) { client, path, arguments, invocation in
             let raw = try arguments.string("mode")
@@ -1105,9 +1335,12 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         }
     }
 
-    private static func sftpDelete(_ pool: AgentConnectionPool) -> AnyAgentTool {
+    private static func sftpDelete(
+        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool
+    ) -> AnyAgentTool {
         writeSFTP(
-            "sftp_delete", "Permanently delete one remote file or empty directory.", pool: pool,
+            "sftp_delete", "Permanently delete one remote file or empty directory.",
+            authentication: authentication, pool: pool,
             extra: ["kind": enumeration(["file", "directory"])], extraRequired: ["kind"]
         ) { client, path, arguments, invocation in
             if try arguments.string("kind") == "directory" {
@@ -1428,7 +1661,8 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
     ) async throws -> AgentToolResult
 
     private static func readOnlySFTP(
-        _ name: String, _ summary: String, pool: AgentConnectionPool,
+        _ name: String, _ summary: String,
+        authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
         operation: @escaping SFTPReadOperation
     ) -> AnyAgentTool {
         let tool = descriptor(
@@ -1442,10 +1676,16 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         return AnyAgentTool(
             descriptor: tool,
             preflight: hostPathPreflight(safety: .locallyReadOnly),
-            execute: { invocation, _ in
+            execute: { invocation, context in
                 let arguments = try Arguments(invocation)
-                let client = try await pool.sftp(hostID: arguments.uuid("host_id"))
-                return try await operation(client, normalizeRemotePath(arguments.string("path")), invocation)
+                let hostID = try arguments.uuid("host_id")
+                let path = try normalizeRemotePath(arguments.string("path"))
+                return try await withAuthenticatedSFTP(
+                    hostID: hostID, invocation: invocation, context: context,
+                    authentication: authentication, pool: pool
+                ) { client in
+                    try await operation(client, path, invocation)
+                }
             }
         )
     }
@@ -1455,7 +1695,8 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
     ) async throws -> AgentToolResult
 
     private static func writeSFTP(
-        _ name: String, _ summary: String, pool: AgentConnectionPool,
+        _ name: String, _ summary: String,
+        authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
         extra: [String: AgentJSONValue] = [:], extraRequired: [String] = [],
         operation: @escaping SFTPWriteOperation
     ) -> AnyAgentTool {
@@ -1469,12 +1710,45 @@ nonisolated enum AgentBuiltInTools: AgentToolSchemaBuilding {
         return AnyAgentTool(
             descriptor: tool,
             preflight: hostPathPreflight(safety: .requiresAuthorization),
-            execute: { invocation, _ in
+            execute: { invocation, context in
                 let arguments = try Arguments(invocation)
-                let client = try await pool.sftp(hostID: arguments.uuid("host_id"))
-                return try await operation(client, normalizeRemotePath(arguments.string("path")), arguments, invocation)
+                let hostID = try arguments.uuid("host_id")
+                let path = try normalizeRemotePath(arguments.string("path"))
+                return try await withAuthenticatedSFTP(
+                    hostID: hostID, invocation: invocation, context: context,
+                    authentication: authentication, pool: pool
+                ) { client in
+                    try await operation(client, path, arguments, invocation)
+                }
             }
         )
+    }
+
+    /// One authenticated SFTP operation. Connection setup may safely retry
+    /// after a rejected credential because the operation has not begun. Once
+    /// the client is handed to `operation`, a lost connection is only evicted:
+    /// replaying a move, delete or write would have unknowable side effects.
+    static func withAuthenticatedSFTP<Value: Sendable>(
+        hostID: Host.ID, invocation: AgentToolInvocation,
+        context: AgentToolExecutionContext,
+        authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
+        operation: @escaping @Sendable (any SFTPClientProtocol) async throws -> Value
+    ) async throws -> Value {
+        let client = try await authentication.sftp(
+            hostID: hostID, invocationID: invocation.id,
+            interaction: context.userInteraction, pool: pool
+        )
+        do {
+            return try await operation(client)
+        } catch let error as SFTPError {
+            switch error {
+            case .notConnected, .connectionLost:
+                await pool.disconnect(hostID: hostID, kind: .sftp)
+            case .cancelled, .localFile, .operation:
+                break
+            }
+            throw error
+        }
     }
 
     /// Resolves `host_id` before approval so the tool card names the host the

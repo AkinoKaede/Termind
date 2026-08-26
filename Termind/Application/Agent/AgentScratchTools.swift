@@ -21,17 +21,27 @@ import Foundation
 /// of the same file in one batch serialize against each other there rather than by
 /// taking the whole turn serial.
 nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
-    /// `connections` is optional on the same terms as `AgentBuiltInTools.make`'s
-    /// `search`: nil registers no transfer tools at all, rather than two that fail
-    /// on first use.
+    /// Connection and authentication services travel together. If either is
+    /// absent no transfer tools are registered, rather than exposing a path
+    /// that fails on first use or bypasses Agent credential interaction.
     static func make(
         workspace: AgentScratchWorkspace,
-        connections: AgentConnectionPool? = nil
+        connections: AgentConnectionPool? = nil,
+        authentication: AgentSSHAuthenticationRegistry? = nil
     ) -> [AnyAgentTool] {
-        [
+        let transfers: [AnyAgentTool]
+        if let connections, let authentication {
+            transfers = [
+                pull(workspace, connections, authentication),
+                push(workspace, connections, authentication),
+            ]
+        } else {
+            transfers = []
+        }
+        return [
             list(workspace), read(workspace), write(workspace),
             edit(workspace), diff(workspace), delete(workspace),
-        ] + (connections.map { [pull(workspace, $0), push(workspace, $0)] } ?? [])
+        ] + transfers
     }
 
     private static let pathBytes = AgentScratchWorkspace.Limits.pathBytes
@@ -251,7 +261,8 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
     /// storage the app owns. Nothing on the host changes, and nothing outside the
     /// container is touched.
     private static func pull(
-        _ workspace: AgentScratchWorkspace, _ pool: AgentConnectionPool
+        _ workspace: AgentScratchWorkspace, _ pool: AgentConnectionPool,
+        _ authentication: AgentSSHAuthenticationRegistry
     ) -> AnyAgentTool {
         let tool = descriptor(
             "scratch_pull",
@@ -281,15 +292,20 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 _ = try AgentScratchWorkspace.normalize(arguments.string("scratch_path"))
                 return AgentToolPreflight(invocation: checked, safety: .locallyContained)
             },
-            execute: { invocation, _ in
+            execute: { invocation, context in
                 let arguments = try Arguments(invocation)
                 let remote = try AgentBuiltInTools.normalizeRemotePath(
                     arguments.string("remote_path")
                 )
-                let client = try await pool.sftp(hostID: arguments.uuid("host_id"))
-                let data = try await client.readFile(
-                    at: remote, maximumBytes: AgentScratchWorkspace.Limits.fileBytes
-                )
+                let hostID = try arguments.uuid("host_id")
+                let data = try await AgentBuiltInTools.withAuthenticatedSFTP(
+                    hostID: hostID, invocation: invocation, context: context,
+                    authentication: authentication, pool: pool
+                ) { client in
+                    try await client.readFile(
+                        at: remote, maximumBytes: AgentScratchWorkspace.Limits.fileBytes
+                    )
+                }
                 let written = try await workspace.write(
                     arguments.string("scratch_path"), data: data
                 )
@@ -309,7 +325,8 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
     /// Workspace → host. The one tool here that changes something the user owns, so
     /// the only one behind the approval gate.
     private static func push(
-        _ workspace: AgentScratchWorkspace, _ pool: AgentConnectionPool
+        _ workspace: AgentScratchWorkspace, _ pool: AgentConnectionPool,
+        _ authentication: AgentSSHAuthenticationRegistry
     ) -> AnyAgentTool {
         let tool = descriptor(
             "scratch_push",
@@ -362,11 +379,16 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                         "\(staged) changed after this push was approved. Nothing was written."
                     )
                 }
-                let client = try await pool.sftp(hostID: arguments.uuid("host_id"))
-                try await client.writeFile(
-                    file.data, at: remote,
-                    overwrite: arguments.optionalBool("overwrite") ?? false
-                )
+                let hostID = try arguments.uuid("host_id")
+                try await AgentBuiltInTools.withAuthenticatedSFTP(
+                    hostID: hostID, invocation: invocation, context: context,
+                    authentication: authentication, pool: pool
+                ) { client in
+                    try await client.writeFile(
+                        file.data, at: remote,
+                        overwrite: arguments.optionalBool("overwrite") ?? false
+                    )
+                }
                 return result(invocation, .object([
                     "scratch_path": .string(staged), "remote_path": .string(remote),
                     "bytes": .number(Double(file.bytes)), "sha256": .string(file.sha256),
