@@ -52,8 +52,11 @@ nonisolated final class RemoteConnectionCoordinator: Sendable {
     }
 
     func installAuthorizedKey(
-        _ publicKey: String, using configuration: SSHConnectionConfiguration
+        _ publicKey: String, named keyName: String,
+        using configuration: SSHConnectionConfiguration
     ) async throws {
-        try await SSHSessionActor.installAuthorizedKey(publicKey, using: configuration)
+        try await SSHSessionActor.installAuthorizedKey(
+            publicKey, named: keyName, using: configuration
+        )
     }
 }

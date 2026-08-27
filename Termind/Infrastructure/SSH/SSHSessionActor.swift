@@ -474,14 +474,15 @@ actor SSHSessionActor {
         )
     }
 
-    /// Appends a public key to a remote account's `authorized_keys`, unless the
-    /// exact line is already present. The key travels over the channel's stdin,
-    /// never as shell syntax, so a comment on the key cannot become a command.
+    /// Appends a named public key to a remote account's `authorized_keys`, unless
+    /// the exact key line is already present. The generated comment and key travel
+    /// over the channel's stdin, never as shell syntax.
     static func installAuthorizedKey(
-        _ publicKey: String, using configuration: SSHConnectionConfiguration
+        _ publicKey: String, named keyName: String,
+        using configuration: SSHConnectionConfiguration
     ) async throws {
         try await SSHSessionWorker.installAuthorizedKey(
-            publicKey, using: configuration
+            publicKey, named: keyName, using: configuration
         )
     }
 
@@ -647,19 +648,17 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
     }
 
     static func installAuthorizedKey(
-        _ publicKey: String, using configuration: SSHConnectionConfiguration
+        _ publicKey: String, named keyName: String,
+        using configuration: SSHConnectionConfiguration
     ) async throws {
         _ = initialization
-        let normalized = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty, !normalized.contains("\n"), !normalized.contains("\r") else {
-            throw TermindSSHError.library("The public key is not a single OpenSSH key line.")
-        }
+        let input = try authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
 
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
                     try installAuthorizedKeyBlocking(
-                        normalized, using: configuration
+                        input, using: configuration
                     )
                     continuation.resume()
                 } catch {
@@ -673,7 +672,7 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
     /// the OpenSSH directory with restrictive permissions and performs an exact
     /// line check before appending, making repeated exports idempotent.
     private static func installAuthorizedKeyBlocking(
-        _ publicKey: String, using configuration: SSHConnectionConfiguration
+        _ input: Data, using configuration: SSHConnectionConfiguration
     ) throws {
         let (transport, created) = try openAuthenticatedSession(
             using: configuration, timeout: 20
@@ -702,7 +701,7 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         channel = opened
 
         let command =
-            #"umask 077; dir="$HOME/.ssh"; file="$dir/authorized_keys"; mkdir -p "$dir" && touch "$file" && chmod 700 "$dir" && chmod 600 "$file" && IFS= read -r key && { LC_ALL=C grep -Fqx -- "$key" "$file" || printf '%s\n' "$key" >> "$file"; }"#
+            #"umask 077; dir="$HOME/.ssh"; file="$dir/authorized_keys"; mkdir -p "$dir" && touch "$file" && chmod 700 "$dir" && chmod 600 "$file" && IFS= read -r comment && IFS= read -r key && { LC_ALL=C grep -Fqx -- "$key" "$file" || printf '%s\n%s\n' "$comment" "$key" >> "$file"; }"#
         let started = command.withCString { commandBuffer in
             libssh2_channel_process_startup(
                 opened, "exec", 4, commandBuffer, UInt32(command.utf8.count)
@@ -712,7 +711,6 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
             throw sessionError(created, prefix: "Unable to start authorized_keys update")
         }
 
-        let input = Data((publicKey + "\n").utf8)
         try input.withUnsafeBytes { bytes in
             guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return }
             var offset = 0
@@ -741,6 +739,25 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
                     : "The remote authorized_keys update failed: \(detail)"
             )
         }
+    }
+
+    static func authorizedKeyInstallInput(publicKey: String, keyName: String) throws -> Data {
+        let normalizedKey = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard
+            !normalizedKey.isEmpty, !normalizedKey.contains("\n"),
+            !normalizedKey.contains("\r")
+        else {
+            throw TermindSSHError.library("The public key is not a single OpenSSH key line.")
+        }
+
+        let printableName = keyName.unicodeScalars
+            .map { CharacterSet.controlCharacters.contains($0) ? " " : String($0) }
+            .joined()
+        let normalizedName = printableName
+            .split(whereSeparator: \Character.isWhitespace)
+            .joined(separator: " ")
+        let safeName = normalizedName.isEmpty ? "Key" : normalizedName
+        return Data(("# \(safeName) Key by Termind\n\(normalizedKey)\n").utf8)
     }
 
     private static func readAll(from channel: OpaquePointer, stream: Int32) -> String {

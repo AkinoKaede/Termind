@@ -1263,16 +1263,16 @@ struct ExportKeyToHostsSheet: View {
             }
         }
 
-        let publicKeys = keys.map(\.publicKey)
+        let exportKeys = keys.map { (name: $0.label, publicKey: $0.publicKey) }
         let connectionCoordinator = app.connections
         Task {
             await withTaskGroup(of: (Host.ID, String?).self) { group in
                 for (id, configuration) in configurations {
                     group.addTask {
                         do {
-                            for publicKey in publicKeys {
+                            for key in exportKeys {
                                 try await connectionCoordinator.installAuthorizedKey(
-                                    publicKey, using: configuration
+                                    key.publicKey, named: key.name, using: configuration
                                 )
                             }
                             return (id, nil)
