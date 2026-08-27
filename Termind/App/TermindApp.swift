@@ -141,20 +141,18 @@ struct TermindApp: App {
             }
 
             // Product screenshots must not inherit a developer's last window
-            // frame from macOS state restoration. Keeping the outer frame
-            // exactly 1180×740pt makes a Retina capture exactly 2360×1480px,
-            // matching the dimensions declared by the website.
-            if ScreenshotDemoMode.active != nil {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // frame from macOS state restoration. Each demo owns its capture
+            // size so tightly focused scenes do not inherit the larger
+            // workspace composition.
+            if let screenshotDemo = ScreenshotDemoMode.active {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
                     guard let window = NSApp.windows.first(where: \.isVisible) else { return }
                     window.isRestorable = false
+                    window.contentMinSize = .zero
                     window.setFrame(
                         NSRect(
                             origin: window.frame.origin,
-                            size: NSSize(
-                                width: Metrics.Window.defaultWidth,
-                                height: Metrics.Window.defaultHeight
-                            )
+                            size: screenshotDemo.windowSize
                         ),
                         display: true
                     )

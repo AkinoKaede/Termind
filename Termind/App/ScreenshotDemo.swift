@@ -20,6 +20,18 @@ enum ScreenshotDemoMode: String {
         }
     }
 
+    var windowSize: CGSize {
+        switch self {
+        case .command:
+            CGSize(width: 1_022, height: 640)
+        case .workspace, .agent:
+            CGSize(
+                width: Metrics.Window.defaultWidth,
+                height: Metrics.Window.defaultHeight
+            )
+        }
+    }
+
     func makeWindow(hosts: HostLibraryModel) -> WindowModel {
         switch self {
         case .workspace:
