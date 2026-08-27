@@ -243,7 +243,7 @@ struct MCPServerEditorPage: View {
         } footer: {
             if !server.tools.isEmpty {
                 Text(
-                    "With Ask First on, you approve each call. Turn it off only for trusted, read-only tools."
+                    "Always Ask requires approval for every call. Follow Permissions uses the conversation's permission mode and safety checks."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -353,7 +353,7 @@ private struct ToolRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: Metrics.Space.m) {
+        HStack(alignment: .center, spacing: Metrics.Space.m) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(qualifiedToolName)
                     .font(.callout.monospaced())
@@ -364,41 +364,41 @@ private struct ToolRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: Metrics.Space.m)
-
-            Toggle("Offer", isOn: enabled)
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .fixedSize()
-
-            Toggle("Ask First", isOn: asksFirst)
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .fixedSize()
-                // Greyed rather than hidden when the tool is off: the setting
-                // still exists and comes back with it, and a control that
-                // vanishes reads as one that was reset.
-                .disabled(!tool.isEnabled)
+            Picker("Permission", selection: permission) {
+                ForEach(MCPTool.AccessPolicy.allCases) { option in
+                    Text(option.displayName).tag(option)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
+            .accessibilityLabel(Text("Permission"))
         }
+        .frame(maxWidth: .infinity)
         .font(.caption)
         .help(Text(tool.summary.isEmpty ? qualifiedToolName : tool.summary))
     }
 
-    private var enabled: Binding<Bool> {
+    private var permission: Binding<MCPTool.AccessPolicy> {
         Binding(
-            get: { tool.isEnabled },
-            set: { app.aiConfiguration.setToolEnabled($0, tool: tool.id, on: serverID) }
+            get: { tool.accessPolicy },
+            set: { policy in
+                app.aiConfiguration.setToolAccessPolicy(policy, tool: tool.id, on: serverID)
+            }
         )
     }
+}
 
-    private var asksFirst: Binding<Bool> {
-        Binding(
-            get: { tool.requiresApproval },
-            set: { app.aiConfiguration.setToolRequiresApproval($0, tool: tool.id, on: serverID) }
-        )
+private extension MCPTool.AccessPolicy {
+    var displayName: LocalizedStringKey {
+        switch self {
+        case .disabled: "Disabled"
+        case .alwaysAsk: "Always Ask"
+        case .followPermissions: "Follow Permissions"
+        }
     }
 }

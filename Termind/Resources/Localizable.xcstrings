@@ -1371,6 +1371,16 @@
         }
       }
     },
+    "Always Ask" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终询问"
+          }
+        }
+      }
+    },
     "Always included" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4629,6 +4639,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文件夹无法附加。"
+          }
+        }
+      }
+    },
+    "Follow Permissions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随权限设置"
           }
         }
       }
@@ -12786,12 +12806,12 @@
         }
       }
     },
-    "With Ask First on, you approve each call. Turn it off only for trusted, read-only tools." : {
+    "Always Ask requires approval for every call. Follow Permissions uses the conversation's permission mode and safety checks." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启“先询问”后，每次调用都需你批准。仅对可信的只读工具关闭此选项。"
+            "value" : "“始终询问”要求每次调用都由你批准；“跟随权限设置”则使用当前会话的权限模式和安全检查。"
           }
         }
       }

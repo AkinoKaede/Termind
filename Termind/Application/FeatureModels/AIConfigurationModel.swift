@@ -458,11 +458,9 @@ final class AIConfigurationModel {
 
     /// What a successful `Connect` writes back.
     ///
-    /// A tool the user had already switched off, or marked as not needing
-    /// approval, keeps those settings across a rediscovery — otherwise every
-    /// reconnect would silently undo the decisions made about this server. A
-    /// tool that has genuinely appeared for the first time arrives at the
-    /// defaults, which means approval required.
+    /// A tool keeps its access policy across rediscovery — otherwise every
+    /// reconnect would silently undo the decision made about this server. A
+    /// genuinely new tool arrives at the default, which means always asking.
     func setTools(_ discovered: [MCPTool], version: String, for id: MCPServer.ID) {
         guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return }
         let previous = Dictionary(uniqueKeysWithValues: mcpServers[index].tools.map { ($0.id, $0) })
@@ -470,20 +468,17 @@ final class AIConfigurationModel {
         mcpServers[index].tools = discovered.map { tool in
             guard let old = previous[tool.id] else { return tool }
             var merged = tool
-            merged.isEnabled = old.isEnabled
-            merged.requiresApproval = old.requiresApproval
+            merged.accessPolicy = old.accessPolicy
             return merged
         }
         mcpServers[index].negotiatedVersion = version
         mcpServers[index].lastConnectedAt = Date()
     }
 
-    func setToolEnabled(_ enabled: Bool, tool toolID: String, on serverID: MCPServer.ID) {
-        mutate(toolID, on: serverID) { $0.isEnabled = enabled }
-    }
-
-    func setToolRequiresApproval(_ required: Bool, tool toolID: String, on serverID: MCPServer.ID) {
-        mutate(toolID, on: serverID) { $0.requiresApproval = required }
+    func setToolAccessPolicy(
+        _ policy: MCPTool.AccessPolicy, tool toolID: String, on serverID: MCPServer.ID
+    ) {
+        mutate(toolID, on: serverID) { $0.accessPolicy = policy }
     }
 
     private func mutate(_ toolID: String, on serverID: MCPServer.ID, _ change: (inout MCPTool) -> Void) {

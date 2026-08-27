@@ -17,7 +17,7 @@ nonisolated struct MCPCallResult: Hashable, Sendable {
 /// Discovery only. This runs the handshake and `tools/list`, and stops there —
 /// actually *calling* a tool belongs with the chat loop in P3, and it will go
 /// through the same approval gate an AI-proposed command does. That gate is why
-/// `MCPTool.requiresApproval` arrives from here already set.
+/// a discovered `MCPTool` arrives with its access policy set to always ask.
 ///
 /// Two transports, both HTTP. There is no stdio here because Termind is sandboxed
 /// and cannot launch a local process — see `MCPServer`.
@@ -477,7 +477,7 @@ nonisolated private struct ToolsListResult: Decodable {
         var inputSchema: AgentJSONValue?
         var annotations: MCPToolAnnotations?
 
-        /// Arrives enabled and requiring approval. See `MCPTool`.
+        /// Arrives with the always-ask policy. See `MCPTool`.
         func tool() -> MCPTool {
             MCPTool(
                 id: name, title: title ?? "", summary: description ?? title ?? "",

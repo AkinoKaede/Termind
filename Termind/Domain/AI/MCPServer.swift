@@ -88,7 +88,7 @@ nonisolated struct MCPServer: Identifiable, Hashable, Sendable {
     }
 
     var enabledTools: [MCPTool] {
-        tools.filter(\.isEnabled)
+        tools.filter { $0.accessPolicy != .disabled }
     }
 
     var isReachable: Bool {
@@ -182,14 +182,19 @@ nonisolated struct MCPHeader: Identifiable, Hashable, Sendable {
 
 /// One tool a server offers.
 ///
-/// `requiresApproval` defaults to `true`, and that default is the point rather
-/// than caution. Termind's rule is that nothing runs on the user's say-so alone —
-/// an AI-proposed command is always a click away from the PTY, never closer. An
-/// MCP tool is a command by another name, and it arrives from a list fetched
-/// over the network from a server the model can talk to. If the default went
-/// the other way, the one rule the whole feature rests on would have a hole in
-/// it that nobody opened deliberately.
+/// `accessPolicy` defaults to `alwaysAsk`, and that default is the point rather
+/// than caution. An MCP tool is a command fetched over the network from a server
+/// the model can talk to, so a newly discovered tool must not silently inherit a
+/// more permissive conversation setting.
 nonisolated struct MCPTool: Identifiable, Hashable, Sendable {
+    nonisolated enum AccessPolicy: String, CaseIterable, Identifiable, Hashable, Sendable {
+        case disabled
+        case alwaysAsk
+        case followPermissions
+
+        nonisolated var id: String { rawValue }
+    }
+
     /// The tool name as the server reports it. Its identity, since MCP names
     /// are unique per server.
     var id: String
@@ -199,8 +204,7 @@ nonisolated struct MCPTool: Identifiable, Hashable, Sendable {
         "type": .string("object"), "properties": .object([:])
     ])
     var annotations: MCPToolAnnotations = MCPToolAnnotations()
-    var isEnabled: Bool = true
-    var requiresApproval: Bool = true
+    var accessPolicy: AccessPolicy = .alwaysAsk
 
     func matches(_ query: String) -> Bool {
         guard !query.isEmpty else { return true }

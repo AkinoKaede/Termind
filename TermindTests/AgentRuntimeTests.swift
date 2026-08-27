@@ -776,6 +776,33 @@ struct AgentRuntimeTests {
     }
 
     @Test
+    func mcpToolAccessPoliciesControlExposureAndApproval() throws {
+        var server = MCPServer(name: "Gateway")
+        server.tools = [
+            MCPTool(id: "disabled", accessPolicy: .disabled),
+            MCPTool(id: "always-ask", accessPolicy: .alwaysAsk),
+            MCPTool(id: "follow-permissions", accessPolicy: .followPermissions),
+        ]
+
+        let descriptors = AgentMCPTools.make(servers: [(server: server, bearerToken: nil)])
+            .map(\.descriptor)
+        #expect(descriptors.count == 2)
+        #expect(!descriptors.contains { $0.name == "disabled" })
+
+        let alwaysAsk = try #require(descriptors.first { $0.name == "always-ask" })
+        #expect(alwaysAsk.safety == .requiresAuthorization)
+        #expect(alwaysAsk.alwaysAskUser)
+        #expect(alwaysAsk.concurrency == .sequential)
+
+        let followPermissions = try #require(
+            descriptors.first { $0.name == "follow-permissions" }
+        )
+        #expect(followPermissions.safety == .requiresAuthorization)
+        #expect(!followPermissions.alwaysAskUser)
+        #expect(followPermissions.concurrency == .parallel)
+    }
+
+    @Test
     func secretHandlesAreSingleUseAndBindingScoped() async throws {
         let broker = SecretBroker()
         let binding = SecretBinding(

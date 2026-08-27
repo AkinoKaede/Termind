@@ -36,11 +36,12 @@ nonisolated enum AgentMCPTools {
             // make this *stricter*. Nothing a server asserts can grant
             // parallelism, so the rule that remote annotations are risk hints
             // rather than proof of safety still holds — and a tool the server
-            // marks destructive, or wants asked about every time, takes its
+            // marks destructive, or is configured to ask every time, takes its
             // whole turn serial.
-            concurrency: tool.annotations.destructiveHint == true || tool.requiresApproval
+            concurrency: tool.annotations.destructiveHint == true
+                || tool.accessPolicy == .alwaysAsk
                 ? .sequential : .parallel,
-            alwaysAskUser: tool.requiresApproval,
+            alwaysAskUser: tool.accessPolicy == .alwaysAsk,
             presentation: .init(
                 symbol: "puzzlepiece.extension",
                 activity: .label(MCPToolNaming.qualifiedName(

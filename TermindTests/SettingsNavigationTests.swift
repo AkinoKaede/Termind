@@ -83,4 +83,28 @@ struct SettingsNavigationTests {
         #expect(!store.lockMCPNamespace(for: duplicate.id))
         #expect(store.mcpServer(duplicate.id)?.namespaceID == "")
     }
+
+    @Test
+    func mcpToolAccessPolicyIsAtomicAndSurvivesRediscovery() throws {
+        var existingTool = MCPTool(id: "search")
+        existingTool.accessPolicy = .disabled
+        var server = MCPServer(name: "Gateway")
+        server.tools = [existingTool]
+        let store = AIConfigurationModel(mcpServers: [server], persistsSecrets: false)
+
+        store.setTools(
+            [MCPTool(id: "search", title: "Updated"), MCPTool(id: "new-tool")],
+            version: "2025-06-18", for: server.id
+        )
+
+        let rediscovered = try #require(store.mcpServer(server.id))
+        #expect(rediscovered.tools.first { $0.id == "search" }?.accessPolicy == .disabled)
+        #expect(rediscovered.tools.first { $0.id == "new-tool" }?.accessPolicy == .alwaysAsk)
+
+        store.setToolAccessPolicy(.followPermissions, tool: "search", on: server.id)
+        #expect(
+            store.mcpServer(server.id)?.tools.first { $0.id == "search" }?.accessPolicy
+                == .followPermissions
+        )
+    }
 }
