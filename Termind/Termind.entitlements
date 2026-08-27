@@ -20,6 +20,18 @@
 	<!-- Local and dynamic port-forwarding listeners. -->
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<key>com.apple.developer.aps-environment</key>
+	<string>$(APS_ENVIRONMENT)</string>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.akinokaede.termind</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>com.apple.developer.icloud-container-environment</key>
+	<string>$(ICLOUD_CONTAINER_ENVIRONMENT)</string>
 	<!-- Importing existing private keys and known_hosts from disk. -->
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>

@@ -11,9 +11,15 @@ nonisolated struct VaultSnapshot: Sendable {
     var portForwardings: [PortForwardingRule] = []
 }
 
+nonisolated struct VaultRemoteApplyResult: Sendable {
+    var snapshot: VaultSnapshot
+    var acceptedKeys: Set<VaultRecordKey>
+    var needsUpload: Set<VaultRecordKey>
+}
+
 @MainActor
 protocol VaultPersisting: AnyObject {
     func load() throws -> VaultSnapshot
-    func save(_ snapshot: VaultSnapshot) throws
+    func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet
+    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult
 }
-

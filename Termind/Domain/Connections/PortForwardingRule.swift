@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct PortForwardingRule: Identifiable, Hashable, Sendable {
+nonisolated struct PortForwardingRule: Identifiable, Codable, Hashable, Sendable {
     nonisolated enum Kind: String, Codable, Sendable, CaseIterable, Identifiable {
         case local, remote, dynamic
         nonisolated var id: String { rawValue }
@@ -66,4 +66,3 @@ nonisolated struct PortForwardingRule: Identifiable, Hashable, Sendable {
 }
 
 typealias PortForwardingKind = PortForwardingRule.Kind
-

@@ -90,7 +90,7 @@ struct SnippetFeatureTests {
 
     @Test
     func snippetPersistenceRoundTripKeepsPackagesTargetsAndExpansion() throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "SnippetFeatureTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )

@@ -107,7 +107,7 @@ struct CommandHistoryTests {
     }
 
     private func makeContainer(_ name: String) throws -> ModelContainer {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
         )
         return try ModelContainer(

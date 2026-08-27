@@ -47,7 +47,7 @@ struct RepositoryOutboxTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV3.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             let context = container.mainContext
             context.insert(TermindSchemaV3Models.PersistentIdentity(identity))
@@ -58,7 +58,7 @@ struct RepositoryOutboxTests {
         }
 
         let schema = Schema(versionedSchema: TermindSchemaV5.self)
-        let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+        let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
         let container = try ModelContainer(
             for: schema, migrationPlan: TermindMigrationPlan.self,
             configurations: [configuration]
@@ -109,7 +109,7 @@ struct RepositoryOutboxTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV1.self)
-            let configuration = ModelConfiguration(
+            let configuration = localModelConfiguration(
                 "Migration", schema: schema, url: storeURL
             )
             let container = try ModelContainer(
@@ -130,7 +130,7 @@ struct RepositoryOutboxTests {
         }
 
         let schema = Schema(versionedSchema: TermindSchemaV5.self)
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "Migration", schema: schema, url: storeURL
         )
         let container = try ModelContainer(
@@ -258,7 +258,7 @@ struct RepositoryOutboxTests {
     }
 
     private func makeContainer(_ name: String) throws -> ModelContainer {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
         )
         return try ModelContainer(

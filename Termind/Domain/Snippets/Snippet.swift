@@ -2,7 +2,7 @@ import Foundation
 
 /// A folder used only to organise snippets. Execution settings deliberately
 /// stay on the snippet, so moving a card never changes where it runs.
-nonisolated struct SnippetPackage: Identifiable, Hashable, Sendable {
+nonisolated struct SnippetPackage: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var name: String
     var parentID: SnippetPackage.ID?
@@ -11,7 +11,7 @@ nonisolated struct SnippetPackage: Identifiable, Hashable, Sendable {
 }
 
 /// A reusable multi-line script with the hosts it normally opens and runs on.
-nonisolated struct Snippet: Identifiable, Hashable, Sendable {
+nonisolated struct Snippet: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var title: String
     var body: String

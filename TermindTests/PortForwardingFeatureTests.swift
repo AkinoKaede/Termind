@@ -138,7 +138,7 @@ struct PortForwardingFeatureTests {
 
     @Test
     func termindV1RoundTripKeepsRoutesAndDropsDynamicTargets() throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "PortForwardingFeatureTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )

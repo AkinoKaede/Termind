@@ -6,7 +6,7 @@ import Foundation
 /// a fingerprint pinned on one machine should be pinned on all of them, so a
 /// swapped key is caught the first time any device sees it rather than the third.
 /// Nothing secret lives here; a public key fingerprint is public by construction.
-nonisolated struct KnownHostEntry: Identifiable, Hashable, Sendable {
+nonisolated struct KnownHostEntry: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var hostname: String
     var port: Int = 22

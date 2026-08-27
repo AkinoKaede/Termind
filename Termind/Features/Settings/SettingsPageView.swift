@@ -487,11 +487,63 @@ private struct TerminalSettings: View {
 }
 
 private struct SyncSettings: View {
+    @Environment(AppModel.self) private var app
+    @AppStorage(SettingsKey.vaultSyncEnabled) private var isEnabled =
+        SettingsKey.defaultVaultSyncEnabled
+
     var body: some View {
         Section("iCloud") {
-            LabeledContent("Status") { Text("Off") }
-            Text("iCloud sync is not available yet. Private keys and passwords remain in the Keychain.")
+            Toggle("Sync Vault with iCloud", isOn: $isEnabled)
+            LabeledContent("Status") { statusLabel }
+
+            if case .accountChangeConfirmationRequired = status {
+                Text("This Mac is signed in to a different iCloud account. Your local Vault will not be uploaded until you confirm the merge.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("Merge with This iCloud Account") {
+                    app.vaultSync?.confirmAccountSwitchMerge()
+                }
+            } else if case .failed = status {
+                Button("Retry") { app.vaultSync?.retry() }
+            }
+
+            Text("Hosts, identities, public key metadata, Known Hosts, snippets, and port forwards sync through your private iCloud database. Passwords and private keys remain protected separately by Keychain. Credentials marked “This Mac” will be missing on other Macs.")
                 .font(.caption).foregroundStyle(.secondary)
+        }
+        .onChange(of: isEnabled) { _, enabled in app.vaultSync?.setEnabled(enabled) }
+    }
+
+    private var status: VaultSyncStatus {
+        app.vaultSync?.status ?? (isEnabled ? .checkingAccount : .paused)
+    }
+
+    @ViewBuilder
+    private var statusLabel: some View {
+        switch status {
+        case .checkingAccount:
+            Label("Checking iCloud…", systemImage: "icloud")
+        case .paused:
+            Label("Paused", systemImage: "pause.circle")
+        case .unavailable(let message):
+            Label(message, systemImage: "icloud.slash").foregroundStyle(.secondary)
+        case .accountChangeConfirmationRequired:
+            Label("Waiting for confirmation", systemImage: "person.crop.circle.badge.exclamationmark")
+                .foregroundStyle(.orange)
+        case .syncing(let pendingCount):
+            Label(
+                pendingCount == 1 ? "Syncing 1 change…" : "Syncing \(pendingCount) changes…",
+                systemImage: "arrow.triangle.2.circlepath.icloud"
+            )
+        case .upToDate(let lastSync):
+            if let lastSync {
+                Label(
+                    "Up to date · \(lastSync.formatted(date: .abbreviated, time: .shortened))",
+                    systemImage: "checkmark.icloud"
+                )
+            } else {
+                Label("Up to date", systemImage: "checkmark.icloud")
+            }
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.icloud").foregroundStyle(.red)
         }
     }
 }

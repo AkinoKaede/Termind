@@ -52,7 +52,7 @@ nonisolated struct HostProxy: Codable, Hashable, Sendable {
 /// name and the secret both belong to `Identity`, which is shared across a fleet.
 /// So there is no `username` and no `credentialRef` here, only `identityID`, and
 /// therefore no path by which a secret could reach SwiftData or CloudKit.
-nonisolated struct Host: Identifiable, Hashable, Sendable {
+nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var name: String
     /// Where to connect: an IP literal (v4 or v6) or a DNS name. Named `host`
@@ -124,7 +124,7 @@ nonisolated struct Host: Identifiable, Hashable, Sendable {
 
 /// A user-defined folder of hosts. `parentID` is optional and self-referential,
 /// which is also what CloudKit requires of the eventual relationship.
-nonisolated struct HostGroup: Identifiable, Hashable, Sendable {
+nonisolated struct HostGroup: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var name: String
     var parentID: HostGroup.ID?

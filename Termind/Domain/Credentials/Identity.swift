@@ -65,7 +65,7 @@ nonisolated enum SecretAvailability: Equatable, Sendable {
 /// "the password is filed under this name" — and `keyID` points at an `SSHKeyRef`,
 /// which is itself only a reference. Neither the key nor the password has a path
 /// into this struct, so neither has a path into SwiftData or CloudKit.
-nonisolated struct Identity: Identifiable, Hashable, Sendable {
+nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var name: String
     var username: String

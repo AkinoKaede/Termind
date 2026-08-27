@@ -6,16 +6,19 @@ struct AppDependencies {
     let outboxRunner: OutboxRunner?
     let connectionCoordinator: RemoteConnectionCoordinator
     let agentRunRepository: (any AgentRunPersisting)?
+    let vaultSync: VaultSyncCoordinator?
 
     init(
         hostRepository: any HostRepository, outboxRunner: OutboxRunner?,
         connectionCoordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator(),
-        agentRunRepository: (any AgentRunPersisting)? = nil
+        agentRunRepository: (any AgentRunPersisting)? = nil,
+        vaultSync: VaultSyncCoordinator? = nil
     ) {
         self.hostRepository = hostRepository
         self.outboxRunner = outboxRunner
         self.connectionCoordinator = connectionCoordinator
         self.agentRunRepository = agentRunRepository
+        self.vaultSync = vaultSync
     }
 
     static func inMemory(hosts: [Host], groups: [HostGroup]) -> Self {

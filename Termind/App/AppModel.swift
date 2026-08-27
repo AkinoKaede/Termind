@@ -61,6 +61,7 @@ final class AppModel {
     let commands = AppCommandRegistry()
     let connections: RemoteConnectionCoordinator
     let hostRepository: any HostRepository
+    let vaultSync: VaultSyncCoordinator?
     let forwarding: PortForwardingController
     let sftpTransfers: SFTPTransferCoordinator
     /// Providers, models, role assignments, MCP servers.
@@ -125,6 +126,7 @@ final class AppModel {
             openSFTP: { try await connectionCoordinator.connectSFTP(using: $0) }
         )
         hostRepository = dependencies.hostRepository
+        vaultSync = dependencies.vaultSync
         forwarding = PortForwardingController(hosts: hosts)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
@@ -163,6 +165,14 @@ final class AppModel {
         hosts.didPersistCore = { [weak repository = dependencies.hostRepository] in
             try? repository?.refresh()
         }
+        hosts.didRecordVaultChanges = { [weak vaultSync = dependencies.vaultSync] mutations in
+            vaultSync?.noteLocalChanges(mutations)
+        }
+        if let repository = dependencies.hostRepository as? SwiftDataHostRepository {
+            repository.didRecordVaultChanges = { [weak vaultSync = dependencies.vaultSync] mutations in
+                vaultSync?.noteLocalChanges(mutations)
+            }
+        }
         if let outboxRunner {
             outboxRunner.register(
                 RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.closeWorkspaces) {
@@ -196,6 +206,40 @@ final class AppModel {
             )
             outboxRunner.start()
         }
+        vaultSync?.didApplyRemote = { [weak self] snapshot, keys in
+            self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
+        }
+        vaultSync?.start()
+    }
+
+    private func applyRemoteVaultSnapshot(
+        _ snapshot: VaultSnapshot, changedKeys: Set<VaultRecordKey>
+    ) {
+        let changedHostIDs = Set(changedKeys.filter { $0.kind == .host }.map(\.id))
+        let changedRuleIDs = Set(changedKeys.filter { $0.kind == .portForwarding }.map(\.id))
+        let nextHostIDs = Set(snapshot.hosts.map(\.id))
+
+        for hostID in changedHostIDs {
+            let oldHost = hosts.host(hostID)
+            let newHost = snapshot.hosts.first { $0.id == hostID }
+            let routeChanged = oldHost.map { old in
+                newHost.map {
+                    old.host != $0.host || old.port != $0.port
+                        || old.identityID != $0.identityID || old.jumpHostID != $0.jumpHostID
+                        || old.proxy != $0.proxy
+                } ?? true
+            } ?? false
+            if routeChanged {
+                hosts.willDeleteHost?(hostID, hosts.portForwardings(for: hostID).map(\.id))
+            }
+            if oldHost != nil, !nextHostIDs.contains(hostID) {
+                closeWorkspaces(for: hostID)
+                sftpTransfers.cancelAll(for: hostID)
+                commandHistory.clear(for: hostID)
+            }
+        }
+        if !changedRuleIDs.isEmpty { forwarding.stop(Array(changedRuleIDs)) }
+        hosts.replacePersistedSnapshot(snapshot)
     }
 
     func sendAgentDraft(

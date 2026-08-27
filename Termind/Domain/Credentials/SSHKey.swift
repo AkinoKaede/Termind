@@ -26,7 +26,7 @@ nonisolated enum SSHKeyAlgorithm: String, Codable, Hashable, Sendable, CaseItera
     nonisolated var id: Self { self }
 }
 
-nonisolated struct SSHKeyRef: Identifiable, Hashable, Sendable {
+nonisolated struct SSHKeyRef: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var label: String
     var algorithm: SSHKeyAlgorithm = .ed25519

@@ -73,7 +73,7 @@ struct AgentInterruptedRunRecoveryTests {
     @MainActor
     @Test
     func restoreRecoversResultsRecordedBeforeTheProcessDied() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentInterruptedRunRecoveryTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )

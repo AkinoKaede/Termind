@@ -26,6 +26,7 @@ final class HostLibraryModel {
     var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
     var willDeletePortForwardings: (([PortForwardingRule.ID]) -> Void)?
     var didPersistCore: (() -> Void)?
+    var didRecordVaultChanges: ((VaultMutationSet) -> Void)?
 
     func reportStorageError(_ error: any Error) {
         storageError = error.localizedDescription
@@ -1738,18 +1739,42 @@ final class HostLibraryModel {
             return true
         }
         do {
-            try persistence.save(VaultSnapshot(
+            let mutations = try persistence.save(VaultSnapshot(
                 hosts: hosts, groups: groups, identities: identities,
                 keys: keys, knownHosts: knownHosts, snippets: snippets,
                 snippetPackages: snippetPackages, portForwardings: portForwardings
             ))
             storageError = nil
             didPersistCore?()
+            didRecordVaultChanges?(mutations)
             return true
         } catch {
             storageError = error.localizedDescription
             return false
         }
+    }
+
+    /// Applies a CloudKit-imported projection without writing it back as a new
+    /// local edit. Runtime connection and transfer state intentionally remain.
+    func replacePersistedSnapshot(_ snapshot: VaultSnapshot) {
+        hosts = snapshot.hosts
+        groups = snapshot.groups
+        identities = normalizedManualOrder(
+            snapshot.identities, sortIndex: \Identity.sortIndex, name: \Identity.name
+        )
+        keys = normalizedManualOrder(
+            snapshot.keys, sortIndex: \SSHKeyRef.sortIndex, name: \SSHKeyRef.label
+        )
+        knownHosts = snapshot.knownHosts
+        snippets = normalizedSnippetOrder(snapshot.snippets)
+        snippetPackages = snapshot.snippetPackages
+        portForwardings = snapshot.portForwardings
+        statuses = statuses.filter { id, _ in hosts.contains { $0.id == id } }
+        connectionStatuses = connectionStatuses.filter { _, value in
+            hosts.contains { $0.id == value.hostID }
+        }
+        storageError = nil
+        didPersistCore?()
     }
 }
 

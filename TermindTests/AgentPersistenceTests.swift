@@ -18,7 +18,7 @@ struct AgentPersistenceTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV8.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             let row = TermindSchemaV8Models.PersistentAgentMessage()
             row.id = messageID
@@ -27,7 +27,7 @@ struct AgentPersistenceTests {
             try container.mainContext.save()
         }
 
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "Migration", schema: HostPersistence.schema, url: storeURL
         )
         let container = try ModelContainer(
@@ -55,7 +55,7 @@ struct AgentPersistenceTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV10.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             let conversation = TermindSchemaV10AgentModels.PersistentAgentConversation()
             conversation.id = conversationID
@@ -68,7 +68,7 @@ struct AgentPersistenceTests {
             try container.mainContext.save()
         }
 
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "Migration", schema: HostPersistence.schema, url: storeURL
         )
         let container = try ModelContainer(
@@ -101,7 +101,7 @@ struct AgentPersistenceTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV11.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             let message = TermindSchemaV11AgentModels.PersistentAgentMessage()
             message.id = messageID
@@ -110,7 +110,7 @@ struct AgentPersistenceTests {
             try container.mainContext.save()
         }
 
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "Migration", schema: HostPersistence.schema, url: storeURL
         )
         let container = try ModelContainer(
@@ -136,7 +136,7 @@ struct AgentPersistenceTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV12.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             let invocation = TermindSchemaV12AgentModels.PersistentAgentToolInvocation()
             invocation.id = invocationID
@@ -146,7 +146,7 @@ struct AgentPersistenceTests {
             try container.mainContext.save()
         }
 
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "Migration", schema: HostPersistence.schema, url: storeURL
         )
         let container = try ModelContainer(
@@ -173,7 +173,7 @@ struct AgentPersistenceTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV13.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             let message = TermindSchemaV13AgentModels.PersistentAgentMessage()
             message.id = messageID
@@ -182,7 +182,7 @@ struct AgentPersistenceTests {
             try container.mainContext.save()
         }
 
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "Migration", schema: HostPersistence.schema, url: storeURL
         )
         let container = try ModelContainer(
@@ -200,7 +200,7 @@ struct AgentPersistenceTests {
 
     @Test
     func imagePartsRoundTripThroughConversationPersistence() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentImagePersistenceTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -226,7 +226,7 @@ struct AgentPersistenceTests {
 
     @Test
     func displayReasoningRoundTripsRedactedWithoutProviderState() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentReasoningPersistenceTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -268,7 +268,7 @@ struct AgentPersistenceTests {
 
     @Test
     func runOwnershipAndToolSourceMessageRoundTrip() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentWorkPersistenceTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -311,7 +311,7 @@ struct AgentPersistenceTests {
 
     @Test
     func unfinishedRunsInterruptAndVisibleHistoryRestoresWithoutSecrets() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentPersistenceTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -371,7 +371,7 @@ struct AgentPersistenceTests {
 
     @Test
     func fetchHeaderSecretsAreRedactedFromToolCallsAndInvocationRows() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentFetchHeaderRedactionTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -425,7 +425,7 @@ struct AgentPersistenceTests {
     /// already correct.
     @Test
     func replayedHistoryIsNotRewrittenByEveryLaterRun() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentPersistenceReplayTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -480,7 +480,7 @@ struct AgentPersistenceTests {
 
     @Test
     func outOfOrderPersistenceEventsNeverDowngradeToolState() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentPersistenceEventOrderTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -512,7 +512,7 @@ struct AgentPersistenceTests {
 
     @Test
     func deletingConversationRemovesItsCompletePersistentGraph() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentPersistenceDeletionTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -568,7 +568,7 @@ struct AgentPersistenceTests {
     /// back to notice.
     @Test
     func aTitleIsWrittenOnlyBySummaryAndSurvivesRestore() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentPersistenceTitleTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -605,7 +605,7 @@ struct AgentPersistenceTests {
 
     @Test
     func metadataAndAuthoredTextSurviveRestore() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentConversationMetadataTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -638,7 +638,7 @@ struct AgentPersistenceTests {
 
     @Test
     func truncationRemovesTheTargetRunAndEverythingAfterIt() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentConversationTruncationTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -677,7 +677,7 @@ struct AgentPersistenceTests {
 
     @Test
     func truncationRejectsAMessageOutsideThePersistedConversation() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentConversationMissingEditTargetTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
@@ -710,7 +710,7 @@ struct AgentPersistenceTests {
 
     @Test
     func creatingAForkPersistsAnIndependentConversationGraph() async throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "AgentConversationForkTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )

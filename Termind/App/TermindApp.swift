@@ -14,7 +14,13 @@ struct TermindApp: App {
 
     init() {
         do {
-            let configuration = ModelConfiguration("Termind", schema: HostPersistence.schema)
+            let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"]
+                != nil
+            let configuration = ModelConfiguration(
+                "Termind", schema: HostPersistence.schema,
+                isStoredInMemoryOnly: isRunningTests,
+                cloudKitDatabase: .none
+            )
             let container = try ModelContainer(
                 for: HostPersistence.schema,
                 migrationPlan: TermindMigrationPlan.self,
@@ -28,6 +34,9 @@ struct TermindApp: App {
             let repository = SwiftDataHostRepository(context: container.mainContext)
             let outboxStore = SwiftDataOutboxStore(context: container.mainContext)
             let outboxRunner = OutboxRunner(store: outboxStore)
+            let vaultSync: VaultSyncCoordinator? = isRunningTests
+                ? nil
+                : VaultSyncCoordinator(context: container.mainContext)
             let externalToolCalls = ToolAuditModel(
                 modelContext: container.mainContext,
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }
@@ -45,7 +54,8 @@ struct TermindApp: App {
                         outboxRunner: outboxRunner,
                         agentRunRepository: SwiftDataAgentRunRepository(
                             context: container.mainContext
-                        )
+                        ),
+                        vaultSync: vaultSync
                     )
                 )
             )

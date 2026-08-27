@@ -180,14 +180,14 @@ struct AIProviderPersistenceTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV4.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             container.mainContext.insert(PersistentHost(host))
             try container.mainContext.save()
         }
 
         let schema = Schema(versionedSchema: TermindSchemaV5.self)
-        let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+        let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
         let container = try ModelContainer(
             for: schema,
             migrationPlan: TermindMigrationPlan.self,
@@ -217,7 +217,7 @@ struct AIProviderPersistenceTests {
 
         do {
             let schema = Schema(versionedSchema: TermindSchemaV9.self)
-            let configuration = ModelConfiguration("Migration", schema: schema, url: storeURL)
+            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
             let container = try ModelContainer(for: schema, configurations: [configuration])
             container.mainContext.insert(PersistentModelProvider(provider, sortIndex: 0))
             let model = TermindSchemaV9AIModels.PersistentAIModel()
@@ -227,7 +227,7 @@ struct AIProviderPersistenceTests {
             try container.mainContext.save()
         }
 
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "Migration", schema: HostPersistence.schema, url: storeURL
         )
         let container = try ModelContainer(
@@ -244,7 +244,7 @@ struct AIProviderPersistenceTests {
     }
 
     private func makeContainer(_ name: String) throws -> ModelContainer {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
         )
         return try ModelContainer(

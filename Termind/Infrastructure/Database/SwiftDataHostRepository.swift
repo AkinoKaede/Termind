@@ -6,6 +6,7 @@ final class SwiftDataHostRepository: HostRepository {
     private let context: ModelContext
     private var continuations: [UUID: AsyncStream<RepositoryChange<HostLibrarySnapshot>>.Continuation]
         = [:]
+    var didRecordVaultChanges: ((VaultMutationSet) -> Void)?
 
     init(context: ModelContext) {
         self.context = context
@@ -140,7 +141,9 @@ final class SwiftDataHostRepository: HostRepository {
     private func commitMutation() throws {
         do {
             let revision = try advanceRevisionWithoutSaving()
+            let vaultMutations = try HostPersistence(context: context).recordExternalMutation()
             try context.save()
+            if !vaultMutations.isEmpty { didRecordVaultChanges?(vaultMutations) }
             try publishCommittedMutation(revision: revision)
         } catch {
             context.rollback()

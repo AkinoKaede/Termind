@@ -62,7 +62,7 @@ struct KeychainOrderTests {
 
     @Test
     func keyAndIdentityOrdersSurvivePersistenceReload() throws {
-        let configuration = ModelConfiguration(
+        let configuration = localModelConfiguration(
             "KeychainOrderTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
         )
