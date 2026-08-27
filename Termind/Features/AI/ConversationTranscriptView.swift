@@ -355,9 +355,9 @@ struct ConversationView: View {
 
 // MARK: - Tool calls
 
-/// While a run is live, its process sits below the run boundary and is not yet
-/// part of a disclosure. Only a terminal run has a settled Worked disclosure;
-/// its boundary then moves below the entire block.
+/// One disclosure for a run's process. The full Assistant opens live work so
+/// progress remains visible; the compact sidebar starts it closed so streaming
+/// tools do not continuously resize the narrow transcript.
 private struct AgentWorkGroupView: View {
     let group: AgentWorkGroup
     let isCompact: Bool
@@ -372,7 +372,8 @@ private struct AgentWorkGroupView: View {
         self.onExpansion = onExpansion
         _isExpanded = State(
             initialValue: AgentWorkPresentation.isExpandedByDefault(
-                for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer
+                for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer,
+                isCompact: isCompact
             )
         )
     }
@@ -383,31 +384,52 @@ private struct AgentWorkGroupView: View {
                 terminalDisclosure
                 Divider()
             } else {
-                liveHeader
+                liveDisclosure
                 Divider()
-                workItems
             }
         }
         .onChange(of: group.run.state) { _, state in
             // Runtime transitions are authoritative. Once a run has ended,
             // later user toggles remain untouched because the state is frozen.
             isExpanded = AgentWorkPresentation.isExpandedByDefault(
-                for: state, appearsAfterAnswer: group.appearsAfterAnswer
+                for: state, appearsAfterAnswer: group.appearsAfterAnswer,
+                isCompact: isCompact
             )
         }
         .accessibilityElement(children: .contain)
     }
 
-    private var liveHeader: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            HStack(spacing: Metrics.Space.s) {
-                Text(title(at: context.date))
-                    .font(MarkdownTypography.body)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
+    private var liveDisclosure: some View {
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+            Button {
+                if !isExpanded { onExpansion() }
+                isExpanded.toggle()
+            } label: {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    HStack(spacing: Metrics.Space.s) {
+                        Text(title(at: context.date))
+                            .font(MarkdownTypography.body)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .bold))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .foregroundStyle(.tertiary)
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(.rect)
+                }
             }
+            .buttonStyle(.plain)
+            .help(Text(
+                isExpanded ? String(localized: "Hide work") : String(localized: "Show work")
+            ))
+            .accessibilityLabel(Text(title(at: .now)))
+            .accessibilityValue(Text(
+                isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
+            ))
+
+            if isExpanded { workItems }
         }
-        .accessibilityLabel(Text(title(at: .now)))
     }
 
     private var terminalDisclosure: some View {
