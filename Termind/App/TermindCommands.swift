@@ -169,7 +169,7 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(replacing: .help) {
-            Link("Termind on GitHub", destination: URL(string: "https://github.com/AkinoKaede/termind")!)
+            Link("Support", destination: URL(string: "https://termind.akinokaede.com/support/")!)
         }
     }
 }

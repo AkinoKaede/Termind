@@ -3338,16 +3338,6 @@
         }
       }
     },
-    "Couldn’t Open Attachment" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法打开附件"
-          }
-        }
-      }
-    },
     "Couldn’t compact context" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3364,6 +3354,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法生成命令"
+          }
+        }
+      }
+    },
+    "Couldn’t Open Attachment" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开附件"
           }
         }
       }
@@ -6783,6 +6783,16 @@
         }
       }
     },
+    "No application is available to open this attachment." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可用于打开此附件的应用。"
+          }
+        }
+      }
+    },
     "No Archived Chats" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6949,16 +6959,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "没有选中的密钥或身份"
-          }
-        }
-      }
-    },
-    "No application is available to open this attachment." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有可用于打开此附件的应用。"
           }
         }
       }
@@ -10820,6 +10820,16 @@
         }
       }
     },
+    "Support" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持"
+          }
+        }
+      }
+    },
     "Switch the model for this conversation" : {
       "localizations" : {
         "zh-Hans" : {
@@ -11047,6 +11057,7 @@
       }
     },
     "Termind on GitHub" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
