@@ -274,7 +274,7 @@ struct SSHConnectionJourneyView: View {
             )
             .id(prompt.id)
         } else if let hostKey {
-            JourneyHostKeyCard(
+            SSHHostKeyConfirmationForm(
                 prompt: hostKey,
                 proceed: { continueHostKey(hostKey.observation) },
                 trust: { trustHostKey(hostKey.observation) },
@@ -937,11 +937,15 @@ struct SSHAuthenticationForm: View {
     }
 }
 
-private struct JourneyHostKeyCard: View {
+/// Shared host-key confirmation used by Journey, Agent, and the external MCP
+/// authentication window. The containing surface owns queueing and placement.
+struct SSHHostKeyConfirmationForm: View {
     let prompt: SSHHostKeyPrompt
+    var displayAddress: String? = nil
     let proceed: () -> Void
-    let trust: () -> Void
+    let trust: (() -> Void)?
     let deny: () -> Void
+    var usesContainerChrome = true
 
     private var observation: SSHHostKeyObservation { prompt.observation }
 
@@ -951,14 +955,49 @@ private struct JourneyHostKeyCard: View {
     }
 
     var body: some View {
+        Group {
+            if usesContainerChrome {
+                form
+                    .padding(18)
+                    .background(.regularMaterial, in: .rect(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(.separator.opacity(0.7))
+                    }
+            } else {
+                form
+            }
+        }
+        .activeFormKeyboardActions(
+            isDefaultEnabled: true,
+            onDefault: { trust?() ?? proceed() },
+            onCancel: deny
+        )
+    }
+
+    private var form: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label(
-                isAdditionalKey ? "Unrecognized additional host key" : "Verify host identity",
-                systemImage: isAdditionalKey
-                    ? "exclamationmark.triangle.fill" : "checkmark.shield.fill"
-            )
-            .font(.headline)
-            .foregroundStyle(isAdditionalKey ? .orange : .blue)
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(
+                        isAdditionalKey
+                            ? "Unrecognized additional host key" : "Verify host identity"
+                    )
+                    .font(.headline)
+                    if let displayAddress {
+                        Text(displayAddress)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                Image(
+                    systemName: isAdditionalKey
+                        ? "exclamationmark.triangle.fill" : "checkmark.shield.fill"
+                )
+                .font(.title2)
+                .foregroundStyle(isAdditionalKey ? .orange : .blue)
+            }
             Text(explanation)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
@@ -971,15 +1010,17 @@ private struct JourneyHostKeyCard: View {
             HStack {
                 Button("Deny", role: .destructive, action: deny).keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("Continue", action: proceed)
-                    .help("Continue once without saving this host key")
-                Button("Trust and Continue", action: trust)
-                    .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                if let trust {
+                    Button("Continue", action: proceed)
+                        .help("Continue once without saving this host key")
+                    Button("Trust and Continue", action: trust)
+                        .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Continue", action: proceed)
+                        .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                }
             }
         }
-        .padding(18)
-        .background(.regularMaterial, in: .rect(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.separator.opacity(0.7)) }
     }
     private var explanation: String {
         switch prompt.kind {

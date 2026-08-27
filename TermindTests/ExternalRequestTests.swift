@@ -176,6 +176,46 @@ struct ExternalAuthCoordinatorTests {
         coordinator.respondSSH(.cancelled)
         #expect(await ssh.value == .cancelled)
     }
+
+    @Test
+    func hostKeyUsesPopupQueueAndReturnsSelectedTrustScope() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let request = hostKeyRequest()
+        let task = Task {
+            await coordinator.enqueue(
+                request, clientName: "Claude Code", runID: UUID()
+            )
+        }
+        try await waitUntil {
+            if case .hostKey? = coordinator.current?.request { return true }
+            return false
+        }
+
+        #expect(coordinator.current?.clientName == "Claude Code")
+        coordinator.respondHostKey(.trustAndContinue)
+
+        #expect(await task.value == .trustAndContinue)
+        #expect(coordinator.pending.isEmpty)
+    }
+
+    @Test
+    func closingHostKeyPopupDeniesTheWaitingCall() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let task = Task {
+            await coordinator.enqueue(
+                hostKeyRequest(), clientName: "Codex", runID: UUID()
+            )
+        }
+        try await waitUntil {
+            if case .hostKey? = coordinator.current?.request { return true }
+            return false
+        }
+
+        coordinator.windowClosed()
+
+        #expect(await task.value == .deny)
+        #expect(coordinator.pending.isEmpty)
+    }
 }
 
 @Suite(.serialized)
@@ -252,6 +292,19 @@ private func secretRequest(timeout: Duration) -> AgentUserInputRequest {
     AgentUserInputRequest(
         questions: [AgentUserQuestion(id: "secret", prompt: "Secret", kind: .secret)],
         purpose: "test", hostID: UUID(), timeout: timeout
+    )
+}
+
+private func hostKeyRequest() -> AgentSSHHostKeyRequest {
+    let observation = SSHHostKeyObservation(
+        hostname: "host.example", port: 22, algorithm: .ed25519,
+        fingerprint: "SHA256:new"
+    )
+    return AgentSSHHostKeyRequest(
+        invocationID: UUID(), hostID: UUID(), displayName: "Host",
+        address: "host.example",
+        prompt: SSHHostKeyPrompt(observation: observation, kind: .firstUse),
+        allowsPersistentTrust: true
     )
 }
 

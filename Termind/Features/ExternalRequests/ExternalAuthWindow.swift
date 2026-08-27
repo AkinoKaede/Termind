@@ -101,6 +101,26 @@ struct ExternalAuthWindow: View {
                 }
             )
             .id(pending.id)
+        case .hostKey(let request):
+            SSHHostKeyConfirmationForm(
+                prompt: request.prompt,
+                displayAddress: request.address,
+                proceed: {
+                    app.externalAuthentication.respondHostKey(.continueOnce)
+                    dismissIfFinished()
+                },
+                trust: request.allowsPersistentTrust
+                    ? {
+                        app.externalAuthentication.respondHostKey(.trustAndContinue)
+                        dismissIfFinished()
+                    } : nil,
+                deny: {
+                    app.externalAuthentication.respondHostKey(.deny)
+                    dismissIfFinished()
+                },
+                usesContainerChrome: false
+            )
+            .id(pending.id)
         }
     }
 

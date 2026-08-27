@@ -320,4 +320,12 @@ private nonisolated struct EventingAgentUserInteraction: AgentUserInteractionHan
         // record is produced on the path that will return credentials.
         await base.requestSSHAuthentication(request)
     }
+
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse {
+        // Like credentials, host-key trust is locally derived and never becomes
+        // durable Agent history or model-visible content.
+        await base.requestSSHHostKeyConfirmation(request)
+    }
 }

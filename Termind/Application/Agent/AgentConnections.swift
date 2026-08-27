@@ -28,7 +28,13 @@ nonisolated struct AgentHostListing: Hashable, Sendable {
 /// never serialized into a tool result.
 @MainActor
 final class AgentHostResolver: Sendable {
+    typealias HostKeyDiscovering = @Sendable (
+        _ hostID: Host.ID, _ host: String, _ port: Int,
+        _ proxy: SSHTransportProxy?, _ jumps: [SSHRouteHopConfiguration]
+    ) async throws -> SSHHostKeyObservation
+
     private let store: HostLibraryModel
+    private let discoverHostKey: HostKeyDiscovering?
     private var temporaryTargets: @MainActor @Sendable () -> [AgentHostTarget]
     private var temporaryConfiguration:
         @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration?
@@ -37,11 +43,13 @@ final class AgentHostResolver: Sendable {
         store: HostLibraryModel,
         temporaryTargets: @escaping @MainActor @Sendable () -> [AgentHostTarget] = { [] },
         temporaryConfiguration: @escaping
-            @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration? = { _ in nil }
+            @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration? = { _ in nil },
+        discoverHostKey: HostKeyDiscovering? = nil
     ) {
         self.store = store
         self.temporaryTargets = temporaryTargets
         self.temporaryConfiguration = temporaryConfiguration
+        self.discoverHostKey = discoverHostKey
     }
 
     func configureTemporaryTargets(
@@ -136,6 +144,7 @@ final class AgentHostResolver: Sendable {
     fileprivate struct InteractiveResolution: Sendable {
         var configuration: SSHConnectionConfiguration
         var submissions: [Host.ID: SSHAuthenticationSubmission]
+        var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
     }
 
     /// Resolves every local authentication checkpoint in route order. The
@@ -146,70 +155,186 @@ final class AgentHostResolver: Sendable {
         invocationID: AgentToolInvocation.ID,
         interaction: any AgentUserInteractionHandling,
         submissions initial: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys initialTemporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         forcedHostID initialForcedHostID: Host.ID? = nil,
-        failure initialFailure: String? = nil
+        failure initialFailure: String? = nil,
+        forcedHostKeyID: Host.ID? = nil
     ) async throws -> InteractiveResolution {
         guard let destination = store.host(id) else {
             // Pane-backed targets already carry a complete configuration and
             // cannot be saved back to the Vault from an Agent card.
             if let configuration = try temporaryConfiguration(id) {
+                let verified = try await verifyTemporaryConfiguration(
+                    configuration, invocationID: invocationID,
+                    interaction: interaction, forcedHostKeyID: forcedHostKeyID
+                )
                 return InteractiveResolution(
-                    configuration: configuration, submissions: initial
+                    configuration: verified, submissions: initial,
+                    temporaryHostKeys: initialTemporaryHostKeys
                 )
             }
             throw AgentToolError.invalidHost
         }
 
         var submissions = initial
+        var temporaryHostKeys = initialTemporaryHostKeys
         var forcedHostID = initialForcedHostID
         var failure = initialFailure
-        while let requirement = authenticationRequirement(
-            for: destination, submissions: submissions, forcedHostID: forcedHostID
-        ) {
-            let node = requirement.host
-            let existing = submissions[node.id]
-            let identity = existing?.identityID.flatMap(store.identity)
-                ?? store.identity(for: node)
-            let request = AgentSSHAuthenticationRequest(
-                invocationID: invocationID, hostID: node.id,
-                displayName: node.name, address: node.displayAddress,
-                mode: requirement.mode,
-                selectedIdentityID: existing?.identityID ?? identity?.id,
-                username: existing?.username ?? identity?.username ?? "",
-                selectedKeyID: existing?.keyID ?? identity?.keyID,
-                failureMessage: failure
-            )
-            switch await interaction.requestSSHAuthentication(request) {
-            case .cancelled:
-                throw AgentToolError.cancelled
-            case .submit(let answer):
-                if case .passphrase = requirement.mode,
-                    var retained = submissions[node.id]
+        // Match the Journey's route semantics: verify each machine before
+        // collecting credentials for that machine, then use those credentials
+        // only to reach the next node. A destination credential is therefore
+        // never requested before every preceding hop has been verified.
+        for node in store.route(for: destination) {
+            if let discoverHostKey {
+                let trusted = Set(store.knownHosts(for: node).map(\.identity))
+                let observation = try await discoverHostKey(
+                    node.id, node.host, node.port, try store.transportProxy(for: node),
+                    try store.sshJumpConfigurations(
+                        for: node, submissions: submissions,
+                        temporaryHostKeys: temporaryHostKeys
+                    )
+                )
+                if !trusted.contains(observation.identity)
+                    && temporaryHostKeys[node.id] != observation.identity
                 {
-                    // A protected key may have been chosen beside a password
-                    // in the preceding Identity step. The passphrase card only
-                    // returns the newly-entered secret, so merge it into that
-                    // staged submission instead of replacing (and silently
-                    // dropping) the password and other choices.
-                    guard let passphrase = answer.passphrase, !passphrase.isEmpty else {
-                        throw TermindSSHError.keyPassphraseRequired
+                    if !trusted.isEmpty {
+                        store.markKnownHostMismatched(hostname: node.host, port: node.port)
                     }
-                    retained.passphrase = passphrase
-                    submissions[node.id] = retained
-                } else {
-                    submissions[node.id] = try submission(from: answer, for: node)
+                    let response = await interaction.requestSSHHostKeyConfirmation(
+                        AgentSSHHostKeyRequest(
+                            invocationID: invocationID, hostID: node.id,
+                            displayName: node.name, address: node.displayAddress,
+                            prompt: SSHHostKeyPrompt(
+                                observation: observation,
+                                kind: trusted.isEmpty
+                                    ? .firstUse
+                                    : .additionalKey(trustedKeyCount: trusted.count)
+                            ),
+                            allowsPersistentTrust: true
+                        )
+                    )
+                    switch response {
+                    case .deny:
+                        throw AgentToolError.cancelled
+                    case .continueOnce:
+                        temporaryHostKeys[node.id] = observation.identity
+                    case .trustAndContinue:
+                        store.trust(
+                            KnownHostEntry(
+                                hostname: observation.hostname, port: observation.port,
+                                algorithm: observation.algorithm,
+                                fingerprint: observation.fingerprint, addedAt: .now
+                            )
+                        )
+                        temporaryHostKeys[node.id] = observation.identity
+                    }
                 }
             }
-            forcedHostID = nil
-            failure = nil
+
+            while let requirement = authenticationRequirement(
+                for: node, submissions: submissions, forcedHostID: forcedHostID
+            ) {
+                let existing = submissions[node.id]
+                let identity = existing?.identityID.flatMap(store.identity)
+                    ?? store.identity(for: node)
+                let request = AgentSSHAuthenticationRequest(
+                    invocationID: invocationID, hostID: node.id,
+                    displayName: node.name, address: node.displayAddress,
+                    mode: requirement.mode,
+                    selectedIdentityID: existing?.identityID ?? identity?.id,
+                    username: existing?.username ?? identity?.username ?? "",
+                    selectedKeyID: existing?.keyID ?? identity?.keyID,
+                    failureMessage: failure
+                )
+                switch await interaction.requestSSHAuthentication(request) {
+                case .cancelled:
+                    throw AgentToolError.cancelled
+                case .submit(let answer):
+                    if case .passphrase = requirement.mode,
+                        var retained = submissions[node.id]
+                    {
+                        // A protected key may have been chosen beside a password
+                        // in the preceding Identity step. The passphrase card only
+                        // returns the newly-entered secret, so merge it into that
+                        // staged submission instead of replacing (and silently
+                        // dropping) the password and other choices.
+                        guard let passphrase = answer.passphrase, !passphrase.isEmpty else {
+                            throw TermindSSHError.keyPassphraseRequired
+                        }
+                        retained.passphrase = passphrase
+                        submissions[node.id] = retained
+                    } else {
+                        submissions[node.id] = try submission(from: answer, for: node)
+                    }
+                }
+                forcedHostID = nil
+                failure = nil
+            }
         }
 
         return InteractiveResolution(
             configuration: try store.sshConnectionConfiguration(
-                for: destination, submissions: submissions
+                for: destination, submissions: submissions,
+                temporaryHostKeys: temporaryHostKeys
             ),
-            submissions: submissions
+            submissions: submissions, temporaryHostKeys: temporaryHostKeys
         )
+    }
+
+    /// Pane-backed targets already contain a complete route. They cannot save
+    /// trust into the Vault, but a transport-time mismatch can still be
+    /// rediscovered and approved for this one replacement connection.
+    private func verifyTemporaryConfiguration(
+        _ initial: SSHConnectionConfiguration,
+        invocationID: AgentToolInvocation.ID,
+        interaction: any AgentUserInteractionHandling,
+        forcedHostKeyID: Host.ID?
+    ) async throws -> SSHConnectionConfiguration {
+        guard let forcedHostKeyID else { return initial }
+        guard let discoverHostKey else { throw TermindSSHError.untrustedHost }
+        var configuration = initial
+        let observation: SSHHostKeyObservation
+        let displayName: String
+        let address: String
+        let trustedCount: Int
+        if forcedHostKeyID == configuration.hostID {
+            observation = try await discoverHostKey(
+                configuration.hostID, configuration.host, configuration.port,
+                configuration.proxy, configuration.jumps
+            )
+            displayName = temporaryTargets().first { $0.id == configuration.hostID }?.displayName
+                ?? configuration.host
+            address = configuration.port == 22
+                ? configuration.host : "\(configuration.host):\(configuration.port)"
+            trustedCount = configuration.expectedHostKeys.count
+            configuration.expectedHostKeys.insert(observation.identity)
+        } else if let index = configuration.jumps.firstIndex(where: { $0.id == forcedHostKeyID }) {
+            let hop = configuration.jumps[index]
+            observation = try await discoverHostKey(
+                hop.id, hop.host, hop.port, hop.proxy,
+                Array(configuration.jumps.prefix(index))
+            )
+            displayName = hop.name
+            address = hop.port == 22 ? hop.host : "\(hop.host):\(hop.port)"
+            trustedCount = hop.expectedHostKeys.count
+            configuration.jumps[index].expectedHostKeys.insert(observation.identity)
+        } else {
+            throw AgentToolError.invalidHost
+        }
+        let response = await interaction.requestSSHHostKeyConfirmation(
+            AgentSSHHostKeyRequest(
+                invocationID: invocationID, hostID: forcedHostKeyID,
+                displayName: displayName, address: address,
+                prompt: SSHHostKeyPrompt(
+                    observation: observation,
+                    kind: trustedCount == 0
+                        ? .firstUse : .additionalKey(trustedKeyCount: trustedCount)
+                ),
+                allowsPersistentTrust: false
+            )
+        )
+        guard response == .continueOnce else { throw AgentToolError.cancelled }
+        return configuration
     }
 
     private struct AuthenticationRequirement {
@@ -218,45 +343,42 @@ final class AgentHostResolver: Sendable {
     }
 
     private func authenticationRequirement(
-        for destination: Host,
+        for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission],
         forcedHostID: Host.ID?
     ) -> AuthenticationRequirement? {
-        let route = store.route(for: destination)
-        for node in route {
-            guard forcedHostID == nil || forcedHostID == node.id else { continue }
-            if let submission = submissions[node.id] {
-                if let keyID = submission.keyID,
-                    store.key(keyID)?.requiresPassphraseEntry == true,
-                    submission.passphrase?.isEmpty != false
-                {
-                    return AuthenticationRequirement(host: node, mode: .passphrase(keyID: keyID))
-                }
-                if submission.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    || (submission.keyID == nil && submission.password == nil)
-                {
-                    return AuthenticationRequirement(host: node, mode: .identity)
-                }
-                if forcedHostID == node.id {
-                    return AuthenticationRequirement(host: node, mode: .identity)
-                }
-                continue
-            }
-            guard let identity = store.identity(for: node) else {
-                return AuthenticationRequirement(host: node, mode: .identity)
-            }
-            let resolution = store.sshCredentials(for: identity)
-            if let keyID = resolution.requiredPassphraseKeyID {
-                return AuthenticationRequirement(host: node, mode: .passphrase(keyID: keyID))
-            }
-            if identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || resolution.credentials.isEmpty
+        guard forcedHostID == nil || forcedHostID == host.id else { return nil }
+        if let submission = submissions[host.id] {
+            if let keyID = submission.keyID,
+                store.key(keyID)?.requiresPassphraseEntry == true,
+                submission.passphrase?.isEmpty != false
             {
-                return AuthenticationRequirement(host: node, mode: .identity)
+                return AuthenticationRequirement(host: host, mode: .passphrase(keyID: keyID))
             }
-            if forcedHostID == node.id {
-                return AuthenticationRequirement(host: node, mode: .identity)
+            if submission.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || (submission.keyID == nil && submission.password == nil)
+            {
+                return AuthenticationRequirement(host: host, mode: .identity)
             }
+            if forcedHostID == host.id {
+                return AuthenticationRequirement(host: host, mode: .identity)
+            }
+            return nil
+        }
+        guard let identity = store.identity(for: host) else {
+            return AuthenticationRequirement(host: host, mode: .identity)
+        }
+        let resolution = store.sshCredentials(for: identity)
+        if let keyID = resolution.requiredPassphraseKeyID {
+            return AuthenticationRequirement(host: host, mode: .passphrase(keyID: keyID))
+        }
+        if identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || resolution.credentials.isEmpty
+        {
+            return AuthenticationRequirement(host: host, mode: .identity)
+        }
+        if forcedHostID == host.id {
+            return AuthenticationRequirement(host: host, mode: .identity)
         }
         return nil
     }
@@ -370,11 +492,13 @@ actor AgentSSHConfigurationSession {
     private let invocationID: AgentToolInvocation.ID
     private let interaction: any AgentUserInteractionHandling
     private var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
+    private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
     private var cached: SSHConnectionConfiguration?
     private var generation: UInt64 = 0
     private var pending: Pending?
     private var forcedHostID: Host.ID?
     private var failure: String?
+    private var forcedHostKeyID: Host.ID?
 
     init(
         resolver: AgentHostResolver, hostID: Host.ID,
@@ -400,12 +524,16 @@ actor AgentSSHConfigurationSession {
             let invocationID = invocationID
             let interaction = interaction
             let submissions = submissions
+            let temporaryHostKeys = temporaryHostKeys
             let forcedHostID = forcedHostID
             let failure = failure
+            let forcedHostKeyID = forcedHostKeyID
             let task = Task {
                 try await resolver.interactiveConfiguration(
                     for: hostID, invocationID: invocationID, interaction: interaction,
-                    submissions: submissions, forcedHostID: forcedHostID, failure: failure
+                    submissions: submissions, temporaryHostKeys: temporaryHostKeys,
+                    forcedHostID: forcedHostID, failure: failure,
+                    forcedHostKeyID: forcedHostKeyID
                 )
             }
             active = Pending(generation: currentGeneration, task: task)
@@ -416,8 +544,10 @@ actor AgentSSHConfigurationSession {
             let resolution = try await active.task.value
             if generation == active.generation {
                 submissions = resolution.submissions
+                temporaryHostKeys = resolution.temporaryHostKeys
                 cached = resolution.configuration
                 forcedHostID = nil
+                forcedHostKeyID = nil
                 failure = nil
                 if pending?.generation == active.generation { pending = nil }
             }
@@ -455,6 +585,19 @@ actor AgentSSHConfigurationSession {
         pending = nil
         forcedHostID = target
         failure = error.localizedDescription
+    }
+
+    func retryHostKey(
+        after error: TermindSSHError, generation failedGeneration: UInt64
+    ) {
+        guard failedGeneration == generation else { return }
+        generation &+= 1
+        cached = nil
+        pending?.task.cancel()
+        pending = nil
+        let target = error.routeHostID ?? hostID
+        forcedHostKeyID = target
+        temporaryHostKeys[target] = nil
     }
 }
 
@@ -533,6 +676,19 @@ actor AgentSSHAuthenticationRegistry {
                 override = try await authentication.configurationAttempt()
             } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
                 override = try await authentication.configurationAttempt()
+            } catch TermindSSHError.untrustedHost {
+                await authentication.retryHostKey(
+                    after: .untrustedHost, generation: attemptedGeneration
+                )
+                override = try await authentication.configurationAttempt()
+            } catch let error as TermindSSHError
+                where error.isHostKeyChanged || error.shouldRequestHostKey
+            {
+                await pool.disconnect(hostID: hostID, kind: .exec)
+                await authentication.retryHostKey(
+                    after: error, generation: attemptedGeneration
+                )
+                override = try await authentication.configurationAttempt()
             }
         }
     }
@@ -566,6 +722,19 @@ actor AgentSSHAuthenticationRegistry {
                     )
                     override = try await authentication.configurationAttempt()
                 } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
+                    override = try await authentication.configurationAttempt()
+                } catch TermindSSHError.untrustedHost {
+                    await authentication.retryHostKey(
+                        after: .untrustedHost, generation: attemptedGeneration
+                    )
+                    override = try await authentication.configurationAttempt()
+                } catch let error as TermindSSHError
+                    where error.isHostKeyChanged || error.shouldRequestHostKey
+                {
+                    await pool.disconnect(hostID: hostID, kind: .sftp)
+                    await authentication.retryHostKey(
+                        after: error, generation: attemptedGeneration
+                    )
                     override = try await authentication.configurationAttempt()
                 }
             }

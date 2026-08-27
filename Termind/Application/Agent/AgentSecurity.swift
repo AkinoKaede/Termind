@@ -340,11 +340,36 @@ nonisolated enum AgentSSHAuthenticationResponse: Hashable, Sendable {
     case cancelled
 }
 
+/// A host-key checkpoint raised locally while an Agent Exec or SFTP transport
+/// is being prepared. The observation is public SSH metadata; it is never
+/// serialized into the model-facing transcript or a tool result.
+nonisolated struct AgentSSHHostKeyRequest: Identifiable, Hashable, Sendable {
+    var id: UUID = UUID()
+    var createdAt: Date = .now
+    var invocationID: AgentToolInvocation.ID
+    var hostID: Host.ID
+    var displayName: String
+    var address: String
+    var prompt: SSHHostKeyPrompt
+    /// False for a pane-backed temporary target, which has no Known Hosts
+    /// record to update. Its accepted key can only live for this connection.
+    var allowsPersistentTrust: Bool
+}
+
+nonisolated enum AgentSSHHostKeyResponse: Hashable, Sendable {
+    case deny
+    case continueOnce
+    case trustAndContinue
+}
+
 nonisolated protocol AgentUserInteractionHandling: Sendable {
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse
     func requestSSHAuthentication(
         _ request: AgentSSHAuthenticationRequest
     ) async -> AgentSSHAuthenticationResponse
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse
 }
 
 nonisolated struct UnavailableAgentUserInteraction: AgentUserInteractionHandling, Sendable {
@@ -352,4 +377,7 @@ nonisolated struct UnavailableAgentUserInteraction: AgentUserInteractionHandling
     func requestSSHAuthentication(
         _ request: AgentSSHAuthenticationRequest
     ) async -> AgentSSHAuthenticationResponse { .cancelled }
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse { .deny }
 }

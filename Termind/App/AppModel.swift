@@ -116,7 +116,15 @@ final class AppModel {
         externalAuthentication = ExternalAuthCoordinator()
         connections = connectionCoordinator
         agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
-        agentHosts = AgentHostResolver(store: hosts)
+        agentHosts = AgentHostResolver(
+            store: hosts,
+            discoverHostKey: { hostID, host, port, proxy, jumps in
+                try await SSHSessionActor.discoverHostKey(
+                    hostID: hostID, host: host, port: port,
+                    proxy: proxy, jumps: jumps
+                )
+            }
+        )
         let agentHostResolver = agentHosts
         agentAuthentication = AgentSSHAuthenticationRegistry(resolver: agentHostResolver)
         agentConnections = AgentConnectionPool(

@@ -517,6 +517,7 @@ final class ConversationModel: Identifiable {
     private(set) var pendingApprovals: [AgentApprovalRequest] = []
     private(set) var pendingUserInputs: [AgentUserInputRequest] = []
     private(set) var pendingSSHAuthentications: [AgentSSHAuthenticationRequest] = []
+    private(set) var pendingSSHHostKeys: [AgentSSHHostKeyRequest] = []
     /// What the user typed at a busy agent, oldest first, none of it delivered
     /// yet. See `submitSteeringDraft`.
     private(set) var pendingSteering: [PendingSteeringMessage] = []
@@ -529,19 +530,28 @@ final class ConversationModel: Identifiable {
     var pendingSSHAuthentication: AgentSSHAuthenticationRequest? {
         pendingSSHAuthentications.first
     }
+    var pendingSSHHostKey: AgentSSHHostKeyRequest? { pendingSSHHostKeys.first }
     enum PendingUserInteraction {
         case questions(AgentUserInputRequest)
         case sshAuthentication(AgentSSHAuthenticationRequest)
+        case sshHostKey(AgentSSHHostKeyRequest)
+
+        var createdAt: Date {
+            switch self {
+            case .questions(let request): request.createdAt
+            case .sshAuthentication(let request): request.createdAt
+            case .sshHostKey(let request): request.createdAt
+            }
+        }
     }
     var pendingUserInteraction: PendingUserInteraction? {
-        switch (pendingUserInput, pendingSSHAuthentication) {
-        case (let input?, let authentication?):
-            return input.createdAt <= authentication.createdAt
-                ? .questions(input) : .sshAuthentication(authentication)
-        case (let input?, nil): return .questions(input)
-        case (nil, let authentication?): return .sshAuthentication(authentication)
-        case (nil, nil): return nil
-        }
+        [
+            pendingUserInput.map(PendingUserInteraction.questions),
+            pendingSSHAuthentication.map(PendingUserInteraction.sshAuthentication),
+            pendingSSHHostKey.map(PendingUserInteraction.sshHostKey),
+        ]
+        .compactMap { $0 }
+        .min { $0.createdAt < $1.createdAt }
     }
     /// What has been filled in so far, keyed by question. One request can now
     /// carry several questions, so the drafts are per question rather than one
@@ -567,6 +577,8 @@ final class ConversationModel: Identifiable {
     private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
     private var userInputTimeoutTask: Task<Void, Never>?
     private var sshAuthenticationWaiters: [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
+    private var sshHostKeyWaiters:
+        [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
 
     /// Whether the agent may only look.
     ///
@@ -1498,11 +1510,20 @@ final class ConversationModel: Identifiable {
     func requestSSHAuthentication(
         _ request: AgentSSHAuthenticationRequest
     ) async -> AgentSSHAuthenticationResponse {
-        pendingSSHAuthentications.append(request)
-        setToolState(request.invocationID, .waitingForUser)
-        refreshRunState()
-        return await withCheckedContinuation {
-            sshAuthenticationWaiters[request.id] = $0
+        await withTaskCancellationHandler {
+            await withCheckedContinuation {
+                sshAuthenticationWaiters[request.id] = $0
+                let index = pendingSSHAuthentications.firstIndex {
+                    $0.createdAt > request.createdAt
+                }
+                pendingSSHAuthentications.insert(
+                    request, at: index ?? pendingSSHAuthentications.endIndex
+                )
+                setToolState(request.invocationID, .waitingForUser)
+                refreshRunState()
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.cancelSSHAuthentication(request.id) }
         }
     }
 
@@ -1514,13 +1535,58 @@ final class ConversationModel: Identifiable {
         sshAuthenticationWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse {
+        await withTaskCancellationHandler {
+            await withCheckedContinuation {
+                sshHostKeyWaiters[request.id] = $0
+                let index = pendingSSHHostKeys.firstIndex {
+                    $0.createdAt > request.createdAt
+                }
+                pendingSSHHostKeys.insert(
+                    request, at: index ?? pendingSSHHostKeys.endIndex
+                )
+                setToolState(request.invocationID, .waitingForUser)
+                refreshRunState()
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.cancelSSHHostKey(request.id) }
+        }
+    }
+
+    func respondToSSHHostKey(_ response: AgentSSHHostKeyResponse) {
+        guard !pendingSSHHostKeys.isEmpty else { return }
+        let request = pendingSSHHostKeys.removeFirst()
+        setToolState(request.invocationID, .running)
+        refreshRunState()
+        sshHostKeyWaiters.removeValue(forKey: request.id)?.resume(returning: response)
+    }
+
+    private func cancelSSHAuthentication(_ id: UUID) {
+        guard let index = pendingSSHAuthentications.firstIndex(where: { $0.id == id })
+        else { return }
+        pendingSSHAuthentications.remove(at: index)
+        refreshRunState()
+        sshAuthenticationWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
+    }
+
+    private func cancelSSHHostKey(_ id: UUID) {
+        guard let index = pendingSSHHostKeys.firstIndex(where: { $0.id == id }) else { return }
+        pendingSSHHostKeys.remove(at: index)
+        refreshRunState()
+        sshHostKeyWaiters.removeValue(forKey: id)?.resume(returning: .deny)
+    }
+
     /// Puts a question on screen. The queue path uses it, and so does any
     /// caller that wants the card without a run behind it.
     func present(_ request: AgentUserInputRequest) {
-        pendingUserInputs.append(request)
+        let previousHead = pendingUserInputs.first?.id
+        let index = pendingUserInputs.firstIndex { $0.createdAt > request.createdAt }
+        pendingUserInputs.insert(request, at: index ?? pendingUserInputs.endIndex)
         // Only the head is being answered, so only the head's drafts exist. A
         // queued question gets a blank sheet when it reaches the front.
-        if pendingUserInputs.count == 1 {
+        if pendingUserInputs.first?.id != previousHead {
             clearUserInputDrafts()
             scheduleUserInputTimeout()
         }
@@ -1732,7 +1798,9 @@ final class ConversationModel: Identifiable {
     private func refreshRunState() {
         if runtimeState.isTerminal || runtimeState == .idle {
             runState = runtimeState
-        } else if !pendingUserInputs.isEmpty || !pendingSSHAuthentications.isEmpty {
+        } else if !pendingUserInputs.isEmpty || !pendingSSHAuthentications.isEmpty
+            || !pendingSSHHostKeys.isEmpty
+        {
             runState = .waitingForUser
         } else if !pendingApprovals.isEmpty {
             runState = .waitingForApproval
@@ -2002,6 +2070,13 @@ final class WeakAgentUserInteraction {
     ) async -> AgentSSHAuthenticationResponse {
         guard let conversation else { return .cancelled }
         return await conversation.requestSSHAuthentication(request)
+    }
+
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse {
+        guard let conversation else { return .deny }
+        return await conversation.requestSSHHostKeyConfirmation(request)
     }
 }
 

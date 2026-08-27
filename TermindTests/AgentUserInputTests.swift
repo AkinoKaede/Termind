@@ -788,6 +788,69 @@ struct AgentUserInputTests {
         )
     }
 
+    @Test
+    func localSSHCheckpointsAndQuestionsPresentByCreationTime() async throws {
+        let conversation = ConversationModel()
+        let base = Date(timeIntervalSince1970: 100)
+        let hostID = UUID()
+        let authentication = AgentSSHAuthenticationRequest(
+            createdAt: base.addingTimeInterval(2), invocationID: UUID(),
+            hostID: hostID, displayName: "Host", address: "host.example",
+            mode: .identity, username: "", selectedKeyID: nil
+        )
+        let hostKey = AgentSSHHostKeyRequest(
+            createdAt: base.addingTimeInterval(1), invocationID: UUID(),
+            hostID: hostID, displayName: "Host", address: "host.example",
+            prompt: SSHHostKeyPrompt(
+                observation: SSHHostKeyObservation(
+                    hostname: "host.example", port: 22, algorithm: .ed25519,
+                    fingerprint: "SHA256:new"
+                ),
+                kind: .firstUse
+            ),
+            allowsPersistentTrust: true
+        )
+        let question = AgentUserInputRequest(
+            createdAt: base, questions: [
+                AgentUserQuestion(id: "q", prompt: "Choose", kind: .text)
+            ]
+        )
+        let authenticationTask = Task {
+            await conversation.requestSSHAuthentication(authentication)
+        }
+        let hostKeyTask = Task {
+            await conversation.requestSSHHostKeyConfirmation(hostKey)
+        }
+        let questionTask = Task { await conversation.request(question) }
+        try await waitUntil {
+            conversation.pendingSSHAuthentication != nil
+                && conversation.pendingSSHHostKey != nil
+                && conversation.pendingUserInput != nil
+        }
+
+        guard case .questions(let visible)? = conversation.pendingUserInteraction else {
+            Issue.record("Expected the oldest question first")
+            return
+        }
+        #expect(visible.id == question.id)
+        conversation.cancelUserInput()
+        #expect(await questionTask.value == .cancelled)
+        guard case .sshHostKey(let visibleHostKey)? = conversation.pendingUserInteraction else {
+            Issue.record("Expected host key second")
+            return
+        }
+        #expect(visibleHostKey.id == hostKey.id)
+        conversation.respondToSSHHostKey(.continueOnce)
+        #expect(await hostKeyTask.value == .continueOnce)
+        guard case .sshAuthentication(let visibleAuthentication)? = conversation.pendingUserInteraction else {
+            Issue.record("Expected authentication last")
+            return
+        }
+        #expect(visibleAuthentication.id == authentication.id)
+        conversation.respondToSSHAuthentication(.cancelled)
+        #expect(await authenticationTask.value == .cancelled)
+    }
+
     /// `request(_:)` publishes the pending question and then suspends on its
     /// continuation. Waiting for that to be installed is what keeps these tests
     /// from racing the answer in ahead of the question.
@@ -822,4 +885,8 @@ private actor TimeoutRecordingUserInteraction: AgentUserInteractionHandling {
     ) async -> AgentSSHAuthenticationResponse {
         .cancelled
     }
+
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse { .deny }
 }

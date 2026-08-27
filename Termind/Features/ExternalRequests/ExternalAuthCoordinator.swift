@@ -9,11 +9,13 @@ import Foundation
 final class ExternalAuthCoordinator {
     enum Request {
         case ssh(AgentSSHAuthenticationRequest)
+        case hostKey(AgentSSHHostKeyRequest)
         case secret(AgentUserInputRequest)
 
         var id: UUID {
             switch self {
             case .ssh(let request): request.id
+            case .hostKey(let request): request.id
             case .secret(let request): request.id
             }
         }
@@ -40,6 +42,12 @@ final class ExternalAuthCoordinator {
         ) async -> AgentSSHAuthenticationResponse {
             await coordinator.enqueue(request, clientName: clientName, runID: runID)
         }
+
+        func requestSSHHostKeyConfirmation(
+            _ request: AgentSSHHostKeyRequest
+        ) async -> AgentSSHHostKeyResponse {
+            await coordinator.enqueue(request, clientName: clientName, runID: runID)
+        }
     }
 
     private(set) var pending: [Pending] = []
@@ -48,6 +56,8 @@ final class ExternalAuthCoordinator {
         [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
     private var secretWaiters:
         [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
+    private var hostKeyWaiters:
+        [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
     private var secretTimeoutTask: Task<Void, Never>?
 
     var current: Pending? { pending.first }
@@ -85,6 +95,19 @@ final class ExternalAuthCoordinator {
         }
     }
 
+    func enqueue(
+        _ request: AgentSSHHostKeyRequest, clientName: String, runID: UUID
+    ) async -> AgentSSHHostKeyResponse {
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                hostKeyWaiters[request.id] = continuation
+                append(.hostKey(request), clientName: clientName, runID: runID)
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.cancel(request.id) }
+        }
+    }
+
     func respondSSH(_ response: AgentSSHAuthenticationResponse) {
         guard case .ssh? = current?.request, let request = removeCurrent() else { return }
         sshWaiters.removeValue(forKey: request.id)?.resume(returning: response)
@@ -95,6 +118,11 @@ final class ExternalAuthCoordinator {
         secretWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
+    func respondHostKey(_ response: AgentSSHHostKeyResponse) {
+        guard case .hostKey? = current?.request, let request = removeCurrent() else { return }
+        hostKeyWaiters.removeValue(forKey: request.id)?.resume(returning: response)
+    }
+
     func windowClosed() { cancelAll() }
 
     func cancelAll() {
@@ -102,11 +130,14 @@ final class ExternalAuthCoordinator {
         secretTimeoutTask = nil
         let sshContinuations = sshWaiters.values
         let secretContinuations = secretWaiters.values
+        let hostKeyContinuations = hostKeyWaiters.values
         sshWaiters.removeAll()
         secretWaiters.removeAll()
+        hostKeyWaiters.removeAll()
         pending.removeAll()
         for continuation in sshContinuations { continuation.resume(returning: .cancelled) }
         for continuation in secretContinuations { continuation.resume(returning: .cancelled) }
+        for continuation in hostKeyContinuations { continuation.resume(returning: .deny) }
     }
 
     func cancel(runID: UUID) {
@@ -148,6 +179,7 @@ final class ExternalAuthCoordinator {
         }
         sshWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
         secretWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
+        hostKeyWaiters.removeValue(forKey: id)?.resume(returning: .deny)
         if wasCurrent, !pending.isEmpty { presentCurrent() }
     }
 

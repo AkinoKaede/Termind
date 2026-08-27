@@ -113,6 +113,8 @@ struct ConversationView: View {
             AgentSSHAuthenticationCard(
                 request: authentication, conversation: conversation
             )
+        case .sshHostKey(let request):
+            AgentSSHHostKeyCard(request: request, conversation: conversation)
         }
     }
 
@@ -1465,6 +1467,33 @@ private struct AgentSSHAuthenticationCard: View {
                     save: requiresPassphrase ? false : save
                 )
             ))
+    }
+}
+
+private struct AgentSSHHostKeyCard: View {
+    let request: AgentSSHHostKeyRequest
+    let conversation: ConversationModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if conversation.pendingSSHHostKeys.count > 1 {
+                HStack {
+                    Spacer()
+                    QueueDepthLabel(remaining: conversation.pendingSSHHostKeys.count)
+                }
+                .padding(.bottom, Metrics.Space.s)
+            }
+            SSHHostKeyConfirmationForm(
+                prompt: request.prompt,
+                displayAddress: request.address,
+                proceed: { conversation.respondToSSHHostKey(.continueOnce) },
+                trust: request.allowsPersistentTrust
+                    ? { conversation.respondToSSHHostKey(.trustAndContinue) } : nil,
+                deny: { conversation.respondToSSHHostKey(.deny) },
+                usesContainerChrome: false
+            )
+            .id(request.id)
+        }
     }
 }
 

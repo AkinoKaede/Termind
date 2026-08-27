@@ -456,6 +456,239 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
+    func firstUseHostKeyCanContinueOnceWithoutPersisting() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let observation = SSHHostKeyObservation(
+            hostname: host.host, port: host.port, algorithm: .ed25519,
+            fingerprint: "SHA256:new"
+        )
+        let store = HostLibraryModel(hosts: [host])
+        var requests: [AgentSSHHostKeyRequest] = []
+        let interaction = AuthenticationResponder(
+            answer: { _ in
+                .submit(AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret", save: false
+                ))
+            },
+            hostKeyAnswer: { request in
+                requests.append(request)
+                return .continueOnce
+            }
+        )
+        let resolver = AgentHostResolver(
+            store: store,
+            discoverHostKey: { _, _, _, _, _ in observation }
+        )
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: host.id,
+            invocationID: UUID(), interaction: interaction
+        )
+
+        let configuration = try await session.configuration()
+
+        #expect(requests.count == 1)
+        #expect(requests[0].prompt.kind == .firstUse)
+        #expect(requests[0].allowsPersistentTrust)
+        #expect(configuration.expectedHostKeys == [observation.identity])
+        #expect(store.knownHosts(for: host).isEmpty)
+    }
+
+    @Test
+    func routeVerifiesEachHostBeforeRequestingThatHostsCredentials() async throws {
+        let jump = Host(name: "Bastion", host: "jump.example")
+        var destination = Host(name: "Files", host: "files.example")
+        destination.jumpHostID = jump.id
+        let store = HostLibraryModel(hosts: [jump, destination])
+        var events: [String] = []
+        let interaction = AuthenticationResponder(
+            answer: { request in
+                events.append("authenticate:\(request.hostID)")
+                return .submit(AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret", save: false
+                ))
+            },
+            hostKeyAnswer: { request in
+                events.append("verify:\(request.hostID)")
+                return .continueOnce
+            }
+        )
+        let resolver = AgentHostResolver(
+            store: store,
+            discoverHostKey: { hostID, host, port, _, _ in
+                SSHHostKeyObservation(
+                    hostname: host, port: port, algorithm: .ed25519,
+                    fingerprint: "SHA256:\(hostID)"
+                )
+            }
+        )
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: destination.id,
+            invocationID: UUID(), interaction: interaction
+        )
+
+        _ = try await session.configuration()
+
+        #expect(events == [
+            "verify:\(jump.id)",
+            "authenticate:\(jump.id)",
+            "verify:\(destination.id)",
+            "authenticate:\(destination.id)",
+        ])
+    }
+
+    @Test
+    func changedHostKeyCanBeTrustedWithoutRemovingTheOldKey() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let old = KnownHostEntry(
+            hostname: host.host, port: host.port, algorithm: .ed25519,
+            fingerprint: "SHA256:old"
+        )
+        let observation = SSHHostKeyObservation(
+            hostname: host.host, port: host.port, algorithm: .ed25519,
+            fingerprint: "SHA256:new"
+        )
+        let store = HostLibraryModel(hosts: [host], knownHosts: [old])
+        let interaction = AuthenticationResponder(
+            answer: { _ in
+                .submit(AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret", save: false
+                ))
+            },
+            hostKeyAnswer: { request in
+                #expect(request.prompt.kind == .additionalKey(trustedKeyCount: 1))
+                return .trustAndContinue
+            }
+        )
+        let resolver = AgentHostResolver(
+            store: store,
+            discoverHostKey: { _, _, _, _, _ in observation }
+        )
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: host.id,
+            invocationID: UUID(), interaction: interaction
+        )
+
+        let configuration = try await session.configuration()
+
+        #expect(configuration.expectedHostKeys == [old.identity, observation.identity])
+        #expect(Set(store.knownHosts(for: host).map(\.identity)) == [old.identity, observation.identity])
+        #expect(store.knownHosts(for: host).allSatisfy { !$0.isMismatched })
+    }
+
+    @Test
+    func denyingHostKeyStopsBeforeAConnectionCanOpen() async {
+        let host = Host(name: "Server", host: "server.example")
+        let store = HostLibraryModel(hosts: [host])
+        let resolver = AgentHostResolver(
+            store: store,
+            discoverHostKey: { _, _, _, _, _ in
+                SSHHostKeyObservation(
+                    hostname: host.host, port: host.port, algorithm: .ed25519,
+                    fingerprint: "SHA256:denied"
+                )
+            }
+        )
+        let interaction = AuthenticationResponder(
+            answer: { _ in
+                .submit(AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret", save: false
+                ))
+            },
+            hostKeyAnswer: { _ in .deny }
+        )
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: host.id,
+            invocationID: UUID(), interaction: interaction
+        )
+
+        await #expect(throws: AgentToolError.self) {
+            _ = try await session.configuration()
+        }
+        #expect(store.knownHosts(for: host).isEmpty)
+    }
+
+    @Test
+    func concurrentConfigurationAttemptsShareOneHostKeyPrompt() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let store = HostLibraryModel(hosts: [host])
+        let interaction = GatedHostKeyResponder()
+        let resolver = AgentHostResolver(
+            store: store,
+            discoverHostKey: { _, _, _, _, _ in
+                SSHHostKeyObservation(
+                    hostname: host.host, port: host.port, algorithm: .ed25519,
+                    fingerprint: "SHA256:shared"
+                )
+            }
+        )
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: host.id,
+            invocationID: UUID(), interaction: interaction
+        )
+
+        async let first = session.configuration()
+        async let second = session.configuration()
+        while await interaction.hostKeyRequestCount == 0 { await Task.yield() }
+        #expect(await interaction.hostKeyRequestCount == 1)
+        await interaction.answerHostKey(.continueOnce)
+
+        let configurations = try await [first, second]
+        #expect(configurations[0].expectedHostKeys == configurations[1].expectedHostKeys)
+        #expect(await interaction.authenticationRequestCount == 1)
+        #expect(await interaction.hostKeyRequestCount == 1)
+    }
+
+    @Test
+    func temporaryTargetCanApproveChangedKeyOnlyForReplacementConnection() async throws {
+        let hostID = UUID()
+        let old = SSHHostKeyIdentity(
+            algorithm: .ed25519, fingerprint: "SHA256:old"
+        )
+        let observation = SSHHostKeyObservation(
+            hostname: "quick.example", port: 22, algorithm: .ed25519,
+            fingerprint: "SHA256:new"
+        )
+        let target = AgentHostTarget(
+            id: hostID, displayName: "Quick Connect", address: "quick.example",
+            tags: [], connectionState: "connected", isTemporary: true,
+            groupID: nil, groupPath: nil
+        )
+        let configuration = SSHConnectionConfiguration(
+            hostID: hostID, host: observation.hostname, port: observation.port,
+            username: "deploy", credentials: [.password("secret")],
+            expectedHostKeys: [old], proxy: nil
+        )
+        var requests: [AgentSSHHostKeyRequest] = []
+        let interaction = AuthenticationResponder(
+            answer: { _ in .cancelled },
+            hostKeyAnswer: { request in
+                requests.append(request)
+                return .continueOnce
+            }
+        )
+        let resolver = AgentHostResolver(
+            store: HostLibraryModel(), temporaryTargets: { [target] },
+            temporaryConfiguration: { id in id == hostID ? configuration : nil },
+            discoverHostKey: { _, _, _, _, _ in observation }
+        )
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: hostID,
+            invocationID: UUID(), interaction: interaction
+        )
+        let initial = try await session.configurationAttempt()
+        await session.retryHostKey(
+            after: .hostKeyChanged(expected: [old.fingerprint], received: observation.fingerprint),
+            generation: initial.generation
+        )
+
+        let replacement = try await session.configuration()
+
+        #expect(requests.count == 1)
+        #expect(!requests[0].allowsPersistentTrust)
+        #expect(replacement.expectedHostKeys == [old, observation.identity])
+    }
+
+    @Test
     func scratchPullAndPushUseAuthenticationAndTheSharedSFTPPool() async throws {
         let source = Data("server configuration\n".utf8)
         let setup = authenticationSetup(remoteFiles: ["/etc/app.conf": source])
@@ -619,12 +852,17 @@ private final class MemoryHostSecretStore: SecretStoring, @unchecked Sendable {
 private final class AuthenticationResponder: AgentUserInteractionHandling, @unchecked Sendable {
     private let answer:
         @MainActor (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse
+    private let hostKeyAnswer:
+        @MainActor (AgentSSHHostKeyRequest) -> AgentSSHHostKeyResponse
 
     init(
         answer: @escaping @MainActor
-            (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse
+            (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse,
+        hostKeyAnswer: @escaping @MainActor
+            (AgentSSHHostKeyRequest) -> AgentSSHHostKeyResponse = { _ in .deny }
     ) {
         self.answer = answer
+        self.hostKeyAnswer = hostKeyAnswer
     }
 
     func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
@@ -636,6 +874,10 @@ private final class AuthenticationResponder: AgentUserInteractionHandling, @unch
     ) async -> AgentSSHAuthenticationResponse {
         await answer(request)
     }
+
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse { await hostKeyAnswer(request) }
 }
 
 private actor GatedAuthenticationResponder: AgentUserInteractionHandling {
@@ -654,9 +896,46 @@ private actor GatedAuthenticationResponder: AgentUserInteractionHandling {
         return await withCheckedContinuation { waiters.append($0) }
     }
 
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse { .deny }
+
     func answer(_ response: AgentSSHAuthenticationResponse) {
         let answering = waiters
         waiters.removeAll()
+        for waiter in answering { waiter.resume(returning: response) }
+    }
+}
+
+private actor GatedHostKeyResponder: AgentUserInteractionHandling {
+    private(set) var authenticationRequestCount = 0
+    private(set) var hostKeyRequestCount = 0
+    private var hostKeyWaiters:
+        [CheckedContinuation<AgentSSHHostKeyResponse, Never>] = []
+
+    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
+        .cancelled
+    }
+
+    func requestSSHAuthentication(
+        _ request: AgentSSHAuthenticationRequest
+    ) async -> AgentSSHAuthenticationResponse {
+        authenticationRequestCount += 1
+        return .submit(AgentSSHAuthenticationAnswer(
+            username: "deploy", password: "secret", save: false
+        ))
+    }
+
+    func requestSSHHostKeyConfirmation(
+        _ request: AgentSSHHostKeyRequest
+    ) async -> AgentSSHHostKeyResponse {
+        hostKeyRequestCount += 1
+        return await withCheckedContinuation { hostKeyWaiters.append($0) }
+    }
+
+    func answerHostKey(_ response: AgentSSHHostKeyResponse) {
+        let answering = hostKeyWaiters
+        hostKeyWaiters.removeAll()
         for waiter in answering { waiter.resume(returning: response) }
     }
 }
