@@ -676,6 +676,7 @@ struct DetailSidebarView: View {
 }
 
 struct HostDetailContent: View {
+    @Environment(\.locale) private var locale
     let host: Host
 
     @Environment(AppModel.self) private var app
@@ -709,7 +710,7 @@ struct HostDetailContent: View {
             }
             LabeledContent("Last Used") {
                 Text(
-                    host.lastUsedAt.map { $0.formatted(.relative(presentation: .named)) }
+                    host.lastUsedAt.map { $0.formatted(.relative(presentation: .named).locale(locale)) }
                         ?? String(localized: "Never"))
             }
 
@@ -864,6 +865,7 @@ struct KeyDetailContent: View {
 }
 
 struct IdentityDetailContent: View {
+    @Environment(\.locale) private var locale
     let identity: Identity
     let edit: () -> Void
 
@@ -893,7 +895,7 @@ struct IdentityDetailContent: View {
             }
             LabeledContent("Last Used") {
                 Text(
-                    identity.lastUsedAt.map { $0.formatted(.relative(presentation: .named)) }
+                    identity.lastUsedAt.map { $0.formatted(.relative(presentation: .named).locale(locale)) }
                         ?? String(localized: "Never"))
             }
 

@@ -16,6 +16,7 @@ import SwiftUI
 /// every model on an endpoint would spend real money on models the user has no
 /// intention of using.
 struct ModelListEditor: View {
+    @Environment(\.locale) private var locale
     @Observable
     final class EditorState {
         var query = ""
@@ -179,7 +180,7 @@ struct ModelListEditor: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         } else if let fetched = provider?.modelsFetchedAt {
-            Text("Fetched \(fetched.formatted(.relative(presentation: .named)))")
+            Text("Fetched \(fetched.formatted(.relative(presentation: .named).locale(locale)))")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -196,7 +197,7 @@ struct ModelListEditor: View {
         guard !broken.isEmpty else {
             return Text("Removes the selected models. You can fetch them again.")
         }
-        let names = broken.map(\.displayName).formatted(.list(type: .and))
+        let names = broken.map(\.displayName).formatted(.list(type: .and).locale(locale))
         return Text("Removes the selected models. \(names) would return to Automatic.")
     }
 

@@ -11,6 +11,7 @@ struct TermindApp: App {
     /// references held by the value-type projections used throughout the UI.
     private let modelContainer: ModelContainer
     @State private var app: AppModel
+    private let launchLanguage = AppLanguage.stored()
 
     init() {
         do {
@@ -74,6 +75,7 @@ struct TermindApp: App {
         WindowGroup {
             RootView()
                 .environment(app)
+                .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)
                 #if canImport(AppKit)
                     .onAppear { delegate.app = app }
@@ -89,6 +91,7 @@ struct TermindApp: App {
             SettingsPageView()
                 .overlay { ExternalAuthWindowPresenter() }
                 .environment(app)
+                .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)
                 .frame(minWidth: 920, minHeight: 640)
         }
@@ -96,6 +99,7 @@ struct TermindApp: App {
         Window("Authentication Request", id: ExternalAuthWindowPresenter.sceneID) {
             ExternalAuthWindow()
                 .environment(app)
+                .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)
         }
         .defaultSize(width: 560, height: 240)

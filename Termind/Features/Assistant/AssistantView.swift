@@ -478,18 +478,19 @@ private struct ConversationContextMenuHost: NSViewRepresentable {
             let menu = NSMenu()
             if !isArchived {
                 menu.addItem(item(
-                    isPinned ? "Unpin" : "Pin", action: #selector(togglePin),
+                    isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
+                    action: #selector(togglePin),
                     enabled: !managementDisabled
                 ))
             }
-            menu.addItem(item("Rename", action: #selector(rename)))
+            menu.addItem(item(String(localized: "Rename"), action: #selector(rename)))
             menu.addItem(item(
-                isArchived ? "Unarchive" : "Archive",
+                isArchived ? String(localized: "Unarchive") : String(localized: "Archive"),
                 action: #selector(toggleArchive),
                 enabled: isArchived || !managementDisabled
             ))
             menu.addItem(.separator())
-            menu.addItem(item("Delete", action: #selector(deleteConversation)))
+            menu.addItem(item(String(localized: "Delete"), action: #selector(deleteConversation)))
             return menu
         }
 

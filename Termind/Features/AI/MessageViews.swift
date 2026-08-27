@@ -340,6 +340,7 @@ struct ScanningTextMask: ViewModifier {
 /// side each message occupies. The row remains in layout while transparent so
 /// its hit area bridges the pointer from the message body to the copy button.
 private struct MessageActionRow: View {
+    @Environment(\.locale) private var locale
     let message: ChatMessage
     let isUser: Bool
     let isVisible: Bool
@@ -379,7 +380,7 @@ private struct MessageActionRow: View {
     }
 
     private var timestamp: some View {
-        Text(ChatMessageTimestampFormatter.string(for: message.createdAt))
+        Text(ChatMessageTimestampFormatter.string(for: message.createdAt, locale: locale))
             .font(.caption2.monospacedDigit())
             .foregroundStyle(.tertiary)
             .textSelection(.disabled)

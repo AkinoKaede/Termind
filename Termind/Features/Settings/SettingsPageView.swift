@@ -350,7 +350,36 @@ struct SettingsDetailHeader: View {
 }
 
 private struct AppSettings: View {
+    @AppStorage(SettingsKey.appLanguage) private var languageID = AppLanguage.system.rawValue
+    @State private var launchLanguage = AppLanguage.stored()
+
+    private var selectedLanguage: AppLanguage {
+        AppLanguage(rawValue: languageID) ?? .system
+    }
+
     var body: some View {
+        Section("Language") {
+            Picker("Application Language", selection: $languageID) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.displayName).tag(language.rawValue)
+                }
+            }
+
+            if selectedLanguage != launchLanguage {
+                LabeledContent {
+                    Button("Relaunch Now") { AppRelauncher.relaunch() }
+                } label: {
+                    Text("The new language will be used after Termind relaunches.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onChange(of: languageID) {
+            let language = AppLanguage(rawValue: languageID) ?? .system
+            if language.rawValue != languageID { languageID = language.rawValue }
+            AppLanguage.store(language)
+        }
+
         Section("Version") {
             LabeledContent("App") {
                 Text(Bundle.termindDisplayVersion).foregroundStyle(.secondary).textSelection(.enabled)
@@ -488,6 +517,7 @@ private struct TerminalSettings: View {
 
 private struct SyncSettings: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.locale) private var locale
     @AppStorage(SettingsKey.vaultSyncEnabled) private var isEnabled =
         SettingsKey.defaultVaultSyncEnabled
 
@@ -535,8 +565,11 @@ private struct SyncSettings: View {
             )
         case .upToDate(let lastSync):
             if let lastSync {
+                let formatted = lastSync.formatted(
+                    Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale)
+                )
                 Label(
-                    "Up to date · \(lastSync.formatted(date: .abbreviated, time: .shortened))",
+                    "Up to date · \(formatted)",
                     systemImage: "checkmark.icloud"
                 )
             } else {

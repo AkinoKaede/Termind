@@ -23,6 +23,7 @@ final class ModelProviderEditorSession {
 /// Edits write through immediately. Models live on the next page, keeping both
 /// jobs full-width and giving each a stable Back path instead of opening a sheet.
 struct ModelProviderEditorPage: View {
+    @Environment(\.locale) private var locale
     let modelProviderID: ModelProvider.ID
     let back: () -> Void
     let showModels: () -> Void
@@ -61,7 +62,7 @@ struct ModelProviderEditorPage: View {
     }
 
     private var brokenRolesSummary: String {
-        let names = brokenRoles.map(\.displayName).formatted(.list(type: .and))
+        let names = brokenRoles.map(\.displayName).formatted(.list(type: .and).locale(locale))
         return String(localized: "\(names) would go back to Automatic.")
     }
 

@@ -485,6 +485,7 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
 // MARK: - Card
 
 private struct HostCard: View {
+    @Environment(\.locale) private var locale
     let host: Host
     let isSelected: Bool
     let select: () -> Void
@@ -571,7 +572,7 @@ private struct HostCard: View {
 
             Text(
                 host.lastUsedAt
-                    .map { $0.formatted(.relative(presentation: .numeric)) }
+                    .map { $0.formatted(.relative(presentation: .numeric).locale(locale)) }
                     ?? String(localized: "Never")
             )
             .font(.caption2)

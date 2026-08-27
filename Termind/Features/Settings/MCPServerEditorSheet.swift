@@ -35,6 +35,7 @@ final class MCPServerEditorSession {
 ///
 /// Edits write straight through and the page returns to the MCP list in place.
 struct MCPServerEditorPage: View {
+    @Environment(\.locale) private var locale
     let serverID: MCPServer.ID
     let isNew: Bool
     let back: () -> Void
@@ -150,7 +151,7 @@ struct MCPServerEditorPage: View {
             switch session.connection {
             case .idle:
                 if let connected = server.lastConnectedAt {
-                    Text("Last connected \(connected.formatted(.relative(presentation: .named)))")
+                    Text("Last connected \(connected.formatted(.relative(presentation: .named).locale(locale)))")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }

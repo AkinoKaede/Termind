@@ -6,6 +6,8 @@ import Foundation
 /// into two preferences that disagree. Everything user-facing that lives in
 /// `UserDefaults` rather than SwiftData is named here.
 nonisolated enum SettingsKey {
+    /// App language selection. `system` means normal Bundle negotiation.
+    static let appLanguage = "app.language"
     static let vaultSyncEnabled = "vault.sync.enabled"
     static let defaultVaultSyncEnabled = true
     static let mcpServerEnabled = "mcpServer.enabled"
