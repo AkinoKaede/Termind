@@ -202,7 +202,49 @@ struct WindowStateTests {
     }
 
     @Test
-    func assistantDefaultsToNewChatEvenWhenHistoryExists() {
+    func enteringAssistantKeepsTheVolatileConversationSelection() {
+        let conversation = ConversationModel()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(assistantLibrary: library)
+
+        window.selectAssistant(conversation.id)
+        window.selectVault()
+        window.selectAssistant()
+
+        #expect(window.selectedTopLevelTab == .assistant)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+
+        let draft = window.openNewAssistantChat()
+        #expect(window.assistantLibrary.selectedConversation == nil)
+        #expect(draft === window.assistantLibrary.draftConversation)
+
+        window.selectVault()
+        window.selectAssistant()
+        #expect(window.assistantLibrary.selectedConversation == nil)
+        #expect(draft === window.assistantLibrary.draftConversation)
+    }
+
+    @Test
+    func enteringAssistantKeepsTheVolatileArchiveDestination() {
+        let conversation = ConversationModel()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(assistantLibrary: library)
+
+        window.selectAssistant(conversation.id)
+        window.showAssistantArchive()
+        window.selectVault()
+        window.selectAssistant()
+
+        #expect(window.isAssistantArchivePresented)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+    }
+
+    @Test
+    func assistantStartsOnNewChatWhenNoVolatileSelectionExists() {
         let previousID = UUID()
         let library = AssistantLibraryModel()
         library.restore([
@@ -225,7 +267,7 @@ struct WindowStateTests {
     @Test
     func newChatJoinsHistoryOnlyAfterItsFirstSend() {
         let window = WindowModel()
-        let draft = window.openAssistant()
+        let draft = window.openNewAssistantChat()
 
         #expect(window.assistantLibrary.selectedConversation == nil)
         #expect(window.assistantLibrary.conversations.isEmpty)

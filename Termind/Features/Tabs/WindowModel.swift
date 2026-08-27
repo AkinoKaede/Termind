@@ -393,13 +393,15 @@ final class WindowModel {
         selectedTopLevelTab = .vault
     }
 
-    func selectAssistant(_ id: ConversationModel.ID? = nil) {
+    /// Enters the Assistant without changing its in-memory navigation state:
+    /// the current conversation, New Chat, and Archive are all left untouched.
+    func selectAssistant() {
+        selectedTopLevelTab = .assistant
+    }
+
+    func selectAssistant(_ id: ConversationModel.ID) {
         isAssistantArchivePresented = false
-        if let id {
-            assistantLibrary.select(id)
-        } else {
-            assistantLibrary.selectNewConversation()
-        }
+        assistantLibrary.select(id)
         selectedTopLevelTab = .assistant
     }
 
@@ -652,7 +654,7 @@ final class WindowModel {
     }
 
     @discardableResult
-    func openAssistant() -> ConversationModel {
+    func openNewAssistantChat() -> ConversationModel {
         isAssistantArchivePresented = false
         let conversation = assistantLibrary.selectNewConversation()
         selectedTopLevelTab = .assistant

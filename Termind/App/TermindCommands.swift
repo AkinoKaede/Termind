@@ -39,7 +39,7 @@ struct TermindCommands: Commands {
                 app.connect(in: window)
             }
             .keyboardShortcut("t")
-            Button("New Chat") { window?.openAssistant() }
+            Button("New Chat") { window?.openNewAssistantChat() }
                 .keyboardShortcut("t", modifiers: [.command, .option])
 
             Divider()

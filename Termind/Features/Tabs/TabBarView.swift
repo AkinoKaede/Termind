@@ -368,7 +368,7 @@ struct TabBarView: View {
             // Same order as the File menu, so the two lists of the same four
             // verbs cannot be read as two different lists.
             Button("Connect") { app.connect(in: window) }
-            Button("New Chat") { window.openAssistant() }
+            Button("New Chat") { window.openNewAssistantChat() }
             Button("New Host") { window.openHostEditor(host: nil) }
 
             let recents = app.hostLibrary.recents(limit: 5)

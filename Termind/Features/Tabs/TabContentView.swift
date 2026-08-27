@@ -765,7 +765,7 @@ struct WelcomeView: View {
         HStack(spacing: Metrics.Space.l) {
             Button("Connect") { app.connect(in: window) }
             Button("Batch Startup") { app.batchStartup(in: window) }
-            Button("New Chat") { window.openAssistant() }
+            Button("New Chat") { window.openNewAssistantChat() }
         }
     }
 

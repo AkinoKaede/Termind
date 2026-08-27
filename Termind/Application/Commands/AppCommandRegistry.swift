@@ -59,7 +59,7 @@ final class AppCommandRegistry {
             guard let host = app.hostLibrary.host(id) else { return }
             app.open(host, as: target, in: window)
         case .newChat:
-            window.openAssistant()
+            window.openNewAssistantChat()
         case .newHost:
             window.openHostEditor(host: nil)
         case .showAssistant:

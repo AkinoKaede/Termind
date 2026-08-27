@@ -11,7 +11,7 @@ struct AssistantSidebarView: View {
             Divider()
             HStack(spacing: Metrics.Space.s) {
                 Button {
-                    window.openAssistant()
+                    window.openNewAssistantChat()
                 } label: {
                     Label("New Chat", systemImage: "plus.bubble")
                         .frame(
@@ -532,7 +532,7 @@ struct AssistantView: View {
         } else if let conversation = window.assistantLibrary.selectedConversation {
             ConversationView(
                 conversation: conversation,
-                onNewChat: { window.selectAssistant() }
+                onNewChat: { window.openNewAssistantChat() }
             )
                 .background(.background)
         } else {
