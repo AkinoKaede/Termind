@@ -16,10 +16,13 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     private let persistence: HostPersistence
     private let journal: VaultSyncJournal
     private let container: CKContainer
+    private let defaults: UserDefaults
+    private let environmentIdentifier: String
     private let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
     private var engine: CKSyncEngine?
     private var operation: Task<Void, Never>?
     private var isStarted = false
+    private var terminalError: String?
 
     private(set) var status: VaultSyncStatus = .checkingAccount
     var didApplyRemote: ((VaultSnapshot, Set<VaultRecordKey>) -> Void)?
@@ -31,13 +34,22 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
     init(
         context: ModelContext,
-        container: CKContainer = CKContainer(identifier: VaultSyncCoordinator.containerIdentifier)
+        container: CKContainer = CKContainer(identifier: VaultSyncCoordinator.containerIdentifier),
+        defaults: UserDefaults = .standard,
+        environmentIdentifier: String = VaultSyncCoordinator.runtimeEnvironmentIdentifier
     ) {
         self.context = context
         persistence = HostPersistence(context: context)
         journal = VaultSyncJournal(context: context)
         self.container = container
+        self.defaults = defaults
+        self.environmentIdentifier = environmentIdentifier
         super.init()
+    }
+
+    nonisolated static var runtimeEnvironmentIdentifier: String {
+        Bundle.main.object(forInfoDictionaryKey: "TermindCloudKitEnvironment") as? String
+            ?? "Unknown"
     }
 
     func start() {
@@ -67,6 +79,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
     func retry() {
         guard isEnabled else { return }
+        terminalError = nil
         if engine == nil { isStarted = false; start() }
         else { run { [weak self] in try await self?.synchronizeNow() } }
     }
@@ -128,6 +141,8 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         state.boundUserRecordName = currentUser
         state.pendingUserRecordName = nil
 
+        try prepareForCurrentEnvironment()
+
         let serialization = state.engineStateData.flatMap {
             try? JSONDecoder().decode(CKSyncEngine.State.Serialization.self, from: $0)
         }
@@ -185,6 +200,10 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
             status = .failed(quarantineReason)
             return
         }
+        if let terminalError {
+            status = .failed(terminalError)
+            return
+        }
         let pendingCount = try journal.pendingEnvelopes().count
         let state = try journal.state()
         if pendingCount == 0 {
@@ -231,6 +250,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         else { return nil }
         do { return try Self.makeRecord(outgoing, recordID: recordID) }
         catch {
+            terminalError = error.localizedDescription
             status = .failed(error.localizedDescription)
             return nil
         }
@@ -362,18 +382,29 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
             if error.code == .serverRecordChanged, let serverRecord = error.serverRecord,
                 let serverEnvelope = try? Self.envelope(from: serverRecord)
             {
+                let localEnvelope = try journal.envelope(for: serverEnvelope.key)
                 let result = try persistence.applyRemote([serverEnvelope])
                 try journal.updateSystemFields(
                     Self.systemFields(of: serverRecord), for: serverEnvelope.key
                 )
-                try journal.markNeedsUpload(result.needsUpload)
-                addPendingChanges(result.needsUpload)
+                if localEnvelope == serverEnvelope {
+                    // Clearing environment-specific system fields intentionally
+                    // turns an existing identical record into a create attempt.
+                    // The server copy proves it is already uploaded.
+                    try journal.markUploaded(
+                        serverEnvelope.key, version: serverEnvelope.version
+                    )
+                } else {
+                    try journal.markNeedsUpload(result.needsUpload)
+                    addPendingChanges(result.needsUpload)
+                }
                 if !result.acceptedKeys.isEmpty {
                     didApplyRemote?(result.snapshot, result.acceptedKeys)
                 }
             } else if error.code == .zoneNotFound {
                 try handleZoneDeletion(engine: engine)
             } else if !Self.isRetryable(error) {
+                terminalError = error.localizedDescription
                 status = .failed(error.localizedDescription)
             }
         }
@@ -386,6 +417,21 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         engine.state.add(pendingDatabaseChanges: [.saveZone(zone)])
         addPendingChanges(Set((try journal.pendingEnvelopes()).map(\.key)))
         try context.save()
+    }
+
+    /// The sandbox is shared when a Debug build is replaced by TestFlight.
+    /// CKSyncEngine serialization and CKRecord system fields are not: they are
+    /// scoped to Development or Production. Rebind once per environment while
+    /// retaining every local envelope and its conflict-resolution version.
+    private func prepareForCurrentEnvironment() throws {
+        guard defaults.string(forKey: SettingsKey.vaultSyncEnvironment)
+            != environmentIdentifier
+        else { return }
+
+        try journal.markAllEntriesNeedsUploadAfterEnvironmentChange()
+        try context.save()
+        defaults.set(environmentIdentifier, forKey: SettingsKey.vaultSyncEnvironment)
+        terminalError = nil
     }
 
     // MARK: Record coding

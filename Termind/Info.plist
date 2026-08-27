@@ -32,6 +32,8 @@
 	<string>Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online.</string>
 	<key>TermindTeamIdentifier</key>
 	<string>$(DEVELOPMENT_TEAM)</string>
+	<key>TermindCloudKitEnvironment</key>
+	<string>$(ICLOUD_CONTAINER_ENVIRONMENT)</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

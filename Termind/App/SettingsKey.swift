@@ -9,6 +9,11 @@ nonisolated enum SettingsKey {
     /// App language selection. `system` means normal Bundle negotiation.
     static let appLanguage = "app.language"
     static let vaultSyncEnabled = "vault.sync.enabled"
+    /// The CloudKit environment owning the persisted sync engine state and
+    /// record system fields. Debug and TestFlight share the app container, but
+    /// CloudKit development change tags are invalid in production (and vice
+    /// versa), so an environment switch must rebind the local journal.
+    static let vaultSyncEnvironment = "vault.sync.environment"
     static let defaultVaultSyncEnabled = true
     static let mcpServerEnabled = "mcpServer.enabled"
     static let mcpServerPort = "mcpServer.port"

@@ -416,6 +416,13 @@ final class VaultSyncJournal {
         state.lastSuccessfulSync = nil
     }
 
+    /// CloudKit record system fields include environment-specific change tags.
+    /// Keep every local envelope, but discard those tags and the serialized
+    /// engine state before moving between Development and Production.
+    func markAllEntriesNeedsUploadAfterEnvironmentChange() throws {
+        try markAllEntriesNeedsUploadAfterZoneReset()
+    }
+
     private func entry(recordName: String) throws -> PersistentVaultSyncEntry? {
         var descriptor = FetchDescriptor<PersistentVaultSyncEntry>(
             predicate: #Predicate { $0.recordName == recordName }

@@ -157,6 +157,36 @@ struct VaultSyncTests {
         #expect(throws: (any Error).self) { try VaultSyncCoordinator.envelope(from: record) }
     }
 
+    @Test
+    func environmentChangeKeepsEnvelopesAndClearsCloudKitMetadata() throws {
+        let container = try makeContainer("EnvironmentChange")
+        let context = container.mainContext
+        let host = Host(name: "Production", host: "prod.example")
+        _ = try HostPersistence(context: context).save(VaultSnapshot(hosts: [host]))
+
+        let key = VaultRecordKey(kind: .host, id: host.id)
+        let journal = VaultSyncJournal(context: context)
+        let envelope = try #require(try journal.envelope(for: key))
+        try journal.updateSystemFields(Data("development-change-tag".utf8), for: key)
+        try journal.markUploaded(key, version: envelope.version)
+        let state = try journal.state()
+        state.engineStateData = Data("development-engine-state".utf8)
+        state.lastSuccessfulSync = .now
+        try context.save()
+
+        try journal.markAllEntriesNeedsUploadAfterEnvironmentChange()
+        try context.save()
+
+        let row = try #require(
+            context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()).first
+        )
+        #expect(row.envelope == envelope)
+        #expect(row.needsUpload)
+        #expect(row.systemFieldsData == nil)
+        #expect(state.engineStateData == nil)
+        #expect(state.lastSuccessfulSync == nil)
+    }
+
     private func makeContainer(_ name: String) throws -> ModelContainer {
         let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
