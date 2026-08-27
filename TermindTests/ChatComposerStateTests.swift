@@ -719,6 +719,74 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func liveToolBatchDoesNotDuplicateCurrentlyVisibleReasoning() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("inspect both")
+        let runID = UUID()
+        let start = Date()
+        let reasoning = AgentReasoningBlock(text: "Compare both hosts.")
+        let source = AgentTranscriptMessage(
+            role: .assistant, reasoning: [reasoning],
+            toolCalls: ["first", "second"].map {
+                AgentToolCall(id: $0, name: "lookup", arguments: .object([:]))
+            },
+            createdAt: start.addingTimeInterval(1)
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: start
+        )))
+        conversation.handle(.messageStarted(source))
+        conversation.handle(.reasoningDelta(
+            messageID: source.id, text: reasoning.text
+        ))
+        conversation.handle(.messageFinished(source))
+
+        let descriptor = AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )
+        for (offset, call) in source.toolCalls.enumerated() {
+            conversation.handle(.toolProposed(AgentToolInvocation(
+                runID: runID, call: call, sourceMessageID: source.id,
+                createdAt: start.addingTimeInterval(Double(offset + 2))
+            ), descriptor))
+        }
+
+        let overlappingGroup = try #require(conversation.workGroups.first)
+        #expect(overlappingGroup.items.contains { item in
+            guard case .reasoning = item else { return false }
+            return true
+        })
+        guard case .tools(let overlappingBatch) = try #require(
+            overlappingGroup.items.first(where: {
+                if case .tools = $0 { return true }
+                return false
+            })
+        ) else {
+            Issue.record("Expected a live tool batch")
+            return
+        }
+        #expect(overlappingBatch.reasoningTitle == nil)
+
+        conversation.handle(.turnFinished(index: 0, stopReason: .toolCalls))
+        let settledGroup = try #require(conversation.workGroups.first)
+        #expect(!settledGroup.items.contains { item in
+            guard case .reasoning = item else { return false }
+            return true
+        })
+        guard case .tools(let settledBatch) = try #require(
+            settledGroup.items.first(where: {
+                if case .tools = $0 { return true }
+                return false
+            })
+        ) else {
+            Issue.record("Expected the live tool batch to remain")
+            return
+        }
+        #expect(settledBatch.reasoningTitle == reasoning.text)
+    }
+
+    @Test
     func directAnswerDoesNotCreateAWorkGroup() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("hello")

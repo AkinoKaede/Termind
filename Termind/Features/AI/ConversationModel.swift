@@ -1002,6 +1002,10 @@ final class ConversationModel: Identifiable {
             })
             let reasoningTitles = Dictionary(uniqueKeysWithValues: processMessages.compactMap {
                 message -> (UUID, String)? in
+                // The live reasoning row owns this text until its provider
+                // turn ends. A tool batch from the same response may reuse it
+                // afterwards, but must never render a duplicate alongside it.
+                guard message.id != activeReasoningMessageID else { return nil }
                 let reasoning = message.reasoning.map(\.text).joined(separator: "\n\n")
                 let title = AgentToolPresentation.reasoningTitle(from: reasoning)
                 return title.isEmpty ? nil : (message.id, title)
