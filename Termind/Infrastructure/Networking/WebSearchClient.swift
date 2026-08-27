@@ -123,9 +123,9 @@ nonisolated enum SearchBackend: String, Codable, Sendable, CaseIterable, Identif
     var detail: String {
         switch self {
         case .bing:
-            String(localized: "No account or key. Reachable almost anywhere, but an anonymous request comes back with only loosely related results — prefer DuckDuckGo or a keyed backend where one works for you.")
+            String(localized: "No account or key. Reachable almost anywhere.")
         case .duckDuckGo:
-            String(localized: "No account or key, and markedly better results than Bing. Not reachable from every network.")
+            String(localized: "No account or key.")
         case .brave:
             String(localized: "Subscription token from the Brave Search API dashboard.")
         case .tavily:

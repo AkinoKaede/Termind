@@ -46,13 +46,14 @@ struct WebSearchSettings: View {
 
                 Text(
                     usesBuiltIn
-                        ? "Providers that run search on their own servers do it themselves, and "
-                            + "read whole pages rather than snippets. Anything else falls back to "
-                            + "the backend below. Whether an endpoint really does is inferred from "
-                            + "the model, and a gateway can make that wrong — turn this off if "
-                            + "search fails or the model reports an unknown tool."
-                        : "Every model uses the backend below, which behaves the same on every "
-                            + "endpoint."
+                        ? String(
+                            localized:
+                                "Providers that run search on their own servers do it themselves, and read whole pages rather than snippets. Anything else falls back to the backend below. Whether an endpoint really does is inferred from the model, and a gateway can make that wrong — turn this off if search fails or the model reports an unknown tool."
+                        )
+                        : String(
+                            localized:
+                                "Every model uses the backend below, which behaves the same on every endpoint."
+                        )
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

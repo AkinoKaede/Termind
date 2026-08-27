@@ -364,7 +364,7 @@ struct ModelListEditor: View {
                     }
 
                     HStack(spacing: Metrics.Space.m) {
-                        limitField("Context", model: model, keyPath: \.contextLength)
+                        limitField("Context Window", model: model, keyPath: \.contextLength)
                         limitField("Max Output", model: model, keyPath: \.maxOutputTokens)
                     }
 

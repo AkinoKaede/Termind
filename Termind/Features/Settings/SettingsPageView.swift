@@ -5,7 +5,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case app, startup, sidebar
     case terminalAppearance, sftp
     case providers, modelRoles, assistant, webSearch, mcp, mcpServer
-    case iCloud
+    case sync
 
     var id: String { rawValue }
 
@@ -22,7 +22,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .webSearch: "Web Search"
         case .mcp: "MCP"
         case .mcpServer: "MCP Server"
-        case .iCloud: "Sync"
+        case .sync: "iCloud"
         }
     }
 
@@ -39,7 +39,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .webSearch: "magnifyingglass"
         case .mcp: "wrench.and.screwdriver"
         case .mcpServer: "server.rack"
-        case .iCloud: "icloud"
+        case .sync: "icloud"
         }
     }
 }
@@ -175,7 +175,7 @@ struct SettingsPageView: View {
                 title: "MCP Server",
                 subtitle: "Expose Termind's SSH and SFTP tools to local MCP clients."
             ) { MCPServerSettings() }
-        case .iCloud:
+        case .sync:
             SettingsFormPage(title: "iCloud", subtitle: "Sync status and data protection.") { SyncSettings() }
         }
     }
@@ -226,10 +226,10 @@ private struct SettingsSidebar: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Metrics.Space.xl) {
-                group("GENERAL", sections: [.app, .startup, .sidebar])
-                group("TERMINAL", sections: [.terminalAppearance, .sftp])
+                group("General", sections: [.app, .startup, .sidebar])
+                group("Terminal", sections: [.terminalAppearance, .sftp])
                 group("AI", sections: [.providers, .modelRoles, .webSearch, .mcp, .mcpServer])
-                group("iCloud", sections: [.iCloud])
+                group("Sync", sections: [.sync])
             }
             .padding(.horizontal, Metrics.Space.m)
             .padding(.vertical, Metrics.Space.xl)
@@ -237,9 +237,10 @@ private struct SettingsSidebar: View {
         .background(.bar)
     }
 
-    private func group(_ title: String, sections: [SettingsSection]) -> some View {
+    private func group(_ title: LocalizedStringKey, sections: [SettingsSection]) -> some View {
         VStack(alignment: .leading, spacing: Metrics.Space.xs) {
             Text(title)
+                .textCase(.uppercase)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .tracking(0.7)
@@ -381,8 +382,10 @@ private struct AppSettings: View {
         }
 
         Section("Version") {
-            LabeledContent("App") {
+            LabeledContent {
                 Text(Bundle.termindDisplayVersion).foregroundStyle(.secondary).textSelection(.enabled)
+            } label: {
+                Text(verbatim: "App")
             }
             LabeledContent("Ghostty") {
                 Text(RuntimeVersions.ghostty).foregroundStyle(.secondary).textSelection(.enabled)
@@ -477,13 +480,21 @@ private struct TerminalSettings: View {
                 Picker("Theme", selection: $lightTheme) { ForEach(lightThemes) { Text($0.name).tag($0.name) } }
                     .disabled(lightCustomEnabled)
                 Toggle("Custom Configuration", isOn: $lightCustomEnabled)
-                if lightCustomEnabled { Button("Edit Custom Configuration") { editConfiguration(.light) } }
+                if lightCustomEnabled {
+                    FormNavigationAction(title: "Edit Custom Configuration") {
+                        editConfiguration(.light)
+                    }
+                }
             }
             Section("Dark Configuration") {
                 Picker("Theme", selection: $darkTheme) { ForEach(darkThemes) { Text($0.name).tag($0.name) } }
                     .disabled(darkCustomEnabled)
                 Toggle("Custom Configuration", isOn: $darkCustomEnabled)
-                if darkCustomEnabled { Button("Edit Custom Configuration") { editConfiguration(.dark) } }
+                if darkCustomEnabled {
+                    FormNavigationAction(title: "Edit Custom Configuration") {
+                        editConfiguration(.dark)
+                    }
+                }
             }
             Section("Font Configuration") {
                 Toggle("Follow Theme", isOn: $fontFollowTheme)

@@ -50,7 +50,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Termind 使用麦克风将语音转写到聊天草稿中。"
+            "value": "Termind使用麦克风将语音转写到聊天草稿中。"
           }
         }
       }
@@ -68,7 +68,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Termind 使用 Apple 语音识别将录音转成文本。根据系统设置和语言支持情况，Apple 可能会在线处理音频。"
+            "value": "Termind使用Apple语音识别将录音转成文本。根据系统设置和语言支持情况，Apple可能会在线处理音频。"
           }
         }
       }
@@ -78,7 +78,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Termind SFTP 项目"
+            "value": "Termind SFTP项目"
           }
         }
       }

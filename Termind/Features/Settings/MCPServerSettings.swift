@@ -6,14 +6,14 @@ import SwiftUI
 
 struct MCPServerSettings: View {
     @Environment(AppModel.self) private var app
-    @State private var revealsToken = false
+    @State private var showsToken = false
     @State private var historyQuery = ""
 
     private var server: MCPServerController { app.mcpServer }
 
     var body: some View {
         Section("Server") {
-            Toggle("Enable MCP Server", isOn: Binding(
+            Toggle("Enable", isOn: Binding(
                 get: { server.isEnabled },
                 set: { server.setEnabled($0) }
             ))
@@ -45,18 +45,18 @@ struct MCPServerSettings: View {
         Section("Bearer Token") {
             LabeledContent("Token") {
                 HStack {
-                    Text(revealsToken ? displayToken : String(repeating: "•", count: 24))
+                    Text(showsToken ? displayToken : String(repeating: "•", count: 24))
                         .font(.system(.body, design: .monospaced))
                         .textSelection(.enabled)
                         .lineLimit(1)
-                    Button(revealsToken ? "Hide" : "Reveal") { revealsToken.toggle() }
+                    Button(showsToken ? "Hide" : "Show") { showsToken.toggle() }
                     Button("Copy") { copy(displayToken) }
                 }
             }
             HStack {
                 Button(displayToken.isEmpty ? "Generate Token" : "Rotate Token") {
                     server.rotateToken()
-                    revealsToken = true
+                    showsToken = true
                 }
                 if !displayToken.isEmpty {
                     Text("Rotating disconnects every active MCP session.")
