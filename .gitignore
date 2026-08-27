@@ -12,6 +12,18 @@ DerivedData/
 build/
 .build/
 .swiftpm/
+*.xcresult
+
+# Node and Astro build output
+node_modules/
+dist/
+.astro/
+*.tsbuildinfo
+
+# Local environment files
+.env
+.env.*
+!.env.example
 
 # Local tool settings
 .claude/settings.local.json
