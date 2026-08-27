@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Monochrome trace of the foreground mark in the GPT reference image. -->
+  <rect
+    x="12"
+    y="12"
+    width="232"
+    height="232"
+    rx="50"
+    fill="none"
+    stroke="#000000"
+    stroke-width="8"
+  />
+
+  <g fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round">
+    <!-- The channels sit behind the prompt and meet beneath its point. -->
+    <path d="M105 119C139 119 146 78 163 72C173 68 181 69 190 67" stroke-width="9"/>
+    <path d="M105 119C139 119 151 98 174 97C187 96 195 97 204 97" stroke-width="9"/>
+    <path d="M105 119C137 119 150 121 170 126C181 129 189 133 197 134" stroke-width="9"/>
+    <path d="M105 119C136 119 147 144 164 153C173 158 181 160 190 160" stroke-width="9"/>
+
+    <!-- Heavy terminal chevron, matching the rounded proportions of the source. -->
+    <path d="M68 76L108 119 68 158" stroke-width="29"/>
+  </g>
+
+  <g fill="#000000">
+    <circle cx="194" cy="66" r="9"/>
+    <circle cx="208" cy="97" r="9"/>
+    <circle cx="201" cy="135" r="9"/>
+    <circle cx="194" cy="161" r="9"/>
+    <rect x="96" y="165" width="65" height="19" rx="9.5"/>
+  </g>
+</svg>
