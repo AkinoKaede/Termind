@@ -368,6 +368,89 @@ struct AgentPersistenceTests {
         }
     }
 
+    @Test
+    func optionalSecretNullRemainsAbsentAcrossPersistence() async throws {
+        let configuration = localModelConfiguration(
+            "AgentOptionalSecretPersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let call = AgentToolCall(
+            id: "exec", name: "ssh_exec",
+            arguments: .object([
+                "host_id": .string(UUID().uuidString),
+                "command": .string("uptime"),
+                "secret_handle": .null,
+                "stdin_purpose": .null,
+            ])
+        )
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(role: .assistant, toolCalls: [call])]
+        )
+
+        try await repository.save(snapshot)
+
+        let restored = try #require(
+            try await repository.loadConversations().first?.messages.first?.toolCalls.first
+        )
+        #expect(restored.arguments.objectValue?["secret_handle"] == .null)
+        #expect(!restored.arguments.encodedString.contains("[REDACTED]"))
+    }
+
+    @Test
+    func requestUserSecretHandleIsNeverWrittenToDurableHistory() async throws {
+        let configuration = localModelConfiguration(
+            "AgentSecretHandlePersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let handle = UUID().uuidString
+        let call = AgentToolCall(
+            id: "secret", name: "request_user_secret", arguments: .object([:])
+        )
+        let assistant = AgentTranscriptMessage(role: .assistant, toolCalls: [call])
+        let toolResult = AgentTranscriptMessage(
+            role: .tool,
+            text: "<untrusted-data>\n{\"secret_handle\":\"\(handle)\",\"single_use\":true}\n</untrusted-data>",
+            toolCallID: call.id, toolName: call.name
+        )
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval, messages: [assistant, toolResult]
+        )
+        try await repository.save(snapshot)
+        let invocation = AgentToolInvocation(runID: snapshot.id, call: call)
+        try await repository.record(
+            .toolFinished(
+                invocation,
+                AgentToolResult(callID: call.id, content: toolResult.text)
+            ),
+            runID: snapshot.id
+        )
+
+        let storedMessages = try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessage>()
+        )
+        let storedResult = try #require(container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentToolResult>()
+        ).first)
+        let durableText = storedMessages.map(\.text).joined() + storedResult.content
+        #expect(!durableText.contains(handle))
+        #expect(durableText.contains("expired"))
+
+        let restored = try #require(try await repository.loadConversations().first)
+        let restoredResult = try #require(restored.messages.first { $0.role == .tool })
+        #expect(restoredResult.text == AgentSecretLifecycle.expiredResultContent)
+    }
+
     /// A conversation replays its earlier turns into every later run, so a save
     /// that matched stored rows by run id re-inserted the whole history on each
     /// turn — colliding with the unique constraint and rewriting rows that were

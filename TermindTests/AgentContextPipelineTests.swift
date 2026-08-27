@@ -150,4 +150,44 @@ struct AgentContextPipelineTests {
         #expect(repaired.count == 3)
         #expect(!repaired.contains { $0.toolCallID == "orphan" })
     }
+
+    @Test
+    func historicalSecretCapabilitiesExpireBeforeAnotherRun() throws {
+        let realHandle = UUID().uuidString
+        let messages = [
+            AgentTranscriptMessage(
+                role: .assistant,
+                toolCalls: [
+                    AgentToolCall(
+                        id: "exec", name: "ssh_exec",
+                        arguments: .object([
+                            "host_id": .string(UUID().uuidString),
+                            "command": .string("uptime"),
+                            "secret_handle": .string("[REDACTED]"),
+                            "stdin_purpose": .null,
+                        ])
+                    ),
+                    AgentToolCall(
+                        id: "secret", name: "request_user_secret",
+                        arguments: .object(["purpose": .string("sudo")])
+                    ),
+                ]
+            ),
+            AgentTranscriptMessage(
+                role: .tool,
+                text: "<untrusted-data>\n{\"secret_handle\":\"\(realHandle)\"}\n</untrusted-data>",
+                toolCallID: "secret", toolName: nil
+            ),
+        ]
+
+        let sanitized = AgentSecretLifecycle.sanitizeHistoricalMessages(messages)
+        let execArguments = try #require(
+            sanitized[0].toolCalls[0].arguments.objectValue
+        )
+
+        #expect(execArguments["secret_handle"] == nil)
+        #expect(execArguments["stdin_purpose"] == .null)
+        #expect(sanitized[1].text == AgentSecretLifecycle.expiredResultContent)
+        #expect(!sanitized[1].text.contains(realHandle))
+    }
 }

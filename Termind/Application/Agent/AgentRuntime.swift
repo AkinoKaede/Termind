@@ -156,7 +156,9 @@ actor AgentRuntime {
             // that died — or a result left behind by one — is fixed once here
             // rather than re-derived on every future turn of the conversation.
             messages: AgentOrphanedToolResultRepair.apply(
-                AgentUnansweredToolCallRepair.apply(request.priorMessages)
+                AgentUnansweredToolCallRepair.apply(
+                    AgentSecretLifecycle.sanitizeHistoricalMessages(request.priorMessages)
+                )
             )
         )
         activeRunID = snapshot.id

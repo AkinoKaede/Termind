@@ -218,16 +218,33 @@ nonisolated extension AgentBuiltInTools {
                 var input = arguments.optionalString("stdin").map { Data($0.utf8) }
                 if let rawHandle = arguments.optionalString("secret_handle") {
                     guard let handleID = UUID(uuidString: rawHandle) else {
-                        throw AgentToolError.invalidArguments("secret_handle is invalid.")
+                        throw AgentToolError.invalidArguments(
+                            "secret_handle must be a handle issued by request_user_secret in this "
+                                + "run. Omit secret_handle and stdin_purpose when the command needs "
+                                + "no secret input; otherwise call request_user_secret again."
+                        )
                     }
                     let purpose = try arguments.string("stdin_purpose")
-                    let secret = try await context.secretBroker.consume(
-                        SecretHandle(id: handleID),
-                        matching: SecretBinding(
-                            runID: context.runID, toolName: "ssh_exec", hostID: hostID,
-                            purpose: purpose
+                    let secret: String
+                    do {
+                        secret = try await context.secretBroker.consume(
+                            SecretHandle(id: handleID),
+                            matching: SecretBinding(
+                                runID: context.runID, toolName: "ssh_exec", hostID: hostID,
+                                purpose: purpose
+                            )
                         )
-                    )
+                    } catch SecretBrokerError.notFound {
+                        throw AgentToolError.invalidArguments(
+                            "secret_handle is unavailable or has already been used. Call "
+                                + "request_user_secret again before retrying ssh_exec."
+                        )
+                    } catch SecretBrokerError.bindingMismatch {
+                        throw AgentToolError.invalidArguments(
+                            "secret_handle was issued for a different run, host, tool, or purpose. "
+                                + "Call request_user_secret again with matching values."
+                        )
+                    }
                     input = Data(secret.utf8)
                 }
                 // Live output, so a command that takes a minute is a card

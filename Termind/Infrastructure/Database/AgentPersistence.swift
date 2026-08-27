@@ -72,7 +72,11 @@ final class PersistentAgentMessage {
         id = message.id
         self.runID = runID
         role = message.role.rawValue
-        text = AgentPersistenceRedactor.visibleText(message.text)
+        text = AgentPersistenceRedactor.visibleText(
+            AgentSecretLifecycle.persistedResultText(
+                toolName: message.toolName, original: message.text
+            )
+        )
         authoredText = message.authoredText.map(AgentPersistenceRedactor.visibleText)
         imagesData = (try? JSONEncoder().encode(message.images)) ?? Data()
         reasoningData = AgentPersistenceRedactor.encoded(message.reasoning.map { block in
@@ -158,7 +162,11 @@ final class PersistentAgentToolResult {
         runID = invocation.runID
         invocationID = invocation.id
         callID = result.callID
-        content = AgentPersistenceRedactor.visibleText(result.content)
+        content = AgentPersistenceRedactor.visibleText(
+            AgentSecretLifecycle.persistedResultText(
+                toolName: invocation.call.name, original: result.content
+            )
+        )
         isError = result.isError
         isTruncated = result.isTruncated || content.count < result.content.count
         metadataData = AgentPersistenceRedactor.encoded(result.metadata)

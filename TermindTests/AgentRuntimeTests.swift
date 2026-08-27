@@ -125,6 +125,68 @@ private struct RecordingScriptedAgentModel: AgentModelStreaming {
 
 @Suite
 struct AgentRuntimeTests {
+    @Test
+    func restoredSecretHandlesAreRemovedBeforeTheNextModelRequest() async throws {
+        let requests = RequestRecorder()
+        let repository = InMemoryAgentRunRepository()
+        let model = RecordingScriptedAgentModel(
+            turns: [[.textDelta("done"), .finished(.completed)]],
+            requests: requests
+        )
+        let runtime = AgentRuntime(
+            model: model, tools: [],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+            repository: repository
+        )
+        let requestSecret = AgentToolCall(
+            id: "secret", name: "request_user_secret", arguments: .object([:])
+        )
+        let legacyExec = AgentToolCall(
+            id: "exec", name: "ssh_exec",
+            arguments: .object([
+                "host_id": .string(UUID().uuidString),
+                "command": .string("uptime"),
+                "secret_handle": .string("[REDACTED]"),
+            ])
+        )
+        let prior = [
+            AgentTranscriptMessage(role: .assistant, toolCalls: [requestSecret]),
+            AgentTranscriptMessage(
+                role: .tool,
+                text: "<untrusted-data>\n{\"secret_handle\":\"OLD-HANDLE\"}\n</untrusted-data>",
+                toolCallID: requestSecret.id, toolName: requestSecret.name
+            ),
+            AgentTranscriptMessage(role: .assistant, toolCalls: [legacyExec]),
+            AgentTranscriptMessage(
+                role: .tool, text: "finished", toolCallID: legacyExec.id,
+                toolName: legacyExec.name
+            ),
+        ]
+        var runID: UUID?
+
+        for await event in await runtime.start(AgentRunRequest(
+            conversationID: UUID(), prompt: "again",
+            permissionMode: .askForApproval, priorMessages: prior
+        )) {
+            runID = runID ?? event.associatedRunID
+        }
+
+        let sent = try #require(await requests.values.first)
+        let sentExec = try #require(
+            sent.messages.flatMap(\.toolCalls).first { $0.name == "ssh_exec" }
+        )
+        #expect(sentExec.arguments.objectValue?["secret_handle"] == nil)
+        #expect(!sent.messages.map(\.text).joined().contains("OLD-HANDLE"))
+        #expect(sent.messages.map(\.text).joined().contains("expired"))
+
+        let completedRunID = try #require(runID)
+        let saved = try #require(await repository.snapshot(completedRunID))
+        let savedExec = try #require(
+            saved.messages.flatMap(\.toolCalls).first { $0.name == "ssh_exec" }
+        )
+        #expect(savedExec.arguments.objectValue?["secret_handle"] == nil)
+    }
+
     /// The system prompt is the cached prefix of every request, and a terminal's
     /// working directory is the most volatile value the app has. Putting one
     /// inside the other meant a single `cd` between turns changed byte zero and
