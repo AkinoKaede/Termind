@@ -76,8 +76,8 @@ nonisolated enum AgentPlanTools: AgentToolSchemaBuilding {
             required: ["title", "scratch_path"], target: .user, safety: .locallyReadOnly,
             presentation: .init(
                 symbol: "lightbulb.max",
-                activity: .argument(key: "title", fallback: "a plan"), output: .field("plan"),
-                action: .init(infinitive: "present", progressive: "Writing", past: "Presented")
+                activity: .semanticArgument(key: "title", fallback: .plan), output: .field("plan"),
+                actionKind: .present
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -135,9 +135,9 @@ nonisolated enum AgentPlanTools: AgentToolSchemaBuilding {
             properties: ["tasks": array(items: task, max: AgentTaskList.maximumTasks)],
             required: ["tasks"], target: .user, safety: .locallyReadOnly,
             presentation: .init(
-                symbol: "checklist", activity: .label(String(localized: "the task list")),
+                symbol: "checklist", activity: .semanticLabel(.taskList),
                 output: .json,
-                action: .init(infinitive: "update", progressive: "Updating", past: "Updated")
+                actionKind: .update
             )
         )) { invocation, _ in
             let updated = try Arguments(invocation).agentTasks()

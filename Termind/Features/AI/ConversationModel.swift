@@ -366,32 +366,38 @@ nonisolated enum AgentWorkPresentation {
 
     /// A compact, stable duration for the work disclosure. Seconds are floored
     /// so a completed run never appears to gain time after its finish event.
-    static func duration(from startedAt: Date, to finishedAt: Date) -> String {
+    static func duration(
+        from startedAt: Date, to finishedAt: Date, locale: Locale = .current
+    ) -> String {
         let seconds = max(0, Int(finishedAt.timeIntervalSince(startedAt)))
         let hours = seconds / 3_600
         let minutes = (seconds % 3_600) / 60
         let remainingSeconds = seconds % 60
         if hours > 0 {
-            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+            return minutes > 0
+                ? AppLocalization.string("\(hours)h \(minutes)m", locale: locale)
+                : AppLocalization.string("\(hours)h", locale: locale)
         }
         if minutes > 0 {
             return remainingSeconds > 0
-                ? "\(minutes)m \(remainingSeconds)s" : "\(minutes)m"
+                ? AppLocalization.string("\(minutes)m \(remainingSeconds)s", locale: locale)
+                : AppLocalization.string("\(minutes)m", locale: locale)
         }
-        return "\(remainingSeconds)s"
+        return AppLocalization.string("\(remainingSeconds)s", locale: locale)
     }
 
     static func title(
-        for state: AgentRunState, from startedAt: Date, to finishedAt: Date
+        for state: AgentRunState, from startedAt: Date, to finishedAt: Date,
+        locale: Locale = .current
     ) -> String {
-        let elapsed = duration(from: startedAt, to: finishedAt)
+        let elapsed = duration(from: startedAt, to: finishedAt, locale: locale)
         switch state {
         case .idle, .running, .waitingForUser, .waitingForApproval, .reviewing:
-            return "Working for \(elapsed)"
+            return AppLocalization.string("Working for \(elapsed)", locale: locale)
         case .cancelled:
-            return "You stopped after \(elapsed)"
+            return AppLocalization.string("You stopped after \(elapsed)", locale: locale)
         case .completed, .failed, .interrupted:
-            return "Worked for \(elapsed)"
+            return AppLocalization.string("Worked for \(elapsed)", locale: locale)
         }
     }
 }

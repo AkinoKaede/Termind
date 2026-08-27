@@ -362,6 +362,7 @@ private struct AgentWorkGroupView: View {
     let onExpansion: () -> Void
 
     @State private var isExpanded: Bool
+    @Environment(\.locale) private var locale
 
     init(group: AgentWorkGroup, isCompact: Bool, onExpansion: @escaping () -> Void) {
         self.group = group
@@ -426,11 +427,17 @@ private struct AgentWorkGroupView: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(Text(isExpanded ? "Hide work" : "Show work"))
+            .help(Text(
+                isExpanded ? String(localized: "Hide work") : String(localized: "Show work")
+            ))
             .accessibilityLabel(Text(title(at: group.run.finishedAt ?? .now)))
-            .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+            .accessibilityValue(Text(
+                isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
+            ))
             .accessibilityHint(Text(
-                isExpanded ? "Collapse work process" : "Expand work process"
+                isExpanded
+                    ? String(localized: "Collapse work process")
+                    : String(localized: "Expand work process")
             ))
 
             if isExpanded { workItems }
@@ -487,7 +494,7 @@ private struct AgentWorkGroupView: View {
     private func title(at now: Date) -> String {
         let end = group.run.finishedAt ?? now
         return AgentWorkPresentation.title(
-            for: group.run.state, from: group.run.startedAt, to: end
+            for: group.run.state, from: group.run.startedAt, to: end, locale: locale
         )
     }
 }
@@ -500,6 +507,7 @@ private struct AgentToolBatchView: View {
     let onExpansion: () -> Void
 
     @Environment(AppModel.self) private var app
+    @Environment(\.locale) private var locale
     @State private var isExpanded = false
 
     private var cards: [AgentToolCard] { batch.cards }
@@ -522,11 +530,13 @@ private struct AgentToolBatchView: View {
 
     private var title: String {
         guard !unfinished.isEmpty else {
-            return AgentToolPresentation.batchSummary(for: cards)
+            return AgentToolPresentation.batchSummary(for: cards, locale: locale)
         }
         if let displayedReasoning { return displayedReasoning }
         return unfinished.map { card in
-            AgentToolPresentation.summary(for: card, hostName: hostName(for: card))
+            AgentToolPresentation.summary(
+                for: card, hostName: hostName(for: card), locale: locale
+            )
         }.joined(separator: "; ")
     }
 
@@ -556,9 +566,13 @@ private struct AgentToolBatchView: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(Text(isExpanded ? "Hide tools" : "Show tools"))
+            .help(Text(
+                isExpanded ? String(localized: "Hide tools") : String(localized: "Show tools")
+            ))
             .accessibilityLabel(Text(title))
-            .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+            .accessibilityValue(Text(
+                isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
+            ))
 
             if isExpanded {
                 LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
@@ -600,10 +614,11 @@ private struct AgentToolRowView: View {
     let onExpansion: () -> Void
 
     @Environment(AppModel.self) private var app
+    @Environment(\.locale) private var locale
     @State private var isExpanded = false
 
     private var summary: String {
-        AgentToolPresentation.summary(for: card, hostName: hostName)
+        AgentToolPresentation.summary(for: card, hostName: hostName, locale: locale)
     }
 
     var body: some View {
@@ -641,7 +656,10 @@ private struct AgentToolRowView: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(Text(isExpanded ? "Hide details" : "Show details"))
+            .help(Text(
+                isExpanded
+                    ? String(localized: "Hide details") : String(localized: "Show details")
+            ))
 
             if isExpanded { detail }
         }
@@ -651,7 +669,7 @@ private struct AgentToolRowView: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             if let review = card.review {
                 Label(
-                    "Security Review: \(review.risk.rawValue.capitalized) — \(review.reason)",
+                    "Security Review: \(review.risk.displayName) — \(review.reason)",
                     systemImage: "checkmark.shield"
                 )
                 .font(.caption)
@@ -882,6 +900,18 @@ private struct AgentCompactionActivityRowView: View {
         return reason
     }
 
+    private var statusTitle: String {
+        failure == nil
+            ? String(localized: "Compacting context")
+            : String(localized: "Couldn’t compact context")
+    }
+
+    private var helpTitle: String {
+        failure == nil
+            ? String(localized: "Compacting context")
+            : String(localized: "Show failure details")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
@@ -900,7 +930,7 @@ private struct AgentCompactionActivityRowView: View {
                             .frame(width: Metrics.Sidebar.rowIcon)
                     }
 
-                    Text(failure == nil ? "Compacting context" : "Couldn’t compact context")
+                    Text(statusTitle)
                         .font(MarkdownTypography.body)
                         .foregroundStyle(failure == nil ? .secondary : .primary)
                         .modifier(ScanningTextMask(isActive: failure == nil))
@@ -916,7 +946,7 @@ private struct AgentCompactionActivityRowView: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(Text(failure == nil ? "Compacting context" : "Show failure details"))
+            .help(Text(helpTitle))
 
             if isExpanded, let failure {
                 HStack(alignment: .top, spacing: Metrics.Space.m) {
@@ -1246,7 +1276,10 @@ private struct AgentPlanRowView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .help(Text(isExpanded ? "Hide the plan" : "Show the plan"))
+        .help(Text(
+            isExpanded
+                ? String(localized: "Hide the plan") : String(localized: "Show the plan")
+        ))
     }
 
     private var actions: some View {

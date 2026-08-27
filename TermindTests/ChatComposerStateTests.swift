@@ -1136,7 +1136,8 @@ struct ChatComposerStateTests {
         let run = conversation.workGroups.first?.run
         #expect(run.map {
             AgentWorkPresentation.title(
-                for: $0.state, from: $0.startedAt, to: $0.finishedAt ?? start
+                for: $0.state, from: $0.startedAt, to: $0.finishedAt ?? start,
+                locale: Locale(identifier: "en")
             )
         } == "You stopped after 1m 2s")
     }
@@ -1196,9 +1197,17 @@ struct ChatComposerStateTests {
     @Test
     func workDurationUsesAtMostTwoUnitsAndSuccessfulRunsCollapseByDefault() {
         let start = Date(timeIntervalSince1970: 1_000)
-        #expect(AgentWorkPresentation.duration(from: start, to: start.addingTimeInterval(42)) == "42s")
-        #expect(AgentWorkPresentation.duration(from: start, to: start.addingTimeInterval(68)) == "1m 8s")
-        #expect(AgentWorkPresentation.duration(from: start, to: start.addingTimeInterval(4_320)) == "1h 12m")
+        let en = Locale(identifier: "en")
+        let zh = Locale(identifier: "zh-Hans")
+        #expect(AgentWorkPresentation.duration(
+            from: start, to: start.addingTimeInterval(42), locale: en
+        ) == "42s")
+        #expect(AgentWorkPresentation.duration(
+            from: start, to: start.addingTimeInterval(68), locale: en
+        ) == "1m 8s")
+        #expect(AgentWorkPresentation.duration(
+            from: start, to: start.addingTimeInterval(4_320), locale: en
+        ) == "1h 12m")
         #expect(!AgentWorkPresentation.isExpandedByDefault(for: .completed))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .running))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .waitingForUser))
@@ -1206,14 +1215,32 @@ struct ChatComposerStateTests {
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .cancelled))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .interrupted))
         #expect(AgentWorkPresentation.title(
-            for: .running, from: start, to: start.addingTimeInterval(68)
+            for: .running, from: start, to: start.addingTimeInterval(68), locale: en
         ) == "Working for 1m 8s")
         #expect(AgentWorkPresentation.title(
-            for: .completed, from: start, to: start.addingTimeInterval(68)
+            for: .completed, from: start, to: start.addingTimeInterval(68), locale: en
         ) == "Worked for 1m 8s")
         #expect(AgentWorkPresentation.title(
-            for: .cancelled, from: start, to: start.addingTimeInterval(62)
+            for: .cancelled, from: start, to: start.addingTimeInterval(62), locale: en
         ) == "You stopped after 1m 2s")
+        #expect(AgentWorkPresentation.duration(
+            from: start, to: start.addingTimeInterval(42), locale: zh
+        ) == "42秒")
+        #expect(AgentWorkPresentation.duration(
+            from: start, to: start.addingTimeInterval(68), locale: zh
+        ) == "1分钟8秒")
+        #expect(AgentWorkPresentation.duration(
+            from: start, to: start.addingTimeInterval(4_320), locale: zh
+        ) == "1小时12分钟")
+        #expect(AgentWorkPresentation.title(
+            for: .running, from: start, to: start.addingTimeInterval(68), locale: zh
+        ) == "已工作1分钟8秒")
+        #expect(AgentWorkPresentation.title(
+            for: .completed, from: start, to: start.addingTimeInterval(68), locale: zh
+        ) == "工作了1分钟8秒")
+        #expect(AgentWorkPresentation.title(
+            for: .cancelled, from: start, to: start.addingTimeInterval(62), locale: zh
+        ) == "你在1分钟2秒后停止了")
     }
 
     /// A turn that only called tools has nothing to say, and an empty bubble

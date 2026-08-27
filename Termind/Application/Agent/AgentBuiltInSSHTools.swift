@@ -7,8 +7,8 @@ nonisolated extension AgentBuiltInTools {
             properties: [:], required: [], target: .host, safety: .locallyReadOnly,
             concurrency: .parallel,
             presentation: .init(
-                symbol: "server.rack", activity: .label("hosts"), output: .json,
-                action: .init(infinitive: "list", progressive: "Listing", past: "Listed")
+                symbol: "server.rack", activity: .semanticLabel(.hosts), output: .json,
+                actionKind: .list
             )
         )) { invocation, _ in
             let listing = await hosts.listing()
@@ -98,10 +98,8 @@ nonisolated extension AgentBuiltInTools {
                 concurrency: .parallel,
                 presentation: .init(
                     symbol: "clock.arrow.circlepath",
-                    activity: .label("the remote command"), output: .streams,
-                    action: .init(
-                        infinitive: "wait for", progressive: "Waiting for", past: "Waited for"
-                    )
+                    activity: .semanticLabel(.remoteCommand), output: .streams,
+                    actionKind: .wait
                 )
             ),
             execute: { invocation, context in
@@ -151,8 +149,20 @@ nonisolated extension AgentBuiltInTools {
             ], required: ["host_id", "command"], target: .host, safety: .requiresAuthorization,
             presentation: .init(
                 symbol: "terminal",
-                activity: .argument(key: "command", fallback: "the SSH command"),
+                activity: .semanticArgument(key: "command", fallback: .sshCommand),
                 output: .streams,
+                actionKind: .run,
+                phaseKinds: [
+                    "proposed": .sshPreparingCommand,
+                    "waitingForApproval": .sshWaitingForCommand,
+                    "waitingForUser": .sshWaitingForAuthentication,
+                    "running": .sshConnecting,
+                    "command": .sshRunningCommand,
+                    "completed": .sshCompletedCommand,
+                    "denied": .sshDeniedCommand,
+                    "failed": .sshFailedCommand,
+                    "interrupted": .sshInterruptedCommand,
+                ],
                 messages: [
                     "proposed": "Preparing to run “{activity}” on {target}",
                     "waitingForApproval": "Waiting to run “{activity}” on {target}",
@@ -337,9 +347,9 @@ nonisolated extension AgentBuiltInTools {
             // would do if the user ran it is the user's action, later.
             concurrency: .parallel,
             presentation: .init(
-                symbol: "terminal", activity: .argument(key: "command", fallback: "a command"),
+                symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command),
                 groupsWithAdjacentTools: false,
-                action: .init(infinitive: "suggest", progressive: "Suggesting", past: "Suggested")
+                actionKind: .suggest
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)

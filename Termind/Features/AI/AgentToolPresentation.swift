@@ -130,9 +130,10 @@ nonisolated enum AgentToolPresentation {
 
     static func summary(
         for card: AgentToolCard,
-        hostName: String? = nil
+        hostName: String? = nil,
+        locale: Locale = .current
     ) -> String {
-        let operation = operationName(for: card)
+        let operation = operation(for: card, locale: locale)
         let phase: String
         if card.state == .running {
             phase = card.result?.presentationPhase ?? card.state.rawValue
@@ -141,8 +142,20 @@ nonisolated enum AgentToolPresentation {
         } else {
             phase = card.state.rawValue
         }
+        if let phaseKind = phaseKind(for: card, phase: phase) {
+            return phaseSummary(
+                phaseKind, activity: operation.text, target: hostName, locale: locale
+            )
+        }
+        if let actionKind = actionKind(for: card) {
+            return actionSummary(
+                actionKind, state: card.state, activity: operation.text,
+                isArgumentValue: operation.isArgumentValue,
+                target: hostName, locale: locale
+            )
+        }
         if let template = card.descriptor.presentation?.messages[phase] {
-            var rendered = template.replacingOccurrences(of: "{activity}", with: operation)
+            var rendered = template.replacingOccurrences(of: "{activity}", with: operation.text)
             if let hostName, !hostName.isEmpty {
                 rendered = rendered.replacingOccurrences(of: "{target}", with: hostName)
             } else {
@@ -159,18 +172,22 @@ nonisolated enum AgentToolPresentation {
 
         let action: String
         switch card.state {
-        case .proposed: action = String(localized: "Preparing \(operation)")
-        case .waitingForApproval: action = String(localized: "Waiting to run \(operation)")
-        case .waitingForUser: action = String(localized: "Waiting to run \(operation)")
-        case .reviewing: action = String(localized: "Preparing \(operation)")
-        case .running: action = String(localized: "Running \(operation)")
-        case .completed: action = String(localized: "Ran \(operation)")
-        case .denied: action = String(localized: "Denied \(operation)")
-        case .failed: action = String(localized: "Failed \(operation)")
-        case .interrupted: action = String(localized: "Interrupted \(operation)")
+        case .proposed: action = localized("Preparing \(operation.text)", locale: locale)
+        case .waitingForApproval:
+            action = localized("Waiting to run \(operation.text)", locale: locale)
+        case .waitingForUser:
+            action = localized("Waiting to run \(operation.text)", locale: locale)
+        case .reviewing: action = localized("Preparing \(operation.text)", locale: locale)
+        case .running: action = localized("Running \(operation.text)", locale: locale)
+        case .completed: action = localized("Ran \(operation.text)", locale: locale)
+        case .denied: action = localized("Denied \(operation.text)", locale: locale)
+        case .failed: action = localized("Failed \(operation.text)", locale: locale)
+        case .interrupted: action = localized("Interrupted \(operation.text)", locale: locale)
         }
 
-        if let hostName, !hostName.isEmpty { return String(localized: "\(action) on \(hostName)") }
+        if let hostName, !hostName.isEmpty {
+            return localized("\(action) on \(hostName)", locale: locale)
+        }
         return action
     }
 
@@ -199,7 +216,9 @@ nonisolated enum AgentToolPresentation {
     /// metadata as its individual rows but with repeated activities counted.
     /// Calls in different terminal states stay separate, so one failure can
     /// never be rewritten as a successful action by the batch title.
-    static func batchSummary(for cards: [AgentToolCard]) -> String {
+    static func batchSummary(
+        for cards: [AgentToolCard], locale: Locale = .current
+    ) -> String {
         struct Key: Hashable {
             let name: String
             let state: AgentToolCard.State
@@ -212,8 +231,13 @@ nonisolated enum AgentToolPresentation {
             if grouped[key] == nil { order.append(key) }
             grouped[key, default: []].append(card)
         }
-        return order.compactMap { grouped[$0].map(batchClause) }
-            .enumerated()
+        let clauses = order.compactMap { key in
+            grouped[key].map { batchClause($0, locale: locale) }
+        }
+        if locale.language.languageCode?.identifier == "zh" {
+            return clauses.joined(separator: "，")
+        }
+        return clauses.enumerated()
             .map { index, clause in index == 0 ? clause : lowercaseFirst(clause) }
             .joined(separator: ", ")
     }
@@ -479,7 +503,7 @@ nonisolated enum AgentToolPresentation {
             ?? nonempty(path.split(separator: "/").last.map(String.init))
             ?? String(localized: "Unnamed item")
         let kind = object["kind"]?.stringValue ?? ""
-        var metadata = [humanized(kind).capitalized]
+        var metadata = [kindLabel(kind)]
         if let bytes = object["size"]?.integerValue { metadata.append(byteCount(bytes)) }
         if let permissions = nonempty(object["permissions"]?.stringValue) {
             metadata.append(permissions)
@@ -495,7 +519,7 @@ nonisolated enum AgentToolPresentation {
         guard let object = value.objectValue else { return genericItems(value) }
         var items: [DetailItem] = []
         appendField(&items, "Path", object["path"]?.stringValue, monospaced: true)
-        appendField(&items, "Kind", object["kind"]?.stringValue.map { humanized($0).capitalized })
+        appendField(&items, "Kind", object["kind"]?.stringValue.map(kindLabel))
         if let bytes = object["size"]?.integerValue { items.append(field("Size", byteCount(bytes))) }
         appendField(&items, "Permissions", object["permissions"]?.stringValue, monospaced: true)
         appendField(&items, "Modified", object["modified_at"]?.stringValue.map(displayDate))
@@ -559,7 +583,7 @@ nonisolated enum AgentToolPresentation {
         guard let object = value.objectValue else { return genericItems(value) }
         var items: [DetailItem] = []
         appendField(&items, "Path", object["path"]?.stringValue, monospaced: true)
-        appendField(&items, "Kind", arguments["kind"]?.stringValue.map { humanized($0).capitalized })
+        appendField(&items, "Kind", arguments["kind"]?.stringValue.map(kindLabel))
         items.append(field("Result", String(localized: "Deleted")))
         return items
     }
@@ -702,7 +726,7 @@ nonisolated enum AgentToolPresentation {
             guard let fields = entry.objectValue else { return nil }
             let path = fields["path"]?.stringValue ?? String(localized: "Unnamed entry")
             let kind = fields["kind"]?.stringValue ?? ""
-            var subtitle = humanized(kind).capitalized
+            var subtitle = kindLabel(kind)
             if let bytes = fields["bytes"]?.integerValue { subtitle += " · \(byteCount(bytes))" }
             return DetailListRow(
                 title: path, subtitle: subtitle,
@@ -793,7 +817,7 @@ nonisolated enum AgentToolPresentation {
     private static func scratchDelete(_ value: AgentJSONValue) -> [DetailItem] {
         guard let object = value.objectValue else { return genericItems(value) }
         var items = pathResult(value, result: String(localized: "Deleted"))
-        appendField(&items, "Kind", object["kind"]?.stringValue.map { humanized($0).capitalized })
+        appendField(&items, "Kind", object["kind"]?.stringValue.map(kindLabel))
         let count = object["entry_count"]?.integerValue
         let bytes = object["total_bytes"]?.integerValue
         if count != nil || bytes != nil {
@@ -945,6 +969,15 @@ nonisolated enum AgentToolPresentation {
         }
     }
 
+    private static func kindLabel(_ kind: String) -> String {
+        switch kind {
+        case "file": String(localized: "File")
+        case "directory": String(localized: "Directory")
+        case "symlink", "symbolic_link": String(localized: "Symlink")
+        default: humanized(kind).capitalized
+        }
+    }
+
     private static func hostCount(_ count: Int) -> String {
         String(localized: "\(count) hosts")
     }
@@ -1084,46 +1117,238 @@ nonisolated enum AgentToolPresentation {
         return prettyJSON(value)
     }
 
-    private static func operationName(for card: AgentToolCard) -> String {
+    private struct RenderedOperation {
+        var text: String
+        var isArgumentValue: Bool
+    }
+
+    private static func operation(
+        for card: AgentToolCard, locale: Locale
+    ) -> RenderedOperation {
         guard let presentation = card.descriptor.presentation else {
-            return humanized(card.descriptor.qualifiedName)
+            if isChinese(locale), let recovered = recoveredBuiltInOperation(
+                for: card, locale: locale
+            ) {
+                return recovered
+            }
+            return RenderedOperation(
+                text: humanized(card.descriptor.qualifiedName), isArgumentValue: false
+            )
         }
         switch presentation.activity {
-        case .label(let label): return label
+        case .label(let label):
+            return RenderedOperation(
+                text: legacyActivity(
+                    label, descriptorName: card.descriptor.name, locale: locale
+                ),
+                isArgumentValue: false
+            )
         case .argument(let key, let fallback):
             guard let value = card.invocation.call.arguments.objectValue?[key]?.stringValue else {
-                return fallback
+                return RenderedOperation(
+                    text: legacyActivity(
+                        fallback, descriptorName: card.descriptor.name, locale: locale
+                    ),
+                    isArgumentValue: false
+                )
             }
             let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
-            return oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? fallback : oneLine
+            guard !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return RenderedOperation(
+                    text: legacyActivity(
+                        fallback, descriptorName: card.descriptor.name, locale: locale
+                    ),
+                    isArgumentValue: false
+                )
+            }
+            return RenderedOperation(text: oneLine, isArgumentValue: true)
+        case .arrayCount(let key, let singular, let plural, let fallback):
+            guard let count = card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count,
+                count > 0
+            else {
+                return RenderedOperation(
+                    text: legacyActivity(
+                        fallback, descriptorName: card.descriptor.name, locale: locale
+                    ),
+                    isArgumentValue: false
+                )
+            }
+            if card.descriptor.name == "request_user_input" {
+                return RenderedOperation(
+                    text: countDescription(count, unit: .question, locale: locale),
+                    isArgumentValue: false
+                )
+            }
+            return RenderedOperation(
+                text: count == 1 ? singular : "\(count) \(plural)", isArgumentValue: false
+            )
         case .localizedArrayCount(let key, let unit, let fallback):
             guard let count = card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count,
                 count > 0
-            else { return fallback }
-            return countDescription(count, unit: unit)
+            else {
+                return RenderedOperation(
+                    text: legacyActivity(
+                        fallback, descriptorName: card.descriptor.name, locale: locale
+                    ),
+                    isArgumentValue: false
+                )
+            }
+            return RenderedOperation(
+                text: countDescription(count, unit: unit, locale: locale),
+                isArgumentValue: false
+            )
+        case .semanticLabel(let kind):
+            return RenderedOperation(
+                text: activityName(kind, locale: locale), isArgumentValue: false
+            )
+        case .semanticArgument(let key, let fallback):
+            guard let value = card.invocation.call.arguments.objectValue?[key]?.stringValue else {
+                if card.descriptor.name == "web_search" {
+                    return RenderedOperation(text: "", isArgumentValue: false)
+                }
+                return RenderedOperation(
+                    text: activityName(fallback, locale: locale), isArgumentValue: false
+                )
+            }
+            let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
+            guard !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                if card.descriptor.name == "web_search" {
+                    return RenderedOperation(text: "", isArgumentValue: false)
+                }
+                return RenderedOperation(
+                    text: activityName(fallback, locale: locale), isArgumentValue: false
+                )
+            }
+            return RenderedOperation(text: oneLine, isArgumentValue: true)
+        case .semanticArrayCount(let key, let unit, let fallback):
+            guard let count = card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count,
+                count > 0
+            else {
+                return RenderedOperation(
+                    text: activityName(fallback, locale: locale), isArgumentValue: false
+                )
+            }
+            return RenderedOperation(
+                text: countDescription(count, unit: unit, locale: locale),
+                isArgumentValue: false
+            )
         }
     }
 
-    private static func batchClause(_ cards: [AgentToolCard]) -> String {
+    /// Cards persisted before semantic presentations were stored still know
+    /// their tool name and arguments. Recover the same user-facing activity
+    /// from those stable protocol fields instead of exposing names such as
+    /// `web_search` in a translated summary.
+    private static func recoveredBuiltInOperation(
+        for card: AgentToolCard, locale: Locale
+    ) -> RenderedOperation? {
+        let semanticArgument: (key: String, fallback: AgentToolDescriptor.Presentation.ActivityKind)? =
+            switch card.descriptor.name {
+            case "fetch": ("url", .url)
+            case "web_search": ("query", .web)
+            case "ssh_exec", "terminal_suggest": ("command", .command)
+            case "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
+                "sftp_move", "sftp_chmod", "sftp_delete":
+                ("path", .remoteFile)
+            case "request_user_secret": ("prompt", .secret)
+            case "scratch_list": ("path", .scratchWorkspace)
+            case "scratch_read", "scratch_write", "scratch_edit": ("path", .scratchFile)
+            case "scratch_diff": ("path_a", .scratchFiles)
+            case "scratch_delete": ("path", .scratchEntry)
+            case "scratch_pull", "scratch_push": ("remote_path", .remoteFile)
+            case "present_plan": ("title", .plan)
+            default: nil
+            }
+        if let semanticArgument {
+            if let value = card.invocation.call.arguments.objectValue?[semanticArgument.key]?
+                .stringValue
+            {
+                let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
+                if !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return RenderedOperation(text: oneLine, isArgumentValue: true)
+                }
+            }
+            if card.descriptor.name == "web_search" {
+                return RenderedOperation(text: "", isArgumentValue: false)
+            }
+            return RenderedOperation(
+                text: activityName(semanticArgument.fallback, locale: locale),
+                isArgumentValue: false
+            )
+        }
+
+        let semanticLabel: AgentToolDescriptor.Presentation.ActivityKind? =
+            switch card.descriptor.name {
+            case "list_hosts": .hosts
+            case "ssh_wait": .remoteCommand
+            case "manage_tasks": .taskList
+            default: nil
+            }
+        if let semanticLabel {
+            return RenderedOperation(
+                text: activityName(semanticLabel, locale: locale), isArgumentValue: false
+            )
+        }
+
+        if card.descriptor.name == "request_user_input" {
+            let count = card.invocation.call.arguments.objectValue?["questions"]?.arrayValue?.count
+            return RenderedOperation(
+                text: count.map { countDescription($0, unit: .question, locale: locale) }
+                    ?? activityName(.question, locale: locale),
+                isArgumentValue: false
+            )
+        }
+        return nil
+    }
+
+    private static func batchClause(
+        _ cards: [AgentToolCard], locale: Locale
+    ) -> String {
         guard let first = cards.first else { return "" }
         guard let presentation = first.descriptor.presentation else {
             let activity = cards.count == 1
-                ? humanized(first.descriptor.qualifiedName) : toolCallCount(cards.count)
-            return fallbackAction(for: first.state, activity: activity)
+                ? operation(for: first, locale: locale)
+                : RenderedOperation(
+                    text: toolCallCount(cards.count, locale: locale), isArgumentValue: false
+                )
+            if let actionKind = actionKind(for: first) {
+                if isChinese(locale), cards.count > 1 {
+                    return repeatedActionSummary(
+                        actionKind, state: first.state, count: cards.count, locale: locale
+                    )
+                }
+                return actionSummary(
+                    actionKind, state: first.state, activity: activity.text,
+                    isArgumentValue: activity.isArgumentValue,
+                    target: nil, locale: locale
+                )
+            }
+            return fallbackAction(for: first.state, activity: activity.text, locale: locale)
         }
 
-        let activity = batchActivity(presentation.activity, cards: cards)
+        let activity = batchActivity(presentation.activity, cards: cards, locale: locale)
+        if let actionKind = actionKind(for: first) {
+            if isChinese(locale), cards.count > 1 {
+                return repeatedActionSummary(
+                    actionKind, state: first.state, count: cards.count, locale: locale
+                )
+            }
+            return actionSummary(
+                actionKind, state: first.state, activity: activity.text,
+                isArgumentValue: activity.isArgumentValue,
+                target: nil, locale: locale
+            )
+        }
         if let template = presentation.messages[first.state.rawValue] {
-            return replacingQuotedActivity(in: template, with: activity)
-                .replacingOccurrences(of: "{activity}", with: activity)
+            return replacingQuotedActivity(in: template, with: activity.text)
+                .replacingOccurrences(of: "{activity}", with: activity.text)
                 .replacingOccurrences(of: " on {target}", with: "")
                 .replacingOccurrences(of: " to {target}", with: "")
                 .replacingOccurrences(of: " with {target}", with: "")
                 .replacingOccurrences(of: "{target}", with: "")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        return fallbackAction(for: first.state, activity: activity)
+        return fallbackAction(for: first.state, activity: activity.text, locale: locale)
     }
 
     private static func replacingQuotedActivity(in template: String, with activity: String) -> String {
@@ -1137,47 +1362,473 @@ nonisolated enum AgentToolPresentation {
 
     private static func batchActivity(
         _ activity: AgentToolDescriptor.Presentation.Activity,
-        cards: [AgentToolCard]
-    ) -> String {
+        cards: [AgentToolCard], locale: Locale
+    ) -> RenderedOperation {
         switch activity {
         case .localizedArrayCount(let key, let unit, let fallback):
             let count = cards.reduce(0) { total, card in
                 total + (card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count ?? 0)
             }
-            guard count > 0 else { return fallback }
-            return countDescription(count, unit: unit)
+            guard count > 0 else {
+                return RenderedOperation(text: fallback, isArgumentValue: false)
+            }
+            return RenderedOperation(
+                text: countDescription(count, unit: unit, locale: locale),
+                isArgumentValue: false
+            )
+        case .semanticArrayCount(let key, let unit, let fallback):
+            let count = cards.reduce(0) { total, card in
+                total + (card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count ?? 0)
+            }
+            guard count > 0 else {
+                return RenderedOperation(
+                    text: activityName(fallback, locale: locale), isArgumentValue: false
+                )
+            }
+            return RenderedOperation(
+                text: countDescription(count, unit: unit, locale: locale),
+                isArgumentValue: false
+            )
+        case .arrayCount(let key, _, _, let fallback):
+            let count = cards.reduce(0) { total, card in
+                total + (card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count ?? 0)
+            }
+            guard count > 0 else {
+                return RenderedOperation(text: fallback, isArgumentValue: false)
+            }
+            if cards.first?.descriptor.name == "request_user_input" {
+                return RenderedOperation(
+                    text: countDescription(count, unit: .question, locale: locale),
+                    isArgumentValue: false
+                )
+            }
+            return RenderedOperation(
+                text: cards.count == 1 ? fallback : toolCallCount(cards.count, locale: locale),
+                isArgumentValue: false
+            )
         case .argument(_, let fallback):
-            return cards.count == 1 ? fallback : toolCallCount(cards.count)
+            return cards.count == 1
+                ? RenderedOperation(
+                    text: legacyActivity(
+                        fallback, descriptorName: cards[0].descriptor.name, locale: locale
+                    ),
+                    isArgumentValue: false
+                )
+                : RenderedOperation(
+                    text: toolCallCount(cards.count, locale: locale), isArgumentValue: false
+                )
         case .label(let label):
-            return cards.count == 1 ? label : toolCallCount(cards.count)
+            return cards.count == 1
+                ? RenderedOperation(
+                    text: legacyActivity(
+                        label, descriptorName: cards[0].descriptor.name, locale: locale
+                    ),
+                    isArgumentValue: false
+                )
+                : RenderedOperation(
+                    text: toolCallCount(cards.count, locale: locale), isArgumentValue: false
+                )
+        case .semanticArgument(_, let fallback):
+            if cards.count == 1, cards[0].descriptor.name == "web_search" {
+                return operation(for: cards[0], locale: locale)
+            }
+            return RenderedOperation(
+                text: cards.count == 1
+                    ? activityName(fallback, locale: locale)
+                    : toolCallCount(cards.count, locale: locale),
+                isArgumentValue: false
+            )
+        case .semanticLabel(let kind):
+            return RenderedOperation(
+                text: cards.count == 1
+                    ? activityName(kind, locale: locale)
+                    : toolCallCount(cards.count, locale: locale),
+                isArgumentValue: false
+            )
         }
     }
 
     private static func countDescription(
-        _ count: Int, unit: AgentToolDescriptor.Presentation.CountedUnit
+        _ count: Int, unit: AgentToolDescriptor.Presentation.CountedUnit,
+        locale: Locale
     ) -> String {
         switch unit {
-        case .question: String(localized: "\(count) questions")
+        case .question: localized("\(count) questions", locale: locale)
         }
     }
 
-    private static func toolCallCount(_ count: Int) -> String {
-        String(localized: "\(count) tool calls")
+    private static func toolCallCount(_ count: Int, locale: Locale) -> String {
+        localized("\(count) tool calls", locale: locale)
     }
 
     private static func fallbackAction(
-        for state: AgentToolCard.State, activity: String
+        for state: AgentToolCard.State, activity: String, locale: Locale
     ) -> String {
         switch state {
-        case .proposed: "Preparing \(activity)"
-        case .waitingForApproval, .waitingForUser: "Waiting to run \(activity)"
-        case .reviewing: "Preparing \(activity)"
-        case .running: "Running \(activity)"
-        case .completed: "Ran \(activity)"
-        case .denied: "Denied \(activity)"
-        case .failed: "Failed \(activity)"
-        case .interrupted: "Interrupted \(activity)"
+        case .proposed: localized("Preparing \(activity)", locale: locale)
+        case .waitingForApproval, .waitingForUser:
+            localized("Waiting to run \(activity)", locale: locale)
+        case .reviewing: localized("Preparing \(activity)", locale: locale)
+        case .running: localized("Running \(activity)", locale: locale)
+        case .completed: localized("Ran \(activity)", locale: locale)
+        case .denied: localized("Denied \(activity)", locale: locale)
+        case .failed: localized("Failed \(activity)", locale: locale)
+        case .interrupted: localized("Interrupted \(activity)", locale: locale)
         }
+    }
+
+    private enum ActionForm { case infinitive, progressive, past }
+
+    private static func actionKind(
+        for card: AgentToolCard
+    ) -> AgentToolDescriptor.Presentation.ActionKind? {
+        if let kind = card.descriptor.presentation?.actionKind { return kind }
+        return switch card.descriptor.name {
+        case "fetch": .fetch
+        case "web_search": .search
+        case "list_hosts", "sftp_list", "scratch_list": .list
+        case "ssh_wait": .wait
+        case "ssh_exec": .run
+        case "terminal_suggest": .suggest
+        case "sftp_stat": .inspect
+        case "sftp_read", "scratch_read": .read
+        case "sftp_write", "scratch_write": .write
+        case "sftp_mkdir": .create
+        case "sftp_move": .move
+        case "sftp_chmod": .changePermissions
+        case "sftp_delete", "scratch_delete": .delete
+        case "request_user_input": .ask
+        case "request_user_secret": .request
+        case "scratch_edit": .edit
+        case "scratch_diff": .compare
+        case "scratch_pull": .pull
+        case "scratch_push": .push
+        case "present_plan": .present
+        case "manage_tasks": .update
+        default: card.descriptor.target == .mcp ? .run : nil
+        }
+    }
+
+    private static func phaseKind(
+        for card: AgentToolCard, phase: String
+    ) -> AgentToolDescriptor.Presentation.PhaseKind? {
+        if let kind = card.descriptor.presentation?.phaseKinds[phase] { return kind }
+        guard card.descriptor.name == "ssh_exec" else { return nil }
+        return switch phase {
+        case "proposed": .sshPreparingCommand
+        case "waitingForApproval": .sshWaitingForCommand
+        case "waitingForUser": .sshWaitingForAuthentication
+        case "running": .sshConnecting
+        case "command": .sshRunningCommand
+        case "completed": .sshCompletedCommand
+        case "denied": .sshDeniedCommand
+        case "failed": .sshFailedCommand
+        case "interrupted": .sshInterruptedCommand
+        default: nil
+        }
+    }
+
+    private static func actionSummary(
+        _ kind: AgentToolDescriptor.Presentation.ActionKind,
+        state: AgentToolCard.State, activity: String, isArgumentValue: Bool,
+        target: String?, locale: Locale
+    ) -> String {
+        if isChinese(locale) {
+            let action = localizedActionVerb(kind, locale: locale)
+            let displayedActivity = isArgumentValue ? "“\(activity)”" : activity
+            let rendered: String = switch state {
+            case .proposed, .reviewing:
+                localized("Tool action preparing: \(action) \(displayedActivity)", locale: locale)
+            case .waitingForApproval, .waitingForUser:
+                localized("Tool action waiting: \(action) \(displayedActivity)", locale: locale)
+            case .running:
+                localized("Tool action running: \(action) \(displayedActivity)", locale: locale)
+            case .completed:
+                localized("Tool action completed: \(action) \(displayedActivity)", locale: locale)
+            case .denied:
+                localized("Tool action denied: \(action) \(displayedActivity)", locale: locale)
+            case .failed:
+                localized("Tool action failed: \(action) \(displayedActivity)", locale: locale)
+            case .interrupted:
+                localized("Tool action interrupted: \(action) \(displayedActivity)", locale: locale)
+            }
+            guard let target, !target.isEmpty else { return rendered }
+            return localized("Tool action target: \(rendered) \(target)", locale: locale)
+        }
+        if activity.isEmpty {
+            let rendered: String = switch state {
+            case .proposed, .reviewing:
+                "Preparing to \(actionName(kind, form: .infinitive, locale: locale))"
+            case .waitingForApproval, .waitingForUser:
+                "Waiting to \(actionName(kind, form: .infinitive, locale: locale))"
+            case .running: actionName(kind, form: .progressive, locale: locale)
+            case .completed: actionName(kind, form: .past, locale: locale)
+            case .denied:
+                "Did not \(actionName(kind, form: .infinitive, locale: locale))"
+            case .failed:
+                "Failed to \(actionName(kind, form: .infinitive, locale: locale))"
+            case .interrupted:
+                "Interrupted while "
+                    + lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
+            }
+            guard let target, !target.isEmpty else { return rendered }
+            return "\(rendered) on \(target)"
+        }
+        let rendered: String
+        switch state {
+        case .proposed, .reviewing:
+            rendered = "Preparing to \(actionName(kind, form: .infinitive, locale: locale)) \(activity)"
+        case .waitingForApproval, .waitingForUser:
+            rendered = "Waiting to \(actionName(kind, form: .infinitive, locale: locale)) \(activity)"
+        case .running:
+            rendered = "\(actionName(kind, form: .progressive, locale: locale)) \(activity)"
+        case .completed:
+            rendered = "\(actionName(kind, form: .past, locale: locale)) \(activity)"
+        case .denied:
+            rendered = "Did not \(actionName(kind, form: .infinitive, locale: locale)) \(activity)"
+        case .failed:
+            rendered = "Failed to \(actionName(kind, form: .infinitive, locale: locale)) \(activity)"
+        case .interrupted:
+            let action = lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
+            rendered = "Interrupted while \(action) \(activity)"
+        }
+        guard let target, !target.isEmpty else { return rendered }
+        return "\(rendered) on \(target)"
+    }
+
+    private static func repeatedActionSummary(
+        _ kind: AgentToolDescriptor.Presentation.ActionKind,
+        state: AgentToolCard.State, count: Int, locale: Locale
+    ) -> String {
+        let action = localizedActionVerb(kind, locale: locale)
+        switch state {
+        case .failed:
+            return localized("Repeated tool action failed: \(count) \(action)", locale: locale)
+        case .interrupted:
+            return localized(
+                "Repeated tool action interrupted: \(count) \(action)", locale: locale
+            )
+        default:
+            return actionSummary(
+                kind, state: state, activity: localized("\(count) times", locale: locale),
+                isArgumentValue: false, target: nil, locale: locale
+            )
+        }
+    }
+
+    private static func phaseSummary(
+        _ kind: AgentToolDescriptor.Presentation.PhaseKind,
+        activity: String, target: String?, locale: Locale
+    ) -> String {
+        switch kind {
+        case .sshPreparingCommand:
+            return target.map {
+                localized("Preparing to run “\(activity)” on \($0)", locale: locale)
+            } ?? localized("Preparing to run “\(activity)”", locale: locale)
+        case .sshWaitingForCommand:
+            return target.map {
+                localized("Waiting to run “\(activity)” on \($0)", locale: locale)
+            } ?? localized("Waiting to run “\(activity)”", locale: locale)
+        case .sshWaitingForAuthentication:
+            return target.map {
+                localized("Waiting to authenticate with \($0)", locale: locale)
+            } ?? localized("Waiting for authentication", locale: locale)
+        case .sshConnecting:
+            return target.map {
+                localized("Connecting to \($0)", locale: locale)
+            } ?? localized("Connecting", locale: locale)
+        case .sshRunningCommand:
+            return target.map {
+                localized("Running “\(activity)” on \($0)", locale: locale)
+            } ?? localized("Running “\(activity)”", locale: locale)
+        case .sshCompletedCommand:
+            return target.map {
+                localized("Ran “\(activity)” on \($0)", locale: locale)
+            } ?? localized("Ran “\(activity)”", locale: locale)
+        case .sshDeniedCommand:
+            return target.map {
+                localized("Did not run “\(activity)” on \($0)", locale: locale)
+            } ?? localized("Did not run “\(activity)”", locale: locale)
+        case .sshFailedCommand:
+            return target.map {
+                localized("Failed to run “\(activity)” on \($0)", locale: locale)
+            } ?? localized("Failed to run “\(activity)”", locale: locale)
+        case .sshInterruptedCommand:
+            return target.map {
+                localized("Stopped waiting for “\(activity)” on \($0)", locale: locale)
+            } ?? localized("Stopped waiting for “\(activity)”", locale: locale)
+        }
+    }
+
+    private static func actionName(
+        _ kind: AgentToolDescriptor.Presentation.ActionKind,
+        form: ActionForm, locale: Locale
+    ) -> String {
+        if isChinese(locale) { return localizedActionVerb(kind, locale: locale) }
+        return switch (kind, form) {
+        case (.ask, .infinitive): "ask"
+        case (.ask, .progressive): "Asking"
+        case (.ask, .past): "Asked"
+        case (.compare, .infinitive): "compare"
+        case (.compare, .progressive): "Comparing"
+        case (.compare, .past): "Compared"
+        case (.create, .infinitive): "create"
+        case (.create, .progressive): "Creating"
+        case (.create, .past): "Created"
+        case (.delete, .infinitive): "delete"
+        case (.delete, .progressive): "Deleting"
+        case (.delete, .past): "Deleted"
+        case (.edit, .infinitive): "edit"
+        case (.edit, .progressive): "Editing"
+        case (.edit, .past): "Edited"
+        case (.fetch, .infinitive): "fetch"
+        case (.fetch, .progressive): "Fetching"
+        case (.fetch, .past): "Fetched"
+        case (.inspect, .infinitive): "inspect"
+        case (.inspect, .progressive): "Inspecting"
+        case (.inspect, .past): "Inspected"
+        case (.list, .infinitive): "list"
+        case (.list, .progressive): "Listing"
+        case (.list, .past): "Listed"
+        case (.move, .infinitive): "move"
+        case (.move, .progressive): "Moving"
+        case (.move, .past): "Moved"
+        case (.present, .infinitive): "present"
+        case (.present, .progressive): "Writing"
+        case (.present, .past): "Presented"
+        case (.pull, .infinitive): "pull"
+        case (.pull, .progressive): "Pulling"
+        case (.pull, .past): "Pulled"
+        case (.push, .infinitive): "push"
+        case (.push, .progressive): "Pushing"
+        case (.push, .past): "Pushed"
+        case (.read, .infinitive): "read"
+        case (.read, .progressive): "Reading"
+        case (.read, .past): "Read"
+        case (.request, .infinitive): "request"
+        case (.request, .progressive): "Requesting"
+        case (.request, .past): "Requested"
+        case (.run, .infinitive): "run"
+        case (.run, .progressive): "Running"
+        case (.run, .past): "Ran"
+        case (.search, .infinitive): "search"
+        case (.search, .progressive): "Searching"
+        case (.search, .past): "Searched"
+        case (.suggest, .infinitive): "suggest"
+        case (.suggest, .progressive): "Suggesting"
+        case (.suggest, .past): "Suggested"
+        case (.update, .infinitive): "update"
+        case (.update, .progressive): "Updating"
+        case (.update, .past): "Updated"
+        case (.wait, .infinitive): "wait for"
+        case (.wait, .progressive): "Waiting for"
+        case (.wait, .past): "Waited for"
+        case (.write, .infinitive): "write"
+        case (.write, .progressive): "Writing"
+        case (.write, .past): "Wrote"
+        case (.changePermissions, .infinitive): "change permissions for"
+        case (.changePermissions, .progressive): "Changing permissions for"
+        case (.changePermissions, .past): "Changed permissions for"
+        case (.use, .infinitive): "use"
+        case (.use, .progressive): "Using"
+        case (.use, .past): "Used"
+        }
+    }
+
+    private static func localizedActionVerb(
+        _ kind: AgentToolDescriptor.Presentation.ActionKind, locale: Locale
+    ) -> String {
+        switch kind {
+        case .ask: localized("ask", locale: locale)
+        case .compare: localized("compare", locale: locale)
+        case .create: localized("create", locale: locale)
+        case .delete: localized("delete", locale: locale)
+        case .edit: localized("edit", locale: locale)
+        case .fetch: localized("fetch", locale: locale)
+        case .inspect: localized("inspect", locale: locale)
+        case .list: localized("list", locale: locale)
+        case .move: localized("move", locale: locale)
+        case .present: localized("present", locale: locale)
+        case .pull: localized("pull", locale: locale)
+        case .push: localized("push", locale: locale)
+        case .read: localized("read", locale: locale)
+        case .request: localized("request", locale: locale)
+        case .run: localized("run", locale: locale)
+        case .search: localized("search", locale: locale)
+        case .suggest: localized("suggest", locale: locale)
+        case .update: localized("update", locale: locale)
+        case .wait: localized("wait for", locale: locale)
+        case .write: localized("write", locale: locale)
+        case .changePermissions: localized("change permissions for", locale: locale)
+        case .use: localized("use", locale: locale)
+        }
+    }
+
+    private static func isChinese(_ locale: Locale) -> Bool {
+        locale.language.languageCode?.identifier == "zh"
+    }
+
+    private static func activityName(
+        _ kind: AgentToolDescriptor.Presentation.ActivityKind, locale: Locale
+    ) -> String {
+        switch kind {
+        case .command: localized("a command", locale: locale)
+        case .hosts: localized("hosts", locale: locale)
+        case .plan: localized("a plan", locale: locale)
+        case .question: localized("a question", locale: locale)
+        case .remoteCommand: localized("the remote command", locale: locale)
+        case .remoteFile: localized("a remote file", locale: locale)
+        case .scratchEntry: localized("a scratch entry", locale: locale)
+        case .scratchFile: localized("a scratch file", locale: locale)
+        case .scratchFiles: localized("scratch files", locale: locale)
+        case .scratchWorkspace: localized("the scratch workspace", locale: locale)
+        case .secret: localized("a secret", locale: locale)
+        case .sshCommand: localized("the SSH command", locale: locale)
+        case .taskList: localized("the task list", locale: locale)
+        case .url: localized("a URL", locale: locale)
+        case .web: localized("the web", locale: locale)
+        }
+    }
+
+    private static func localized(
+        _ key: String.LocalizationValue, locale: Locale
+    ) -> String {
+        AppLocalization.string(key, locale: locale)
+    }
+
+    private static func legacyActivity(
+        _ fallback: String, descriptorName: String, locale: Locale
+    ) -> String {
+        let sftpNames = [
+            "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
+            "sftp_move", "sftp_chmod", "sftp_delete",
+        ]
+        if sftpNames.contains(descriptorName) {
+            return activityName(.remoteFile, locale: locale)
+        }
+        let kind: AgentToolDescriptor.Presentation.ActivityKind? = switch (
+            descriptorName, fallback
+        ) {
+        case ("fetch", "a URL"): .url
+        case ("web_search", "the web"): .web
+        case ("list_hosts", "hosts"): .hosts
+        case ("ssh_wait", "the remote command"): .remoteCommand
+        case ("ssh_exec", "the SSH command"): .sshCommand
+        case ("terminal_suggest", "a command"): .command
+        case ("request_user_input", "a question"): .question
+        case ("request_user_secret", "a secret"): .secret
+        case ("present_plan", "a plan"): .plan
+        case ("manage_tasks", "the task list"): .taskList
+        case ("scratch_list", "the scratch workspace"): .scratchWorkspace
+        case ("scratch_read", "a scratch file"), ("scratch_write", "a scratch file"),
+            ("scratch_edit", "a scratch file"): .scratchFile
+        case ("scratch_diff", "scratch files"): .scratchFiles
+        case ("scratch_delete", "a scratch entry"): .scratchEntry
+        case ("scratch_pull", "a remote file"), ("scratch_push", "a remote file"):
+            .remoteFile
+        default: nil
+        }
+        return kind.map { activityName($0, locale: locale) } ?? fallback
     }
 
     private static func lowercaseFirst(_ text: String) -> String {

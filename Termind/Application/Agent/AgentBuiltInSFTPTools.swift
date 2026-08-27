@@ -212,23 +212,20 @@ nonisolated extension AgentBuiltInTools {
         case "sftp_delete": "trash"
         default: "externaldrive.connected.to.line.below"
         }
-        let action: AgentToolDescriptor.Presentation.Action = switch name {
-        case "sftp_list": .init(infinitive: "list", progressive: "Listing", past: "Listed")
-        case "sftp_stat": .init(infinitive: "inspect", progressive: "Inspecting", past: "Inspected")
-        case "sftp_read": .init(infinitive: "read", progressive: "Reading", past: "Read")
-        case "sftp_write": .init(infinitive: "write", progressive: "Writing", past: "Wrote")
-        case "sftp_mkdir": .init(infinitive: "create", progressive: "Creating", past: "Created")
-        case "sftp_move": .init(infinitive: "move", progressive: "Moving", past: "Moved")
-        case "sftp_chmod": .init(
-            infinitive: "change permissions for", progressive: "Changing permissions for",
-            past: "Changed permissions for"
-        )
-        case "sftp_delete": .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
-        default: .init(infinitive: "use", progressive: "Using", past: "Used")
+        let actionKind: AgentToolDescriptor.Presentation.ActionKind = switch name {
+        case "sftp_list": .list
+        case "sftp_stat": .inspect
+        case "sftp_read": .read
+        case "sftp_write": .write
+        case "sftp_mkdir": .create
+        case "sftp_move": .move
+        case "sftp_chmod": .changePermissions
+        case "sftp_delete": .delete
+        default: .use
         }
         return .init(
-            symbol: symbol, activity: .argument(key: "path", fallback: summary), output: .automatic,
-            action: action, includesTarget: true
+            symbol: symbol, activity: .semanticArgument(key: "path", fallback: .remoteFile),
+            output: .automatic, actionKind: actionKind, includesTarget: true
         )
     }
 
@@ -307,4 +304,3 @@ nonisolated extension AgentBuiltInTools {
         ])
     }
 }
-

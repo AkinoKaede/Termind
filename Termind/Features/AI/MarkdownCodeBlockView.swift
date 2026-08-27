@@ -141,7 +141,7 @@ private struct ShellCodeBlockView: View {
             CopyButton(text: command)
         }
         .controlSize(.small)
-        .help(Text(target == nil ? "No shell in the foreground" : ""))
+        .help(Text(target == nil ? String(localized: "No shell in the foreground") : ""))
     }
 
     private func run() {

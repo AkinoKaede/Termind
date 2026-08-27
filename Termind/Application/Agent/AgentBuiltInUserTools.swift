@@ -57,10 +57,10 @@ nonisolated extension AgentBuiltInTools {
             ], required: ["questions"], target: .user, safety: .locallyReadOnly,
             presentation: .init(
                 symbol: "questionmark.circle",
-                activity: .localizedArrayCount(
-                    key: "questions", unit: .question, fallback: "a question"
+                activity: .semanticArrayCount(
+                    key: "questions", unit: .question, fallback: .question
                 ),
-                action: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
+                actionKind: .ask
             )
         )) { invocation, context in
             let arguments = try Arguments(invocation)
@@ -151,8 +151,8 @@ nonisolated extension AgentBuiltInTools {
             // means output arriving under a question that is still being read.
             target: .user, safety: .locallyReadOnly,
             presentation: .init(
-                symbol: "key", activity: .argument(key: "prompt", fallback: "a secret"),
-                action: .init(infinitive: "request", progressive: "Requesting", past: "Requested")
+                symbol: "key", activity: .semanticArgument(key: "prompt", fallback: .secret),
+                actionKind: .request
             )
         )) { invocation, context in
             let arguments = try Arguments(invocation)

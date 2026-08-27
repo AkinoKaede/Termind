@@ -47,7 +47,7 @@ nonisolated enum AgentMCPTools {
                     namespace: server.effectiveNamespaceID, function: name
                 )),
                 output: .json,
-                action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+                actionKind: .run
             )
         )
         return AnyAgentTool(

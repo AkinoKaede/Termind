@@ -23,9 +23,9 @@ nonisolated extension AgentBuiltInTools {
             // calls pay for themselves.
             concurrency: .parallel,
             presentation: .init(
-                symbol: "globe", activity: .argument(key: "url", fallback: "a URL"),
+                symbol: "globe", activity: .semanticArgument(key: "url", fallback: .url),
                 output: .field("body"),
-                action: .init(infinitive: "fetch", progressive: "Fetching", past: "Fetched")
+                actionKind: .fetch
             )
         )
         return AnyAgentTool(
@@ -116,8 +116,8 @@ nonisolated extension AgentBuiltInTools {
             concurrency: .parallel,
             presentation: .init(
                 symbol: "magnifyingglass",
-                activity: .argument(key: "query", fallback: "the web"), output: .json,
-                action: .init(infinitive: "search", progressive: "Searching", past: "Searched")
+                activity: .semanticArgument(key: "query", fallback: .web), output: .json,
+                actionKind: .search
             )
         )
         return AnyAgentTool(
@@ -152,4 +152,3 @@ nonisolated extension AgentBuiltInTools {
         )
     }
 }
-

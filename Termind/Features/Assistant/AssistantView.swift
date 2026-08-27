@@ -408,7 +408,10 @@ private struct AssistantConversationRow: View {
                         .font(.caption)
                 }
                 .buttonStyle(.plain)
-                .help(Text(conversation.isArchived ? "Unarchive" : "Archive"))
+                .help(Text(
+                    conversation.isArchived
+                        ? String(localized: "Unarchive") : String(localized: "Archive")
+                ))
             }
         }
     }

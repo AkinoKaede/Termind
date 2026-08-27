@@ -72,6 +72,30 @@ nonisolated enum AgentJSONValue: Hashable, Sendable, Codable {
 
 nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codable {
     nonisolated struct Presentation: Hashable, Sendable, Codable {
+        /// Stable application-owned semantics. Display strings are derived at
+        /// render time so a persisted card follows the viewer's current locale
+        /// instead of freezing whichever English template created it.
+        nonisolated enum ActionKind: String, Hashable, Sendable, Codable {
+            case ask, compare, create, delete, edit, fetch, inspect, list, move
+            case present, pull, push, read, request, run, search, suggest, update
+            case wait, write, changePermissions, use
+        }
+
+        nonisolated enum ActivityKind: String, Hashable, Sendable, Codable {
+            case command, hosts, plan, question, remoteCommand, remoteFile, scratchEntry
+            case scratchFile, scratchFiles, scratchWorkspace, secret, sshCommand, taskList
+            case url, web
+        }
+
+        /// Semantic overrides for phases whose grammar is more specific than
+        /// the ordinary action lifecycle. Currently SSH is the only built-in
+        /// with connection and authentication phases of its own.
+        nonisolated enum PhaseKind: String, Hashable, Sendable, Codable {
+            case sshPreparingCommand, sshWaitingForCommand, sshWaitingForAuthentication
+            case sshConnecting, sshRunningCommand, sshCompletedCommand
+            case sshDeniedCommand, sshFailedCommand, sshInterruptedCommand
+        }
+
         nonisolated struct Action: Hashable, Sendable, Codable {
             var infinitive: String
             var progressive: String
@@ -87,9 +111,15 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         nonisolated enum Activity: Hashable, Sendable, Codable {
             case label(String)
             case argument(key: String, fallback: String)
+            /// Persisted by releases before counted activities became
+            /// semantic. Keep decoding it so old conversations remain usable.
+            case arrayCount(key: String, singular: String, plural: String, fallback: String)
             /// Names an activity from the number of entries in an array
             /// argument. The unit selects a locale-aware plural resource.
             case localizedArrayCount(key: String, unit: CountedUnit, fallback: String)
+            case semanticLabel(ActivityKind)
+            case semanticArgument(key: String, fallback: ActivityKind)
+            case semanticArrayCount(key: String, unit: CountedUnit, fallback: ActivityKind)
         }
 
         nonisolated enum Output: Hashable, Sendable, Codable {
@@ -105,6 +135,8 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         /// Defaults to participating. A tool may opt out when its row is
         /// proposed content rather than work that belongs in an activity batch.
         var groupsWithAdjacentTools: Bool = true
+        var actionKind: ActionKind? = nil
+        var phaseKinds: [String: PhaseKind] = [:]
         /// Templates keyed by card state or a tool-reported live phase.
         /// Supported placeholders are `{activity}` and `{target}`.
         var messages: [String: String] = [:]
@@ -112,13 +144,17 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         init(
             symbol: String, activity: Activity, output: Output = .automatic,
             groupsWithAdjacentTools: Bool = true,
-            action: Action? = nil, includesTarget: Bool = false,
+            action: Action? = nil, actionKind: ActionKind? = nil,
+            includesTarget: Bool = false,
+            phaseKinds: [String: PhaseKind] = [:],
             messages overrides: [String: String] = [:]
         ) {
             self.symbol = symbol
             self.activity = activity
             self.output = output
             self.groupsWithAdjacentTools = groupsWithAdjacentTools
+            self.actionKind = actionKind
+            self.phaseKinds = phaseKinds
             let target = includesTarget ? " on {target}" : ""
             if let action {
                 messages = [
@@ -133,6 +169,28 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
                 ]
             }
             messages.merge(overrides) { _, override in override }
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case symbol, activity, output, groupsWithAdjacentTools, messages
+            case actionKind, phaseKinds
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            symbol = try container.decode(String.self, forKey: .symbol)
+            activity = try container.decode(Activity.self, forKey: .activity)
+            output = try container.decodeIfPresent(Output.self, forKey: .output) ?? .automatic
+            groupsWithAdjacentTools = try container.decodeIfPresent(
+                Bool.self, forKey: .groupsWithAdjacentTools
+            ) ?? true
+            messages = try container.decodeIfPresent(
+                [String: String].self, forKey: .messages
+            ) ?? [:]
+            actionKind = try container.decodeIfPresent(ActionKind.self, forKey: .actionKind)
+            phaseKinds = try container.decodeIfPresent(
+                [String: PhaseKind].self, forKey: .phaseKinds
+            ) ?? [:]
         }
 
     }

@@ -143,6 +143,144 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func semanticActionsLocalizeEveryLifecycleWithoutChangingArguments() {
+        let zh = Locale(identifier: "zh-Hans")
+        let actions: [(AgentToolDescriptor.Presentation.ActionKind, String)] = [
+            (.ask, "询问"), (.compare, "比较"), (.create, "创建"), (.delete, "删除"),
+            (.edit, "编辑"), (.fetch, "获取"), (.inspect, "检查"), (.list, "列出"),
+            (.move, "移动"), (.present, "提交"), (.pull, "拉取"), (.push, "推送"),
+            (.read, "读取"), (.request, "请求"), (.run, "运行"), (.search, "搜索"),
+            (.suggest, "生成建议"), (.update, "更新"), (.wait, "等待"), (.write, "写入"),
+            (.changePermissions, "更改权限"), (.use, "使用"),
+        ]
+
+        for (kind, verb) in actions {
+            var card = makeCard(
+                name: "semantic_\(kind.rawValue)", target: .local,
+                arguments: ["value": .string("Target 42")],
+                presentation: .init(
+                    symbol: "wrench", activity: .semanticArgument(key: "value", fallback: .command),
+                    actionKind: kind
+                )
+            )
+            let expected: [(AgentToolCard.State, String)] = [
+                (.proposed, "正在准备\(verb)“Target 42”"),
+                (.waitingForApproval, "等待\(verb)“Target 42”"),
+                (.running, "正在\(verb)“Target 42”"),
+                (.completed, "已\(verb)“Target 42”"),
+                (.denied, "未\(verb)“Target 42”"),
+                (.failed, "\(verb)“Target 42”失败"),
+                (.interrupted, "\(verb)“Target 42”已中断"),
+            ]
+            for (state, title) in expected {
+                card.state = state
+                #expect(AgentToolPresentation.summary(for: card, locale: zh) == title)
+            }
+        }
+    }
+
+    @Test
+    func localizedSearchBatchSSHAndMCPKeepUserAndRemoteTextVerbatim() {
+        let zh = Locale(identifier: "zh-Hans")
+        var search = makeCard(
+            name: "web_search", target: .network,
+            arguments: ["query": .string("Swift 6 concurrency")],
+            presentation: .init(
+                symbol: "magnifyingglass",
+                activity: .semanticArgument(key: "query", fallback: .web),
+                actionKind: .search
+            )
+        )
+        search.state = .completed
+        #expect(
+            AgentToolPresentation.summary(for: search, locale: zh)
+                == "已搜索“Swift 6 concurrency”"
+        )
+
+        var fetch = makeCard(
+            name: "fetch", target: .network,
+            presentation: .init(
+                symbol: "globe", activity: .semanticArgument(key: "url", fallback: .url),
+                actionKind: .fetch
+            )
+        )
+        fetch.state = .failed
+        #expect(
+            AgentToolPresentation.batchSummary(for: [search, fetch], locale: zh)
+                == "已搜索“Swift 6 concurrency”，获取URL失败"
+        )
+
+        var ssh = makeCard(
+            name: "ssh_exec", target: .host,
+            arguments: ["command": .string("printf 'hello world'")],
+            presentation: AgentBuiltInTools.terminalSuggest().descriptor.presentation
+        )
+        ssh.state = .completed
+        #expect(
+            AgentToolPresentation.summary(for: ssh, hostName: "production-1", locale: zh)
+                == "已在production-1上运行“printf 'hello world'”"
+        )
+
+        var mcp = makeCard(
+            name: "mcp__airtable__find_records", target: .mcp,
+            presentation: .init(
+                symbol: "puzzlepiece.extension", activity: .label("airtable.find_records"),
+                actionKind: .run
+            )
+        )
+        mcp.state = .running
+        #expect(
+            AgentToolPresentation.summary(for: mcp, locale: zh)
+                == "正在运行airtable.find_records"
+        )
+        mcp.state = .failed
+        #expect(
+            AgentToolPresentation.batchSummary(for: [mcp, mcp], locale: zh)
+                == "2次运行失败"
+        )
+        mcp.state = .interrupted
+        #expect(
+            AgentToolPresentation.batchSummary(for: [mcp, mcp], locale: zh)
+                == "2次运行已中断"
+        )
+    }
+
+    @Test
+    func appOwnedActivitiesAreUnquotedAndLegacySearchUsesItsQuery() {
+        let zh = Locale(identifier: "zh-Hans")
+
+        var hosts = makeCard(name: "list_hosts", target: .host)
+        hosts.state = .completed
+        #expect(AgentToolPresentation.summary(for: hosts, locale: zh) == "已列出主机")
+
+        var restoredSearch = makeCard(
+            name: "web_search", target: .network,
+            arguments: ["query": .string("Swift concurrency")]
+        )
+        restoredSearch.state = .completed
+        #expect(
+            AgentToolPresentation.summary(for: restoredSearch, locale: zh)
+                == "已搜索“Swift concurrency”"
+        )
+
+        var restoredSearchWithoutQuery = makeCard(name: "web_search", target: .network)
+        restoredSearchWithoutQuery.state = .completed
+        #expect(
+            AgentToolPresentation.summary(for: restoredSearchWithoutQuery, locale: zh)
+                == "已搜索"
+        )
+        #expect(
+            AgentToolPresentation.batchSummary(for: [restoredSearchWithoutQuery], locale: zh)
+                == "已搜索"
+        )
+        #expect(
+            AgentToolPresentation.batchSummary(
+                for: [restoredSearchWithoutQuery, restoredSearchWithoutQuery], locale: zh
+            ) == "已搜索2次"
+        )
+    }
+
+    @Test
     func userInputSummaryCountsQuestionsAndUsesAskGrammar() {
         let descriptor = AgentBuiltInTools.requestUserInput().descriptor
         #expect(descriptor.presentation?.symbol == "questionmark.circle")
@@ -702,6 +840,63 @@ struct AgentToolPresentationTests {
 
         #expect(result.toolPresentation == presentation)
         #expect(result.metadata[AgentToolResult.toolPresentationKey] != nil)
+    }
+
+    @Test
+    func semanticPresentationRoundTripsAndOldMetadataUsesSafeDefaults() throws {
+        let semantic = AgentToolDescriptor.Presentation(
+            symbol: "magnifyingglass",
+            activity: .semanticArgument(key: "query", fallback: .web),
+            output: .json, groupsWithAdjacentTools: false, actionKind: .search,
+            phaseKinds: ["running": .sshConnecting]
+        )
+        let encoded = try JSONEncoder().encode(semantic)
+        #expect(
+            try JSONDecoder().decode(AgentToolDescriptor.Presentation.self, from: encoded)
+                == semantic
+        )
+
+        let legacy = AgentToolDescriptor.Presentation(
+            symbol: "terminal", activity: .argument(key: "command", fallback: "a command")
+        )
+        var object = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(legacy)) as? [String: Any]
+        )
+        object["groupsWithAdjacentTools"] = nil
+        object["actionKind"] = nil
+        object["phaseKinds"] = nil
+        let decoded = try JSONDecoder().decode(
+            AgentToolDescriptor.Presentation.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+        #expect(decoded.groupsWithAdjacentTools)
+        #expect(decoded.actionKind == nil)
+        #expect(decoded.phaseKinds.isEmpty)
+    }
+
+    @Test
+    func legacyCountedArrayActivityStillDecodesAndLocalizesKnownQuestions() throws {
+        let activity = AgentToolDescriptor.Presentation.Activity.arrayCount(
+            key: "questions", singular: "a question", plural: "questions",
+            fallback: "a question"
+        )
+        let data = try JSONEncoder().encode(activity)
+        #expect(try JSONDecoder().decode(type(of: activity), from: data) == activity)
+
+        var card = makeCard(
+            name: "request_user_input", target: .user,
+            arguments: ["questions": .array([.object([:]), .object([:])])],
+            presentation: .init(
+                symbol: "questionmark.circle", activity: activity,
+                action: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
+            )
+        )
+        card.state = .completed
+        #expect(
+            AgentToolPresentation.summary(
+                for: card, locale: Locale(identifier: "zh-Hans")
+            ) == "已询问2个问题"
+        )
     }
 
     @Test

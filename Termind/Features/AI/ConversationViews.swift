@@ -144,7 +144,10 @@ private struct ChipView: View {
                 styledContent(removable: false)
             }
         }
-        .help(Text(remove == nil ? "Always included" : "Remove attachment"))
+        .help(Text(
+            remove == nil
+                ? String(localized: "Always included") : String(localized: "Remove attachment")
+        ))
     }
 
     private func styledContent(removable: Bool) -> some View {

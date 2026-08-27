@@ -4,6 +4,36 @@ import Foundation
     import AppKit
 #endif
 
+/// Resolves an explicitly requested app language instead of relying on the
+/// process-wide bundle negotiation. `String(localized:locale:)` uses `locale`
+/// for formatting, but an already-running app (and the test host) can still
+/// have a different preferred localization. Loading the matching lproj bundle
+/// keeps locale-injectable presentation code deterministic.
+nonisolated enum AppLocalization {
+    static func string(
+        _ key: String.LocalizationValue, locale: Locale = .current
+    ) -> String {
+        String(
+            localized: key,
+            bundle: bundle(for: locale),
+            locale: locale
+        )
+    }
+
+    private static func bundle(for locale: Locale) -> Bundle {
+        let localization: String? = switch locale.language.languageCode?.identifier {
+        case "zh": "zh-Hans"
+        case "en": "en"
+        default: nil
+        }
+        guard let localization,
+            let path = Bundle.main.path(forResource: localization, ofType: "lproj"),
+            let bundle = Bundle(path: path)
+        else { return .main }
+        return bundle
+    }
+}
+
 nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
     case system
     case english = "en"

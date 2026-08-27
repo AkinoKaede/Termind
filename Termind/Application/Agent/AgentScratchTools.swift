@@ -58,9 +58,10 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             properties: ["path": string(max: pathBytes), "recursive": boolean()],
             required: [], target: .local, safety: .locallyReadOnly, concurrency: .parallel,
             presentation: .init(
-                symbol: "folder", activity: .argument(key: "path", fallback: "the scratch workspace"),
+                symbol: "folder",
+                activity: .semanticArgument(key: "path", fallback: .scratchWorkspace),
                 output: .json,
-                action: .init(infinitive: "list", progressive: "Listing", past: "Listed")
+                actionKind: .list
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -101,9 +102,9 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             ],
             required: ["path"], target: .local, safety: .locallyReadOnly, concurrency: .parallel,
             presentation: .init(
-                symbol: "doc.text", activity: .argument(key: "path", fallback: "a scratch file"),
+                symbol: "doc.text", activity: .semanticArgument(key: "path", fallback: .scratchFile),
                 output: .field("content"),
-                action: .init(infinitive: "read", progressive: "Reading", past: "Read")
+                actionKind: .read
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -137,8 +138,8 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             concurrency: .parallel,
             presentation: .init(
                 symbol: "square.and.pencil",
-                activity: .argument(key: "path", fallback: "a scratch file"), output: .json,
-                action: .init(infinitive: "write", progressive: "Writing", past: "Wrote")
+                activity: .semanticArgument(key: "path", fallback: .scratchFile), output: .json,
+                actionKind: .write
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -185,9 +186,9 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             required: ["path", "edits"], target: .local, safety: .locallyContained,
             concurrency: .parallel,
             presentation: .init(
-                symbol: "pencil", activity: .argument(key: "path", fallback: "a scratch file"),
+                symbol: "pencil", activity: .semanticArgument(key: "path", fallback: .scratchFile),
                 output: .field("diff"),
-                action: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
+                actionKind: .edit
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -226,8 +227,8 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             concurrency: .parallel,
             presentation: .init(
                 symbol: "arrow.left.arrow.right",
-                activity: .argument(key: "path_a", fallback: "scratch files"), output: .field("diff"),
-                action: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
+                activity: .semanticArgument(key: "path_a", fallback: .scratchFiles),
+                output: .field("diff"), actionKind: .compare
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -264,9 +265,9 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             required: ["path", "kind"], target: .local, safety: .locallyContained,
             concurrency: .parallel,
             presentation: .init(
-                symbol: "trash", activity: .argument(key: "path", fallback: "a scratch entry"),
+                symbol: "trash", activity: .semanticArgument(key: "path", fallback: .scratchEntry),
                 output: .json,
-                action: .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
+                actionKind: .delete
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -311,8 +312,8 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             safety: .locallyContained, concurrency: .parallel,
             presentation: .init(
                 symbol: "arrow.down.doc",
-                activity: .argument(key: "remote_path", fallback: "a remote file"), output: .json,
-                action: .init(infinitive: "pull", progressive: "Pulling", past: "Pulled"),
+                activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
+                output: .json, actionKind: .pull,
                 includesTarget: true
             )
         )
@@ -380,8 +381,8 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             safety: .requiresAuthorization,
             presentation: .init(
                 symbol: "arrow.up.doc",
-                activity: .argument(key: "remote_path", fallback: "a remote file"), output: .json,
-                action: .init(infinitive: "push", progressive: "Pushing", past: "Pushed"),
+                activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
+                output: .json, actionKind: .push,
                 includesTarget: true
             )
         )

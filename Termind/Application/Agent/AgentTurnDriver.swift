@@ -191,15 +191,14 @@ nonisolated struct AgentTurnDriver: Sendable {
             concurrency: .parallel,
             presentation: .init(
                 symbol: "magnifyingglass",
-                activity: .argument(key: "query", fallback: "the web"), output: .json,
-                action: .init(infinitive: "search", progressive: "Searching", past: "Searched")
+                activity: .semanticArgument(key: "query", fallback: .web), output: .json,
+                actionKind: .search
             )
         )
         let sources = AgentJSONValue.array(activity.sources.map { source in
             .object(["title": .string(source.title), "url": .string(source.url)])
         })
-        channel.emit(.toolProposed(invocation, descriptor))
-        channel.emit(.toolFinished(invocation, AgentToolResult(
+        var result = AgentToolResult(
             callID: invocation.call.id,
             content: sources.encodedString,
             // The flag every reader of this event needs: `callID` here names
@@ -207,6 +206,13 @@ nonisolated struct AgentTurnDriver: Sendable {
             // results must leave this one out. See
             // `AgentToolResult.isProviderNative`.
             metadata: [AgentToolResult.providerNativeKey: .bool(true)]
-        )))
+        )
+        // Native searches bypass AgentToolExecutor, whose normal finish path
+        // persists presentation metadata. Store it here as well so a restored
+        // card can still derive its activity from `query` instead of exposing
+        // the internal `web_search` protocol name.
+        result.toolPresentation = descriptor.presentation
+        channel.emit(.toolProposed(invocation, descriptor))
+        channel.emit(.toolFinished(invocation, result))
     }
 }

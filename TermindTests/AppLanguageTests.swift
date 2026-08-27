@@ -99,7 +99,7 @@ struct AppLanguageTests {
         )
         let strings = try #require(root["strings"] as? [String: Any])
         let expected = [
-            "App": "App",
+            "App": "应用",
             "Version": "版本",
             "Welcome": "欢迎",
             "Snippets": "片段",

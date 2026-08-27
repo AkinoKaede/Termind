@@ -15,6 +15,15 @@ nonisolated enum AgentApprovalDecision: Hashable, Sendable {
 
 nonisolated enum SecurityReviewRisk: String, Hashable, Sendable, Codable {
     case low, medium, high, critical
+
+    var displayName: String {
+        switch self {
+        case .low: String(localized: "Low")
+        case .medium: String(localized: "Medium")
+        case .high: String(localized: "High")
+        case .critical: String(localized: "Critical")
+        }
+    }
 }
 
 nonisolated enum SecurityReviewVerdict: String, Hashable, Sendable, Codable {
