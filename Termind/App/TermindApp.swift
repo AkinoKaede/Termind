@@ -14,6 +14,7 @@ struct TermindApp: App {
     private let launchLanguage = AppLanguage.stored()
 
     init() {
+        ContextAttachmentOpener.cleanPreviousSession()
         do {
             let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"]
                 != nil

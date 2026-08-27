@@ -62,6 +62,34 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     var label: String
     var content: String = ""
     var image: AgentImageAttachment? = nil
+    /// Original non-image bytes used only to reopen a sent attachment. The
+    /// model still receives `content`, which is the validated extraction.
+    var sourceAttachment: AgentContextAttachment? = nil
+
+    var contextAttachment: AgentContextAttachment? {
+        guard image == nil, let attachmentKind = kind.agentAttachmentKind else { return nil }
+        if let sourceAttachment {
+            return AgentContextAttachment(
+                id: id, kind: attachmentKind, label: label,
+                contentTypeIdentifier: sourceAttachment.contentTypeIdentifier,
+                suggestedFilename: sourceAttachment.suggestedFilename,
+                data: sourceAttachment.data,
+                isOriginalFile: sourceAttachment.isOriginalFile
+            )
+        }
+        let filename: String
+        if kind == .file {
+            let stem = (label as NSString).deletingPathExtension
+            filename = "\(stem.isEmpty ? label : stem) extracted.txt"
+        } else {
+            filename = (label as NSString).pathExtension.isEmpty ? "\(label).txt" : label
+        }
+        return AgentContextAttachment(
+            id: id, kind: attachmentKind, label: label,
+            contentTypeIdentifier: "public.plain-text", suggestedFilename: filename,
+            data: Data(content.utf8), isOriginalFile: false
+        )
+    }
 
     /// Derived, not declared. A hand-passed count is a number that was true
     /// once, and the estimate exists to warn about payload size.
@@ -93,13 +121,15 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     /// Rebuilds lightweight bubble chips from the model-facing markup without
     /// retaining or rendering the payload between the tags.
     static func visibleReferences(
-        in composedText: String, images: [AgentImageAttachment] = []
+        in composedText: String, images: [AgentImageAttachment] = [],
+        contextAttachments: [AgentContextAttachment] = []
     ) -> [ContextChipReference] {
         let boundary = Kind.allCases.compactMap { kind in
             composedText.range(of: "\n\n<\(kind.blockName) label=\"")?.lowerBound
         }.min()
 
         var matches: [(String.Index, ContextChipReference)] = []
+        var unusedAttachments = contextAttachments
         if let boundary {
             let suffix = composedText[boundary...]
             for kind in Kind.allCases where kind != .image {
@@ -110,13 +140,31 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
                     guard let labelEnd = suffix.range(
                         of: "\">", range: labelStart..<suffix.endIndex
                     ) else { break }
+                    let contentStart = labelEnd.upperBound
+                    let closing = "</\(kind.blockName)>"
+                    guard let contentEnd = suffix.range(
+                        of: closing, range: contentStart..<suffix.endIndex
+                    ) else { break }
+                    let label = String(suffix[labelStart..<labelEnd.lowerBound])
+                    let storedIndex = unusedAttachments.firstIndex {
+                        $0.label.replacingOccurrences(of: "\"", with: "'") == label
+                            && $0.kind == kind.agentAttachmentKind
+                    }
+                    let attachment: AgentContextAttachment? = storedIndex.map {
+                        unusedAttachments.remove(at: $0)
+                    } ?? kind.fallbackAttachment(
+                        label: label,
+                        content: String(suffix[contentStart..<contentEnd.lowerBound])
+                    )
                     matches.append((
                         opening.lowerBound,
                         ContextChipReference(
-                            kind: kind, label: String(suffix[labelStart..<labelEnd.lowerBound])
+                            id: attachment?.id ?? UUID(), kind: kind,
+                            label: attachment?.label ?? label,
+                            attachment: attachment
                         )
                     ))
-                    cursor = labelEnd.upperBound
+                    cursor = contentEnd.upperBound
                 }
             }
         }
@@ -137,6 +185,41 @@ nonisolated struct ContextChipReference: Identifiable, Hashable, Sendable {
     var id: UUID = UUID()
     var kind: ContextChip.Kind
     var label: String
+    var attachment: AgentContextAttachment? = nil
+}
+
+private extension ContextChip.Kind {
+    nonisolated var agentAttachmentKind: AgentContextAttachment.Kind? {
+        switch self {
+        case .file: .file
+        case .output: .output
+        case .selection: .selection
+        case .pastedText: .pastedText
+        case .host: .host
+        case .directory: .directory
+        case .image: nil
+        }
+    }
+
+    nonisolated func fallbackAttachment(
+        label: String, content: String
+    ) -> AgentContextAttachment? {
+        guard let kind = agentAttachmentKind else { return nil }
+        var text = content
+        if text.hasPrefix("\n") { text.removeFirst() }
+        if text.hasSuffix("\n") { text.removeLast() }
+        let filename: String
+        if self == .file {
+            let stem = (label as NSString).deletingPathExtension
+            filename = "\(stem.isEmpty ? label : stem) extracted.txt"
+        } else {
+            filename = (label as NSString).pathExtension.isEmpty ? "\(label).txt" : label
+        }
+        return AgentContextAttachment(
+            kind: kind, label: label, contentTypeIdentifier: "public.plain-text",
+            suggestedFilename: filename, data: Data(text.utf8), isOriginalFile: false
+        )
+    }
 }
 
 nonisolated struct PendingContextAttachment: Identifiable, Hashable, Sendable {
@@ -718,8 +801,19 @@ final class ConversationModel: Identifiable {
         guard let first = messages.first(where: { $0.role == .user }) else {
             return String(localized: "New Chat")
         }
+        if first.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            let attachment = first.contextChips.first?.label ?? first.images.first?.label
+        {
+            return attachment
+        }
         let line = first.text.split(separator: "\n").first.map(String.init) ?? first.text
         return line.count > 40 ? String(line.prefix(40)) + "…" : line
+    }
+
+    /// User-authored content only. Surface-owned session context is supplied
+    /// separately and must never make an otherwise empty composer sendable.
+    var canSendDraft: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
     }
 
     var isEmpty: Bool { timeline.isEmpty }
@@ -752,7 +846,8 @@ final class ConversationModel: Identifiable {
             ? String(original.text.dropFirst(visible.count)) : ""
         return AgentTranscriptMessage(
             role: .user, text: authoredText + suffix, authoredText: authoredText,
-            images: original.images, createdAt: .now
+            images: original.images, contextAttachments: original.contextAttachments,
+            createdAt: .now
         )
     }
 
@@ -772,7 +867,8 @@ final class ConversationModel: Identifiable {
                 id: replacement.id, role: .user,
                 text: replacement.authoredText ?? ContextChip.visiblePrompt(in: replacement.text),
                 contextChips: ContextChip.visibleReferences(
-                    in: replacement.text, images: replacement.images
+                    in: replacement.text, images: replacement.images,
+                    contextAttachments: replacement.contextAttachments
                 ), images: replacement.images, createdAt: replacement.createdAt
             )])
         }
@@ -794,7 +890,8 @@ final class ConversationModel: Identifiable {
         }
         return ComposedUserTurn(
             id: replacement.id, text: replacement.text,
-            authoredText: replacement.authoredText ?? "", images: replacement.images
+            authoredText: replacement.authoredText ?? "", images: replacement.images,
+            contextAttachments: replacement.contextAttachments
         )
     }
 
@@ -839,7 +936,8 @@ final class ConversationModel: Identifiable {
                     id: message.id, role: .user,
                     text: message.authoredText ?? ContextChip.visiblePrompt(in: message.text),
                     contextChips: ContextChip.visibleReferences(
-                        in: message.text, images: message.images
+                        in: message.text, images: message.images,
+                        contextAttachments: message.contextAttachments
                     ), images: message.images, createdAt: message.createdAt
                 )
             case .assistant:
@@ -1274,7 +1372,7 @@ final class ConversationModel: Identifiable {
     /// path; the sidebar promotion flow uses this before starting that run.
     func sendDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        guard canSendDraft else { return }
         appendUserTurn(text)
         draft = ""
     }
@@ -1302,6 +1400,7 @@ final class ConversationModel: Identifiable {
         var text: String
         var authoredText: String
         var images: [AgentImageAttachment]
+        var contextAttachments: [AgentContextAttachment]
     }
 
     @discardableResult
@@ -1309,7 +1408,10 @@ final class ConversationModel: Identifiable {
         let composed = composed(text)
         let messageID = UUID()
         let contextChips = attachments.map {
-            ContextChipReference(id: $0.id, kind: $0.kind, label: $0.label)
+            ContextChipReference(
+                id: $0.id, kind: $0.kind, label: $0.label,
+                attachment: $0.contextAttachment
+            )
         }
         attachments.removeAll()
         messages.append(
@@ -1321,12 +1423,14 @@ final class ConversationModel: Identifiable {
         transcript.append(
             AgentTranscriptMessage(
                 id: messageID, role: .user, text: composed.text,
-                authoredText: text, images: composed.images
+                authoredText: text, images: composed.images,
+                contextAttachments: composed.contextAttachments
             )
         )
         updatedAt = .now
         return ComposedUserTurn(
-            id: messageID, text: composed.text, authoredText: text, images: composed.images
+            id: messageID, text: composed.text, authoredText: text, images: composed.images,
+            contextAttachments: composed.contextAttachments
         )
     }
 
@@ -1336,7 +1440,10 @@ final class ConversationModel: Identifiable {
     /// belong in a Markdown bubble.
     private func composed(_ text: String) -> ComposedUserTurn {
         guard !attachments.isEmpty else {
-            return ComposedUserTurn(id: UUID(), text: text, authoredText: text, images: [])
+            return ComposedUserTurn(
+                id: UUID(), text: text, authoredText: text, images: [],
+                contextAttachments: []
+            )
         }
         let blocks = attachments.compactMap { chip -> String? in
             guard chip.image == nil else { return nil }
@@ -1352,7 +1459,8 @@ final class ConversationModel: Identifiable {
         return ComposedUserTurn(
             id: UUID(), text: ([text] + blocks).joined(separator: "\n\n"),
             authoredText: text,
-            images: attachments.compactMap(\.image)
+            images: attachments.compactMap(\.image),
+            contextAttachments: attachments.compactMap(\.contextAttachment)
         )
     }
 
@@ -1418,13 +1526,13 @@ final class ConversationModel: Identifiable {
     /// really saw it.
     func submitSteeringDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, let runtime else { return }
+        guard canSendDraft, let runtime else { return }
         let composed = composed(text)
         let pending = PendingSteeringMessage(
             draft: text, attachments: attachments,
             message: AgentTranscriptMessage(
                 role: .user, text: composed.text, authoredText: text,
-                images: composed.images
+                images: composed.images, contextAttachments: composed.contextAttachments
             )
         )
         pendingSteering.append(pending)
@@ -1914,8 +2022,14 @@ final class ConversationModel: Identifiable {
             let pending = pendingSteering.first(where: { $0.id == message.id })
             let visibleText = pending?.draft ?? ContextChip.visiblePrompt(in: message.text)
             let contextChips = pending?.attachments.map {
-                ContextChipReference(id: $0.id, kind: $0.kind, label: $0.label)
-            } ?? ContextChip.visibleReferences(in: message.text, images: message.images)
+                ContextChipReference(
+                    id: $0.id, kind: $0.kind, label: $0.label,
+                    attachment: $0.contextAttachment
+                )
+            } ?? ContextChip.visibleReferences(
+                in: message.text, images: message.images,
+                contextAttachments: message.contextAttachments
+            )
             pendingSteering.removeAll { $0.id == message.id }
             messages.append(
                 ChatMessage(

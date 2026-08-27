@@ -77,7 +77,8 @@ final class AssistantConversationStore {
                             id: message.id, role: .user,
                             text: message.authoredText ?? ContextChip.visiblePrompt(in: message.text),
                             contextChips: ContextChip.visibleReferences(
-                                in: message.text, images: message.images
+                                in: message.text, images: message.images,
+                                contextAttachments: message.contextAttachments
                             ),
                             images: message.images,
                             createdAt: message.createdAt

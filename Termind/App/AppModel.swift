@@ -256,7 +256,7 @@ final class AppModel {
         includesTerminalSuggestion: Bool = false
     ) {
         let draft = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !draft.isEmpty else { return }
+        guard conversation.canSendDraft else { return }
         // The *returned* text, not `draft`: attachments are folded in there, and
         // running on the pre-fold string would show the model a turn that does
         // not match the one the conversation recorded.
@@ -272,7 +272,8 @@ final class AppModel {
             await compactIfNeeded(conversation)
             startAgentRun(
                 conversation, promptID: prompt.id, prompt: prompt.text,
-                authoredPrompt: prompt.authoredText, promptImages: prompt.images, context: context,
+                authoredPrompt: prompt.authoredText, promptImages: prompt.images,
+                promptContextAttachments: prompt.contextAttachments, context: context,
                 includesTerminalSuggestion: includesTerminalSuggestion
             )
         }
@@ -284,6 +285,7 @@ final class AppModel {
         prompt: String? = nil,
         authoredPrompt: String? = nil,
         promptImages: [AgentImageAttachment]? = nil,
+        promptContextAttachments: [AgentContextAttachment]? = nil,
         context: SessionContext = .none,
         includesTerminalSuggestion: Bool = false
     ) {
@@ -295,7 +297,11 @@ final class AppModel {
         let userImages = promptImages
             ?? lastUserTurn?.images
             ?? []
-        guard !userPrompt.isEmpty else { return }
+        let userContextAttachments = promptContextAttachments
+            ?? lastUserTurn?.contextAttachments
+            ?? []
+        guard !userPrompt.isEmpty || !userImages.isEmpty || !userContextAttachments.isEmpty
+        else { return }
         guard let chat = ai.resolve(conversation: conversation.model) else {
             conversation.messages.append(
                 ChatMessage(
@@ -426,6 +432,7 @@ final class AppModel {
                 promptID: promptID ?? lastUserTurn?.id ?? UUID(), prompt: userPrompt,
                 authoredPrompt: authoredPrompt ?? lastUserTurn?.authoredText,
                 promptImages: userImages,
+                promptContextAttachments: userContextAttachments,
                 permissionMode: mode, isPlanning: isPlanning,
                 priorMessages: conversation.pendingPriorMessages,
                 sessionContext: context
@@ -598,11 +605,17 @@ final class AppModel {
     /// instead of staying labelled by its opening line forever.
     static func titleContext(for conversation: ConversationModel) -> ConversationTitleContext? {
         guard conversation.title == nil,
-            let user = conversation.transcript.first(where: { $0.role == .user })?.text,
+            let firstUser = conversation.transcript.first(where: { $0.role == .user }),
             let assistant = conversation.transcript.first(where: {
                 $0.role == .assistant && !$0.text.isEmpty
             })?.text
         else { return nil }
+        let user = firstUser.text.isEmpty
+            ? firstUser.images.first?.label
+                ?? firstUser.contextAttachments.first?.label
+                ?? ""
+            : firstUser.text
+        guard !user.isEmpty else { return nil }
         return ConversationTitleContext(
             firstUserMessage: user, firstAssistantMessage: assistant
         )
@@ -811,6 +824,7 @@ final class AppModel {
                 self.startAgentRun(
                     conversation, promptID: prompt.id, prompt: prompt.text,
                     authoredPrompt: prompt.authoredText, promptImages: prompt.images,
+                    promptContextAttachments: prompt.contextAttachments,
                     context: context,
                     includesTerminalSuggestion: includesTerminalSuggestion
                 )

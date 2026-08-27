@@ -98,6 +98,25 @@ final class PersistentAgentMessage {
     }
 }
 
+/// V3 storage for original context snapshots. A separate model keeps the V2
+/// message schema frozen and makes the migration an additive lightweight one.
+@Model
+final class PersistentAgentContextAttachments {
+    @Attribute(.unique) var messageID: UUID = UUID()
+    @Attribute(.externalStorage) var attachmentsData = Data()
+
+    init(messageID: UUID, attachments: [AgentContextAttachment]) {
+        self.messageID = messageID
+        attachmentsData = (try? JSONEncoder().encode(attachments)) ?? Data()
+    }
+
+    var attachments: [AgentContextAttachment] {
+        (try? JSONDecoder().decode(
+            [AgentContextAttachment].self, from: attachmentsData
+        )) ?? []
+    }
+}
+
 @Model
 final class PersistentAgentToolInvocation {
     @Attribute(.unique) var id: UUID = UUID()
@@ -232,6 +251,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             context.insert(PersistentAgentMessage(
                 message, runID: runID, sequence: sequence
             ))
+            insertContextAttachments(for: message)
             inserted = true
         }
         guard inserted || context.hasChanges else { return }
@@ -278,6 +298,12 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         ))
         let runs = try context.fetch(FetchDescriptor<PersistentAgentRun>())
         let messages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
+        let attachmentRows = try context.fetch(
+            FetchDescriptor<PersistentAgentContextAttachments>()
+        )
+        let attachmentsByMessage = Dictionary(
+            uniqueKeysWithValues: attachmentRows.map { ($0.messageID, $0.attachments) }
+        )
         let invocations = try context.fetch(FetchDescriptor<PersistentAgentToolInvocation>())
         let results = try context.fetch(FetchDescriptor<PersistentAgentToolResult>())
         let reviews = try context.fetch(FetchDescriptor<PersistentAgentReviewRecord>())
@@ -319,12 +345,14 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     let images = (try? JSONDecoder().decode(
                         [AgentImageAttachment].self, from: row.imagesData
                     )) ?? []
+                    let contextAttachments = attachmentsByMessage[row.id] ?? []
                     let reasoning = (try? JSONDecoder().decode(
                         [AgentReasoningBlock].self, from: row.reasoningData
                     )) ?? []
                     return AgentTranscriptMessage(
                         id: row.id, role: role, text: row.text,
                         authoredText: row.authoredText, images: images,
+                        contextAttachments: contextAttachments,
                         reasoning: reasoning,
                         toolCalls: calls,
                         toolCallID: row.toolCallID, toolName: row.toolName,
@@ -445,6 +473,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             context.insert(PersistentAgentMessage(
                 replacement, runID: replacementRun.id, sequence: 0
             ))
+            insertContextAttachments(for: replacement)
 
             let descriptor = FetchDescriptor<PersistentAgentConversation>(
                 predicate: #Predicate { $0.id == id }
@@ -508,6 +537,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     } ?? fallbackRunID,
                     sequence: sequence
                 ))
+                insertContextAttachments(for: message)
             }
             for card in value.toolCards {
                 var invocation = card.invocation
@@ -553,9 +583,20 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             where runIDs.contains(row.runID) { context.delete(row) }
         for row in try context.fetch(FetchDescriptor<PersistentAgentToolInvocation>())
             where runIDs.contains(row.runID) { context.delete(row) }
-        for row in try context.fetch(FetchDescriptor<PersistentAgentMessage>())
-            where runIDs.contains(row.runID) { context.delete(row) }
+        let messages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
+            .filter { runIDs.contains($0.runID) }
+        let messageIDs = Set(messages.map(\.id))
+        for row in try context.fetch(FetchDescriptor<PersistentAgentContextAttachments>())
+            where messageIDs.contains(row.messageID) { context.delete(row) }
+        for row in messages { context.delete(row) }
         for row in runs { context.delete(row) }
+    }
+
+    private func insertContextAttachments(for message: AgentTranscriptMessage) {
+        guard !message.contextAttachments.isEmpty else { return }
+        context.insert(PersistentAgentContextAttachments(
+            messageID: message.id, attachments: message.contextAttachments
+        ))
     }
 
     /// Puts back tool results that were recorded but never made it into the

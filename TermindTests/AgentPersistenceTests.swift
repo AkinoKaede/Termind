@@ -95,6 +95,85 @@ struct AgentPersistenceTests {
     }
 
     @Test
+    func contextAttachmentsRoundTripThroughConversationPersistence() async throws {
+        let configuration = localModelConfiguration(
+            "AgentContextAttachmentPersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let attachment = AgentContextAttachment(
+            kind: .file, label: "manual.pdf", contentTypeIdentifier: "com.adobe.pdf",
+            suggestedFilename: "manual.pdf", data: Data([0x25, 0x50, 0x44, 0x46])
+        )
+        let message = AgentTranscriptMessage(
+            role: .user, text: "\n\n<file label=\"manual.pdf\">\nText\n</file>",
+            contextAttachments: [attachment]
+        )
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval, messages: [message]
+        )
+
+        try await repository.save(snapshot)
+        let restored = try await repository.loadConversations()
+
+        #expect(restored.first?.messages.first?.contextAttachments == [attachment])
+        #expect(try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentContextAttachments>()
+        ).count == 1)
+
+        try await repository.deleteConversation(snapshot.conversationID)
+        #expect(try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentContextAttachments>()
+        ).isEmpty)
+    }
+
+    @Test
+    func schemaV2MigratesToV3WithEmptyAttachmentBacking() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TermindAgentV3Migration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appendingPathComponent("Termind.store")
+        let legacySchema = Schema(versionedSchema: TermindSchemaV2.self)
+        let conversationID = UUID()
+
+        var legacyContainer: ModelContainer? = try ModelContainer(
+            for: legacySchema,
+            configurations: [
+                localModelConfiguration("Migration", schema: legacySchema, url: storeURL)
+            ]
+        )
+        legacyContainer?.mainContext.insert(PersistentAgentConversation(
+            id: conversationID, title: "Existing"
+        ))
+        try legacyContainer?.mainContext.save()
+        legacyContainer = nil
+
+        let migrated = try ModelContainer(
+            for: HostPersistence.schema,
+            migrationPlan: TermindMigrationPlan.self,
+            configurations: [
+                localModelConfiguration(
+                    "Migration", schema: HostPersistence.schema, url: storeURL
+                )
+            ]
+        )
+
+        #expect(try migrated.mainContext.fetch(
+            FetchDescriptor<PersistentAgentConversation>()
+        ).map(\.id) == [conversationID])
+        #expect(try migrated.mainContext.fetch(
+            FetchDescriptor<PersistentAgentContextAttachments>()
+        ).isEmpty)
+    }
+
+    @Test
     func displayReasoningRoundTripsRedactedWithoutProviderState() async throws {
         let configuration = localModelConfiguration(
             "AgentReasoningPersistenceTests", schema: HostPersistence.schema,

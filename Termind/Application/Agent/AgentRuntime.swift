@@ -128,7 +128,9 @@ actor AgentRuntime {
     @discardableResult
     func steer(_ message: AgentTranscriptMessage) -> Bool {
         guard acceptsSteering else { return false }
-        guard !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !message.images.isEmpty || !message.contextAttachments.isEmpty
+        else {
             return false
         }
         steering.append(message)
@@ -164,7 +166,8 @@ actor AgentRuntime {
         }
         let prompt = AgentTranscriptMessage(
             id: request.promptID, role: .user, text: request.prompt,
-            authoredText: request.authoredPrompt, images: request.promptImages
+            authoredText: request.authoredPrompt, images: request.promptImages,
+            contextAttachments: request.promptContextAttachments
         )
         snapshot.messages.append(prompt)
         let pipeline = configuration.contextPipeline(

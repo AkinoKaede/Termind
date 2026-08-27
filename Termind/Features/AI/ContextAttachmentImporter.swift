@@ -42,23 +42,23 @@ nonisolated enum ContextAttachmentImporter {
 
             if ["doc", "xls", "ppt"].contains(ext) { throw ImportError.legacyOffice }
             if ext == "pdf" {
-                return ContextChip(kind: .file, label: label, content: try pdfText(data))
+                return fileChip(label: label, data: data, content: try pdfText(data), url: url)
             }
             if ext == "docx" {
-                return ContextChip(kind: .file, label: label, content: try docxText(data))
+                return fileChip(label: label, data: data, content: try docxText(data), url: url)
             }
             if ext == "pptx" {
-                return ContextChip(kind: .file, label: label, content: try pptxText(data))
+                return fileChip(label: label, data: data, content: try pptxText(data), url: url)
             }
             if ext == "xlsx" {
-                return ContextChip(kind: .file, label: label, content: try xlsxText(data))
+                return fileChip(label: label, data: data, content: try xlsxText(data), url: url)
             }
             if isImage(url: url) {
                 let image = try normalizedImage(data: data, label: label)
                 return ContextChip(kind: .image, label: label, image: image)
             }
             guard isText(url: url) else { throw ImportError.unsupportedFormat }
-            return ContextChip(kind: .file, label: label, content: try decodedText(data))
+            return fileChip(label: label, data: data, content: try decodedText(data), url: url)
         }
         return try await withTaskCancellationHandler {
             try await task.value
@@ -87,6 +87,21 @@ nonisolated enum ContextAttachmentImporter {
 
     static func shouldAttachPastedText(_ text: String) -> Bool {
         text.count >= 2_000 || text.split(separator: "\n", omittingEmptySubsequences: false).count >= 20
+    }
+
+    private static func fileChip(
+        label: String, data: Data, content: String, url: URL
+    ) -> ContextChip {
+        let attachment = AgentContextAttachment(
+            kind: .file, label: label,
+            contentTypeIdentifier: UTType(filenameExtension: url.pathExtension)?.identifier
+                ?? UTType.data.identifier,
+            suggestedFilename: label, data: data
+        )
+        return ContextChip(
+            id: attachment.id, kind: .file, label: label, content: content,
+            sourceAttachment: attachment
+        )
     }
 
     private static func isImage(url: URL) -> Bool {

@@ -621,17 +621,13 @@ struct ComposerView: View {
     /// when the field gains content.
     private static let editorTextInset: CGFloat = 5
 
-    private var trimmedDraft: String {
-        conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
     /// Stop and Send share one slot rather than standing side by side.
     ///
     /// Drawn together they read as a pair of equals, and the primary action
     /// moved under the pointer the moment the draft gained a character. With a
     /// draft to send, Send is what the button is for; with nothing to send,
     /// stopping is the only thing left to do.
-    private var showsStopButton: Bool { conversation.isStreaming && trimmedDraft.isEmpty }
+    private var showsStopButton: Bool { conversation.isStreaming && !conversation.canSendDraft }
 
     private var standardControls: some View {
         HStack(spacing: Metrics.Space.s) {
@@ -646,7 +642,7 @@ struct ComposerView: View {
                 stopButton
             } else {
                 sendButton(
-                    enabled: !trimmedDraft.isEmpty && conversation.pendingAttachments.isEmpty,
+                    enabled: conversation.canSendDraft && conversation.pendingAttachments.isEmpty,
                     help: conversation.isStreaming
                         ? "Queue for the running agent — ⏎" : "Send — ⌘⏎",
                     action: sendDraft

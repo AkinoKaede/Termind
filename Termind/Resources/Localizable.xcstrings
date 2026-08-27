@@ -728,6 +728,56 @@
         }
       }
     },
+    "%lldh" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld小时"
+          }
+        }
+      }
+    },
+    "%lldh %lldm" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld小时%2$lld分钟"
+          }
+        }
+      }
+    },
+    "%lldm" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld分钟"
+          }
+        }
+      }
+    },
+    "%lldm %llds" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld分钟%2$lld秒"
+          }
+        }
+      }
+    },
+    "%llds" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld秒"
+          }
+        }
+      }
+    },
     "•" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1001,12 +1051,52 @@
         }
       }
     },
+    "a command" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令"
+          }
+        }
+      }
+    },
     "A message can include at most 20 attachments." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "一条消息最多可包含20个附件。"
+          }
+        }
+      }
+    },
+    "a plan" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计划"
+          }
+        }
+      }
+    },
+    "a question" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "问题"
+          }
+        }
+      }
+    },
+    "a remote file" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远程文件"
           }
         }
       }
@@ -1021,12 +1111,52 @@
         }
       }
     },
+    "a scratch entry" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂存条目"
+          }
+        }
+      }
+    },
+    "a scratch file" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂存文件"
+          }
+        }
+      }
+    },
+    "a secret" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密钥信息"
+          }
+        }
+      }
+    },
     "A truncated model response contained tool calls; none were executed." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "截断的模型响应中包含工具调用，均未执行。"
+          }
+        }
+      }
+    },
+    "a URL" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL"
           }
         }
       }
@@ -1381,6 +1511,16 @@
         }
       }
     },
+    "Always Ask requires approval for every call. Follow Permissions uses the conversation's permission mode and safety checks." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“始终询问”要求每次调用都由你批准；“跟随权限设置”则使用当前会话的权限模式和安全检查。"
+          }
+        }
+      }
+    },
     "Always included" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1591,6 +1731,16 @@
         }
       }
     },
+    "ask" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "询问"
+          }
+        }
+      }
+    },
     "Ask a question or describe what you want to do." : {
       "localizations" : {
         "zh-Hans" : {
@@ -1632,6 +1782,7 @@
       }
     },
     "Ask First" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2067,6 +2218,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "证书（可选）"
+          }
+        }
+      }
+    },
+    "change permissions for" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改权限"
           }
         }
       }
@@ -2617,6 +2778,16 @@
         }
       }
     },
+    "compare" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比较"
+          }
+        }
+      }
+    },
     "Completed" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2793,6 +2964,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在连接"
+          }
+        }
+      }
+    },
+    "Connecting to %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在连接%@"
           }
         }
       }
@@ -3157,6 +3338,16 @@
         }
       }
     },
+    "Couldn’t Open Attachment" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开附件"
+          }
+        }
+      }
+    },
     "Couldn’t compact context" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3173,6 +3364,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法生成命令"
+          }
+        }
+      }
+    },
+    "create" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建"
           }
         }
       }
@@ -3213,6 +3414,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "凭据"
+          }
+        }
+      }
+    },
+    "Critical" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "严重"
           }
         }
       }
@@ -3313,6 +3524,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "密钥类型的默认值"
+          }
+        }
+      }
+    },
+    "delete" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
           }
         }
       }
@@ -3677,6 +3898,26 @@
         }
       }
     },
+    "Did not run “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未运行“%@”"
+          }
+        }
+      }
+    },
+    "Did not run “%@” on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未在%2$@上运行“%1$@”"
+          }
+        }
+      }
+    },
     "Diff" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3693,6 +3934,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "方向"
+          }
+        }
+      }
+    },
+    "Directory" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目录"
           }
         }
       }
@@ -3873,6 +4124,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "较早的对话已为模型生成摘要，没有删除任何内容。"
+          }
+        }
+      }
+    },
+    "edit" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑"
           }
         }
       }
@@ -4403,6 +4664,36 @@
         }
       }
     },
+    "Failed to run “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未能运行“%@”"
+          }
+        }
+      }
+    },
+    "Failed to run “%@” on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未能在%2$@上运行“%1$@”"
+          }
+        }
+      }
+    },
+    "fetch" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取"
+          }
+        }
+      }
+    },
     "Fetch" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4429,6 +4720,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已获取%@"
+          }
+        }
+      }
+    },
+    "File" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件"
           }
         }
       }
@@ -5114,6 +5415,16 @@
         }
       }
     },
+    "hosts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主机"
+          }
+        }
+      }
+    },
     "Hosts" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5416,6 +5727,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "内部"
+          }
+        }
+      }
+    },
+    "inspect" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查"
           }
         }
       }
@@ -5806,6 +6127,16 @@
         }
       }
     },
+    "list" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列出"
+          }
+        }
+      }
+    },
     "List saved hosts" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6138,6 +6469,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修改状态"
+          }
+        }
+      }
+    },
+    "move" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移动"
           }
         }
       }
@@ -6612,6 +6953,16 @@
         }
       }
     },
+    "No application is available to open this attachment." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可用于打开此附件的应用。"
+          }
+        }
+      }
+    },
     "No key saved yet. Termind saves it on first connection and warns if it changes." : {
       "localizations" : {
         "zh-Hans" : {
@@ -7043,6 +7394,7 @@
       }
     },
     "Offer" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -7118,6 +7470,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开"
+          }
+        }
+      }
+    },
+    "Open %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开%@"
           }
         }
       }
@@ -7712,12 +8074,42 @@
         }
       }
     },
+    "Preparing to run “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备运行“%@”"
+          }
+        }
+      }
+    },
+    "Preparing to run “%@” on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备在%2$@上运行“%1$@”"
+          }
+        }
+      }
+    },
     "Preparing upload…" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在准备上传…"
+          }
+        }
+      }
+    },
+    "present" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提交"
           }
         }
       }
@@ -7942,6 +8334,16 @@
         }
       }
     },
+    "pull" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拉取"
+          }
+        }
+      }
+    },
     "Purple" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7958,6 +8360,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目的"
+          }
+        }
+      }
+    },
+    "push" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推送"
           }
         }
       }
@@ -8068,6 +8480,26 @@
         }
       }
     },
+    "Ran “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已运行“%@”"
+          }
+        }
+      }
+    },
+    "Ran “%@” on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在%2$@上运行“%1$@”"
+          }
+        }
+      }
+    },
     "Ran %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8084,6 +8516,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已连接后端，但未返回结果。"
+          }
+        }
+      }
+    },
+    "read" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取"
           }
         }
       }
@@ -8500,6 +8942,26 @@
         }
       }
     },
+    "Repeated tool action failed: %lld %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld次%2$@失败"
+          }
+        }
+      }
+    },
+    "Repeated tool action interrupted: %lld %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld次%2$@已中断"
+          }
+        }
+      }
+    },
     "Replace" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8526,6 +8988,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "回复以继续规划"
+          }
+        }
+      }
+    },
+    "request" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求"
           }
         }
       }
@@ -8850,6 +9322,16 @@
         }
       }
     },
+    "run" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行"
+          }
+        }
+      }
+    },
     "Run" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8916,6 +9398,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在运行·1个连接"
+          }
+        }
+      }
+    },
+    "Running “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在运行“%@”"
+          }
+        }
+      }
+    },
+    "Running “%@” on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在%2$@上运行“%1$@”"
           }
         }
       }
@@ -9020,6 +9522,16 @@
         }
       }
     },
+    "scratch files" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂存文件"
+          }
+        }
+      }
+    },
     "Scratch path" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9046,6 +9558,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "脚本"
+          }
+        }
+      }
+    },
+    "search" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索"
           }
         }
       }
@@ -10168,6 +10690,26 @@
         }
       }
     },
+    "Stopped waiting for “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止等待“%@”"
+          }
+        }
+      }
+    },
+    "Stopped waiting for “%@” on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止等待%2$@上的“%1$@”"
+          }
+        }
+      }
+    },
     "Stops or disables a running service." : {
       "localizations" : {
         "zh-Hans" : {
@@ -10248,6 +10790,16 @@
         }
       }
     },
+    "suggest" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成建议"
+          }
+        }
+      }
+    },
     "Suggested Command" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10274,6 +10826,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "切换这个对话的模型"
+          }
+        }
+      }
+    },
+    "Symlink" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "符号链接"
           }
         }
       }
@@ -11298,6 +11860,16 @@
         }
       }
     },
+    "the remote command" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远程命令"
+          }
+        }
+      }
+    },
     "The remote shell did not return its current input." : {
       "localizations" : {
         "zh-Hans" : {
@@ -11354,6 +11926,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存时保存的密码将被清除。"
+          }
+        }
+      }
+    },
+    "the scratch workspace" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂存工作区"
           }
         }
       }
@@ -11528,6 +12110,16 @@
         }
       }
     },
+    "the SSH command" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH命令"
+          }
+        }
+      }
+    },
     "The SSH connection closed." : {
       "localizations" : {
         "zh-Hans" : {
@@ -11604,6 +12196,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用户否认此动作。"
+          }
+        }
+      }
+    },
+    "the web" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络"
           }
         }
       }
@@ -11932,6 +12534,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "令牌"
+          }
+        }
+      }
+    },
+    "Tool action completed: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已%1$@%2$@"
+          }
+        }
+      }
+    },
+    "Tool action denied: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未%1$@%2$@"
+          }
+        }
+      }
+    },
+    "Tool action failed: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@失败"
+          }
+        }
+      }
+    },
+    "Tool action interrupted: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@已中断"
+          }
+        }
+      }
+    },
+    "Tool action preparing: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备%1$@%2$@"
+          }
+        }
+      }
+    },
+    "Tool action running: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在%1$@%2$@"
+          }
+        }
+      }
+    },
+    "Tool action target: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "Tool action waiting: %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待%1$@%2$@"
           }
         }
       }
@@ -12376,6 +13058,16 @@
         }
       }
     },
+    "update" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
+          }
+        }
+      }
+    },
     "Updates or may update local Git references." : {
       "localizations" : {
         "zh-Hans" : {
@@ -12432,6 +13124,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用量"
+          }
+        }
+      }
+    },
+    "use" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用"
           }
         }
       }
@@ -12616,6 +13318,16 @@
         }
       }
     },
+    "wait for" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待"
+          }
+        }
+      }
+    },
     "Wait for the shell prompt to report its current directory." : {
       "localizations" : {
         "zh-Hans" : {
@@ -12692,6 +13404,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "等待你的操作…"
+          }
+        }
+      }
+    },
+    "Waiting to authenticate with %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待向%@进行身份验证"
+          }
+        }
+      }
+    },
+    "Waiting to run “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待运行“%@”"
+          }
+        }
+      }
+    },
+    "Waiting to run “%@” on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待在%2$@上运行“%1$@”"
           }
         }
       }
@@ -12806,16 +13548,6 @@
         }
       }
     },
-    "Always Ask requires approval for every call. Follow Permissions uses the conversation's permission mode and safety checks." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“始终询问”要求每次调用都由你批准；“跟随权限设置”则使用当前会话的权限模式和安全检查。"
-          }
-        }
-      }
-    },
     "With SFTP" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12832,6 +13564,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用SSH"
+          }
+        }
+      }
+    },
+    "Worked for %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作了%@"
+          }
+        }
+      }
+    },
+    "Working for %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已工作%@"
           }
         }
       }
@@ -12862,6 +13614,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作区使用情况"
+          }
+        }
+      }
+    },
+    "write" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入"
           }
         }
       }
@@ -12916,86 +13678,22 @@
         }
       }
     },
-    "%lldh %lldm" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%1$lld小时%2$lld分钟"}}}},
-    "%lldh" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%lld小时"}}}},
-    "%lldm %llds" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%1$lld分钟%2$lld秒"}}}},
-    "%lldm" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%lld分钟"}}}},
-    "%llds" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%lld秒"}}}},
-    "Working for %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"已工作%@"}}}},
-    "Worked for %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"工作了%@"}}}},
-    "You stopped after %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"你在%@后停止了"}}}},
-    "ask" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"询问"}}}},
-    "compare" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"比较"}}}},
-    "create" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"创建"}}}},
-    "delete" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"删除"}}}},
-    "edit" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"编辑"}}}},
-    "fetch" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"获取"}}}},
-    "inspect" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"检查"}}}},
-    "list" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"列出"}}}},
-    "move" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"移动"}}}},
-    "present" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"提交"}}}},
-    "pull" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"拉取"}}}},
-    "push" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"推送"}}}},
-    "read" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"读取"}}}},
-    "request" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请求"}}}},
-    "run" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"运行"}}}},
-    "search" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索"}}}},
-    "suggest" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"生成建议"}}}},
-    "update" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"更新"}}}},
-    "wait for" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"等待"}}}},
-    "write" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"写入"}}}},
-    "change permissions for" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"更改权限"}}}},
-    "use" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"使用"}}}},
-    "a command" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"命令"}}}},
-    "hosts" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"主机"}}}},
-    "a plan" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"计划"}}}},
-    "a question" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"问题"}}}},
-    "the remote command" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"远程命令"}}}},
-    "a remote file" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"远程文件"}}}},
-    "a scratch entry" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"暂存条目"}}}},
-    "a scratch file" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"暂存文件"}}}},
-    "scratch files" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"暂存文件"}}}},
-    "the scratch workspace" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"暂存工作区"}}}},
-    "a secret" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"密钥信息"}}}},
-    "the SSH command" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"SSH命令"}}}},
-    "a URL" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"URL"}}}},
-    "the web" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"网络"}}}},
-    "Repeated tool action failed: %lld %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%1$lld次%2$@失败"}}}},
-    "Repeated tool action interrupted: %lld %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%1$lld次%2$@已中断"}}}},
-    "Tool action preparing: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在准备%1$@%2$@"}}}},
-    "Tool action waiting: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"等待%1$@%2$@"}}}},
-    "Tool action running: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在%1$@%2$@"}}}},
-    "Tool action completed: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"已%1$@%2$@"}}}},
-    "Tool action denied: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"未%1$@%2$@"}}}},
-    "Tool action failed: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%1$@%2$@失败"}}}},
-    "Tool action interrupted: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%1$@%2$@已中断"}}}},
-    "Tool action target: %@ %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%1$@（%2$@）"}}}},
-    "Preparing to run “%@” on %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在准备在%2$@上运行“%1$@”"}}}},
-    "Preparing to run “%@”" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在准备运行“%@”"}}}},
-    "Waiting to run “%@” on %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"等待在%2$@上运行“%1$@”"}}}},
-    "Waiting to run “%@”" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"等待运行“%@”"}}}},
-    "Waiting to authenticate with %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"等待向%@进行身份验证"}}}},
-    "Connecting to %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在连接%@"}}}},
-    "Running “%@” on %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在%2$@上运行“%1$@”"}}}},
-    "Running “%@”" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在运行“%@”"}}}},
-    "Ran “%@” on %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"已在%2$@上运行“%1$@”"}}}},
-    "Ran “%@”" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"已运行“%@”"}}}},
-    "Did not run “%@” on %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"未在%2$@上运行“%1$@”"}}}},
-    "Did not run “%@”" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"未运行“%@”"}}}},
-    "Failed to run “%@” on %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"未能在%2$@上运行“%1$@”"}}}},
-    "Failed to run “%@”" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"未能运行“%@”"}}}},
-    "Stopped waiting for “%@” on %@" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"已停止等待%2$@上的“%1$@”"}}}},
-    "Stopped waiting for “%@”" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"已停止等待“%@”"}}}},
-    "File" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"文件"}}}},
-    "Directory" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"目录"}}}},
-    "Symlink" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"符号链接"}}}},
-    "Critical" : {"localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"严重"}}}},
     "You said" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "你说"
+          }
+        }
+      }
+    },
+    "You stopped after %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你在%@后停止了"
           }
         }
       }

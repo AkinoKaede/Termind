@@ -74,6 +74,52 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func aManualAttachmentMakesAnEmptyDraftSendable() {
+        let conversation = ConversationModel()
+        #expect(!conversation.canSendDraft)
+
+        conversation.attach(ContextChip(
+            kind: .output, label: "Last lines", content: "service failed"
+        ))
+        #expect(conversation.canSendDraft)
+
+        conversation.sendDraft()
+
+        #expect(conversation.messages.last?.text == "")
+        #expect(conversation.messages.last?.contextChips.map(\.label) == ["Last lines"])
+        #expect(conversation.transcript.last?.text.contains("service failed") == true)
+        #expect(conversation.transcript.last?.contextAttachments.first?.data
+            == Data("service failed".utf8))
+        #expect(conversation.attachments.isEmpty)
+    }
+
+    @Test
+    func imageOnlyTurnIsValidAndSuppliesItsFallbackTitle() {
+        let image = AgentImageAttachment(
+            label: "dashboard.png", mimeType: "image/png", data: Data([1, 2, 3]),
+            pixelWidth: 10, pixelHeight: 10
+        )
+        let conversation = ConversationModel()
+        conversation.attach(ContextChip(kind: .image, label: image.label, image: image))
+
+        conversation.sendDraft()
+
+        #expect(conversation.transcript.last?.text == "")
+        #expect(conversation.transcript.last?.images == [image])
+        #expect(conversation.derivedTitle == "dashboard.png")
+    }
+
+    @Test
+    func legacyFileReferenceFallsBackToExtractedText() throws {
+        let text = "\n\n<file label=\"manual.pdf\">\nExtracted body\n</file>"
+        let reference = try #require(ContextChip.visibleReferences(in: text).first)
+
+        #expect(reference.attachment?.suggestedFilename == "manual extracted.txt")
+        #expect(reference.attachment?.isOriginalFile == false)
+        #expect(reference.attachment?.data == Data("Extracted body".utf8))
+    }
+
+    @Test
     func activeFormKeysYieldToImeAndConsumeOnlyPlainReturnOrEscape() {
         #expect(
             ActiveFormKeyDecision.resolve(

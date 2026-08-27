@@ -148,6 +148,28 @@ struct AgentSteeringTests {
         #expect(conversation.draft == "   \n ")
     }
 
+    @Test
+    func anImageOnlySteeringMessageQueuesAndRestoresItsAttachment() throws {
+        let conversation = ConversationModel()
+        startRun(conversation)
+        let image = AgentImageAttachment(
+            label: "graph.png", mimeType: "image/png", data: Data([7, 8, 9]),
+            pixelWidth: 20, pixelHeight: 20
+        )
+        conversation.attach(ContextChip(kind: .image, label: image.label, image: image))
+
+        conversation.submitSteeringDraft()
+
+        let pending = try #require(conversation.pendingSteering.first)
+        #expect(pending.draft.isEmpty)
+        #expect(pending.message.text.isEmpty)
+        #expect(pending.message.images == [image])
+        #expect(conversation.attachments.isEmpty)
+
+        conversation.stop()
+        #expect(conversation.attachments.first?.image == image)
+    }
+
     /// Nothing is queued without a run to hand it to — an idle composer sends.
     @Test
     func thereIsNothingToSteerWithoutARun() {

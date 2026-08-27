@@ -18,6 +18,24 @@ struct ContextAttachmentImporterTests {
 
         #expect(chip.kind == .file)
         #expect(chip.content == "hello 世界")
+        #expect(chip.sourceAttachment?.data == "hello 世界".data(using: .utf16))
+        #expect(chip.sourceAttachment?.suggestedFilename == url.lastPathComponent)
+    }
+
+    @Test @MainActor
+    func pdfKeepsOriginalBytesAlongsideExtractedText() async throws {
+        let view = NSTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 120))
+        view.string = "Hello retained PDF"
+        let data = view.dataWithPDF(inside: view.bounds)
+        let url = temporaryFile(extension: "pdf")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try data.write(to: url)
+
+        let chip = try await ContextAttachmentImporter.importFile(at: url)
+
+        #expect(chip.content.contains("Hello retained PDF"))
+        #expect(chip.sourceAttachment?.data == data)
+        #expect(chip.sourceAttachment?.contentTypeIdentifier == "com.adobe.pdf")
     }
 
     @Test
@@ -58,6 +76,20 @@ struct ContextAttachmentImporterTests {
         await #expect(throws: ContextAttachmentImporter.ImportError.self) {
             try await ContextAttachmentImporter.importFile(at: url)
         }
+    }
+
+    @Test
+    func materializedAttachmentCannotEscapeItsPrivateDirectory() throws {
+        let attachment = AgentContextAttachment(
+            kind: .file, label: "unsafe", contentTypeIdentifier: "public.plain-text",
+            suggestedFilename: "../../secret.txt", data: Data("safe".utf8)
+        )
+        let url = try ContextAttachmentOpener.materialize(attachment)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+        #expect(url.lastPathComponent == "secret.txt")
+        #expect(url.deletingLastPathComponent().lastPathComponent == attachment.id.uuidString)
+        #expect(try Data(contentsOf: url) == attachment.data)
     }
 
     @Test @MainActor

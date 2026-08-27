@@ -18,6 +18,7 @@ struct UserMessageView: View {
     @State private var editText = ""
     @State private var bubbleWidth: CGFloat = 0
     @State private var hasMarkedText = false
+    @State private var attachmentOpenError: String?
     @FocusState private var editFocused: Bool
 
     var body: some View {
@@ -44,6 +45,17 @@ struct UserMessageView: View {
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("You said"))
+        .alert(
+            "Couldn’t Open Attachment",
+            isPresented: Binding(
+                get: { attachmentOpenError != nil },
+                set: { if !$0 { attachmentOpenError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { attachmentOpenError = nil }
+        } message: {
+            Text(attachmentOpenError ?? "")
+        }
     }
 
     private func beginEdit() {
@@ -56,13 +68,19 @@ struct UserMessageView: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             if !message.contextChips.isEmpty {
                 FlowLayout(spacing: Metrics.Space.xs, fillsWidth: false) {
-                    ForEach(message.contextChips) { BubbleContextChipView(chip: $0) }
+                    ForEach(message.contextChips) { chip in
+                        BubbleContextChipView(chip: chip) { open(chip) }
+                    }
                 }
             }
             if !message.images.isEmpty {
                 FlowLayout(spacing: Metrics.Space.s, fillsWidth: false) {
-                    ForEach(message.images) {
-                        BubbleImageView(attachment: $0, isCompact: isCompact)
+                    ForEach(message.images) { attachment in
+                        Button { open(attachment) } label: {
+                            BubbleImageView(attachment: attachment, isCompact: isCompact)
+                        }
+                        .buttonStyle(.plain)
+                        .help(Text("Open \(attachment.label)"))
                     }
                 }
             }
@@ -84,6 +102,34 @@ struct UserMessageView: View {
             // then occupy the same silhouette instead of accepting the list's
             // full-width proposal and turning into a second composer.
             if !isEditing { bubbleWidth = width }
+        }
+    }
+
+    private func open(_ chip: ContextChipReference) {
+        if chip.kind == .image,
+            let image = message.images.first(where: { $0.id == chip.id })
+                ?? message.images.first(where: { $0.label == chip.label })
+        {
+            open(image)
+            return
+        }
+        guard let attachment = chip.attachment else { return }
+        Task {
+            do {
+                try await ContextAttachmentOpener.open(attachment)
+            } catch {
+                attachmentOpenError = error.localizedDescription
+            }
+        }
+    }
+
+    private func open(_ image: AgentImageAttachment) {
+        Task {
+            do {
+                try await ContextAttachmentOpener.open(image)
+            } catch {
+                attachmentOpenError = error.localizedDescription
+            }
         }
     }
 
@@ -148,8 +194,20 @@ struct UserMessageView: View {
 
 private struct BubbleContextChipView: View {
     let chip: ContextChipReference
+    var open: (() -> Void)?
 
     var body: some View {
+        if let open {
+            Button(action: open) { content }
+                .buttonStyle(.plain)
+                .help(Text("Open \(chip.label)"))
+                .accessibilityLabel(Text("Open \(chip.label)"))
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         HStack(spacing: Metrics.Space.xs) {
             Image(systemName: chip.kind.symbol)
                 .font(.caption2)

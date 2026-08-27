@@ -550,6 +550,27 @@ nonisolated struct AgentImageAttachment: Identifiable, Hashable, Sendable, Codab
     var pixelHeight: Int
 }
 
+/// A user-visible, non-image context attachment retained for opening after the
+/// turn has been sent. `data` is presentation backing only: provider adapters
+/// continue to receive the extracted text embedded in the user message, never
+/// these original file bytes.
+nonisolated struct AgentContextAttachment: Identifiable, Hashable, Sendable, Codable {
+    nonisolated enum Kind: String, Hashable, Sendable, Codable {
+        case file, output, selection, pastedText, host, directory
+    }
+
+    var id: UUID = UUID()
+    var kind: Kind
+    var label: String
+    var contentTypeIdentifier: String
+    var suggestedFilename: String
+    var data: Data
+    /// False when `data` is an exported text representation rather than an
+    /// original file snapshot. Those open as `.txt`, never as a fake PDF or
+    /// Office document.
+    var isOriginalFile: Bool = true
+}
+
 /// Provider-authored, user-visible reasoning text.
 ///
 /// This is deliberately separate from `providerItems`: `text` is safe to draw
@@ -570,6 +591,9 @@ nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Cod
     /// Nil on assistant/tool turns and on stores created before message editing.
     var authoredText: String?
     var images: [AgentImageAttachment] = []
+    /// Local presentation backing for sent context chips. This is deliberately
+    /// ignored by every provider wire encoder.
+    var contextAttachments: [AgentContextAttachment] = []
     var reasoning: [AgentReasoningBlock] = []
     var toolCalls: [AgentToolCall] = []
     var toolCallID: String?
@@ -705,6 +729,7 @@ nonisolated struct AgentRunRequest: Sendable {
     var prompt: String
     var authoredPrompt: String?
     var promptImages: [AgentImageAttachment]
+    var promptContextAttachments: [AgentContextAttachment]
     var permissionMode: ChatPermissionMode
     /// Whether this run may only look.
     ///
@@ -725,6 +750,7 @@ nonisolated struct AgentRunRequest: Sendable {
         prompt: String,
         authoredPrompt: String? = nil,
         promptImages: [AgentImageAttachment] = [],
+        promptContextAttachments: [AgentContextAttachment] = [],
         permissionMode: ChatPermissionMode,
         isPlanning: Bool = false,
         systemPrompt: String = AgentSystemPrompt.default,
@@ -736,6 +762,7 @@ nonisolated struct AgentRunRequest: Sendable {
         self.prompt = prompt
         self.authoredPrompt = authoredPrompt
         self.promptImages = promptImages
+        self.promptContextAttachments = promptContextAttachments
         self.permissionMode = permissionMode
         self.isPlanning = isPlanning
         self.systemPrompt = systemPrompt

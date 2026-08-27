@@ -709,9 +709,13 @@ struct WelcomeView: View {
 
     private var header: some View {
         VStack(spacing: Metrics.Space.s) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 40))
+            Image("TermindGlyph")
+                .resizable()
+                .renderingMode(.template)
+                .scaledToFit()
+                .frame(width: 88, height: 88)
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
             Text("Termind")
                 .font(.largeTitle.weight(.semibold))
             Text("SSH and SFTP, with an assistant at hand.")
