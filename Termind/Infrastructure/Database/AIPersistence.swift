@@ -147,6 +147,53 @@ final class PersistentAISelection {
     }
 }
 
+@Model
+final class PersistentMCPServer {
+    @Attribute(.unique) var id: UUID = UUID()
+    var name = ""
+    var namespaceID = ""
+    var transport = MCPServer.Transport.streamableHTTP.rawValue
+    var url = ""
+    var isEnabled = true
+    var credentialRef = ""
+    var headersData = Data()
+    var toolsData = Data()
+    var negotiatedVersion = ""
+    var lastConnectedAt: Date?
+    var sortIndex = 0
+
+    init(_ value: MCPServer, sortIndex: Int) {
+        id = value.id
+        name = value.name
+        namespaceID = value.namespaceID
+        transport = value.transport.rawValue
+        url = value.url
+        isEnabled = value.isEnabled
+        credentialRef = value.credentialRef
+        headersData = (try? JSONEncoder().encode(value.headers)) ?? Data()
+        toolsData = (try? JSONEncoder().encode(value.tools)) ?? Data()
+        negotiatedVersion = value.negotiatedVersion
+        lastConnectedAt = value.lastConnectedAt
+        self.sortIndex = sortIndex
+    }
+
+    var value: MCPServer {
+        MCPServer(
+            id: id,
+            name: name,
+            namespaceID: namespaceID,
+            transport: MCPServer.Transport(rawValue: transport) ?? .streamableHTTP,
+            url: url,
+            isEnabled: isEnabled,
+            credentialRef: credentialRef,
+            headers: (try? JSONDecoder().decode([MCPHeader].self, from: headersData)) ?? [],
+            tools: (try? JSONDecoder().decode([MCPTool].self, from: toolsData)) ?? [],
+            negotiatedVersion: negotiatedVersion,
+            lastConnectedAt: lastConnectedAt
+        )
+    }
+}
+
 @MainActor
 final class AIPersistence {
     private let context: ModelContext
@@ -194,10 +241,20 @@ final class AIPersistence {
             return valid(ref) ? ref : nil
         }()
 
+        let mcpRows = try context.fetch(
+            FetchDescriptor<PersistentMCPServer>(sortBy: [SortDescriptor(\.sortIndex)])
+        )
+        var seenMCPServers: Set<UUID> = []
+        let mcpServers = mcpRows.compactMap { row -> MCPServer? in
+            guard seenMCPServers.insert(row.id).inserted else { return nil }
+            return row.value
+        }
+
         return AIConfigurationSnapshot(
             providers: providers,
             roles: roles,
-            lastSelectedModel: lastSelectedModel
+            lastSelectedModel: lastSelectedModel,
+            mcpServers: mcpServers
         )
     }
 
@@ -207,6 +264,7 @@ final class AIPersistence {
             try context.delete(model: PersistentModelProvider.self)
             try context.delete(model: PersistentAIRoleAssignment.self)
             try context.delete(model: PersistentAISelection.self)
+            try context.delete(model: PersistentMCPServer.self)
 
             for (providerIndex, provider) in snapshot.providers.enumerated() {
                 context.insert(PersistentModelProvider(provider, sortIndex: providerIndex))
@@ -221,6 +279,9 @@ final class AIPersistence {
                 context.insert(PersistentAIRoleAssignment(role: role, ref: ref))
             }
             context.insert(PersistentAISelection(snapshot.lastSelectedModel))
+            for (serverIndex, server) in snapshot.mcpServers.enumerated() {
+                context.insert(PersistentMCPServer(server, sortIndex: serverIndex))
+            }
             try context.save()
         } catch {
             context.rollback()

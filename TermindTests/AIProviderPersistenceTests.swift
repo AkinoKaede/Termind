@@ -8,6 +8,198 @@ import Testing
 @MainActor
 struct AIProviderPersistenceTests {
     @Test
+    func mcpConfigurationRoundTripsThroughSwiftData() throws {
+        let container = try makeContainer("MCPRoundTrip")
+        let connectedAt = Date(timeIntervalSince1970: 5_678)
+        let header = MCPHeader(name: "X-Tenant", value: "acme")
+        let tool = MCPTool(
+            id: "search-records",
+            title: "Search records",
+            summary: "Search the tenant database",
+            inputSchema: .object([
+                "type": .string("object"),
+                "properties": .object([
+                    "query": .object(["type": .string("string")])
+                ]),
+            ]),
+            annotations: MCPToolAnnotations(
+                title: "Search", readOnlyHint: true, destructiveHint: false,
+                idempotentHint: true, openWorldHint: false
+            ),
+            accessPolicy: .followPermissions
+        )
+        let server = MCPServer(
+            name: "Work Gateway",
+            namespaceID: "work_gateway",
+            transport: .sse,
+            url: "https://mcp.example/sse",
+            isEnabled: false,
+            credentialRef: "termind.ai.mcp.reference-only",
+            headers: [header],
+            tools: [tool],
+            negotiatedVersion: "2025-06-18",
+            lastConnectedAt: connectedAt
+        )
+
+        do {
+            let store = AIConfigurationModel(
+                modelContext: container.mainContext, persistsSecrets: false
+            )
+            store.upsert(server)
+            #expect(store.storageError == nil)
+        }
+
+        let reloaded = AIConfigurationModel(
+            modelContext: container.mainContext, persistsSecrets: false
+        )
+        #expect(reloaded.mcpServers == [server])
+        #expect(reloaded.availableTools.isEmpty)
+        #expect(reloaded.mcpStatus(of: server.id) == .disconnected)
+        #expect(
+            try container.mainContext.fetch(FetchDescriptor<PersistentMCPServer>())
+                .first?.credentialRef == "termind.ai.mcp.reference-only"
+        )
+    }
+
+    @Test
+    func mcpRediscoveryKeepsPoliciesAndPersistsNewToolsSafely() throws {
+        let container = try makeContainer("MCPRediscovery")
+        var server = MCPServer(name: "Gateway")
+        server.tools = [
+            MCPTool(id: "existing", accessPolicy: .followPermissions)
+        ]
+        let store = AIConfigurationModel(
+            modelContext: container.mainContext, persistsSecrets: false
+        )
+        store.upsert(server)
+
+        store.setTools(
+            [MCPTool(id: "existing"), MCPTool(id: "new")],
+            version: "2025-06-18",
+            for: server.id
+        )
+
+        let reloaded = AIConfigurationModel(
+            modelContext: container.mainContext, persistsSecrets: false
+        )
+        let tools = try #require(reloaded.mcpServer(server.id)?.tools)
+        #expect(tools.first { $0.id == "existing" }?.accessPolicy == .followPermissions)
+        #expect(tools.first { $0.id == "new" }?.accessPolicy == .alwaysAsk)
+        #expect(reloaded.mcpServer(server.id)?.negotiatedVersion == "2025-06-18")
+        #expect(reloaded.mcpServer(server.id)?.lastConnectedAt != nil)
+    }
+
+    @Test
+    func deletingMCPServerRemovesPersistenceAndCredential() throws {
+        let container = try makeContainer("MCPDeletion")
+        let secrets = InMemorySecretStore()
+        let credentialRef = "termind.ai.mcp.delete-me"
+        let removed = MCPServer(
+            name: "Removed", credentialRef: credentialRef
+        )
+        let kept = MCPServer(name: "Kept")
+        let store = AIConfigurationModel(
+            modelContext: container.mainContext,
+            secrets: secrets
+        )
+        store.setSecret("secret", for: credentialRef)
+        store.upsert(removed)
+        store.upsert(kept)
+
+        store.delete(serverID: removed.id)
+
+        let reloaded = AIConfigurationModel(
+            modelContext: container.mainContext,
+            secrets: secrets
+        )
+        #expect(reloaded.mcpServers == [kept])
+        #expect(try secrets.string(for: credentialRef, storage: .thisDevice) == nil)
+    }
+
+    @Test
+    func mcpSaveFailureRollsBackMemoryState() {
+        let server = MCPServer(name: "Gateway")
+        let persistence = FailingAIConfigurationPersistence(
+            snapshot: AIConfigurationSnapshot(
+                providers: [], roles: [:], lastSelectedModel: nil,
+                mcpServers: [server]
+            )
+        )
+        let store = AIConfigurationModel(
+            persistence: persistence, persistsSecrets: false
+        )
+        persistence.shouldFail = true
+
+        store.setServerEnabled(false, for: server.id)
+
+        #expect(store.mcpServer(server.id)?.isEnabled == true)
+        #expect(store.storageError != nil)
+    }
+
+    @Test
+    func corruptMCPNestedDataFallsBackWithoutDroppingServer() throws {
+        let container = try makeContainer("MCPCorruptNestedData")
+        let row = PersistentMCPServer(MCPServer(name: "Gateway"), sortIndex: 0)
+        row.headersData = Data("not-json".utf8)
+        row.toolsData = Data("not-json".utf8)
+        container.mainContext.insert(row)
+        try container.mainContext.save()
+
+        let reloaded = AIConfigurationModel(
+            modelContext: container.mainContext, persistsSecrets: false
+        )
+
+        #expect(reloaded.mcpServers.count == 1)
+        #expect(reloaded.mcpServers.first?.name == "Gateway")
+        #expect(reloaded.mcpServers.first?.headers.isEmpty == true)
+        #expect(reloaded.mcpServers.first?.tools.isEmpty == true)
+    }
+
+    @Test
+    func schemaV1MigratesToV2WithExistingDataAndNoMCPServers() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TermindSchemaMigration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appendingPathComponent("Termind.store")
+        let legacySchema = Schema(versionedSchema: TermindSchemaV1.self)
+        let provider = ModelProvider(name: "Existing Provider")
+
+        var legacyContainer: ModelContainer? = try ModelContainer(
+            for: legacySchema,
+            configurations: [
+                localModelConfiguration(
+                    "Migration", schema: legacySchema, url: storeURL
+                )
+            ]
+        )
+        legacyContainer?.mainContext.insert(PersistentModelProvider(provider, sortIndex: 0))
+        try legacyContainer?.mainContext.save()
+        legacyContainer = nil
+
+        let migratedContainer = try ModelContainer(
+            for: HostPersistence.schema,
+            migrationPlan: TermindMigrationPlan.self,
+            configurations: [
+                localModelConfiguration(
+                    "Migration", schema: HostPersistence.schema, url: storeURL
+                )
+            ]
+        )
+        let migratedProviders = try migratedContainer.mainContext.fetch(
+            FetchDescriptor<PersistentModelProvider>()
+        )
+        let migratedMCPServers = try migratedContainer.mainContext.fetch(
+            FetchDescriptor<PersistentMCPServer>()
+        )
+
+        #expect(migratedProviders.map(\.name) == ["Existing Provider"])
+        #expect(migratedMCPServers.isEmpty)
+    }
+
+    @Test
     func providerConfigurationRoundTripsThroughSwiftData() throws {
         let container = try makeContainer("AIProviderRoundTrip")
         var model = reasoningModel("gpt-5.6-sol")
@@ -155,6 +347,26 @@ struct AIProviderPersistenceTests {
             for: HostPersistence.schema, configurations: [configuration]
         )
     }
+}
+
+@MainActor
+private final class FailingAIConfigurationPersistence: AIConfigurationPersisting {
+    let snapshot: AIConfigurationSnapshot
+    var shouldFail = false
+
+    init(snapshot: AIConfigurationSnapshot) {
+        self.snapshot = snapshot
+    }
+
+    func load() throws -> AIConfigurationSnapshot { snapshot }
+
+    func save(_ snapshot: AIConfigurationSnapshot) throws {
+        if shouldFail { throw TestPersistenceError.failed }
+    }
+}
+
+private enum TestPersistenceError: Error {
+    case failed
 }
 
 @Suite

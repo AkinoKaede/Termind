@@ -339,9 +339,31 @@ enum TermindSchemaV1: VersionedSchema {
     }
 }
 
+enum TermindSchemaV2: VersionedSchema {
+    static let versionIdentifier = Schema.Version(2, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV1.models + [PersistentMCPServer.self]
+    }
+}
+
+enum TermindMigrationPlan: SchemaMigrationPlan {
+    static var schemas: [any VersionedSchema.Type] {
+        [TermindSchemaV1.self, TermindSchemaV2.self]
+    }
+
+    static var stages: [MigrationStage] {
+        [
+            MigrationStage.lightweight(
+                fromVersion: TermindSchemaV1.self, toVersion: TermindSchemaV2.self
+            )
+        ]
+    }
+}
+
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV1.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV2.self)
 
     let context: ModelContext
 

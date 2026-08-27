@@ -170,7 +170,7 @@ nonisolated enum MCPToolNaming {
 /// alongside the rest of the configuration, which is fine for
 /// `X-Tenant: acme` and wrong for `Authorization: Bearer …` — that is what
 /// `MCPServer.credentialRef` is for.
-nonisolated struct MCPHeader: Identifiable, Hashable, Sendable {
+nonisolated struct MCPHeader: Identifiable, Hashable, Sendable, Codable {
     var id: UUID = UUID()
     var name: String = ""
     var value: String = ""
@@ -186,8 +186,8 @@ nonisolated struct MCPHeader: Identifiable, Hashable, Sendable {
 /// than caution. An MCP tool is a command fetched over the network from a server
 /// the model can talk to, so a newly discovered tool must not silently inherit a
 /// more permissive conversation setting.
-nonisolated struct MCPTool: Identifiable, Hashable, Sendable {
-    nonisolated enum AccessPolicy: String, CaseIterable, Identifiable, Hashable, Sendable {
+nonisolated struct MCPTool: Identifiable, Hashable, Sendable, Codable {
+    nonisolated enum AccessPolicy: String, CaseIterable, Identifiable, Hashable, Sendable, Codable {
         case disabled
         case alwaysAsk
         case followPermissions

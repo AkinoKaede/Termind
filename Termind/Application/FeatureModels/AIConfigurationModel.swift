@@ -5,9 +5,8 @@ import Foundation
 ///
 /// Its own store rather than more fields on `HostLibraryModel`: that one is about
 /// machines you connect to, this one is about endpoints you spend a key at.
-/// Provider configuration is projected from SwiftData in production while
-/// previews can still construct an in-memory store. MCP configuration remains
-/// session-only.
+/// Provider and MCP configuration are projected from SwiftData in production
+/// while previews can still construct an in-memory store.
 @Observable
 final class AIConfigurationModel {
     private(set) var modelProviders: [ModelProvider] = []
@@ -77,6 +76,7 @@ final class AIConfigurationModel {
             self.modelProviders = loaded.providers
             self.roles = loaded.roles
             self.lastSelectedModel = loaded.lastSelectedModel
+            self.mcpServers = loaded.mcpServers
         } catch {
             storageError = error.localizedDescription
         }
@@ -408,6 +408,7 @@ final class AIConfigurationModel {
             modelProviders = previous.providers
             roles = previous.roles
             lastSelectedModel = previous.lastSelectedModel
+            mcpServers = previous.mcpServers
             storageError = error.localizedDescription
             return false
         }
@@ -417,17 +418,20 @@ final class AIConfigurationModel {
         AIConfigurationSnapshot(
             providers: modelProviders,
             roles: roles,
-            lastSelectedModel: lastSelectedModel
+            lastSelectedModel: lastSelectedModel,
+            mcpServers: mcpServers
         )
     }
 
     // MARK: - MCP writes
 
     func upsert(_ server: MCPServer) {
-        if let index = mcpServers.firstIndex(where: { $0.id == server.id }) {
-            mcpServers[index] = server
-        } else {
-            mcpServers.append(server)
+        mutatePersistedState {
+            if let index = mcpServers.firstIndex(where: { $0.id == server.id }) {
+                mcpServers[index] = server
+            } else {
+                mcpServers.append(server)
+            }
         }
     }
 
@@ -440,20 +444,22 @@ final class AIConfigurationModel {
         guard !namespaceID.isEmpty,
             !hasMCPNamespaceConflict(namespaceID, excluding: id)
         else { return false }
-        mcpServers[index].namespaceID = namespaceID
-        return true
+        return mutatePersistedState { mcpServers[index].namespaceID = namespaceID }
     }
 
     func delete(serverID: MCPServer.ID) {
         guard let server = mcpServer(serverID) else { return }
+        let deleted = mutatePersistedState { mcpServers.removeAll { $0.id == serverID } }
+        guard deleted else { return }
         setSecret(nil, for: server.credentialRef)
         mcpStatuses[serverID] = nil
-        mcpServers.removeAll { $0.id == serverID }
     }
 
     func setServerEnabled(_ enabled: Bool, for id: MCPServer.ID) {
-        guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return }
-        mcpServers[index].isEnabled = enabled
+        mutatePersistedState {
+            guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return }
+            mcpServers[index].isEnabled = enabled
+        }
     }
 
     /// What a successful `Connect` writes back.
@@ -462,17 +468,21 @@ final class AIConfigurationModel {
     /// reconnect would silently undo the decision made about this server. A
     /// genuinely new tool arrives at the default, which means always asking.
     func setTools(_ discovered: [MCPTool], version: String, for id: MCPServer.ID) {
-        guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return }
-        let previous = Dictionary(uniqueKeysWithValues: mcpServers[index].tools.map { ($0.id, $0) })
+        mutatePersistedState {
+            guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return }
+            let previous = Dictionary(
+                uniqueKeysWithValues: mcpServers[index].tools.map { ($0.id, $0) }
+            )
 
-        mcpServers[index].tools = discovered.map { tool in
-            guard let old = previous[tool.id] else { return tool }
-            var merged = tool
-            merged.accessPolicy = old.accessPolicy
-            return merged
+            mcpServers[index].tools = discovered.map { tool in
+                guard let old = previous[tool.id] else { return tool }
+                var merged = tool
+                merged.accessPolicy = old.accessPolicy
+                return merged
+            }
+            mcpServers[index].negotiatedVersion = version
+            mcpServers[index].lastConnectedAt = Date()
         }
-        mcpServers[index].negotiatedVersion = version
-        mcpServers[index].lastConnectedAt = Date()
     }
 
     func setToolAccessPolicy(
@@ -481,10 +491,16 @@ final class AIConfigurationModel {
         mutate(toolID, on: serverID) { $0.accessPolicy = policy }
     }
 
-    private func mutate(_ toolID: String, on serverID: MCPServer.ID, _ change: (inout MCPTool) -> Void) {
-        guard let index = mcpServers.firstIndex(where: { $0.id == serverID }) else { return }
-        guard let slot = mcpServers[index].tools.firstIndex(where: { $0.id == toolID }) else { return }
-        change(&mcpServers[index].tools[slot])
+    private func mutate(
+        _ toolID: String, on serverID: MCPServer.ID,
+        _ change: (inout MCPTool) -> Void
+    ) {
+        mutatePersistedState {
+            guard let index = mcpServers.firstIndex(where: { $0.id == serverID }) else { return }
+            guard let slot = mcpServers[index].tools.firstIndex(where: { $0.id == toolID })
+            else { return }
+            change(&mcpServers[index].tools[slot])
+        }
     }
 
     func setMCPStatus(_ status: ConnectionStatus, for id: MCPServer.ID) {
