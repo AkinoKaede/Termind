@@ -60,6 +60,7 @@ nonisolated extension AgentBuiltInTools {
                 activity: .semanticArrayCount(
                     key: "questions", unit: .question, fallback: .question
                 ),
+                detailPresenterID: "builtin.request_user_input",
                 actionKind: .ask
             )
         )) { invocation, context in
@@ -152,6 +153,7 @@ nonisolated extension AgentBuiltInTools {
             target: .user, safety: .locallyReadOnly,
             presentation: .init(
                 symbol: "key", activity: .semanticArgument(key: "prompt", fallback: .secret),
+                detailPresenterID: "builtin.request_user_secret",
                 actionKind: .request
             )
         )) { invocation, context in
@@ -196,5 +198,95 @@ nonisolated extension AgentBuiltInTools {
             case .timedOut: throw AgentToolError.userInputTimedOut(timeoutSeconds)
             }
         }
+    }
+}
+
+// MARK: - Tool-owned transcript details
+
+nonisolated extension AgentBuiltInTools {
+    static let requestUserInputDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.request_user_input", present: presentUserInputDetail
+    )
+    static let requestUserSecretDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.request_user_secret", present: presentUserSecretDetail
+    )
+
+    private static func presentUserInputDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let answers = input.result.objectValue?["answers"]?.arrayValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        let answerByID = Dictionary(
+            answers.compactMap { row -> (String, [String: AgentJSONValue])? in
+                guard let fields = row.objectValue,
+                    let id = fields["question_id"]?.stringValue
+                else { return nil }
+                return (id, fields)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let questions = input.arguments["questions"]?.arrayValue ?? []
+        var items: [AgentToolDetail.Item] = []
+        for questionValue in questions {
+            guard let question = questionValue.objectValue else { continue }
+            let id = question["id"]?.stringValue ?? ""
+            let prompt = question["prompt"]?.stringValue
+                ?? F.localized("Question unavailable", locale: input.locale)
+            let displayedQuestion = F.nonempty(question["header"]?.stringValue)
+                .map { "\($0) — \(prompt)" } ?? prompt
+            let answerFields = answerByID[id]
+            let answer = answerFields?["answer"]
+            let displayedAnswer: String
+            if let answer, answer != .null {
+                let selected = answerFields?["selected_option_ids"]?.arrayValue?
+                    .compactMap(\.stringValue) ?? []
+                let selectedSet = Set(selected)
+                let labels = question["options"]?.arrayValue?.compactMap { option -> String? in
+                    guard let fields = option.objectValue,
+                        let optionID = fields["id"]?.stringValue,
+                        selectedSet.contains(optionID)
+                    else { return nil }
+                    return F.nonempty(fields["label"]?.stringValue)
+                } ?? []
+                let custom = F.nonempty(answerFields?["custom_text"]?.stringValue)
+                let structured = labels + [custom].compactMap { $0 }
+                displayedAnswer = structured.isEmpty
+                    ? F.nonempty(answer.stringValue)
+                        ?? F.localized("Skipped", locale: input.locale)
+                    : structured.joined(separator: ", ")
+            } else {
+                displayedAnswer = F.localized("Skipped", locale: input.locale)
+            }
+            items.append(F.field("Question", displayedQuestion, locale: input.locale))
+            items.append(F.field("Answer", displayedAnswer, locale: input.locale))
+        }
+        return items.isEmpty ? F.genericItems(input.result, locale: input.locale) : items
+    }
+
+    private static func presentUserSecretDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Request", input.arguments["prompt"]?.stringValue, locale: input.locale)
+        F.appendField(&items, "Purpose", input.arguments["purpose"]?.stringValue, locale: input.locale)
+        if input.arguments["consumer_tool"]?.stringValue == "ssh_exec" {
+            items.append(F.field(
+                "Consumer", F.localized("SSH command", locale: input.locale), locale: input.locale
+            ))
+        } else {
+            F.appendField(
+                &items, "Consumer",
+                input.arguments["consumer_tool"]?.stringValue.map(F.humanized),
+                locale: input.locale
+            )
+        }
+        items.append(F.field(
+            "Status", F.localized("Secret received securely", locale: input.locale),
+            locale: input.locale
+        ))
+        return items
     }
 }

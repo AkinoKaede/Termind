@@ -132,6 +132,10 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         var symbol: String
         var activity: Activity
         var output: Output = .automatic
+        /// Selects an application-owned detail projection. The stable ID is
+        /// persisted with the rest of the presentation metadata; executable
+        /// projection code remains local and is never accepted from MCP.
+        var detailPresenterID: String? = nil
         /// Defaults to participating. A tool may opt out when its row is
         /// proposed content rather than work that belongs in an activity batch.
         var groupsWithAdjacentTools: Bool = true
@@ -143,6 +147,7 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
 
         init(
             symbol: String, activity: Activity, output: Output = .automatic,
+            detailPresenterID: String? = nil,
             groupsWithAdjacentTools: Bool = true,
             action: Action? = nil, actionKind: ActionKind? = nil,
             includesTarget: Bool = false,
@@ -152,6 +157,7 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             self.symbol = symbol
             self.activity = activity
             self.output = output
+            self.detailPresenterID = detailPresenterID
             self.groupsWithAdjacentTools = groupsWithAdjacentTools
             self.actionKind = actionKind
             self.phaseKinds = phaseKinds
@@ -172,7 +178,7 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         }
 
         private enum CodingKeys: String, CodingKey {
-            case symbol, activity, output, groupsWithAdjacentTools, messages
+            case symbol, activity, output, detailPresenterID, groupsWithAdjacentTools, messages
             case actionKind, phaseKinds
         }
 
@@ -181,6 +187,9 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             symbol = try container.decode(String.self, forKey: .symbol)
             activity = try container.decode(Activity.self, forKey: .activity)
             output = try container.decodeIfPresent(Output.self, forKey: .output) ?? .automatic
+            detailPresenterID = try container.decodeIfPresent(
+                String.self, forKey: .detailPresenterID
+            )
             groupsWithAdjacentTools = try container.decodeIfPresent(
                 Bool.self, forKey: .groupsWithAdjacentTools
             ) ?? true

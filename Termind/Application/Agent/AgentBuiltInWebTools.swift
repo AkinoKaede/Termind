@@ -25,6 +25,7 @@ nonisolated extension AgentBuiltInTools {
             presentation: .init(
                 symbol: "globe", activity: .semanticArgument(key: "url", fallback: .url),
                 output: .field("body"),
+                detailPresenterID: "builtin.fetch",
                 actionKind: .fetch
             )
         )
@@ -117,6 +118,7 @@ nonisolated extension AgentBuiltInTools {
             presentation: .init(
                 symbol: "magnifyingglass",
                 activity: .semanticArgument(key: "query", fallback: .web), output: .json,
+                detailPresenterID: "builtin.web_search",
                 actionKind: .search
             )
         )
@@ -150,5 +152,84 @@ nonisolated extension AgentBuiltInTools {
                 }))
             }
         )
+    }
+}
+
+// MARK: - Tool-owned transcript details
+
+nonisolated extension AgentBuiltInTools {
+    static let fetchDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.fetch", present: presentFetchDetail
+    )
+    static let webSearchDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.web_search", present: presentWebSearchDetail
+    )
+
+    private static func presentFetchDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        if let url = F.nonempty(object["url"]?.stringValue) {
+            items.append(.field(.init(
+                label: F.localized("URL", locale: input.locale), value: url,
+                isMonospaced: true, url: url
+            )))
+        }
+        if let status = object["status"]?.integerValue {
+            items.append(F.field("Status", String(status), locale: input.locale))
+        }
+        if let headers = object["headers"]?.objectValue, !headers.isEmpty {
+            let rows = headers.keys.sorted {
+                $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+            }.map { name in
+                AgentToolDetail.ListRow(title: name, subtitle: headers[name]?.stringValue ?? "")
+            }
+            items.append(.list(.init(
+                title: F.localized("Response headers", locale: input.locale), rows: rows
+            )))
+        }
+        if input.arguments["method"]?.stringValue ?? "GET" != "HEAD" {
+            let body = object["body"]?.stringValue ?? ""
+            items.append(body.isEmpty
+                ? .message(F.localized("Empty response body", locale: input.locale), .secondary)
+                : .text(.init(
+                    title: F.localized("Response body", locale: input.locale),
+                    text: body, style: .plain
+                )))
+        }
+        return items
+    }
+
+    private static func presentWebSearchDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let values = input.result.arrayValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        let rows = values.compactMap { entry -> AgentToolDetail.ListRow? in
+            guard let object = entry.objectValue else { return nil }
+            let url = F.nonempty(object["url"]?.stringValue)
+            let title = F.nonempty(object["title"]?.stringValue) ?? url
+                ?? F.localized("Untitled result", locale: input.locale)
+            let snippet = F.nonempty(object["snippet"]?.stringValue)
+            let published = object["published_at"]?.stringValue.map(F.displayDate)
+            return .init(
+                title: title, subtitle: url,
+                detail: [snippet, published].compactMap { $0 }.joined(separator: "\n"),
+                symbol: "link", url: url
+            )
+        }
+        return [
+            .message(String(localized: "\(rows.count) results", locale: input.locale), .secondary),
+            .list(.init(
+                title: nil, rows: rows,
+                emptyMessage: F.localized("No results", locale: input.locale)
+            )),
+        ]
     }
 }

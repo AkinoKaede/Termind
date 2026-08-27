@@ -9,6 +9,66 @@ import Testing
 struct AgentPersistenceTests {
 
     @Test
+    func toolDetailPresenterSurvivesPersistenceAndRestoresTheSameDetail() async throws {
+        let configuration = localModelConfiguration(
+            "AgentDetailPresenterPersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let call = AgentToolCall(
+            id: "search", name: "web_search",
+            arguments: .object(["query": .string("example")])
+        )
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed,
+            permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(role: .assistant, text: "", toolCalls: [call])]
+        )
+        try await repository.save(snapshot)
+        let invocation = AgentToolInvocation(runID: snapshot.id, call: call)
+        let presentation = AgentToolDescriptor.Presentation(
+            symbol: "magnifyingglass",
+            activity: .semanticArgument(key: "query", fallback: .web), output: .json,
+            detailPresenterID: "builtin.web_search", actionKind: .search
+        )
+        let descriptor = AgentToolDescriptor(
+            name: call.name, summary: "Search", inputSchema: .object([:]),
+            target: .network, safety: .locallyReadOnly, presentation: presentation
+        )
+        var result = AgentToolResult(
+            callID: call.id,
+            content: AgentJSONValue.array([.object([
+                "title": .string("Example"), "url": .string("https://example.com"),
+                "snippet": .string("A result"), "published_at": .null,
+            ])]).encodedString
+        )
+        result.toolPresentation = presentation
+        try await repository.record(.toolProposed(invocation, descriptor), runID: snapshot.id)
+        try await repository.record(.toolFinished(invocation, result), runID: snapshot.id)
+
+        let stored = try #require(
+            try await repository.loadConversations().first?.toolCards.first
+        )
+        let restored = AgentToolCard(
+            invocation: stored.invocation, descriptor: stored.descriptor,
+            state: .completed, result: stored.result, review: stored.review
+        )
+        let live = AgentToolCard(
+            invocation: invocation, descriptor: descriptor,
+            state: .completed, result: result
+        )
+        let locale = Locale(identifier: "en")
+        #expect(
+            AgentToolPresentation.detail(for: restored, locale: locale)
+                == AgentToolPresentation.detail(for: live, locale: locale)
+        )
+        #expect(restored.descriptor.presentation?.detailPresenterID == "builtin.web_search")
+    }
+
+    @Test
     func imagePartsRoundTripThroughConversationPersistence() async throws {
         let configuration = localModelConfiguration(
             "AgentImagePersistenceTests", schema: HostPersistence.schema,

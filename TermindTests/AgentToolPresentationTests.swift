@@ -487,6 +487,29 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func unknownPresenterIDCannotSelectOrImpersonateBuiltInCode() throws {
+        var card = makeCard(
+            name: "fetch", target: .network,
+            presentation: .init(
+                symbol: "globe", activity: .label("URL"), output: .json,
+                detailPresenterID: "remote.fetch"
+            )
+        )
+        card.result = AgentToolResult(
+            callID: "call",
+            content: AgentJSONValue.object([
+                "url": .string("https://example.com"), "status": .number(200),
+            ]).encodedString
+        )
+
+        let detail = try #require(AgentToolPresentation.detail(for: card))
+        #expect(detail.items == [
+            .field(.init(label: "Status", value: "200")),
+            .field(.init(label: "Url", value: "https://example.com")),
+        ])
+    }
+
+    @Test
     func everyBuiltInJSONToolProducesStructuredDetailWithoutJSONSyntax() throws {
         let file = AgentJSONValue.object([
             "path": .string("/tmp/a"), "name": .string("a"), "kind": .string("file"),
@@ -832,6 +855,7 @@ struct AgentToolPresentationTests {
             symbol: "terminal",
             activity: .argument(key: "command", fallback: "the SSH command"),
             output: .streams,
+            detailPresenterID: "builtin.ssh_exec",
             groupsWithAdjacentTools: false,
             messages: ["running": "Connecting to {target}"]
         )
@@ -843,11 +867,58 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func builtInDetailPresenterCatalogHasUniqueStableIDs() {
+        let ids = AgentBuiltInToolDetailPresenters.ids
+        #expect(Set(ids).count == ids.count)
+        #expect(ids.allSatisfy { $0.hasPrefix("builtin.") })
+        for id in ids {
+            #expect(AgentBuiltInToolDetailPresenters.presenter(id: id) != nil)
+        }
+    }
+
+    @Test
+    func restoredAndLegacyCardsUseTheSameToolOwnedDetailPresenter() throws {
+        let payload = AgentJSONValue.array([
+            .object([
+                "title": .string("Example"), "url": .string("https://example.com"),
+                "snippet": .string("A result"), "published_at": .null,
+            ])
+        ])
+        let livePresentation = AgentBuiltInTools.webSearchDetailPresenter.id
+        var persisted = AgentToolResult(callID: "call", content: payload.encodedString)
+        persisted.toolPresentation = .init(
+            symbol: "magnifyingglass",
+            activity: .semanticArgument(key: "query", fallback: .web), output: .json,
+            detailPresenterID: livePresentation, actionKind: .search
+        )
+
+        var restored = makeCard(
+            name: "web_search", target: .network,
+            arguments: ["query": .string("example")],
+            presentation: persisted.toolPresentation
+        )
+        restored.result = persisted
+
+        var legacy = makeCard(
+            name: "web_search", target: .network,
+            arguments: ["query": .string("example")]
+        )
+        legacy.result = persisted
+        legacy.descriptor.presentation = nil
+
+        #expect(
+            AgentToolPresentation.detail(for: restored, locale: Locale(identifier: "en"))
+                == AgentToolPresentation.detail(for: legacy, locale: Locale(identifier: "en"))
+        )
+    }
+
+    @Test
     func semanticPresentationRoundTripsAndOldMetadataUsesSafeDefaults() throws {
         let semantic = AgentToolDescriptor.Presentation(
             symbol: "magnifyingglass",
             activity: .semanticArgument(key: "query", fallback: .web),
-            output: .json, groupsWithAdjacentTools: false, actionKind: .search,
+            output: .json, detailPresenterID: "builtin.web_search",
+            groupsWithAdjacentTools: false, actionKind: .search,
             phaseKinds: ["running": .sshConnecting]
         )
         let encoded = try JSONEncoder().encode(semantic)
@@ -865,6 +936,7 @@ struct AgentToolPresentationTests {
         object["groupsWithAdjacentTools"] = nil
         object["actionKind"] = nil
         object["phaseKinds"] = nil
+        object["detailPresenterID"] = nil
         let decoded = try JSONDecoder().decode(
             AgentToolDescriptor.Presentation.self,
             from: JSONSerialization.data(withJSONObject: object)
@@ -872,6 +944,7 @@ struct AgentToolPresentationTests {
         #expect(decoded.groupsWithAdjacentTools)
         #expect(decoded.actionKind == nil)
         #expect(decoded.phaseKinds.isEmpty)
+        #expect(decoded.detailPresenterID == nil)
     }
 
     @Test

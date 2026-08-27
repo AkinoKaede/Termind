@@ -61,6 +61,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 symbol: "folder",
                 activity: .semanticArgument(key: "path", fallback: .scratchWorkspace),
                 output: .json,
+                detailPresenterID: "builtin.scratch_list",
                 actionKind: .list
             )
         )) { invocation, _ in
@@ -104,6 +105,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "doc.text", activity: .semanticArgument(key: "path", fallback: .scratchFile),
                 output: .field("content"),
+                detailPresenterID: "builtin.scratch_read",
                 actionKind: .read
             )
         )) { invocation, _ in
@@ -139,6 +141,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "square.and.pencil",
                 activity: .semanticArgument(key: "path", fallback: .scratchFile), output: .json,
+                detailPresenterID: "builtin.scratch_write",
                 actionKind: .write
             )
         )) { invocation, _ in
@@ -188,6 +191,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "pencil", activity: .semanticArgument(key: "path", fallback: .scratchFile),
                 output: .field("diff"),
+                detailPresenterID: "builtin.scratch_edit",
                 actionKind: .edit
             )
         )) { invocation, _ in
@@ -228,7 +232,8 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "arrow.left.arrow.right",
                 activity: .semanticArgument(key: "path_a", fallback: .scratchFiles),
-                output: .field("diff"), actionKind: .compare
+                output: .field("diff"), detailPresenterID: "builtin.scratch_diff",
+                actionKind: .compare
             )
         )) { invocation, _ in
             let arguments = try Arguments(invocation)
@@ -267,6 +272,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "trash", activity: .semanticArgument(key: "path", fallback: .scratchEntry),
                 output: .json,
+                detailPresenterID: "builtin.scratch_delete",
                 actionKind: .delete
             )
         )) { invocation, _ in
@@ -313,7 +319,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "arrow.down.doc",
                 activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
-                output: .json, actionKind: .pull,
+                output: .json, detailPresenterID: "builtin.scratch_pull", actionKind: .pull,
                 includesTarget: true
             )
         )
@@ -382,7 +388,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "arrow.up.doc",
                 activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
-                output: .json, actionKind: .push,
+                output: .json, detailPresenterID: "builtin.scratch_push", actionKind: .push,
                 includesTarget: true
             )
         )
@@ -478,5 +484,250 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             throw AgentToolError.scratchNotText(path)
         }
         return text
+    }
+}
+
+// MARK: - Tool-owned transcript details
+
+nonisolated extension AgentScratchTools {
+    static let listDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_list", present: presentListDetail
+    )
+    static let readDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_read", present: presentReadDetail
+    )
+    static let writeDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_write", present: presentWriteDetail
+    )
+    static let editDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_edit", present: presentEditDetail
+    )
+    static let diffDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_diff", present: presentDiffDetail
+    )
+    static let deleteDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_delete", present: presentDeleteDetail
+    )
+    static let pullDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_pull", present: presentPullDetail
+    )
+    static let pushDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_push", present: presentPushDetail
+    )
+
+    private static func presentListDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        let entries = object["entries"]?.arrayValue ?? []
+        let entryCount = object["entry_count"]?.integerValue ?? entries.count
+        let entryQuota = object["entry_quota"]?.integerValue
+        let totalBytes = object["total_bytes"]?.integerValue ?? 0
+        let byteQuota = object["byte_quota"]?.integerValue
+        var summary = entryQuota.map { "\(entryCount) / \($0) entries" }
+            ?? String(localized: "\(entryCount) entries", locale: input.locale)
+        if let byteQuota {
+            summary += " · \(F.byteCount(totalBytes)) / \(F.byteCount(byteQuota))"
+        } else {
+            summary += " · \(F.byteCount(totalBytes))"
+        }
+        let rows = entries.compactMap { entry -> AgentToolDetail.ListRow? in
+            guard let fields = entry.objectValue else { return nil }
+            let path = fields["path"]?.stringValue
+                ?? F.localized("Unnamed entry", locale: input.locale)
+            let kind = fields["kind"]?.stringValue ?? ""
+            var subtitle = F.kindLabel(kind, locale: input.locale)
+            if let bytes = fields["bytes"]?.integerValue { subtitle += " · \(F.byteCount(bytes))" }
+            return .init(
+                title: path, subtitle: subtitle,
+                detail: fields["modified_at"]?.stringValue.map(F.displayDate),
+                symbol: kind == "directory" ? "folder" : "doc"
+            )
+        }
+        return [
+            .message(summary, .secondary),
+            .list(.init(
+                title: nil, rows: rows,
+                emptyMessage: F.localized("Workspace is empty", locale: input.locale)
+            )),
+        ]
+    }
+
+    private static func presentReadDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        let content = object["content"]?.stringValue ?? ""
+        items.append(content.isEmpty
+            ? .message(F.localized("Empty file", locale: input.locale), .secondary)
+            : F.text("Content", content, locale: input.locale))
+        if let offset = object["offset"]?.integerValue,
+            let returned = object["returned_lines"]?.integerValue,
+            let total = object["total_lines"]?.integerValue
+        {
+            let end = returned == 0 ? offset : offset + returned - 1
+            items.append(F.field("Lines", "\(offset)–\(end) of \(total)", locale: input.locale))
+        }
+        F.appendBytes(&items, "Size", object["bytes"], locale: input.locale)
+        F.appendField(
+            &items, "Line endings", object["line_ending"]?.stringValue?.uppercased(),
+            locale: input.locale
+        )
+        return items
+    }
+
+    private static func presentWriteDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        let result = object["created"]?.boolValue == true
+            ? F.localized("Created", locale: input.locale)
+            : F.localized("Overwritten", locale: input.locale)
+        items.append(F.field("Result", result, locale: input.locale))
+        F.appendBytes(&items, "Size", object["bytes"], locale: input.locale)
+        F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
+        return items
+    }
+
+    private static func presentEditDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        if let count = object["edits_applied"]?.integerValue {
+            items.append(F.field(
+                "Changes", String(localized: "\(count) edits applied", locale: input.locale),
+                locale: input.locale
+            ))
+        }
+        if let diff = object["diff"]?.stringValue, !diff.isEmpty {
+            items.append(F.text("Diff", diff, locale: input.locale))
+        }
+        F.appendBytes(&items, "Size", object["bytes"], locale: input.locale)
+        F.appendField(
+            &items, "Line endings", object["line_ending"]?.stringValue?.uppercased(),
+            locale: input.locale
+        )
+        F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
+        return items
+    }
+
+    private static func presentDiffDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "From", object["path_a"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendField(&items, "To", object["path_b"]?.stringValue, locale: input.locale, monospaced: true)
+        let diff = object["diff"]?.stringValue ?? ""
+        let a = object["line_ending_a"]?.stringValue?.uppercased()
+        let b = object["line_ending_b"]?.stringValue?.uppercased()
+        if !diff.isEmpty {
+            items.append(F.text("Diff", diff, locale: input.locale))
+        } else if object["identical"]?.boolValue == true {
+            items.append(.message(F.localized("Files are identical", locale: input.locale), .success))
+        } else if let a, let b, a != b {
+            items.append(.message(
+                String(
+                    localized: "Text is identical; line endings differ: \(a) → \(b)",
+                    locale: input.locale
+                ),
+                .warning
+            ))
+        } else {
+            items.append(.message(F.localized("No differences", locale: input.locale), .secondary))
+        }
+        return items
+    }
+
+    private static func presentDeleteDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        items.append(F.field("Result", F.localized("Deleted", locale: input.locale), locale: input.locale))
+        F.appendField(
+            &items, "Kind", object["kind"]?.stringValue.map {
+                F.kindLabel($0, locale: input.locale)
+            }, locale: input.locale
+        )
+        let count = object["entry_count"]?.integerValue
+        let bytes = object["total_bytes"]?.integerValue
+        if count != nil || bytes != nil {
+            let parts = [
+                count.map { String(localized: "\($0) entries", locale: input.locale) },
+                bytes.map(F.byteCount),
+            ].compactMap { $0 }
+            items.append(F.field("Workspace", parts.joined(separator: " · "), locale: input.locale))
+        }
+        return items
+    }
+
+    private static func presentPullDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Remote path", object["remote_path"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendField(&items, "Scratch path", object["scratch_path"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendBytes(&items, "Size", object["bytes"], locale: input.locale)
+        items.append(F.field(
+            "Content type",
+            object["is_utf8"]?.boolValue == true
+                ? F.localized("UTF-8 text", locale: input.locale)
+                : F.localized("Binary", locale: input.locale),
+            locale: input.locale
+        ))
+        if let lines = object["lines"]?.integerValue {
+            items.append(F.field("Lines", String(lines), locale: input.locale))
+        }
+        F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
+        return items
+    }
+
+    private static func presentPushDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Scratch path", object["scratch_path"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendField(&items, "Remote path", object["remote_path"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendBytes(&items, "Size", object["bytes"], locale: input.locale)
+        F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
+        items.append(F.field("Result", F.localized("Written", locale: input.locale), locale: input.locale))
+        return items
     }
 }

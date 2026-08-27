@@ -225,7 +225,8 @@ nonisolated extension AgentBuiltInTools {
         }
         return .init(
             symbol: symbol, activity: .semanticArgument(key: "path", fallback: .remoteFile),
-            output: .automatic, actionKind: actionKind, includesTarget: true
+            output: .automatic, detailPresenterID: "builtin.\(name)",
+            actionKind: actionKind, includesTarget: true
         )
     }
 
@@ -302,5 +303,204 @@ nonisolated extension AgentBuiltInTools {
             "permissions": .string(file.octalPermissionDescription),
             "modified_at": file.modifiedAt.map { .string($0.ISO8601Format()) } ?? .null,
         ])
+    }
+}
+
+// MARK: - Tool-owned transcript details
+
+nonisolated extension AgentBuiltInTools {
+    static let sftpListDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_list", present: presentRemoteFileList
+    )
+    static let sftpStatDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_stat", present: presentRemoteFileStat
+    )
+    static let sftpReadDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_read", present: presentRemoteFileContent
+    )
+    static let sftpWriteDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_write", present: presentSFTPWrite
+    )
+    static let sftpMkdirDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_mkdir", present: presentSFTPMkdir
+    )
+    static let sftpMoveDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_move", present: presentSFTPMove
+    )
+    static let sftpChmodDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_chmod", present: presentSFTPChmod
+    )
+    static let sftpDeleteDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.sftp_delete", present: presentSFTPDelete
+    )
+
+    private static func presentRemoteFileList(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let values = input.result.arrayValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        let rows = values.compactMap { remoteFileDetailRow($0, locale: input.locale) }
+        return [
+            .message(String(localized: "\(rows.count) items", locale: input.locale), .secondary),
+            .list(.init(
+                title: nil, rows: rows,
+                emptyMessage: F.localized("Directory is empty", locale: input.locale)
+            )),
+        ]
+    }
+
+    private static func remoteFileDetailRow(
+        _ value: AgentJSONValue, locale: Locale
+    ) -> AgentToolDetail.ListRow? {
+        typealias F = AgentToolDetailFormatting
+        guard let object = value.objectValue else { return nil }
+        let path = object["path"]?.stringValue ?? ""
+        let name = F.nonempty(object["name"]?.stringValue)
+            ?? F.nonempty(path.split(separator: "/").last.map(String.init))
+            ?? F.localized("Unnamed item", locale: locale)
+        let kind = object["kind"]?.stringValue ?? ""
+        var metadata = [F.kindLabel(kind, locale: locale)]
+        if let bytes = object["size"]?.integerValue { metadata.append(F.byteCount(bytes)) }
+        if let permissions = F.nonempty(object["permissions"]?.stringValue) {
+            metadata.append(permissions)
+        }
+        return .init(
+            title: name, subtitle: metadata.filter { !$0.isEmpty }.joined(separator: " · "),
+            detail: object["modified_at"]?.stringValue.map(F.displayDate),
+            symbol: kind == "directory" ? "folder" : "doc"
+        )
+    }
+
+    private static func presentRemoteFileStat(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendField(
+            &items, "Kind", object["kind"]?.stringValue.map {
+                F.kindLabel($0, locale: input.locale)
+            }, locale: input.locale
+        )
+        if let bytes = object["size"]?.integerValue {
+            items.append(F.field("Size", F.byteCount(bytes), locale: input.locale))
+        }
+        F.appendField(
+            &items, "Permissions", object["permissions"]?.stringValue,
+            locale: input.locale, monospaced: true
+        )
+        F.appendField(
+            &items, "Modified", object["modified_at"]?.stringValue.map(F.displayDate),
+            locale: input.locale
+        )
+        return items
+    }
+
+    private static func presentRemoteFileContent(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        let content = object["content"]?.stringValue ?? ""
+        items.append(content.isEmpty
+            ? .message(F.localized("Empty file", locale: input.locale), .secondary)
+            : .text(.init(
+                title: F.localized("Content", locale: input.locale), text: content,
+                style: .monospaced
+            )))
+        if let bytes = object["bytes"]?.integerValue {
+            items.append(F.field("Size", F.byteCount(bytes), locale: input.locale))
+        }
+        return items
+    }
+
+    private static func presentSFTPWrite(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        if let content = input.arguments["content"]?.stringValue {
+            items.append(F.field("Size", F.byteCount(content.utf8.count), locale: input.locale))
+        }
+        items.append(F.field("Result", F.localized("Written", locale: input.locale), locale: input.locale))
+        return items
+    }
+
+    private static func presentSFTPMkdir(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        pathDetail(input, result: AgentToolDetailFormatting.localized(
+            "Directory created", locale: input.locale
+        ))
+    }
+
+    private static func pathDetail(
+        _ input: AgentToolDetailInput, result: String
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        items.append(F.field("Result", result, locale: input.locale))
+        return items
+    }
+
+    private static func presentSFTPMove(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "From", object["source"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendField(&items, "To", object["destination"]?.stringValue, locale: input.locale, monospaced: true)
+        return items
+    }
+
+    private static func presentSFTPChmod(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendField(&items, "Permissions", object["mode"]?.stringValue, locale: input.locale, monospaced: true)
+        return items
+    }
+
+    private static func presentSFTPDelete(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendField(
+            &items, "Kind", input.arguments["kind"]?.stringValue.map {
+                F.kindLabel($0, locale: input.locale)
+            }, locale: input.locale
+        )
+        items.append(F.field("Result", F.localized("Deleted", locale: input.locale), locale: input.locale))
+        return items
     }
 }

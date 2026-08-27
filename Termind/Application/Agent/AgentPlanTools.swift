@@ -77,6 +77,7 @@ nonisolated enum AgentPlanTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "lightbulb.max",
                 activity: .semanticArgument(key: "title", fallback: .plan), output: .field("plan"),
+                detailPresenterID: "builtin.present_plan",
                 actionKind: .present
             )
         )) { invocation, _ in
@@ -137,6 +138,7 @@ nonisolated enum AgentPlanTools: AgentToolSchemaBuilding {
             presentation: .init(
                 symbol: "checklist", activity: .semanticLabel(.taskList),
                 output: .json,
+                detailPresenterID: "builtin.manage_tasks",
                 actionKind: .update
             )
         )) { invocation, _ in
@@ -147,6 +149,36 @@ nonisolated enum AgentPlanTools: AgentToolSchemaBuilding {
                 "completed": .number(Double(updated.filter { $0.status == .completed }.count)),
             ]))
         }
+    }
+}
+
+// MARK: - Tool-owned transcript details
+
+nonisolated extension AgentPlanTools {
+    static let presentPlanDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.present_plan"
+    ) { input in
+        guard let path = input.result.objectValue?["scratch_path"]?.stringValue else {
+            return AgentToolDetailFormatting.genericItems(input.result, locale: input.locale)
+        }
+        return [.message(
+            String(localized: "Plan presented from \(path)", locale: input.locale), .success
+        )]
+    }
+
+    static let manageTasksDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.manage_tasks"
+    ) { input in
+        guard let object = input.result.objectValue,
+            let total = object["tasks"]?.integerValue,
+            let completed = object["completed"]?.integerValue
+        else {
+            return AgentToolDetailFormatting.genericItems(input.result, locale: input.locale)
+        }
+        return [.message(
+            String(localized: "\(total) tasks · \(completed) completed", locale: input.locale),
+            .secondary
+        )]
     }
 }
 

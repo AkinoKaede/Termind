@@ -680,7 +680,7 @@ private struct AgentToolRowView: View {
             }
 
             if let result = card.result {
-                if let detail = AgentToolPresentation.detail(for: card) {
+                if let detail = AgentToolPresentation.detail(for: card, locale: locale) {
                     AgentToolDetailView(detail: detail, isError: result.isError)
                 }
 
@@ -715,7 +715,7 @@ private struct AgentToolRowView: View {
 /// this view: labels, sections and text styles have already been chosen by the
 /// presentation projection, leaving SwiftUI responsible only for hierarchy.
 private struct AgentToolDetailView: View {
-    let detail: AgentToolPresentation.Detail
+    let detail: AgentToolDetail
     let isError: Bool
 
     var body: some View {
@@ -742,7 +742,7 @@ private struct AgentToolDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func fieldView(_ field: AgentToolPresentation.DetailField) -> some View {
+    private func fieldView(_ field: AgentToolDetail.Field) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
             Text(field.label)
                 .font(.caption.weight(.medium))
@@ -763,7 +763,7 @@ private struct AgentToolDetailView: View {
     }
 
     @ViewBuilder
-    private func textBlock(_ block: AgentToolPresentation.DetailTextBlock) -> some View {
+    private func textBlock(_ block: AgentToolDetail.TextBlock) -> some View {
         if let title = block.title {
             Text(title)
                 .font(.caption.weight(.medium))
@@ -787,7 +787,7 @@ private struct AgentToolDetailView: View {
     }
 
     @ViewBuilder
-    private func listBlock(_ list: AgentToolPresentation.DetailListBlock) -> some View {
+    private func listBlock(_ list: AgentToolDetail.ListBlock) -> some View {
         if let title = list.title {
             Text(title)
                 .font(.caption.weight(.medium))
@@ -805,7 +805,7 @@ private struct AgentToolDetailView: View {
     }
 
     @ViewBuilder
-    private func groupedList(_ list: AgentToolPresentation.DetailGroupedList) -> some View {
+    private func groupedList(_ list: AgentToolDetail.GroupedList) -> some View {
         Text(list.summary)
             .font(.caption.weight(.medium))
             .foregroundStyle(.secondary)
@@ -821,7 +821,7 @@ private struct AgentToolDetailView: View {
     }
 
     private func groupedListContents(
-        _ list: AgentToolPresentation.DetailGroupedList
+        _ list: AgentToolDetail.GroupedList
     ) -> some View {
         LazyVStack(alignment: .leading, spacing: Metrics.Space.m) {
             ForEach(Array(list.sections.enumerated()), id: \.offset) { _, section in
@@ -838,7 +838,7 @@ private struct AgentToolDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func detailRow(_ row: AgentToolPresentation.DetailListRow) -> some View {
+    private func detailRow(_ row: AgentToolDetail.ListRow) -> some View {
         HStack(alignment: .top, spacing: Metrics.Space.s) {
             if let symbol = row.symbol {
                 Image(systemName: symbol)
@@ -879,7 +879,7 @@ private struct AgentToolDetailView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func color(_ tint: AgentToolPresentation.DetailTint) -> Color {
+    private func color(_ tint: AgentToolDetail.Tint) -> Color {
         switch tint {
         case .secondary: .secondary
         case .warning: .orange

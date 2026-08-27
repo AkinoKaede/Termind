@@ -192,6 +192,7 @@ nonisolated struct AgentTurnDriver: Sendable {
             presentation: .init(
                 symbol: "magnifyingglass",
                 activity: .semanticArgument(key: "query", fallback: .web), output: .json,
+                detailPresenterID: "builtin.web_search",
                 actionKind: .search
             )
         )
