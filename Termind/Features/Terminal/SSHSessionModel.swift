@@ -71,7 +71,7 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
 /// between Workspaces.
 protocol SSHSessionInputRouting: AnyObject {
     func routeInteractiveInput(_ data: Data, from origin: SSHSessionModel)
-    func sshSessionDidInvalidateCommandComposition(_ sshSession: SSHSessionModel)
+    func sshSessionDidInvalidateCommandGeneration(_ sshSession: SSHSessionModel)
     func sshSession(
         _ sshSession: SSHSessionModel,
         didChangeWorkingDirectory workingDirectory: String?
@@ -124,10 +124,10 @@ nonisolated enum TerminalDraftError: LocalizedError, Sendable {
         case .unavailable:
             String(
                 localized:
-                    "Command Composer requires a supported shell prompt with Shell Integration enabled."
+                    "Command Generator requires a supported shell prompt with Shell Integration enabled."
             )
         case .alreadyPending:
-            String(localized: "Command Composer is already reading the current input.")
+            String(localized: "Command Generator is already reading the current input.")
         case .timedOut:
             String(localized: "The remote shell did not return its current input.")
         }
@@ -154,7 +154,7 @@ final class SSHSessionModel: Identifiable {
     var workingDirectory: String? {
         didSet {
             guard workingDirectory != oldValue else { return }
-            invalidateCommandComposition()
+            invalidateCommandGeneration()
             inputRouter?.sshSession(
                 self, didChangeWorkingDirectory: workingDirectory
             )
@@ -181,7 +181,7 @@ final class SSHSessionModel: Identifiable {
         }
     }
     private(set) var isShellPromptReady = false
-    private(set) var commandComposerRevision: UInt64 = 0
+    private(set) var commandGeneratorRevision: UInt64 = 0
     private struct PendingDraftRequest {
         var id: UUID
         var continuation: CheckedContinuation<String, any Error>
@@ -423,17 +423,17 @@ final class SSHSessionModel: Identifiable {
     /// makes broadcast possible — see `Workspace.deliver`; `submit` appends the
     /// newline that the user's own Return key would otherwise supply.
     func insert(_ text: String, submit: Bool = false) {
-        invalidateCommandComposition()
+        invalidateCommandGeneration()
         writeInputDirectly(Data((text + (submit ? "\r" : "")).utf8))
     }
 
-    var canComposeCurrentDraft: Bool {
+    var canGenerateFromCurrentDraft: Bool {
         status.isLive && shellIntegrationAvailable && isShellPromptReady
-            && Self.supportedComposerShells.contains(integratedShell ?? "")
+            && Self.supportedGeneratorShells.contains(integratedShell ?? "")
     }
 
     func requestCurrentDraft() async throws -> String {
-        guard canComposeCurrentDraft else { throw TerminalDraftError.unavailable }
+        guard canGenerateFromCurrentDraft else { throw TerminalDraftError.unavailable }
         guard pendingDraftRequest == nil else { throw TerminalDraftError.alreadyPending }
         let requestID = UUID()
         return try await withTaskCancellationHandler {
@@ -442,7 +442,7 @@ final class SSHSessionModel: Identifiable {
                 pendingDraftRequest = PendingDraftRequest(
                     id: requestID, continuation: continuation
                 )
-                writeInputDirectly(Self.commandComposerDraftRequest)
+                writeInputDirectly(Self.commandGeneratorDraftRequest)
                 draftRequestTimeoutTask?.cancel()
                 draftRequestTimeoutTask = Task { [weak self] in
                     try? await Task.sleep(for: .seconds(2))
@@ -461,7 +461,7 @@ final class SSHSessionModel: Identifiable {
     /// then inserts one literal command as a bracketed paste. There is
     /// intentionally no carriage return in this payload.
     func replaceCurrentDraft(with command: String) {
-        var data = Self.commandComposerDraftClear
+        var data = Self.commandGeneratorDraftClear
         data.append(Self.bracketedPasteStart)
         data.append(Data(command.utf8))
         data.append(Self.bracketedPasteEnd)
@@ -484,12 +484,12 @@ final class SSHSessionModel: Identifiable {
         request.continuation.resume(returning: draft)
     }
 
-    private func invalidateCommandComposition() {
-        commandComposerRevision &+= 1
-        inputRouter?.sshSessionDidInvalidateCommandComposition(self)
+    private func invalidateCommandGeneration() {
+        commandGeneratorRevision &+= 1
+        inputRouter?.sshSessionDidInvalidateCommandGeneration(self)
     }
 
-    private func resetCommandComposerShellState() {
+    private func resetCommandGeneratorShellState() {
         integratedShell = nil
         remoteSystemInfo = nil
         isShellPromptReady = false
@@ -497,7 +497,7 @@ final class SSHSessionModel: Identifiable {
         if let request = pendingDraftRequest {
             failDraftRequest(id: request.id, with: TerminalDraftError.unavailable)
         }
-        invalidateCommandComposition()
+        invalidateCommandGeneration()
     }
 
     func applyShellIntegrationPreference(isEnabled: Bool) {
@@ -505,9 +505,9 @@ final class SSHSessionModel: Identifiable {
         remoteSystemInfo = nil
     }
 
-    private static let supportedComposerShells: Set<String> = ["bash", "zsh", "fish"]
-    private static let commandComposerDraftRequest = Data("\u{1B}[777;1~".utf8)
-    private static let commandComposerDraftClear = Data("\u{1B}[777;2~".utf8)
+    private static let supportedGeneratorShells: Set<String> = ["bash", "zsh", "fish"]
+    private static let commandGeneratorDraftRequest = Data("\u{1B}[777;1~".utf8)
+    private static let commandGeneratorDraftClear = Data("\u{1B}[777;2~".utf8)
     private static let bracketedPasteStart = Data("\u{1B}[200~".utf8)
     private static let bracketedPasteEnd = Data("\u{1B}[201~".utf8)
 
@@ -516,7 +516,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func startConnection(using store: HostLibraryModel) {
-        resetCommandComposerShellState()
+        resetCommandGeneratorShellState()
         let reconnecting = hasConnectedOnce && isRecoveringConnection
         workingDirectory = nil
         transferConfiguration = nil
@@ -929,7 +929,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func disconnect() {
-        resetCommandComposerShellState()
+        resetCommandGeneratorShellState()
         workingDirectory = nil
         transferConfiguration = nil
         pendingInitialCommand = nil
@@ -1068,7 +1068,7 @@ final class SSHSessionModel: Identifiable {
     /// for Termind's retained pane model. Close the pane through its current
     /// Workspace instead; transport failures remain visible for reconnection.
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
-        resetCommandComposerShellState()
+        resetCommandGeneratorShellState()
         workingDirectory = nil
         transferConfiguration = nil
         connectionAttemptID = nil
@@ -1111,7 +1111,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func scheduleReconnect(after message: String, using store: HostLibraryModel) {
-        resetCommandComposerShellState()
+        resetCommandGeneratorShellState()
         isRecoveringConnection = true
         connectionAttemptID = nil
         connectionTask?.cancel()
@@ -1252,7 +1252,7 @@ final class SSHSessionModel: Identifiable {
     /// captured user interaction. Mouse/focus reports and protocol replies use
     /// the direct path even while Broadcast Input is enabled.
     func handleTerminalWrite(_ data: Data, isInteractiveInput: Bool) {
-        if isInteractiveInput { invalidateCommandComposition() }
+        if isInteractiveInput { invalidateCommandGeneration() }
         if isInteractiveInput, let inputRouter {
             inputRouter.routeInteractiveInput(data, from: self)
         } else {
@@ -1303,13 +1303,13 @@ final class SSHSessionModel: Identifiable {
             remoteSystemInfo = systemInfo
             isShellPromptReady = false
             shellIntegrationAvailable = true
-            invalidateCommandComposition()
+            invalidateCommandGeneration()
         case .promptReady:
             isShellPromptReady = true
-            invalidateCommandComposition()
+            invalidateCommandGeneration()
         case .commandStarted(let command):
             isShellPromptReady = false
-            invalidateCommandComposition()
+            invalidateCommandGeneration()
             recordExecutedCommand(command)
         case .draft(let draft):
             completeDraftRequest(with: draft)

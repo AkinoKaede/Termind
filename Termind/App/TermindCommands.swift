@@ -70,11 +70,11 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(after: .pasteboard) {
-            Button("Compose Command") {
-                window?.composeTerminalCommand(using: app.commandComposer)
+            Button("Generate Command") {
+                window?.generateTerminalCommand(using: app.commandGenerator)
             }
             .keyboardShortcut("i")
-            .disabled(!(window?.canComposeTerminalCommand ?? false))
+            .disabled(!(window?.canGenerateTerminalCommand ?? false))
 
             Divider()
 

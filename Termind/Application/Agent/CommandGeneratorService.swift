@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct CommandComposerContext: Hashable, Codable, Sendable {
+nonisolated struct CommandGeneratorContext: Hashable, Codable, Sendable {
     var draft: String
     var shell: String
     var cwd: String
@@ -8,19 +8,19 @@ nonisolated struct CommandComposerContext: Hashable, Codable, Sendable {
 }
 
 /// A narrow, tool-free model path for turning the active shell edit buffer into
-/// one command. It deliberately does not enter AgentRuntime: composing text may
-/// never execute it or expose any context beyond the fields above.
-actor CommandComposerService {
+/// one command. It deliberately does not enter AgentRuntime: generating a command
+/// may never execute it or expose any context beyond the fields above.
+actor CommandGeneratorService {
     static let maximumPayloadBytes = 8 * 1024
 
-    func compose(
-        context: CommandComposerContext,
+    func generate(
+        context: CommandGeneratorContext,
         model: any AgentModelCompleting
     ) async throws -> String {
         let payload = try JSONEncoder().encode(context)
         guard payload.count <= Self.maximumPayloadBytes,
             let userText = String(data: payload, encoding: .utf8)
-        else { throw CommandComposerError.inputTooLarge }
+        else { throw CommandGeneratorError.inputTooLarge }
 
         let request = AgentModelRequest(
             systemPrompt: """
@@ -46,27 +46,27 @@ actor CommandComposerService {
             switch event {
             case .textDelta(let delta):
                 guard text.utf8.count + delta.utf8.count <= Self.maximumPayloadBytes else {
-                    throw CommandComposerError.invalidResponse
+                    throw CommandGeneratorError.invalidResponse
                 }
                 text += delta
             case .textSnapshot(let snapshot):
                 guard snapshot.utf8.count <= Self.maximumPayloadBytes else {
-                    throw CommandComposerError.invalidResponse
+                    throw CommandGeneratorError.invalidResponse
                 }
                 text = snapshot
             case .toolCallDelta, .toolCallSnapshot:
-                throw CommandComposerError.invalidResponse
+                throw CommandGeneratorError.invalidResponse
             case .reasoningDelta, .reasoningSnapshot, .providerItem, .webSearch, .usage:
                 // Some reasoning providers require opaque output items in agent
                 // turns. This one-shot, tool-free request never replays them.
                 //
                 // A search is ignored rather than rejected for the same reason:
                 // this client never asks for one, so its only source is a
-                // gateway that searches regardless, and failing to compose a
+                // gateway that searches regardless, and failing to generate a
                 // command over that would help nobody.
                 //
                 // Usage is ignored because this request is not part of any
-                // conversation: its cost belongs to composing one command, not
+                // conversation: its cost belongs to generating one command, not
                 // to a context window anything is measured against.
                 continue
             case .finished(let reason):
@@ -74,7 +74,7 @@ actor CommandComposerService {
             }
         }
         if let stopReason, stopReason != .completed {
-            throw CommandComposerError.invalidResponse
+            throw CommandGeneratorError.invalidResponse
         }
         return try Self.parse(text)
     }
@@ -91,34 +91,34 @@ actor CommandComposerService {
                 CharacterSet.controlCharacters.contains($0)
                     || CharacterSet.newlines.contains($0)
             })
-        else { throw CommandComposerError.invalidResponse }
+        else { throw CommandGeneratorError.invalidResponse }
         return command
     }
 }
 
 @MainActor
-protocol CommandComposing: AnyObject, Sendable {
-    func compose(_ context: CommandComposerContext) async throws -> String
+protocol CommandGenerating: AnyObject, Sendable {
+    func generate(_ context: CommandGeneratorContext) async throws -> String
 }
 
 @MainActor
-final class CommandComposerController: CommandComposing {
+final class CommandGeneratorController: CommandGenerating {
     private let ai: AIConfigurationModel
-    private let service: CommandComposerService
+    private let service: CommandGeneratorService
 
-    init(ai: AIConfigurationModel, service: CommandComposerService = CommandComposerService()) {
+    init(ai: AIConfigurationModel, service: CommandGeneratorService = CommandGeneratorService()) {
         self.ai = ai
         self.service = service
     }
 
-    func compose(_ context: CommandComposerContext) async throws -> String {
-        guard let resolved = ai.resolve(.commandComposer) else {
-            throw CommandComposerError.missingModel
+    func generate(_ context: CommandGeneratorContext) async throws -> String {
+        guard let resolved = ai.resolve(.commandGenerator) else {
+            throw CommandGeneratorError.missingModel
         }
         let credentialRef = resolved.provider.usesVertex && resolved.provider.kind == .google
             ? resolved.provider.vertex.credentialRef : resolved.provider.credentialRef
         guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else {
-            throw CommandComposerError.missingCredential
+            throw CommandGeneratorError.missingCredential
         }
         let reasoning = ModelCapabilityResolver.reasoning(
             model: resolved.model, provider: resolved.provider
@@ -127,25 +127,25 @@ final class CommandComposerController: CommandComposing {
             provider: resolved.provider, model: resolved.model, secret: secret,
             reasoning: reasoning
         )
-        return try await service.compose(context: context, model: model)
+        return try await service.generate(context: context, model: model)
     }
 }
 
-nonisolated enum CommandComposerError: LocalizedError, Sendable {
+nonisolated enum CommandGeneratorError: LocalizedError, Sendable {
     case missingModel, missingCredential, inputTooLarge, invalidResponse, timedOut
 
     var errorDescription: String? {
         switch self {
         case .missingModel:
-            String(localized: "No Command Composer model is configured.")
+            String(localized: "No Command Generator model is configured.")
         case .missingCredential:
-            String(localized: "The Command Composer model has no available credential.")
+            String(localized: "The Command Generator model has no available credential.")
         case .inputTooLarge:
-            String(localized: "The current terminal input is too large to compose.")
+            String(localized: "The current terminal input is too large to generate.")
         case .invalidResponse:
-            String(localized: "Command Composer returned an invalid command.")
+            String(localized: "Command Generator returned an invalid command.")
         case .timedOut:
-            String(localized: "Command Composer timed out.")
+            String(localized: "Command Generator timed out.")
         }
     }
 }

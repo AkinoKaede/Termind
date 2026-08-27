@@ -477,7 +477,7 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
     /// which model should be behind it, and splitting them would ask the user a
     /// question that has one answer.
     case chat
-    case commandComposer
+    case commandGenerator
     case securityReview
 
     nonisolated var id: String { rawValue }
@@ -487,7 +487,7 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
         // Just "Chat", though it covers agent turns too. A label reading
         // "Chat & Agent" implies a second setting exists somewhere.
         case .chat: String(localized: "Chat")
-        case .commandComposer: String(localized: "Command Composer")
+        case .commandGenerator: String(localized: "Command Generator")
         case .securityReview: String(localized: "Security Review")
         }
     }
@@ -496,7 +496,7 @@ nonisolated enum AIRole: String, Codable, Sendable, CaseIterable, Identifiable {
         switch self {
         case .chat:
             String(localized: "Used for chat, tools, and the Assistant sidebar.")
-        case .commandComposer:
+        case .commandGenerator:
             String(
                 localized:
                     "Turns the current terminal input into one command. Choose a fast model."

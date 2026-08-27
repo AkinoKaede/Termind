@@ -70,7 +70,7 @@ struct AIProviderPersistenceTests {
         let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         store.upsert(provider)
         store.assign(ref, to: .chat)
-        store.assign(ref, to: .commandComposer)
+        store.assign(ref, to: .commandGenerator)
         store.select(ref)
 
         store.removeModels([model.id], from: provider.id)
@@ -82,28 +82,28 @@ struct AIProviderPersistenceTests {
     }
 
     @Test
-    func commandComposerAssignmentPersistsIndependentlyAndFallsBackToChat() throws {
-        let container = try makeContainer("CommandComposerRole")
+    func commandGeneratorAssignmentPersistsIndependentlyAndFallsBackToChat() throws {
+        let container = try makeContainer("CommandGeneratorRole")
         let chatModel = reasoningModel("chat-model")
-        let composerModel = reasoningModel("composer-model")
-        let provider = ModelProvider(name: "OpenAI", models: [chatModel, composerModel])
+        let generatorModel = reasoningModel("generator-model")
+        let provider = ModelProvider(name: "OpenAI", models: [chatModel, generatorModel])
         let chatRef = AIModelRef(modelProviderID: provider.id, modelID: chatModel.id)
-        let composerRef = AIModelRef(modelProviderID: provider.id, modelID: composerModel.id)
+        let generatorRef = AIModelRef(modelProviderID: provider.id, modelID: generatorModel.id)
 
         do {
             let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
             store.upsert(provider)
             store.assign(chatRef, to: .chat)
-            #expect(store.resolve(.commandComposer)?.model.id == chatModel.id)
-            store.assign(composerRef, to: .commandComposer)
-            #expect(store.resolve(.commandComposer)?.model.id == composerModel.id)
+            #expect(store.resolve(.commandGenerator)?.model.id == chatModel.id)
+            store.assign(generatorRef, to: .commandGenerator)
+            #expect(store.resolve(.commandGenerator)?.model.id == generatorModel.id)
         }
 
         let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         #expect(reloaded.assignment(for: .chat) == chatRef)
-        #expect(reloaded.assignment(for: .commandComposer) == composerRef)
-        #expect(AIRole.allCases == [.chat, .commandComposer, .securityReview])
-        #expect(AIRole.commandComposer.unsetLabel == "Same as Chat")
+        #expect(reloaded.assignment(for: .commandGenerator) == generatorRef)
+        #expect(AIRole.allCases == [.chat, .commandGenerator, .securityReview])
+        #expect(AIRole.commandGenerator.unsetLabel == "Same as Chat")
     }
 
     @Test
@@ -122,7 +122,7 @@ struct AIProviderPersistenceTests {
 
         let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         #expect(reloaded.roles.isEmpty)
-        #expect(reloaded.assignment(for: .commandComposer) == nil)
+        #expect(reloaded.assignment(for: .commandGenerator) == nil)
         #expect(
             try container.mainContext.fetch(FetchDescriptor<PersistentAIRoleAssignment>())
                 .contains(where: { $0.role == "inline" })

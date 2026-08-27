@@ -3,7 +3,7 @@ import Testing
 
 @testable import Termind
 
-private actor CommandComposerRequestRecorder {
+private actor CommandGeneratorRequestRecorder {
     private(set) var requests: [AgentModelRequest] = []
 
     func append(_ request: AgentModelRequest) {
@@ -11,9 +11,9 @@ private actor CommandComposerRequestRecorder {
     }
 }
 
-private struct CommandComposerModelStub: AgentModelCompleting {
+private struct CommandGeneratorModelStub: AgentModelCompleting {
     var events: [AgentModelStreamEvent]
-    var recorder: CommandComposerRequestRecorder?
+    var recorder: CommandGeneratorRequestRecorder?
 
     func complete(
         _ request: AgentModelRequest
@@ -24,7 +24,7 @@ private struct CommandComposerModelStub: AgentModelCompleting {
 }
 
 @Suite
-struct CommandComposerServiceTests {
+struct CommandGeneratorServiceTests {
     @Test
     func decodedRemoteSystemInfoReappliesTokenValidation() throws {
         let data = Data(
@@ -40,15 +40,15 @@ struct CommandComposerServiceTests {
 
     @Test
     func sendsOnlyNarrowContextWithoutTools() async throws {
-        let recorder = CommandComposerRequestRecorder()
-        let model = CommandComposerModelStub(
+        let recorder = CommandGeneratorRequestRecorder()
+        let model = CommandGeneratorModelStub(
             events: [
                 .textDelta(#"{"command":"ls -la"}"#),
                 .finished(.completed),
             ],
             recorder: recorder
         )
-        let context = CommandComposerContext(
+        let context = CommandGeneratorContext(
             draft: "install curl", shell: "zsh", cwd: "/srv/app",
             remoteSystemInfo: RemoteSystemInfo(
                 distributionID: "fedora", distributionVersion: "42",
@@ -57,7 +57,7 @@ struct CommandComposerServiceTests {
             )
         )
 
-        let command = try await CommandComposerService().compose(
+        let command = try await CommandGeneratorService().generate(
             context: context, model: model
         )
         let request = try #require(await recorder.requests.first)
@@ -66,7 +66,7 @@ struct CommandComposerServiceTests {
 
         #expect(command == "ls -la")
         #expect(request.tools.isEmpty)
-        #expect(try JSONDecoder().decode(CommandComposerContext.self, from: encoded) == context)
+        #expect(try JSONDecoder().decode(CommandGeneratorContext.self, from: encoded) == context)
         #expect(!message.text.localizedCaseInsensitiveContains("history"))
         #expect(!message.text.contains("hostname"))
         #expect(!message.text.contains("exitStatus"))
@@ -76,13 +76,13 @@ struct CommandComposerServiceTests {
 
     @Test
     func authoritativeSnapshotReplacesStreamingDeltas() async throws {
-        let model = CommandComposerModelStub(events: [
+        let model = CommandGeneratorModelStub(events: [
             .textDelta(#"{"command":"wrong"}"#),
             .textSnapshot(#"{"command":"printf '%s\\n' hello"}"#),
             .finished(.completed),
         ])
 
-        let command = try await CommandComposerService().compose(
+        let command = try await CommandGeneratorService().generate(
             context: .init(draft: "print hello", shell: "bash", cwd: "/tmp"),
             model: model
         )
@@ -101,12 +101,12 @@ struct CommandComposerServiceTests {
         "{\"command\":\"echo \\u0085 second\"}",
     ])
     func rejectsMalformedOrUnsafeResponses(_ response: String) async {
-        let model = CommandComposerModelStub(events: [
+        let model = CommandGeneratorModelStub(events: [
             .textSnapshot(response), .finished(.completed),
         ])
 
-        await #expect(throws: CommandComposerError.self) {
-            try await CommandComposerService().compose(
+        await #expect(throws: CommandGeneratorError.self) {
+            try await CommandGeneratorService().generate(
                 context: .init(draft: "list", shell: "bash", cwd: "/tmp"),
                 model: model
             )
@@ -115,35 +115,35 @@ struct CommandComposerServiceTests {
 
     @Test
     func rejectsToolCallsTruncationAndOversizedInput() async {
-        let context = CommandComposerContext(draft: "list", shell: "bash", cwd: "/tmp")
-        let toolModel = CommandComposerModelStub(events: [
+        let context = CommandGeneratorContext(draft: "list", shell: "bash", cwd: "/tmp")
+        let toolModel = CommandGeneratorModelStub(events: [
             .toolCallDelta(id: "1", name: "ssh_exec", arguments: "{}"),
             .finished(.toolCalls),
         ])
-        let doneTerminatedModel = CommandComposerModelStub(events: [
+        let doneTerminatedModel = CommandGeneratorModelStub(events: [
             .textSnapshot(#"{"command":"ls"}"#),
         ])
-        let truncatedModel = CommandComposerModelStub(events: [
+        let truncatedModel = CommandGeneratorModelStub(events: [
             .textSnapshot(#"{"command":"ls"}"#), .finished(.length),
         ])
 
-        await #expect(throws: CommandComposerError.self) {
-            try await CommandComposerService().compose(context: context, model: toolModel)
+        await #expect(throws: CommandGeneratorError.self) {
+            try await CommandGeneratorService().generate(context: context, model: toolModel)
         }
-        await #expect(throws: CommandComposerError.self) {
-            try await CommandComposerService().compose(context: context, model: truncatedModel)
+        await #expect(throws: CommandGeneratorError.self) {
+            try await CommandGeneratorService().generate(context: context, model: truncatedModel)
         }
-        let doneTerminatedCommand = try? await CommandComposerService().compose(
+        let doneTerminatedCommand = try? await CommandGeneratorService().generate(
             context: context, model: doneTerminatedModel
         )
         #expect(doneTerminatedCommand == "ls")
-        await #expect(throws: CommandComposerError.self) {
-            try await CommandComposerService().compose(
+        await #expect(throws: CommandGeneratorError.self) {
+            try await CommandGeneratorService().generate(
                 context: .init(
                     draft: String(repeating: "x", count: 8 * 1024),
                     shell: "bash", cwd: "/tmp"
                 ),
-                model: CommandComposerModelStub(events: [])
+                model: CommandGeneratorModelStub(events: [])
             )
         }
     }

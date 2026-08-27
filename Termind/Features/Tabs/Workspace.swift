@@ -5,7 +5,7 @@ protocol WorkspaceLifecycleRouting: AnyObject {
     func workspaceContextDidChange(_ workspace: Workspace)
 }
 
-nonisolated enum CommandComposerState: Equatable, Sendable {
+nonisolated enum CommandGeneratorState: Equatable, Sendable {
     case idle
     case readingDraft
     case generating
@@ -31,14 +31,14 @@ final class Workspace: Identifiable {
     let id = UUID()
     var layout: SplitNode {
         didSet {
-            cancelCommandComposition()
+            cancelCommandGeneration()
             synchronizeInputRouters(previousLayout: oldValue)
         }
     }
     var focusedPaneID: Pane.ID {
         didSet {
             guard focusedPaneID != oldValue else { return }
-            cancelCommandComposition()
+            cancelCommandGeneration()
             lifecycleRouter?.workspaceContextDidChange(self)
         }
     }
@@ -57,13 +57,13 @@ final class Workspace: Identifiable {
     var broadcastsInput: Bool = false {
         didSet {
             guard broadcastsInput != oldValue else { return }
-            cancelCommandComposition()
+            cancelCommandGeneration()
         }
     }
-    var commandComposerState: CommandComposerState = .idle
-    private var commandComposerTask: Task<Void, Never>?
-    private var commandComposerDismissTask: Task<Void, Never>?
-    private var commandComposerGeneration: UInt64 = 0
+    var commandGeneratorState: CommandGeneratorState = .idle
+    private var commandGeneratorTask: Task<Void, Never>?
+    private var commandGeneratorDismissTask: Task<Void, Never>?
+    private var commandGenerationSequence: UInt64 = 0
 
     init(pane: Pane) {
         self.layout = .leaf(pane)
@@ -242,18 +242,18 @@ final class Workspace: Identifiable {
         }
     }
 
-    func composeFocusedCommand(using controller: any CommandComposing) {
-        if commandComposerTask != nil {
-            cancelCommandComposition()
+    func generateFocusedCommand(using controller: any CommandGenerating) {
+        if commandGeneratorTask != nil {
+            cancelCommandGeneration()
             return
         }
         guard let origin = focusedPane.sshSession else { return }
         let targets = broadcastsInput && canBroadcast ? broadcastTargets : [origin]
-        guard targets.allSatisfy(\.canComposeCurrentDraft) else {
-            showCommandComposerFailure(
+        guard targets.allSatisfy(\.canGenerateFromCurrentDraft) else {
+            showCommandGenerationFailure(
                 String(
                     localized:
-                        "Command Composer requires every target to be at a supported shell prompt with Shell Integration enabled."
+                        "Command Generator requires every target to be at a supported shell prompt with Shell Integration enabled."
                 )
             )
             return
@@ -261,47 +261,47 @@ final class Workspace: Identifiable {
         guard let cwd = origin.workingDirectory, !cwd.isEmpty,
             let shell = origin.integratedShell
         else {
-            showCommandComposerFailure(
+            showCommandGenerationFailure(
                 String(localized: "The focused shell has not reported its current directory.")
             )
             return
         }
 
-        commandComposerDismissTask?.cancel()
-        commandComposerGeneration &+= 1
-        let generation = commandComposerGeneration
+        commandGeneratorDismissTask?.cancel()
+        commandGenerationSequence &+= 1
+        let generation = commandGenerationSequence
         let targetIDs = targets.map(\.id)
         let revisions = Dictionary(uniqueKeysWithValues: targets.map {
-            ($0.id, $0.commandComposerRevision)
+            ($0.id, $0.commandGeneratorRevision)
         })
         let focusedID = focusedPaneID
         let wasBroadcasting = broadcastsInput && canBroadcast
-        commandComposerState = .readingDraft
+        commandGeneratorState = .readingDraft
 
-        commandComposerTask = Task { [weak self, controller] in
+        commandGeneratorTask = Task { [weak self, controller] in
             do {
                 let draft = try await origin.requestCurrentDraft()
                 try Task.checkCancellation()
                 guard !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                    throw WorkspaceCommandComposerError.emptyDraft
+                    throw WorkspaceCommandGenerationError.emptyDraft
                 }
-                guard self?.commandComposerSnapshotIsCurrent(
+                guard self?.commandGenerationSnapshotIsCurrent(
                     generation: generation, focusedID: focusedID,
                     wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
                     revisions: revisions
                 ) == true else { throw CancellationError() }
 
-                self?.commandComposerState = .generating
-                let context = CommandComposerContext(
+                self?.commandGeneratorState = .generating
+                let context = CommandGeneratorContext(
                     draft: draft, shell: shell, cwd: cwd,
                     remoteSystemInfo: SettingsKey.isShellIntegrationEnabled
                         ? origin.remoteSystemInfo : nil
                 )
-                let command = try await commandComposerWithTimeout {
-                    try await controller.compose(context)
+                let command = try await commandGenerationWithTimeout {
+                    try await controller.generate(context)
                 }
                 try Task.checkCancellation()
-                guard self?.commandComposerSnapshotIsCurrent(
+                guard self?.commandGenerationSnapshotIsCurrent(
                     generation: generation, focusedID: focusedID,
                     wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
                     revisions: revisions
@@ -310,14 +310,14 @@ final class Workspace: Identifiable {
                 for target in targets {
                     target.replaceCurrentDraft(with: command)
                 }
-                self?.finishCommandComposition(
+                self?.finishCommandGeneration(
                     generation: generation,
                     state: .inserted(targetCount: targets.count), dismissAfter: .seconds(2)
                 )
             } catch is CancellationError {
-                self?.finishCancelledCommandComposition(generation: generation)
+                self?.finishCancelledCommandGeneration(generation: generation)
             } catch {
-                self?.finishCommandComposition(
+                self?.finishCommandGeneration(
                     generation: generation,
                     state: .failed(error.localizedDescription), dismissAfter: .seconds(3)
                 )
@@ -325,64 +325,64 @@ final class Workspace: Identifiable {
         }
     }
 
-    func cancelCommandComposition() {
-        guard commandComposerTask != nil else { return }
-        commandComposerGeneration &+= 1
-        commandComposerTask?.cancel()
-        commandComposerTask = nil
-        commandComposerDismissTask?.cancel()
-        commandComposerDismissTask = nil
-        commandComposerState = .idle
+    func cancelCommandGeneration() {
+        guard commandGeneratorTask != nil else { return }
+        commandGenerationSequence &+= 1
+        commandGeneratorTask?.cancel()
+        commandGeneratorTask = nil
+        commandGeneratorDismissTask?.cancel()
+        commandGeneratorDismissTask = nil
+        commandGeneratorState = .idle
     }
 
-    private func commandComposerSnapshotIsCurrent(
+    private func commandGenerationSnapshotIsCurrent(
         generation: UInt64, focusedID: Pane.ID, wasBroadcasting: Bool,
         targetIDs: [SSHSessionModel.ID], revisions: [SSHSessionModel.ID: UInt64]
     ) -> Bool {
-        guard commandComposerGeneration == generation,
+        guard commandGenerationSequence == generation,
             focusedPaneID == focusedID,
             (broadcastsInput && canBroadcast) == wasBroadcasting
         else { return false }
         let targets = wasBroadcasting ? broadcastTargets : focusedPane.sshSession.map { [$0] } ?? []
         guard targets.map(\.id) == targetIDs else { return false }
         return targets.allSatisfy {
-            $0.canComposeCurrentDraft && revisions[$0.id] == $0.commandComposerRevision
+            $0.canGenerateFromCurrentDraft && revisions[$0.id] == $0.commandGeneratorRevision
         }
     }
 
-    private func finishCancelledCommandComposition(generation: UInt64) {
-        guard commandComposerGeneration == generation else { return }
-        commandComposerTask = nil
-        commandComposerState = .idle
+    private func finishCancelledCommandGeneration(generation: UInt64) {
+        guard commandGenerationSequence == generation else { return }
+        commandGeneratorTask = nil
+        commandGeneratorState = .idle
     }
 
-    private func finishCommandComposition(
-        generation: UInt64, state: CommandComposerState, dismissAfter: Duration
+    private func finishCommandGeneration(
+        generation: UInt64, state: CommandGeneratorState, dismissAfter: Duration
     ) {
-        guard commandComposerGeneration == generation else { return }
-        commandComposerTask = nil
-        commandComposerState = state
-        scheduleCommandComposerDismiss(generation: generation, after: dismissAfter)
+        guard commandGenerationSequence == generation else { return }
+        commandGeneratorTask = nil
+        commandGeneratorState = state
+        scheduleCommandGenerationDismiss(generation: generation, after: dismissAfter)
     }
 
-    private func showCommandComposerFailure(_ message: String) {
-        commandComposerGeneration &+= 1
-        commandComposerTask?.cancel()
-        commandComposerTask = nil
-        commandComposerDismissTask?.cancel()
-        commandComposerState = .failed(message)
-        scheduleCommandComposerDismiss(
-            generation: commandComposerGeneration, after: .seconds(3)
+    private func showCommandGenerationFailure(_ message: String) {
+        commandGenerationSequence &+= 1
+        commandGeneratorTask?.cancel()
+        commandGeneratorTask = nil
+        commandGeneratorDismissTask?.cancel()
+        commandGeneratorState = .failed(message)
+        scheduleCommandGenerationDismiss(
+            generation: commandGenerationSequence, after: .seconds(3)
         )
     }
 
-    private func scheduleCommandComposerDismiss(generation: UInt64, after delay: Duration) {
-        commandComposerDismissTask?.cancel()
-        commandComposerDismissTask = Task { [weak self] in
+    private func scheduleCommandGenerationDismiss(generation: UInt64, after delay: Duration) {
+        commandGeneratorDismissTask?.cancel()
+        commandGeneratorDismissTask = Task { [weak self] in
             try? await Task.sleep(for: delay)
-            guard !Task.isCancelled, self?.commandComposerGeneration == generation else { return }
-            self?.commandComposerState = .idle
-            self?.commandComposerDismissTask = nil
+            guard !Task.isCancelled, self?.commandGenerationSequence == generation else { return }
+            self?.commandGeneratorState = .idle
+            self?.commandGeneratorDismissTask = nil
         }
     }
 
@@ -431,7 +431,7 @@ extension Workspace: SSHSessionInputRouting {
     /// Sending directly preserves each event's terminal encoding and avoids
     /// feeding broadcast copies back through this router.
     func routeInteractiveInput(_ data: Data, from origin: SSHSessionModel) {
-        cancelCommandComposition()
+        cancelCommandGeneration()
         let sessions = broadcastTargets
         guard sessions.contains(where: { $0 === origin }) else {
             origin.writeInputDirectly(data)
@@ -444,8 +444,8 @@ extension Workspace: SSHSessionInputRouting {
         }
     }
 
-    func sshSessionDidInvalidateCommandComposition(_: SSHSessionModel) {
-        cancelCommandComposition()
+    func sshSessionDidInvalidateCommandGeneration(_: SSHSessionModel) {
+        cancelCommandGeneration()
     }
 
     /// A background pane may keep reporting OSC 7 while another split has
@@ -478,25 +478,25 @@ extension Workspace: SSHSessionInputRouting {
     }
 }
 
-nonisolated private enum WorkspaceCommandComposerError: LocalizedError {
+nonisolated private enum WorkspaceCommandGenerationError: LocalizedError {
     case emptyDraft
 
     var errorDescription: String? {
-        String(localized: "Type something at the shell prompt before composing a command.")
+        String(localized: "Type something at the shell prompt before generating a command.")
     }
 }
 
-nonisolated private func commandComposerWithTimeout(
+nonisolated private func commandGenerationWithTimeout(
     _ operation: @escaping @Sendable () async throws -> String
 ) async throws -> String {
     try await withThrowingTaskGroup(of: String.self) { group in
         group.addTask { try await operation() }
         group.addTask {
             try await Task.sleep(for: .seconds(30))
-            throw CommandComposerError.timedOut
+            throw CommandGeneratorError.timedOut
         }
         guard let result = try await group.next() else {
-            throw CommandComposerError.invalidResponse
+            throw CommandGeneratorError.invalidResponse
         }
         group.cancelAll()
         return result

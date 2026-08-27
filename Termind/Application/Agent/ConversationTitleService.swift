@@ -7,7 +7,7 @@ nonisolated struct ConversationTitleContext: Hashable, Codable, Sendable {
 
 /// A narrow, tool-free model path for naming a conversation.
 ///
-/// Like `CommandComposerService` it deliberately stays out of `AgentRuntime`:
+/// Like `CommandGeneratorService` it deliberately stays out of `AgentRuntime`:
 /// summarizing text may never call a tool, and the reply is validated against a
 /// grammar rather than trusted. Both halves of the input are remote-influenced —
 /// the assistant turn can quote a file or a tool result — so the title is parsed
@@ -124,7 +124,7 @@ protocol ConversationTitling: AnyObject, Sendable {
 /// `AIRole` argues the case: a role earns its place by wanting a *materially
 /// different* model, and titling wants "whatever the chat model is, but
 /// cheaper" — which the Chat picker already expresses. Cheapness comes from
-/// clamping the reasoning budget instead, the same way Command Composer does.
+/// clamping the reasoning budget instead, the same way Command Generator does.
 @MainActor
 final class ConversationTitleController: ConversationTitling {
     private let ai: AIConfigurationModel

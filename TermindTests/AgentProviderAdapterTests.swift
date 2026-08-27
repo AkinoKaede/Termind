@@ -51,14 +51,14 @@ struct AgentProviderAdapterTests {
     }
 
     @Test
-    func commandComposerRequestUsesBufferedJSONInsteadOfSSE() throws {
+    func commandGeneratorRequestUsesBufferedJSONInsteadOfSSE() throws {
         var provider = ModelProvider(name: "OpenAI")
         provider.usesResponsesAPI = true
         let client = AgentProviderClient(
             provider: provider, model: AIModel(id: "gpt-test"), secret: "test"
         )
         let modelRequest = AgentModelRequest(
-            systemPrompt: "Compose", messages: [], tools: []
+            systemPrompt: "Generate", messages: [], tools: []
         )
 
         let request = try client.buildRequest(modelRequest, streaming: false)
@@ -380,7 +380,7 @@ struct AgentProviderAdapterTests {
     }
 
     @Test
-    func openAIResponsesParsesCommandComposerJSONSnapshot() {
+    func openAIResponsesParsesCommandGeneratorJSONSnapshot() {
         let response: [String: Any] = [
             "object": "response", "status": "completed",
             "output": [[

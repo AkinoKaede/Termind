@@ -2253,62 +2253,62 @@
         }
       }
     },
-    "Command Composer": {
+    "Command Generator": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "命令编写器"
+            "value": "命令生成器"
           }
         }
       }
     },
-    "Command Composer is already reading the current input.": {
+    "Command Generator is already reading the current input.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "命令编写器已在读取当前输入。"
+            "value": "命令生成器已在读取当前输入。"
           }
         }
       }
     },
-    "Command Composer requires a supported shell prompt with Shell Integration enabled.": {
+    "Command Generator requires a supported shell prompt with Shell Integration enabled.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "命令编写器需要受支持的 shell 提示符，并启用 Shell 集成。"
+            "value": "命令生成器需要受支持的 shell 提示符，并启用 Shell 集成。"
           }
         }
       }
     },
-    "Command Composer requires every target to be at a supported shell prompt with Shell Integration enabled.": {
+    "Command Generator requires every target to be at a supported shell prompt with Shell Integration enabled.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "命令编写器要求每个目标都位于受支持的 shell 提示符，并启用 Shell 集成。"
+            "value": "命令生成器要求每个目标都位于受支持的 shell 提示符，并启用 Shell 集成。"
           }
         }
       }
     },
-    "Command Composer returned an invalid command.": {
+    "Command Generator returned an invalid command.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "命令编写器返回了无效命令。"
+            "value": "命令生成器返回了无效命令。"
           }
         }
       }
     },
-    "Command Composer timed out.": {
+    "Command Generator timed out.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "命令编写器已超时。"
+            "value": "命令生成器已超时。"
           }
         }
       }
@@ -2419,22 +2419,22 @@
         }
       }
     },
-    "Compose Command": {
+    "Generate Command": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "编写命令"
+            "value": "生成命令"
           }
         }
       }
     },
-    "Composing command…": {
+    "Generating command…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "正在编写命令…"
+            "value": "正在生成命令…"
           }
         }
       }
@@ -2929,12 +2929,12 @@
         }
       }
     },
-    "Couldn't compose command": {
+    "Couldn't generate command": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法编写命令"
+            "value": "无法生成命令"
           }
         }
       }
@@ -6074,12 +6074,12 @@
         }
       }
     },
-    "No Command Composer model is configured.": {
+    "No Command Generator model is configured.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未配置命令编排模型。"
+            "value": "尚未配置命令生成器模型。"
           }
         }
       }
@@ -10182,12 +10182,12 @@
         }
       }
     },
-    "The Command Composer model has no available credential.": {
+    "The Command Generator model has no available credential.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "命令编写器模型没有可用凭据。"
+            "value": "命令生成器模型没有可用凭据。"
           }
         }
       }
@@ -10368,12 +10368,12 @@
         }
       }
     },
-    "The current terminal input is too large to compose.": {
+    "The current terminal input is too large to generate.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "当前终端输入过长，无法编写命令。"
+            "value": "当前终端输入过长，无法生成命令。"
           }
         }
       }
@@ -11688,12 +11688,12 @@
         }
       }
     },
-    "Type something at the shell prompt before composing a command.": {
+    "Type something at the shell prompt before generating a command.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "编写命令前，请先在 shell 提示符中输入内容。"
+            "value": "生成命令前，请先在 shell 提示符中输入内容。"
           }
         }
       }

@@ -260,10 +260,10 @@ final class WindowModel {
 
     var canFindInTerminal: Bool { focusedSSHSession != nil }
 
-    var canComposeTerminalCommand: Bool { focusedSSHSession != nil }
+    var canGenerateTerminalCommand: Bool { focusedSSHSession != nil }
 
-    func composeTerminalCommand(using controller: CommandComposerController) {
-        selectedTab?.composeFocusedCommand(using: controller)
+    func generateTerminalCommand(using controller: CommandGeneratorController) {
+        selectedTab?.generateFocusedCommand(using: controller)
     }
 
     func presentTerminalFind() {

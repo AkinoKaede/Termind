@@ -71,7 +71,7 @@ final class AppModel {
     /// See `AIConfigurationModel`.
     private let ai: AIConfigurationModel
     var aiConfiguration: AIConfigurationModel { ai }
-    let commandComposer: CommandComposerController
+    let commandGenerator: CommandGeneratorController
     /// Names conversations for the chat list. Held as the protocol, not the
     /// concrete controller, so a test can watch the trigger without a provider.
     var conversationTitles: any ConversationTitling
@@ -133,7 +133,7 @@ final class AppModel {
             clientFactory: { connectionCoordinator.makeSFTPClient() }
         )
         self.ai = ai
-        commandComposer = CommandComposerController(ai: ai)
+        commandGenerator = CommandGeneratorController(ai: ai)
         conversationTitles = ConversationTitleController(ai: ai)
         self.speechTranscription =
             speechTranscription

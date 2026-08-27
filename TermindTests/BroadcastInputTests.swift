@@ -14,17 +14,17 @@ import Testing
 #endif
 
 @MainActor
-private final class WorkspaceCommandComposerStub: CommandComposing {
+private final class WorkspaceCommandGeneratorStub: CommandGenerating {
     var command: String
     var delay: Duration?
-    private(set) var contexts: [CommandComposerContext] = []
+    private(set) var contexts: [CommandGeneratorContext] = []
 
     init(command: String, delay: Duration? = nil) {
         self.command = command
         self.delay = delay
     }
 
-    func compose(_ context: CommandComposerContext) async throws -> String {
+    func generate(_ context: CommandGeneratorContext) async throws -> String {
         contexts.append(context)
         if let delay { try await Task.sleep(for: delay) }
         return command
@@ -144,7 +144,7 @@ struct BroadcastInputTests {
     }
 
     @Test
-    func commandComposerReadsAndReplacesOnlyFocusedSessionWithoutBroadcast() async throws {
+    func commandGeneratorReadsAndReplacesOnlyFocusedSessionWithoutBroadcast() async throws {
         let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
         focus(firstSSHSession, in: workspace)
         try await Task.sleep(for: .milliseconds(20))
@@ -152,7 +152,7 @@ struct BroadcastInputTests {
             distributionID: "debian", distributionVersion: "13",
             kernelName: "Linux", kernelRelease: "6.12.0", architecture: "x86_64"
         )
-        prepareForCommandComposer(
+        prepareForCommandGenerator(
             firstSSHSession, cwd: "/srv/app", shell: "zsh", systemInfo: systemInfo
         )
         var firstWrites: [Data] = []
@@ -166,12 +166,12 @@ struct BroadcastInputTests {
             }
         }
         secondSSHSession.inputSink = { secondWrites.append($0) }
-        let composer = WorkspaceCommandComposerStub(command: "ls -la")
+        let generator = WorkspaceCommandGeneratorStub(command: "ls -la")
 
-        workspace.composeFocusedCommand(using: composer)
-        try await waitUntil { workspace.commandComposerState == .inserted(targetCount: 1) }
+        workspace.generateFocusedCommand(using: generator)
+        try await waitUntil { workspace.commandGeneratorState == .inserted(targetCount: 1) }
 
-        #expect(composer.contexts == [
+        #expect(generator.contexts == [
             .init(
                 draft: "show hidden files", shell: "zsh", cwd: "/srv/app",
                 remoteSystemInfo: systemInfo
@@ -186,12 +186,12 @@ struct BroadcastInputTests {
     }
 
     @Test
-    func commandComposerBroadcastsOneModelResultWithoutRoutingItTwice() async throws {
+    func commandGeneratorBroadcastsOneModelResultWithoutRoutingItTwice() async throws {
         let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
         focus(firstSSHSession, in: workspace)
         try await Task.sleep(for: .milliseconds(20))
-        prepareForCommandComposer(firstSSHSession, cwd: "/tmp", shell: "bash")
-        prepareForCommandComposer(secondSSHSession, cwd: "/elsewhere", shell: "fish")
+        prepareForCommandGenerator(firstSSHSession, cwd: "/tmp", shell: "bash")
+        prepareForCommandGenerator(secondSSHSession, cwd: "/elsewhere", shell: "fish")
         workspace.broadcastsInput = true
         var firstWrites: [Data] = []
         var secondWrites: [Data] = []
@@ -204,37 +204,37 @@ struct BroadcastInputTests {
             }
         }
         secondSSHSession.inputSink = { secondWrites.append($0) }
-        let composer = WorkspaceCommandComposerStub(command: "find . -type f -size +1M")
+        let generator = WorkspaceCommandGeneratorStub(command: "find . -type f -size +1M")
 
-        workspace.composeFocusedCommand(using: composer)
-        try await waitUntil { workspace.commandComposerState == .inserted(targetCount: 2) }
+        workspace.generateFocusedCommand(using: generator)
+        try await waitUntil { workspace.commandGeneratorState == .inserted(targetCount: 2) }
 
-        #expect(composer.contexts.count == 1)
-        #expect(composer.contexts.first?.shell == "bash")
-        #expect(composer.contexts.first?.cwd == "/tmp")
+        #expect(generator.contexts.count == 1)
+        #expect(generator.contexts.first?.shell == "bash")
+        #expect(generator.contexts.first?.cwd == "/tmp")
         #expect(firstWrites.count == 2)
-        #expect(secondWrites == [replacementPayload(command: composer.command)])
+        #expect(secondWrites == [replacementPayload(command: generator.command)])
         #expect(firstWrites.last == secondWrites.last)
     }
 
     @Test
-    func commandComposerPreflightFailureLeavesEveryBroadcastDraftUntouched() {
+    func commandGeneratorPreflightFailureLeavesEveryBroadcastDraftUntouched() {
         let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
         focus(firstSSHSession, in: workspace)
-        prepareForCommandComposer(firstSSHSession, cwd: "/tmp", shell: "bash")
+        prepareForCommandGenerator(firstSSHSession, cwd: "/tmp", shell: "bash")
         workspace.broadcastsInput = true
         var firstWrites: [Data] = []
         var secondWrites: [Data] = []
         firstSSHSession.inputSink = { firstWrites.append($0) }
         secondSSHSession.inputSink = { secondWrites.append($0) }
-        let composer = WorkspaceCommandComposerStub(command: "ls")
+        let generator = WorkspaceCommandGeneratorStub(command: "ls")
 
-        workspace.composeFocusedCommand(using: composer)
+        workspace.generateFocusedCommand(using: generator)
 
-        #expect(composer.contexts.isEmpty)
+        #expect(generator.contexts.isEmpty)
         #expect(firstWrites.isEmpty)
         #expect(secondWrites.isEmpty)
-        guard case .failed = workspace.commandComposerState else {
+        guard case .failed = workspace.commandGeneratorState else {
             Issue.record("Expected preflight failure overlay")
             return
         }
@@ -247,7 +247,7 @@ struct BroadcastInputTests {
         )
         let sshSession = workspace.focusedPane.sshSession!
         try await Task.sleep(for: .milliseconds(20))
-        prepareForCommandComposer(sshSession, cwd: "/tmp", shell: "bash")
+        prepareForCommandGenerator(sshSession, cwd: "/tmp", shell: "bash")
         var writes: [Data] = []
         sshSession.inputSink = { data in
             writes.append(data)
@@ -257,16 +257,16 @@ struct BroadcastInputTests {
                 }
             }
         }
-        let composer = WorkspaceCommandComposerStub(
+        let generator = WorkspaceCommandGeneratorStub(
             command: "ls", delay: .seconds(30)
         )
 
-        workspace.composeFocusedCommand(using: composer)
-        try await waitUntil { workspace.commandComposerState == .generating }
+        workspace.generateFocusedCommand(using: generator)
+        try await waitUntil { workspace.commandGeneratorState == .generating }
         sshSession.insert("new draft")
         try await Task.sleep(for: .milliseconds(20))
 
-        #expect(workspace.commandComposerState == .idle)
+        #expect(workspace.commandGeneratorState == .idle)
         #expect(writes == [
             Data("\u{1B}[777;1~".utf8), Data("new draft".utf8),
         ])
@@ -355,7 +355,7 @@ struct BroadcastInputTests {
         }
 
         @Test
-        func commandIFallsThroughToAppKitComposeCommand() throws {
+        func commandIFallsThroughToAppKitGenerateCommand() throws {
             let host = Host(name: "host", host: "host.example")
             let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
             let event = try #require(
@@ -376,7 +376,7 @@ struct BroadcastInputTests {
         }
     #endif
 
-    private func prepareForCommandComposer(
+    private func prepareForCommandGenerator(
         _ sshSession: SSHSessionModel, cwd: String, shell: String,
         systemInfo: RemoteSystemInfo? = nil
     ) {

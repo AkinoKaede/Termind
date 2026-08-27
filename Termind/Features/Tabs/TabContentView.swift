@@ -17,14 +17,14 @@ struct TabContentView: View {
             SplitNodeView(node: displayedLayout, tab: tab, isActive: isActive)
                 .id(tab.id)
 
-            if tab.commandComposerState != .idle {
-                CommandComposerOverlay(state: tab.commandComposerState)
+            if tab.commandGeneratorState != .idle {
+                CommandGeneratorOverlay(state: tab.commandGeneratorState)
                     .padding(Metrics.Space.l)
                     .zIndex(20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(Motion.panel, value: tab.commandComposerState)
+        .animation(Motion.panel, value: tab.commandGeneratorState)
         .background {
             broadcastShortcut
             terminalFindShortcuts
@@ -102,8 +102,8 @@ struct TabContentView: View {
     }
 }
 
-private struct CommandComposerOverlay: View {
-    let state: CommandComposerState
+private struct CommandGeneratorOverlay: View {
+    let state: CommandGeneratorState
 
     var body: some View {
         VStack(spacing: Metrics.Space.s) {
@@ -149,9 +149,9 @@ private struct CommandComposerOverlay: View {
         switch state {
         case .idle: ""
         case .readingDraft: String(localized: "Reading current input…")
-        case .generating: String(localized: "Composing command…")
+        case .generating: String(localized: "Generating command…")
         case .inserted: String(localized: "Command inserted — press Return to run")
-        case .failed: String(localized: "Couldn't compose command")
+        case .failed: String(localized: "Couldn't generate command")
         }
     }
 
