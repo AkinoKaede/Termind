@@ -825,8 +825,7 @@ struct KeyDetailContent: View {
                 Text(
                     !key.hasPassphrase
                         ? String(localized: "None")
-                        : key.storesPassphrase
-                            ? String(localized: "Cleanup pending") : String(localized: "Required at use")
+                        : String(localized: "Required at use")
                 )
             }
             LabeledContent("Authentication") {

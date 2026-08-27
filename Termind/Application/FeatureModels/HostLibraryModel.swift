@@ -91,65 +91,8 @@ final class HostLibraryModel {
             self.snippets = loaded.snippets.sorted { $0.sortIndex < $1.sortIndex }
             self.snippetPackages = loaded.snippetPackages
             self.portForwardings = loaded.portForwardings
-            clearLegacySavedKeyPassphrases()
         } catch {
             storageError = error.localizedDescription
-        }
-    }
-
-    /// Passphrases saved by older builds are removed from the Keychain in place.
-    /// `storesPassphrase` doubles as a durable retry marker: a failed item remains
-    /// true and is attempted again on the next launch.
-    private func clearLegacySavedKeyPassphrases() {
-        let snapshot = keys
-        var changed = false
-        var migrationFailure: String?
-
-        for index in keys.indices where keys[index].storesPassphrase {
-            let key = keys[index]
-            do {
-                guard let credential = try keyCredential(for: key) else {
-                    keys[index].storesPassphrase = false
-                    changed = true
-                    continue
-                }
-                switch credential {
-                case .software(let secret):
-                    if secret.passphrase != nil {
-                        try keychain.setKeyCredential(
-                            .software(
-                                SSHPrivateKeySecret(
-                                    privateKey: secret.privateKey, passphrase: nil
-                                )
-                            ),
-                            for: key.credentialRef, storage: key.storage
-                        )
-                    }
-                    keys[index].storesPassphrase = false
-                    changed = true
-                case .secureEnclave:
-                    keys[index].storesPassphrase = false
-                    changed = true
-                }
-            } catch {
-                migrationFailure = migrationFailure ?? error.localizedDescription
-            }
-        }
-
-        if changed, !persistCore() {
-            keys = snapshot
-        }
-        if let migrationFailure { storageError = migrationFailure }
-    }
-
-    private static func withoutSavedPassphrase(
-        _ credential: StoredSSHKeyCredential
-    ) -> StoredSSHKeyCredential {
-        switch credential {
-        case .software(let secret):
-            .software(SSHPrivateKeySecret(privateKey: secret.privateKey, passphrase: nil))
-        case .secureEnclave:
-            credential
         }
     }
 
@@ -1219,10 +1162,9 @@ final class HostLibraryModel {
             ? previousKey.flatMap { try keyCredential(for: $0) }
             : nil
         let destinationCredential = credential ?? (changesLocation ? previousCredential : nil)
-        let sanitizedCredential = destinationCredential.map(Self.withoutSavedPassphrase)
-        if let sanitizedCredential {
+        if let destinationCredential {
             try keychain.setKeyCredential(
-                sanitizedCredential, for: key.credentialRef, storage: key.storage
+                destinationCredential, for: key.credentialRef, storage: key.storage
             )
         }
         if let index = keys.firstIndex(where: { $0.id == key.id }) {
@@ -1237,16 +1179,16 @@ final class HostLibraryModel {
         guard persistCore() else {
             keys = keySnapshot
             do {
-                if changesLocation, sanitizedCredential != nil {
+                if changesLocation, destinationCredential != nil {
                     try keychain.removeKeyCredential(
                         key.credentialRef, storage: key.storage
                     )
-                } else if sanitizedCredential != nil, let previousKey, let previousCredential {
+                } else if destinationCredential != nil, let previousKey, let previousCredential {
                     try keychain.setKeyCredential(
                         previousCredential, for: previousKey.credentialRef,
                         storage: previousKey.storage
                     )
-                } else if sanitizedCredential != nil {
+                } else if destinationCredential != nil {
                     try keychain.removeKeyCredential(key.credentialRef, storage: key.storage)
                 }
             } catch {

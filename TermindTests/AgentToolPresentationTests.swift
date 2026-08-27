@@ -576,16 +576,6 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func legacyCountedArrayActivityStillDecodes() throws {
-        let activity = AgentToolDescriptor.Presentation.Activity.arrayCount(
-            key: "questions", singular: "a question", plural: "questions",
-            fallback: "a question"
-        )
-        let data = try JSONEncoder().encode(activity)
-        #expect(try JSONDecoder().decode(type(of: activity), from: data) == activity)
-    }
-
-    @Test
     func outputUnwrapsAndExtractsCommandStreams() {
         let result = AgentToolResult(
             callID: "call",
@@ -712,24 +702,6 @@ struct AgentToolPresentationTests {
 
         #expect(result.toolPresentation == presentation)
         #expect(result.metadata[AgentToolResult.toolPresentationKey] != nil)
-    }
-
-    @Test
-    func olderPresentationMetadataDefaultsToParticipatingInBatches() throws {
-        let presentation = AgentToolDescriptor.Presentation(
-            symbol: "terminal", activity: .label("a command")
-        )
-        let encoded = try JSONEncoder().encode(presentation)
-        var object = try #require(
-            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
-        )
-        object["groupsWithAdjacentTools"] = nil
-        let legacy = try JSONSerialization.data(withJSONObject: object)
-
-        let decoded = try JSONDecoder().decode(
-            AgentToolDescriptor.Presentation.self, from: legacy
-        )
-        #expect(decoded.groupsWithAdjacentTools)
     }
 
     @Test

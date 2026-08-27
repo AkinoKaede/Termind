@@ -140,45 +140,6 @@ struct MarkdownParsingTests {
         #expect(code == "ls -la")
     }
 
-    // MARK: - Attachments
-
-    /// `ConversationModel.composed(_:)` promises the transcript holds exactly
-    /// what was uploaded. `*5` is the test: emphasis would eat it.
-    @Test
-    func composedAttachmentSurvivesVerbatim() {
-        let source = """
-            Why is disk full?
-
-            <output label="nginx.log">
-            [error] 1234#0: *5 open() failed
-            disk usage: 99%
-            </output>
-            """
-        let blocks = MarkdownDocumentParser.parse(source)
-        #expect(blocks.count == 2)
-        guard case .htmlBlock(let raw)? = blocks.last else {
-            Issue.record("expected an HTML block, got \(blocks)")
-            return
-        }
-        #expect(raw.contains("*5 open() failed"))
-        #expect(raw.contains("disk usage: 99%"))
-
-        let attachment = AttachmentBlock.parse(raw)
-        #expect(attachment?.kind == .output)
-        #expect(attachment?.label == "nginx.log")
-        #expect(attachment?.content == "[error] 1234#0: *5 open() failed\ndisk usage: 99%")
-    }
-
-    @Test
-    func htmlThatIsNotAnAttachmentIsLeftAsText() {
-        let blocks = MarkdownDocumentParser.parse("<script>alert(1)</script>")
-        guard case .htmlBlock(let raw)? = blocks.first else {
-            Issue.record("expected an HTML block, got \(blocks)")
-            return
-        }
-        #expect(raw.contains("<script>"))
-        #expect(AttachmentBlock.parse(raw) == nil)
-    }
 
     // MARK: - Links and images
 

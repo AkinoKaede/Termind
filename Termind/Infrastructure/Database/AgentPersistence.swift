@@ -51,7 +51,7 @@ final class PersistentAgentMessage {
     var role = AgentTranscriptRole.user.rawValue
     var text = ""
     var authoredText: String?
-    /// Defaults to an encoded empty array so older stores migrate in place.
+    /// Encoded native image parts attached to the message.
     var imagesData = Data()
     /// Provider-authored, display-safe reasoning summaries. Opaque signatures
     /// and encrypted provider state deliberately remain in memory only.
@@ -60,8 +60,7 @@ final class PersistentAgentMessage {
     var toolCallID: String?
     var toolName: String?
     var isError = false
-    /// Defaulted, so adding it costs no SwiftData migration — the same reason
-    /// every other property in this schema carries a default.
+    /// Marks a synthetic compaction summary in replay history.
     var isCompaction = false
     /// Position inside the run's replay transcript. Timestamps are presentation
     /// data and can collide at database precision, so they cannot be the sole
@@ -106,7 +105,7 @@ final class PersistentAgentToolInvocation {
     var callID = ""
     var toolName = ""
     var argumentsData = Data()
-    /// Optional so existing stores migrate in place.
+    /// Assistant message that requested the tool invocation, when applicable.
     var sourceMessageID: UUID?
     var targetHostID: UUID?
     var state = "proposed"
@@ -300,9 +299,8 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     if left != right { return left < right }
                     if lhs.sequence != rhs.sequence { return lhs.sequence < rhs.sequence }
                     if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                    // Migrated V10 rows all receive sequence zero. For the rare
-                    // timestamp tie, transcript grammar gives them a stable and
-                    // useful fallback until the next run writes real positions.
+                    // Transcript grammar gives equal-position, equal-time rows
+                    // a stable and useful final ordering.
                     let rank = { role in
                         switch AgentTranscriptRole(rawValue: role) {
                         case .user: 0

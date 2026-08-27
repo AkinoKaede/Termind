@@ -178,15 +178,11 @@ private struct MarkdownBlockView: View {
             .fixedSize(horizontal: false, vertical: true)
 
         case .htmlBlock(let raw):
-            if let attachment = AttachmentBlock.parse(raw) {
-                MarkdownAttachmentView(attachment: attachment)
-            } else {
-                Text(raw)
-                    .font(MarkdownTypography.monospaced)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .markdownWidth(fills: fillsWidth)
-            }
+            Text(raw)
+                .font(MarkdownTypography.monospaced)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .markdownWidth(fills: fillsWidth)
 
         case .thematicBreak:
             Divider().opacity(0.5)

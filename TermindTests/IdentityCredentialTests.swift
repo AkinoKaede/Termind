@@ -93,6 +93,39 @@ struct IdentityCredentialTests {
     }
 
     @Test
+    func encryptedKeyPersistsOnlyPrivateMaterialAndRequiresPassphraseAtUse() throws {
+        let keychain = InMemorySecretStore()
+        let reference = "termind.key.\(UUID().uuidString)"
+        defer { try? keychain.removeKeyCredential(reference, storage: .thisDevice) }
+        let material = try SSHKeyMaterial.generate(
+            .ed25519, comment: "termind-tests", passphrase: "one-use", rounds: 100
+        )
+
+        let key = SSHKeyRef(
+            label: "Protected", algorithm: .ed25519, publicKey: material.publicKey,
+            fingerprint: material.fingerprint, credentialRef: reference,
+            storage: .thisDevice, hasPassphrase: true
+        )
+        let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
+        let store = HostLibraryModel(identities: [identity], secrets: keychain)
+
+        try store.upsert(
+            key,
+            credential: .software(SSHPrivateKeySecret(privateKey: material.privateKey))
+        )
+
+        guard case .software(let stored)? = try keychain.keyCredential(
+            for: reference, storage: .thisDevice
+        ) else {
+            Issue.record("Expected the encrypted private-key material")
+            return
+        }
+        #expect(stored.privateKey == material.privateKey)
+        #expect(store.key(key.id)?.requiresPassphraseEntry == true)
+        #expect(store.sshCredentials(for: identity).requiredPassphraseKeyID == key.id)
+    }
+
+    @Test
     func protectedKeyWithoutSavedPassphraseRequestsItBeforeUse() throws {
         let keychain = InMemorySecretStore()
         let reference = "termind.key.\(UUID().uuidString)"
@@ -102,12 +135,12 @@ struct IdentityCredentialTests {
             label: "Protected", algorithm: .ed25519, publicKey: "ssh-ed25519 test",
             fingerprint: "SHA256:test", credentialRef: reference,
             storage: .thisDevice,
-            hasPassphrase: true, storesPassphrase: false
+            hasPassphrase: true
         )
         let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
         let store = HostLibraryModel(keys: [key], identities: [identity], secrets: keychain)
         try keychain.setKeyCredential(
-            .software(SSHPrivateKeySecret(privateKey: "encrypted", passphrase: nil)),
+            .software(SSHPrivateKeySecret(privateKey: "encrypted")),
             for: reference, storage: .thisDevice
         )
 

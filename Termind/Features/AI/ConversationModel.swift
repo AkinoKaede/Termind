@@ -892,9 +892,7 @@ final class ConversationModel: Identifiable {
         return String(base.prefix(max(0, 80 - suffix.count))) + suffix
     }
 
-    /// One collapsible work group per run. Source-message ownership is the
-    /// primary key; call ids and run-local order are compatibility fallbacks
-    /// for rows written before `sourceMessageID` existed.
+    /// One collapsible work group per run, keyed by source-message ownership.
     var workGroups: [AgentWorkGroup] {
         let visibleByID = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
         let cardsByRun = Dictionary(grouping: toolCards, by: { $0.invocation.runID })
@@ -905,14 +903,6 @@ final class ConversationModel: Identifiable {
         for message in transcript where message.role == .assistant && !message.toolCalls.isEmpty {
             if let runID = messageRunIDs[message.id] {
                 processRunIDs[message.id] = runID
-                continue
-            }
-            let callIDs = Set(message.toolCalls.map(\.id))
-            if let card = toolCards.first(where: {
-                $0.invocation.sourceMessageID == message.id
-                    || callIDs.contains($0.invocation.call.id)
-            }) {
-                processRunIDs[message.id] = card.invocation.runID
             }
         }
 
@@ -977,28 +967,8 @@ final class ConversationModel: Identifiable {
                 default: return $0.id.uuidString < $1.id.uuidString
                 }
             }
-            // A provider turn is the semantic boundary for a tool batch. Most
-            // cards carry it directly as sourceMessageID. Rows restored from
-            // older stores may not, so recover it from the assistant tool call
-            // while treating duplicate call ids as ambiguous.
-            var recoveredSourceByCallID: [String: UUID] = [:]
-            var ambiguousCallIDs = Set<String>()
-            for message in transcript
-            where message.role == .assistant && processRunIDs[message.id] == runID
-            {
-                for call in message.toolCalls {
-                    if let existing = recoveredSourceByCallID[call.id], existing != message.id {
-                        recoveredSourceByCallID[call.id] = nil
-                        ambiguousCallIDs.insert(call.id)
-                    } else if !ambiguousCallIDs.contains(call.id) {
-                        recoveredSourceByCallID[call.id] = message.id
-                    }
-                }
-            }
             let sourceMessageIDs = Dictionary(uniqueKeysWithValues: cards.compactMap { card in
-                let source = card.invocation.sourceMessageID
-                    ?? recoveredSourceByCallID[card.invocation.call.id]
-                return source.map { (card.id, $0) }
+                card.invocation.sourceMessageID.map { (card.id, $0) }
             })
             let reasoningTitles = Dictionary(uniqueKeysWithValues: processMessages.compactMap {
                 message -> (UUID, String)? in

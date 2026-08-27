@@ -1102,11 +1102,6 @@ nonisolated enum AgentToolPresentation {
                 count > 0
             else { return fallback }
             return countDescription(count, unit: unit)
-        case .arrayCount(let key, let singular, let plural, let fallback):
-            guard let count = card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count,
-                count > 0
-            else { return fallback }
-            return count == 1 ? singular : "\(count) \(plural)"
         }
     }
 
@@ -1151,12 +1146,6 @@ nonisolated enum AgentToolPresentation {
             }
             guard count > 0 else { return fallback }
             return countDescription(count, unit: unit)
-        case .arrayCount(let key, let singular, let plural, let fallback):
-            let count = cards.reduce(0) { total, card in
-                total + (card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count ?? 0)
-            }
-            guard count > 0 else { return fallback }
-            return count == 1 ? singular : "\(count) \(plural)"
         case .argument(_, let fallback):
             return cards.count == 1 ? fallback : toolCallCount(cards.count)
         case .label(let label):

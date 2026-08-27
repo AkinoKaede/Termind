@@ -24,7 +24,6 @@ struct TermindApp: App {
             )
             let container = try ModelContainer(
                 for: HostPersistence.schema,
-                migrationPlan: TermindMigrationPlan.self,
                 configurations: [configuration]
             )
             modelContainer = container

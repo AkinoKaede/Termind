@@ -5,7 +5,6 @@ import Security
 @Observable
 final class MCPServerController {
     static let tokenReference = "termind.ai.mcpserver.token"
-    private static let legacyTokenReference = "termind.ai.toolserver.token"
 
     enum Status: Equatable {
         case stopped, starting, ready(port: UInt16), failed(String)
@@ -53,7 +52,6 @@ final class MCPServerController {
         self.background = background
         self.externalAuthentication = externalAuthentication
         self.defaults = defaults
-        Self.migrateLegacyDefaults(defaults)
         isEnabled = defaults.object(forKey: SettingsKey.mcpServerEnabled) as? Bool
             ?? SettingsKey.defaultMCPServerEnabled
         port = defaults.object(forKey: SettingsKey.mcpServerPort) as? Int
@@ -75,12 +73,7 @@ final class MCPServerController {
     }
 
     var token: String {
-        if let token = ai.secret(for: Self.tokenReference) { return token }
-        guard let legacyToken = ai.secret(for: Self.legacyTokenReference) else { return "" }
-        ai.setSecret(legacyToken, for: Self.tokenReference)
-        guard ai.secretStorageError == nil else { return legacyToken }
-        ai.setSecret(nil, for: Self.legacyTokenReference)
-        return legacyToken
+        ai.secret(for: Self.tokenReference) ?? ""
     }
 
     var enabledToolNames: [String] {
@@ -185,22 +178,6 @@ final class MCPServerController {
     private static func readDisabledTools(_ defaults: UserDefaults) -> Set<String> {
         Set((defaults.array(forKey: SettingsKey.mcpServerDisabledTools) as? [String]) ?? [])
             .intersection(MCPServerTools.exportedNames)
-    }
-
-    private static func migrateLegacyDefaults(_ defaults: UserDefaults) {
-        let keys = [
-            ("toolServer.enabled", SettingsKey.mcpServerEnabled),
-            ("toolServer.port", SettingsKey.mcpServerPort),
-            ("toolServer.disabledTools", SettingsKey.mcpServerDisabledTools),
-        ]
-        for (legacy, current) in keys {
-            if defaults.object(forKey: current) == nil,
-                let value = defaults.object(forKey: legacy)
-            {
-                defaults.set(value, forKey: current)
-            }
-            defaults.removeObject(forKey: legacy)
-        }
     }
 
     private static func makeToken() throws -> String {

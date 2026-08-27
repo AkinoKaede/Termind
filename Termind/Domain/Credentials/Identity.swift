@@ -6,14 +6,6 @@ nonisolated enum PasswordStorage: String, Codable, Hashable, Sendable, CaseItera
 
     var id: String { rawValue }
 
-    init?(persistedRawValue: String) {
-        self.init(
-            rawValue: persistedRawValue == "iCloud" + "Keychain"
-                ? Self.iCloud.rawValue
-                : persistedRawValue
-        )
-    }
-
     var displayName: String {
         switch self {
         case .thisDevice: String(localized: "This Mac")

@@ -107,7 +107,7 @@ struct AgentHostAuthenticationTests {
             storage: .thisDevice, hasPassphrase: true
         )
         try keychain.setKeyCredential(
-            .software(SSHPrivateKeySecret(privateKey: "encrypted", passphrase: nil)),
+            .software(SSHPrivateKeySecret(privateKey: "encrypted")),
             for: reference, storage: .thisDevice
         )
         let host = Host(name: "Server", host: "server.example")
@@ -156,8 +156,8 @@ struct AgentHostAuthenticationTests {
             Issue.record("Expected the stored software key")
             return
         }
-        #expect(stored.passphrase == nil)
-        #expect(store.key(key.id)?.storesPassphrase == false)
+        #expect(stored.privateKey == "encrypted")
+        #expect(store.key(key.id)?.requiresPassphraseEntry == true)
     }
 
     @Test

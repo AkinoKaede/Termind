@@ -87,9 +87,6 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
         nonisolated enum Activity: Hashable, Sendable, Codable {
             case label(String)
             case argument(key: String, fallback: String)
-            /// Legacy persisted shape. New built-in descriptors must use
-            /// `localizedArrayCount` so their grammar comes from the catalog.
-            case arrayCount(key: String, singular: String, plural: String, fallback: String)
             /// Names an activity from the number of entries in an array
             /// argument. The unit selects a locale-aware plural resource.
             case localizedArrayCount(key: String, unit: CountedUnit, fallback: String)
@@ -138,22 +135,6 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             messages.merge(overrides) { _, override in override }
         }
 
-        private enum CodingKeys: String, CodingKey {
-            case symbol, activity, output, groupsWithAdjacentTools, messages
-        }
-
-        init(from decoder: any Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            symbol = try container.decode(String.self, forKey: .symbol)
-            activity = try container.decode(Activity.self, forKey: .activity)
-            output = try container.decodeIfPresent(Output.self, forKey: .output) ?? .automatic
-            groupsWithAdjacentTools = try container.decodeIfPresent(
-                Bool.self, forKey: .groupsWithAdjacentTools
-            ) ?? true
-            messages = try container.decodeIfPresent(
-                [String: String].self, forKey: .messages
-            ) ?? [:]
-        }
     }
 
     nonisolated enum Target: String, Hashable, Sendable, Codable {

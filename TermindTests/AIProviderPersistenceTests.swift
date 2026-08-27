@@ -106,28 +106,6 @@ struct AIProviderPersistenceTests {
         #expect(AIRole.commandGenerator.unsetLabel == "Same as Chat")
     }
 
-    @Test
-    func legacyInlineRoleIsIgnoredWithoutMigration() throws {
-        let container = try makeContainer("LegacyInlineRole")
-        let model = reasoningModel("legacy-model")
-        let provider = ModelProvider(name: "OpenAI", models: [model])
-        let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
-        let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
-        store.upsert(provider)
-
-        let legacy = PersistentAIRoleAssignment(role: .chat, ref: ref)
-        legacy.role = "inline"
-        container.mainContext.insert(legacy)
-        try container.mainContext.save()
-
-        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
-        #expect(reloaded.roles.isEmpty)
-        #expect(reloaded.assignment(for: .commandGenerator) == nil)
-        #expect(
-            try container.mainContext.fetch(FetchDescriptor<PersistentAIRoleAssignment>())
-                .contains(where: { $0.role == "inline" })
-        )
-    }
 
     @Test
     func catalogReplacementKeepsManualModelOverrides() {
@@ -169,88 +147,12 @@ struct AIProviderPersistenceTests {
         #expect(store.resolve(conversation: nil)?.model.id == hidden.id)
     }
 
-    @Test
-    func versionFourStoreMigratesWithEmptyAIConfiguration() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appending(path: "TermindAIMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let storeURL = directory.appending(path: "Termind.store")
-        let host = Host(name: "Existing Host", host: "existing.example")
-
-        do {
-            let schema = Schema(versionedSchema: TermindSchemaV4.self)
-            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
-            let container = try ModelContainer(for: schema, configurations: [configuration])
-            container.mainContext.insert(PersistentHost(host))
-            try container.mainContext.save()
-        }
-
-        let schema = Schema(versionedSchema: TermindSchemaV5.self)
-        let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
-        let container = try ModelContainer(
-            for: schema,
-            migrationPlan: TermindMigrationPlan.self,
-            configurations: [configuration]
-        )
-
-        #expect(
-            try container.mainContext.fetch(FetchDescriptor<PersistentHost>()).map(\.value)
-                == [host]
-        )
-        #expect(try container.mainContext.fetch(FetchDescriptor<PersistentModelProvider>()).isEmpty)
-        #expect(
-            try container.mainContext.fetch(
-                FetchDescriptor<TermindSchemaV9AIModels.PersistentAIModel>()
-            ).isEmpty
-        )
-    }
-
-    @Test
-    func versionNineModelsMigrateAsShownInAssistant() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appending(path: "TermindModelVisibilityMigration-\(UUID().uuidString)", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let storeURL = directory.appending(path: "Termind.store")
-        let provider = ModelProvider(name: "Existing Provider")
-
-        do {
-            let schema = Schema(versionedSchema: TermindSchemaV9.self)
-            let configuration = localModelConfiguration("Migration", schema: schema, url: storeURL)
-            let container = try ModelContainer(for: schema, configurations: [configuration])
-            container.mainContext.insert(PersistentModelProvider(provider, sortIndex: 0))
-            let model = TermindSchemaV9AIModels.PersistentAIModel()
-            model.providerID = provider.id
-            model.modelID = "existing-model"
-            container.mainContext.insert(model)
-            try container.mainContext.save()
-        }
-
-        let configuration = localModelConfiguration(
-            "Migration", schema: HostPersistence.schema, url: storeURL
-        )
-        let container = try ModelContainer(
-            for: HostPersistence.schema,
-            migrationPlan: TermindMigrationPlan.self,
-            configurations: [configuration]
-        )
-        let model = try #require(
-            container.mainContext.fetch(FetchDescriptor<PersistentAIModel>()).first
-        )
-
-        #expect(model.modelID == "existing-model")
-        #expect(model.isShownInAssistant)
-    }
-
     private func makeContainer(_ name: String) throws -> ModelContainer {
         let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
         )
         return try ModelContainer(
-            for: HostPersistence.schema,
-            migrationPlan: TermindMigrationPlan.self,
-            configurations: [configuration]
+            for: HostPersistence.schema, configurations: [configuration]
         )
     }
 }

@@ -2013,16 +2013,6 @@
         }
       }
     },
-    "Cleanup pending": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "待清理"
-          }
-        }
-      }
-    },
     "Clear": {
       "localizations": {
         "zh-Hans": {
@@ -6930,16 +6920,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "密码短语"
-          }
-        }
-      }
-    },
-    "Passphrase Cleanup Pending": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "密码短语待清理"
           }
         }
       }

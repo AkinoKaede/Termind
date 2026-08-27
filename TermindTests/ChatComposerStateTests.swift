@@ -1032,65 +1032,6 @@ struct ChatComposerStateTests {
         #expect(batches == [["call-1", "call-2"], ["call-3", "call-4"]])
     }
 
-    @Test
-    func restoreRecoversTurnBoundariesAndLeavesUnknownSourcesUngrouped() throws {
-        let store = AssistantConversationStore()
-        let conversationID = UUID()
-        let runID = UUID()
-        let startedAt = Date(timeIntervalSince1970: 3_000)
-        let first = AgentTranscriptMessage(
-            role: .assistant,
-            toolCalls: ["call-1", "call-2"].map {
-                AgentToolCall(id: $0, name: "lookup", arguments: .object([:]))
-            },
-            createdAt: startedAt.addingTimeInterval(1)
-        )
-        let second = AgentTranscriptMessage(
-            role: .assistant,
-            toolCalls: ["call-3", "call-4"].map {
-                AgentToolCall(id: $0, name: "lookup", arguments: .object([:]))
-            },
-            createdAt: startedAt.addingTimeInterval(2)
-        )
-        let descriptor = AgentToolDescriptor(
-            name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
-        )
-        let storedCards = ["call-1", "call-2", "call-3", "call-4", "unknown-1", "unknown-2"]
-            .enumerated().map { offset, callID in
-                let invocation = AgentToolInvocation(
-                    runID: runID,
-                    call: AgentToolCall(id: callID, name: "lookup", arguments: .object([:])),
-                    createdAt: startedAt.addingTimeInterval(Double(offset + 3))
-                )
-                return StoredAgentToolCard(
-                    invocation: invocation, descriptor: descriptor, state: "finished",
-                    result: AgentToolResult(callID: callID, content: "ok")
-                )
-            }
-        store.restore([StoredAgentConversation(
-            id: conversationID, messages: [first, second],
-            messageRunIDs: [first.id: runID, second.id: runID],
-            runs: [AgentRunSummary(
-                id: runID, state: .completed, startedAt: startedAt,
-                finishedAt: startedAt.addingTimeInterval(10)
-            )],
-            toolCards: storedCards, lastRunState: .completed
-        )])
-
-        let items = try #require(store.conversation(id: conversationID)?.workGroups.first).items
-        let groups = items.map { item -> [String] in
-            switch item {
-            case .tools(let batch): batch.cards.map(\.invocation.call.id)
-            case .tool(let card): [card.invocation.call.id]
-            case .reasoning, .message: []
-            }
-        }.filter { !$0.isEmpty }
-        #expect(groups == [
-            ["call-1", "call-2"], ["call-3", "call-4"],
-            ["unknown-1"], ["unknown-2"],
-        ])
-    }
 
     @Test
     func terminalSuggestionStaysIndependentAndBreaksAdjacentToolBatches() throws {

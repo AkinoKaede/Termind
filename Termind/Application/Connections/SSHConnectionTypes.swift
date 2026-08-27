@@ -38,7 +38,7 @@ nonisolated extension StoredSSHKeyCredential {
                 publicKey: certificate.isEmpty
                     ? (publicKey.isEmpty ? nil : publicKey)
                     : certificate,
-                passphrase: passphraseOverride ?? secret.passphrase
+                passphrase: passphraseOverride
             )
         case .secureEnclave(let credential):
             .secureEnclave(credential: credential, publicKey: publicKey)

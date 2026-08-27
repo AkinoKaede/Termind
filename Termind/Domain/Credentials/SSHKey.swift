@@ -7,13 +7,6 @@ nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIterable, 
 
     var id: String { rawValue }
 
-    init?(persistedRawValue: String) {
-        self.init(
-            rawValue: persistedRawValue == "iCloud" + "Keychain"
-                ? Self.iCloud.rawValue
-                : persistedRawValue
-        )
-    }
 }
 
 nonisolated enum SSHKeyAlgorithm: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
@@ -37,10 +30,9 @@ nonisolated struct SSHKeyRef: Identifiable, Codable, Hashable, Sendable {
     var storage: KeyStorage = .iCloud
     var keySize: Int?
     var hasPassphrase = false
-    var storesPassphrase = false
     var requiresUserPresence = false
     var createdAt: Date = Date(timeIntervalSince1970: 0)
     var sortIndex: Double = 0
 
-    var requiresPassphraseEntry: Bool { hasPassphrase && !storesPassphrase }
+    var requiresPassphraseEntry: Bool { hasPassphrase }
 }

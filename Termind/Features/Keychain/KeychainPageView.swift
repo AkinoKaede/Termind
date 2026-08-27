@@ -337,12 +337,12 @@ struct KeychainImportDetail: View {
             certificate: certificate, fingerprint: material.fingerprint,
             credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
             keySize: material.keySize, hasPassphrase: passphrase != nil,
-            storesPassphrase: false, createdAt: Date()
+            createdAt: Date()
         )
         try app.credentials.upsert(
             key,
             credential: .software(
-                SSHPrivateKeySecret(privateKey: privateKey, passphrase: nil)
+                SSHPrivateKeySecret(privateKey: privateKey)
             )
         )
         window.selectDetail(.key(key.id), on: .keychain)
@@ -648,7 +648,7 @@ struct KeychainGenerateDetail: View {
                 fingerprint: material.fingerprint,
                 credentialRef: "termind.key.\(UUID().uuidString)",
                 storage: .secureEnclave, keySize: 256, hasPassphrase: false,
-                storesPassphrase: false, requiresUserPresence: requiresUserPresence,
+                requiresUserPresence: requiresUserPresence,
                 createdAt: Date()
             )
             try app.credentials.upsert(key, credential: .secureEnclave(material.credential))
@@ -664,12 +664,12 @@ struct KeychainGenerateDetail: View {
                 publicKey: material.publicKey, fingerprint: material.fingerprint,
                 credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
                 keySize: material.keySize, hasPassphrase: passphrase != nil,
-                storesPassphrase: false, createdAt: Date()
+                createdAt: Date()
             )
             try app.credentials.upsert(
                 key,
                 credential: .software(
-                    SSHPrivateKeySecret(privateKey: material.privateKey, passphrase: nil)
+                    SSHPrivateKeySecret(privateKey: material.privateKey)
                 )
             )
         }
@@ -896,11 +896,10 @@ struct KeychainEditDetail: View {
         updated.keySize = material.keySize
         let keepsOriginalPrivateKey = privateKey == (try loadPrivateKey(original))
         updated.hasPassphrase = passphrase != nil || (keepsOriginalPrivateKey && original.hasPassphrase)
-        updated.storesPassphrase = false
         try app.credentials.upsert(
             updated,
             credential: .software(
-                SSHPrivateKeySecret(privateKey: privateKey, passphrase: nil)
+                SSHPrivateKeySecret(privateKey: privateKey)
             )
         )
         window.selectDetail(.key(updated.id), on: .keychain)
@@ -1379,9 +1378,7 @@ private struct KeyCard: View {
                     CardChip(text: keyDisplayName)
                     if key.hasPassphrase {
                         CardChip(
-                            text: key.storesPassphrase
-                                ? String(localized: "Passphrase Cleanup Pending")
-                                : String(localized: "Passphrase Required"),
+                            text: String(localized: "Passphrase Required"),
                             symbol: "lock.fill"
                         )
                     }

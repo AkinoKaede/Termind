@@ -16,13 +16,6 @@ struct DataProtectionKeychainTests {
         #expect(SSHKeyRef(label: "").storage == .iCloud)
     }
 
-    @Test
-    func legacyCloudStorageNamesRemainReadable() {
-        let legacyValue = "iCloud" + "Keychain"
-        #expect(PasswordStorage(persistedRawValue: legacyValue) == .iCloud)
-        #expect(KeyStorage(persistedRawValue: legacyValue) == .iCloud)
-    }
-
     @Test(arguments: [PasswordStorage.thisDevice, .iCloud])
     func identityPasswordRoundTripUsesExactStorageClass(
         _ storage: PasswordStorage
@@ -56,7 +49,7 @@ struct DataProtectionKeychainTests {
         let keychain = KeychainSecretStore()
         let reference = "termind.key.\(UUID().uuidString)"
         let expected = StoredSSHKeyCredential.software(
-            SSHPrivateKeySecret(privateKey: "test-private-key", passphrase: "test-passphrase")
+            SSHPrivateKeySecret(privateKey: "test-private-key")
         )
         defer { try? keychain.removeKeyCredential(reference, storage: storage) }
 

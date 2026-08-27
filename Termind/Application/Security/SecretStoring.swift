@@ -2,7 +2,6 @@ import Foundation
 
 nonisolated struct SSHPrivateKeySecret: Codable, Hashable, Sendable {
     var privateKey: String
-    var passphrase: String?
 }
 
 nonisolated protocol SecretStoring: Sendable {
@@ -51,4 +50,3 @@ nonisolated final class InMemorySecretStore: SecretStoring, @unchecked Sendable 
         lock.withLock { keys[account] = nil }
     }
 }
-
