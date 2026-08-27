@@ -50,6 +50,12 @@ nonisolated struct SFTPTransferSummary: Equatable, Sendable {
 }
 
 nonisolated enum RemotePath {
+    struct Component: Identifiable, Equatable, Sendable {
+        var name: String
+        var path: String
+        var id: String { path }
+    }
+
     static func normalized(_ path: String) -> String {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "/" }
@@ -74,6 +80,18 @@ nonisolated enum RemotePath {
         guard value != "/" else { return "/" }
         let parent = (value as NSString).deletingLastPathComponent
         return parent.isEmpty ? "/" : parent
+    }
+
+    static func components(of path: String) -> [Component] {
+        let value = normalized(path)
+        var result = [Component(name: "/", path: "/")]
+        guard value != "/" else { return result }
+        var current = ""
+        for name in value.split(separator: "/").map(String.init) {
+            current += "/" + name
+            result.append(Component(name: name, path: current))
+        }
+        return result
     }
 
     static func keepBothCandidate(for path: String, index: Int) -> String {

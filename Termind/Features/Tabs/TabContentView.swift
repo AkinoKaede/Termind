@@ -206,10 +206,14 @@ private struct SplitBranchView: View {
     let tab: Workspace
     let isActive: Bool
 
-    /// The fraction the divider was grabbed at. Translation is measured against
-    /// this rather than accumulated, so a drag that overshoots the clamp and
-    /// comes back lands where the pointer is instead of where the drift left it.
-    @State private var grabbedFraction: Double?
+    /// The fraction previewed while the pointer is down.
+    ///
+    /// Keeping this local matters for both correctness and responsiveness:
+    /// publishing `Workspace.layout` for every mouse event rebuilds the whole
+    /// pane tree, and measuring a moving divider in its own coordinate space
+    /// makes the gesture's translation move underneath the pointer. The drag
+    /// therefore uses global coordinates, previews locally, and commits once.
+    @State private var draggedFraction: Double?
 
     var body: some View {
         GeometryReader { proxy in
@@ -254,22 +258,31 @@ private struct SplitBranchView: View {
         )
         .pointerStyle(branch.axis == .horizontal ? .columnResize : .rowResize)
         .gesture(
-            DragGesture(minimumDistance: 0)
+            DragGesture(minimumDistance: 0, coordinateSpace: .global)
                 .onChanged { value in
-                    let start = grabbedFraction ?? branch.fraction
-                    grabbedFraction = start
                     let moved =
                         branch.axis == .horizontal
                         ? value.translation.width
                         : value.translation.height
                     let usable = usableLength(in: total)
                     guard usable > 0 else { return }
-                    tab.setFraction(
-                        clamp(start + moved / usable, in: total),
-                        forBranch: branch.id
-                    )
+                    draggedFraction = clamp(branch.fraction + moved / usable, in: total)
                 }
-                .onEnded { _ in grabbedFraction = nil }
+                .onEnded { value in
+                    let moved =
+                        branch.axis == .horizontal
+                        ? value.translation.width
+                        : value.translation.height
+                    let usable = usableLength(in: total)
+                    guard usable > 0 else {
+                        draggedFraction = nil
+                        return
+                    }
+                    let final = clamp(branch.fraction + moved / usable, in: total)
+                    draggedFraction = nil
+                    guard final != branch.fraction else { return }
+                    tab.setFraction(final, forBranch: branch.id)
+                }
         )
     }
 
@@ -284,7 +297,7 @@ private struct SplitBranchView: View {
     }
 
     private func clampedFirstLength(in total: CGFloat) -> CGFloat {
-        usableLength(in: total) * clamp(branch.fraction, in: total)
+        usableLength(in: total) * clamp(draggedFraction ?? branch.fraction, in: total)
     }
 
     /// Keeps both sides above `minPaneLength` — but only while there is room for
@@ -316,7 +329,6 @@ private struct PaneView: View {
     @Environment(WindowModel.self) private var window
 
     @State private var dropZone: PaneDropZone?
-    @State private var size: CGSize = .zero
     @State private var isHovering = false
     @State private var isRenaming = false
     @State private var draftTitle = ""
@@ -393,29 +405,26 @@ private struct PaneView: View {
             window.dragging = nil
             tab.focus(pane.id)
         }
-        .onGeometryChange(for: CGSize.self) {
-            $0.size
-        } action: {
-            size = $0
-        }
     }
 
     private var layoutDropTarget: some View {
-        Color.clear
-            .contentShape(.rect)
-            .onDrop(
-                of: [.text],
-                delegate: PaneDropDelegate(
-                    size: size,
-                    isActive: window.dragging?.isLayoutPayload == true,
-                    isEnabled: acceptsDrop,
-                    replacesWhole: pane.isEmptySlot,
-                    zone: $dropZone,
-                    perform: perform,
-                    cancel: { window.dragging = nil }
+        GeometryReader { proxy in
+            Color.clear
+                .contentShape(.rect)
+                .onDrop(
+                    of: [.text],
+                    delegate: PaneDropDelegate(
+                        size: proxy.size,
+                        isActive: window.dragging?.isLayoutPayload == true,
+                        isEnabled: acceptsDrop,
+                        replacesWhole: pane.isEmptySlot,
+                        zone: $dropZone,
+                        perform: perform,
+                        cancel: { window.dragging = nil }
+                    )
                 )
-            )
-            .allowsHitTesting(window.dragging?.isLayoutPayload == true)
+                .allowsHitTesting(window.dragging?.isLayoutPayload == true)
+        }
     }
 
     @ViewBuilder
@@ -504,6 +513,8 @@ private struct PaneView: View {
         case .sftpSession(let sftpSession):
             SFTPBrowserView(
                 sftpSession: sftpSession,
+                isPaneFocused: isActive && isFocused,
+                focusPane: { tab.focus(pane.id) },
                 externalFileDrop: localFileDropRequest,
                 isExternalFileDropTargeted: isLocalFileDropTargeted,
                 closePane: { window.closePane(pane.id) }

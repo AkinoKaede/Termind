@@ -6,13 +6,27 @@ import UniformTypeIdentifiers
 #endif
 
 struct SFTPBrowserView: View {
+    nonisolated private enum Layout: Equatable, Sendable {
+        case full
+        case medium
+        case compact
+
+        init(width: CGFloat) {
+            if width >= 760 { self = .full }
+            else if width >= 520 { self = .medium }
+            else { self = .compact }
+        }
+    }
+
     let sftpSession: SFTPSessionModel
+    let isPaneFocused: Bool
+    let focusPane: () -> Void
     let externalFileDrop: LocalFileDropRequest?
     let isExternalFileDropTargeted: Bool
     let closePane: () -> Void
 
     @Environment(AppModel.self) private var app
-    @Environment(WindowModel.self) private var window
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var newFolderPresented = false
     @State private var newFolderName = ""
     @State private var renameTarget: RemoteFile?
@@ -22,10 +36,14 @@ struct SFTPBrowserView: View {
     @State private var conflictPresented = false
     @State private var isRemoteDropTargeted = false
     @State private var selectionAnchor: RemoteFile.ID?
-    @AppStorage("termind.sftp.table.columns")
-    private var columnCustomization = TableColumnCustomization<RemoteFile>()
+    @State private var selectionCursor: RemoteFile.ID?
+    @State private var hoveredFileID: RemoteFile.ID?
+    @State private var editsPath = false
+    @State private var showsCompactSearch = false
+    @FocusState private var listFocused: Bool
+    @FocusState private var pathFocused: Bool
+    @FocusState private var searchFocused: Bool
 
-    private var host: Host? { app.transfers.host(sftpSession.hostID) }
     private var deleteConfirmationMessage: String {
         let paths = deleteTargets.prefix(6).map(\.path).joined(separator: "\n")
         let remainder = max(0, deleteTargets.count - 6)
@@ -40,13 +58,39 @@ struct SFTPBrowserView: View {
             : String(localized: "\(count) items already exist")
     }
 
+    /// The density is read from the *proposal* rather than from the browser's
+    /// own frame.
+    ///
+    /// `onGeometryChange` reports the size a view settled at, and this one's
+    /// floor is its widest arrangement — so measuring it meant deciding the
+    /// arrangement from a number that arrangement had produced, and committing
+    /// the answer a layout pass late. A `GeometryReader` reports what the pane
+    /// offered no matter what the content does with it, which makes the
+    /// threshold a single clean snap instead of one frame drawn at the old
+    /// density and the new width.
+    ///
+    /// The pane floor is 160pt and this chrome cannot compress much below
+    /// 260pt, so the content is clipped: a pane dragged past useful truncates
+    /// its own path bar rather than drawing over its neighbour.
     var body: some View {
+        GeometryReader { proxy in
+            let layout = Layout(width: proxy.size.width)
+            browser(layout: layout)
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
+                .onChange(of: layout) { _, density in
+                    if density == .full { showsCompactSearch = false }
+                    else if !sftpSession.query.isEmpty { showsCompactSearch = true }
+                }
+        }
+    }
+
+    private func browser(layout: Layout) -> some View {
         @Bindable var sftpSession = sftpSession
-        ZStack {
+        return ZStack {
             VStack(spacing: 0) {
-                pathBar
-                Divider()
-                browserContent
+                pathBar(layout: layout)
+                browserContent(layout: layout)
             }
 
             if sftpSession.connectionJourney.isPresented {
@@ -160,6 +204,14 @@ struct SFTPBrowserView: View {
         } message: {
             Text(sftpSession.operationError ?? "")
         }
+        .background {
+            Button("") { beginPathEditing() }
+                .keyboardShortcut("l", modifiers: .command)
+                .disabled(sftpSession.connectionJourney.isPresented)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+        }
     }
 
     private func cancelConnection() {
@@ -167,89 +219,207 @@ struct SFTPBrowserView: View {
         closePane()
     }
 
-    private var pathBar: some View {
+    private func pathBar(layout: Layout) -> some View {
         @Bindable var sftpSession = sftpSession
-        return HStack(spacing: Metrics.Space.s) {
-            Button {
-                sftpSession.goBack()
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(!sftpSession.canGoBack)
-            .help("Back")
-            Button {
-                sftpSession.goForward()
-            } label: {
-                Image(systemName: "chevron.right")
-            }
-            .disabled(!sftpSession.canGoForward)
-            .help("Forward")
-            Button {
-                sftpSession.goUp()
-            } label: {
-                Image(systemName: "arrow.up")
-            }
-            .disabled(!sftpSession.canGoUp)
-            .help("Parent folder")
-
-            TextField("Remote Path", text: $sftpSession.pathText)
-                .onSubmit { sftpSession.commitPathText() }
-                .textFieldStyle(.roundedBorder)
-                .font(.body.monospaced())
-
-            TermindSearchField(text: $sftpSession.query, prompt: "Filter", density: .compact)
-                .frame(width: 180)
-
-            Button {
-                newFolderPresented = true
-            } label: {
-                Image(systemName: "folder.badge.plus")
-            }
-            .disabled(sftpSession.status != .connected)
-            .help("New folder")
-            Button {
-                chooseUploadItems()
-            } label: {
-                Image(systemName: "arrow.up.doc")
-            }
-            .disabled(sftpSession.status != .connected)
-            .help("Upload")
-            Button {
-                sftpSession.reloadNow()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .disabled(sftpSession.status != .connected || sftpSession.isLoading)
-            .help("Refresh")
-            if sftpSession.canCancelOperation {
-                Button {
-                    sftpSession.cancelOperation()
-                } label: {
-                    Image(systemName: "xmark.circle")
+        return VStack(spacing: 0) {
+            HStack(spacing: Metrics.Space.m) {
+                HStack(spacing: Metrics.Space.xs) {
+                    navigationButton("chevron.left", help: "Back", enabled: sftpSession.canGoBack) {
+                        sftpSession.goBack()
+                    }
+                    navigationButton("chevron.right", help: "Forward", enabled: sftpSession.canGoForward) {
+                        sftpSession.goForward()
+                    }
                 }
-                .foregroundStyle(.red)
-                .help("Cancel operation")
-            }
 
-            if let host {
-                StatusDot(status: sftpSession.status)
-                    .help(host.name)
+                if editsPath {
+                    TextField("Remote Path", text: $sftpSession.pathText)
+                        .textFieldStyle(.plain)
+                        .font(.body.monospaced())
+                        .focused($pathFocused)
+                        .onSubmit { commitPathEditing() }
+                        .onKeyPress(.escape) {
+                            cancelPathEditing()
+                            return .handled
+                        }
+                } else {
+                    breadcrumbs(layout: layout)
+                }
+
+                if layout == .full {
+                    TermindSearchField(
+                        text: $sftpSession.query, prompt: "Filter", density: .compact,
+                        externalFocus: $searchFocused
+                    )
+                    .frame(width: 180)
+                } else {
+                    Button {
+                        showsCompactSearch.toggle()
+                        if showsCompactSearch {
+                            Task { @MainActor in searchFocused = true }
+                        }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .help("Filter")
+                }
+
+                Button(action: chooseUploadItems) {
+                    if layout == .full {
+                        Label("Upload", systemImage: "arrow.up.doc")
+                    } else {
+                        Image(systemName: "arrow.up.doc")
+                    }
+                }
+                .disabled(sftpSession.status != .connected)
+                .help("Upload")
+
+                actionsMenu(layout: layout)
+            }
+            .padding(.horizontal, Metrics.Space.l)
+            .frame(height: 48)
+
+            if layout != .full, showsCompactSearch {
+                TermindSearchField(
+                    text: $sftpSession.query, prompt: "Filter", density: .compact,
+                    externalFocus: $searchFocused
+                )
+                .padding(.horizontal, Metrics.Space.l)
+                .padding(.bottom, Metrics.Space.m)
             }
         }
-        .buttonStyle(.borderless)
-        .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.s)
-        .background(.bar)
+        .buttonStyle(.plain)
+        .background(.background)
+        .onChange(of: pathFocused) { wasFocused, isFocused in
+            guard wasFocused, !isFocused, editsPath else { return }
+            cancelPathEditing()
+        }
+    }
+
+    private func navigationButton(
+        _ symbol: String, help: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .frame(width: 28, height: 28)
+                .contentShape(.rect)
+        }
+        .disabled(!enabled)
+        .help(help)
+    }
+
+    private func actionsMenu(layout: Layout) -> some View {
+        Menu {
+            Button("New Folder") { newFolderPresented = true }
+                .disabled(sftpSession.status != .connected)
+            Button("Paste") { pasteRemoteItems() }
+                .disabled(sftpSession.status != .connected || !canPasteRemoteItems)
+            Divider()
+            if sftpSession.showsHiddenFiles {
+                Button("Hide Hidden Files") { sftpSession.showsHiddenFiles = false }
+            } else {
+                Button("Show Hidden Files") { sftpSession.showsHiddenFiles = true }
+            }
+            Button("Edit Path") { beginPathEditing() }
+            Button("Refresh") { sftpSession.reloadNow() }
+                .disabled(sftpSession.status != .connected || sftpSession.isLoading)
+        } label: {
+            if layout == .full {
+                HStack(spacing: Metrics.Space.s) {
+                    Text("Actions")
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                }
+            } else {
+                Image(systemName: "ellipsis.circle")
+            }
+        }
+        .help("Actions")
+    }
+
+    private func breadcrumbs(layout: Layout) -> some View {
+        let components = RemotePath.components(of: sftpSession.path)
+        let tailCount = switch layout {
+        case .full: 3
+        case .medium: 2
+        case .compact: 1
+        }
+        let collapses = components.count > tailCount + 1
+        let visible = collapses ? Array(components.suffix(tailCount)) : Array(components.dropFirst())
+        let hidden = collapses
+            ? Array(components.dropFirst().dropLast(tailCount))
+            : []
+
+        return Button(action: beginPathEditing) {
+            HStack(spacing: Metrics.Space.xs) {
+                breadcrumbLabel(components[0], isRoot: true)
+
+                if !hidden.isEmpty {
+                    breadcrumbSeparator
+                    Image(systemName: "ellipsis")
+                        .frame(width: 24, height: 24)
+                }
+
+                ForEach(visible) { component in
+                    breadcrumbSeparator
+                    breadcrumbLabel(component, isRoot: false)
+                }
+
+                Spacer(minLength: Metrics.Space.s)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .lineLimit(1)
+        .truncationMode(.middle)
+        .help(sftpSession.path)
+    }
+
+    private var breadcrumbSeparator: some View {
+        Image(systemName: "chevron.right")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.tertiary)
+    }
+
+    private func breadcrumbLabel(
+        _ component: RemotePath.Component, isRoot: Bool
+    ) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            if isRoot { Image(systemName: "folder.fill").foregroundStyle(.tint) }
+            Text(component.name)
+                .font(.body.weight(component.path == sftpSession.path ? .medium : .regular))
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .padding(.horizontal, Metrics.Space.xs)
+        .frame(minHeight: 28)
+    }
+
+    private func beginPathEditing() {
+        sftpSession.pathText = sftpSession.path
+        editsPath = true
+        Task { @MainActor in pathFocused = true }
+    }
+
+    private func commitPathEditing() {
+        sftpSession.commitPathText()
+        editsPath = false
+        pathFocused = false
+    }
+
+    private func cancelPathEditing() {
+        sftpSession.pathText = sftpSession.path
+        editsPath = false
+        pathFocused = false
     }
 
     @ViewBuilder
-    private var browserContent: some View {
-        // Keep the AppKit-backed Table mounted while its rows, selection, and
-        // connection state change. Removing it during an outline-view update
-        // leaves orphan NSTableRowViews whose AttributeGraph subgraph has
-        // already been dismantled ("precondition failure: no subgraph").
+    private func browserContent(layout: Layout) -> some View {
         ZStack {
-            fileTable
+            fileList(layout: layout)
 
             if sftpSession.status == .disconnected, !sftpSession.connectionJourney.isPresented {
                 VStack(spacing: Metrics.Space.l) {
@@ -266,6 +436,10 @@ struct SFTPBrowserView: View {
                     .background(.background)
             } else if sftpSession.files.isEmpty, sftpSession.status == .connected {
                 centeredState("This folder is empty", symbol: "folder", progress: false)
+                    .background(.background)
+            } else if sftpSession.visibleRows.isEmpty, !sftpSession.query.isEmpty {
+                ContentUnavailableView.search(text: sftpSession.query)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(.background)
             }
         }
@@ -323,57 +497,230 @@ struct SFTPBrowserView: View {
             .disabled(sftpSession.status != .connected || sftpSession.isLoading)
     }
 
-    private var fileTable: some View {
-        @Bindable var sftpSession = sftpSession
-        return Table(
-            sftpSession.filteredFiles,
-            selection: $sftpSession.selection,
-            columnCustomization: $columnCustomization
-        ) {
-            TableColumn("Name") { file in
-                nameCell(file) {
-                    Label {
-                        Text(file.name)
-                    } icon: {
-                        Image(systemName: file.kind.symbol)
-                            .foregroundStyle(file.isDirectory ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+    private func fileList(layout: Layout) -> some View {
+        VStack(spacing: 0) {
+            columnHeader(layout: layout)
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(sftpSession.visibleRows) { row in
+                            fileRow(row, layout: layout).id(row.id)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                }
+                .scrollIndicators(.automatic)
+                .background {
+                    Color.clear
+                        .contentShape(.rect)
+                        .onTapGesture {
+                            focusPane()
+                            sftpSession.selection.removeAll()
+                            selectionAnchor = nil
+                            selectionCursor = nil
+                            listFocused = true
+                        }
+                }
+                .focusable()
+                .focusEffectDisabled()
+                .focused($listFocused)
+                .onKeyPress(.upArrow) {
+                    moveSelection(
+                        by: -1, extending: NSEvent.modifierFlags.contains(.shift),
+                        proxy: proxy
+                    )
+                }
+                .onKeyPress(.downArrow) {
+                    moveSelection(
+                        by: 1, extending: NSEvent.modifierFlags.contains(.shift),
+                        proxy: proxy
+                    )
+                }
+                .onKeyPress(.return) {
+                    guard let file = keyboardTarget else { return .ignored }
+                    primaryAction(file)
+                    return .handled
+                }
+                .onKeyPress("a", phases: .down) { press in
+                    guard press.modifiers.contains(.command) else { return .ignored }
+                    sftpSession.selection = Set(sftpSession.filteredFiles.map(\.id))
+                    selectionAnchor = sftpSession.filteredFiles.first?.id
+                    selectionCursor = sftpSession.filteredFiles.last?.id
+                    return .handled
                 }
             }
-            .customizationID("name")
-            TableColumn("Size") { file in
-                menuCell(file) {
-                    Text(file.isDirectory ? "—" : file.size.formatted(.byteCount(style: .file)))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
-            }
-            .width(min: 70, ideal: 90)
-            .customizationID("size")
-            TableColumn("Modified") { file in
-                menuCell(file) {
-                    Text(file.modifiedAt?.formatted(date: .abbreviated, time: .shortened) ?? "—")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .width(min: 120, ideal: 160)
-            .customizationID("modified")
-            TableColumn("Permissions") { file in
-                menuCell(file) {
-                    Text(file.permissionDescription).monospaced().foregroundStyle(.secondary)
-                }
-            }
-            .width(min: 90, ideal: 110)
-            .customizationID("permissions")
         }
-        .overlay(alignment: .bottomLeading) {
-            if !sftpSession.hint.isEmpty {
-                Text(sftpSession.hint)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(Metrics.Space.m)
-                    .allowsHitTesting(false)
+        .background(.background)
+    }
+
+    private func columnHeader(layout: Layout) -> some View {
+        HStack(spacing: 0) {
+            sortHeader("Name", field: .name)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if layout != .compact {
+                sortHeader("Date Modified", field: .modified, separated: true)
+                    .frame(width: 220, alignment: .leading)
             }
+            if layout == .full {
+                sortHeader("Size", field: .size, separated: true)
+                    .frame(width: 150, alignment: .leading)
+                sortHeader("Kind", field: .kind, separated: true)
+                    .frame(width: 150, alignment: .leading)
+            }
+        }
+        .padding(.leading, Metrics.Space.xxl)
+        .padding(.trailing, Metrics.Space.xl)
+        .frame(height: 40)
+        .background(.bar)
+        .overlay(alignment: .bottom) { Divider().opacity(0.7) }
+    }
+
+    private func sortHeader(
+        _ title: LocalizedStringKey, field: SFTPFileSortField, separated: Bool = false
+    ) -> some View {
+        Button {
+            sftpSession.sort(by: field)
+        } label: {
+            HStack(spacing: Metrics.Space.s) {
+                Text(title).font(.body.weight(.semibold))
+                if sftpSession.sortField == field {
+                    Image(
+                        systemName: sftpSession.sortDirection == .ascending
+                            ? "chevron.up" : "chevron.down"
+                    )
+                    .font(.caption.weight(.semibold))
+                }
+                Spacer(minLength: Metrics.Space.s)
+            }
+            .padding(.horizontal, Metrics.Space.l)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .leading) {
+            if separated {
+                Rectangle().fill(.quaternary.opacity(0.55)).frame(width: 1)
+            }
+        }
+    }
+
+    private func fileRow(_ row: SFTPRow, layout: Layout) -> some View {
+        let file = row.file
+        let selected = sftpSession.selection.contains(file.id)
+        // In a split workspace the pane owns durable focus. SwiftUI can clear
+        // the ScrollView's FocusState while the outer pane handles the same
+        // click even though this remains the active pane. Text editing and an
+        // inactive window still deliberately use the subdued selection style.
+        let emphasized =
+            selected && isPaneFocused && !pathFocused && !searchFocused
+            && controlActiveState == .key
+        return HStack(spacing: 0) {
+            nameColumn(row, layout: layout, emphasized: emphasized)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if layout != .compact {
+                metadataText(row.modifiedText, emphasized: emphasized)
+                    .frame(width: 220, alignment: .leading)
+            }
+            if layout == .full {
+                metadataText(row.sizeText, emphasized: emphasized, monospaced: true)
+                    .frame(width: 150, alignment: .leading)
+                metadataText(row.kindText, emphasized: emphasized)
+                    .frame(width: 150, alignment: .leading)
+            }
+        }
+        .padding(.leading, Metrics.Space.xxl)
+        .padding(.trailing, Metrics.Space.xl)
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(rowBackground(selected: selected, emphasized: emphasized, file: file))
+        .contentShape(.rect)
+        .onTapGesture {
+            select(file)
+            if NSApp.currentEvent?.clickCount == 2 { primaryAction(file) }
+        }
+        .onHover { hovering in hoveredFileID = hovering ? file.id : nil }
+        .onDrag { remoteDragProvider(for: file) }
+        .contextMenu {
+            Group { fileMenu(file) }
+                .onAppear { selectForContextMenu(file) }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
+        .opacity(file.isHidden && !selected ? 0.55 : 1)
+    }
+
+    private func nameColumn(
+        _ row: SFTPRow, layout: Layout, emphasized: Bool
+    ) -> some View {
+        let file = row.file
+        return HStack(spacing: Metrics.Space.m) {
+            Image(systemName: file.kind.symbol)
+                .font(.system(size: file.isDirectory ? 23 : 20, weight: .regular))
+                .foregroundStyle(iconStyle(for: file, emphasized: emphasized))
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(file.name)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(emphasized ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                    .lineLimit(1)
+                Text(secondaryText(for: row, layout: layout))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(
+                        emphasized ? AnyShapeStyle(.white.opacity(0.78)) : AnyShapeStyle(.secondary)
+                    )
+                    .lineLimit(1)
+            }
+            .padding(.vertical, Metrics.Space.xs)
+        }
+    }
+
+    private func metadataText(
+        _ value: String, emphasized: Bool, monospaced: Bool = false
+    ) -> some View {
+        Text(value)
+            .font(monospaced ? .body.monospacedDigit() : .body)
+            .foregroundStyle(
+                emphasized ? AnyShapeStyle(.white.opacity(0.88)) : AnyShapeStyle(.secondary)
+            )
+            .lineLimit(1)
+            .padding(.horizontal, Metrics.Space.l)
+    }
+
+    private func rowBackground(
+        selected: Bool, emphasized: Bool, file: RemoteFile
+    ) -> AnyShapeStyle {
+        if emphasized { return AnyShapeStyle(Color.accentColor) }
+        if selected {
+            return AnyShapeStyle(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+        }
+        if hoveredFileID == file.id { return AnyShapeStyle(Color.primary.opacity(0.045)) }
+        return AnyShapeStyle(Color.clear)
+    }
+
+    private func iconStyle(for file: RemoteFile, emphasized: Bool) -> AnyShapeStyle {
+        if emphasized {
+            return AnyShapeStyle(Color.white.opacity(file.isDirectory ? 0.82 : 0.72))
+        }
+        return file.isDirectory ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
+    }
+
+    /// Whatever the columns to the right of the name are not showing at this
+    /// density, so a narrow browser is still a complete listing. Assembled from
+    /// `SFTPRow`'s already-rendered strings — no formatter runs here.
+    private func secondaryText(for row: SFTPRow, layout: Layout) -> String {
+        switch layout {
+        case .full:
+            return row.permissionText
+        case .medium:
+            return [row.permissionText, row.kindText, row.sizeText]
+                .joined(separator: "  ·  ")
+        case .compact:
+            return [
+                row.kindText, row.sizeText, row.modifiedText, row.permissionText,
+            ].joined(separator: "  ·  ")
         }
     }
 
@@ -446,29 +793,9 @@ struct SFTPBrowserView: View {
         NSPasteboard.general.setString(value, forType: .string)
     }
 
-    private func menuCell<Content: View>(
-        _ file: RemoteFile, @ViewBuilder content: () -> Content
-    ) -> some View {
-        content()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(.rect)
-            .contextMenu { fileMenu(file) }
-    }
-
-    @ViewBuilder
-    private func nameCell<Content: View>(
-        _ file: RemoteFile, @ViewBuilder content: () -> Content
-    ) -> some View {
-        // The drag source makes this cell consume the table's implicit row-selection click.
-        let cell = menuCell(file, content: content)
-            .simultaneousGesture(
-                TapGesture(count: 2).onEnded { primaryAction(file) }
-            )
-            .onTapGesture { selectFromNameCell(file) }
-        cell.onDrag { remoteDragProvider(for: file) }
-    }
-
-    private func selectFromNameCell(_ file: RemoteFile) {
+    private func select(_ file: RemoteFile) {
+        focusPane()
+        listFocused = true
         let modifiers = NSEvent.modifierFlags
         if modifiers.contains(.shift),
             let anchor = selectionAnchor ?? sftpSession.selection.first,
@@ -482,10 +809,12 @@ struct SFTPBrowserView: View {
             } else {
                 sftpSession.selection = range
             }
+            selectionCursor = file.id
             return
         }
 
         selectionAnchor = file.id
+        selectionCursor = file.id
         if modifiers.contains(.command) {
             if sftpSession.selection.contains(file.id) {
                 sftpSession.selection.remove(file.id)
@@ -495,6 +824,45 @@ struct SFTPBrowserView: View {
         } else {
             sftpSession.selection = [file.id]
         }
+    }
+
+    private func selectForContextMenu(_ file: RemoteFile) {
+        guard !sftpSession.selection.contains(file.id) else { return }
+        sftpSession.selection = [file.id]
+        selectionAnchor = file.id
+        selectionCursor = file.id
+        listFocused = true
+    }
+
+    private var keyboardTarget: RemoteFile? {
+        let target = selectionCursor ?? sftpSession.selectedFiles.first?.id
+        return target.flatMap { id in sftpSession.filteredFiles.first { $0.id == id } }
+    }
+
+    private func moveSelection(
+        by offset: Int, extending: Bool, proxy: ScrollViewProxy
+    ) -> KeyPress.Result {
+        let files = sftpSession.filteredFiles
+        guard !files.isEmpty else { return .ignored }
+        let currentID = selectionCursor ?? sftpSession.selectedFiles.first?.id
+        let currentIndex = currentID.flatMap { id in files.firstIndex { $0.id == id } }
+            ?? (offset > 0 ? -1 : files.count)
+        let targetIndex = min(max(currentIndex + offset, 0), files.count - 1)
+        let target = files[targetIndex]
+
+        if extending {
+            let anchorID = selectionAnchor ?? currentID ?? target.id
+            let anchorIndex = files.firstIndex { $0.id == anchorID } ?? targetIndex
+            let bounds = min(anchorIndex, targetIndex)...max(anchorIndex, targetIndex)
+            sftpSession.selection = Set(files[bounds].map(\.id))
+            selectionAnchor = anchorID
+        } else {
+            sftpSession.selection = [target.id]
+            selectionAnchor = target.id
+        }
+        selectionCursor = target.id
+        proxy.scrollTo(target.id, anchor: targetIndex == 0 ? .top : nil)
+        return .handled
     }
 
     private func remoteDragProvider(for file: RemoteFile) -> NSItemProvider {

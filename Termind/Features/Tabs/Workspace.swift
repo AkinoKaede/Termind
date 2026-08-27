@@ -151,6 +151,7 @@ final class Workspace: Identifiable {
 
     func focus(_ paneID: Pane.ID) {
         guard layout.pane(paneID) != nil else { return }
+        guard focusedPaneID != paneID else { return }
         focusedPaneID = paneID
     }
 

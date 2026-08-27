@@ -4,25 +4,133 @@ protocol SFTPSessionNavigationRouting: AnyObject {
     func sftpSession(_ sftpSession: SFTPSessionModel, didChangePath path: String)
 }
 
-/// State consumed by SwiftUI's macOS `Table` must change as one value.
+nonisolated enum SFTPFileSortField: String, CaseIterable, Sendable {
+    case name
+    case modified
+    case size
+    case kind
+
+    var defaultDirection: SFTPFileSortDirection {
+        switch self {
+        case .modified, .size: .descending
+        case .name, .kind: .ascending
+        }
+    }
+}
+
+nonisolated enum SFTPFileSortDirection: String, Sendable {
+    case ascending
+    case descending
+
+    mutating func toggle() {
+        self = self == .ascending ? .descending : .ascending
+    }
+}
+
+/// One row of the browser, with its display strings already rendered.
 ///
-/// `Table` is backed by `NSOutlineView`. Publishing its rows, filter, and
-/// selection independently can briefly leave the outline view selecting an ID
-/// whose row has already become an orphan. On macOS that can make SwiftUI ask
-/// AttributeGraph for the orphan row's dismantled subgraph and trap with
-/// "precondition failure: no subgraph".
+/// The formatters are the reason this type exists. A hand-rolled `LazyVStack`
+/// rebuilds every realised row on every body pass, and a divider drag runs one
+/// of those per mouse-move frame — so `Date.formatted` and `.byteCount` were
+/// being re-run dozens of times a frame for text that only changes when the
+/// directory does. Rendering them once per listing moves that cost off the
+/// drag entirely.
+nonisolated struct SFTPRow: Identifiable, Sendable {
+    let file: RemoteFile
+    let sizeText: String
+    let modifiedText: String
+    let kindText: String
+    let permissionText: String
+
+    var id: RemoteFile.ID { file.id }
+
+    init(file: RemoteFile, kindText: String? = nil) {
+        self.file = file
+        self.sizeText = file.isDirectory ? "--" : file.size.formatted(.byteCount(style: .file))
+        self.modifiedText =
+            file.modifiedAt?.formatted(date: .abbreviated, time: .shortened) ?? "—"
+        self.kindText = kindText ?? file.sftpKindDescription
+        self.permissionText = file.permissionDescription
+    }
+}
+
+/// Rows, filtering, and selection change as one value so a refreshed directory
+/// never exposes a selection that is absent from the visible snapshot.
+///
+/// `visibleRows` is stored rather than computed. Filtering and sorting are
+/// O(n log n) over `localizedStandardCompare`, and a computed property put that
+/// on every read — which meant twice per SwiftUI body pass, which meant twice
+/// per frame of a pane-divider drag. It is rebuilt only when the inputs to it
+/// change: the listing, hidden-file visibility, the filter, or the sort.
 private struct SFTPDirectoryPresentation {
     var files: [RemoteFile] = []
     var selection: Set<RemoteFile.ID> = []
     var query = ""
+    var showsHiddenFiles = false
+    var sortField: SFTPFileSortField = .name
+    var sortDirection: SFTPFileSortDirection = .ascending
+    private(set) var visibleRows: [SFTPRow] = []
 
-    var filteredFiles: [RemoteFile] {
-        guard !query.isEmpty else { return files }
-        return files.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    /// Re-filters, re-sorts, and drops any selection that fell out of view.
+    /// Every mutation of `files`, hidden visibility, `query`, or the sort has
+    /// to go through here.
+    mutating func refresh() {
+        let displayable = showsHiddenFiles ? files : files.filter { !$0.isHidden }
+        let matches =
+            query.isEmpty
+            ? displayable
+            : displayable.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        // Decorated before sorting so `sftpKindDescription` — a localised
+        // string lookup — runs once per file rather than once per comparison.
+        var rows = matches.map { SFTPRow(file: $0) }
+        rows.sort(by: rowPrecedes)
+        visibleRows = rows
+        reconcileSelection()
     }
 
+    /// The cheap path: selection changes cannot alter what is on screen, so
+    /// they intersect against the rows already built.
     mutating func reconcileSelection() {
-        selection.formIntersection(Set(filteredFiles.map(\.id)))
+        selection.formIntersection(Set(visibleRows.map(\.id)))
+    }
+
+    private func rowPrecedes(_ lhs: SFTPRow, _ rhs: SFTPRow) -> Bool {
+        if lhs.file.isDirectory != rhs.file.isDirectory { return lhs.file.isDirectory }
+
+        let primary = compare(lhs, rhs)
+        if primary != .orderedSame {
+            return sortDirection == .ascending
+                ? primary == .orderedAscending
+                : primary == .orderedDescending
+        }
+
+        let name = lhs.file.name.localizedStandardCompare(rhs.file.name)
+        if name != .orderedSame { return name == .orderedAscending }
+        return lhs.file.path.localizedStandardCompare(rhs.file.path) == .orderedAscending
+    }
+
+    private func compare(_ lhs: SFTPRow, _ rhs: SFTPRow) -> ComparisonResult {
+        switch sortField {
+        case .name:
+            return lhs.file.name.localizedStandardCompare(rhs.file.name)
+        case .modified:
+            switch (lhs.file.modifiedAt, rhs.file.modifiedAt) {
+            case (.none, .none): return .orderedSame
+            case (.none, .some):
+                return sortDirection == .ascending ? .orderedDescending : .orderedAscending
+            case (.some, .none):
+                return sortDirection == .ascending ? .orderedAscending : .orderedDescending
+            case (.some(let left), .some(let right)):
+                return left == right
+                    ? .orderedSame : (left < right ? .orderedAscending : .orderedDescending)
+            }
+        case .size:
+            return lhs.file.size == rhs.file.size
+                ? .orderedSame
+                : (lhs.file.size < rhs.file.size ? .orderedAscending : .orderedDescending)
+        case .kind:
+            return lhs.kindText.localizedStandardCompare(rhs.kindText)
+        }
     }
 }
 
@@ -90,12 +198,25 @@ final class SFTPSessionModel: Identifiable {
     var query: String {
         get { directoryPresentation.query }
         set {
+            guard newValue != directoryPresentation.query else { return }
             var presentation = directoryPresentation
             presentation.query = newValue
-            presentation.reconcileSelection()
+            presentation.refresh()
             directoryPresentation = presentation
         }
     }
+    var showsHiddenFiles: Bool {
+        get { directoryPresentation.showsHiddenFiles }
+        set {
+            guard newValue != directoryPresentation.showsHiddenFiles else { return }
+            var presentation = directoryPresentation
+            presentation.showsHiddenFiles = newValue
+            presentation.refresh()
+            directoryPresentation = presentation
+        }
+    }
+    var sortField: SFTPFileSortField { directoryPresentation.sortField }
+    var sortDirection: SFTPFileSortDirection { directoryPresentation.sortDirection }
     var files: [RemoteFile] { directoryPresentation.files }
     private(set) var status: ConnectionStatus = .disconnected {
         didSet {
@@ -163,11 +284,25 @@ final class SFTPSessionModel: Identifiable {
     var conflictCount: Int {
         pendingRemoteCopyBatch?.conflictCount ?? pendingBatch?.conflictCount ?? 0
     }
-    var filteredFiles: [RemoteFile] {
-        directoryPresentation.filteredFiles
-    }
+    /// What the list draws. Already filtered, sorted, and formatted.
+    var visibleRows: [SFTPRow] { directoryPresentation.visibleRows }
+    /// The same rows as plain files, for selection and menu work. Only ever
+    /// reached from event handlers, never from a body pass.
+    var filteredFiles: [RemoteFile] { directoryPresentation.visibleRows.map(\.file) }
     var selectedFiles: [RemoteFile] {
-        files.filter { selection.contains($0.id) }
+        directoryPresentation.visibleRows.filter { selection.contains($0.id) }.map(\.file)
+    }
+
+    func sort(by field: SFTPFileSortField) {
+        var presentation = directoryPresentation
+        if presentation.sortField == field {
+            presentation.sortDirection.toggle()
+        } else {
+            presentation.sortField = field
+            presentation.sortDirection = field.defaultDirection
+        }
+        presentation.refresh()
+        directoryPresentation = presentation
     }
 
     func remoteCopySource(for files: [RemoteFile]) -> SFTPRemoteCopySource? {
@@ -665,7 +800,7 @@ final class SFTPSessionModel: Identifiable {
     private func replaceDirectoryContents(with files: [RemoteFile]) {
         var presentation = directoryPresentation
         presentation.files = files
-        presentation.reconcileSelection()
+        presentation.refresh()
         directoryPresentation = presentation
     }
 

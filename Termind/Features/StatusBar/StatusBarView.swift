@@ -35,7 +35,11 @@ struct StatusBarView: View {
                 }
 
                 if let sftpSession, sftpSession.status == .connected {
-                    sftpDirectoryButton(sftpSession.path)
+                    if sftpSession.isLoading || sftpSession.canCancelOperation {
+                        sftpOperationStatus(sftpSession)
+                    } else {
+                        sftpDirectoryButton(sftpSession.path)
+                    }
                 }
             }
 
@@ -127,6 +131,24 @@ struct StatusBarView: View {
                 }
             }
             Button("Copy Path") { copyToPasteboard(path) }
+        }
+    }
+
+    private func sftpOperationStatus(_ session: SFTPSessionModel) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            ProgressView().controlSize(.mini)
+            Text(session.hint.isEmpty ? String(localized: "Working") : session.hint)
+                .truncationMode(.middle)
+            if session.canCancelOperation {
+                Button {
+                    session.cancelOperation()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .help("Cancel operation")
+                .accessibilityLabel("Cancel operation")
+            }
         }
     }
 

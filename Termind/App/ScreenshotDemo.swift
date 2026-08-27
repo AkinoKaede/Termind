@@ -81,7 +81,9 @@ enum ScreenshotDemoMode: String {
 
         let first = Pane(.sshSession(firstSession))
         first.customTitle = showsCommandResult ? "nginx logs" : "api-01"
-        let sftp = Pane(.sftpSession(.demo(hostID: saved[0].id)))
+        let sftpSession = SFTPSessionModel.demo(hostID: saved[0].id)
+        sftpSession.selection = ["/etc/nginx/nginx.conf"]
+        let sftp = Pane(.sftpSession(sftpSession))
         sftp.customTitle = "nginx config"
         let secondSession = showsCommandResult
             ? SSHSessionModel.demo(host: saved[1])

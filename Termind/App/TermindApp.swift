@@ -139,6 +139,28 @@ struct TermindApp: App {
                     item.keyEquivalentModifierMask = [.command, .shift]
                 }
             }
+
+            // Product screenshots must not inherit a developer's last window
+            // frame from macOS state restoration. Keeping the outer frame
+            // exactly 1180×740pt makes a Retina capture exactly 2360×1480px,
+            // matching the dimensions declared by the website.
+            if ScreenshotDemoMode.active != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    guard let window = NSApp.windows.first(where: \.isVisible) else { return }
+                    window.isRestorable = false
+                    window.setFrame(
+                        NSRect(
+                            origin: window.frame.origin,
+                            size: NSSize(
+                                width: Metrics.Window.defaultWidth,
+                                height: Metrics.Window.defaultHeight
+                            )
+                        ),
+                        display: true
+                    )
+                    window.center()
+                }
+            }
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

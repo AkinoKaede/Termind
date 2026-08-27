@@ -28,8 +28,21 @@ nonisolated struct RemoteFile: Identifiable, Hashable, Sendable {
     var id: String { path }
     var isDirectory: Bool { kind == .directory }
     var isSymbolicLink: Bool { kind == .symbolicLink }
+    var isHidden: Bool { name.hasPrefix(".") }
 
     var permissionMode: UInt32 { permissions & 0o7777 }
+
+    var sftpKindDescription: String {
+        switch kind {
+        case .directory: return String(localized: "Folder")
+        case .symbolicLink: return String(localized: "Symbolic Link")
+        case .special: return String(localized: "Special")
+        case .unknown: return String(localized: "Unknown")
+        case .file:
+            let fileExtension = (name as NSString).pathExtension
+            return fileExtension.isEmpty ? String(localized: "File") : fileExtension.lowercased()
+        }
+    }
 
     var octalPermissionDescription: String {
         String(format: "%04o", permissionMode)

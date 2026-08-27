@@ -77,6 +77,116 @@ struct SFTPFeatureTests {
         #expect(RemotePath.parent(of: "/") == "/")
         #expect(RemotePath.parent(of: "/var/log") == "/var")
         #expect(RemotePath.join("/", "tmp") == "/tmp")
+        #expect(RemotePath.components(of: "/var/log/nginx").map(\.path) == [
+            "/", "/var", "/var/log", "/var/log/nginx",
+        ])
+    }
+
+    @Test
+    func sftpDirectorySortingKeepsFoldersFirstAndUsesStableNames() async {
+        let older = Date(timeIntervalSinceReferenceDate: 100)
+        let newer = Date(timeIntervalSinceReferenceDate: 200)
+        let folderZ = remoteFile(path: "/home/z-folder", kind: .directory, modifiedAt: older)
+        let folderA = remoteFile(path: "/home/a-folder", kind: .directory, modifiedAt: newer)
+        let missingDate = remoteFile(path: "/home/undated.log", kind: .file, size: 50)
+        let small = remoteFile(
+            path: "/home/small.txt", kind: .file, size: 10, modifiedAt: older
+        )
+        let large = remoteFile(
+            path: "/home/large.txt", kind: .file, size: 100, modifiedAt: newer
+        )
+        let client = SnapshotSFTPClient(
+            responses: [.success([folderZ, missingDate, large, folderA, small])]
+        )
+        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home", client: client)
+
+        await session.reload(silently: true)
+        #expect(session.filteredFiles.map(\.name) == [
+            "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
+        ])
+
+        session.sort(by: .modified)
+        #expect(session.sortDirection == .descending)
+        #expect(session.filteredFiles.map(\.name) == [
+            "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
+        ])
+
+        session.sort(by: .size)
+        #expect(session.sortDirection == .descending)
+        #expect(session.filteredFiles.map(\.name) == [
+            "a-folder", "z-folder", "large.txt", "undated.log", "small.txt",
+        ])
+
+        session.sort(by: .kind)
+        #expect(session.sortDirection == .ascending)
+        #expect(session.filteredFiles.map(\.name) == [
+            "a-folder", "z-folder", "undated.log", "large.txt", "small.txt",
+        ])
+    }
+
+    /// The visible list is cached rather than recomputed on every read, so the
+    /// thing worth pinning is that each of its three inputs invalidates it —
+    /// and that selection, which is not one of them, does not.
+    @Test
+    func sftpVisibleRowsFollowFilterAndSortButNotSelection() async {
+        let notes = remoteFile(path: "/home/notes.txt", kind: .file, size: 10)
+        let report = remoteFile(path: "/home/report.txt", kind: .file, size: 100)
+        let archive = remoteFile(path: "/home/archive", kind: .directory)
+        let client = SnapshotSFTPClient(responses: [.success([report, notes, archive])])
+        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home", client: client)
+
+        await session.reload(silently: true)
+        #expect(session.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
+        #expect(session.visibleRows.map(\.sizeText) == ["--", "10 bytes", "100 bytes"])
+
+        session.selection = [notes.id, report.id]
+        #expect(session.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
+        #expect(session.selectedFiles == [notes, report])
+
+        session.query = "report"
+        #expect(session.visibleRows.map(\.file.name) == ["report.txt"])
+        // The filter dropped a selected row, so the selection follows it out.
+        #expect(session.selectedFiles == [report])
+
+        session.sort(by: .size)
+        #expect(session.sortDirection == .descending)
+        #expect(session.visibleRows.map(\.file.name) == ["report.txt"])
+
+        session.query = ""
+        #expect(session.visibleRows.map(\.file.name) == ["archive", "report.txt", "notes.txt"])
+    }
+
+    @Test
+    func sftpHiddenFilesAreExcludedByDefaultAndReconciledWithSelection() async {
+        let hiddenFolder = remoteFile(path: "/home/.git", kind: .directory)
+        let hiddenFile = remoteFile(path: "/home/.env", kind: .file)
+        let visibleFile = remoteFile(path: "/home/readme.md", kind: .file)
+        let client = SnapshotSFTPClient(
+            responses: [.success([visibleFile, hiddenFile, hiddenFolder])]
+        )
+        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home", client: client)
+
+        await session.reload(silently: true)
+        #expect(session.visibleRows.map(\.file.name) == ["readme.md"])
+
+        session.showsHiddenFiles = true
+        #expect(session.visibleRows.map(\.file.name) == [".git", ".env", "readme.md"])
+
+        session.selection = [hiddenFile.id]
+        session.showsHiddenFiles = false
+        #expect(session.visibleRows.map(\.file.name) == ["readme.md"])
+        #expect(session.selection.isEmpty)
+    }
+
+    @Test
+    func remoteFileKindDescriptionsUseReadableKindsAndFileExtensions() {
+        #expect(remoteFile(path: "/tmp/assets", kind: .directory).sftpKindDescription == "Folder")
+        #expect(remoteFile(path: "/tmp/readme", kind: .file).sftpKindDescription == "File")
+        #expect(remoteFile(path: "/tmp/ARCHIVE.TAR", kind: .file).sftpKindDescription == "tar")
+        #expect(
+            remoteFile(path: "/tmp/current", kind: .symbolicLink).sftpKindDescription
+                == "Symbolic Link"
+        )
     }
 
     @Test
@@ -756,11 +866,11 @@ private func makeTestConfiguration(hostID: UUID, host: String) -> SSHConnectionC
 }
 
 private func remoteFile(
-    path: String, kind: RemoteFile.Kind, size: Int64 = 0
+    path: String, kind: RemoteFile.Kind, size: Int64 = 0, modifiedAt: Date? = nil
 ) -> RemoteFile {
     RemoteFile(
         path: path, name: (path as NSString).lastPathComponent, kind: kind,
-        size: size, modifiedAt: nil, permissions: 0o644, ownerUID: 501, ownerGID: 20
+        size: size, modifiedAt: modifiedAt, permissions: 0o644, ownerUID: 501, ownerGID: 20
     )
 }
 
