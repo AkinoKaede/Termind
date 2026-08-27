@@ -267,9 +267,8 @@ struct MCPServerEditorPage: View {
                 app.aiConfiguration.setTools(discovery.tools, version: discovery.protocolVersion, for: serverID)
                 app.aiConfiguration.setMCPStatus(.connected, for: serverID)
                 session.connection = .succeeded(
-                    discovery.tools.count == 1
-                        ? String(localized: "\(discovery.serverName) — 1 tool")
-                        : String(localized: "\(discovery.serverName) — \(discovery.tools.count) tools"))
+                    String(localized: "\(discovery.serverName) — \(discovery.tools.count) tools")
+                )
             } catch {
                 app.aiConfiguration.setMCPStatus(.failed(error.localizedDescription), for: serverID)
                 session.connection = .failed(error.localizedDescription)

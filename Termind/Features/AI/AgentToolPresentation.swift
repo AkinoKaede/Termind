@@ -946,15 +946,15 @@ nonisolated enum AgentToolPresentation {
     }
 
     private static func hostCount(_ count: Int) -> String {
-        count == 1 ? String(localized: "1 host") : String(localized: "\(count) hosts")
+        String(localized: "\(count) hosts")
     }
 
     private static func itemCount(_ count: Int) -> String {
-        count == 1 ? String(localized: "1 item") : String(localized: "\(count) items")
+        String(localized: "\(count) items")
     }
 
     private static func searchResultCount(_ count: Int) -> String {
-        count == 1 ? String(localized: "1 result") : String(localized: "\(count) results")
+        String(localized: "\(count) results")
     }
 
     private static func label(_ path: [String]) -> String {
@@ -1097,6 +1097,11 @@ nonisolated enum AgentToolPresentation {
             let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
             return oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? fallback : oneLine
+        case .localizedArrayCount(let key, let unit, let fallback):
+            guard let count = card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count,
+                count > 0
+            else { return fallback }
+            return countDescription(count, unit: unit)
         case .arrayCount(let key, let singular, let plural, let fallback):
             guard let count = card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count,
                 count > 0
@@ -1108,9 +1113,8 @@ nonisolated enum AgentToolPresentation {
     private static func batchClause(_ cards: [AgentToolCard]) -> String {
         guard let first = cards.first else { return "" }
         guard let presentation = first.descriptor.presentation else {
-            let operation = humanized(first.descriptor.qualifiedName)
             let activity = cards.count == 1
-                ? operation : "\(cards.count) \(operation) calls"
+                ? humanized(first.descriptor.qualifiedName) : toolCallCount(cards.count)
             return fallbackAction(for: first.state, activity: activity)
         }
 
@@ -1141,6 +1145,12 @@ nonisolated enum AgentToolPresentation {
         cards: [AgentToolCard]
     ) -> String {
         switch activity {
+        case .localizedArrayCount(let key, let unit, let fallback):
+            let count = cards.reduce(0) { total, card in
+                total + (card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count ?? 0)
+            }
+            guard count > 0 else { return fallback }
+            return countDescription(count, unit: unit)
         case .arrayCount(let key, let singular, let plural, let fallback):
             let count = cards.reduce(0) { total, card in
                 total + (card.invocation.call.arguments.objectValue?[key]?.arrayValue?.count ?? 0)
@@ -1148,10 +1158,22 @@ nonisolated enum AgentToolPresentation {
             guard count > 0 else { return fallback }
             return count == 1 ? singular : "\(count) \(plural)"
         case .argument(_, let fallback):
-            return cards.count == 1 ? fallback : counted(fallback, count: cards.count)
+            return cards.count == 1 ? fallback : toolCallCount(cards.count)
         case .label(let label):
-            return cards.count == 1 ? label : counted(label, count: cards.count)
+            return cards.count == 1 ? label : toolCallCount(cards.count)
         }
+    }
+
+    private static func countDescription(
+        _ count: Int, unit: AgentToolDescriptor.Presentation.CountedUnit
+    ) -> String {
+        switch unit {
+        case .question: String(localized: "\(count) questions")
+        }
+    }
+
+    private static func toolCallCount(_ count: Int) -> String {
+        String(localized: "\(count) tool calls")
     }
 
     private static func fallbackAction(
@@ -1167,34 +1189,6 @@ nonisolated enum AgentToolPresentation {
         case .failed: "Failed \(activity)"
         case .interrupted: "Interrupted \(activity)"
         }
-    }
-
-    private static func counted(_ phrase: String, count: Int) -> String {
-        let prefixes = ["a ", "an ", "the "]
-        let lower = phrase.lowercased()
-        let nounPhrase = prefixes.first(where: { lower.hasPrefix($0) }).map {
-            String(phrase.dropFirst($0.count))
-        } ?? phrase
-        return "\(count) \(pluralized(nounPhrase))"
-    }
-
-    private static func pluralized(_ phrase: String) -> String {
-        guard let space = phrase.lastIndex(of: " ") else {
-            return pluralizedWord(phrase)
-        }
-        return String(phrase[...space]) + pluralizedWord(String(phrase[phrase.index(after: space)...]))
-    }
-
-    private static func pluralizedWord(_ word: String) -> String {
-        let lower = word.lowercased()
-        if lower.hasSuffix("s") { return word }
-        if lower.hasSuffix("y"), word.count > 1 {
-            return String(word.dropLast()) + "ies"
-        }
-        if lower.hasSuffix("ch") || lower.hasSuffix("sh") || lower.hasSuffix("x") {
-            return word + "es"
-        }
-        return word + "s"
     }
 
     private static func lowercaseFirst(_ text: String) -> String {

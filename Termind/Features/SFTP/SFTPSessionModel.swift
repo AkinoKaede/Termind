@@ -626,9 +626,7 @@ final class SFTPSessionModel: Identifiable {
             let snapshot = try await client.listDirectory(at: requestedPath)
             guard status == .connected, path == requestedPath else { return }
             replaceDirectoryContents(with: snapshot)
-            hint =
-                snapshot.count == 1
-                ? String(localized: "1 item") : String(localized: "\(snapshot.count) items")
+            hint = String(localized: "\(snapshot.count) items")
         } catch let error as SFTPError {
             if case .connectionLost(let message) = error {
                 handleConnectionFailure(message, attemptID: connectionAttemptID)

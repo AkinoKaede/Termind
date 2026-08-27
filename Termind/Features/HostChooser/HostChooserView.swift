@@ -72,7 +72,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     /// connects, so it says which thing *and* where it lands.
     var workspaceConfirmLabel: LocalizedStringKey {
         switch self {
-        case .connect, .batchStartup: "Connect in Workspace"
+        case .connect, .batchStartup: "Connect in the same workspace"
         case .snippet: "Execute"
         }
     }

@@ -277,7 +277,7 @@ private struct SSHSessionHistorySidebar: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    Section(query.isEmpty ? "Recent" : "Results") {
+                    Section(query.isEmpty ? "Recents" : "Results") {
                         ForEach(allEntries) { entry in
                             historyRow(entry)
                         }

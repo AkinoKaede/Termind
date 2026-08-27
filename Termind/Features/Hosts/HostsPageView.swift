@@ -268,8 +268,7 @@ struct HostsPageView: ManagedCardPage {
     private func deletionMessage(for group: HostGroup) -> String {
         let hosts = app.hostLibrary.hosts(inTreeOf: group.id).count
         let nested = app.hostLibrary.descendantGroups(of: group.id).count
-        let hostCount = hosts == 1
-            ? String(localized: "1 host") : String(localized: "\(hosts) hosts")
+        let hostCount = String(localized: "\(hosts) hosts")
         if nested == 0 {
             return String(localized: "This group contains \(hostCount).")
         }

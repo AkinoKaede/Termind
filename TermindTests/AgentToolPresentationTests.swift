@@ -50,7 +50,7 @@ struct AgentToolPresentationTests {
         )
         #expect(
             AgentToolPresentation.batchSummary(for: [card, card])
-                == "Ran 2 SSH commands"
+                == "Ran 2 tool calls"
         )
         for state in [
             AgentToolCard.State.denied, .failed, .interrupted,
@@ -568,6 +568,15 @@ struct AgentToolPresentationTests {
 
     @Test
     func countedArrayActivityRoundTrips() throws {
+        let activity = AgentToolDescriptor.Presentation.Activity.localizedArrayCount(
+            key: "questions", unit: .question, fallback: "a question"
+        )
+        let data = try JSONEncoder().encode(activity)
+        #expect(try JSONDecoder().decode(type(of: activity), from: data) == activity)
+    }
+
+    @Test
+    func legacyCountedArrayActivityStillDecodes() throws {
         let activity = AgentToolDescriptor.Presentation.Activity.arrayCount(
             key: "questions", singular: "a question", plural: "questions",
             fallback: "a question"

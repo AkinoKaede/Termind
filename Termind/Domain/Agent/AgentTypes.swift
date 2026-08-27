@@ -78,14 +78,21 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             var past: String
         }
 
+        /// A semantic unit whose counted presentation is owned by the app's
+        /// localization resources instead of English descriptor metadata.
+        nonisolated enum CountedUnit: String, Hashable, Sendable, Codable {
+            case question
+        }
+
         nonisolated enum Activity: Hashable, Sendable, Codable {
             case label(String)
             case argument(key: String, fallback: String)
-            /// Names an activity from the number of entries in an array
-            /// argument. The singular phrase includes its determiner (for
-            /// example, "a question"); the plural phrase is prefixed by the
-            /// count when rendered.
+            /// Legacy persisted shape. New built-in descriptors must use
+            /// `localizedArrayCount` so their grammar comes from the catalog.
             case arrayCount(key: String, singular: String, plural: String, fallback: String)
+            /// Names an activity from the number of entries in an array
+            /// argument. The unit selects a locale-aware plural resource.
+            case localizedArrayCount(key: String, unit: CountedUnit, fallback: String)
         }
 
         nonisolated enum Output: Hashable, Sendable, Codable {

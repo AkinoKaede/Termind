@@ -57,9 +57,8 @@ nonisolated extension AgentBuiltInTools {
             ], required: ["questions"], target: .user, safety: .locallyReadOnly,
             presentation: .init(
                 symbol: "questionmark.circle",
-                activity: .arrayCount(
-                    key: "questions", singular: "a question", plural: "questions",
-                    fallback: "a question"
+                activity: .localizedArrayCount(
+                    key: "questions", unit: .question, fallback: "a question"
                 ),
                 action: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
             )
