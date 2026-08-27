@@ -160,7 +160,6 @@ final class SSHSessionModel: Identifiable {
             )
         }
     }
-    var latencyMilliseconds: Int?
     var hasUnreadOutput: Bool = false
     /// History for an unsaved Quick Connect destination. Saved Hosts use the
     /// app-wide CommandHistoryModel instead so every window sees the same list.
@@ -1380,14 +1379,50 @@ private final class SSHSessionRelay: @unchecked Sendable {
 // MARK: - Demo data
 
 extension SSHSessionModel {
-    /// A connected-looking sshSession, for driving P0 layout work.
-    static func demo(host: Host) -> SSHSessionModel {
+    /// A connected-looking session with a real terminal surface and synthetic,
+    /// non-sensitive output. Screenshot mode uses this instead of opening a
+    /// network connection or reading somebody's actual scrollback.
+    static func demo(host: Host, transcript: String? = nil) -> SSHSessionModel {
         let sshSession = SSHSessionModel(host: host)
         sshSession.status = .connected
-        sshSession.workingDirectory = "/var/log"
-        sshSession.latencyMilliseconds = 24
+        sshSession.workingDirectory = "/var/log/nginx"
         sshSession.shellIntegrationAvailable = true
+        sshSession.integratedShell = "zsh"
+        sshSession.isShellPromptReady = true
+        let bytes = Data((transcript ?? demoTranscript(for: host.name)).utf8)
+        // Drive the same delegate callback that OSC 7 Shell Integration emits.
+        // Feed the screen only after the native surface has mounted and sized;
+        // writing into the default 80-column grid first leaves Ghostty's cursor
+        // behind when a narrow demo pane reflows that content.
+        Task { [weak sshSession] in
+            try? await Task.sleep(for: .milliseconds(350))
+            sshSession?.terminalBackend.receive(Data("\u{001B}[2J\u{001B}[H".utf8))
+            sshSession?.terminalBackend.receive(bytes)
+            // The demo has no remote PTY to synchronize Ghostty's interactive
+            // cursor with received output. Hide that cursor for static captures
+            // instead of advertising a caret at a position no shell reported.
+            sshSession?.terminalBackend.receive(Data("\u{001B}[?25l".utf8))
+            sshSession?.terminalState.terminalDidChangeWorkingDirectory("/var/log/nginx")
+        }
         return sshSession
+    }
+
+    private static func demoTranscript(for host: String) -> String {
+        let prompt =
+            "\u{001B}[36mdeploy@\(host)\u{001B}[0m "
+            + "\u{001B}[34m/var/log/nginx\u{001B}[0m %"
+        return [
+            "\u{001B}]7;file://\(host)/var/log/nginx\u{0007}",
+            "\u{001B}[2mLast login: Thu Aug 27 16:42:18 from 10.0.0.12\u{001B}[0m",
+            prompt + " systemctl status nginx --no-pager",
+            "● nginx.service - A high performance web server",
+            "     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled)",
+            "     Active: \u{001B}[32mactive (running)\u{001B}[0m since Thu 2026-08-27 09:14:03 UTC",
+            prompt + " tail -n 3 access.log",
+            "10.0.4.21 - - [27/Aug/2026:09:41:12] \"GET /health HTTP/1.1\" 200 18",
+            "10.0.4.18 - - [27/Aug/2026:09:41:14] \"GET /api/status HTTP/1.1\" 200 52",
+            prompt + " ",
+        ].joined(separator: "\r\n")
     }
 
 }

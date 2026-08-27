@@ -29,9 +29,6 @@ struct StatusBarView: View {
                 connection
 
                 if let sshSession, sshSession.status.isLive {
-                    if let latency = sshSession.latencyMilliseconds {
-                        item("bolt.horizontal", "\(latency) ms")
-                    }
                     if let workingDirectory = sshSession.workingDirectory, host != nil {
                         workingDirectoryButton(workingDirectory)
                     }

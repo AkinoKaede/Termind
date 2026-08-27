@@ -1410,3 +1410,38 @@ final class SFTPSessionModel: Identifiable {
         }
     }
 }
+
+// MARK: - Demo data
+
+extension SFTPSessionModel {
+    /// A populated browser backed only by value data. It deliberately has no
+    /// client, so screenshot and preview work can never mutate a remote host.
+    static func demo(hostID: Host.ID, path: String = "/etc/nginx") -> SFTPSessionModel {
+        let session = SFTPSessionModel(hostID: hostID, initialPath: path)
+        session.status = .connected
+        let now = Date(timeIntervalSinceReferenceDate: 809_020_800)
+        session.replaceDirectoryContents(with: [
+            RemoteFile(
+                path: "\(path)/conf.d", name: "conf.d", kind: .directory, size: 0,
+                modifiedAt: now.addingTimeInterval(-3_600), permissions: 0o755,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/nginx.conf", name: "nginx.conf", kind: .file, size: 1_842,
+                modifiedAt: now.addingTimeInterval(-7_200), permissions: 0o644,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/mime.types", name: "mime.types", kind: .file, size: 5_346,
+                modifiedAt: now.addingTimeInterval(-86_400), permissions: 0o644,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/proxy_params", name: "proxy_params", kind: .file, size: 636,
+                modifiedAt: now.addingTimeInterval(-172_800), permissions: 0o644,
+                ownerUID: 0, ownerGID: 0
+            ),
+        ])
+        return session
+    }
+}

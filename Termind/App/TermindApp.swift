@@ -11,16 +11,19 @@ struct TermindApp: App {
     /// references held by the value-type projections used throughout the UI.
     private let modelContainer: ModelContainer
     @State private var app: AppModel
-    private let launchLanguage = AppLanguage.stored()
+    private let launchLanguage: AppLanguage
+    private let launchWindow: WindowModel?
 
     init() {
         ContextAttachmentOpener.cleanPreviousSession()
+        let screenshotDemo = ScreenshotDemoMode.active
+        launchLanguage = ScreenshotDemoMode.language ?? AppLanguage.stored()
         do {
             let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"]
                 != nil
             let configuration = ModelConfiguration(
                 "Termind", schema: HostPersistence.schema,
-                isStoredInMemoryOnly: isRunningTests,
+                isStoredInMemoryOnly: isRunningTests || screenshotDemo != nil,
                 cloudKitDatabase: .none
             )
             let container = try ModelContainer(
@@ -29,6 +32,13 @@ struct TermindApp: App {
                 configurations: [configuration]
             )
             modelContainer = container
+            if let screenshotDemo {
+                let hosts = HostLibraryModel.demo()
+                let app = AppModel(hosts: hosts, ai: .demo())
+                _app = State(initialValue: app)
+                launchWindow = screenshotDemo.makeWindow(hosts: hosts)
+                return
+            }
             let secrets = KeychainSecretStore()
             let hosts = HostLibraryModel(
                 modelContext: container.mainContext, secrets: secrets
@@ -61,6 +71,7 @@ struct TermindApp: App {
                     )
                 )
             )
+            launchWindow = nil
         } catch {
             fatalError("Unable to open Termind's local database: \(error.localizedDescription)")
         }
@@ -74,7 +85,7 @@ struct TermindApp: App {
     /// Vault/Assistant navigation and dynamic Workspace tabs.
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootView(window: launchWindow ?? WindowModel())
                 .environment(app)
                 .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)

@@ -2200,30 +2200,54 @@ extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 
 extension ConversationModel {
     static func demo() -> ConversationModel {
-        let conversation = ConversationModel()
-        conversation.attach(
-            ContextChip(
-                kind: .output, label: "Last 200 lines",
-                content: String(repeating: "nginx: connect() failed\n", count: 200)
-            ))
-        conversation.messages = [
-            ChatMessage(role: .user, text: "Root is at 99%. What is eating the space?"),
-            ChatMessage(
-                role: .assistant,
-                text:
-                    "`df` shows `/` at 99% while `/data` has room, so the growth is on the root volume. Start by finding the biggest directory under `/var`, which is where logs and package caches accumulate.",
-                commands: [
-                    SuggestedCommand(
-                        command: "du -sh /var/* | sort -h",
-                        explanation: "Read-only. Lists each directory under /var by size."
-                    ),
-                    SuggestedCommand(
-                        command: "rm -rf /var/log/nginx/*.gz",
-                        explanation: "Deletes rotated nginx logs. Roughly 2.1 GB, unrecoverable."
-                    ),
-                ]
-            ),
+        let now = Date(timeIntervalSinceReferenceDate: 809_020_800)
+        let user = ChatMessage(
+            role: .user,
+            text: "Find the cause of the 502 responses. Inspect only—do not change configuration.",
+            createdAt: now.addingTimeInterval(-18)
+        )
+        let answer = ChatMessage(
+            role: .assistant,
+            text:
+                "The upstream service is not listening on `127.0.0.1:8080`. Nginx itself is healthy, and no configuration was changed. Start the upstream service, then verify `/health` before considering a reload.",
+            createdAt: now
+        )
+        let runID = UUID()
+        let descriptor = AgentToolDescriptor(
+            name: "ssh_exec",
+            summary: "Run a command on a remote host.",
+            inputSchema: .object([:]), target: .host, safety: .locallyReadOnly,
+            concurrency: .parallel,
+            presentation: AgentToolDescriptor.Presentation(
+                symbol: "apple.terminal", activity: .argument(key: "command", fallback: "command"),
+                actionKind: .run, includesTarget: true
+            )
+        )
+        let commands = [
+            "systemctl status nginx --no-pager",
+            "tail -n 80 /var/log/nginx/error.log",
         ]
+        let cards = commands.enumerated().map { index, command in
+            AgentToolCard(
+                invocation: AgentToolInvocation(
+                    runID: runID,
+                    call: AgentToolCall(
+                        id: "demo-\(index)", name: "ssh_exec",
+                        arguments: .object(["command": .string(command)])
+                    ),
+                    targetHostID: nil,
+                    createdAt: now.addingTimeInterval(Double(index - 12))
+                ),
+                descriptor: descriptor,
+                state: .completed
+            )
+        }
+        let conversation = ConversationModel(messages: [user, answer])
+        conversation.customTitle = "Diagnose 502 responses"
+        conversation.messages = [
+            user, answer,
+        ]
+        conversation.toolCards = cards
         return conversation
     }
 }
