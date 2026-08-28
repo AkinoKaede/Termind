@@ -5,26 +5,26 @@ import UniformTypeIdentifiers
     import AppKit
 #endif
 
-/// The body of the selected tab: its pane tree, laid out with split views.
-struct TabContentView: View {
-    let tab: Workspace
+/// The body of a Workspace: its pane tree, laid out with split views.
+struct WorkspaceContentView: View {
+    let workspace: Workspace
     let isActive: Bool
 
     @Environment(WindowModel.self) private var window
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            SplitNodeView(node: displayedLayout, tab: tab, isActive: isActive)
-                .id(tab.id)
+            SplitNodeView(node: displayedLayout, workspace: workspace, isActive: isActive)
+                .id(workspace.id)
 
-            if tab.commandGeneratorState != .idle {
-                CommandGeneratorOverlay(state: tab.commandGeneratorState)
+            if workspace.commandGeneratorState != .idle {
+                CommandGeneratorOverlay(state: workspace.commandGeneratorState)
                     .padding(Metrics.Space.l)
                     .zIndex(20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(Motion.panel, value: tab.commandGeneratorState)
+        .animation(Motion.panel, value: workspace.commandGeneratorState)
         .background {
             broadcastShortcut
             terminalFindShortcuts
@@ -37,14 +37,14 @@ struct TabContentView: View {
     /// which sits next to the panes it reaches and shows its own state. A menu
     /// item would be a second copy of a control that is visible whenever it is
     /// usable, so the shortcut is registered as a zero-size button that exists
-    /// only to own a key equivalent while this tab is on screen.
+    /// only to own a key equivalent while this workspace is on screen.
     ///
     /// Disabled when there is nothing to broadcast to, so the key falls through
     /// rather than flipping a switch with one wire on it.
     private var broadcastShortcut: some View {
-        Button("") { tab.broadcastsInput.toggle() }
+        Button("") { workspace.broadcastsInput.toggle() }
             .keyboardShortcut("b")
-            .disabled(!isActive || !tab.canBroadcast)
+            .disabled(!isActive || !workspace.canBroadcast)
             .opacity(0)
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
@@ -52,12 +52,12 @@ struct TabContentView: View {
 
     /// Function-key and cancel equivalents have no natural menu item. They live
     /// beside the existing invisible ⌘B owner and are disabled on every hidden
-    /// tab, so AppKit never has to choose between two mounted sessions.
+    /// workspace, so AppKit never has to choose between two mounted sessions.
     @ViewBuilder
     private var terminalFindShortcuts: some View {
         #if canImport(AppKit)
             let f3 = KeyEquivalent(Character(UnicodeScalar(NSF3FunctionKey)!))
-            let sshSession = tab.focusedPane.sshSession
+            let sshSession = workspace.focusedPane.sshSession
 
             Group {
                 Button("") { sshSession?.presentFindAndNavigate(.next) }
@@ -82,7 +82,7 @@ struct TabContentView: View {
         #endif
     }
 
-    /// While one of this tab's panes is being dragged, the tree is drawn without
+    /// While one of this workspace's panes is being dragged, the tree is drawn without
     /// it.
     ///
     /// So the arrangement under the pointer is the one you would actually get:
@@ -95,9 +95,9 @@ struct TabContentView: View {
     /// because the drag state clears and the guard stops matching.
     private var displayedLayout: SplitNode {
         guard case .pane(let id)? = window.dragging,
-            tab.layout.pane(id) != nil,
-            let without = tab.layout.removing(id)
-        else { return tab.layout }
+            workspace.layout.pane(id) != nil,
+            let without = workspace.layout.removing(id)
+        else { return workspace.layout }
         return without
     }
 }
@@ -177,7 +177,7 @@ private struct CommandGeneratorOverlay: View {
 /// Recursive layout for `SplitNode`.
 private struct SplitNodeView: View {
     let node: SplitNode
-    let tab: Workspace
+    let workspace: Workspace
     let isActive: Bool
 
     var body: some View {
@@ -185,10 +185,10 @@ private struct SplitNodeView: View {
         case .leaf(let pane):
             // Identified, so the panes that survive a reflow keep their state
             // instead of being torn down and rebuilt as the tree reshapes.
-            PaneView(pane: pane, tab: tab, isActive: isActive)
+            PaneView(pane: pane, workspace: workspace, isActive: isActive)
                 .id(pane.id)
         case .split(let branch):
-            SplitBranchView(branch: branch, tab: tab, isActive: isActive)
+            SplitBranchView(branch: branch, workspace: workspace, isActive: isActive)
         }
     }
 }
@@ -197,13 +197,13 @@ private struct SplitNodeView: View {
 ///
 /// Deliberately not `HSplitView`/`VSplitView`. Those own the divider position,
 /// which cost us two things: a drop previewed as "the right half" arrived at
-/// whatever width AppKit picked, and resizing the tab handed the new space to
+/// whatever width AppKit picked, and resizing the workspace handed the new space to
 /// one child instead of both. Sizing from `branch.fraction` on every layout pass
 /// makes the first exact and the second proportional for free — there is no
 /// resize handler here because there is nothing to handle.
 private struct SplitBranchView: View {
     let branch: SplitNode.Branch
-    let tab: Workspace
+    let workspace: Workspace
     let isActive: Bool
 
     /// The fraction previewed while the pointer is down.
@@ -223,17 +223,17 @@ private struct SplitBranchView: View {
             switch branch.axis {
             case .horizontal:
                 HStack(spacing: 0) {
-                    SplitNodeView(node: branch.first, tab: tab, isActive: isActive)
+                    SplitNodeView(node: branch.first, workspace: workspace, isActive: isActive)
                         .frame(width: firstLength)
                     divider(total: total)
-                    SplitNodeView(node: branch.second, tab: tab, isActive: isActive)
+                    SplitNodeView(node: branch.second, workspace: workspace, isActive: isActive)
                 }
             case .vertical:
                 VStack(spacing: 0) {
-                    SplitNodeView(node: branch.first, tab: tab, isActive: isActive)
+                    SplitNodeView(node: branch.first, workspace: workspace, isActive: isActive)
                         .frame(height: firstLength)
                     divider(total: total)
-                    SplitNodeView(node: branch.second, tab: tab, isActive: isActive)
+                    SplitNodeView(node: branch.second, workspace: workspace, isActive: isActive)
                 }
             }
         }
@@ -281,7 +281,7 @@ private struct SplitBranchView: View {
                     let final = clamp(branch.fraction + moved / usable, in: total)
                     draggedFraction = nil
                     guard final != branch.fraction else { return }
-                    tab.setFraction(final, forBranch: branch.id)
+                    workspace.setFraction(final, forBranch: branch.id)
                 }
         )
     }
@@ -313,16 +313,16 @@ private struct SplitBranchView: View {
 }
 
 /// One pane: a header naming it, its content, and the focus affordance — the
-/// first and last of which only exist while the tab is split.
+/// first and last of which only exist while the workspace is split.
 ///
-/// Every pane is a drop target, not just the empty ones. Dragging a tab onto the
+/// Every pane is a drop target, not just the empty ones. Dragging a workspace onto the
 /// edge of a live terminal splits along that edge and folds the dragged panes in
 /// on that side, so "put these two side by side" is one move rather than
 /// Split-then-drag. Dropping on an empty pane still replaces it outright —
 /// there is nothing there to sit beside.
 private struct PaneView: View {
     let pane: Pane
-    let tab: Workspace
+    let workspace: Workspace
     let isActive: Bool
 
     @Environment(AppModel.self) private var app
@@ -336,32 +336,32 @@ private struct PaneView: View {
     @State private var isLocalFileDropTargeted = false
     @FocusState private var titleFieldFocused: Bool
 
-    private var isFocused: Bool { tab.focusedPaneID == pane.id }
+    private var isFocused: Bool { workspace.focusedPaneID == pane.id }
 
     /// A pane accepts a drop when it is something a Workspace may hold, or an
     /// unfilled slot waiting to be filled. A chat, a form, or a manager page
     /// shows no preview and takes nothing — see `PaneKind.isCombinable`.
     ///
     /// This is the only place in the app where a Workspace is built, so both
-    /// ends of the drag are checked here. The tab strip used to check the source
-    /// end for tab drags; it no longer takes them at all.
+    /// ends of the drag are checked here. The workspace strip used to check the source
+    /// end for workspace drags; it no longer takes them at all.
     private var acceptsDrop: Bool {
         guard pane.isCombinable || pane.isEmptySlot else { return false }
         switch window.dragging {
         case .pane(let id):
             // Panes do not cross Workspaces — moving one elsewhere is "drop it
-            // on the strip, then drag that tab in". Only the front tab is drawn,
+            // on the strip, then drag that workspace in". Only the front workspace is drawn,
             // so a foreign pane cannot reach here anyway; the guard says the
             // rule out loud instead of leaving it to be an accident of what
             // happens to be on screen. And a pane cannot land beside itself.
-            return id != pane.id && tab.layout.pane(id) != nil
+            return id != pane.id && workspace.layout.pane(id) != nil
         case .workspace(let id):
             // A Workspace cannot be folded into one of its own panes, and only
             // a Workspace of sessions and file browsers can be folded at all.
             // Keeping the content check here also protects this boundary if a
             // new dynamic Workspace kind is introduced later.
-            guard id != tab.id else { return false }
-            return window.tabs.first { $0.id == id }?.isCombinable ?? false
+            guard id != workspace.id else { return false }
+            return window.workspaces.first { $0.id == id }?.isCombinable ?? false
         case nil:
             return false
         }
@@ -369,7 +369,7 @@ private struct PaneView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if tab.isSplit {
+            if workspace.isSplit {
                 header
                 Divider()
             }
@@ -378,7 +378,7 @@ private struct PaneView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay {
-            if tab.isSplit {
+            if workspace.isSplit {
                 Rectangle()
                     .strokeBorder(isFocused ? Color.accentColor : .clear, lineWidth: 2)
                     .allowsHitTesting(false)
@@ -403,7 +403,7 @@ private struct PaneView: View {
             // no drop target of ours ever hears about it: the next click
             // anywhere in a pane puts the layout back.
             window.dragging = nil
-            tab.focus(pane.id)
+            workspace.focus(pane.id)
         }
     }
 
@@ -464,18 +464,18 @@ private struct PaneView: View {
         }
     }
 
-    /// Four outcomes from one gesture: a whole tab folded in beside this pane or
+    /// Four outcomes from one gesture: a whole workspace folded in beside this pane or
     /// into this slot, or a single pane moved to either. Which one is decided by
     /// what was picked up, not by where it landed.
     private func perform(_ zone: PaneDropZone) {
         let dragged = window.dragging
         switch dragged {
-        case .workspace(let id) where id != tab.id:
+        case .workspace(let id) where id != workspace.id:
             if case .replace = zone {
-                window.fill(pane.id, in: tab.id, withPanesOf: id)
+                window.fill(pane.id, in: workspace.id, withPanesOf: id)
             } else if let placement = zone.placement {
                 window.merge(
-                    id, into: tab.id, beside: pane.id,
+                    id, into: workspace.id, beside: pane.id,
                     axis: placement.axis, side: placement.side
                 )
             }
@@ -503,7 +503,7 @@ private struct PaneView: View {
         case .sshSession(let sshSession):
             TerminalPlaceholderView(
                 sshSession: sshSession,
-                workspace: tab,
+                workspace: workspace,
                 isVisible: isActive,
                 requestsFocus: isActive && isFocused,
                 externalFileDrop: localFileDropRequest,
@@ -514,7 +514,7 @@ private struct PaneView: View {
             SFTPBrowserView(
                 sftpSession: sftpSession,
                 isPaneFocused: isActive && isFocused,
-                focusPane: { tab.focus(pane.id) },
+                focusPane: { workspace.focus(pane.id) },
                 externalFileDrop: localFileDropRequest,
                 isExternalFileDropTargeted: isLocalFileDropTargeted,
                 closePane: { window.closePane(pane.id) }
@@ -526,8 +526,8 @@ private struct PaneView: View {
 
     // MARK: - Header
 
-    /// The strip naming a pane, present only while the tab is split — a
-    /// single-pane tab is already named by its tab, and a second copy of that
+    /// The strip naming a pane, present only while the workspace is split — a
+    /// single-pane workspace is already named by its workspace, and a second copy of that
     /// string sitting on the content says nothing.
     ///
     /// Reserved space rather than an overlay. A label floating over a terminal
@@ -540,7 +540,7 @@ private struct PaneView: View {
     private var header: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: pane.symbol)
-                .font(.system(size: Metrics.TabBar.iconSize))
+                .font(.system(size: Metrics.Split.headerIconSize))
                 .foregroundStyle(.secondary)
 
             if isRenaming {
@@ -559,7 +559,7 @@ private struct PaneView: View {
             broadcastToggle
 
             // The close button appears only under the pointer, the same rule the
-            // tab bar follows: identity is what you want while scanning, the
+            // workspace bar follows: identity is what you want while scanning, the
             // close button only once you are aiming at something.
             if isHovering {
                 Button {
@@ -592,15 +592,15 @@ private struct PaneView: View {
     /// accepted: a live broadcast is invisible from across the window, and what
     /// says so is the accent tint the moment you point at any header.
     ///
-    /// No `keyboardShortcut` here. `TabContentView.broadcastShortcut` owns ⌘B;
+    /// No `keyboardShortcut` here. `WorkspaceContentView.broadcastShortcut` owns ⌘B;
     /// declared in both places AppKit picks one arbitrarily.
     @ViewBuilder
     private var broadcastToggle: some View {
-        if pane.kind == .sshSession, tab.canBroadcast {
-            let isOn = tab.broadcastsInput
+        if pane.kind == .sshSession, workspace.canBroadcast {
+            let isOn = workspace.broadcastsInput
             if isHovering {
                 Button {
-                    withAnimation(Motion.tabSwitch) { tab.broadcastsInput.toggle() }
+                    withAnimation(Motion.tabSwitch) { workspace.broadcastsInput.toggle() }
                 } label: {
                     Image(systemName: "dot.radiowaves.left.and.right")
                         .font(.system(size: 9, weight: .medium))
@@ -683,9 +683,9 @@ private struct PaneView: View {
     }
 }
 
-/// The landing page, and what a window with no tabs falls back to.
+/// The landing page, and what a window with no workspaces falls back to.
 ///
-/// Deliberately a pane rather than an overlay, so closing the last tab does not
+/// Deliberately a pane rather than an overlay, so closing the last workspace does not
 /// leave a window with no content at all.
 ///
 /// This is also where search lives. The sidebar is a navigator — a fixed list of
@@ -951,7 +951,7 @@ enum PaneDropZone: Equatable {
 /// is a single Bool that can only say whether a drop is possible at all.
 private struct PaneDropDelegate: DropDelegate {
     let size: CGSize
-    /// True only for one of Termind's own tab or pane drags. Claiming arbitrary
+    /// True only for one of Termind's own workspace or pane drags. Claiming arbitrary
     /// text drops here would make otherwise ordinary page content swallow them.
     let isActive: Bool
     /// False when this pane cannot take what is being dragged — a chat, a form,
@@ -992,7 +992,7 @@ private struct PaneDropDelegate: DropDelegate {
         guard isEnabled else {
             // An invalid inner target must still finish the internal drag. If it
             // simply rejects the drop, SwiftUI does not reliably offer it to the
-            // root cancel target and the source tab remains hidden indefinitely.
+            // root cancel target and the source workspace remains hidden indefinitely.
             cancel()
             return true
         }

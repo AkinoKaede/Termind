@@ -32,7 +32,7 @@ struct SFTPSessionTests {
         let target = Workspace.sshSession(host: host)
         let pane = source.focusedPane
         sftpSession.navigate(to: "/srv/releases")
-        let window = WindowModel(tabs: [source, target])
+        let window = WindowModel(workspaces: [source, target])
 
         window.merge(
             source.id, into: target.id, beside: target.focusedPane.id,
@@ -81,11 +81,11 @@ struct SFTPSessionTests {
         )
         let store = HostLibraryModel(hosts: [host], sftpTransfers: [sftpTransfer])
         let workspace = Workspace.sftpSession(host: host)
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         window.closePane(workspace.focusedPane.id)
 
-        #expect(window.tabs.isEmpty)
+        #expect(window.workspaces.isEmpty)
         #expect(store.sftpTransfers == [sftpTransfer])
     }
 
@@ -97,7 +97,7 @@ struct SFTPSessionTests {
             hostID: host.id, initialPath: "/", client: client
         )
         let workspace = Workspace(pane: Pane(.sftpSession(sftpSession)))
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         window.closePane(workspace.focusedPane.id)
         while await client.disconnectCount == 0 { await Task.yield() }

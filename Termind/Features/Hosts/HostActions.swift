@@ -41,7 +41,7 @@ struct HostContextMenu: View {
             Button("Quick Connect") { app.open(hosts, as: .sshSession, in: window) }
         } else {
             Menu("Quick Connect") {
-                Button("Separate Tabs") {
+                Button("Separate Workspaces") {
                     app.open(hosts, as: .sshSession, in: window)
                 }
                 Button("One Workspace") {

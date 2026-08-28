@@ -1,18 +1,18 @@
 import Foundation
 
-/// The ways a host can be opened. Centralised so the sidebar, the tab bar's `+`
+/// The ways a host can be opened. Centralised so the sidebar, the workspace bar's `+`
 /// menu, and the menu bar all take the same code path — including the bookkeeping
 /// (mark as recently used, flip the status dot) that is easy to forget in one of
 /// three places.
 /// There is no "open into the current split" here, deliberately. A Workspace is
-/// assembled from things already open — drag one tab onto another — so opening a
+/// assembled from things already open — drag one workspace onto another — so opening a
 /// host never has to know about layout, and a host you have never opened can
-/// never appear welded into whatever tab happened to be front.
-/// Where a batch of hosts lands: a tab each, or one Workspace holding all of
+/// never appear welded into whatever workspace happened to be front.
+/// Where a batch of hosts lands: a workspace each, or one Workspace holding all of
 /// them. Bringing a dozen machines up is usually so you can *watch* them, and
 /// watching them means having them on screen at once.
 nonisolated enum BatchLayout: Hashable, Sendable {
-    case separateTabs
+    case separateWorkspaces
     case oneWorkspace
 }
 
@@ -38,7 +38,7 @@ nonisolated struct QuickConnectTarget: Hashable, Sendable {
 /// for opening them.
 ///
 /// Everything the user can have in a *different* state in a second window —
-/// tabs, sidebar selection, search text, Sidebar visibility — lives on
+/// workspaces, sidebar selection, search text, Sidebar visibility — lives on
 /// `WindowModel` instead.
 @Observable
 final class AppModel {
@@ -648,7 +648,7 @@ final class AppModel {
     func shellIntegrationPreferenceDidChange(isEnabled: Bool) {
         windows = windows.filter { $0.value.value != nil }
         for window in windows.values.compactMap(\.value) {
-            for sshSession in window.tabs.flatMap(\.panes).compactMap(\.sshSession) {
+            for sshSession in window.workspaces.flatMap(\.panes).compactMap(\.sshSession) {
                 sshSession.applyShellIntegrationPreference(isEnabled: isEnabled)
             }
             window.refreshSessionContext()
@@ -840,7 +840,7 @@ final class AppModel {
     private func temporaryAgentTargets() -> [AgentHostTarget] {
         windows = windows.filter { $0.value.value != nil }
         var seen = Set<UUID>()
-        return windows.values.compactMap(\.value).flatMap(\.tabs).flatMap(\.panes)
+        return windows.values.compactMap(\.value).flatMap(\.workspaces).flatMap(\.panes)
             .compactMap(\.sshSession).compactMap(\.agentTemporaryTarget)
             .filter { seen.insert($0.id).inserted }
     }
@@ -849,7 +849,7 @@ final class AppModel {
         for hostID: UUID
     ) -> SSHConnectionConfiguration? {
         windows = windows.filter { $0.value.value != nil }
-        return windows.values.compactMap(\.value).flatMap(\.tabs).flatMap(\.panes)
+        return windows.values.compactMap(\.value).flatMap(\.workspaces).flatMap(\.panes)
             .compactMap(\.sshSession)
             .first { $0.hostID == hostID && $0.agentTemporaryTarget != nil }?
             .agentConnectionConfiguration
@@ -873,13 +873,13 @@ final class AppModel {
         outboxRunner?.stop()
     }
 
-    /// Opens a host in the given window, handing back the tab it landed in.
+    /// Opens a host in the given window, handing back the workspace it landed in.
     ///
     /// The initial status flip is optimistic; once the terminal appears, its SSH
     /// session reports the authoritative state back to `HostLibraryModel`.
     ///
     /// The return value exists for `open(_:as:in:)`'s plural form, which has to
-    /// know which tab was first. Discardable because nearly every caller opens
+    /// know which workspace was first. Discardable because nearly every caller opens
     /// one host and has nothing to decide afterwards.
     @discardableResult
     func open(_ host: Host, as target: HostOpenTarget, in window: WindowModel) -> Workspace {
@@ -922,7 +922,7 @@ final class AppModel {
     /// Mark as recently used, and flip the status dot.
     ///
     /// Its own method because three code paths now open hosts — one, a batch of
-    /// tabs, and a batch into one Workspace — and *where it lands* is the only
+    /// workspaces, and a batch into one Workspace — and *where it lands* is the only
     /// thing that should differ between them. Inlining this was fine while there
     /// were two.
     private func beginOpening(_ host: Host, as target: HostOpenTarget) {
@@ -937,23 +937,23 @@ final class AppModel {
 
     /// Batch Startup, in either of its two shapes.
     ///
-    /// The tabs path is a loop over the singular `open` rather than its own code
+    /// The workspaces path is a loop over the singular `open` rather than its own code
     /// path; the Workspace path cannot be, since the whole point is that it makes
-    /// one tab. What both share is `beginOpening`, so the bookkeeping cannot
+    /// one workspace. What both share is `beginOpening`, so the bookkeeping cannot
     /// drift between them.
     ///
-    /// In the tabs case each `open` selects the tab it made, which would leave
+    /// In the workspaces case each `open` selects the workspace it made, which would leave
     /// the *last* host in front — the one furthest from where the eye started.
     /// Landing on the first instead matches the order the list was read and
     /// ticked in, and the rest are a ⌃⇥ away.
     func open(
         _ hosts: [Host],
         as target: HostOpenTarget,
-        layout: BatchLayout = .separateTabs,
+        layout: BatchLayout = .separateWorkspaces,
         in window: WindowModel
     ) {
         switch layout {
-        case .separateTabs:
+        case .separateWorkspaces:
             let opened = hosts.map { open($0, as: target, in: window) }
             if let first = opened.first { window.select(first.id) }
         case .oneWorkspace:
@@ -988,7 +988,7 @@ final class AppModel {
         if let first = opened.first { window.select(first.id) }
     }
 
-    /// ⌘T, the window toolbar's `+`, the tab bar's `+`, and Welcome. Raises the
+    /// ⌘T, the window toolbar's `+`, the workspace bar's `+`, and Welcome. Raises the
     /// host chooser.
     ///
     /// Termind has no local shell, so "new session" has to name a machine. A sheet
@@ -1009,7 +1009,7 @@ final class AppModel {
     /// mode — see `HostChooserPurpose`.
     ///
     /// The sidebar and Welcome page raise this chooser. It is not in the File
-    /// menu or the tab bar's `+`: bringing up a dozen machines is a deliberate
+    /// menu or the workspace bar's `+`: bringing up a dozen machines is a deliberate
     /// act, kept on surfaces that name Batch Startup directly.
     func batchStartup(in window: WindowModel) {
         window.hostChooser = .batchStartup

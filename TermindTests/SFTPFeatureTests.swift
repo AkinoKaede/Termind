@@ -315,7 +315,7 @@ struct SFTPFeatureTests {
 
         app.shutdownForTermination()
 
-        #expect(window.tabs.isEmpty)
+        #expect(window.workspaces.isEmpty)
     }
 
     @Test

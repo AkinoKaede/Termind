@@ -48,8 +48,29 @@ nonisolated struct ContextPanelDetailID: Hashable, Sendable, Identifiable {
 /// for each Workspace. Assistant always uses its conversation navigator.
 @Observable
 final class WindowSidebarState {
+    nonisolated enum Surface: String, Hashable, Sendable, CaseIterable, Identifiable {
+        case navigator
+        case workspaceTools
+
+        nonisolated var id: String { rawValue }
+
+        var label: LocalizedStringKey {
+            switch self {
+            case .navigator: "Navigator"
+            case .workspaceTools: "Workspace Tools"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .navigator: "list.bullet"
+            case .workspaceTools: "sparkle"
+            }
+        }
+    }
+
     nonisolated enum Mode: String, Hashable, Sendable, CaseIterable, Identifiable {
-        case navigation, assistant, snippets, history, details
+        case navigation, assistant, snippets, history
 
         nonisolated var id: String { rawValue }
 
@@ -59,7 +80,6 @@ final class WindowSidebarState {
             case .assistant: "Assistant"
             case .snippets: "Snippets"
             case .history: "History"
-            case .details: "Details"
             }
         }
 
@@ -69,15 +89,15 @@ final class WindowSidebarState {
             case .assistant: "sparkles"
             case .snippets: "text.badge.plus"
             case .history: "clock.arrow.circlepath"
-            case .details: "info.circle"
             }
         }
     }
 
     var isPresented = true
+    var surface: Surface = .navigator
 
     /// Global Assistant panel navigation is independent from the selected
-    /// top-level tab. `nil` is the history + composer landing screen.
+    /// top-level destination. `nil` is the history + composer landing screen.
     var assistantConversationID: ConversationModel.ID?
     var assistantDraft = ConversationModel()
     var isAssistantArchivePresented = false
@@ -90,7 +110,6 @@ final class WindowSidebarState {
     /// selected so a stale host and directory cannot be left on screen.
     var sessionContext: SessionContext = .none
 
-    private var vaultMode: Mode = .navigation
     private var workspaceModes: [Workspace.ID: Mode] = [:]
 
     private var selections: [VaultPage: [ContextPanelDetailID]] = [:]
@@ -98,27 +117,25 @@ final class WindowSidebarState {
     private var detailOverridePaneID: Pane.ID?
 
     func availableModes(
-        for topLevelTab: TopLevelTab,
+        for destination: WindowDestination,
         hasFocusedSSHSession: Bool
     ) -> [Mode] {
-        switch topLevelTab {
-        case .vault:
-            [.navigation, .details]
-        case .assistant:
-            [.navigation]
+        switch destination {
+        case .vault, .assistant:
+            []
         case .workspace:
-            [.assistant, .snippets, .history, .details]
+            [.assistant, .snippets, .history]
         }
     }
 
     func isModeEnabled(
-        _ mode: Mode, for topLevelTab: TopLevelTab,
+        _ mode: Mode, for destination: WindowDestination,
         hasFocusedSSHSession: Bool
     ) -> Bool {
         guard availableModes(
-            for: topLevelTab, hasFocusedSSHSession: hasFocusedSSHSession
+            for: destination, hasFocusedSSHSession: hasFocusedSSHSession
         ).contains(mode) else { return false }
-        if case .workspace = topLevelTab,
+        if case .workspace = destination,
             (mode == .snippets || mode == .history)
         {
             return hasFocusedSSHSession
@@ -127,24 +144,22 @@ final class WindowSidebarState {
     }
 
     func mode(
-        for topLevelTab: TopLevelTab,
+        for destination: WindowDestination,
         hasFocusedSSHSession: Bool
     ) -> Mode {
-        let available = availableModes(
-            for: topLevelTab,
-            hasFocusedSSHSession: hasFocusedSSHSession
-        )
         let stored: Mode
-        switch topLevelTab {
-        case .vault:
-            stored = vaultMode
-        case .assistant:
-            stored = .navigation
+        switch destination {
+        case .vault, .assistant:
+            return .navigation
         case .workspace(let id):
             stored = workspaceModes[id] ?? .assistant
         }
+        let available = availableModes(
+            for: destination,
+            hasFocusedSSHSession: hasFocusedSSHSession
+        )
         if available.contains(stored), isModeEnabled(
-            stored, for: topLevelTab,
+            stored, for: destination,
             hasFocusedSSHSession: hasFocusedSSHSession
         ) { return stored }
         if (stored == .snippets || stored == .history), available.contains(.assistant) {
@@ -155,18 +170,16 @@ final class WindowSidebarState {
 
     func setMode(
         _ mode: Mode,
-        for topLevelTab: TopLevelTab,
+        for destination: WindowDestination,
         hasFocusedSSHSession: Bool
     ) {
         guard isModeEnabled(
-            mode, for: topLevelTab,
+            mode, for: destination,
             hasFocusedSSHSession: hasFocusedSSHSession
         ) else { return }
 
-        switch topLevelTab {
-        case .vault:
-            vaultMode = mode
-        case .assistant:
+        switch destination {
+        case .vault, .assistant:
             break
         case .workspace(let id):
             workspaceModes[id] = mode
@@ -177,16 +190,20 @@ final class WindowSidebarState {
     /// SFTP pane takes focus, so returning to SSH does not resurrect a mode the
     /// user has already been moved away from.
     func reconcileMode(
-        for topLevelTab: TopLevelTab,
+        for destination: WindowDestination,
         hasFocusedSSHSession: Bool
     ) {
+        guard case .workspace = destination else {
+            surface = .navigator
+            return
+        }
         let resolved = mode(
-            for: topLevelTab,
+            for: destination,
             hasFocusedSSHSession: hasFocusedSSHSession
         )
         setMode(
             resolved,
-            for: topLevelTab,
+            for: destination,
             hasFocusedSSHSession: hasFocusedSSHSession
         )
     }
@@ -200,7 +217,6 @@ final class WindowSidebarState {
         selections[page] = details.filter {
             $0.belongs(to: page) && seen.insert($0).inserted
         }
-        if selections[page]?.isEmpty == false { vaultMode = .details }
     }
 
     func select(_ detail: ContextPanelDetailID, on page: VaultPage) {

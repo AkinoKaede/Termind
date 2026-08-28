@@ -10,26 +10,41 @@ struct WindowStateTests {
     func newWindowStartsOnWelcome() {
         let window = WindowModel()
 
-        #expect(window.selectedTopLevelTab == .vault)
+        #expect(window.selectedDestination == .vault)
         #expect(window.vaultDestination == .welcome)
     }
 
     @Test
-    func pinnedVaultAndAssistantPrecedeDynamicWorkspaces() {
+    func numericWorkspaceSelectionExcludesVaultAndChats() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         window.select(index: 0)
-        #expect(window.selectedTopLevelTab == .vault)
+        #expect(window.selectedDestination == .workspace(workspace.id))
+        window.selectVault()
         window.select(index: 1)
-        #expect(window.selectedTopLevelTab == .assistant)
-        window.select(index: 2)
-        #expect(window.selectedTopLevelTab == .workspace(workspace.id))
+        #expect(window.selectedDestination == .vault)
 
         window.selectVault()
         window.closeSelected()
-        #expect(window.tabs.map(\.id) == [workspace.id])
+        #expect(window.workspaces.map(\.id) == [workspace.id])
+    }
+
+    @Test
+    func closingTheLastWorkspaceReturnsToVaultAndNavigator() {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "Server", host: "server.example")
+        )
+        let window = WindowModel(workspaces: [workspace])
+        window.sidebarSurface = .workspaceTools
+
+        window.close(workspace.id)
+        window.reconcileSidebarMode()
+
+        #expect(window.workspaces.isEmpty)
+        #expect(window.selectedDestination == .vault)
+        #expect(window.sidebarSurface == .navigator)
     }
 
     @Test
@@ -39,8 +54,8 @@ struct WindowStateTests {
         let second = window.assistantLibrary.createConversation()
         window.selectAssistant(second.id)
 
-        #expect(window.selectedTopLevelTab == .assistant)
-        #expect(window.tabs.isEmpty)
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.workspaces.isEmpty)
         #expect(window.assistantLibrary.conversations.map(\.id) == [second.id, first.id])
 
         window.assistantLibrary.delete(second.id)
@@ -94,7 +109,7 @@ struct WindowStateTests {
 
         window.showAssistantArchive()
         #expect(window.isAssistantArchivePresented)
-        #expect(window.selectedTopLevelTab == .assistant)
+        #expect(window.selectedDestination == .assistant)
 
         window.selectAssistant(conversation.id)
         #expect(!window.isAssistantArchivePresented)
@@ -196,7 +211,7 @@ struct WindowStateTests {
 
         window.selectAssistant()
 
-        #expect(window.selectedTopLevelTab == .assistant)
+        #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.conversations.isEmpty)
         #expect(window.assistantLibrary.selectedConversation == nil)
     }
@@ -213,7 +228,7 @@ struct WindowStateTests {
         window.selectVault()
         window.selectAssistant()
 
-        #expect(window.selectedTopLevelTab == .assistant)
+        #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.selectedConversation === conversation)
 
         let draft = window.openNewAssistantChat()
@@ -258,7 +273,7 @@ struct WindowStateTests {
 
         window.selectAssistant()
 
-        #expect(window.selectedTopLevelTab == .assistant)
+        #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.selectedConversation == nil)
         #expect(window.assistantLibrary.draftConversation.isEmpty)
         #expect(window.assistantLibrary.conversations.map(\.id) == [previousID])
@@ -284,7 +299,7 @@ struct WindowStateTests {
     @Test
     func sidebarDraftCreatesConversationOnlyOnFirstValidSend() {
         let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         #expect(window.sendAssistantSidebarDraft() == nil)
         #expect(window.assistantLibrary.conversations.isEmpty)
@@ -296,7 +311,7 @@ struct WindowStateTests {
         #expect(window.assistantLibrary.conversations.count == 1)
         #expect(window.assistantLibrary.conversations.first?.id == conversation?.id)
         #expect(window.sidebarAssistantConversation?.id == conversation?.id)
-        #expect(window.selectedTopLevelTab == .workspace(workspace.id))
+        #expect(window.selectedDestination == .workspace(workspace.id))
         #expect(window.sidebar.assistantDraft.isEmpty)
     }
 
@@ -307,11 +322,11 @@ struct WindowStateTests {
         conversation.draft = "Hello"
         let library = AssistantLibraryModel()
         _ = library.startConversation(conversation)
-        let window = WindowModel(tabs: [workspace], assistantLibrary: library)
+        let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
 
         window.openAssistantInSidebar(conversation.id)
         #expect(window.sidebarAssistantConversation?.id == conversation.id)
-        #expect(window.selectedTopLevelTab == .workspace(workspace.id))
+        #expect(window.selectedDestination == .workspace(workspace.id))
 
         window.closeAssistantInSidebar()
         #expect(window.sidebarAssistantConversation == nil)
@@ -326,7 +341,7 @@ struct WindowStateTests {
     func assistantSidebarShowsFocusedWorkspaceContext() {
         let host = Host(name: "Files", host: "files.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         window.hostStore = HostLibraryModel(hosts: [host])
 
@@ -343,7 +358,7 @@ struct WindowStateTests {
         let host = Host(name: "Files", host: "files.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
         let sftpSession = workspace.focusedPane.sftpSession!
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
 
         sftpSession.navigate(to: "/srv/releases")
@@ -366,7 +381,7 @@ struct WindowStateTests {
         )
         let backgroundSession = workspace.focusedPane.sftpSession!
         workspace.focus(focusedPane.id)
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
 
         backgroundSession.navigate(to: "/background/changed")
@@ -381,7 +396,7 @@ struct WindowStateTests {
     func sendingFromTheSidebarDoesNotAttachSessionContextToTheConversation() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
         window.sidebar.assistantDraft.draft = "Why is this slow?"
 
@@ -399,7 +414,7 @@ struct WindowStateTests {
     func leavingEveryWorkspaceClearsSessionContext() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
 
         #expect(!window.sidebar.sessionContext.isEmpty)
@@ -442,7 +457,7 @@ struct WindowStateTests {
         conversation.attach(
             ContextChip(kind: .output, label: "Connection error", content: "ssh: refused")
         )
-        let window = WindowModel(tabs: [workspace], assistantLibrary: library)
+        let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
         window.hostStore = HostLibraryModel(hosts: [host])
 
         window.openAssistantInSidebar(conversation.id)
@@ -456,7 +471,7 @@ struct WindowStateTests {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
         let sshSession = workspace.focusedPane.sshSession!
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
 
         sshSession.terminalState.terminalDidChangeWorkingDirectory("/var/log")
@@ -475,7 +490,7 @@ struct WindowStateTests {
         let workspace = Workspace.sshSession(host: host)
         let sshPane = workspace.focusedPane
         let sshSession = sshPane.sshSession!
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
         let info = RemoteSystemInfo(
             distributionID: "ubuntu", distributionVersion: "24.04",
@@ -507,42 +522,42 @@ struct WindowStateTests {
     func vaultRoutesNeverBecomeWorkspaceTabs() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         window.openPage(.hosts)
-        #expect(window.selectedTopLevelTab == .vault)
+        #expect(window.selectedDestination == .vault)
         #expect(window.vaultDestination == .hosts)
-        #expect(window.tabs.map(\.id) == [workspace.id])
+        #expect(window.workspaces.map(\.id) == [workspace.id])
 
         window.select(workspace.id)
-        #expect(window.selectedTopLevelTab == .workspace(workspace.id))
+        #expect(window.selectedDestination == .workspace(workspace.id))
     }
 
     @Test
     func draggingSelectedWorkspaceDisplaysNeighbourAsMergeTarget() {
         let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
         let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
-        let window = WindowModel(tabs: [first, second])
+        let window = WindowModel(workspaces: [first, second])
         window.select(first.id)
 
         window.dragging = .workspace(first.id)
 
-        #expect(window.displayedTab?.id == second.id)
-        #expect(window.selectedTab?.id == first.id)
+        #expect(window.displayedWorkspace?.id == second.id)
+        #expect(window.selectedWorkspace?.id == first.id)
     }
 
     @Test
     func hostEditorIsVaultNavigationAndCloseTabCannotCloseHiddenWork() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         window.openHostEditor(host: host)
-        #expect(window.selectedTopLevelTab == .vault)
+        #expect(window.selectedDestination == .vault)
         #expect(window.vaultDestination == .hosts)
         #expect(window.vaultWorkRoute == .hostEditor(host.id))
         window.closeSelected()
-        #expect(window.tabs.map(\.id) == [workspace.id])
+        #expect(window.workspaces.map(\.id) == [workspace.id])
     }
 
     @Test
@@ -592,13 +607,13 @@ struct WindowStateTests {
         let secondHost = Host(name: "Second", host: "second.example")
         let first = Workspace.sshSession(host: firstHost)
         let second = Workspace.sshSession(host: secondHost)
-        let window = WindowModel(tabs: [first, second])
-        window.selectedTabID = first.id
+        let window = WindowModel(workspaces: [first, second])
+        window.selectedWorkspaceID = first.id
 
         window.sidebar.show(.snippet(UUID()), scopedTo: first.focusedPane)
         #expect(window.activeDetailSelection.first?.kind == ContextPanelDetailID.Kind.snippet)
 
-        window.selectedTabID = second.id
+        window.selectedWorkspaceID = second.id
         window.sidebar.focusedPaneDidChange(to: second.focusedPane)
         #expect(window.activeDetailSelection == [.host(secondHost.id)])
     }
@@ -637,7 +652,7 @@ struct WindowStateTests {
         mixed.splitFocusedPane(axis: .horizontal, with: .sftpSession(host: firstHost))
         let sftpPane = mixed.focusedPane
         let secondSSH = Workspace.sshSession(host: secondHost)
-        let window = WindowModel(tabs: [mixed, secondSSH])
+        let window = WindowModel(workspaces: [mixed, secondSSH])
 
         #expect(window.sessionPanes.map(\.pane.id) == [sshPane.id, sftpPane.id, secondSSH.focusedPane.id])
         #expect(window.sshSessionPanes.map(\.pane.id) == [sshPane.id, secondSSH.focusedPane.id])
@@ -665,7 +680,7 @@ struct WindowStateTests {
         let sshPane = workspace.focusedPane
         workspace.splitFocusedPane(axis: .horizontal, with: .sftpSession(host: host))
         let sftpPane = workspace.focusedPane
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         workspace.focus(sshPane.id)
         window.select(workspace.id)
@@ -678,7 +693,7 @@ struct WindowStateTests {
 
         window.closePane(sshPane.id)
         #expect(window.sessionPanes.isEmpty)
-        #expect(window.tabs.isEmpty)
+        #expect(window.workspaces.isEmpty)
     }
 
     @Test
@@ -694,12 +709,12 @@ struct WindowStateTests {
         #expect(sshTab.focusedPane.kind == .sshSession)
         #expect(sftpTab.focusedPane.kind == .sftpSession)
 
-        app.open([first, second], as: .sshSession, layout: .separateTabs, in: window)
-        #expect(window.selectedTabID == window.tabs[2].id)
-        #expect(window.tabs.suffix(2).map(\.focusedPane.kind) == [.sshSession, .sshSession])
+        app.open([first, second], as: .sshSession, layout: .separateWorkspaces, in: window)
+        #expect(window.selectedWorkspaceID == window.workspaces[2].id)
+        #expect(window.workspaces.suffix(2).map(\.focusedPane.kind) == [.sshSession, .sshSession])
 
         app.open([first, second], as: .sftpSession, layout: .oneWorkspace, in: window)
-        #expect(window.selectedTab?.panes.map(\.kind) == [.sftpSession, .sftpSession])
+        #expect(window.selectedWorkspace?.panes.map(\.kind) == [.sftpSession, .sftpSession])
     }
 
     @Test
@@ -709,7 +724,7 @@ struct WindowStateTests {
         let pane = workspace.focusedPane
         pane.customTitle = "Logs"
         let closedSession = try #require(pane.sshSession)
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         window.close(workspace.id)
         #expect(closedSession.status == .disconnected)
@@ -717,13 +732,13 @@ struct WindowStateTests {
 
         window.reopenLastClosed()
 
-        let reopenedPane = try #require(window.selectedTab?.focusedPane)
+        let reopenedPane = try #require(window.selectedWorkspace?.focusedPane)
         let reopenedSession = try #require(reopenedPane.sshSession)
         #expect(reopenedSession !== closedSession)
         #expect(reopenedSession.hostID == host.id)
         #expect(reopenedSession.status == .connecting)
         #expect(reopenedPane.customTitle == "Logs")
-        #expect(window.selectedTab === workspace)
+        #expect(window.selectedWorkspace === workspace)
         #expect(!window.canReopen)
     }
 
@@ -732,14 +747,14 @@ struct WindowStateTests {
         var host = Host(name: "Files", host: "files.example")
         host.sftpSessionInitialPath = "/configured"
         let sshWorkspace = Workspace.sshSession(host: host)
-        let window = WindowModel(tabs: [sshWorkspace])
+        let window = WindowModel(workspaces: [sshWorkspace])
 
         let newTab = window.openSFTPSession(
-            host: host, initialPath: "/var/log/", placement: .newTab
+            host: host, initialPath: "/var/log/", placement: .newWorkspace
         )
 
-        #expect(window.tabs.count == 2)
-        #expect(window.selectedTab === newTab)
+        #expect(window.workspaces.count == 2)
+        #expect(window.selectedWorkspace === newTab)
         #expect(newTab.focusedPane.sftpSession?.path == "/var/log")
         #expect(newTab.focusedPane.sftpSession?.initialPath == "/var/log")
         #expect(host.sftpSessionInitialPath == "/configured")
@@ -750,7 +765,7 @@ struct WindowStateTests {
         )
 
         #expect(result === sshWorkspace)
-        #expect(window.tabs.count == 2)
+        #expect(window.workspaces.count == 2)
         #expect(sshWorkspace.panes.map(\.kind) == [.sshSession, .sftpSession])
         #expect(sshWorkspace.focusedPane.sftpSession?.path == "/srv/app")
     }
@@ -759,14 +774,14 @@ struct WindowStateTests {
     func sftpPathOpensSSHInANewTabOrTheCurrentWorkspace() throws {
         let host = Host(name: "Shell", host: "shell.example")
         let sftpWorkspace = Workspace.sftpSession(host: host, initialPath: "/configured")
-        let window = WindowModel(tabs: [sftpWorkspace])
+        let window = WindowModel(workspaces: [sftpWorkspace])
 
         let newTab = window.openSSHSession(
-            host: host, initialPath: "/var/log", placement: .newTab
+            host: host, initialPath: "/var/log", placement: .newWorkspace
         )
 
-        #expect(window.tabs.count == 2)
-        #expect(window.selectedTab === newTab)
+        #expect(window.workspaces.count == 2)
+        #expect(window.selectedWorkspace === newTab)
         #expect(newTab.focusedPane.sshSession?.hostID == host.id)
 
         window.select(sftpWorkspace.id)
@@ -775,7 +790,7 @@ struct WindowStateTests {
         )
 
         #expect(result === sftpWorkspace)
-        #expect(window.tabs.count == 2)
+        #expect(window.workspaces.count == 2)
         #expect(sftpWorkspace.panes.map(\.kind) == [.sftpSession, .sshSession])
         #expect(sftpWorkspace.focusedPane.sshSession?.hostID == host.id)
     }
@@ -805,23 +820,23 @@ struct WindowStateTests {
     func duplicateDestinationsPreservePaneAndWorkspaceScope() {
         let host = Host(name: "Host", host: "host.example")
         let original = Workspace.sshSession(host: host)
-        let window = WindowModel(tabs: [original])
+        let window = WindowModel(workspaces: [original])
 
         window.duplicateSelected(axis: .horizontal)
-        #expect(window.tabs.count == 1)
+        #expect(window.workspaces.count == 1)
         #expect(original.panes.count == 2)
 
         let focusedPane = original.focusedPane
-        window.duplicatePaneInNewTab()
-        #expect(window.tabs.count == 2)
-        #expect(window.selectedTab?.panes.count == 1)
-        #expect(window.selectedTab?.focusedPane.kind == focusedPane.kind)
+        window.duplicatePaneInNewWorkspace()
+        #expect(window.workspaces.count == 2)
+        #expect(window.selectedWorkspace?.panes.count == 1)
+        #expect(window.selectedWorkspace?.focusedPane.kind == focusedPane.kind)
 
         window.select(original.id)
-        window.duplicateSelectedInNewTab()
-        #expect(window.tabs.count == 3)
-        #expect(window.selectedTab?.panes.count == 2)
-        #expect(window.selectedTab?.panes.map(\.kind) == original.panes.map(\.kind))
+        window.duplicateSelectedInNewWorkspace()
+        #expect(window.workspaces.count == 3)
+        #expect(window.selectedWorkspace?.panes.count == 2)
+        #expect(window.selectedWorkspace?.panes.map(\.kind) == original.panes.map(\.kind))
     }
 
     @Test
@@ -835,11 +850,11 @@ struct WindowStateTests {
         let secondPane = workspace.focusedPane
         workspace.focus(firstPane.id)
         workspace.broadcastsInput = true
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         firstSSHSession.handleRemoteExit(.success(0))
 
-        #expect(window.tabs.count == 1)
+        #expect(window.workspaces.count == 1)
         #expect(workspace.panes.map(\.id) == [secondPane.id])
         #expect(workspace.layout.pane(firstPane.id) == nil)
         #expect(workspace.focusedPaneID == secondPane.id)
@@ -853,13 +868,13 @@ struct WindowStateTests {
         let sshSessionTab = Workspace.sshSession(host: host)
         let sshSession = sshSessionTab.focusedPane.sshSession!
         let neighbor = Workspace.sftpSession(host: host)
-        let window = WindowModel(tabs: [sshSessionTab, neighbor])
+        let window = WindowModel(workspaces: [sshSessionTab, neighbor])
         window.select(sshSessionTab.id)
 
         sshSession.handleRemoteExit(.success(0))
 
-        #expect(window.tabs.map(\.id) == [neighbor.id])
-        #expect(window.selectedTabID == neighbor.id)
+        #expect(window.workspaces.map(\.id) == [neighbor.id])
+        #expect(window.selectedWorkspaceID == neighbor.id)
     }
 
     @Test
@@ -867,11 +882,11 @@ struct WindowStateTests {
         let host = Host(name: "Host", host: "host.example")
         let workspace = Workspace.sshSession(host: host)
         let sshSession = workspace.focusedPane.sshSession!
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
 
         sshSession.handleRemoteExit(.failure(.disconnected))
 
-        #expect(window.tabs.map(\.id) == [workspace.id])
+        #expect(window.workspaces.map(\.id) == [workspace.id])
         #expect(workspace.focusedPane.sshSession === sshSession)
         guard case .failed = sshSession.status else {
             Issue.record("Expected transport failure to remain visible")

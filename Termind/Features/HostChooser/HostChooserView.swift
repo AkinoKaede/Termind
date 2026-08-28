@@ -323,7 +323,7 @@ struct HostChooserView: View {
         }
     }
 
-    private func openChecked(as layout: BatchLayout = .separateTabs) {
+    private func openChecked(as layout: BatchLayout = .separateWorkspaces) {
         let batch = app.hostLibrary.searchHosts("").filter { chooser.selected.contains($0.id) }
         guard !batch.isEmpty else { return }
         if case .snippet = purpose {
@@ -385,7 +385,7 @@ struct HostChooserView: View {
     }
 
     private func close() {
-        if case .snippet = purpose, window.selectedTopLevelTab == .vault {
+        if case .snippet = purpose, window.selectedDestination == .vault {
             window.closeVaultWork()
         } else {
             dismiss()
@@ -394,7 +394,7 @@ struct HostChooserView: View {
 
     private var workspaceHelp: Text {
         if chooser.selected.count < 2 {
-            Text("Select at least two hosts. A workspace with one host is a tab.")
+            Text("Select at least two hosts. A Workspace can contain one or more hosts.")
         } else {
             Text("Open \(chooser.selected.count) hosts as panes in one workspace.")
         }

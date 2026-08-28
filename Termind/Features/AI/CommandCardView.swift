@@ -152,7 +152,7 @@ struct CommandCardView: View {
     /// Return key is the only thing that ever submits a command they did not
     /// explicitly choose to run.
     private func insert(run: Bool) {
-        guard let tab = window.selectedTab,
+        guard let tab = window.selectedWorkspace,
             let sshSession = tab.focusedPane.sshSession ?? tab.broadcastTargets.first
         else { return }
         tab.deliver(command.command, from: sshSession, submit: run)

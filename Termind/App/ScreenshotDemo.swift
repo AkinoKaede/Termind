@@ -59,7 +59,7 @@ enum ScreenshotDemoMode: String {
         let library = AssistantLibraryModel()
         library.insertAndSelect(conversation)
 
-        let window = WindowModel(tabs: [workspace], assistantLibrary: library)
+        let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
         window.showsSidebar = true
         window.sidebarMode = .assistant
         window.openAssistantInSidebar(conversation.id)
@@ -133,7 +133,7 @@ enum ScreenshotDemoMode: String {
             workspace.commandGeneratorState = .inserted(targetCount: 1)
         }
 
-        let window = WindowModel(tabs: [workspace])
+        let window = WindowModel(workspaces: [workspace])
         window.showsSidebar = false
         return window
     }

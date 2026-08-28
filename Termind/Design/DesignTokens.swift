@@ -24,7 +24,7 @@ nonisolated enum Metrics {
     enum Sidebar {
         /// One shared column must be comfortable both as a compact navigator
         /// and as a complete assistant transcript. Because the container never
-        /// changes, a user-resized width survives every mode and tab switch.
+        /// changes, a user-resized width survives every mode and destination switch.
         static let min: CGFloat = 260
         static let ideal: CGFloat = 320
         static let max: CGFloat = 520
@@ -34,6 +34,8 @@ nonisolated enum Metrics {
         /// Vault and Assistant navigation use one comfortable target so every
         /// destination, chat, archive, and new-chat action keeps a steady rhythm.
         static let navigationRowHeight: CGFloat = 36
+        /// Workspaces may carry a secondary pane count or host path.
+        static let workspaceRowHeight: CGFloat = 46
         /// Shared content inset for the leading glyph and trailing accessory.
         static let navigationRowInset: CGFloat = 8
         /// Breathing room between every source-list row and the sidebar edge.
@@ -52,22 +54,11 @@ nonisolated enum Metrics {
         static let rowIcon: CGFloat = 16
     }
 
-    enum TabBar {
-        static let height: CGFloat = 34
-        /// A titled tab never becomes narrower than this. The selected
-        /// Workspace keeps this floor while its neighbours continue down to
-        /// `compactTabWidth`.
-        static let titledTabMinWidth: CGFloat = 120
-        /// Icon + one spacing unit + the status/close slot + horizontal padding.
-        static let compactTabWidth: CGFloat = 48
-        static let maxTabWidth: CGFloat = 240
-        static let iconSize: CGFloat = 12
-    }
-
     /// Splits inside a Workspace. Proportions are stored on the layout tree —
     /// see `SplitNode.Branch` — so all that is left here is what the divider
     /// looks like and how small a pane may get.
     enum Split {
+        static let headerIconSize: CGFloat = 12
         static let dividerThickness: CGFloat = 1
         /// The grab band around the line. One point of hairline is not a pointer
         /// target, and thickening the line itself would put a grey bar between
@@ -158,7 +149,7 @@ nonisolated enum Metrics {
     /// be noticeably larger than `Space.xl` — at ordinary padding the gap reads
     /// as a wrap, not as a change of speaker.
     enum Chat {
-        /// The shared reading column in the full Assistant tab.
+        /// The shared reading column in the full Assistant page.
         ///
         /// Transcript, decision forms and composer use one width so the page
         /// reads as a single conversation rather than three nested columns.
@@ -275,7 +266,7 @@ nonisolated enum Metrics {
     enum Window {
         /// The detail column's own floors. The window-level values below add
         /// the chrome that sits beside or above it; keeping the two concepts
-        /// separate prevents accidentally counting the tab strip twice.
+        /// separate prevents layout floors from being counted twice.
         static let detailMin: CGFloat = 320
         static let detailMinHeight: CGFloat = 440
 
@@ -304,9 +295,9 @@ nonisolated enum Metrics {
             )
         }
 
-        /// Root content includes the pinned tab strip and its divider above the
-        /// detail floor. The macOS title bar is outside this measurement.
-        static let minHeight: CGFloat = Metrics.TabBar.height + 1 + detailMinHeight
+        /// Root content is a full-height split view. The macOS title bar is
+        /// outside this measurement.
+        static let minHeight: CGFloat = detailMinHeight
         static let defaultWidth: CGFloat = 1180
         static let defaultHeight: CGFloat = 740
     }

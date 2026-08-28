@@ -540,9 +540,11 @@ private struct AppSettings: View {
 }
 
 private struct StartupSettings: View {
-    @AppStorage(SettingsKey.restoreTabs) private var restoreTabs = true
+    @AppStorage(SettingsKey.restoreWorkspaces) private var restoreWorkspaces = true
     var body: some View {
-        Section("Startup") { Toggle("Restore Tabs from Last Session", isOn: $restoreTabs) }
+        Section("Startup") {
+            Toggle("Restore Workspaces from Last Session", isOn: $restoreWorkspaces)
+        }
     }
 }
 

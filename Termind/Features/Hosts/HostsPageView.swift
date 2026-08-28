@@ -328,7 +328,7 @@ struct HostsPageView: ManagedCardPage {
                     .buttonStyle(.borderedProminent)
                 } else {
                     Menu("Quick Connect") {
-                        Button("Separate Tabs") {
+                        Button("Separate Workspaces") {
                             app.open(selectedHosts, as: .sshSession, in: window)
                         }
                         Button("One Workspace") {

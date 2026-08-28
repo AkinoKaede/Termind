@@ -35,9 +35,9 @@ nonisolated struct AppCommandDescriptor: Identifiable, Hashable, Sendable {
 final class AppCommandRegistry {
     func commands(app: AppModel, window: WindowModel) -> [AppCommandDescriptor] {
         fixedCommands + vaultCommands
-            + window.tabs.map { workspaceCommand($0, store: app.hostLibrary) }
+            + window.workspaces.map { workspaceCommand($0, store: app.hostLibrary) }
             + app.hostLibrary.searchHosts("").flatMap(hostCommands)
-            + actionCommands(canShowAssistant: window.selectedTab != nil)
+            + actionCommands(canShowAssistant: window.selectedWorkspace != nil)
     }
 
     func perform(
@@ -71,12 +71,12 @@ final class AppCommandRegistry {
         [
             AppCommandDescriptor(
                 id: "fixed.vault", title: String(localized: "Vault"),
-                subtitle: String(localized: "Pinned Tab"), symbol: "lock.square.stack",
+                subtitle: String(localized: "Navigator"), symbol: "lock.square.stack",
                 keywords: ["hosts", "keys", "snippets"], target: .vault
             ),
             AppCommandDescriptor(
                 id: "fixed.assistant", title: String(localized: "Assistant"),
-                subtitle: String(localized: "Pinned Tab"), symbol: "sparkles",
+                subtitle: String(localized: "Chats"), symbol: "sparkles",
                 keywords: ["chat", "conversations"], target: .assistant
             ),
             AppCommandDescriptor(

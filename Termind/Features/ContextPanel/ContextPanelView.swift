@@ -2,11 +2,9 @@ import AppKit
 import ListViewKit
 import SwiftUI
 
-/// The window's one left-hand column.
-///
-/// Navigation, assistant, snippets, history and contextual details replace one another
-/// inside a stable container, so changing tools never closes or resizes the
-/// sidebar. The available modes follow the selected top-level tab.
+/// The window's one left-hand column. The first selector mirrors Xcode's
+/// Navigator switcher; Workspace tools replace the Navigator in the same stable
+/// column rather than opening a second sidebar.
 struct SidebarView: View {
     let detailCatalog: ContextPanelDetailCatalog
 
@@ -18,51 +16,33 @@ struct SidebarView: View {
         let availableDetails = detailCatalog.availableIDs
 
         VStack(spacing: 0) {
-            if window.availableSidebarModes.count > 1 {
-                modeSelector
-                    .padding(.horizontal, Metrics.Space.m)
-                    .padding(.vertical, Metrics.Space.s)
-
-                Divider()
-                    .opacity(0.55)
-            }
-
-            switch window.sidebarMode {
-            case .navigation:
-                navigation
-            case .assistant:
-                assistant
-            case .snippets:
-                SSHSessionSnippetsSidebar()
-            case .history:
-                SSHSessionHistorySidebar()
-            case .details:
-                DetailSidebarView(
-                    details: activeDetails(available: availableDetails),
-                    catalog: detailCatalog,
-                    page: window.selectedTopLevelTab == .vault
-                        ? window.vaultDestination.page
-                        : nil
-                )
+            switch window.sidebarSurface {
+            case .navigator:
+                WorkspaceNavigatorView()
+            case .workspaceTools:
+                VStack(spacing: 0) {
+                    modeSelector
+                        .padding(.horizontal, Metrics.Space.m)
+                        .padding(.vertical, Metrics.Space.s)
+                    Divider().opacity(0.55)
+                    workspaceTool
+                }
             }
         }
-        // Without a fill frame the VStack sizes to its content and the segmented
-        // picker floats in the middle of the column instead of sitting under the
-        // toolbar.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: availableDetails, initial: true) {
             window.sidebar.pruneSelections(available: availableDetails)
         }
         .onChange(of: focusedPaneID, initial: true) {
-            window.sidebar.focusedPaneDidChange(to: window.selectedTab?.focusedPane)
+            window.sidebar.focusedPaneDidChange(to: window.selectedWorkspace?.focusedPane)
             window.reconcileSidebarMode()
         }
-        .onChange(of: window.selectedTopLevelTab, initial: true) {
+        .onChange(of: window.selectedDestination, initial: true) {
             window.reconcileSidebarMode()
         }
     }
 
-    private var focusedPaneID: Pane.ID? { window.selectedTab?.focusedPaneID }
+    private var focusedPaneID: Pane.ID? { window.selectedWorkspace?.focusedPaneID }
 
     @ViewBuilder
     private var modeSelector: some View {
@@ -100,26 +80,17 @@ struct SidebarView: View {
     }
 
     @ViewBuilder
-    private var navigation: some View {
-        switch window.selectedTopLevelTab {
-        case .vault:
-            VaultSidebarView()
+    private var workspaceTool: some View {
+        switch window.sidebarMode {
+        case .navigation:
+            WorkspaceNavigatorView()
         case .assistant:
-            AssistantSidebarView()
-        case .workspace:
-            EmptyView()
+            AssistantPanelView()
+        case .snippets:
+            SSHSessionSnippetsSidebar()
+        case .history:
+            SSHSessionHistorySidebar()
         }
-    }
-
-    private func activeDetails(
-        available: Set<ContextPanelDetailID>
-    ) -> [ContextPanelDetailID] {
-        window.activeDetailSelection.filter(available.contains)
-    }
-
-    @ViewBuilder
-    private var assistant: some View {
-        AssistantPanelView()
     }
 }
 
@@ -404,7 +375,7 @@ private struct SSHSessionSnippetsSidebar: View {
     }
 
     private func insert(_ snippet: Snippet) {
-        guard let tab = window.selectedTab, let sshSession = tab.focusedPane.sshSession else { return }
+        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
         tab.deliver(snippet.body, from: sshSession)
     }
 
@@ -417,7 +388,7 @@ private struct SSHSessionSnippetsSidebar: View {
     }
 
     private func executeNow(_ snippet: Snippet) {
-        guard let tab = window.selectedTab, let sshSession = tab.focusedPane.sshSession else { return }
+        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
         tab.deliver(snippet.body, from: sshSession, submit: true)
         destructiveSnippet = nil
     }
@@ -436,7 +407,7 @@ private struct SSHSessionHistorySidebar: View {
     @State private var snippetName = ""
 
     private var sshSession: SSHSessionModel? {
-        window.selectedTab?.focusedPane.sshSession
+        window.selectedWorkspace?.focusedPane.sshSession
     }
 
     private var isSavedHost: Bool {
@@ -600,7 +571,7 @@ private struct SSHSessionHistorySidebar: View {
     }
 
     private func insert(_ entry: CommandHistoryEntry) {
-        guard let tab = window.selectedTab, let sshSession = tab.focusedPane.sshSession else { return }
+        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
         tab.deliver(entry.command, from: sshSession)
     }
 
@@ -613,7 +584,7 @@ private struct SSHSessionHistorySidebar: View {
     }
 
     private func executeNow(_ entry: CommandHistoryEntry) {
-        guard let tab = window.selectedTab, let sshSession = tab.focusedPane.sshSession else { return }
+        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
         tab.deliver(entry.command, from: sshSession, submit: true)
         destructiveEntry = nil
     }

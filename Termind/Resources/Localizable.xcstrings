@@ -328,6 +328,12 @@
             "state" : "new",
             "value" : "%1$lld / %2$lld"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld"
+          }
         }
       }
     },
@@ -1399,16 +1405,6 @@
         }
       }
     },
-    "All tabs" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "所有标签"
-          }
-        }
-      }
-    },
     "Allow Once" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2380,11 +2376,22 @@
       }
     },
     "Close All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部关闭"
+          }
+        }
+      }
+    },
+    "Close All Workspaces" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭所有工作区"
           }
         }
       }
@@ -2419,17 +2426,18 @@
         }
       }
     },
-    "Close Other Tabs" : {
+    "Close Other Workspaces" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关闭其他标签"
+            "value" : "关闭其他工作区"
           }
         }
       }
     },
     "Close Others" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2449,32 +2457,32 @@
         }
       }
     },
-    "Close Tab" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭标签"
-          }
-        }
-      }
-    },
-    "Close tab — ⌥-click to close the others" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭标签—按住⌥单击可关闭其他标签"
-          }
-        }
-      }
-    },
     "Close Window" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭窗口"
+          }
+        }
+      }
+    },
+    "Close Workspace" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭工作区"
+          }
+        }
+      }
+    },
+    "Close Workspace — ⌥-click to close the others" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭工作区—按住⌥单击可关闭其他工作区"
           }
         }
       }
@@ -3788,6 +3796,7 @@
       }
     },
     "Details" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -3983,6 +3992,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制"
+          }
+        }
+      }
+    },
+    "Duplicate in New Workspace" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在新工作区中创建副本"
           }
         }
       }
@@ -5573,12 +5592,12 @@
         }
       }
     },
-    "In New Tab" : {
+    "In New Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在新标签中"
+            "value" : "在新工作区中"
           }
         }
       }
@@ -5919,22 +5938,22 @@
         }
       }
     },
-    "Last Tab" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最后一个标签"
-          }
-        }
-      }
-    },
     "Last Used" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "上次使用"
+          }
+        }
+      }
+    },
+    "Last Workspace" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最后一个工作区"
           }
         }
       }
@@ -6455,6 +6474,16 @@
         }
       }
     },
+    "Navigator" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导航器"
+          }
+        }
+      }
+    },
     "Never" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6565,22 +6594,12 @@
         }
       }
     },
-    "New tab" : {
+    "New Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新建标签"
-          }
-        }
-      }
-    },
-    "New Tab" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新建标签"
+            "value" : "新建工作区"
           }
         }
       }
@@ -6625,12 +6644,12 @@
         }
       }
     },
-    "Next Tab" : {
+    "Next Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下一个标签"
+            "value" : "下一个工作区"
           }
         }
       }
@@ -6701,6 +6720,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未配置对话模型。"
+          }
+        }
+      }
+    },
+    "No Chats" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无对话"
           }
         }
       }
@@ -6985,6 +7014,16 @@
         }
       }
     },
+    "No Recent Hosts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无最近使用的主机"
+          }
+        }
+      }
+    },
     "No recognizable speech was captured. Try speaking closer to the microphone." : {
       "localizations" : {
         "zh-Hans" : {
@@ -7141,6 +7180,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无用户名"
+          }
+        }
+      }
+    },
+    "No Workspaces" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无工作区"
           }
         }
       }
@@ -7825,16 +7874,6 @@
         }
       }
     },
-    "Pinned Tab" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "固定标签"
-          }
-        }
-      }
-    },
     "Pipes downloaded content straight into an interpreter — this executes untrusted remote code." : {
       "localizations" : {
         "zh-Hans" : {
@@ -8035,12 +8074,12 @@
         }
       }
     },
-    "Previous Tab" : {
+    "Previous Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上一个标签"
+            "value" : "上一个工作区"
           }
         }
       }
@@ -8472,6 +8511,7 @@
       }
     },
     "Recent" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -8813,12 +8853,12 @@
         }
       }
     },
-    "Reopen Closed Tab" : {
+    "Reopen Closed Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重新打开已关闭标签"
+            "value" : "重新打开已关闭的工作区"
           }
         }
       }
@@ -9013,12 +9053,12 @@
         }
       }
     },
-    "Restore Tabs from Last Session" : {
+    "Restore Workspaces from Last Session" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从上一个会话恢复标签"
+            "value" : "从上一个会话恢复工作区"
           }
         }
       }
@@ -9699,12 +9739,12 @@
         }
       }
     },
-    "Select at least two hosts. A workspace with one host is a tab." : {
+    "Select at least two hosts. A Workspace can contain one or more hosts." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请至少选择两台主机。仅含一台主机时应使用标签页。"
+            "value" : "请至少选择两台主机。一个工作区可以包含一台或多台主机。"
           }
         }
       }
@@ -9799,12 +9839,12 @@
         }
       }
     },
-    "Separate Tabs" : {
+    "Separate Workspaces" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "分别在标签页中打开"
+            "value" : "分别在工作区中打开"
           }
         }
       }
@@ -9999,22 +10039,22 @@
         }
       }
     },
-    "Show Next Tab" : {
+    "Show Next Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示下一个标签"
+            "value" : "显示下一个工作区"
           }
         }
       }
     },
-    "Show Previous Tab" : {
+    "Show Previous Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示上一个标签"
+            "value" : "显示上一个工作区"
           }
         }
       }
@@ -10789,26 +10829,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "系统提示"
-          }
-        }
-      }
-    },
-    "Tab %lld" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标签页%lld"
-          }
-        }
-      }
-    },
-    "Tab Name" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标签名称"
           }
         }
       }
@@ -13457,12 +13477,42 @@
         }
       }
     },
+    "Workspace %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区%lld"
+          }
+        }
+      }
+    },
     "Workspace is empty" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作区为空"
+          }
+        }
+      }
+    },
+    "Workspace Name" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区名称"
+          }
+        }
+      }
+    },
+    "Workspace Tools" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区工具"
           }
         }
       }

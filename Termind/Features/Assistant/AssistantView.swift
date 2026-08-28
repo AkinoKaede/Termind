@@ -631,7 +631,7 @@ private extension View {
     }
 }
 
-private struct AssistantConversationRow: View {
+struct AssistantConversationRow: View {
     let conversation: ConversationModel
     let isSelected: Bool
     let onOpen: () -> Void

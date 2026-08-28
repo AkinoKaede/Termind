@@ -13,16 +13,16 @@ nonisolated enum CommandGeneratorState: Equatable, Sendable {
     case failed(String)
 }
 
-/// One tab in the tab bar: a tree of panes.
+/// One workspace in the workspace bar: a tree of panes.
 ///
 /// Called a *Workspace* once it holds more than one pane, and that is the word
 /// the UI uses — a shell beside its file browser is one thing you arranged, not
-/// two tabs that happen to be stacked. A single-pane Workspace is just a tab and
+/// two workspaces that happen to be stacked. A single-pane Workspace is just a workspace and
 /// names itself after what it holds.
 ///
-/// A Workspace is built by combining things that are already open: drag a tab
+/// A Workspace is built by combining things that are already open: drag a workspace
 /// out of the strip and drop it on the edge of a pane, or on an empty slot that
-/// Split carved. That is the only merge gesture — the tab strip itself reorders
+/// Split carved. That is the only merge gesture — the workspace strip itself reorders
 /// and detaches, and never combines. Nothing connects on your behalf as a side
 /// effect of arranging a layout — see `WindowModel.merge`.
 ///
@@ -51,7 +51,7 @@ final class Workspace: Identifiable {
     /// State of the Workspace rather than of a pane, because the panes *are*
     /// the group you arranged: a per-pane opt-in would let two shells each
     /// broadcast to a different set, and then there is no answer to "who hears
-    /// this". Turning it on from any header turns it on for the tab, and a pane
+    /// this". Turning it on from any header turns it on for the workspace, and a pane
     /// dragged in afterwards joins — which is why the button stays visible
     /// while it is lit instead of hiding with the close button.
     var broadcastsInput: Bool = false {
@@ -77,26 +77,26 @@ final class Workspace: Identifiable {
         layout.pane(focusedPaneID) ?? layout.firstPane
     }
 
-    /// Whether this tab may be combined with another — every pane in it has to
+    /// Whether this workspace may be combined with another — every pane in it has to
     /// be something that belongs in a Workspace. An unfilled split fails the
     /// test, so a Workspace has to be finished before it can be folded into a
     /// third one. See `PaneKind.isCombinable`.
     var isCombinable: Bool { panes.allSatisfy(\.isCombinable) }
 
-    /// Whether a tab dragged out of the strip could be dropped *into* this one:
+    /// Whether a workspace dragged out of the strip could be dropped *into* this one:
     /// a sshSession, a file browser, or any Workspace of them.
     ///
     /// Deliberately wider than `isCombinable`, which asks the opposite question
     /// and answers no for a half-arranged Workspace. A Workspace with an
-    /// unfilled slot cannot be folded into a third tab, but it is exactly the
-    /// thing you drag another tab into — `EmptyPaneView` says so in as many
+    /// unfilled slot cannot be folded into a third workspace, but it is exactly the
+    /// thing you drag another workspace into — `EmptyPaneView` says so in as many
     /// words.
     var acceptsMerge: Bool { panes.contains { $0.isCombinable || $0.isEmptySlot } }
 
-    /// Whether this tab may be given a name.
+    /// Whether this workspace may be given a name.
     ///
     /// A Workspace always may: it is a group *you* assembled, and "Workspace" is
-    /// a description rather than a name. Otherwise the tab is its one pane, so
+    /// a description rather than a name. Otherwise the workspace is its one pane, so
     /// the pane's rule decides — see `PaneKind.isRenameable`.
     var isRenameable: Bool {
         isSplit || focusedPane.kind.isRenameable
@@ -109,7 +109,7 @@ final class Workspace: Identifiable {
 
     var symbol: String { isSplit ? "rectangle.split.2x1" : focusedPane.symbol }
 
-    /// Which sidebar section lists this tab, if any.
+    /// Which sidebar section lists this workspace, if any.
     var kind: PaneKind { focusedPane.kind }
 
     var status: ConnectionStatus { focusedPane.status }
@@ -122,17 +122,17 @@ final class Workspace: Identifiable {
 
     var workingDirectory: String? { focusedPane.workingDirectory }
 
-    /// A split tab is named for itself, not for whichever half you clicked last.
+    /// A split workspace is named for itself, not for whichever half you clicked last.
     ///
-    /// Reading the focused pane meant one tab wore two names depending on where
+    /// Reading the focused pane meant one workspace wore two names depending on where
     /// the caret was, which is no name at all. Unnamed, it says "Workspace" —
-    /// the panes are listed individually in the sidebar, so the tab only has to
+    /// the panes are listed individually in the sidebar, so the workspace only has to
     /// identify the *group*.
     ///
-    /// A tab with one pane *is* that pane, so it takes the pane's name and never
-    /// consults `customTitle`: renaming such a tab writes through to the pane
+    /// A workspace with one pane *is* that pane, so it takes the pane's name and never
+    /// consults `customTitle`: renaming such a workspace writes through to the pane
     /// (see `WindowModel.rename`), and one thing has one name. It also means a
-    /// renamed tab reads "Workspace" the moment it is split, since the name it
+    /// renamed workspace reads "Workspace" the moment it is split, since the name it
     /// was given went to the pane rather than to the group.
     func title(in store: HostLibraryModel) -> String {
         if isSplit { return customTitle ?? String(localized: "Workspace") }
@@ -176,8 +176,8 @@ final class Workspace: Identifiable {
         focusedPaneID = node.firstPane.id
     }
 
-    /// Closes a pane. Returns `false` when that emptied the tab, which the
-    /// window reads as "close this tab too".
+    /// Closes a pane. Returns `false` when that emptied the workspace, which the
+    /// window reads as "close this workspace too".
     func closePane(_ paneID: Pane.ID) -> Bool {
         guard let remaining = layout.removing(paneID) else { return false }
         layout = remaining
@@ -186,7 +186,7 @@ final class Workspace: Identifiable {
         }
         // The name belonged to the group; there is no group left. Keeping it
         // would hide it behind the surviving pane's name and then spring it back
-        // over unrelated panes the next time this tab was split.
+        // over unrelated panes the next time this workspace was split.
         if !isSplit { customTitle = nil }
         // Same reasoning, and the reason it matters more: a broadcast left set
         // on a Workspace that lost its second shell would come back live the
@@ -200,7 +200,7 @@ final class Workspace: Identifiable {
         for pane in panes { pane.disconnectConnection() }
     }
 
-    /// Preserve the tab's arrangement and conversation while replacing every
+    /// Preserve the workspace's arrangement and conversation while replacing every
     /// dead terminal with a fresh model. TerminalPlaceholderView sees the
     /// connecting state when this Workspace is mounted again and starts the
     /// ordinary authentication / host-key / SSH connection journey.
@@ -467,7 +467,7 @@ extension Workspace: SSHSessionInputRouting {
 
     /// Shell EOF is a successful completion, so it closes the shell's pane.
     /// The window owns the last-pane case because removing it also removes and
-    /// reselects tabs. Standalone Workspaces still handle split panes in tests
+    /// reselects workspaces. Standalone Workspaces still handle split panes in tests
     /// and previews.
     func closeSSHSessionPane(afterExit sshSession: SSHSessionModel) {
         guard let pane = panes.first(where: { $0.sshSession === sshSession }) else { return }

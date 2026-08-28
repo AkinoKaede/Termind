@@ -23,6 +23,10 @@ nonisolated enum SettingsKey {
 
     /// Show the "Recents" section at all.
     static let showRecents = "sidebar.showRecents"
+    static let vaultSectionExpanded = "sidebar.section.vault.expanded"
+    static let workspaceSectionExpanded = "sidebar.section.workspace.expanded"
+    static let chatsSectionExpanded = "sidebar.section.chats.expanded"
+    static let recentsSectionExpanded = "sidebar.section.recents.expanded"
     /// Terminal palette name, matched against `GhosttyThemeCatalog`.
     static let terminalThemeDark = "terminal.theme.dark"
     static let terminalThemeLight = "terminal.theme.light"
@@ -41,8 +45,9 @@ nonisolated enum SettingsKey {
     static var isShellIntegrationEnabled: Bool {
         UserDefaults.standard.object(forKey: shellIntegration) as? Bool ?? true
     }
-    /// Restore the previous window's tabs on launch.
-    static let restoreTabs = "window.restoreTabs"
+    /// Restore the previous window's Workspaces on launch. Keep the persisted
+    /// key stable so this UI rename does not discard the user's preference.
+    static let restoreWorkspaces = "window.restoreTabs"
     /// The last approval posture selected in the Assistant composer.
     static let agentPermissionMode = "assistant.permissionMode"
     static let sftpGlobalTransferLimit = "sftp.transfers.globalLimit"

@@ -1,29 +1,29 @@
 import SwiftUI
 
-/// The identity a tab contributes to `PersistentTabDeckLayout`.
-private nonisolated struct PersistentTabDeckIDKey: LayoutValueKey {
+/// The identity a Workspace contributes to `PersistentWorkspaceDeckLayout`.
+private nonisolated struct PersistentWorkspaceDeckIDKey: LayoutValueKey {
     static let defaultValue: Workspace.ID? = nil
 }
 
-/// Whether a tab is the one the deck currently presents.
-private nonisolated struct PersistentTabDeckActiveKey: LayoutValueKey {
+/// Whether a Workspace is the one the deck currently presents.
+private nonisolated struct PersistentWorkspaceDeckActiveKey: LayoutValueKey {
     static let defaultValue = false
 }
 
 extension View {
-    func persistentTabDeckValue(id: Workspace.ID, isActive: Bool) -> some View {
-        layoutValue(key: PersistentTabDeckIDKey.self, value: id)
-            .layoutValue(key: PersistentTabDeckActiveKey.self, value: isActive)
+    func persistentWorkspaceDeckValue(id: Workspace.ID, isActive: Bool) -> some View {
+        layoutValue(key: PersistentWorkspaceDeckIDKey.self, value: id)
+            .layoutValue(key: PersistentWorkspaceDeckActiveKey.self, value: isActive)
     }
 }
 
-/// Per-tab proposals for a deck whose children must remain mounted.
+/// Per-Workspace proposals for a deck whose children must remain mounted.
 ///
-/// The visible tab tracks the deck bounds. Hidden tabs keep their last visible
+/// The visible Workspace tracks the deck bounds. Hidden Workspaces keep their last visible
 /// size so a sidebar animation cannot recursively lay out every parked split
-/// tree and native terminal surface. A tab that has never been visible captures
+/// tree and native terminal surface. A Workspace that has never been visible captures
 /// the first usable deck size as its parking size.
-nonisolated struct PersistentTabDeckSizingState {
+nonisolated struct PersistentWorkspaceDeckSizingState {
     private var sizes: [Workspace.ID: CGSize] = [:]
 
     mutating func size(
@@ -56,17 +56,17 @@ nonisolated extension CGSize {
     }
 }
 
-/// A ZStack-like deck that measures only its active tab and parks every hidden
-/// tab at its own stable size.
-nonisolated struct PersistentTabDeckLayout: Layout {
-    typealias Cache = PersistentTabDeckSizingState
+/// A ZStack-like deck that measures only its active Workspace and parks every hidden
+/// Workspace at its own stable size.
+nonisolated struct PersistentWorkspaceDeckLayout: Layout {
+    typealias Cache = PersistentWorkspaceDeckSizingState
 
     func makeCache(subviews _: Subviews) -> Cache {
         Cache()
     }
 
     func updateCache(_ cache: inout Cache, subviews: Subviews) {
-        cache.prune(keeping: Set(subviews.compactMap { $0[PersistentTabDeckIDKey.self] }))
+        cache.prune(keeping: Set(subviews.compactMap { $0[PersistentWorkspaceDeckIDKey.self] }))
     }
 
     func sizeThatFits(
@@ -74,7 +74,7 @@ nonisolated struct PersistentTabDeckLayout: Layout {
         subviews: Subviews,
         cache _: inout Cache
     ) -> CGSize {
-        guard let active = subviews.first(where: { $0[PersistentTabDeckActiveKey.self] }) else {
+        guard let active = subviews.first(where: { $0[PersistentWorkspaceDeckActiveKey.self] }) else {
             return proposal.replacingUnspecifiedDimensions()
         }
 
@@ -92,10 +92,10 @@ nonisolated struct PersistentTabDeckLayout: Layout {
         cache: inout Cache
     ) {
         for subview in subviews {
-            guard let id = subview[PersistentTabDeckIDKey.self] else { continue }
+            guard let id = subview[PersistentWorkspaceDeckIDKey.self] else { continue }
             let size = cache.size(
                 for: id,
-                isActive: subview[PersistentTabDeckActiveKey.self],
+                isActive: subview[PersistentWorkspaceDeckActiveKey.self],
                 containerSize: bounds.size
             )
             subview.place(

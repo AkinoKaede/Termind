@@ -85,8 +85,8 @@ struct TermindApp: App {
         @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     #endif
 
-    /// Workspace windows share app data, while each keeps its own pinned
-    /// Vault/Assistant navigation and dynamic Workspace tabs.
+    /// Workspace windows share app data, while each keeps its own Navigator
+    /// destinations and dynamic Workspaces.
     var body: some Scene {
         WindowGroup {
             RootView(window: launchWindow ?? WindowModel())
@@ -127,21 +127,33 @@ struct TermindApp: App {
     /// Exists for one reason: ⌘W.
     ///
     /// AppKit installs "Close" ⌘W in the File menu, which closes the whole *window*.
-    /// In a tabbed app that is the wrong default — ⌘W should close the front tab, and
+    /// Here that is the wrong default — ⌘W should close the active Workspace, and
     /// people lose a screen of work discovering otherwise. SwiftUI has no placement
     /// for that item, so we retarget it here to ⇧⌘W and leave ⌘W to `TermindCommands`.
     final class AppDelegate: NSObject, NSApplicationDelegate {
         weak var app: AppModel?
 
         func applicationDidFinishLaunching(_ notification: Notification) {
-            guard let items = NSApp.mainMenu?.items else { return }
-            for menuItem in items {
-                guard let submenu = menuItem.submenu else { continue }
-                for item in submenu.items where item.action == #selector(NSWindow.performClose(_:)) {
-                    item.title = String(localized: "Close Window")
-                    item.keyEquivalent = "w"
-                    item.keyEquivalentModifierMask = [.command, .shift]
+            if let items = NSApp.mainMenu?.items {
+                for menuItem in items {
+                    guard let submenu = menuItem.submenu else { continue }
+                    for item in submenu.items
+                    where item.action == #selector(NSWindow.performClose(_:)) {
+                        item.title = String(localized: "Close Window")
+                        item.keyEquivalent = "w"
+                        item.keyEquivalentModifierMask = [.command, .shift]
+                    }
                 }
+            }
+
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(windowDidUpdate(_:)),
+                name: NSWindow.didUpdateNotification,
+                object: nil
+            )
+            DispatchQueue.main.async { [weak self] in
+                NSApp.windows.forEach { self?.removeDefaultSidebarToggle(from: $0) }
             }
 
             // Product screenshots must not inherit a developer's last window
@@ -167,6 +179,23 @@ struct TermindApp: App {
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
             true
+        }
+
+        @objc private func windowDidUpdate(_ notification: Notification) {
+            guard let window = notification.object as? NSWindow else { return }
+            removeDefaultSidebarToggle(from: window)
+        }
+
+        private func removeDefaultSidebarToggle(from window: NSWindow) {
+            guard let toolbar = window.toolbar else { return }
+            while let index = toolbar.items.firstIndex(where: {
+                $0.itemIdentifier.rawValue
+                    == "com.apple.SwiftUI.navigationSplitView.toggleSidebar"
+                    || $0.itemIdentifier == .toggleSidebar
+                    || $0.action == #selector(NSSplitViewController.toggleSidebar(_:))
+            }) {
+                toolbar.removeItem(at: index)
+            }
         }
 
         func applicationWillTerminate(_ notification: Notification) {

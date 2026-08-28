@@ -1,31 +1,17 @@
 import AppKit
 import SwiftUI
 
-/// One window.
+/// One window with one native Navigator column and one persistent detail deck.
 ///
-/// The tab strip is the window's top-level navigation. Vault and Assistant are pinned
-/// first and second; SSH/SFTP Workspaces follow them. One stable left sidebar
-/// serves every top-level tab and swaps navigation for contextual tools in place.
+/// Vault pages, dynamic Workspaces, and Assistant conversations are destinations
+/// in the Navigator rather than a second horizontal workspace system. Workspace native
+/// views stay mounted while another destination is in front, preserving terminal
+/// grids, scrollback, and SFTP state.
 struct RootView: View {
     @Environment(AppModel.self) private var app
     @State private var window: WindowModel
     @State private var hostsPageState = HostsPageState()
-    /// The last usable leading edge reported by whichever detail column is mounted.
-    ///
-    /// The split view puts its native splitter outside the sidebar content, so
-    /// measuring that content stops short of the visual column boundary. The
-    /// detail column begins at the boundary the pinned tabs need to meet. A
-    /// hidden sidebar collapses that edge close to zero; measurements below the
-    /// split view's minimum sidebar width are rejected so the tab strip keeps
-    /// the user's last visible boundary.
-    @State private var pinnedTabStripWidth = Metrics.Sidebar.ideal
-    /// Drives the sidebar's responsive upper bound. Start at the default so the
-    /// first layout pass already has a sensible value before geometry reports.
     @State private var layoutWidth = Metrics.Window.defaultWidth
-
-    /// `nonisolated` because geometry transforms are `Sendable` closures and
-    /// this coordinate-space name is immutable, not main-actor state.
-    nonisolated private static let layoutSpace = "termind.rootLayout"
 
     init(window: WindowModel = WindowModel()) {
         _window = State(initialValue: window)
@@ -35,11 +21,32 @@ struct RootView: View {
         @Bindable var window = window
         @Bindable var presentations = window.presentations
 
-        ZStack(alignment: .top) {
-            splitContent
-            tabChrome
-                .zIndex(100)
+        NavigationSplitView(columnVisibility: sidebarVisibility) {
+            ZStack {
+                SidebarMaterialBackground()
+                    .ignoresSafeArea()
+                SidebarView(detailCatalog: .standard(store: app.hostLibrary))
+            }
+            .navigationSplitViewColumnWidth(
+                min: Metrics.Sidebar.min,
+                ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
+                max: sidebarMaxWidth
+            )
+        } detail: {
+            VStack(spacing: 0) {
+                detail
+                if case .workspace = window.selectedDestination {
+                    StatusBarView()
+                }
+            }
+            .frame(
+                minWidth: Metrics.Window.detailMin,
+                maxWidth: .infinity,
+                minHeight: Metrics.Window.detailMinHeight,
+                maxHeight: .infinity
+            )
         }
+        .navigationSplitViewStyle(.balanced)
         .overlay { ExternalAuthWindowPresenter() }
         .frame(
             minWidth: Metrics.Window.minWidth,
@@ -47,23 +54,15 @@ struct RootView: View {
             minHeight: Metrics.Window.minHeight,
             maxHeight: .infinity
         )
-        .coordinateSpace(.named(Self.layoutSpace))
         .background { FullHeightWindowContent() }
-        .onGeometryChange(for: CGFloat.self) {
-            $0.size.width
-        } action: {
-            layoutWidth = $0
-        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { layoutWidth = $0 }
         .toolbarBackground(.hidden, for: .windowToolbar)
-        // ⌘T and every Connect entry land here. A sheet rather than a page,
-        // because "which machine?" is a question with an answer, and the window
-        // behind it is what you were looking at when you asked.
-        //
-        // Must stay *above* `.environment(window)` in this chain. Modifiers
-        // apply inside-out, so the environment written last is the outermost and
-        // is the only one a sheet's content inherits — attaching `.sheet` after
-        // it puts the presentation outside that environment, and the chooser
-        // traps on `@Environment(WindowModel.self)` the moment it opens.
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                sidebarSurfacePicker
+            }
+        }
+        .toolbar(removing: .sidebarToggle)
         .sheet(item: $presentations.sheet) { route in
             switch route {
             case .hostChooser(let purpose):
@@ -83,19 +82,11 @@ struct RootView: View {
         } message: {
             Text(window.assistantOperationError ?? "")
         }
-        // Do not put a catch-all `.onDrop` here. On macOS an ancestor accepting
-        // the same text payload can win over the pane and tab-strip delegates,
-        // clear `dragging`, and turn a valid merge into a cancelled drop. Each
-        // real target already completes or rejects the internal drag itself.
+        // No ancestor drop target: pane and Navigator targets must own internal
+        // layout drops without competing for the same text payload.
         .environment(window)
-        // Scene-scoped, not view-scoped. `.focusedValue` resolves only while
-        // some view *inside* the window holds keyboard focus, and once you click
-        // into a terminal pane nothing here does — so every menu command lost
-        // its window and went quietly dead: the ones with a `.disabled` greyed
-        // out, and the ones without (Connect, ⌘1…⌘9) returned from their
-        // `guard let window` having done nothing at all.
         .focusedSceneValue(\.window, window)
-        .onChange(of: window.selectedTabID) {
+        .onChange(of: window.selectedDestination) {
             window.refreshSessionContext()
             window.reconcileSidebarMode()
         }
@@ -108,101 +99,59 @@ struct RootView: View {
         }
     }
 
-    private var tabChrome: some View {
-        VStack(spacing: 0) {
-            TabBarView(pinnedTabStripWidth: pinnedTabStripWidth)
-            Rectangle()
-                .fill(Color(nsColor: .separatorColor))
-                .frame(height: Self.tabChromeDividerHeight)
-        }
+    private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
+        Binding(
+            get: { window.showsSidebar ? .all : .detailOnly },
+            set: { window.showsSidebar = $0 != .detailOnly }
+        )
     }
-
-    @ViewBuilder
-    private var splitContent: some View {
-        if window.selectedTopLevelTab == .vault {
-            // Vault itself always remains the same two-column navigation view.
-            // Its detail owns the optional work split so showing New Host does
-            // not reconstruct `VaultView` and discard an active query, selected
-            // tags, scroll position, or search-field focus.
-            NavigationSplitView(columnVisibility: sidebarVisibility) {
-                sidebarColumn {
-                    VaultSidebarView()
-                }
-                .navigationSplitViewColumnWidth(
-                    min: Metrics.Sidebar.min,
-                    ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
-                    max: sidebarMaxWidth
-                )
-            } detail: {
-                vaultWorkspace
-                    .padding(.top, Self.tabChromeHeight)
-                    .onGeometryChange(for: CGFloat.self) {
-                        $0.frame(in: .named(Self.layoutSpace)).minX
-                    } action: {
-                        recordPinnedTabStripWidth($0)
-                    }
-            }
-            .navigationSplitViewStyle(.balanced)
-        } else {
-            NavigationSplitView(columnVisibility: sidebarVisibility) {
-                sidebarColumn {
-                    SidebarView(detailCatalog: .standard(store: app.hostLibrary))
-                }
-                .navigationSplitViewColumnWidth(
-                    min: Metrics.Sidebar.min,
-                    ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
-                    max: sidebarMaxWidth
-                )
-            } detail: {
-                VStack(spacing: 0) {
-                    detail
-                    if case .workspace = window.selectedTopLevelTab {
-                        StatusBarView()
-                    }
-                }
-                .padding(.top, Self.tabChromeHeight)
-                .frame(
-                    minWidth: Metrics.Window.detailMin,
-                    maxWidth: .infinity,
-                    minHeight: Metrics.Window.detailMinHeight,
-                    maxHeight: .infinity
-                )
-                .onGeometryChange(for: CGFloat.self) {
-                    $0.frame(in: .named(Self.layoutSpace)).minX
-                } action: {
-                    recordPinnedTabStripWidth($0)
-                }
-            }
-            .navigationSplitViewStyle(.balanced)
-        }
-    }
-
-    private func sidebarColumn<Content: View>(
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        ZStack {
-            SidebarMaterialBackground()
-                .ignoresSafeArea()
-            content()
-                .padding(.top, Self.tabChromeHeight)
-        }
-    }
-
-    private static let tabChromeDividerHeight: CGFloat = 1
-    private static let tabChromeHeight = Metrics.TabBar.height + tabChromeDividerHeight
 
     private var sidebarMaxWidth: CGFloat {
         Metrics.Window.sidebarMaxWidth(for: layoutWidth)
     }
 
-    private func recordPinnedTabStripWidth(_ measuredDetailLeadingEdge: CGFloat) {
-        pinnedTabStripWidth = PinnedTopLevelTabSizing.resolvedStripWidth(
-            current: pinnedTabStripWidth,
-            measuredDetailLeadingEdge: measuredDetailLeadingEdge,
-            isSidebarVisible: window.showsSidebar,
-            minimumSidebarWidth: Metrics.Sidebar.min
+    private var sidebarSurfacePicker: some View {
+        SidebarSurfaceSegmentedControl(
+            window: window,
+            workspaceToolsIcon: Self.workspaceToolsToolbarIcon
         )
+        .frame(width: 80, height: 30)
+        // `.navigation` follows the split view's leading detail edge. Pulling
+        // the fixed-width selector back into that anchor keeps it at the
+        // Sidebar's trailing side as the user resizes the column, like Xcode's
+        // navigator selector, without pinning it beside the traffic lights.
+        // When collapsed it returns to the normal navigation position so the
+        // same two segments also act as the control that reopens the Sidebar.
+        .offset(x: window.showsSidebar ? -90 : 0)
     }
+
+    private static let workspaceToolsToolbarIcon: NSImage = {
+        let image = NSImage(size: NSSize(width: 28, height: 18), flipped: false) { _ in
+            let textConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+            let sparkleConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+            let text = NSImage(systemSymbolName: "text.justify.leading", accessibilityDescription: nil)?
+                .withSymbolConfiguration(textConfiguration)
+            let sparkle = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
+                .withSymbolConfiguration(sparkleConfiguration)
+
+            text?.draw(
+                in: NSRect(x: 0, y: 1, width: 18, height: 16),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+            sparkle?.draw(
+                in: NSRect(x: 13, y: 0, width: 16, height: 18),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = String(localized: "Workspace Tools")
+        return image
+    }()
 
     private var vaultWorkspace: some View {
         let showsWorkDetail = window.vaultWorkRoute != nil
@@ -242,47 +191,27 @@ struct RootView: View {
         )
     }
 
-    private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
-        Binding(
-            get: { window.showsSidebar ? .all : .detailOnly },
-            set: { window.showsSidebar = $0 != .detailOnly }
-        )
-    }
-
-    /// Every open tab stays mounted so a Ghostty native view is hidden rather
-    /// than destroyed when another tab comes forward. The terminal surface owns
-    /// its grid and scrollback, so rebuilding that view on every selection
-    /// change would leave a live SSH session attached to a blank terminal.
-    ///
-    /// `displayedTab`, not `selectedTab`, decides which layer is visible: while
-    /// the front tab is being dragged it steps aside so there is something to
-    /// merge it *into*. Nothing about the selection moves — see
-    /// `WindowModel.displayedTab`.
     @ViewBuilder
     private var detail: some View {
         ZStack {
-            PersistentTabDeckLayout {
-                ForEach(window.tabs) { tab in
-                    // During a selected-tab drag, `displayedTab` deliberately
-                    // becomes a neighbouring Workspace so it can receive the
-                    // drop. Requiring that neighbour to also be selected makes
-                    // every possible merge target transparent and disabled.
-                    let isActive = tab.id == window.displayedTab?.id
-                    TabContentView(tab: tab, isActive: isActive)
+            PersistentWorkspaceDeckLayout {
+                ForEach(window.workspaces) { workspace in
+                    let isActive = workspace.id == window.displayedWorkspace?.id
+                    WorkspaceContentView(workspace: workspace, isActive: isActive)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .opacity(isActive ? 1 : 0)
                         .allowsHitTesting(isActive)
                         .accessibilityHidden(!isActive)
                         .disabled(!isActive)
                         .zIndex(isActive ? 1 : 0)
-                        .persistentTabDeckValue(id: tab.id, isActive: isActive)
+                        .persistentWorkspaceDeckValue(id: workspace.id, isActive: isActive)
                 }
             }
             .clipped()
 
-            switch window.selectedTopLevelTab {
+            switch window.selectedDestination {
             case .vault:
-                VaultView()
+                vaultWorkspace
                     .background(Color(nsColor: .windowBackgroundColor))
                     .zIndex(2)
             case .assistant:
@@ -290,20 +219,76 @@ struct RootView: View {
                     .background(Color(nsColor: .windowBackgroundColor))
                     .zIndex(2)
             case .workspace:
-                if window.tabs.isEmpty { VaultView() }
+                if window.workspaces.isEmpty {
+                    VaultView(hostsPageState: hostsPageState)
+                }
             }
         }
     }
-
 }
 
-/// Makes the split view the actual full-height window content instead of
-/// leaving AppKit's title-bar fill as a separate surface above it.
-///
-/// The native toolbar and its sidebar toggle remain intact. Only the title-bar
-/// background becomes transparent, allowing the sidebar material that ignores
-/// the top safe area to continue behind the traffic lights in both windowed and
-/// full-screen layouts.
+private struct SidebarSurfaceSegmentedControl: NSViewRepresentable {
+    let window: WindowModel
+    let workspaceToolsIcon: NSImage
+
+    func makeCoordinator() -> Coordinator { Coordinator(window: window) }
+
+    func makeNSView(context: Context) -> NSSegmentedControl {
+        let navigatorIcon = NSImage(
+            systemSymbolName: "list.bullet",
+            accessibilityDescription: String(localized: "Navigator")
+        ) ?? NSImage()
+        let control = NSSegmentedControl(
+            images: [navigatorIcon, workspaceToolsIcon],
+            trackingMode: .selectOne,
+            target: context.coordinator,
+            action: #selector(Coordinator.selectSurface(_:))
+        )
+        control.segmentStyle = .automatic
+        control.controlSize = .regular
+        control.setWidth(38, forSegment: 0)
+        control.setWidth(42, forSegment: 1)
+        control.setToolTip(String(localized: "Navigator"), forSegment: 0)
+        control.setToolTip(String(localized: "Workspace Tools"), forSegment: 1)
+        return control
+    }
+
+    func updateNSView(_ control: NSSegmentedControl, context: Context) {
+        context.coordinator.window = window
+        control.setEnabled(window.selectedWorkspace != nil, forSegment: 1)
+        guard window.showsSidebar else {
+            control.selectedSegment = -1
+            return
+        }
+        control.selectedSegment = window.sidebarSurface == .navigator ? 0 : 1
+    }
+
+    final class Coordinator: NSObject {
+        var window: WindowModel
+
+        init(window: WindowModel) {
+            self.window = window
+        }
+
+        @objc func selectSurface(_ sender: NSSegmentedControl) {
+            let surface: WindowSidebarState.Surface =
+                sender.selectedSegment == 1 ? .workspaceTools : .navigator
+            guard surface == .navigator || window.selectedWorkspace != nil else { return }
+
+            if window.showsSidebar, window.sidebarSurface == surface {
+                window.showsSidebar = false
+                sender.selectedSegment = -1
+            } else {
+                window.sidebarSurface = surface
+                window.showsSidebar = true
+                sender.selectedSegment = surface == .navigator ? 0 : 1
+            }
+        }
+    }
+}
+
+/// Extends the split view's material behind the titlebar while retaining the
+/// native toolbar chrome.
 private struct FullHeightWindowContent: NSViewRepresentable {
     func makeNSView(context: Context) -> WindowContentBridgeView {
         WindowContentBridgeView()

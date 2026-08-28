@@ -7,7 +7,7 @@ struct StatusBarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    private var pane: Pane? { window.selectedTab?.focusedPane }
+    private var pane: Pane? { window.selectedWorkspace?.focusedPane }
     private var showsSessionContext: Bool { pane?.kind.showsStatusBar == true }
     private var hasTransfers: Bool { !app.sftpTransfers.sftpTransfers.isEmpty }
 
@@ -98,7 +98,7 @@ struct StatusBarView: View {
 
     private func workingDirectoryButton(_ path: String) -> some View {
         Button {
-            openInSFTP(path, placement: .newTab)
+            openInSFTP(path, placement: .newWorkspace)
         } label: {
             item("folder", path)
         }
@@ -107,7 +107,7 @@ struct StatusBarView: View {
         .accessibilityLabel(Text("Open in SFTP"))
         .contextMenu {
             Menu("Open in SFTP") {
-                Button("New Tab") { openInSFTP(path, placement: .newTab) }
+                Button("New Workspace") { openInSFTP(path, placement: .newWorkspace) }
                 Button("Current Workspace") {
                     openInSFTP(path, placement: .currentWorkspace)
                 }
@@ -118,7 +118,7 @@ struct StatusBarView: View {
 
     private func sftpDirectoryButton(_ path: String) -> some View {
         Button {
-            openInSSH(path, placement: .newTab)
+            openInSSH(path, placement: .newWorkspace)
         } label: {
             item("folder", path)
         }
@@ -127,7 +127,7 @@ struct StatusBarView: View {
         .accessibilityLabel(Text("Open in SSH"))
         .contextMenu {
             Menu("Open in SSH") {
-                Button("New Tab") { openInSSH(path, placement: .newTab) }
+                Button("New Workspace") { openInSSH(path, placement: .newWorkspace) }
                 Button("Current Workspace") {
                     openInSSH(path, placement: .currentWorkspace)
                 }

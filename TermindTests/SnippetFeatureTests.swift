@@ -142,11 +142,11 @@ struct SnippetFeatureTests {
 
         app.execute([first, second], in: window)
 
-        #expect(window.tabs.count == 2)
-        #expect(window.tabs[0].title(in: store) == String(localized: "Workspace"))
-        #expect(window.tabs[0].panes.map(\.hostID) == [firstHost.id, secondHost.id])
-        #expect(window.tabs[1].title(in: store) == "\(firstHost.name) (1)")
-        #expect(window.selectedTabID == window.tabs[0].id)
+        #expect(window.workspaces.count == 2)
+        #expect(window.workspaces[0].title(in: store) == String(localized: "Workspace"))
+        #expect(window.workspaces[0].panes.map(\.hostID) == [firstHost.id, secondHost.id])
+        #expect(window.workspaces[1].title(in: store) == "\(firstHost.name) (1)")
+        #expect(window.selectedWorkspaceID == window.workspaces[0].id)
     }
 
     @Test
@@ -162,7 +162,7 @@ struct SnippetFeatureTests {
 
         app.execute([snippet], overrideHostIDs: [temporary.id], in: window)
 
-        #expect(window.tabs.first?.panes.map(\.hostID) == [temporary.id])
+        #expect(window.workspaces.first?.panes.map(\.hostID) == [temporary.id])
         #expect(store.snippet(snippet.id)?.targetHostIDs == [saved.id])
     }
 }

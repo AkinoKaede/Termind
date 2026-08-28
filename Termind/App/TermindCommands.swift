@@ -3,7 +3,7 @@ import SwiftUI
 /// The menu bar.
 ///
 /// Every command routes through `@FocusedValue(\.window)` rather than a global,
-/// so ⌘T opens a tab in the window you are actually looking at. When no window is
+/// so ⌘T opens a Workspace in the window you are actually looking at. When no window is
 /// frontmost the value is nil and the items disable themselves, which is the
 /// correct behaviour and comes for free.
 ///
@@ -29,7 +29,7 @@ struct TermindCommands: Commands {
             Divider()
 
             // Both of these act on the host selected on the Hosts page, and fall
-            // back to that page when there is none — see `AppModel.newTab`.
+            // back to that page when there is none — see `AppModel.newWorkspace`.
             //
             // Ordered by how often they are reached, not alphabetically: a
             // session, then a transfer to the same kind of machine, then a chat
@@ -50,10 +50,10 @@ struct TermindCommands: Commands {
             Divider()
 
             // A multi-pane selection is already a Workspace, so Duplicate
-            // copies that whole arrangement into one new tab. A single pane can
+            // copies that whole arrangement into one new Workspace. A single pane can
             // instead choose whether its fresh copy belongs beside it or apart.
-            if window?.selectedTab?.isSplit == true {
-                Button("Duplicate") { window?.duplicateSelectedInNewTab() }
+            if window?.selectedWorkspace?.isSplit == true {
+                Button("Duplicate") { window?.duplicateSelectedInNewWorkspace() }
                     .keyboardShortcut("d")
                     .disabled(!(window?.canDuplicateSelected ?? false))
             } else {
@@ -62,7 +62,7 @@ struct TermindCommands: Commands {
                         window?.duplicateSelected(axis: .horizontal)
                     }
                     .keyboardShortcut("d")
-                    Button("In New Tab") { window?.duplicatePaneInNewTab() }
+                    Button("In New Workspace") { window?.duplicatePaneInNewWorkspace() }
                         .keyboardShortcut("d", modifiers: [.command, .shift])
                 }
                 .disabled(!(window?.canDuplicateSelected ?? false))
@@ -96,16 +96,16 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(replacing: .saveItem) {
-            Button("Close Tab") { window?.closeSelected() }
+            Button("Close Workspace") { window?.closeSelected() }
                 .keyboardShortcut("w")
-                .disabled(window?.selectedTab == nil)
-            Button("Close Other Tabs") {
-                guard let window, let id = window.selectedTabID else { return }
+                .disabled(window?.selectedWorkspace == nil)
+            Button("Close Other Workspaces") {
+                guard let window, let id = window.selectedWorkspaceID else { return }
                 window.closeOthers(than: id)
             }
             .keyboardShortcut("w", modifiers: [.command, .option])
-            .disabled(window?.selectedTab == nil)
-            Button("Reopen Closed Tab") { window?.reopenLastClosed() }
+            .disabled(window?.selectedWorkspace == nil)
+            Button("Reopen Closed Workspace") { window?.reopenLastClosed() }
                 .keyboardShortcut("t", modifiers: [.command, .shift])
                 .disabled(!(window?.canReopen ?? false))
         }
@@ -114,7 +114,7 @@ struct TermindCommands: Commands {
         // in View (the two Splits), on the pane header (Broadcast Input, which
         // shows its own state right next to the panes it reaches and so does not
         // need a second copy in the menu bar — ⌘B is registered by
-        // `TabContentView`), or nowhere yet: Clear Scrollback, Ask AI About
+        // `WorkspaceContentView`), or nowhere yet: Clear Scrollback, Ask AI About
         // Selection and Suggest a Command were disabled placeholders holding
         // shortcuts for P2/P4, and P2 can put them wherever the real commands
         // end up.
@@ -126,7 +126,7 @@ struct TermindCommands: Commands {
                 }
             }
             .keyboardShortcut("i", modifiers: [.command, .option])
-            .disabled(window?.selectedTab == nil)
+            .disabled(window?.selectedWorkspace == nil)
 
             Divider()
 
@@ -142,28 +142,34 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(before: .windowList) {
-            Button("Next Tab") { window?.selectNext() }
+            Button("Next Workspace") { window?.selectNext() }
                 .keyboardShortcut(.tab, modifiers: .control)
-            Button("Previous Tab") { window?.selectPrevious() }
+                .disabled(window?.workspaces.isEmpty != false)
+            Button("Previous Workspace") { window?.selectPrevious() }
                 .keyboardShortcut(.tab, modifiers: [.control, .shift])
-            Button("Show Next Tab") { window?.selectNext() }
+                .disabled(window?.workspaces.isEmpty != false)
+            Button("Show Next Workspace") { window?.selectNext() }
                 .keyboardShortcut("]", modifiers: [.command, .shift])
-            Button("Show Previous Tab") { window?.selectPrevious() }
+                .disabled(window?.workspaces.isEmpty != false)
+            Button("Show Previous Workspace") { window?.selectPrevious() }
                 .keyboardShortcut("[", modifiers: [.command, .shift])
+                .disabled(window?.workspaces.isEmpty != false)
 
             Divider()
 
-            // ⌘1…⌘8 by position, ⌘9 to the last tab — the convention every
+            // ⌘1…⌘8 by sidebar position, ⌘9 to the last Workspace — the convention every
             // browser and terminal shares.
             ForEach(1...8, id: \.self) { index in
-                Button("Tab \(index)") { window?.select(index: index - 1) }
+                Button("Workspace \(index)") { window?.select(index: index - 1) }
                     .keyboardShortcut(KeyEquivalent(Character("\(index)")))
+                    .disabled((window?.workspaces.count ?? 0) < index)
             }
-            Button("Last Tab") {
+            Button("Last Workspace") {
                 guard let window else { return }
-                window.select(index: window.tabs.count + 1)
+                window.select(index: window.workspaces.count - 1)
             }
             .keyboardShortcut("9")
+            .disabled(window?.workspaces.isEmpty != false)
 
             Divider()
         }

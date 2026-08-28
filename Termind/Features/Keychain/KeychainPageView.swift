@@ -1209,7 +1209,7 @@ struct ExportKeyToHostsSheet: View {
     }
 
     private func close() {
-        if window.selectedTopLevelTab == .vault {
+        if window.selectedDestination == .vault {
             window.closeVaultWork()
         } else {
             dismiss()
