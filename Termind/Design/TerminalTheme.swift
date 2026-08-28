@@ -160,6 +160,57 @@ nonisolated struct TerminalAppearancePreferences: Hashable, Sendable {
     var fontSize: Double
 }
 
+struct ResolvedTerminalAppearance {
+    var preferences: TerminalAppearancePreferences
+    var background: Color
+}
+
+/// The live terminal appearance selected in Settings.
+///
+/// Terminal-adjacent SwiftUI chrome uses this alongside the Ghostty surface so
+/// both react to the same theme, custom configuration, and system appearance.
+@propertyWrapper
+struct TerminalAppearanceSettings: DynamicProperty {
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(SettingsKey.terminalFontSize) private var fontSize = 12.0
+    @AppStorage(SettingsKey.terminalThemeDark) private var darkTheme =
+        SettingsKey.defaultTerminalThemeDark
+    @AppStorage(SettingsKey.terminalThemeLight) private var lightTheme =
+        SettingsKey.defaultTerminalThemeLight
+    @AppStorage(SettingsKey.terminalCustomConfigurationDarkEnabled)
+    private var darkCustomEnabled = false
+    @AppStorage(SettingsKey.terminalCustomConfigurationLightEnabled)
+    private var lightCustomEnabled = false
+    @AppStorage(SettingsKey.terminalCustomConfigurationDark)
+    private var darkCustomConfiguration = ""
+    @AppStorage(SettingsKey.terminalCustomConfigurationLight)
+    private var lightCustomConfiguration = ""
+    @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
+
+    var wrappedValue: ResolvedTerminalAppearance {
+        let preferences = TerminalAppearancePreferences(
+            lightThemeName: lightTheme,
+            darkThemeName: darkTheme,
+            lightCustomEnabled: lightCustomEnabled,
+            darkCustomEnabled: darkCustomEnabled,
+            lightCustomConfiguration: lightCustomConfiguration,
+            darkCustomConfiguration: darkCustomConfiguration,
+            fontFollowTheme: fontFollowTheme,
+            fontSize: fontSize
+        )
+        let isDark = colorScheme == .dark
+        return ResolvedTerminalAppearance(
+            preferences: preferences,
+            background: TermindTerminalThemeCatalog.background(
+                themeName: isDark ? darkTheme : lightTheme,
+                customEnabled: isDark ? darkCustomEnabled : lightCustomEnabled,
+                customText: isDark ? darkCustomConfiguration : lightCustomConfiguration,
+                isDark: isDark
+            ).color
+        )
+    }
+}
+
 /// One lookup surface for Termind's palettes and the themes bundled with Ghostty.
 /// Custom palettes come first and replace a bundled theme with the same name,
 /// should one ever be added upstream.

@@ -247,7 +247,6 @@ private struct SplitBranchView: View {
                     child(branch.first)
                         .frame(width: lengths.first)
                     divider(total: total, isCollapsed: lengths.divider == 0)
-                        .frame(width: lengths.divider)
                     child(branch.second)
                         .frame(width: lengths.second)
                 }
@@ -256,7 +255,6 @@ private struct SplitBranchView: View {
                     child(branch.first)
                         .frame(height: lengths.first)
                     divider(total: total, isCollapsed: lengths.divider == 0)
-                        .frame(height: lengths.divider)
                     child(branch.second)
                         .frame(height: lengths.second)
                 }
@@ -277,10 +275,11 @@ private struct SplitBranchView: View {
     // MARK: - Divider
 
     /// A hairline to look at inside a wider band to grab: one point of visible
-    /// line is not a pointer target, and widening the line itself would put a
-    /// grey bar between every pair of panes.
+    /// line is not a pointer target. Negative padding keeps the full grab band
+    /// centred over both panes while only the hairline consumes layout space.
     private func divider(total: CGFloat, isCollapsed: Bool) -> some View {
-        ZStack {
+        let grabInset = (Metrics.Split.dividerHitLength - Metrics.Split.dividerThickness) / 2
+        return ZStack {
             Color.clear.contentShape(.rect)
             Rectangle().fill(.separator).frame(
                 width: branch.axis == .horizontal ? Metrics.Split.dividerThickness : nil,
@@ -293,6 +292,8 @@ private struct SplitBranchView: View {
             height: branch.axis == .vertical
                 ? (isCollapsed ? 0 : Metrics.Split.dividerHitLength) : nil
         )
+        .padding(.horizontal, branch.axis == .horizontal && !isCollapsed ? -grabInset : 0)
+        .padding(.vertical, branch.axis == .vertical && !isCollapsed ? -grabInset : 0)
         .opacity(isCollapsed ? 0 : 1)
         .allowsHitTesting(!isCollapsed)
         .pointerStyle(branch.axis == .horizontal ? .columnResize : .rowResize)
@@ -332,7 +333,7 @@ private struct SplitBranchView: View {
     }
 
     private func usableLength(in total: CGFloat) -> CGFloat {
-        max(0, total - Metrics.Split.dividerHitLength)
+        max(0, total - Metrics.Split.dividerThickness)
     }
 
     private func clampedFirstLength(in total: CGFloat) -> CGFloat {
@@ -350,8 +351,8 @@ private struct SplitBranchView: View {
         }
 
         let first = clampedFirstLength(in: total)
-        let second = max(0, total - first - Metrics.Split.dividerHitLength)
-        return (first, Metrics.Split.dividerHitLength, second)
+        let second = max(0, total - first - Metrics.Split.dividerThickness)
+        return (first, Metrics.Split.dividerThickness, second)
     }
 
     private func subtreeDisappearsWhenOmitted(_ node: SplitNode) -> Bool {
@@ -386,6 +387,7 @@ private struct PaneView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @TerminalAppearanceSettings private var terminalAppearance
 
     @State private var dropZone: PaneDropZone?
     @State private var isHovering = false
@@ -432,7 +434,7 @@ private struct PaneView: View {
         VStack(spacing: 0) {
             if workspace.isSplit {
                 header
-                Divider()
+                if pane.kind == .empty { Divider() }
             }
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -441,7 +443,7 @@ private struct PaneView: View {
         .overlay {
             if workspace.isSplit {
                 Rectangle()
-                    .strokeBorder(isFocused ? Color.accentColor : .clear, lineWidth: 2)
+                    .strokeBorder(isFocused ? Color.accentColor : .clear, lineWidth: 1)
                     .allowsHitTesting(false)
             }
         }
@@ -598,7 +600,18 @@ private struct PaneView: View {
     /// The name is the drag handle, and nothing else in the row is: a terminal's
     /// body belongs to selecting text, so making the whole pane draggable would
     /// trade something you do constantly for something you do rarely.
+    @ViewBuilder
     private var header: some View {
+        if pane.kind == .sshSession {
+            headerContent.background(terminalAppearance.background)
+        } else if pane.kind == .sftpSession {
+            headerContent.background(.background)
+        } else {
+            headerContent.termindGlassBar()
+        }
+    }
+
+    private var headerContent: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: pane.symbol)
                 .font(.system(size: Metrics.Split.headerIconSize))
@@ -638,7 +651,6 @@ private struct PaneView: View {
         }
         .padding(.horizontal, Metrics.Space.m)
         .frame(height: Metrics.Split.headerHeight)
-        .termindGlassBar()
     }
 
     /// Broadcast: type here, and every shell in the Workspace hears it.

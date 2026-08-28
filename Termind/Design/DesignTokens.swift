@@ -83,9 +83,9 @@ nonisolated enum Metrics {
     enum Split {
         static let headerIconSize: CGFloat = 12
         static let dividerThickness: CGFloat = 1
-        /// The grab band around the line. One point of hairline is not a pointer
-        /// target, and thickening the line itself would put a grey bar between
-        /// every pair of panes.
+        /// The grab band centred over the line without taking layout space.
+        /// One point of hairline is not a pointer target, and reserving the whole
+        /// band would put an eight-point gutter between every pair of panes.
         static let dividerHitLength: CGFloat = 8
         /// No pane shrinks below this along the split axis.
         static let minPaneLength: CGFloat = 160

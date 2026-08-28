@@ -4,6 +4,25 @@ import Testing
 
 struct TerminalThemeTests {
     @Test
+    func unavailableThemesFallBackForBothAppearances() {
+        let light = TermindTerminalThemeCatalog.background(
+            themeName: "Missing Light Theme",
+            customEnabled: false,
+            customText: "",
+            isDark: false
+        )
+        let dark = TermindTerminalThemeCatalog.background(
+            themeName: "Missing Dark Theme",
+            customEnabled: false,
+            customText: "",
+            isDark: true
+        )
+
+        #expect(light == TerminalTheme.termindLight.background)
+        #expect(dark == TerminalTheme.termindDark.background)
+    }
+
+    @Test
     func customConfigurationParsesGhosttyLinesInOrder() {
         let configuration = GhosttyCustomConfiguration(
             """

@@ -18,23 +18,9 @@ struct TerminalPlaceholderView: View {
     /// retained pre-journey terminal surface underneath it.
     let closePane: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(SettingsKey.terminalFontSize) private var fontSize = 12.0
-    @AppStorage(SettingsKey.terminalThemeDark) private var darkTheme =
-        SettingsKey.defaultTerminalThemeDark
-    @AppStorage(SettingsKey.terminalThemeLight) private var lightTheme =
-        SettingsKey.defaultTerminalThemeLight
-    @AppStorage(SettingsKey.terminalCustomConfigurationDarkEnabled)
-    private var darkCustomEnabled = false
-    @AppStorage(SettingsKey.terminalCustomConfigurationLightEnabled)
-    private var lightCustomEnabled = false
-    @AppStorage(SettingsKey.terminalCustomConfigurationDark)
-    private var darkCustomConfiguration = ""
-    @AppStorage(SettingsKey.terminalCustomConfigurationLight)
-    private var lightCustomConfiguration = ""
-    @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @TerminalAppearanceSettings private var terminalAppearance
     @FocusState private var terminalFocused: Bool
     @State private var pendingUploadSession: SFTPSessionModel?
     @State private var pendingUploadItemCount = 0
@@ -43,29 +29,6 @@ struct TerminalPlaceholderView: View {
     @State private var uploadNoticeTask: Task<Void, Never>?
     @State private var uploadPreparationTask: Task<Void, Never>?
     @State private var uploadError: String?
-
-    private var appearancePreferences: TerminalAppearancePreferences {
-        TerminalAppearancePreferences(
-            lightThemeName: lightTheme,
-            darkThemeName: darkTheme,
-            lightCustomEnabled: lightCustomEnabled,
-            darkCustomEnabled: darkCustomEnabled,
-            lightCustomConfiguration: lightCustomConfiguration,
-            darkCustomConfiguration: darkCustomConfiguration,
-            fontFollowTheme: fontFollowTheme,
-            fontSize: fontSize
-        )
-    }
-
-    private var terminalBackground: Color {
-        let isDark = colorScheme == .dark
-        return TermindTerminalThemeCatalog.background(
-            themeName: isDark ? darkTheme : lightTheme,
-            customEnabled: isDark ? darkCustomEnabled : lightCustomEnabled,
-            customText: isDark ? darkCustomConfiguration : lightCustomConfiguration,
-            isDark: isDark
-        ).color
-    }
 
     /// The surface decides the pane's size; everything else is an overlay.
     ///
@@ -87,7 +50,7 @@ struct TerminalPlaceholderView: View {
             value: isExternalFileDropTargeted
         )
         .animation(Motion.panel, value: uploadNotice)
-        .background(terminalBackground)
+        .background(terminalAppearance.background)
         .onAppear {
             // The mounted view is the final source of truth after any drag,
             // merge, detach, or SwiftUI tree rebuild. Reassert the relationship
@@ -96,7 +59,7 @@ struct TerminalPlaceholderView: View {
             sshSession.inputRouter = workspace
             sshSession.terminalState.isSurfaceVisible = isVisible
             terminalFocused = requestsFocus
-            sshSession.applyAppearance(appearancePreferences)
+            sshSession.applyAppearance(terminalAppearance.preferences)
             if sshSession.status == .connecting { sshSession.connect(using: app.hostLibrary) }
             if requestsFocus { sshSession.requestTerminalFocus() }
         }
@@ -118,7 +81,7 @@ struct TerminalPlaceholderView: View {
             uploadPreparationTask?.cancel()
             cancelPendingUpload()
         }
-        .onChange(of: appearancePreferences) { _, preferences in
+        .onChange(of: terminalAppearance.preferences) { _, preferences in
             sshSession.applyAppearance(preferences)
         }
         .confirmationDialog(
