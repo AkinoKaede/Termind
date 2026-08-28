@@ -547,11 +547,9 @@ private struct StartupSettings: View {
 }
 
 private struct SidebarSettings: View {
-    @AppStorage(SettingsKey.compactSidebar) private var compactSidebar = false
     @AppStorage(SettingsKey.showRecents) private var showRecents = true
     var body: some View {
         Section("Sidebar") {
-            Toggle("Compact Rows", isOn: $compactSidebar)
             Toggle("Show Recents", isOn: $showRecents)
         }
     }

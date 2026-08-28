@@ -36,9 +36,11 @@ nonisolated enum Metrics {
         static let navigationRowHeight: CGFloat = 36
         /// Shared content inset for the leading glyph and trailing accessory.
         static let navigationRowInset: CGFloat = 8
+        /// Breathing room between every source-list row and the sidebar edge.
+        static let rowHorizontalMargin: CGFloat = 8
         /// The fill stops short of the split-view edge like a native macOS
         /// source-list selection, while the full row remains clickable.
-        static let rowBackgroundInset: CGFloat = 6
+        static let rowBackgroundInset: CGFloat = 2
         static let rowBackgroundVerticalInset: CGFloat = 2
         static let rowCornerRadius: CGFloat = 7
         /// The fixed column every sidebar row's leading glyph sits in.
@@ -310,17 +312,6 @@ nonisolated enum Metrics {
     }
 }
 
-/// The native title-bar surface around the traffic-light controls.
-///
-/// The title bar deliberately uses an exact light/dark pair rather than a
-/// semantic color or material. That keeps the traffic-light corner neutral as
-/// windows move around the desktop.
-enum WindowChrome {
-    static func background(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? .black : .white
-    }
-}
-
 /// The one selection highlight in the app.
 ///
 /// Derived from the text color rather than the accent, and with no emphasized /
@@ -346,19 +337,21 @@ enum Highlight {
 /// lists inside it do not inherit SwiftUI's source-list background. Hosting one
 /// visual-effect view behind the complete column keeps list rows and empty
 /// space on the same native material, including Reduce Transparency behavior.
+/// Window-local blending prevents a full-screen Space's wallpaper tint from
+/// overwhelming the interaction surfaces drawn above it.
 struct SidebarMaterialBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = .sidebar
-        view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
+        view.blendingMode = .withinWindow
+        view.state = .active
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
         view.material = .sidebar
-        view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
+        view.blendingMode = .withinWindow
+        view.state = .active
     }
 }
 
@@ -386,6 +379,7 @@ struct TermindSidebarRowBackground: ViewModifier {
                     .padding(.horizontal, Metrics.Sidebar.rowBackgroundInset)
                     .padding(.vertical, Metrics.Sidebar.rowBackgroundVerticalInset)
             }
+            .padding(.horizontal, Metrics.Sidebar.rowHorizontalMargin)
             .onHover { isHovering = $0 }
     }
 }
@@ -399,13 +393,18 @@ private struct TermindSidebarSectionLabel: ViewModifier {
 }
 
 private struct TermindSidebarGlassButton: ViewModifier {
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content.buttonStyle(.glass)
-        } else {
-            content.buttonStyle(.borderless)
-        }
+        content
+            .buttonStyle(.plain)
+            .background(
+                Color.primary.opacity(0.055),
+                in: .rect(cornerRadius: Metrics.Sidebar.rowCornerRadius)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Metrics.Sidebar.rowCornerRadius)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
     }
 }
 

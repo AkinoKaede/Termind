@@ -2639,16 +2639,6 @@
         }
       }
     },
-    "Compact Rows" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "紧凑显示"
-          }
-        }
-      }
-    },
     "Compacted — %@ summarized to %@" : {
       "localizations" : {
         "en" : {

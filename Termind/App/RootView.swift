@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// One window.
@@ -7,7 +8,6 @@ import SwiftUI
 /// serves every top-level tab and swaps navigation for contextual tools in place.
 struct RootView: View {
     @Environment(AppModel.self) private var app
-    @Environment(\.colorScheme) private var colorScheme
     @State private var window: WindowModel
     @State private var hostsPageState = HostsPageState()
     /// The last usable leading edge reported by whichever detail column is mounted.
@@ -35,10 +35,10 @@ struct RootView: View {
         @Bindable var window = window
         @Bindable var presentations = window.presentations
 
-        VStack(spacing: 0) {
-            TabBarView(pinnedTabStripWidth: pinnedTabStripWidth)
-            Divider()
+        ZStack(alignment: .top) {
             splitContent
+            tabChrome
+                .zIndex(100)
         }
         .overlay { ExternalAuthWindowPresenter() }
         .frame(
@@ -48,13 +48,13 @@ struct RootView: View {
             maxHeight: .infinity
         )
         .coordinateSpace(.named(Self.layoutSpace))
+        .background { FullHeightWindowContent() }
         .onGeometryChange(for: CGFloat.self) {
             $0.size.width
         } action: {
             layoutWidth = $0
         }
-        .toolbarBackground(WindowChrome.background(for: colorScheme), for: .windowToolbar)
-        .toolbarBackground(.visible, for: .windowToolbar)
+        .toolbarBackground(.hidden, for: .windowToolbar)
         // ⌘T and every Connect entry land here. A sheet rather than a page,
         // because "which machine?" is a question with an answer, and the window
         // behind it is what you were looking at when you asked.
@@ -108,6 +108,15 @@ struct RootView: View {
         }
     }
 
+    private var tabChrome: some View {
+        VStack(spacing: 0) {
+            TabBarView(pinnedTabStripWidth: pinnedTabStripWidth)
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(height: Self.tabChromeDividerHeight)
+        }
+    }
+
     @ViewBuilder
     private var splitContent: some View {
         if window.selectedTopLevelTab == .vault {
@@ -116,9 +125,17 @@ struct RootView: View {
             // not reconstruct `VaultView` and discard an active query, selected
             // tags, scroll position, or search-field focus.
             NavigationSplitView(columnVisibility: sidebarVisibility) {
-                vaultSidebar
+                sidebarColumn {
+                    VaultSidebarView()
+                }
+                .navigationSplitViewColumnWidth(
+                    min: Metrics.Sidebar.min,
+                    ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
+                    max: sidebarMaxWidth
+                )
             } detail: {
                 vaultWorkspace
+                    .padding(.top, Self.tabChromeHeight)
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .named(Self.layoutSpace)).minX
                     } action: {
@@ -128,12 +145,14 @@ struct RootView: View {
             .navigationSplitViewStyle(.balanced)
         } else {
             NavigationSplitView(columnVisibility: sidebarVisibility) {
-                SidebarView(detailCatalog: .standard(store: app.hostLibrary))
-                    .navigationSplitViewColumnWidth(
-                        min: Metrics.Sidebar.min,
-                        ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
-                        max: sidebarMaxWidth
-                    )
+                sidebarColumn {
+                    SidebarView(detailCatalog: .standard(store: app.hostLibrary))
+                }
+                .navigationSplitViewColumnWidth(
+                    min: Metrics.Sidebar.min,
+                    ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
+                    max: sidebarMaxWidth
+                )
             } detail: {
                 VStack(spacing: 0) {
                     detail
@@ -141,6 +160,7 @@ struct RootView: View {
                         StatusBarView()
                     }
                 }
+                .padding(.top, Self.tabChromeHeight)
                 .frame(
                     minWidth: Metrics.Window.detailMin,
                     maxWidth: .infinity,
@@ -157,14 +177,19 @@ struct RootView: View {
         }
     }
 
-    private var vaultSidebar: some View {
-        VaultSidebarView()
-            .navigationSplitViewColumnWidth(
-                min: Metrics.Sidebar.min,
-                ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
-                max: sidebarMaxWidth
-            )
+    private func sidebarColumn<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ZStack {
+            SidebarMaterialBackground()
+                .ignoresSafeArea()
+            content()
+                .padding(.top, Self.tabChromeHeight)
+        }
     }
+
+    private static let tabChromeDividerHeight: CGFloat = 1
+    private static let tabChromeHeight = Metrics.TabBar.height + tabChromeDividerHeight
 
     private var sidebarMaxWidth: CGFloat {
         Metrics.Window.sidebarMaxWidth(for: layoutWidth)
@@ -270,4 +295,38 @@ struct RootView: View {
         }
     }
 
+}
+
+/// Makes the split view the actual full-height window content instead of
+/// leaving AppKit's title-bar fill as a separate surface above it.
+///
+/// The native toolbar and its sidebar toggle remain intact. Only the title-bar
+/// background becomes transparent, allowing the sidebar material that ignores
+/// the top safe area to continue behind the traffic lights in both windowed and
+/// full-screen layouts.
+private struct FullHeightWindowContent: NSViewRepresentable {
+    func makeNSView(context: Context) -> WindowContentBridgeView {
+        WindowContentBridgeView()
+    }
+
+    func updateNSView(_ view: WindowContentBridgeView, context: Context) {
+        view.configureWindow()
+    }
+}
+
+private final class WindowContentBridgeView: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        configureWindow()
+    }
+
+    func configureWindow() {
+        guard let window else { return }
+        if !window.styleMask.contains(.fullSizeContentView) {
+            window.styleMask.insert(.fullSizeContentView)
+        }
+        if !window.titlebarAppearsTransparent {
+            window.titlebarAppearsTransparent = true
+        }
+    }
 }

@@ -15,6 +15,7 @@ struct AssistantSidebarView: View {
                     window.openNewAssistantChat()
                 } label: {
                     Label("New Chat", systemImage: "plus.bubble")
+                        .padding(.leading, Metrics.Sidebar.navigationRowInset)
                         .frame(
                             maxWidth: .infinity,
                             minHeight: Metrics.Sidebar.navigationRowHeight,
@@ -287,7 +288,11 @@ private struct AssistantConversationList: View {
         case .section(let section):
             Text(section.title)
                 .termindSidebarSectionLabel()
-                .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(
+                    .horizontal,
+                    Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
+                )
                 .padding(.top, Metrics.Space.m)
                 .padding(.bottom, Metrics.Space.xs)
         case .conversation(let id, _, _, _, _, _, _, _):

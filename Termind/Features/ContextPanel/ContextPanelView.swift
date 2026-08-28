@@ -50,7 +50,6 @@ struct SidebarView: View {
         // picker floats in the middle of the column instead of sitting under the
         // toolbar.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .termindSidebarSurface()
         .onChange(of: availableDetails, initial: true) {
             window.sidebar.pruneSelections(available: availableDetails)
         }
@@ -171,7 +170,10 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
 private func contextSidebarSectionTitle(_ title: String) -> some View {
     Text(title)
         .termindSidebarSectionLabel()
-        .padding(.horizontal, Metrics.Space.m)
+        .padding(
+            .horizontal,
+            Metrics.Space.m + Metrics.Sidebar.rowHorizontalMargin
+        )
         .padding(.top, Metrics.Space.s)
 }
 

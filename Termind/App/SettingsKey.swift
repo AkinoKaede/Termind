@@ -21,8 +21,6 @@ nonisolated enum SettingsKey {
     static let defaultMCPServerEnabled = false
     static let defaultMCPServerPort = 7_391
 
-    /// Hide the `user@host` second line in sidebar rows.
-    static let compactSidebar = "sidebar.compact"
     /// Show the "Recents" section at all.
     static let showRecents = "sidebar.showRecents"
     /// Terminal palette name, matched against `GhosttyThemeCatalog`.

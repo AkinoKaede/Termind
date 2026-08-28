@@ -6,17 +6,16 @@ import SwiftUI
 struct VaultSidebarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-    @AppStorage(SettingsKey.compactSidebar) private var compactSidebar = false
     @AppStorage(SettingsKey.showRecents) private var showRecents = true
     var body: some View {
-        VaultNavigationNativeList(items: items, compactSidebar: compactSidebar) { item in
+        VaultNavigationNativeList(items: items) { item in
             renderedItem(item)
         }
-        .termindSidebarSurface()
     }
 
     private var items: [VaultNavigationItem] {
         var result: [VaultNavigationItem] = [
+            .section(.welcome),
             .page(.welcome, count: 0, selected: window.vaultDestination.page == .welcome),
             .section(.vault),
             .page(.hosts, count: app.hostLibrary.hosts.count, selected: window.vaultDestination.page == .hosts),
@@ -33,8 +32,7 @@ struct VaultSidebarView: View {
                 .recent(
                     host,
                     address: app.hostLibrary.loginAddress(for: host),
-                    status: app.hostLibrary.status(of: host.id),
-                    compact: compactSidebar
+                    status: app.hostLibrary.status(of: host.id)
                 )
             })
         }
@@ -47,12 +45,16 @@ struct VaultSidebarView: View {
         case .section(let section):
             Text(section.title)
                 .termindSidebarSectionLabel()
-                .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(
+                    .horizontal,
+                    Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
+                )
                 .padding(.top, Metrics.Space.m)
                 .padding(.bottom, Metrics.Space.xs)
         case .page(let page, let count, _):
             row(page, count: count)
-        case .recent(let host, _, _, _):
+        case .recent(let host, _, _):
             recentRow(host)
         }
     }
@@ -95,16 +97,8 @@ struct VaultSidebarView: View {
         } label: {
             HStack(spacing: Metrics.Space.s) {
                 StatusDot(status: app.hostLibrary.status(of: host.id))
-                VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-                    Text(host.name)
-                        .lineLimit(1)
-                    if !compactSidebar {
-                        Text(app.hostLibrary.loginAddress(for: host))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
+                Text(host.name)
+                    .lineLimit(1)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -125,11 +119,13 @@ struct VaultSidebarView: View {
 
 nonisolated struct VaultNavigationItem: Identifiable, Hashable, Sendable {
     nonisolated enum Section: Hashable, Sendable {
+        case welcome
         case vault
         case recents
 
         var title: LocalizedStringKey {
             switch self {
+            case .welcome: "Welcome"
             case .vault: "Vault"
             case .recents: "Recents"
             }
@@ -145,7 +141,7 @@ nonisolated struct VaultNavigationItem: Identifiable, Hashable, Sendable {
     nonisolated enum Content: Hashable, Sendable {
         case section(Section)
         case page(VaultPage, count: Int, selected: Bool)
-        case recent(Host, address: String, status: ConnectionStatus, compact: Bool)
+        case recent(Host, address: String, status: ConnectionStatus)
     }
 
     let id: ID
@@ -162,12 +158,11 @@ nonisolated struct VaultNavigationItem: Identifiable, Hashable, Sendable {
     static func recent(
         _ host: Host,
         address: String,
-        status: ConnectionStatus,
-        compact: Bool
+        status: ConnectionStatus
     ) -> Self {
         .init(
             id: .recent(host.id),
-            content: .recent(host, address: address, status: status, compact: compact)
+            content: .recent(host, address: address, status: status)
         )
     }
 
@@ -175,8 +170,8 @@ nonisolated struct VaultNavigationItem: Identifiable, Hashable, Sendable {
         switch content {
         case .section: 34
         case .page: Metrics.Sidebar.navigationRowHeight
-        case .recent(_, _, _, let compact):
-            compact ? Metrics.Sidebar.navigationRowHeight : 44
+        case .recent:
+            Metrics.Sidebar.navigationRowHeight
         }
     }
 }
@@ -186,7 +181,6 @@ private struct VaultNavigationNativeList: NSViewRepresentable {
     typealias Renderer = @MainActor (VaultNavigationItem) -> AnyView
 
     let items: [VaultNavigationItem]
-    let compactSidebar: Bool
     let renderer: Renderer
 
     @Environment(\.locale) private var locale
@@ -194,11 +188,9 @@ private struct VaultNavigationNativeList: NSViewRepresentable {
 
     init(
         items: [VaultNavigationItem],
-        compactSidebar: Bool,
         @ViewBuilder renderer: @escaping @MainActor (VaultNavigationItem) -> some View
     ) {
         self.items = items
-        self.compactSidebar = compactSidebar
         self.renderer = { AnyView(renderer($0)) }
     }
 
@@ -214,8 +206,7 @@ private struct VaultNavigationNativeList: NSViewRepresentable {
             items: items,
             renderer: renderer,
             locale: locale,
-            colorScheme: colorScheme,
-            compactSidebar: compactSidebar
+            colorScheme: colorScheme
         )
     }
 
@@ -244,8 +235,7 @@ private struct VaultNavigationNativeList: NSViewRepresentable {
             items: [VaultNavigationItem],
             renderer: @escaping Renderer,
             locale: Locale,
-            colorScheme: ColorScheme,
-            compactSidebar _: Bool
+            colorScheme: ColorScheme
         ) {
             self.renderer = renderer
             let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
