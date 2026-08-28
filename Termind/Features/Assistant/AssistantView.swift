@@ -383,20 +383,14 @@ private struct AssistantConversationList: View {
             return window.assistantLibrary.search(query, scope: .active).map(item)
         }
         var items: [AssistantConversationListItem] = [
-            .section(
-                .pinned,
-                isExpanded: pinnedExpanded,
-                count: window.assistantLibrary.pinnedConversations.count
-            )
+            .section(.pinned, count: window.assistantLibrary.pinnedConversations.count)
         ]
         if pinnedExpanded {
             items.append(contentsOf: window.assistantLibrary.pinnedConversations.map(item))
         }
-        items.append(.section(
-            .chats,
-            isExpanded: chatsExpanded,
-            count: window.assistantLibrary.activeConversations.count
-        ))
+        items.append(
+            .section(.chats, count: window.assistantLibrary.activeConversations.count)
+        )
         if chatsExpanded {
             items.append(contentsOf: window.assistantLibrary.activeConversations.map(item))
         }
@@ -428,8 +422,8 @@ private struct AssistantConversationList: View {
     @ViewBuilder
     private func renderedItem(_ item: AssistantConversationListItem) -> some View {
         switch item.content {
-        case .section(let section, let isExpanded, let count):
-            assistantSectionHeader(section, isExpanded: isExpanded, count: count)
+        case .section(let section, let count):
+            AssistantSectionHeaderRow(section: section, count: count)
         case .conversation(let id, _, _, _, _, _, _, _):
             if let conversation = window.assistantLibrary.conversation(id: id) {
                 AssistantConversationRow(
@@ -451,13 +445,61 @@ private struct AssistantConversationList: View {
         }
     }
 
-    private func assistantSectionHeader(
-        _ section: AssistantConversationListItem.Section,
-        isExpanded: Bool,
-        count: Int
-    ) -> some View {
-        return Button {
-            setExpanded(!isExpanded, for: section)
+    /// Used when something *other* than the header opens a section — dropping a
+    /// conversation into a folded one, or selecting a chat that lives in it.
+    /// The header itself toggles its own storage; see `AssistantSectionHeaderRow`.
+    private func setExpanded(
+        _ expanded: Bool,
+        for section: AssistantConversationListItem.Section
+    ) {
+        switch section {
+        case .pinned: pinnedExpanded = expanded
+        case .chats: chatsExpanded = expanded
+        }
+    }
+
+    private func beginRename(_ conversation: ConversationModel) {
+        renamingID = conversation.id
+        renameTitle = conversation.derivedTitle
+    }
+
+    private func commitRename(_ conversation: ConversationModel) {
+        let value = renameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        window.renameAssistantConversation(conversation.id, to: value)
+        cancelRename()
+    }
+
+    private func cancelRename() {
+        renamingID = nil
+        renameTitle = ""
+    }
+}
+
+/// Pinned and Chats, each folding itself.
+///
+/// The row reads and writes the expansion flag directly instead of being handed
+/// one by the list. That is what keeps the click safe: the list item's value
+/// never changes when a section folds, so ListViewKit has no reason to
+/// reconfigure this row's hosting view — which it would otherwise do while this
+/// Button was still dispatching, replacing the root view out from under it.
+///
+/// The number, the title and the chevron remain one hit region.
+private struct AssistantSectionHeaderRow: View {
+    let section: AssistantConversationListItem.Section
+    let count: Int
+
+    @AppStorage private var isExpanded: Bool
+
+    init(section: AssistantConversationListItem.Section, count: Int) {
+        self.section = section
+        self.count = count
+        _isExpanded = AppStorage(wrappedValue: true, section.expansionKey)
+    }
+
+    var body: some View {
+        Button {
+            isExpanded.toggle()
         } label: {
             HStack(spacing: Metrics.Space.s) {
                 Text(section.title)
@@ -482,45 +524,8 @@ private struct AssistantConversationList: View {
         .termindSidebarSectionLabel()
         .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
         .accessibilityAction(named: Text(isExpanded ? "Collapse" : "Expand")) {
-            setExpanded(!isExpanded, for: section)
+            isExpanded.toggle()
         }
-    }
-
-    /// Folding a section removes its rows, which makes ListViewKit recycle them
-    /// and reconfigure the header's hosting view. Doing that synchronously from
-    /// the header Button's own action replaces the root view of the Button that
-    /// is still dispatching — so the write is deferred by one main-loop turn and
-    /// the rebuild lands after the click has returned.
-    ///
-    /// The number, the title and the chevron remain one hit region: the button
-    /// is unchanged, only when its effect is applied.
-    private func setExpanded(
-        _ expanded: Bool,
-        for section: AssistantConversationListItem.Section
-    ) {
-        DispatchQueue.main.async {
-            switch section {
-            case .pinned: pinnedExpanded = expanded
-            case .chats: chatsExpanded = expanded
-            }
-        }
-    }
-
-    private func beginRename(_ conversation: ConversationModel) {
-        renamingID = conversation.id
-        renameTitle = conversation.derivedTitle
-    }
-
-    private func commitRename(_ conversation: ConversationModel) {
-        let value = renameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        window.renameAssistantConversation(conversation.id, to: value)
-        cancelRename()
-    }
-
-    private func cancelRename() {
-        renamingID = nil
-        renameTitle = ""
     }
 }
 
@@ -535,6 +540,15 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
             case .chats: "Chats"
             }
         }
+
+        /// The header row reads this itself rather than being handed a flag —
+        /// see `AssistantSectionHeaderRow`.
+        var expansionKey: String {
+            switch self {
+            case .pinned: SettingsKey.pinnedChatsSectionExpanded
+            case .chats: SettingsKey.chatsSectionExpanded
+            }
+        }
     }
 
     nonisolated enum ID: Hashable, Sendable {
@@ -543,7 +557,11 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     }
 
     nonisolated enum Content: Hashable, Sendable {
-        case section(Section, isExpanded: Bool, count: Int)
+        /// Deliberately without an expansion flag. Folding a section would
+        /// otherwise change this value, which makes ListViewKit reconfigure the
+        /// header's hosting view — replacing the root view of the very Button
+        /// that is still dispatching the click. The row owns that state now.
+        case section(Section, count: Int)
         case conversation(
             id: UUID,
             title: String,
@@ -559,15 +577,8 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     let id: ID
     let content: Content
 
-    static func section(
-        _ section: Section,
-        isExpanded: Bool = true,
-        count: Int = 0
-    ) -> Self {
-        .init(
-            id: .section(section),
-            content: .section(section, isExpanded: isExpanded, count: count)
-        )
+    static func section(_ section: Section, count: Int = 0) -> Self {
+        .init(id: .section(section), content: .section(section, count: count))
     }
 
     static func conversation(
@@ -600,7 +611,7 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     }
 
     var section: Section? {
-        guard case .section(let section, _, _) = content else { return nil }
+        guard case .section(let section, _) = content else { return nil }
         return section
     }
 

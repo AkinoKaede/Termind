@@ -57,6 +57,7 @@ struct RootView: View {
         .background { FullHeightWindowContent() }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { layoutWidth = $0 }
         .toolbarBackground(.hidden, for: .windowToolbar)
+        .navigationTitle(WindowTitleCatalog.standard(hosts: app.hostLibrary).title(in: window))
         // The window's only toolbar. Creation on the left, one Find on the
         // right, both following the content in front rather than the sidebar —
         // see `WindowToolbarLeadingActions` and `WindowModel.findKind`.

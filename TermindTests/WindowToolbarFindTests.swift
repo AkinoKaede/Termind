@@ -138,6 +138,56 @@ struct WindowToolbarFindTests {
         #expect(window.vaultPages.query(for: .snippets) == "restart")
     }
 
+    @Test
+    func titlebarNamesTheContentInFront() {
+        let window = WindowModel()
+        let title = VaultWindowTitleProvider()
+
+        // Welcome is the app's front door, so it is named after the app.
+        window.openPage(.welcome)
+        #expect(title.title(in: window) == ApplicationIdentity.displayName)
+
+        window.openPage(.hosts)
+        #expect(title.title(in: window) == VaultPage.hosts.title)
+
+        window.openPage(.keychain)
+        #expect(title.title(in: window) == VaultPage.keychain.title)
+
+        window.openPage(.snippets)
+        #expect(title.title(in: window) == VaultPage.snippets.title)
+    }
+
+    /// Each provider answers only for its own destination, so the catalog can
+    /// gain one without the others — or the window — being told.
+    @Test
+    func aTitleProviderDeclinesDestinationsThatAreNotItsOwn() {
+        let window = WindowModel()
+        window.selectAssistant()
+
+        #expect(VaultWindowTitleProvider().title(in: window) == nil)
+        #expect(AssistantWindowTitleProvider().title(in: window) != nil)
+    }
+
+    /// The Assistant names the conversation, not the destination.
+    @Test
+    func assistantTitleFollowsTheConversation() {
+        let store = AssistantConversationStore()
+        let conversation = ConversationModel()
+        conversation.customTitle = "Nginx rollout"
+        store.insert(conversation)
+        let window = WindowModel(assistantLibrary: AssistantLibraryModel(store: store))
+        let title = AssistantWindowTitleProvider()
+
+        window.selectAssistant()
+        #expect(title.title(in: window) == String(localized: "New Chat"))
+
+        window.selectAssistant(conversation.id)
+        #expect(title.title(in: window) == "Nginx rollout")
+
+        window.showAssistantArchive()
+        #expect(title.title(in: window) == String(localized: "Archived"))
+    }
+
     /// A tag stops existing when its last host loses it, so a filter pinned to
     /// it has to go too — otherwise the page sits empty with no way back.
     @Test

@@ -149,6 +149,30 @@ struct NativeSearchField: NSViewRepresentable {
         func controlTextDidChange(_ notification: Notification) {
             guard let searchField = notification.object as? NSSearchField else { return }
             field.text = searchField.stringValue
+            reclaimKeyboardIfTaken(from: searchField)
+        }
+
+        /// Some destinations take the keyboard as a *side effect of being
+        /// searched*: Ghostty focuses its terminal surface when a `search:`
+        /// binding runs, and the SFTP list is held focused declaratively and
+        /// gets it back when filtering rebuilds the rows. Either way the caret
+        /// left after one letter and the rest of the word went to the pane.
+        ///
+        /// Only ever runs immediately after a text change, so clicking away
+        /// deliberately is untouched — that produces no change to react to.
+        private func reclaimKeyboardIfTaken(from searchField: NSSearchField) {
+            DispatchQueue.main.async { [weak searchField] in
+                guard let searchField, let window = searchField.window else { return }
+                let responder = window.firstResponder
+                guard responder !== searchField,
+                    responder !== searchField.currentEditor()
+                else { return }
+                window.makeFirstResponder(searchField)
+                // Back to where the user was typing, not the start of the word.
+                searchField.currentEditor()?.selectedRange = NSRange(
+                    location: searchField.stringValue.utf16.count, length: 0
+                )
+            }
         }
 
         func controlTextDidBeginEditing(_ notification: Notification) {
@@ -204,20 +228,32 @@ struct WindowToolbarFindField: View {
     @Environment(WindowModel.self) private var window
 
     var body: some View {
-        if let context = window.findContext() {
-            NativeSearchField(
-                text: context.query,
-                placeholder: String(localized: "Search"),
-                focusRequest: context.focusRequest,
-                navigate: context.navigate,
-                cancel: context.cancel,
-                menuItems: context.menuItems,
-                onFocusChange: { window.isToolbarFindFocused = $0 }
-            )
-            .frame(width: Metrics.Toolbar.searchFieldWidth)
-            .help(Text(context.kind.help))
-            .accessibilityLabel(Text(context.kind.help))
+        Group {
+            if let context = window.findContext() {
+                NativeSearchField(
+                    text: context.query,
+                    placeholder: String(localized: "Search"),
+                    focusRequest: context.focusRequest,
+                    navigate: context.navigate,
+                    cancel: context.cancel,
+                    menuItems: context.menuItems,
+                    onFocusChange: { window.isToolbarFindFocused = $0 }
+                )
+                .frame(width: Metrics.Toolbar.searchFieldWidth)
+                .help(Text(context.kind.help))
+                .accessibilityLabel(Text(context.kind.help))
+            } else {
+                // Zero width, full height. A toolbar with nothing in it is
+                // shorter than one holding a search field, and the titlebar
+                // resizing takes the window's content up with it — which is
+                // what made a connection started from the sidebar shove the
+                // journey view upward as the destination changed from Vault
+                // to a Workspace. Reserving the height keeps the toolbar one
+                // size for every destination, without leaving a phantom slot.
+                Color.clear.frame(width: 0)
+            }
         }
+        .frame(height: Metrics.Toolbar.height)
     }
 }
 

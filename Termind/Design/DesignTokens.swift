@@ -70,6 +70,11 @@ nonisolated enum Metrics {
         /// Wide enough for a login address or a middling command without
         /// truncating, and narrow enough to leave the titlebar mostly window.
         static let searchFieldWidth: CGFloat = 220
+        /// Reserved by every destination, including the ones with nothing to
+        /// search. AppKit sizes the titlebar to its tallest item, so a toolbar
+        /// that empties out is a titlebar that shrinks — and a window whose
+        /// content jumps upward the moment the front destination changes.
+        static let height: CGFloat = 24
     }
 
     /// Splits inside a Workspace. Proportions are stored on the layout tree —

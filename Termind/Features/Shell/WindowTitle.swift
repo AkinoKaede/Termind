@@ -1,0 +1,79 @@
+import Foundation
+
+/// What the titlebar calls whatever is in front.
+///
+/// A catalog of providers rather than a switch inside `WindowModel`, for the
+/// same reason `ContextPanelDetailCatalog` exists: the window should not have to
+/// know that a Workspace is named after the host it connects to, or that the
+/// Assistant is named after a conversation rather than after itself. Each
+/// feature answers for its own destination and returns nil for the others; the
+/// window only asks, and gains nothing to update when a new destination is added.
+protocol WindowTitleProviding {
+    /// nil when the destination in front is not this provider's to name.
+    func title(in window: WindowModel) -> String?
+}
+
+struct AnyWindowTitleProvider: WindowTitleProviding {
+    private let resolve: (WindowModel) -> String?
+
+    init<P: WindowTitleProviding>(_ provider: P) {
+        resolve = provider.title(in:)
+    }
+
+    func title(in window: WindowModel) -> String? { resolve(window) }
+}
+
+struct WindowTitleCatalog {
+    private let providers: [AnyWindowTitleProvider]
+
+    init(_ providers: [AnyWindowTitleProvider]) {
+        self.providers = providers
+    }
+
+    /// The first provider that claims the destination. Empty when none does,
+    /// which AppKit renders as no title at all rather than as a blank slot.
+    func title(in window: WindowModel) -> String {
+        providers.lazy.compactMap { $0.title(in: window) }.first ?? ""
+    }
+
+    static func standard(hosts: HostLibraryModel) -> Self {
+        Self([
+            AnyWindowTitleProvider(VaultWindowTitleProvider()),
+            AnyWindowTitleProvider(AssistantWindowTitleProvider()),
+            AnyWindowTitleProvider(WorkspaceWindowTitleProvider(hosts: hosts)),
+        ])
+    }
+}
+
+/// Vault pages are named after themselves — except Welcome, which is the app's
+/// front door and so is named after the app.
+struct VaultWindowTitleProvider: WindowTitleProviding {
+    func title(in window: WindowModel) -> String? {
+        guard window.selectedDestination == .vault,
+            let page = window.vaultDestination.page
+        else { return nil }
+        return page == .welcome ? ApplicationIdentity.displayName : page.title
+    }
+}
+
+/// The Assistant names the conversation, not the destination. "Assistant" is
+/// where you are; which chat you are in is the part worth reading from across
+/// the desk.
+struct AssistantWindowTitleProvider: WindowTitleProviding {
+    func title(in window: WindowModel) -> String? {
+        guard window.selectedDestination == .assistant else { return nil }
+        if window.isAssistantArchivePresented { return String(localized: "Archived") }
+        return window.assistantLibrary.selectedConversation?.derivedTitle
+            ?? String(localized: "New Chat")
+    }
+}
+
+/// A Workspace is named by whatever it holds — see `Workspace.title(in:)`.
+struct WorkspaceWindowTitleProvider: WindowTitleProviding {
+    let hosts: HostLibraryModel
+
+    func title(in window: WindowModel) -> String? {
+        guard let workspace = window.selectedWorkspace else { return nil }
+        return workspace.title(in: hosts)
+    }
+}
