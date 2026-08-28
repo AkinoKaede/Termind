@@ -1,9 +1,199 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import ListViewKit
 
 #if canImport(AppKit)
     import AppKit
 #endif
+
+nonisolated struct SFTPFileListItem: Identifiable, Hashable, Sendable {
+    let row: SFTPRow
+    let isSelected: Bool
+    let isEmphasized: Bool
+    let isHovered: Bool
+    let layoutKey: Int
+
+    var id: RemoteFile.ID { row.id }
+}
+
+nonisolated struct SFTPFileScrollRequest: Equatable, Sendable {
+    nonisolated enum Position: Equatable, Sendable {
+        case nearest
+        case top
+    }
+
+    let token = UUID()
+    let targetID: RemoteFile.ID
+    let position: Position
+}
+
+private struct SFTPFileNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<SFTPFileListItem>
+    typealias Renderer = @MainActor (SFTPFileListItem) -> AnyView
+
+    let items: [SFTPFileListItem]
+    let scrollRequest: SFTPFileScrollRequest?
+    let onBackgroundClick: @MainActor () -> Void
+    let renderer: Renderer
+
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [SFTPFileListItem],
+        scrollRequest: SFTPFileScrollRequest?,
+        onBackgroundClick: @escaping @MainActor () -> Void,
+        @ViewBuilder renderer: @escaping @MainActor (SFTPFileListItem) -> some View
+    ) {
+        self.items = items
+        self.scrollRequest = scrollRequest
+        self.onBackgroundClick = onBackgroundClick
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSViewType {
+        context.coordinator.makeListView()
+    }
+
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView,
+            items: items,
+            scrollRequest: scrollRequest,
+            onBackgroundClick: onBackgroundClick,
+            renderer: renderer,
+            locale: locale,
+            colorScheme: colorScheme
+        )
+    }
+
+    static func dismantleNSView(_ nsView: NSViewType, coordinator: Coordinator) {
+        coordinator.stopObservingClicks()
+    }
+
+    @MainActor
+    final class Coordinator: NSObject {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [SFTPFileListItem] = []
+        private var lastScrollToken: UUID?
+        private var onBackgroundClick: (@MainActor () -> Void)?
+        private weak var listView: NSViewType?
+        private var clickMonitor: Any?
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            self.listView = listView
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = 48
+            listView.rows {
+                ListRow(SFTPFileHostingRow.self)
+                    .height { _, _ in 48 }
+                    .configure { [weak self] row, item, _ in
+                        self?.configure(row, item: item)
+                    }
+            }
+            clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) {
+                [weak self] event in
+                self?.observeClick(event)
+                return event
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType,
+            items: [SFTPFileListItem],
+            scrollRequest: SFTPFileScrollRequest?,
+            onBackgroundClick: @escaping @MainActor () -> Void,
+            renderer: @escaping Renderer,
+            locale: Locale,
+            colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            self.onBackgroundClick = onBackgroundClick
+
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items)
+            }
+            content = items
+
+            if let request = scrollRequest, request.token != lastScrollToken {
+                lastScrollToken = request.token
+                listView.scrollToRow(
+                    with: request.targetID,
+                    at: request.position == .top ? .top : .nearest,
+                    animated: false
+                )
+            }
+        }
+
+        private func configure(_ row: SFTPFileHostingRow, item: SFTPFileListItem) {
+            guard let renderer else { return }
+            let content = renderer(item)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(content))
+        }
+
+        func stopObservingClicks() {
+            if let clickMonitor {
+                NSEvent.removeMonitor(clickMonitor)
+                self.clickMonitor = nil
+            }
+        }
+
+        private func observeClick(_ event: NSEvent) {
+            guard let listView, event.window === listView.window else { return }
+            let point = listView.convert(event.locationInWindow, from: nil)
+            guard listView.bounds.contains(point) else { return }
+            var hit = listView.hitTest(point)
+            while let current = hit {
+                if current is ListRowView { return }
+                if current is NSScroller { return }
+                if current === listView { break }
+                hit = current.superview
+            }
+            onBackgroundClick?()
+        }
+    }
+}
+
+@MainActor
+private final class SFTPFileHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+
+    func configure(rootView: AnyView) {
+        hostingView.rootView = rootView
+    }
+}
 
 struct SFTPBrowserView: View {
     nonisolated private enum Layout: Equatable, Sendable {
@@ -40,6 +230,7 @@ struct SFTPBrowserView: View {
     @State private var hoveredFileID: RemoteFile.ID?
     @State private var editsPath = false
     @State private var showsCompactSearch = false
+    @State private var fileScrollRequest: SFTPFileScrollRequest?
     @FocusState private var listFocused: Bool
     @FocusState private var pathFocused: Bool
     @FocusState private var searchFocused: Bool
@@ -501,40 +692,24 @@ struct SFTPBrowserView: View {
         VStack(spacing: 0) {
             columnHeader(layout: layout)
 
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(sftpSession.visibleRows) { row in
-                            fileRow(row, layout: layout).id(row.id)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .scrollIndicators(.automatic)
-                .background {
-                    Color.clear
-                        .contentShape(.rect)
-                        .onTapGesture {
-                            focusPane()
-                            sftpSession.selection.removeAll()
-                            selectionAnchor = nil
-                            selectionCursor = nil
-                            listFocused = true
-                        }
-                }
+            SFTPFileNativeList(
+                items: fileListItems(layout: layout),
+                scrollRequest: fileScrollRequest,
+                onBackgroundClick: clearFileSelection
+            ) { item in
+                fileRow(item.row, layout: layout)
+            }
                 .focusable()
                 .focusEffectDisabled()
                 .focused($listFocused)
                 .onKeyPress(.upArrow) {
                     moveSelection(
-                        by: -1, extending: NSEvent.modifierFlags.contains(.shift),
-                        proxy: proxy
+                        by: -1, extending: NSEvent.modifierFlags.contains(.shift)
                     )
                 }
                 .onKeyPress(.downArrow) {
                     moveSelection(
-                        by: 1, extending: NSEvent.modifierFlags.contains(.shift),
-                        proxy: proxy
+                        by: 1, extending: NSEvent.modifierFlags.contains(.shift)
                     )
                 }
                 .onKeyPress(.return) {
@@ -549,9 +724,36 @@ struct SFTPBrowserView: View {
                     selectionCursor = sftpSession.filteredFiles.last?.id
                     return .handled
                 }
-            }
         }
         .background(.background)
+    }
+
+    private func fileListItems(layout: Layout) -> [SFTPFileListItem] {
+        let emphasized = isPaneFocused && !pathFocused && !searchFocused
+            && controlActiveState == .key
+        let layoutKey: Int
+        switch layout {
+        case .full: layoutKey = 2
+        case .medium: layoutKey = 1
+        case .compact: layoutKey = 0
+        }
+        return sftpSession.visibleRows.map { row in
+            SFTPFileListItem(
+                row: row,
+                isSelected: sftpSession.selection.contains(row.id),
+                isEmphasized: emphasized,
+                isHovered: hoveredFileID == row.id,
+                layoutKey: layoutKey
+            )
+        }
+    }
+
+    private func clearFileSelection() {
+        focusPane()
+        sftpSession.selection.removeAll()
+        selectionAnchor = nil
+        selectionCursor = nil
+        listFocused = true
     }
 
     private func columnHeader(layout: Layout) -> some View {
@@ -840,7 +1042,7 @@ struct SFTPBrowserView: View {
     }
 
     private func moveSelection(
-        by offset: Int, extending: Bool, proxy: ScrollViewProxy
+        by offset: Int, extending: Bool
     ) -> KeyPress.Result {
         let files = sftpSession.filteredFiles
         guard !files.isEmpty else { return .ignored }
@@ -861,7 +1063,10 @@ struct SFTPBrowserView: View {
             selectionAnchor = target.id
         }
         selectionCursor = target.id
-        proxy.scrollTo(target.id, anchor: targetIndex == 0 ? .top : nil)
+        fileScrollRequest = SFTPFileScrollRequest(
+            targetID: target.id,
+            position: targetIndex == 0 ? .top : .nearest
+        )
         return .handled
     }
 

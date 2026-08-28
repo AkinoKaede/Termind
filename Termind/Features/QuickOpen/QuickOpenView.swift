@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 
 struct QuickOpenView: View {
@@ -24,6 +26,8 @@ struct QuickOpenView: View {
                     .font(.title3)
                     .focused($searchFocused)
                     .onSubmit(performSelection)
+                    .onKeyPress(.upArrow) { moveSelection(by: -1) }
+                    .onKeyPress(.downArrow) { moveSelection(by: 1) }
             }
             .padding(Metrics.Space.l)
 
@@ -33,7 +37,8 @@ struct QuickOpenView: View {
                 ContentUnavailableView.search(text: query)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(matches, selection: $selectedID) { command in
+                QuickOpenNativeList(items: quickOpenItems) { item in
+                    let command = item.command
                     Button {
                         perform(command)
                     } label: {
@@ -53,11 +58,13 @@ struct QuickOpenView: View {
                             Spacer(minLength: 0)
                         }
                         .contentShape(.rect)
+                        .background(
+                            item.isSelected
+                                ? Color.accentColor.opacity(0.16) : Color.clear
+                        )
                     }
                     .buttonStyle(.plain)
-                    .tag(command.id)
                 }
-                .listStyle(.plain)
             }
         }
         .frame(width: 620, height: 430)
@@ -68,6 +75,18 @@ struct QuickOpenView: View {
         .onChange(of: query) {
             selectedID = matches.first?.id
         }
+    }
+
+    private var quickOpenItems: [QuickOpenListItem] {
+        matches.map { QuickOpenListItem(command: $0, isSelected: selectedID == $0.id) }
+    }
+
+    private func moveSelection(by offset: Int) -> KeyPress.Result {
+        guard !matches.isEmpty else { return .ignored }
+        let current = selectedID.flatMap { id in matches.firstIndex { $0.id == id } }
+            ?? (offset > 0 ? -1 : matches.count)
+        selectedID = matches[min(max(current + offset, 0), matches.count - 1)].id
+        return .handled
     }
 
     private func performSelection() {
@@ -84,4 +103,108 @@ struct QuickOpenView: View {
         )
         dismiss()
     }
+}
+
+nonisolated struct QuickOpenListItem: Identifiable, Hashable, Sendable {
+    let command: AppCommandDescriptor
+    let isSelected: Bool
+    var id: AppCommandDescriptor.ID { command.id }
+}
+
+private struct QuickOpenNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<QuickOpenListItem>
+    typealias Renderer = @MainActor (QuickOpenListItem) -> AnyView
+
+    let items: [QuickOpenListItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [QuickOpenListItem],
+        @ViewBuilder renderer: @escaping @MainActor (QuickOpenListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [QuickOpenListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = 54
+            listView.rows {
+                ListRow(QuickOpenHostingRow.self)
+                    .height { _, _ in 54 }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [QuickOpenListItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items)
+            }
+            content = items
+            if let selected = items.first(where: \.isSelected) {
+                listView.scrollToRow(with: selected.id, at: .nearest, animated: false)
+            }
+        }
+
+        private func configure(_ row: QuickOpenHostingRow, item: QuickOpenListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class QuickOpenHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }

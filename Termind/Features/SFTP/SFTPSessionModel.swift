@@ -35,7 +35,7 @@ nonisolated enum SFTPFileSortDirection: String, Sendable {
 /// being re-run dozens of times a frame for text that only changes when the
 /// directory does. Rendering them once per listing moves that cost off the
 /// drag entirely.
-nonisolated struct SFTPRow: Identifiable, Sendable {
+nonisolated struct SFTPRow: Identifiable, Hashable, Sendable {
     let file: RemoteFile
     let sizeText: String
     let modifiedText: String

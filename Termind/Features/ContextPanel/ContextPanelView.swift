@@ -1,4 +1,5 @@
 import AppKit
+import ListViewKit
 import SwiftUI
 
 /// The window's one left-hand column.
@@ -112,6 +113,173 @@ struct SidebarView: View {
     }
 }
 
+nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
+    nonisolated enum SectionID: Hashable, Sendable {
+        case package(UUID)
+        case ungrouped
+        case recents
+        case results
+    }
+
+    nonisolated enum ID: Hashable, Sendable {
+        case section(SectionID)
+        case snippet(Snippet.ID)
+        case history(CommandHistoryEntry.ID)
+    }
+
+    nonisolated enum Content: Hashable, Sendable {
+        case section(SectionID, title: String)
+        case snippet(Snippet)
+        case history(CommandHistoryEntry, isNaming: Bool)
+    }
+
+    let id: ID
+    let content: Content
+
+    static func section(_ id: SectionID, title: String) -> Self {
+        .init(id: .section(id), content: .section(id, title: title))
+    }
+
+    static func snippet(_ snippet: Snippet) -> Self {
+        .init(id: .snippet(snippet.id), content: .snippet(snippet))
+    }
+
+    static func history(_ entry: CommandHistoryEntry, isNaming: Bool) -> Self {
+        .init(id: .history(entry.id), content: .history(entry, isNaming: isNaming))
+    }
+
+    var height: CGFloat {
+        switch content {
+        case .section: 32
+        case .snippet: 46
+        case .history(_, let isNaming): isNaming ? 58 : 46
+        }
+    }
+}
+
+private func contextSidebarSectionTitle(_ title: String) -> some View {
+    Text(title)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, Metrics.Space.m)
+        .padding(.top, Metrics.Space.s)
+}
+
+private struct ContextSidebarNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<ContextSidebarListItem>
+    typealias Renderer = @MainActor (ContextSidebarListItem) -> AnyView
+
+    let items: [ContextSidebarListItem]
+    let renderer: Renderer
+
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [ContextSidebarListItem],
+        @ViewBuilder renderer: @escaping @MainActor (ContextSidebarListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSViewType {
+        context.coordinator.makeListView()
+    }
+
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView,
+            items: items,
+            renderer: renderer,
+            locale: locale,
+            colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [ContextSidebarListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.topInset = Metrics.Space.xs
+            listView.bottomInset = Metrics.Space.xs
+            listView.estimatedRowHeight = 46
+            listView.rows {
+                ListRow(ContextSidebarHostingRow.self)
+                    .height { item, _ in item.height }
+                    .configure { [weak self] row, item, _ in
+                        self?.configure(row, item: item)
+                    }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType,
+            items: [ContextSidebarListItem],
+            renderer: @escaping Renderer,
+            locale: Locale,
+            colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+        }
+
+        private func configure(_ row: ContextSidebarHostingRow, item: ContextSidebarListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class ContextSidebarHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+
+    func configure(rootView: AnyView) {
+        hostingView.rootView = rootView
+    }
+}
+
 // MARK: - Session Snippets
 
 /// The compact command shelf shown only while a terminal pane has focus.
@@ -134,23 +302,16 @@ private struct SSHSessionSnippetsSidebar: View {
                 ContentUnavailableView.search(text: query)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    if query.isEmpty {
-                        ForEach(packageSections, id: \.package.id) { section in
-                            if !section.snippets.isEmpty {
-                                Section(section.path) {
-                                    snippetRows(section.snippets)
-                                }
-                            }
-                        }
-                        if !ungrouped.isEmpty {
-                            Section("Ungrouped") { snippetRows(ungrouped) }
-                        }
-                    } else {
-                        Section("Results") { snippetRows(displayedSnippets) }
+                ContextSidebarNativeList(items: snippetListItems) { item in
+                    switch item.content {
+                    case .section(_, let title):
+                        contextSidebarSectionTitle(title)
+                    case .snippet(let snippet):
+                        snippetRow(snippet)
+                    case .history:
+                        EmptyView()
                     }
                 }
-                .listStyle(.sidebar)
             }
 
             Divider()
@@ -176,19 +337,34 @@ private struct SSHSessionSnippetsSidebar: View {
         }
     }
 
-    @ViewBuilder
-    private func snippetRows(_ snippets: [Snippet]) -> some View {
-        ForEach(snippets) { snippet in
-            SSHSessionSnippetRow(snippet: snippet)
-                .contentShape(.rect)
-                .onTapGesture(count: 2) { execute(snippet) }
-                .onTapGesture { insert(snippet) }
-                .contextMenu {
-                    Button("Copy") { copyToPasteboard(snippet.body) }
-                    Button("Insert") { insert(snippet) }
-                    Button("Execute") { execute(snippet) }
-                }
+    private var snippetListItems: [ContextSidebarListItem] {
+        if !query.isEmpty {
+            return [.section(.results, title: "Results")]
+                + displayedSnippets.map(ContextSidebarListItem.snippet)
         }
+        var items: [ContextSidebarListItem] = []
+        for section in packageSections where !section.snippets.isEmpty {
+            items.append(.section(.package(section.package.id), title: section.path))
+            items.append(contentsOf: section.snippets.map(ContextSidebarListItem.snippet))
+        }
+        if !ungrouped.isEmpty {
+            items.append(.section(.ungrouped, title: "Ungrouped"))
+            items.append(contentsOf: ungrouped.map(ContextSidebarListItem.snippet))
+        }
+        return items
+    }
+
+    private func snippetRow(_ snippet: Snippet) -> some View {
+        SSHSessionSnippetRow(snippet: snippet)
+            .padding(.horizontal, Metrics.Space.m)
+            .contentShape(.rect)
+            .onTapGesture(count: 2) { execute(snippet) }
+            .onTapGesture { insert(snippet) }
+            .contextMenu {
+                Button("Copy") { copyToPasteboard(snippet.body) }
+                Button("Insert") { insert(snippet) }
+                Button("Execute") { execute(snippet) }
+            }
     }
 
     private var displayedSnippets: [Snippet] {
@@ -276,14 +452,17 @@ private struct SSHSessionHistorySidebar: View {
                 emptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    Section(query.isEmpty ? "Recents" : "Results") {
-                        ForEach(allEntries) { entry in
-                            historyRow(entry)
-                        }
+                ContextSidebarNativeList(items: historyListItems) { item in
+                    switch item.content {
+                    case .section(_, let title):
+                        contextSidebarSectionTitle(title)
+                    case .history(let entry, _):
+                        historyRow(entry)
+                            .padding(.horizontal, Metrics.Space.m)
+                    case .snippet:
+                        EmptyView()
                     }
                 }
-                .listStyle(.sidebar)
             }
 
             if sshSession?.status.isLive == true,
@@ -377,6 +556,13 @@ private struct SSHSessionHistorySidebar: View {
                     Button("Clear History", role: .destructive) { confirmsClear = true }
                 }
         }
+    }
+
+    private var historyListItems: [ContextSidebarListItem] {
+        [.section(query.isEmpty ? .recents : .results, title: query.isEmpty ? "Recents" : "Results")]
+            + allEntries.map {
+                .history($0, isNaming: namingEntryID == $0.id)
+            }
     }
 
     @ViewBuilder

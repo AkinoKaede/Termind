@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 
 /// The palette that opens when a draft starts with `/`.
@@ -24,36 +26,29 @@ struct SlashCommandMenuView: View {
     var onSelect: (ChatSlashCommandCompletion.Row) -> Void
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(completion.rows.enumerated()), id: \.element.id) { index, row in
-                        self.row(row, isSelected: index == selection)
-                            .id(row.id)
-                            .onHover { inside in
-                                if inside { onHover(index) }
-                            }
-                    }
+        SlashCommandNativeList(items: listItems, scrollRequest: scrollRequest) { item in
+            row(item.row, isSelected: item.isSelected)
+                .onHover { inside in
+                    if inside { onHover(item.index) }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .onAppear { scrollSelectionIntoView(using: proxy) }
-            .onChange(of: scrollRequest) { _, _ in
-                scrollSelectionIntoView(using: proxy)
-            }
-            .onChange(of: completion.rows) { _, _ in
-                scrollSelectionIntoView(using: proxy)
-            }
         }
         // Naturally sized until it would be taller than this. `basedOnSize` is
         // what stops a short list from rubber-banding when the pointer crosses
         // it while longer command and option lists remain scrollable.
-        .frame(maxHeight: Metrics.Chat.slashMenuMaxHeight)
-        .scrollBounceBehavior(.basedOnSize)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(height: listHeight)
         .composerBlock()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Commands"))
+    }
+
+    private var listItems: [SlashCommandListItem] {
+        Array(completion.rows.enumerated()).map { index, row in
+            SlashCommandListItem(index: index, row: row, isSelected: index == selection)
+        }
+    }
+
+    private var listHeight: CGFloat {
+        min(Metrics.Chat.slashMenuMaxHeight, CGFloat(completion.rows.count) * 34)
     }
 
     private func row(
@@ -129,13 +124,118 @@ struct SlashCommandMenuView: View {
         }
     }
 
-    private var selectedRowID: ChatSlashCommandCompletion.Row.ID? {
-        guard completion.rows.indices.contains(selection) else { return nil }
-        return completion.rows[selection].id
+}
+
+nonisolated private struct SlashCommandListItem: Identifiable, Hashable, Sendable {
+    let index: Int
+    let row: ChatSlashCommandCompletion.Row
+    let isSelected: Bool
+    var id: ChatSlashCommandCompletion.Row.ID { row.id }
+}
+
+private struct SlashCommandNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<SlashCommandListItem>
+    typealias Renderer = @MainActor (SlashCommandListItem) -> AnyView
+
+    let items: [SlashCommandListItem]
+    let scrollRequest: Int
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [SlashCommandListItem],
+        scrollRequest: Int,
+        @ViewBuilder renderer: @escaping @MainActor (SlashCommandListItem) -> some View
+    ) {
+        self.items = items
+        self.scrollRequest = scrollRequest
+        self.renderer = { AnyView(renderer($0)) }
     }
 
-    private func scrollSelectionIntoView(using proxy: ScrollViewProxy) {
-        guard let selectedRowID else { return }
-        proxy.scrollTo(selectedRowID)
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, scrollRequest: scrollRequest,
+            renderer: renderer, locale: locale, colorScheme: colorScheme
+        )
     }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [SlashCommandListItem] = []
+        private var lastScrollRequest: Int?
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = 34
+            listView.rows {
+                ListRow(SlashCommandHostingRow.self)
+                    .height { _, _ in 34 }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [SlashCommandListItem], scrollRequest: Int,
+            renderer: @escaping Renderer, locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            let identitiesChanged = content.map(\.id) != items.map(\.id)
+            if !identitiesChanged {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+
+            if identitiesChanged || lastScrollRequest != scrollRequest {
+                lastScrollRequest = scrollRequest
+                if let selected = items.first(where: \.isSelected) {
+                    listView.scrollToRow(with: selected.id, at: .nearest, animated: false)
+                }
+            }
+        }
+
+        private func configure(_ row: SlashCommandHostingRow, item: SlashCommandListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class SlashCommandHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }

@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -1075,15 +1077,31 @@ struct ExportKeyToHostsSheet: View {
         } else if hosts.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
-            ScrollView {
-                LazyVStack(spacing: Metrics.Space.xxs) {
-                    ForEach(hosts) { host in
-                        row(for: host)
-                    }
-                }
-                .padding(.horizontal, Metrics.Space.l)
-                .padding(.vertical, Metrics.Space.s)
+            ExportHostNativeList(items: exportHostItems) { item in
+                row(for: item.host)
             }
+            .padding(.horizontal, Metrics.Space.l)
+            .padding(.vertical, Metrics.Space.s)
+        }
+    }
+
+    private var exportHostItems: [ExportHostListItem] {
+        hosts.map { host in
+            let stateKey: String
+            switch states[host.id] {
+            case .running: stateKey = "running"
+            case .succeeded: stateKey = "succeeded"
+            case .failed(let message): stateKey = "failed:\(message)"
+            case nil: stateKey = "idle"
+            }
+            return ExportHostListItem(
+                host: host,
+                isCursor: chooser.cursor == host.id,
+                isSelected: chooser.selected.contains(host.id),
+                unavailable: app.credentials.keyExportUnavailableReason(for: host),
+                stateKey: stateKey,
+                isDisabled: isExporting || isFinished
+            )
         }
     }
 
@@ -1287,6 +1305,113 @@ struct ExportKeyToHostsSheet: View {
             }
         }
     }
+}
+
+nonisolated private struct ExportHostListItem: Identifiable, Hashable, Sendable {
+    let host: Host
+    let isCursor: Bool
+    let isSelected: Bool
+    let unavailable: String?
+    let stateKey: String
+    let isDisabled: Bool
+    var id: Host.ID { host.id }
+}
+
+private struct ExportHostNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<ExportHostListItem>
+    typealias Renderer = @MainActor (ExportHostListItem) -> AnyView
+    let items: [ExportHostListItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [ExportHostListItem],
+        @ViewBuilder renderer: @escaping @MainActor (ExportHostListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [ExportHostListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = 52
+            listView.rows {
+                ListRow(ExportHostHostingRow.self)
+                    .height { _, _ in 52 }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [ExportHostListItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+            if let cursor = items.first(where: \.isCursor) {
+                listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
+            }
+        }
+
+        private func configure(_ row: ExportHostHostingRow, item: ExportHostListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class ExportHostHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 // MARK: - Key card

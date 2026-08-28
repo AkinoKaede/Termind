@@ -1,7 +1,9 @@
 import GhosttyTheme
+import AppKit
+import ListViewKit
 import SwiftUI
 
-enum SettingsSection: String, CaseIterable, Identifiable {
+nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
     case app, startup, sidebar
     case terminalAppearance, sftp
     case providers, modelRoles, assistant, webSearch, mcp, mcpServer
@@ -224,50 +226,187 @@ private struct SettingsSidebar: View {
     let select: (SettingsSection) -> Void
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Metrics.Space.xl) {
-                group("General", sections: [.app, .startup, .sidebar])
-                group("Terminal", sections: [.terminalAppearance, .sftp])
-                group("AI", sections: [.providers, .modelRoles, .webSearch, .mcp, .mcpServer])
-                group("Sync", sections: [.sync])
+        SettingsNavigationNativeList(items: items) { item in
+            switch item.content {
+            case .group(let group):
+                Text(group.title)
+                    .textCase(.uppercase)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .tracking(0.7)
+                    .padding(.horizontal, Metrics.Space.m)
+            case .section(let section, _):
+                sectionRow(section)
             }
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.xl)
         }
+        .padding(.horizontal, Metrics.Space.m)
+        .padding(.vertical, Metrics.Space.xl)
         .background(.bar)
     }
 
-    private func group(_ title: LocalizedStringKey, sections: [SettingsSection]) -> some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            Text(title)
-                .textCase(.uppercase)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .tracking(0.7)
-                .padding(.horizontal, Metrics.Space.m)
-
-            ForEach(sections) { section in
-                Button { select(section) } label: {
-                    HStack(spacing: Metrics.Space.s) {
-                        Image(systemName: section.symbol)
-                            .frame(width: Metrics.Sidebar.rowIcon)
-                            .accessibilityHidden(true)
-                        Text(section.title)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Metrics.Space.m)
-                    .padding(.vertical, Metrics.Space.s)
-                    .background(
-                        Highlight.fill(isSelected: selection == section),
-                        in: .rect(cornerRadius: Metrics.Radius.medium)
-                    )
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selection == section ? .isSelected : [])
+    private var items: [SettingsNavigationItem] {
+        SettingsNavigationGroup.allCases.flatMap { group in
+            [.group(group)] + group.sections.map {
+                .section($0, selected: selection == $0)
             }
         }
     }
+
+    private func sectionRow(_ section: SettingsSection) -> some View {
+        Button { select(section) } label: {
+            HStack(spacing: Metrics.Space.s) {
+                Image(systemName: section.symbol)
+                    .frame(width: Metrics.Sidebar.rowIcon)
+                    .accessibilityHidden(true)
+                Text(section.title)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Metrics.Space.m)
+            .padding(.vertical, Metrics.Space.s)
+            .background(
+                Highlight.fill(isSelected: selection == section),
+                in: .rect(cornerRadius: Metrics.Radius.medium)
+            )
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selection == section ? .isSelected : [])
+    }
+}
+
+nonisolated enum SettingsNavigationGroup: CaseIterable, Hashable, Sendable {
+    case general, terminal, ai, sync
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .general: "General"
+        case .terminal: "Terminal"
+        case .ai: "AI"
+        case .sync: "Sync"
+        }
+    }
+
+    var sections: [SettingsSection] {
+        switch self {
+        case .general: [.app, .startup, .sidebar]
+        case .terminal: [.terminalAppearance, .sftp]
+        case .ai: [.providers, .modelRoles, .webSearch, .mcp, .mcpServer]
+        case .sync: [.sync]
+        }
+    }
+}
+
+nonisolated struct SettingsNavigationItem: Identifiable, Hashable, Sendable {
+    nonisolated enum ID: Hashable, Sendable {
+        case group(SettingsNavigationGroup)
+        case section(SettingsSection)
+    }
+    nonisolated enum Content: Hashable, Sendable {
+        case group(SettingsNavigationGroup)
+        case section(SettingsSection, selected: Bool)
+    }
+    let id: ID
+    let content: Content
+
+    static func group(_ group: SettingsNavigationGroup) -> Self {
+        .init(id: .group(group), content: .group(group))
+    }
+    static func section(_ section: SettingsSection, selected: Bool) -> Self {
+        .init(id: .section(section), content: .section(section, selected: selected))
+    }
+    var height: CGFloat {
+        switch content {
+        case .group: 32
+        case .section: 36
+        }
+    }
+}
+
+private struct SettingsNavigationNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<SettingsNavigationItem>
+    typealias Renderer = @MainActor (SettingsNavigationItem) -> AnyView
+    let items: [SettingsNavigationItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [SettingsNavigationItem],
+        @ViewBuilder renderer: @escaping @MainActor (SettingsNavigationItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [SettingsNavigationItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.rows {
+                ListRow(SettingsNavigationHostingRow.self)
+                    .height { item, _ in item.height }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+        func update(
+            listView: NSViewType, items: [SettingsNavigationItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else { listView.apply(items) }
+            content = items
+        }
+        private func configure(_ row: SettingsNavigationHostingRow, item: SettingsNavigationItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class SettingsNavigationHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 struct SettingsFormPage<Content: View>: View {

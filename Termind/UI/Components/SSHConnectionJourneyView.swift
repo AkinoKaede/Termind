@@ -1,4 +1,5 @@
 import AppKit
+import ListViewKit
 import SwiftUI
 
 nonisolated enum ActiveFormKeyDecision: Equatable, Sendable {
@@ -311,27 +312,29 @@ struct SSHConnectionJourneyView: View {
             }
             .padding(14)
             Divider()
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(journey.logs) { entry in
-                        HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            Text(entry.date, format: .dateTime.hour().minute().second())
-                                .foregroundStyle(.tertiary)
-                            Text(entry.endpoint).foregroundStyle(.secondary)
-                            Text(entry.message)
-                        }
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
+            ConnectionLogNativeList(items: connectionLogItems) { entry in
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(entry.date, format: .dateTime.hour().minute().second())
+                        .foregroundStyle(.tertiary)
+                    Text(entry.endpoint).foregroundStyle(.secondary)
+                    Text(entry.message)
                     }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14)
+                .font(.caption.monospaced())
+                .textSelection(.enabled)
             }
             .frame(maxHeight: 210)
         }
         .background(.regularMaterial, in: .rect(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12).strokeBorder(.separator.opacity(0.7))
+        }
+    }
+
+    private var connectionLogItems: [ConnectionLogListItem] {
+        journey.logs.map {
+            ConnectionLogListItem(
+                id: $0.id, date: $0.date, endpoint: $0.endpoint, message: $0.message
+            )
         }
     }
 
@@ -410,6 +413,127 @@ struct SSHConnectionJourneyView: View {
             NSPasteboard.general.setString(journey.plainTextLog, forType: .string)
         #endif
     }
+}
+
+nonisolated private struct ConnectionLogListItem: Identifiable, Hashable, Sendable {
+    let id: UUID
+    let date: Date
+    let endpoint: String
+    let message: String
+}
+
+private struct ConnectionLogNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<ConnectionLogListItem>
+    typealias Renderer = @MainActor (ConnectionLogListItem) -> AnyView
+    let items: [ConnectionLogListItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [ConnectionLogListItem],
+        @ViewBuilder renderer: @escaping @MainActor (ConnectionLogListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [ConnectionLogListItem] = []
+        private let measurement = NSHostingController(rootView: AnyView(EmptyView()))
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.topInset = 14
+            listView.bottomInset = 14
+            listView.estimatedRowHeight = 26
+            listView.rows {
+                ListRow(ConnectionLogHostingRow.self)
+                    .estimatedHeight(26)
+                    .height { [weak self] item, context in
+                        self?.height(for: item, width: context.width) ?? 26
+                    }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [ConnectionLogListItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+        }
+
+        private func root(for item: ConnectionLogListItem) -> AnyView? {
+            guard let renderer else { return nil }
+            return AnyView(
+                renderer(item)
+                    .padding(.horizontal, 14)
+                    .environment(\.locale, locale)
+                    .environment(\.colorScheme, colorScheme)
+            )
+        }
+
+        private func height(for item: ConnectionLogListItem, width: CGFloat) -> CGFloat {
+            guard width > 0, let root = root(for: item) else { return 26 }
+            measurement.rootView = root
+            return max(26, ceil(measurement.sizeThatFits(in: CGSize(
+                width: width, height: .greatestFiniteMagnitude
+            )).height) + 8)
+        }
+
+        private func configure(_ row: ConnectionLogHostingRow, item: ConnectionLogListItem) {
+            guard let root = root(for: item) else { return }
+            row.configure(rootView: root)
+        }
+    }
+}
+
+@MainActor
+private final class ConnectionLogHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 private struct JourneyReconnectStatus: View {

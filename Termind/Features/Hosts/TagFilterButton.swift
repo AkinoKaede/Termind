@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 
 /// The Hosts page's tag filter: a popover listing every tag in use, each one a
@@ -60,20 +62,14 @@ struct TagFilterButton: View {
                 .padding(.top, Metrics.Space.l)
                 .padding(.bottom, Metrics.Space.s)
 
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(tags, id: \.self) { tag in
-                        TagFilterRow(
-                            tag: tag,
-                            isOn: selection.contains(tag),
-                            toggle: { toggle(tag) },
-                            delete: { requestDelete(tag) }
-                        )
-                    }
+            TagFilterNativeList(items: listItems) { item in
+                TagFilterRow(
+                    tag: item.tag,
+                    isOn: item.isOn,
+                    toggle: { toggle(item.tag) },
+                    delete: { requestDelete(item.tag) }
+                )
                 }
-                .padding(.horizontal, Metrics.Space.s)
-                .padding(.bottom, Metrics.Space.s)
-            }
             .frame(maxHeight: Metrics.TagFilter.maxListHeight)
 
             if !selection.isEmpty {
@@ -90,6 +86,10 @@ struct TagFilterButton: View {
         .animation(Motion.tabSwitch, value: selection)
     }
 
+    private var listItems: [TagFilterListItem] {
+        tags.map { TagFilterListItem(tag: $0, isOn: selection.contains($0)) }
+    }
+
     private func toggle(_ tag: String) {
         if selection.contains(tag) {
             selection.remove(tag)
@@ -97,6 +97,109 @@ struct TagFilterButton: View {
             selection.insert(tag)
         }
     }
+}
+
+nonisolated private struct TagFilterListItem: Identifiable, Hashable, Sendable {
+    let tag: String
+    let isOn: Bool
+    var id: String { tag }
+}
+
+private struct TagFilterNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<TagFilterListItem>
+    typealias Renderer = @MainActor (TagFilterListItem) -> AnyView
+    let items: [TagFilterListItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [TagFilterListItem],
+        @ViewBuilder renderer: @escaping @MainActor (TagFilterListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [TagFilterListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.topInset = Metrics.Space.xs
+            listView.bottomInset = Metrics.Space.s
+            listView.estimatedRowHeight = 34
+            listView.rows {
+                ListRow(TagFilterHostingRow.self)
+                    .height { _, _ in 34 }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [TagFilterListItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+        }
+
+        private func configure(_ row: TagFilterHostingRow, item: TagFilterListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .padding(.horizontal, Metrics.Space.s)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class TagFilterHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 // MARK: - Row

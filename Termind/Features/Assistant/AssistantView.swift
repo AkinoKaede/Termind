@@ -1,4 +1,5 @@
 import AppKit
+import ListViewKit
 import SwiftUI
 
 /// Assistant's conversation navigator inside the window's shared sidebar.
@@ -191,9 +192,15 @@ private struct AssistantConversationList: View {
 
     @Environment(WindowModel.self) private var window
     @State private var deleteTarget: ConversationModel?
+    @State private var renamingID: ConversationModel.ID?
+    @State private var renameTitle = ""
 
     var body: some View {
         content
+        .onChange(of: visibleConversationIDs) {
+            guard let renamingID, !visibleConversationIDs.contains(renamingID) else { return }
+            cancelRename()
+        }
         .alert(
             "Delete Conversation?",
             isPresented: Binding(
@@ -211,6 +218,18 @@ private struct AssistantConversationList: View {
         }
     }
 
+    private var visibleConversationIDs: Set<ConversationModel.ID> {
+        switch scope {
+        case .active:
+            Set(
+                (window.assistantLibrary.pinnedConversations
+                    + window.assistantLibrary.activeConversations).map(\.id)
+            )
+        case .archived:
+            Set(window.assistantLibrary.archivedConversations.map(\.id))
+        }
+    }
+
     @ViewBuilder
     private var content: some View {
         switch scope {
@@ -222,56 +241,306 @@ private struct AssistantConversationList: View {
     }
 
     private var activeList: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                if !window.assistantLibrary.pinnedConversations.isEmpty {
-                    sectionTitle("Pinned")
-                    rows(window.assistantLibrary.pinnedConversations)
-                }
-                if !window.assistantLibrary.activeConversations.isEmpty {
-                    sectionTitle("Chats")
-                    rows(window.assistantLibrary.activeConversations)
-                }
-            }
+        AssistantConversationNativeList(items: activeItems) { item in
+            renderedItem(item)
         }
         .background(Color.clear)
     }
 
     private var archivedList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                rows(window.assistantLibrary.archivedConversations)
-            }
-            .frame(maxWidth: archiveMaxWidth ?? .infinity)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .padding(
-                .horizontal,
-                archiveMaxWidth == nil ? 0 : Metrics.Space.xl
-            )
-            .padding(.vertical, Metrics.Space.m)
+        AssistantConversationNativeList(
+            items: archivedItems,
+            topInset: Metrics.Space.m,
+            bottomInset: Metrics.Space.m
+        ) { item in
+            renderedItem(item)
+                .frame(maxWidth: archiveMaxWidth ?? .infinity)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .padding(.horizontal, archiveMaxWidth == nil ? 0 : Metrics.Space.xl)
         }
         .background(Color.clear)
     }
 
-    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
-            .padding(.top, Metrics.Space.m)
-            .padding(.bottom, Metrics.Space.xs)
+    private var activeItems: [AssistantConversationListItem] {
+        var items: [AssistantConversationListItem] = []
+        if !window.assistantLibrary.pinnedConversations.isEmpty {
+            items.append(.section(.pinned))
+            items.append(contentsOf: window.assistantLibrary.pinnedConversations.map(item))
+        }
+        if !window.assistantLibrary.activeConversations.isEmpty {
+            items.append(.section(.chats))
+            items.append(contentsOf: window.assistantLibrary.activeConversations.map(item))
+        }
+        return items
+    }
+
+    private var archivedItems: [AssistantConversationListItem] {
+        window.assistantLibrary.archivedConversations.map(item)
+    }
+
+    private func item(_ conversation: ConversationModel) -> AssistantConversationListItem {
+        .conversation(
+            id: conversation.id,
+            title: conversation.derivedTitle,
+            isArchived: conversation.isArchived,
+            isPinned: conversation.isPinned,
+            isStreaming: conversation.isStreaming,
+            isCompacting: conversation.isCompacting,
+            isSelected: selectedID == conversation.id,
+            isRenaming: renamingID == conversation.id
+        )
     }
 
     @ViewBuilder
-    private func rows(_ conversations: [ConversationModel]) -> some View {
-        ForEach(conversations) { conversation in
+    private func renderedItem(_ item: AssistantConversationListItem) -> some View {
+        switch item.content {
+        case .section(let section):
+            Text(section.title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
+                .padding(.top, Metrics.Space.m)
+                .padding(.bottom, Metrics.Space.xs)
+        case .conversation(let id, _, _, _, _, _, _, _):
+            if let conversation = window.assistantLibrary.conversation(id: id) {
             AssistantConversationRow(
                 conversation: conversation,
                 isSelected: selectedID == conversation.id,
                 onOpen: { onOpen(conversation.id) },
-                onDelete: { deleteTarget = conversation }
+                    onDelete: { deleteTarget = conversation },
+                    isRenaming: renamingID == conversation.id,
+                    renameTitle: Binding(
+                        get: { renameTitle },
+                        set: { renameTitle = $0 }
+                    ),
+                    onBeginRename: { beginRename(conversation) },
+                    onCommitRename: { commitRename(conversation) },
+                    onCancelRename: cancelRename
             )
+                .id(conversation.id)
+            }
         }
+    }
+
+    private func beginRename(_ conversation: ConversationModel) {
+        renamingID = conversation.id
+        renameTitle = conversation.derivedTitle
+    }
+
+    private func commitRename(_ conversation: ConversationModel) {
+        let value = renameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        window.renameAssistantConversation(conversation.id, to: value)
+        cancelRename()
+    }
+
+    private func cancelRename() {
+        renamingID = nil
+        renameTitle = ""
+    }
+}
+
+nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendable {
+    nonisolated enum Section: String, Hashable, Sendable {
+        case pinned
+        case chats
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .pinned: "Pinned"
+            case .chats: "Chats"
+            }
+        }
+    }
+
+    nonisolated enum ID: Hashable, Sendable {
+        case section(Section)
+        case conversation(UUID)
+    }
+
+    nonisolated enum Content: Hashable, Sendable {
+        case section(Section)
+        case conversation(
+            id: UUID,
+            title: String,
+            isArchived: Bool,
+            isPinned: Bool,
+            isStreaming: Bool,
+            isCompacting: Bool,
+            isSelected: Bool,
+            isRenaming: Bool
+        )
+    }
+
+    let id: ID
+    let content: Content
+
+    static func section(_ section: Section) -> Self {
+        .init(id: .section(section), content: .section(section))
+    }
+
+    static func conversation(
+        id: UUID,
+        title: String,
+        isArchived: Bool,
+        isPinned: Bool,
+        isStreaming: Bool,
+        isCompacting: Bool,
+        isSelected: Bool,
+        isRenaming: Bool
+    ) -> Self {
+        .init(
+            id: .conversation(id),
+            content: .conversation(
+                id: id,
+                title: title,
+                isArchived: isArchived,
+                isPinned: isPinned,
+                isStreaming: isStreaming,
+                isCompacting: isCompacting,
+                isSelected: isSelected,
+                isRenaming: isRenaming
+            )
+        )
+    }
+
+    var isSection: Bool {
+        if case .section = content { true } else { false }
+    }
+}
+
+private struct AssistantConversationNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<AssistantConversationListItem>
+    typealias Renderer = @MainActor (AssistantConversationListItem) -> AnyView
+
+    let items: [AssistantConversationListItem]
+    var topInset: CGFloat = 0
+    var bottomInset: CGFloat = 0
+    let renderer: Renderer
+
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [AssistantConversationListItem],
+        topInset: CGFloat = 0,
+        bottomInset: CGFloat = 0,
+        @ViewBuilder renderer: @escaping @MainActor (AssistantConversationListItem) -> some View
+    ) {
+        self.items = items
+        self.topInset = topInset
+        self.bottomInset = bottomInset
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSViewType {
+        context.coordinator.makeListView()
+    }
+
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView,
+            items: items,
+            renderer: renderer,
+            locale: locale,
+            colorScheme: colorScheme,
+            topInset: topInset,
+            bottomInset: bottomInset
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [AssistantConversationListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = Metrics.Sidebar.navigationRowHeight
+            listView.rows {
+                ListRow(AssistantConversationHostingRow.self)
+                    .height { item, _ in
+                        item.isSection ? 34 : Metrics.Sidebar.navigationRowHeight
+                    }
+                    .configure { [weak self] row, item, _ in
+                        self?.configure(row, item: item)
+                    }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType,
+            items: [AssistantConversationListItem],
+            renderer: @escaping Renderer,
+            locale: Locale,
+            colorScheme: ColorScheme,
+            topInset: CGFloat,
+            bottomInset: CGFloat
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            listView.topInset = topInset
+            listView.bottomInset = bottomInset
+
+            let oldIDs = content.map(\.id)
+            let newIDs = items.map(\.id)
+            if oldIDs == newIDs {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+        }
+
+        private func configure(
+            _ row: AssistantConversationHostingRow,
+            item: AssistantConversationListItem
+        ) {
+            guard let renderer else { return }
+            let content = renderer(item)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(id: item.id, rootView: AnyView(content))
+        }
+    }
+}
+
+@MainActor
+private final class AssistantConversationHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    private var representedID: AssistantConversationListItem.ID?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        representedID = nil
+        hostingView.rootView = AnyView(EmptyView())
+    }
+
+    func configure(id: AssistantConversationListItem.ID, rootView: AnyView) {
+        representedID = id
+        hostingView.rootView = rootView
     }
 }
 
@@ -337,11 +606,14 @@ private struct AssistantConversationRow: View {
     let isSelected: Bool
     let onOpen: () -> Void
     let onDelete: () -> Void
+    let isRenaming: Bool
+    @Binding var renameTitle: String
+    let onBeginRename: () -> Void
+    let onCommitRename: () -> Void
+    let onCancelRename: () -> Void
 
     @Environment(WindowModel.self) private var window
     @State private var hovering = false
-    @State private var renaming = false
-    @State private var title = ""
     @FocusState private var titleFocused: Bool
 
     var body: some View {
@@ -361,18 +633,23 @@ private struct AssistantConversationRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: Metrics.Sidebar.navigationRowHeight)
         .contentShape(.rect)
-        .onTapGesture { if !renaming { onOpen() } }
+        .onTapGesture { if !isRenaming { onOpen() } }
         .onHover { hovering = $0 }
         .focusable(false)
         .focusEffectDisabled()
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .onChange(of: isRenaming, initial: true) {
+            if isRenaming {
+                DispatchQueue.main.async { titleFocused = true }
+            }
+        }
         .overlay {
             ConversationContextMenuHost(
                 isArchived: conversation.isArchived,
                 isPinned: conversation.isPinned,
                 managementDisabled: conversation.isStreaming || conversation.isCompacting,
                 onTogglePin: { window.toggleAssistantPin(conversation.id) },
-                onRename: beginRename,
+                onRename: onBeginRename,
                 onToggleArchive: {
                     window.setAssistantArchived(
                         conversation.id, archived: !conversation.isArchived
@@ -388,17 +665,17 @@ private struct AssistantConversationRow: View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: conversation.isArchived ? "archivebox" : "sparkles")
                 .foregroundStyle(.tint)
-            if renaming {
-                TextField("Conversation Name", text: $title)
+            if isRenaming {
+                TextField("Conversation Name", text: $renameTitle)
                     .textFieldStyle(.plain)
                     .focused($titleFocused)
-                    .onSubmit(commitRename)
-                    .onExitCommand { renaming = false }
+                    .onSubmit(onCommitRename)
+                    .onExitCommand(perform: onCancelRename)
             } else {
                 Text(conversation.derivedTitle).lineLimit(1)
             }
             Spacer(minLength: Metrics.Space.xs)
-            if hovering, !renaming, !conversation.isStreaming, !conversation.isCompacting {
+            if hovering, !isRenaming, !conversation.isStreaming, !conversation.isCompacting {
                 Button {
                     window.setAssistantArchived(
                         conversation.id, archived: !conversation.isArchived
@@ -414,19 +691,6 @@ private struct AssistantConversationRow: View {
                 ))
             }
         }
-    }
-
-    private func beginRename() {
-        title = conversation.derivedTitle
-        renaming = true
-        titleFocused = true
-    }
-
-    private func commitRename() {
-        let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        window.renameAssistantConversation(conversation.id, to: value)
-        renaming = false
     }
 }
 

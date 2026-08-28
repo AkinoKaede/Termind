@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 
 struct SnippetExecutionTargetsView: View {
@@ -762,7 +764,6 @@ private struct SnippetTargetPickerSheet: View {
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var chooser: ManagedChooserState<Host.ID>
 
     init(selected: Set<Host.ID>, save: @escaping (Set<Host.ID>) -> Void) {
@@ -824,29 +825,26 @@ private struct SnippetTargetPickerSheet: View {
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: Metrics.Space.xxs) {
-                        ForEach(results) { host in
-                            HostChooserRow(
-                                host: host,
-                                isSelected: chooser.cursor == host.id,
-                                isChecked: chooser.selected.contains(host.id)
-                            )
-                            .id(host.id)
-                            .onTapGesture { chooser.activate(host.id) }
-                        }
-                    }
-                    .padding(.horizontal, Metrics.Space.l)
-                    .padding(.bottom, Metrics.Space.s)
+            SnippetTargetNativeList(items: targetListItems) { item in
+                HostChooserRow(
+                    host: item.host,
+                    isSelected: item.isCursor,
+                    isChecked: item.isChecked
+                )
+                .onTapGesture { chooser.activate(item.id) }
                 }
-                .onChange(of: chooser.cursor) { _, id in
-                    guard let id else { return }
-                    withAnimation(reduceMotion ? nil : Motion.tabSwitch) {
-                        proxy.scrollTo(id)
-                    }
-                }
-            }
+            .padding(.horizontal, Metrics.Space.l)
+            .padding(.bottom, Metrics.Space.s)
+        }
+    }
+
+    private var targetListItems: [SnippetTargetListItem] {
+        results.map {
+            SnippetTargetListItem(
+                host: $0,
+                isCursor: chooser.cursor == $0.id,
+                isChecked: chooser.selected.contains($0.id)
+            )
         }
     }
 
@@ -898,6 +896,110 @@ private struct SnippetTargetPickerSheet: View {
         save(chooser.selected)
         dismiss()
     }
+}
+
+nonisolated private struct SnippetTargetListItem: Identifiable, Hashable, Sendable {
+    let host: Host
+    let isCursor: Bool
+    let isChecked: Bool
+    var id: Host.ID { host.id }
+}
+
+private struct SnippetTargetNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<SnippetTargetListItem>
+    typealias Renderer = @MainActor (SnippetTargetListItem) -> AnyView
+    let items: [SnippetTargetListItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [SnippetTargetListItem],
+        @ViewBuilder renderer: @escaping @MainActor (SnippetTargetListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [SnippetTargetListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = 52
+            listView.rows {
+                ListRow(SnippetTargetHostingRow.self)
+                    .height { _, _ in 52 }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [SnippetTargetListItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+            if let cursor = items.first(where: \.isCursor) {
+                listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
+            }
+        }
+
+        private func configure(_ row: SnippetTargetHostingRow, item: SnippetTargetListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class SnippetTargetHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 struct SnippetPackageSheet: View {

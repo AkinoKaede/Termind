@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 
 /// A token field: the tags already chosen, shown as removable chips, over a
@@ -140,26 +142,20 @@ struct TagField: View {
     }
 
     private var list: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.element) { index, row in
-                        TagRowView(row: row, isHighlighted: highlighted == index)
-                            .id(row)
-                            // Single click commits: this is a picker, not a list
-                            // of objects to select and then act on.
-                            .onTapGesture {
-                                commit(row)
-                            }
-                    }
+        TagSuggestionNativeList(items: tagListItems) { item in
+            TagRowView(row: item.row, isHighlighted: item.isHighlighted)
+                // Single click commits: this is a picker, not a list of objects
+                // to select and then act on.
+                .onTapGesture {
+                    commit(item.row)
                 }
-                .padding(Metrics.Space.xxs)
             }
             .frame(maxHeight: listMaxHeight)
-            .onChange(of: highlighted) { _, index in
-                guard let index, rows.indices.contains(index) else { return }
-                withAnimation(Motion.tabSwitch) { proxy.scrollTo(rows[index]) }
-            }
+    }
+
+    private var tagListItems: [TagSuggestionListItem] {
+        Array(rows.enumerated()).map { index, row in
+            TagSuggestionListItem(row: row, isHighlighted: highlighted == index)
         }
     }
 
@@ -168,7 +164,7 @@ struct TagField: View {
     /// What the dropdown can offer. One type so the highlight index, the click,
     /// and Return all walk the same list — the alternative is a separate "is the
     /// create row highlighted" flag, and two things to keep in step.
-    fileprivate enum Row: Hashable {
+    nonisolated fileprivate enum Row: Hashable, Sendable {
         case existing(String)
         case create(String)
     }
@@ -247,6 +243,112 @@ struct TagField: View {
         tags.removeAll { $0 == tag }
         highlighted = rows.isEmpty ? nil : 0
     }
+}
+
+nonisolated fileprivate struct TagSuggestionListItem: Identifiable, Hashable, Sendable {
+    let row: TagField.Row
+    let isHighlighted: Bool
+    var id: TagField.Row { row }
+}
+
+private struct TagSuggestionNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<TagSuggestionListItem>
+    typealias Renderer = @MainActor (TagSuggestionListItem) -> AnyView
+
+    let items: [TagSuggestionListItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [TagSuggestionListItem],
+        @ViewBuilder renderer: @escaping @MainActor (TagSuggestionListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [TagSuggestionListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.topInset = Metrics.Space.xxs
+            listView.bottomInset = Metrics.Space.xxs
+            listView.estimatedRowHeight = 32
+            listView.rows {
+                ListRow(TagSuggestionHostingRow.self)
+                    .height { _, _ in 32 }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [TagSuggestionListItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+            if let highlighted = items.first(where: \.isHighlighted) {
+                listView.scrollToRow(with: highlighted.id, at: .nearest, animated: false)
+            }
+        }
+
+        private func configure(_ row: TagSuggestionHostingRow, item: TagSuggestionListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class TagSuggestionHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 // MARK: - Row view

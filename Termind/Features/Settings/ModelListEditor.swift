@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 
 /// A provider's full-width models page: a checkable list and details for the
@@ -270,24 +272,33 @@ struct ModelListEditor: View {
             .padding(.horizontal, Metrics.Space.l)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(models) { model in
-                        ModelRow(
-                            model: model,
-                            isSelected: state.selection == model.id,
-                            isChecked: state.checked.contains(model.id),
-                            result: state.results[model.id],
-                            canTest: provider?.hasCredential == true && !state.isTesting,
-                            select: { state.selection = model.id },
-                            check: { toggleCheck(model.id) },
-                            edit: { state.selection = model.id },
-                            test: { testModels([model]) },
-                            delete: { deleteModels([model.id]) }
-                        )
-                    }
-                }
+            ModelEditorNativeList(items: modelListItems, rowHeight: 56) { item in
+                let model = item.model
+                ModelRow(
+                    model: model,
+                    isSelected: item.isSelected,
+                    isChecked: item.isChecked,
+                    result: item.result,
+                    canTest: item.canTest,
+                    select: { state.selection = model.id },
+                    check: { toggleCheck(model.id) },
+                    edit: { state.selection = model.id },
+                    test: { testModels([model]) },
+                    delete: { deleteModels([model.id]) }
+                )
             }
+        }
+    }
+
+    private var modelListItems: [SavedModelListItem] {
+        models.map {
+            SavedModelListItem(
+                model: $0,
+                isSelected: state.selection == $0.id,
+                isChecked: state.checked.contains($0.id),
+                result: state.results[$0.id],
+                canTest: provider?.hasCredential == true && !state.isTesting
+            )
         }
     }
 
@@ -724,7 +735,7 @@ struct ModelListEditor: View {
     }
 
     /// What one Test came back with.
-    enum TestResult: Equatable {
+    nonisolated enum TestResult: Hashable, Sendable {
         case queued
         case running
         case passed(String)
@@ -838,19 +849,26 @@ private struct CandidatePicker: View {
     }
 
     private var list: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(filtered) { model in
-                    CandidateRow(
-                        model: model,
-                        isAlreadyAdded: existing.contains(model.id),
-                        isCursor: chooser.cursor == model.id,
-                        isChosen: chooser.selected.contains(model.id)
-                    ) {
-                        chooser.activate(model.id)
-                    }
+        ModelEditorNativeList(items: candidateListItems, rowHeight: 52) { item in
+            CandidateRow(
+                model: item.model,
+                isAlreadyAdded: item.isAlreadyAdded,
+                isCursor: item.isCursor,
+                isChosen: item.isChosen
+            ) {
+                chooser.activate(item.id)
                 }
-            }
+        }
+    }
+
+    private var candidateListItems: [CandidateModelListItem] {
+        filtered.map {
+            CandidateModelListItem(
+                model: $0,
+                isAlreadyAdded: existing.contains($0.id),
+                isCursor: chooser.cursor == $0.id,
+                isChosen: chooser.selected.contains($0.id)
+            )
         }
     }
 
@@ -879,6 +897,127 @@ private struct CandidatePicker: View {
         chooser.toggle(cursor)
         return .handled
     }
+}
+
+nonisolated private struct SavedModelListItem: Identifiable, Hashable, Sendable {
+    let model: AIModel
+    let isSelected: Bool
+    let isChecked: Bool
+    let result: ModelListEditor.TestResult?
+    let canTest: Bool
+    var id: AIModel.ID { model.id }
+}
+
+nonisolated private struct CandidateModelListItem: Identifiable, Hashable, Sendable {
+    let model: AIModel
+    let isAlreadyAdded: Bool
+    let isCursor: Bool
+    let isChosen: Bool
+    var id: AIModel.ID { model.id }
+}
+
+private struct ModelEditorNativeList<Item>: NSViewRepresentable
+where Item: Identifiable & Hashable & Sendable, Item.ID: Hashable {
+    typealias NSViewType = ListView<Item>
+    typealias Renderer = @MainActor (Item) -> AnyView
+
+    let items: [Item]
+    let rowHeight: CGFloat
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [Item],
+        rowHeight: CGFloat,
+        @ViewBuilder renderer: @escaping @MainActor (Item) -> some View
+    ) {
+        self.items = items
+        self.rowHeight = rowHeight
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(rowHeight: rowHeight) }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private let rowHeight: CGFloat
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [Item] = []
+
+        init(rowHeight: CGFloat) {
+            self.rowHeight = rowHeight
+        }
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = rowHeight
+            listView.rows {
+                ListRow(ModelEditorHostingRow.self)
+                    .height { [rowHeight] _, _ in rowHeight }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [Item], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items, animated: !content.isEmpty)
+            }
+            content = items
+        }
+
+        private func configure(_ row: ModelEditorHostingRow, item: Item) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class ModelEditorHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 private struct CandidateRow: View {

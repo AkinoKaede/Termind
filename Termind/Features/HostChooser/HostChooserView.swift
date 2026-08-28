@@ -1,3 +1,5 @@
+import AppKit
+import ListViewKit
 import SwiftUI
 
 /// Which verb the chooser was raised for.
@@ -233,37 +235,34 @@ struct HostChooserView: View {
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: Metrics.Space.xxs) {
-                        ForEach(results) { host in
-                            HostChooserRow(
-                                host: host,
-                                isSelected: chooser.cursor == host.id,
-                                isChecked: purpose.allowsMultiple
-                                    ? chooser.selected.contains(host.id) : nil
-                            )
-                            .id(host.id)
-                            .onTapGesture(count: 2) {
-                                if !purpose.allowsMultiple {
-                                    open(host)
-                                }
-                            }
-                            .onTapGesture {
-                                chooser.activate(host.id)
-                            }
-                        }
+            HostChooserNativeList(items: hostListItems) { item in
+                HostChooserRow(
+                    host: item.host,
+                    isSelected: item.isCursor,
+                    isChecked: item.isChecked
+                )
+                .onTapGesture(count: 2) {
+                    if !purpose.allowsMultiple {
+                        open(item.host)
                     }
-                    .padding(.horizontal, Metrics.Space.l)
-                    .padding(.bottom, Metrics.Space.s)
                 }
-                .onChange(of: chooser.cursor) { _, id in
-                    guard let id else { return }
-                    withAnimation(reduceMotion ? nil : Motion.tabSwitch) {
-                        proxy.scrollTo(id)
-                    }
+                .onTapGesture {
+                    chooser.activate(item.id)
                 }
             }
+            .padding(.horizontal, Metrics.Space.l)
+            .padding(.bottom, Metrics.Space.s)
+        }
+    }
+
+    private var hostListItems: [HostChooserListItem] {
+        results.map { host in
+            HostChooserListItem(
+                host: host,
+                isCursor: chooser.cursor == host.id,
+                isChecked: purpose.allowsMultiple
+                    ? chooser.selected.contains(host.id) : nil
+            )
         }
     }
 
@@ -427,6 +426,109 @@ struct HostChooserView: View {
 ///
 /// `isChecked` is nil outside batch mode, and then nothing is drawn — a single
 /// pick has one visual channel and does not need two.
+nonisolated struct HostChooserListItem: Identifiable, Hashable, Sendable {
+    let host: Host
+    let isCursor: Bool
+    let isChecked: Bool?
+    var id: Host.ID { host.id }
+}
+
+private struct HostChooserNativeList: NSViewRepresentable {
+    typealias NSViewType = ListView<HostChooserListItem>
+    typealias Renderer = @MainActor (HostChooserListItem) -> AnyView
+    let items: [HostChooserListItem]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [HostChooserListItem],
+        @ViewBuilder renderer: @escaping @MainActor (HostChooserListItem) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView: listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var renderer: Renderer?
+        private var locale = Locale.current
+        private var colorScheme = ColorScheme.light
+        private var content: [HostChooserListItem] = []
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = 52
+            listView.rows {
+                ListRow(HostChooserHostingRow.self)
+                    .height { _, _ in 52 }
+                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
+            }
+            return listView
+        }
+
+        func update(
+            listView: NSViewType, items: [HostChooserListItem], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            self.renderer = renderer
+            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            self.locale = locale
+            self.colorScheme = colorScheme
+            if content.map(\.id) == items.map(\.id) {
+                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                    listView.update(new)
+                }
+            } else {
+                listView.apply(items)
+            }
+            content = items
+            if let cursor = items.first(where: \.isCursor) {
+                listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
+            }
+        }
+
+        private func configure(_ row: HostChooserHostingRow, item: HostChooserListItem) {
+            guard let renderer else { return }
+            let root = renderer(item)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme)
+            row.configure(rootView: AnyView(root))
+        }
+    }
+}
+
+@MainActor
+private final class HostChooserHostingRow: ListRowView {
+    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        hostingView.rootView = AnyView(EmptyView())
+    }
+    func configure(rootView: AnyView) { hostingView.rootView = rootView }
+}
+
 struct HostChooserRow: View {
     let host: Host
     let isSelected: Bool
