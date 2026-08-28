@@ -80,13 +80,18 @@ struct WindowToolbarFindTests {
     /// ⌘F on a terminal has to start Ghostty searching as well as focusing the
     /// field, or the first keystroke would filter nothing.
     @Test
-    func focusingFindStartsTheTerminalSearch() {
+    func focusingFindStartsTheTerminalSearch() async {
         let window = WindowModel(workspaces: [Workspace.sshSession(host: host())])
+        var directFocusRequests = 0
+        window.focusToolbarFindField = { directFocusRequests += 1 }
 
         window.focusToolbarFind()
+        await Task.yield()
 
-        #expect(window.focusedSSHSession?.find.isPresented == true)
+        #expect(window.focusedSSHSession?.isFindPresented == true)
         #expect(window.findFocusRequest == 1)
+        #expect(window.isToolbarFindFocused)
+        #expect(directFocusRequests == 1)
     }
 
     /// Nothing to find in means the key falls through rather than bumping a

@@ -264,13 +264,27 @@ final class WindowModel {
     /// doing nothing.
     private(set) var findFocusRequest: UInt64 = 0
 
-    /// True while the titlebar Find field holds the keyboard.
+    /// True while the titlebar Find field owns the keyboard.
     ///
     /// The field is outside every pane, but what it filters is inside one — so
     /// typing in it changes state the pane observes, and a pane that claims
     /// first responder whenever it is the focused pane takes the caret back
     /// after each keystroke. Panes read this and stand down while it is set.
+    ///
+    /// Level, not edge. A pane has to consult it every time it is about to hold
+    /// focus, not only when this flips: the caret is lost on *each* keystroke,
+    /// and a stand-down that fires once cannot answer the second one.
     var isToolbarFindFocused = false
+
+    /// Focuses the titlebar Find field. Installed by the field itself while it
+    /// is mounted, and left pointing at a field that has gone away otherwise —
+    /// harmlessly, since the closure holds it weakly and `focusToolbarFind`
+    /// checks there is something to search first.
+    ///
+    /// ⌘F does not go through `findFocusRequest` alone. That counter only
+    /// reaches the field if SwiftUI delivers an update to the toolbar item
+    /// holding it, which is not a refresh this code owns.
+    @ObservationIgnored var focusToolbarFindField: (() -> Void)?
 
     /// What the window's one Find field is pointed at, decided by the content in
     /// front. A split Workspace resolves to its *focused* pane — "any session in
@@ -299,10 +313,20 @@ final class WindowModel {
 
     /// ⌘F. Focuses the titlebar field, and for a terminal also starts Ghostty's
     /// search again on a query retained from last time.
+    ///
+    /// The panes are stood down *first*. Everything after this line changes
+    /// state a pane observes, so by the time the resulting update reaches one it
+    /// must already know not to claim the keyboard — otherwise ⌘F focuses the
+    /// field and the rebuild it caused takes the caret straight back, which is
+    /// how the Find menu item came to be clickable and yet do nothing.
     func focusToolbarFind() {
         guard findKind != nil else { return }
+        isToolbarFindFocused = true
         if findKind == .terminal { focusedSSHSession?.presentFind() }
         findFocusRequest &+= 1
+        // On the next turn, so the update the two lines above set off has
+        // already landed and cannot take the caret straight back out.
+        Task { @MainActor [weak self] in self?.focusToolbarFindField?() }
     }
 
     /// ⌘G and F3.

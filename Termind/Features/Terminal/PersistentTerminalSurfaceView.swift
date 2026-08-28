@@ -207,6 +207,7 @@
             isVisible: Bool,
             requestsFocus: Bool
         ) {
+            var didReparent = false
             if container !== newContainer || terminalView.superview !== newContainer {
                 assignOrdinalIfNeeded(to: newContainer)
                 // A tree replacement can create the destination before
@@ -228,6 +229,7 @@
                     displacedOwner.unmount(from: newContainer)
                 }
                 move(to: newContainer)
+                didReparent = true
             }
 
             // The controller and options are established once by the session.
@@ -242,7 +244,11 @@
                 terminalView.setSurfaceVisible(isVisible)
             }
 
-            synchronizeFocus(requested: requestsFocus && isVisible, force: false)
+            synchronizeFocus(
+                requested: requestsFocus && isVisible,
+                force: false,
+                reparented: didReparent
+            )
         }
 
         func unmount(from oldContainer: TerminalMountView) {
@@ -269,7 +275,29 @@
 
         @discardableResult
         func performBindingAction(_ action: String) -> Bool {
-            terminalView.performBindingAction(action)
+            // Ghostty may make its surface first responder while dispatching a
+            // search binding. Preserve an active AppKit field editor in the
+            // same call stack so terminal search never produces a visible
+            // search-field → terminal → search-field focus flash.
+            let window = terminalView.window
+            let editor = window?.firstResponder as? NSTextView
+            let textField = editor?.isFieldEditor == true
+                ? editor?.delegate as? NSTextField
+                : nil
+            let selection = editor?.selectedRange
+
+            let handled = terminalView.performBindingAction(action)
+
+            if let window, let textField,
+                window.firstResponder !== textField,
+                window.firstResponder !== textField.currentEditor()
+            {
+                window.makeFirstResponder(textField)
+                if let selection {
+                    textField.currentEditor()?.selectedRange = selection
+                }
+            }
+            return handled
         }
 
         #if DEBUG
@@ -307,23 +335,39 @@
             container.mountOrdinals[ownerIdentifier] = nextMountOrdinal
         }
 
-        private func synchronizeFocus(requested: Bool, force: Bool) {
+        /// Moves the keyboard to or from the terminal — but only when something
+        /// actually asked for it to move.
+        ///
+        /// `mount` re-runs for *any* observed change on the session, which
+        /// includes each letter typed into the window's Find field, and each of
+        /// those used to re-assert first responder here. Answering an unchanged
+        /// request with a first-responder call is not idempotent: it takes the
+        /// caret out of whatever holds it. So an ordinary update now stops at
+        /// the first guard and never touches the responder chain at all.
+        ///
+        /// `force` is the explicit hand-back — Escape in the Find field, or a
+        /// pane being focused — and always acts. `reparented` covers the pane
+        /// move, where the request has not changed but the view has.
+        ///
+        /// `isEditingText` stays as a second line of defence for the remaining
+        /// unforced case, where the request really did change while somebody was
+        /// typing somewhere else.
+        private func synchronizeFocus(
+            requested: Bool,
+            force: Bool,
+            reparented: Bool = false
+        ) {
+            let changed = requested != wantsFocus
             wantsFocus = requested
+            guard force || changed || reparented else { return }
+
             guard let window = terminalView.window else {
-                if requested { scheduleFocusAfterMount() }
+                if requested { scheduleFocusAfterMount(force: force) }
                 return
             }
 
             if requested {
                 guard window.firstResponder !== terminalView else { return }
-                // Never pull the caret out of a text field somebody is typing
-                // in. This runs from `mount`, which SwiftUI re-enters for any
-                // observed change on the session — including the Find query
-                // being typed into the window titlebar. Claiming the keyboard
-                // there emptied the field's focus after every keystroke.
-                //
-                // `force` is the explicit hand-back — Escape in the Find field,
-                // or a pane taking focus — and skips the check.
                 guard force || !isEditingText(in: window) else { return }
                 window.makeFirstResponder(terminalView)
             } else if window.firstResponder === terminalView {
@@ -343,7 +387,7 @@
             }
         }
 
-        private func scheduleFocusAfterMount() {
+        private func scheduleFocusAfterMount(force: Bool) {
             // Mounting commonly happens inside a SwiftUI update, before the new
             // container has a window. One run-loop hop lets AppKit finish the
             // reparent without retaining a task or polling layout state.
@@ -354,6 +398,11 @@
                     let window = terminalView.window,
                     container != nil
                 else { return }
+                // Same rule as the synchronous path, and it carries `force` for
+                // the same reason. A hop later is exactly when the Find field
+                // has just taken the caret, and this used to be the one route to
+                // first responder with no guard on it at all.
+                guard force || !isEditingText(in: window) else { return }
                 if window.firstResponder !== terminalView {
                     window.makeFirstResponder(terminalView)
                 }

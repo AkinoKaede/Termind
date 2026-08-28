@@ -1,25 +1,45 @@
+import Foundation
 import Testing
 
 @testable import Termind
 
 struct TerminalFindTests {
+    /// Closing the bar ends Ghostty's highlights but keeps the query, so ⌘F in
+    /// the same terminal resumes the search instead of starting over.
+    @MainActor
     @Test
-    func presentationRetainsQueryAndRequestsFocusEveryTime() {
-        var state = TerminalFindState(query: "deploy")
+    func presentationRetainsTheQueryAcrossClosingAndReopening() {
+        let sshSession = SSHSessionModel(hostID: UUID(), title: "web-01")
 
-        state.present()
-        #expect(state.isPresented)
-        #expect(state.query == "deploy")
-        #expect(state.focusRequest == 1)
+        sshSession.updateFindQuery("deploy")
+        sshSession.presentFind()
+        #expect(sshSession.isFindPresented)
+        #expect(sshSession.findQuery == "deploy")
 
-        state.dismiss()
-        #expect(!state.isPresented)
-        #expect(state.query == "deploy")
+        sshSession.dismissFind()
+        #expect(!sshSession.isFindPresented)
+        #expect(sshSession.findQuery == "deploy")
 
-        state.present()
-        #expect(state.isPresented)
-        #expect(state.query == "deploy")
-        #expect(state.focusRequest == 2)
+        sshSession.presentFind()
+        #expect(sshSession.isFindPresented)
+        #expect(sshSession.findQuery == "deploy")
+    }
+
+    /// Typing narrows the search; it does not open or close the bar. The two are
+    /// separate stored properties precisely so a keystroke cannot invalidate
+    /// every view that only watches whether the bar is open.
+    @MainActor
+    @Test
+    func typingDoesNotChangeWhetherTheBarIsOpen() {
+        let sshSession = SSHSessionModel(hostID: UUID(), title: "web-01")
+
+        sshSession.updateFindQuery("error")
+        #expect(!sshSession.isFindPresented)
+
+        sshSession.presentFind()
+        sshSession.updateFindQuery("errors")
+        #expect(sshSession.isFindPresented)
+        #expect(sshSession.findQuery == "errors")
     }
 
     @Test
@@ -46,11 +66,11 @@ struct TerminalFindTests {
     func navigatingRevealsTheFindStateAndRetainsTheQuery() {
         let host = Host(name: "web-01", host: "web-01.example")
         let window = WindowModel(workspaces: [Workspace.sshSession(host: host)])
-        window.focusedSSHSession?.find.query = "deploy"
+        window.focusedSSHSession?.updateFindQuery("deploy")
 
         window.navigateTerminalFind(.previous)
 
-        #expect(window.focusedSSHSession?.find.isPresented == true)
-        #expect(window.focusedSSHSession?.find.query == "deploy")
+        #expect(window.focusedSSHSession?.isFindPresented == true)
+        #expect(window.focusedSSHSession?.findQuery == "deploy")
     }
 }

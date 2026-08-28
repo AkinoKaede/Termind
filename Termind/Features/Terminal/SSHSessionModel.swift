@@ -90,24 +90,6 @@ nonisolated enum TerminalFindDirection: String, Sendable {
     var bindingAction: String { "navigate_search:\(rawValue)" }
 }
 
-/// The UI state belongs to the sshSession, not the transient SwiftUI pane that is
-/// currently mounting it. Moving a terminal between panes therefore moves its
-/// open find bar and retained query with the scrollback they search.
-nonisolated struct TerminalFindState: Equatable, Sendable {
-    var query = ""
-    var isPresented = false
-    var focusRequest: UInt64 = 0
-
-    mutating func present() {
-        isPresented = true
-        focusRequest &+= 1
-    }
-
-    mutating func dismiss() {
-        isPresented = false
-    }
-}
-
 nonisolated enum TerminalFindBinding {
     static func search(_ query: String) -> String { "search:\(query)" }
     static func navigate(_ direction: TerminalFindDirection) -> String {
@@ -165,10 +147,20 @@ final class SSHSessionModel: Identifiable {
     /// app-wide CommandHistoryModel instead so every window sees the same list.
     private(set) var transientCommandHistory: [CommandHistoryEntry] = []
 
-    /// Find stays with this terminal's scrollback. Closing the bar ends Ghostty's
-    /// highlights but deliberately retains the query, matching VS Code when ⌘F
-    /// is used again in the same terminal.
-    var find = TerminalFindState()
+    /// Find stays with this terminal's scrollback rather than with the transient
+    /// SwiftUI pane mounting it, so moving a terminal between panes carries its
+    /// open search and retained query along with the buffer they search. Closing
+    /// the bar ends Ghostty's highlights but deliberately keeps the query,
+    /// matching VS Code when ⌘F is used again in the same terminal.
+    ///
+    /// Two properties rather than one struct, because Observation invalidates
+    /// per stored property. A single `find` value meant every letter typed into
+    /// the titlebar Find field invalidated everything that only wanted to know
+    /// whether the search was *open* — which is `WorkspaceContentView`, and
+    /// which rebuilt every pane in the Workspace and remounted every Ghostty
+    /// surface, once per keystroke.
+    private(set) var findQuery = ""
+    private(set) var isFindPresented = false
 
     /// Whether the remote shell accepted OSC 133 integration.
     var shellIntegrationAvailable: Bool = false
@@ -376,21 +368,21 @@ final class SSHSessionModel: Identifiable {
     /// Ghostty search again; pressing ⌘F while it is already open only refocuses
     /// the field and does not reset the current match.
     func presentFind() {
-        let wasPresented = find.isPresented
-        find.present()
-        if !wasPresented, !find.query.isEmpty {
-            performFindBinding(TerminalFindBinding.search(find.query))
+        let wasPresented = isFindPresented
+        isFindPresented = true
+        if !wasPresented, !findQuery.isEmpty {
+            performFindBinding(TerminalFindBinding.search(findQuery))
         }
     }
 
     func updateFindQuery(_ query: String) {
-        guard find.query != query else { return }
-        find.query = query
+        guard findQuery != query else { return }
+        findQuery = query
         performFindBinding(TerminalFindBinding.search(query))
     }
 
     func navigateFind(_ direction: TerminalFindDirection) {
-        guard find.isPresented, !find.query.isEmpty else { return }
+        guard isFindPresented, !findQuery.isEmpty else { return }
         performFindBinding(TerminalFindBinding.navigate(direction))
     }
 
@@ -402,9 +394,9 @@ final class SSHSessionModel: Identifiable {
     }
 
     func dismissFind() {
-        guard find.isPresented else { return }
+        guard isFindPresented else { return }
         performFindBinding(TerminalFindBinding.end)
-        find.dismiss()
+        isFindPresented = false
         requestTerminalFocus()
     }
 

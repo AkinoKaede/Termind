@@ -276,6 +276,14 @@ struct SFTPBrowserView: View {
         .onChange(of: window.isToolbarFindFocused) { _, isFindFocused in
             if isFindFocused { listFocused = false }
         }
+        // And again on every restoration, not only on the first. The line above
+        // fires once, when the field takes the keyboard; the list then takes it
+        // back on the *next* keystroke's rebuild, and on every one after that,
+        // with nothing left to notice. Watching the focus itself is what makes
+        // the stand-down hold for as long as the field is being typed into.
+        .onChange(of: listFocused) { _, isListFocused in
+            if isListFocused, window.isToolbarFindFocused { listFocused = false }
+        }
     }
 
     private func browser(layout: Layout) -> some View {
@@ -674,7 +682,7 @@ struct SFTPBrowserView: View {
             ) { item in
                 fileRow(item.row, layout: layout)
             }
-                .focusable()
+                .focusable(!window.isToolbarFindFocused)
                 .focusEffectDisabled()
                 .focused($listFocused)
                 .onKeyPress(.upArrow) {
@@ -728,6 +736,18 @@ struct SFTPBrowserView: View {
         sftpSession.selection.removeAll()
         selectionAnchor = nil
         selectionCursor = nil
+        focusListForUserGesture()
+    }
+
+    /// Clicking in this list is the user taking the keyboard back off the
+    /// titlebar Find field, and is the only legitimate way the list gains focus
+    /// while that field is being typed into.
+    ///
+    /// Saying so here is what lets the guard in `body` treat every *other*
+    /// restoration as what it is — a rebuild handing focus back to a view that
+    /// nobody asked to focus.
+    private func focusListForUserGesture() {
+        window.isToolbarFindFocused = false
         listFocused = true
     }
 
@@ -974,7 +994,7 @@ struct SFTPBrowserView: View {
 
     private func select(_ file: RemoteFile) {
         focusPane()
-        listFocused = true
+        focusListForUserGesture()
         let modifiers = NSEvent.modifierFlags
         if modifiers.contains(.shift),
             let anchor = selectionAnchor ?? sftpSession.selection.first,
@@ -1010,7 +1030,7 @@ struct SFTPBrowserView: View {
         sftpSession.selection = [file.id]
         selectionAnchor = file.id
         selectionCursor = file.id
-        listFocused = true
+        focusListForUserGesture()
     }
 
     private var keyboardTarget: RemoteFile? {

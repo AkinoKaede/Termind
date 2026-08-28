@@ -67,11 +67,27 @@ struct NativeSearchField: NSViewRepresentable {
     /// system's own Liquid Glass, with the native bezel as the fallback below.
     var controlSize: NSControl.ControlSize = .regular
     var focusRequest: UInt64 = 0
+    /// The toolbar bridge may recreate its AppKit view while the query changes.
+    /// A replacement field inherits the window's existing keyboard claim without
+    /// selecting the text again.
+    var maintainsKeyboardFocus = false
     var navigate: ((TerminalFindDirection) -> Void)?
     var cancel: (() -> Void)?
     var menuItems: (() -> [NativeMenuEntry])?
-    /// Reported on begin and end editing, so a pane can stand down while this
-    /// field holds the keyboard — see `WindowModel.isToolbarFindFocused`.
+    /// Handed a closure that focuses this field, the moment the field exists.
+    ///
+    /// ⌘F and Edit ▸ Find go through that closure rather than through
+    /// `focusRequest` alone. The counter only reaches the field if SwiftUI
+    /// delivers an update to the toolbar item holding it, and a toolbar item is
+    /// not a view whose refresh this code owns — so relying on it made the Find
+    /// command a coin toss.
+    var installFocusHandler: ((@escaping () -> Void) -> Void)?
+    /// Reported when this field takes the keyboard, and again when it gives it
+    /// up for real, so a pane can stand down in between — see
+    /// `WindowModel.isToolbarFindFocused`. A caret stolen mid-update and taken
+    /// straight back is deliberately not reported: the field never stopped
+    /// owning the keyboard, so the panes must not stand back up on the strength
+    /// of a loss that is about to be undone.
     var onFocusChange: ((Bool) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(field: self) }
@@ -91,16 +107,31 @@ struct NativeSearchField: NSViewRepresentable {
         (field.cell as? NSSearchFieldCell)?.cancelButtonCell?.action =
             #selector(Coordinator.clear)
         context.coordinator.attach(to: field)
+        installFocusHandler? { [weak coordinator = context.coordinator, weak field] in
+            guard let coordinator, let field else { return }
+            coordinator.focusFromCommand(field)
+        }
+        context.coordinator.restoreKeyboardClaimIfNeeded(to: field)
         return field
     }
 
     func updateNSView(_ field: NSSearchField, context: Context) {
         context.coordinator.field = self
+        context.coordinator.attach(to: field)
+        installFocusHandler? { [weak coordinator = context.coordinator, weak field] in
+            guard let coordinator, let field else { return }
+            coordinator.focusFromCommand(field)
+        }
         if field.stringValue != text { field.stringValue = text }
         if field.placeholderString != placeholder { field.placeholderString = placeholder }
         if field.controlSize != controlSize { field.controlSize = controlSize }
         context.coordinator.updateMenu(on: field, hasItems: menuItems != nil)
         context.coordinator.applyFocusRequest(focusRequest, to: field)
+        context.coordinator.restoreKeyboardClaimIfNeeded(to: field)
+    }
+
+    static func dismantleNSView(_ field: NSSearchField, coordinator: Coordinator) {
+        coordinator.detachForReplacement(from: field)
     }
 
     @MainActor
@@ -108,6 +139,18 @@ struct NativeSearchField: NSViewRepresentable {
         var field: NativeSearchField
         private var lastFocusRequest: UInt64 = 0
         private var hasSeenFocusRequest = false
+        /// Whether this field is meant to be holding the keyboard right now.
+        ///
+        /// Focusing a Find field is not a one-shot act. What it searches reacts
+        /// to the query, reacting rebuilds the pane, and a pane that asserts its
+        /// own focus while rebuilding takes the caret straight back out. The
+        /// claim therefore has to outlive the moment it was made — see
+        /// `reclaimIfStolen`.
+        private var holdsKeyboardIntent = false
+        private weak var attachedSearchField: NSSearchField?
+        private var userExitMonitor: Any?
+        private var windowResignObserver: (any NSObjectProtocol)?
+        private var pendingCommandExitTimestamp: TimeInterval?
         private let menu = NSMenu()
 
         init(field: NativeSearchField) {
@@ -117,7 +160,15 @@ struct NativeSearchField: NSViewRepresentable {
         }
 
         func attach(to searchField: NSSearchField) {
+            attachedSearchField = searchField
             updateMenu(on: searchField, hasItems: field.menuItems != nil)
+        }
+
+        func detachForReplacement(from searchField: NSSearchField) {
+            guard attachedSearchField === searchField else { return }
+            stopUserExitObservers()
+            holdsKeyboardIntent = false
+            attachedSearchField = nil
         }
 
         /// One long-lived menu whose contents are rebuilt in `menuNeedsUpdate`.
@@ -139,48 +190,176 @@ struct NativeSearchField: NSViewRepresentable {
             lastFocusRequest = request
             // After this update pass: the field may not be in a window yet on
             // the first layout that carries a request.
-            DispatchQueue.main.async { [weak searchField] in
-                guard let searchField else { return }
-                searchField.window?.makeFirstResponder(searchField)
-                searchField.currentEditor()?.selectAll(nil)
+            DispatchQueue.main.async { [weak self, weak searchField] in
+                guard let self, let searchField else { return }
+                claimKeyboard(searchField, selectingAll: true)
             }
         }
 
         func controlTextDidChange(_ notification: Notification) {
             guard let searchField = notification.object as? NSSearchField else { return }
             field.text = searchField.stringValue
-            reclaimKeyboardIfTaken(from: searchField)
         }
 
-        /// Some destinations take the keyboard as a *side effect of being
-        /// searched*: Ghostty focuses its terminal surface when a `search:`
-        /// binding runs, and the SFTP list is held focused declaratively and
-        /// gets it back when filtering rebuilds the rows. Either way the caret
-        /// left after one letter and the rest of the word went to the pane.
-        ///
-        /// Only ever runs immediately after a text change, so clicking away
-        /// deliberately is untouched — that produces no change to react to.
-        private func reclaimKeyboardIfTaken(from searchField: NSSearchField) {
+        // MARK: Holding the keyboard
+
+        /// ⌘F and Edit ▸ Find, arriving straight from `WindowModel` rather than
+        /// through a SwiftUI update that may or may not reach the toolbar.
+        func focusFromCommand(_ searchField: NSSearchField) {
+            claimKeyboard(searchField, selectingAll: true)
+        }
+
+        /// Query changes can replace the toolbar's native view. The window-level
+        /// claim survives that replacement; the new field resumes editing at the
+        /// end of the existing query instead of behaving like a fresh ⌘F.
+        func restoreKeyboardClaimIfNeeded(to searchField: NSSearchField) {
+            guard field.maintainsKeyboardFocus else { return }
+            holdsKeyboardIntent = true
+            attachedSearchField = searchField
+            installUserExitObservers(for: searchField)
+            if searchField.window != nil {
+                restoreKeyboardClaim(to: searchField)
+                return
+            }
+            DispatchQueue.main.async { [weak self, weak searchField] in
+                guard let self, let searchField else { return }
+                restoreKeyboardClaim(to: searchField)
+            }
+        }
+
+        private func restoreKeyboardClaim(to searchField: NSSearchField) {
+            guard field.maintainsKeyboardFocus,
+                let window = searchField.window,
+                window.isKeyWindow
+            else { return }
+            let responder = window.firstResponder
+            guard responder !== searchField,
+                responder !== searchField.currentEditor()
+            else { return }
+            window.makeFirstResponder(searchField)
+            let caretLocation = searchField.stringValue.utf16.count
+            searchField.currentEditor()?.selectedRange = NSRange(location: caretLocation, length: 0)
+            // AppKit may finish installing the shared field editor after
+            // `makeFirstResponder` returns. Re-apply only the caret position on
+            // the next turn; the responder itself never leaves the field.
             DispatchQueue.main.async { [weak searchField] in
-                guard let searchField, let window = searchField.window else { return }
-                let responder = window.firstResponder
-                guard responder !== searchField,
-                    responder !== searchField.currentEditor()
+                guard let searchField,
+                    searchField.window?.firstResponder === searchField.currentEditor()
                 else { return }
-                window.makeFirstResponder(searchField)
-                // Back to where the user was typing, not the start of the word.
                 searchField.currentEditor()?.selectedRange = NSRange(
-                    location: searchField.stringValue.utf16.count, length: 0
+                    location: searchField.stringValue.utf16.count,
+                    length: 0
                 )
             }
         }
 
+        /// Takes first responder, and keeps taking it for as long as the update
+        /// this set off is still landing.
+        private func claimKeyboard(_ searchField: NSSearchField, selectingAll: Bool) {
+            holdsKeyboardIntent = true
+            pendingCommandExitTimestamp = nil
+            attachedSearchField = searchField
+            installUserExitObservers(for: searchField)
+            guard let window = searchField.window else { return }
+            window.makeFirstResponder(searchField)
+            if selectingAll { searchField.currentEditor()?.selectAll(nil) }
+        }
+
+        /// Gives the claim up, and tells the window so the panes may hold the
+        /// keyboard again. Every path out of editing ends here exactly once.
+        private func releaseKeyboard() {
+            pendingCommandExitTimestamp = nil
+            stopUserExitObservers()
+            guard holdsKeyboardIntent else { return }
+            holdsKeyboardIntent = false
+            field.onFocusChange?(false)
+        }
+
+        private func stopUserExitObservers() {
+            if let userExitMonitor {
+                NSEvent.removeMonitor(userExitMonitor)
+                self.userExitMonitor = nil
+            }
+            if let windowResignObserver {
+                NotificationCenter.default.removeObserver(windowResignObserver)
+                self.windowResignObserver = nil
+            }
+        }
+
+        private func installUserExitObservers(for searchField: NSSearchField) {
+            guard userExitMonitor == nil else { return }
+            userExitMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown]
+            ) { [weak self] event in
+                self?.handleUserEvent(event)
+                return event
+            }
+            guard let window = searchField.window else { return }
+            windowResignObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.releaseKeyboard() }
+            }
+        }
+
+        /// A real pointer gesture outside the field or Tab is the user explicitly
+        /// leaving. Release before AppKit routes the event so the destination is
+        /// never fought by a delayed focus restoration.
+        func handleUserEvent(_ event: NSEvent) {
+            guard holdsKeyboardIntent else { return }
+            switch event.type {
+            case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+                guard let searchField = attachedSearchField,
+                    event.window === searchField.window
+                else {
+                    releaseKeyboard()
+                    return
+                }
+                let point = searchField.convert(event.locationInWindow, from: nil)
+                if !searchField.bounds.contains(point) { releaseKeyboard() }
+            case .keyDown:
+                if event.keyCode == 48 {
+                    releaseKeyboard()
+                } else if event.modifierFlags.contains(.command) {
+                    markPendingCommandExit(event)
+                }
+            default:
+                break
+            }
+        }
+
+        private func markPendingCommandExit(_ event: NSEvent) {
+            let timestamp = event.timestamp
+            pendingCommandExitTimestamp = timestamp
+            DispatchQueue.main.async { [weak self] in
+                guard self?.pendingCommandExitTimestamp == timestamp else { return }
+                self?.pendingCommandExitTimestamp = nil
+            }
+        }
+
         func controlTextDidBeginEditing(_ notification: Notification) {
+            holdsKeyboardIntent = true
+            if let searchField = notification.object as? NSSearchField {
+                attachedSearchField = searchField
+                installUserExitObservers(for: searchField)
+            }
             field.onFocusChange?(true)
         }
 
         func controlTextDidEndEditing(_ notification: Notification) {
-            field.onFocusChange?(false)
+            // A query update can replace the toolbar's AppKit field. That old
+            // field ends editing even though the window-level search is still
+            // active and its replacement is about to inherit the caret. Real
+            // exits release in `handleUserEvent`, Escape, or the window-resign
+            // observer before this callback arrives.
+            if pendingCommandExitTimestamp != nil {
+                releaseKeyboard()
+                return
+            }
+            guard !holdsKeyboardIntent else { return }
+            stopUserExitObservers()
         }
 
         func control(
@@ -201,6 +380,10 @@ struct NativeSearchField: NSViewRepresentable {
                 guard let cancel = field.cancel else { return false }
                 field.text = ""
                 (control as? NSSearchField)?.stringValue = ""
+                // Escape hands the keyboard back on purpose — the terminal
+                // takes it in `dismissFind`. Drop the claim first so the two do
+                // not fight over the caret.
+                releaseKeyboard()
                 cancel()
                 return true
             default:
@@ -234,14 +417,16 @@ struct WindowToolbarFindField: View {
                     text: context.query,
                     placeholder: String(localized: "Search"),
                     focusRequest: context.focusRequest,
+                    maintainsKeyboardFocus: window.isToolbarFindFocused,
                     navigate: context.navigate,
                     cancel: context.cancel,
                     menuItems: context.menuItems,
+                    installFocusHandler: { window.focusToolbarFindField = $0 },
                     onFocusChange: { window.isToolbarFindFocused = $0 }
                 )
                 .frame(width: Metrics.Toolbar.searchFieldWidth)
-                .help(Text(context.kind.help))
-                .accessibilityLabel(Text(context.kind.help))
+                .help(Text(String(localized: "Search")))
+                .accessibilityLabel(Text(String(localized: "Search")))
             } else {
                 // Zero width, full height. A toolbar with nothing in it is
                 // shorter than one holding a search field, and the titlebar
@@ -251,6 +436,7 @@ struct WindowToolbarFindField: View {
                 // to a Workspace. Reserving the height keeps the toolbar one
                 // size for every destination, without leaving a phantom slot.
                 Color.clear.frame(width: 0)
+                    .onAppear { window.isToolbarFindFocused = false }
             }
         }
         .frame(height: Metrics.Toolbar.height)
@@ -419,7 +605,7 @@ extension WindowModel {
             return WindowToolbarFindContext(
                 kind: kind,
                 query: Binding(
-                    get: { sshSession.find.query },
+                    get: { sshSession.findQuery },
                     set: { sshSession.updateFindQuery($0) }
                 ),
                 focusRequest: findFocusRequest,

@@ -81,11 +81,11 @@ struct WorkspaceContentView: View {
 
                 Button("") { sshSession?.dismissFind() }
                     .keyboardShortcut(.escape, modifiers: [])
-                    .disabled(!isActive || sshSession?.find.isPresented != true)
+                    .disabled(!isActive || sshSession?.isFindPresented != true)
 
                 Button("") { sshSession?.dismissFind() }
                     .keyboardShortcut(.escape, modifiers: .shift)
-                    .disabled(!isActive || sshSession?.find.isPresented != true)
+                    .disabled(!isActive || sshSession?.isFindPresented != true)
             }
             .opacity(0)
             .frame(width: 0, height: 0)
@@ -566,7 +566,7 @@ private struct PaneView: View {
                 sshSession: sshSession,
                 workspace: workspace,
                 isVisible: isActive,
-                requestsFocus: isActive && isFocused,
+                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused,
                 externalFileDrop: localFileDropRequest,
                 isExternalFileDropTargeted: isLocalFileDropTargeted,
                 closePane: { window.closePane(pane.id) }
