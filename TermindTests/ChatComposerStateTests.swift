@@ -1678,7 +1678,10 @@ struct ChatComposerStateTests {
     }
 
     private func waitForTerminal(_ conversation: ConversationModel) async {
-        for _ in 0..<200 where !conversation.runState.isTerminal {
+        // Multi-turn scripted runs also exercise the bounded presentation
+        // drain, so their terminal event can legitimately arrive after the
+        // old one-second polling window.
+        for _ in 0..<1_000 where !conversation.runState.isTerminal {
             try? await Task.sleep(for: .milliseconds(5))
         }
     }

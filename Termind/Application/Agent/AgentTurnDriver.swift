@@ -46,74 +46,120 @@ nonisolated struct AgentTurnDriver: Sendable {
         // read as the model having searched four times for one thing.
         var recordedSearches: Set<String> = []
         channel.emit(.messageStarted(message))
+        let messageID = message.id
+
+        let reasoningEmitter = BalancedEmitter(
+            configuration: .init(duration: .seconds(1), frequency: 30)
+        ) { [channel] text in
+            channel.emit(.reasoningDelta(messageID: messageID, text: text))
+        }
+        let textEmitter = BalancedEmitter(
+            configuration: .init(duration: .milliseconds(500), frequency: 20)
+        ) { [channel] text in
+            channel.emit(.messageDelta(messageID: messageID, text: text))
+        }
+        var streamedCharacterCount = 0
 
         let request = AgentModelRequest(
             systemPrompt: context.systemPrompt,
             messages: context.messages,
             tools: context.tools
         )
-        for try await event in model.stream(request) {
-            try Task.checkCancellation()
-            switch event {
-            case .textDelta(let text):
-                message.text += text
-                channel.emit(.messageDelta(messageID: message.id, text: text))
-            case .textSnapshot(let text):
-                // The UI is reconciled by messageFinished after the provider
-                // stream closes, so replacing here cannot duplicate deltas.
-                message.text = text
-            case .reasoningDelta(let text):
-                if message.reasoning.isEmpty {
-                    message.reasoning.append(AgentReasoningBlock(
-                        text: text, createdAt: message.createdAt
-                    ))
-                } else {
-                    message.reasoning[message.reasoning.index(before: message.reasoning.endIndex)]
-                        .text += text
+        do {
+            for try await event in model.stream(request) {
+                try Task.checkCancellation()
+                switch event {
+                case .textDelta(let text):
+                    message.text += text
+                    try await reasoningEmitter.wait()
+                    if streamedCharacterCount >= 5_000 {
+                        await textEmitter.update(.init(duration: .seconds(1), frequency: 3))
+                    } else if streamedCharacterCount >= 2_000 {
+                        await textEmitter.update(.init(duration: .seconds(1), frequency: 9))
+                    } else if streamedCharacterCount >= 1_000 {
+                        await textEmitter.update(
+                            .init(duration: .milliseconds(500), frequency: 15)
+                        )
+                    }
+                    await textEmitter.add(text)
+                    streamedCharacterCount += text.count
+                case .textSnapshot(let text):
+                    // The UI is reconciled by messageFinished after the provider
+                    // stream closes, so replacing here cannot duplicate deltas.
+                    message.text = text
+                case .reasoningDelta(let text):
+                    if message.reasoning.isEmpty {
+                        message.reasoning.append(AgentReasoningBlock(
+                            text: text, createdAt: message.createdAt
+                        ))
+                    } else {
+                        message.reasoning[
+                            message.reasoning.index(before: message.reasoning.endIndex)
+                        ].text += text
+                    }
+                    try await textEmitter.wait()
+                    await reasoningEmitter.add(text)
+                case .reasoningSnapshot(let text):
+                    if message.reasoning.isEmpty {
+                        message.reasoning.append(AgentReasoningBlock(
+                            text: text, createdAt: message.createdAt
+                        ))
+                    } else {
+                        message.reasoning[
+                            message.reasoning.index(before: message.reasoning.endIndex)
+                        ].text = text
+                    }
+                case .toolCallDelta(let id, let name, let arguments):
+                    try await reasoningEmitter.wait()
+                    try await textEmitter.wait()
+                    if pending[id] == nil { order.append(id) }
+                    var entry = pending[id] ?? PendingToolCall()
+                    if let name { entry.name = name }
+                    entry.arguments += arguments
+                    pending[id] = entry
+                case .toolCallSnapshot(let id, let providerItemID, let name, let arguments):
+                    try await reasoningEmitter.wait()
+                    try await textEmitter.wait()
+                    if pending[id] == nil { order.append(id) }
+                    pending[id] = PendingToolCall(
+                        name: name, arguments: arguments,
+                        providerItemID: providerItemID
+                    )
+                case .providerItem(let item):
+                    if let id = item.objectValue?["id"]?.stringValue,
+                        let index = message.providerItems.firstIndex(where: {
+                            $0.objectValue?["id"]?.stringValue == id
+                        })
+                    {
+                        // `response.completed` can carry a richer final reasoning
+                        // item (notably encrypted_content) than output_item.done.
+                        message.providerItems[index] = item
+                    } else {
+                        message.providerItems.append(item)
+                    }
+                case .webSearch(let activity):
+                    try await reasoningEmitter.wait()
+                    try await textEmitter.wait()
+                    if recordedSearches.insert(activity.query).inserted {
+                        recordNativeWebSearch(activity, sourceMessageID: message.id)
+                    }
+                case .usage(let reported):
+                    usage = usage.merging(reported)
+                case .finished(let reason):
+                    stopReason = reason
                 }
-                channel.emit(.reasoningDelta(messageID: message.id, text: text))
-            case .reasoningSnapshot(let text):
-                if message.reasoning.isEmpty {
-                    message.reasoning.append(AgentReasoningBlock(
-                        text: text, createdAt: message.createdAt
-                    ))
-                } else {
-                    message.reasoning[message.reasoning.index(before: message.reasoning.endIndex)]
-                        .text = text
-                }
-            case .toolCallDelta(let id, let name, let arguments):
-                if pending[id] == nil { order.append(id) }
-                var entry = pending[id] ?? PendingToolCall()
-                if let name { entry.name = name }
-                entry.arguments += arguments
-                pending[id] = entry
-            case .toolCallSnapshot(let id, let providerItemID, let name, let arguments):
-                if pending[id] == nil { order.append(id) }
-                pending[id] = PendingToolCall(
-                    name: name, arguments: arguments,
-                    providerItemID: providerItemID
-                )
-            case .providerItem(let item):
-                if let id = item.objectValue?["id"]?.stringValue,
-                    let index = message.providerItems.firstIndex(where: {
-                        $0.objectValue?["id"]?.stringValue == id
-                    })
-                {
-                    // `response.completed` can carry a richer final reasoning
-                    // item (notably encrypted_content) than output_item.done.
-                    message.providerItems[index] = item
-                } else {
-                    message.providerItems.append(item)
-                }
-            case .webSearch(let activity):
-                if recordedSearches.insert(activity.query).inserted {
-                    recordNativeWebSearch(activity, sourceMessageID: message.id)
-                }
-            case .usage(let reported):
-                usage = usage.merging(reported)
-            case .finished(let reason):
-                stopReason = reason
             }
+            try await reasoningEmitter.wait()
+            try await textEmitter.wait()
+        } catch {
+            if Task.isCancelled {
+                await reasoningEmitter.cancel()
+                await textEmitter.cancel()
+            } else {
+                try? await reasoningEmitter.wait()
+                try? await textEmitter.wait()
+            }
+            throw error
         }
         message.toolCalls = try order.map { try assembled($0, pending: pending) }
         return Turn(message: message, reason: stopReason, usage: usage)
