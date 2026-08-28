@@ -238,7 +238,7 @@ struct SnippetsPageView: ManagedCardPage {
 
     func managedEmptyState() -> some View {
         ContentUnavailableView {
-            Label("No Snippets", systemImage: "text.badge.plus")
+            Label("No Snippets", systemImage: "curlybraces")
         } description: {
             Text("Save a script and optionally choose its default hosts.")
         } actions: {
@@ -639,7 +639,7 @@ struct SnippetEditorSheet: View {
     private var editor: some View {
         VaultDetailScaffold(
             title: existing == nil ? "New Snippet" : "Edit Snippet",
-            symbol: "text.badge.plus", close: close
+            symbol: "curlybraces", close: close
         ) {
             Form {
                 Section {

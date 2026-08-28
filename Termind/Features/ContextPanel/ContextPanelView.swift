@@ -139,6 +139,14 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
         case package(UUID)
         case ungrouped
         case results
+
+        var snippetExpansionID: String? {
+            switch self {
+            case .package(let id): "package:\(id.uuidString.lowercased())"
+            case .ungrouped: "ungrouped"
+            case .results: nil
+            }
+        }
     }
 
     nonisolated enum ID: Hashable, Sendable {
@@ -150,7 +158,10 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
     }
 
     nonisolated enum Content: Hashable, Sendable {
-        case section(SectionID, title: String)
+        /// Expansion deliberately does not live in this value. ListViewKit can
+        /// then keep the header row alive while the click inside it removes the
+        /// section's Snippet rows.
+        case section(SectionID, title: String, count: Int)
         case snippet(Snippet)
         case history(CommandHistoryEntry, isNaming: Bool)
         case sftpHistory(SFTPHistoryEntry)
@@ -160,8 +171,8 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
     let id: ID
     let content: Content
 
-    static func section(_ id: SectionID, title: String) -> Self {
-        .init(id: .section(id), content: .section(id, title: title))
+    static func section(_ id: SectionID, title: String, count: Int = 0) -> Self {
+        .init(id: .section(id), content: .section(id, title: title, count: count))
     }
 
     static func snippet(_ snippet: Snippet) -> Self {
@@ -186,7 +197,8 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
     /// squeezed into a row built for two lines of text.
     var height: CGFloat {
         switch content {
-        case .section: 32
+        case .section(let section, _, _):
+            section.snippetExpansionID == nil ? 32 : 34
         case .snippet: Metrics.Sidebar.historyCardHeight
         case .history(_, let isNaming):
             isNaming
@@ -194,6 +206,65 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
                 : Metrics.Sidebar.historyCardHeight
         case .sftpHistory, .connection: Metrics.Sidebar.historyCardHeight
         }
+    }
+}
+
+/// Persistent presentation state belonging only to the compact Snippets shelf.
+/// The main Snippets page continues to use `SnippetPackage.isExpanded`.
+nonisolated struct SnippetSidebarExpansionState: Equatable, Sendable {
+    private(set) var collapsedSectionIDs: Set<String>
+
+    init(rawValue: String = "") {
+        collapsedSectionIDs = Set(rawValue.split(separator: "\n").map(String.init))
+    }
+
+    var rawValue: String {
+        collapsedSectionIDs.sorted().joined(separator: "\n")
+    }
+
+    func isExpanded(_ section: ContextSidebarListItem.SectionID) -> Bool {
+        guard let id = section.snippetExpansionID else { return true }
+        return !collapsedSectionIDs.contains(id)
+    }
+
+    mutating func setExpanded(
+        _ expanded: Bool,
+        for section: ContextSidebarListItem.SectionID
+    ) {
+        guard let id = section.snippetExpansionID else { return }
+        if expanded {
+            collapsedSectionIDs.remove(id)
+        } else {
+            collapsedSectionIDs.insert(id)
+        }
+    }
+}
+
+nonisolated struct SnippetSidebarGroup: Sendable {
+    let id: ContextSidebarListItem.SectionID
+    let title: String
+    let snippets: [Snippet]
+}
+
+/// Keeps filtering and folding rules testable without constructing the AppKit list.
+nonisolated enum SnippetSidebarListBuilder {
+    static func groupedItems(
+        _ groups: [SnippetSidebarGroup],
+        expansion: SnippetSidebarExpansionState
+    ) -> [ContextSidebarListItem] {
+        var items: [ContextSidebarListItem] = []
+        for group in groups where !group.snippets.isEmpty {
+            items.append(.section(group.id, title: group.title, count: group.snippets.count))
+            if expansion.isExpanded(group.id) {
+                items.append(contentsOf: group.snippets.map(ContextSidebarListItem.snippet))
+            }
+        }
+        return items
+    }
+
+    static func searchItems(_ snippets: [Snippet]) -> [ContextSidebarListItem] {
+        [.section(.results, title: "Results", count: snippets.count)]
+            + snippets.map(ContextSidebarListItem.snippet)
     }
 }
 
@@ -212,6 +283,58 @@ private func contextSidebarSectionTitle(_ title: String) -> some View {
             Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
         )
         .padding(.top, Metrics.Space.s)
+}
+
+/// A Snippet package heading with the same count, chevron and hit region as an
+/// Assistant section. It owns the storage read so changing expansion never
+/// changes the `ContextSidebarListItem` representing this row.
+private struct SnippetSidebarSectionHeaderRow: View {
+    let section: ContextSidebarListItem.SectionID
+    let title: String
+    let count: Int
+
+    @AppStorage(SettingsKey.snippetsSidebarCollapsedSections)
+    private var collapsedSections = ""
+
+    private var isExpanded: Bool {
+        SnippetSidebarExpansionState(rawValue: collapsedSections).isExpanded(section)
+    }
+
+    private func toggleExpansion() {
+        var state = SnippetSidebarExpansionState(rawValue: collapsedSections)
+        state.setExpanded(!state.isExpanded(section), for: section)
+        collapsedSections = state.rawValue
+    }
+
+    var body: some View {
+        Button(action: toggleExpansion) {
+            HStack(spacing: Metrics.Space.s) {
+                Text(title)
+                Spacer(minLength: 0)
+                Text(count, format: .number)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: Metrics.Sidebar.rowIcon)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 34)
+            .padding(
+                .horizontal,
+                Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
+            )
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .termindSidebarSectionLabel()
+        .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+        .accessibilityAction(
+            named: Text(isExpanded ? "Collapse" : "Expand"),
+            toggleExpansion
+        )
+    }
 }
 
 private struct ContextSidebarNativeList: NSViewRepresentable {
@@ -392,6 +515,8 @@ private struct SSHSessionSnippetsSidebar: View {
     @State private var query = ""
     @State private var destructiveSnippet: Snippet?
     @State private var selectedSnippetID: Snippet.ID?
+    @AppStorage(SettingsKey.snippetsSidebarCollapsedSections)
+    private var collapsedSections = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -401,11 +526,20 @@ private struct SSHSessionSnippetsSidebar: View {
             } else {
                 ContextSidebarNativeList(
                     items: snippetListItems,
+                    // A fold removes rows during the header's click. Matching
+                    // Assistant, keep that structural update synchronous.
+                    animatesStructuralChanges: false,
                     blankAreaMenu: { blankAreaMenu }
                 ) { item in
                     switch item.content {
-                    case .section(_, let title):
-                        contextSidebarSectionTitle(title)
+                    case .section(let section, let title, let count):
+                        if section.snippetExpansionID == nil {
+                            contextSidebarSectionTitle(title)
+                        } else {
+                            SnippetSidebarSectionHeaderRow(
+                                section: section, title: title, count: count
+                            )
+                        }
                     case .snippet(let snippet):
                         snippetRow(snippet)
                     case .history, .sftpHistory, .connection:
@@ -435,19 +569,22 @@ private struct SSHSessionSnippetsSidebar: View {
 
     private var snippetListItems: [ContextSidebarListItem] {
         if !query.isEmpty {
-            return [.section(.results, title: "Results")]
-                + displayedSnippets.map(ContextSidebarListItem.snippet)
+            return SnippetSidebarListBuilder.searchItems(displayedSnippets)
         }
-        var items: [ContextSidebarListItem] = []
-        for section in packageSections where !section.snippets.isEmpty {
-            items.append(.section(.package(section.package.id), title: section.path))
-            items.append(contentsOf: section.snippets.map(ContextSidebarListItem.snippet))
+        var groups = packageSections.map {
+            SnippetSidebarGroup(
+                id: .package($0.package.id), title: $0.path, snippets: $0.snippets
+            )
         }
         if !ungrouped.isEmpty {
-            items.append(.section(.ungrouped, title: "Ungrouped"))
-            items.append(contentsOf: ungrouped.map(ContextSidebarListItem.snippet))
+            groups.append(
+                SnippetSidebarGroup(id: .ungrouped, title: "Ungrouped", snippets: ungrouped)
+            )
         }
-        return items
+        return SnippetSidebarListBuilder.groupedItems(
+            groups,
+            expansion: SnippetSidebarExpansionState(rawValue: collapsedSections)
+        )
     }
 
     /// This shelf only runs what is already saved; snippets are made on the
@@ -641,7 +778,7 @@ private struct SSHCommandHistorySidebar: View {
                     blankAreaMenu: { globalMenu }
                 ) { item in
                     switch item.content {
-                    case .section(_, let title):
+                    case .section(_, let title, _):
                         contextSidebarSectionTitle(title)
                     case .history(let entry, _):
                         historyRow(entry)

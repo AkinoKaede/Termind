@@ -182,9 +182,69 @@ struct ListViewMigrationTests {
     func contextSidebarSectionIdentityDoesNotDependOnItsTitle() {
         let packageID = UUID()
         let short = ContextSidebarListItem.section(.package(packageID), title: "Tools")
-        let renamed = ContextSidebarListItem.section(.package(packageID), title: "Operations")
+        let renamed = ContextSidebarListItem.section(
+            .package(packageID), title: "Operations", count: 3
+        )
 
         #expect(short.id == renamed.id)
         #expect(short != renamed)
+    }
+
+    @Test
+    func snippetSidebarExpansionIsIndependentAndRoundTrips() {
+        let first = ContextSidebarListItem.SectionID.package(UUID())
+        let second = ContextSidebarListItem.SectionID.package(UUID())
+        var state = SnippetSidebarExpansionState()
+
+        #expect(state.isExpanded(first))
+        #expect(state.isExpanded(second))
+        #expect(state.isExpanded(.ungrouped))
+
+        state.setExpanded(false, for: first)
+        state.setExpanded(false, for: .ungrouped)
+        let restored = SnippetSidebarExpansionState(rawValue: state.rawValue)
+
+        #expect(!restored.isExpanded(first))
+        #expect(restored.isExpanded(second))
+        #expect(!restored.isExpanded(.ungrouped))
+        #expect(restored.isExpanded(.results))
+    }
+
+    @Test
+    func snippetSidebarBuilderFoldsOnlyTheRequestedGroup() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let firstSnippet = Snippet(title: "First", body: "pwd")
+        let secondSnippet = Snippet(title: "Second", body: "whoami")
+        let groups = [
+            SnippetSidebarGroup(
+                id: .package(firstID), title: "Tools", snippets: [firstSnippet]
+            ),
+            SnippetSidebarGroup(
+                id: .package(secondID), title: "Operations", snippets: [secondSnippet]
+            ),
+        ]
+        var expansion = SnippetSidebarExpansionState()
+        expansion.setExpanded(false, for: .package(firstID))
+
+        let grouped = SnippetSidebarListBuilder.groupedItems(
+            groups, expansion: expansion
+        )
+        #expect(
+            grouped.map(\.id) == [
+                .section(.package(firstID)),
+                .section(.package(secondID)),
+                .snippet(secondSnippet.id),
+            ]
+        )
+
+        let search = SnippetSidebarListBuilder.searchItems([firstSnippet, secondSnippet])
+        #expect(
+            search.map(\.id) == [
+                .section(.results),
+                .snippet(firstSnippet.id),
+                .snippet(secondSnippet.id),
+            ]
+        )
     }
 }

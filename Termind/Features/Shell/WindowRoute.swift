@@ -33,7 +33,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         case .welcome: "house"
         case .hosts: "server.rack"
         case .keychain: "key.fill"
-        case .snippets: "text.badge.plus"
+        case .snippets: "curlybraces"
         }
     }
 }

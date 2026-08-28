@@ -173,7 +173,7 @@ private struct SnippetContextPanelDetailProvider: ContextPanelDetailProvider {
     let kind = ContextPanelDetailID.Kind.snippet
     let page = VaultPage.snippets
     let emptyState = ContextPanelEmptyState(
-        title: "No Snippet Selected", symbol: "text.badge.plus",
+        title: "No Snippet Selected", symbol: "curlybraces",
         description: "Select a snippet to inspect it."
     )
 
@@ -189,7 +189,7 @@ private struct SnippetContextPanelDetailProvider: ContextPanelDetailProvider {
             id: id,
             label: AnyView(
                 ContextPanelDetailLabel {
-                    Image(systemName: "text.badge.plus").foregroundStyle(.accent)
+                    Image(systemName: "curlybraces").foregroundStyle(.accent)
                 } title: {
                     ContextPanelDetailTitle(title: snippet.title, subtitle: snippet.body)
                 }

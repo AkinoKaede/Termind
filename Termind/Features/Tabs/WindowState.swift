@@ -65,7 +65,7 @@ final class WindowSidebarState {
             switch self {
             case .navigation: "list.bullet"
             case .assistant: "sparkles"
-            case .snippets: "text.badge.plus"
+            case .snippets: "curlybraces"
             case .history: "clock.arrow.circlepath"
             }
         }
