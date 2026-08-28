@@ -252,9 +252,9 @@ struct ConversationView: View {
 
 // MARK: - Tool calls
 
-/// One disclosure for a run's process. The full Assistant opens live work so
-/// progress remains visible; the compact sidebar starts it closed so streaming
-/// tools do not continuously resize the narrow transcript.
+/// One disclosure for a run's process. Live and exceptional work opens by
+/// default on both Assistant surfaces; each surface retains independent reader
+/// overrides after that.
 private struct AgentWorkGroupView: View {
     let group: AgentWorkGroup
     let isCompact: Bool
@@ -262,6 +262,7 @@ private struct AgentWorkGroupView: View {
     let onDisclosureToggle: () -> Void
 
     @Environment(\.locale) private var locale
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var defaultExpanded: Bool {
         AgentWorkPresentation.isExpandedByDefault(
@@ -369,15 +370,37 @@ private struct AgentWorkGroupView: View {
                         card: card, presentation: presentation,
                         onDisclosureToggle: onDisclosureToggle
                     )
+                    .transition(toolInsertionTransition)
                 case .tools(let batch):
                     AgentToolBatchView(
                         batch: batch, presentation: presentation,
                         onDisclosureToggle: onDisclosureToggle
                     )
+                    .transition(toolInsertionTransition)
                 }
             }
         }
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: 0.18),
+            value: toolCallIDs
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var toolCallIDs: [UUID] {
+        group.items.flatMap { item in
+            switch item {
+            case .tool(let card): return [card.id]
+            case .tools(let batch): return batch.cards.map(\.id)
+            case .reasoning, .message: return []
+            }
+        }
+    }
+
+    private var toolInsertionTransition: AnyTransition {
+        reduceMotion
+            ? .identity
+            : .opacity.combined(with: .move(edge: .top))
     }
 
     /// Reasoning uses MarkdownView's streaming path but never gains terminal

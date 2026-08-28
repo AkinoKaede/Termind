@@ -443,14 +443,12 @@ nonisolated struct AgentWorkGroup: Identifiable, Hashable, Sendable {
 nonisolated enum AgentWorkPresentation {
     static func isExpandedByDefault(
         for state: AgentRunState, appearsAfterAnswer: Bool = false,
-        isCompact: Bool = false
+        isCompact _: Bool = false
     ) -> Bool {
-        // A live run can add reasoning, messages and tool rows several times a
-        // second. In the narrow Workspace sidebar every addition wraps more,
-        // repeatedly relaying out and following a tall transcript. Keep that
-        // surface stable behind its live summary; the full Assistant page has
-        // enough room to retain the expanded process readers expect.
-        !isCompact && (state != .completed || appearsAfterAnswer)
+        // Compact and full Assistant surfaces follow the same disclosure
+        // default. Surface-local presentation state still lets a reader fold
+        // either one independently.
+        state != .completed || appearsAfterAnswer
     }
 
     /// A compact, stable duration for the work disclosure. Seconds are floored

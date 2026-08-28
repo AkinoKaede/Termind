@@ -1260,8 +1260,8 @@ struct ChatComposerStateTests {
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .failed))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .cancelled))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .interrupted))
-        #expect(!AgentWorkPresentation.isExpandedByDefault(for: .running, isCompact: true))
-        #expect(!AgentWorkPresentation.isExpandedByDefault(
+        #expect(AgentWorkPresentation.isExpandedByDefault(for: .running, isCompact: true))
+        #expect(AgentWorkPresentation.isExpandedByDefault(
             for: .waitingForUser, appearsAfterAnswer: true, isCompact: true
         ))
         #expect(AgentWorkPresentation.title(

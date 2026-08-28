@@ -608,6 +608,7 @@
       }
     },
     "%lld results." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -708,6 +709,7 @@
       }
     },
     "%lld." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -768,6 +770,7 @@
       }
     },
     "•" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1898,6 +1901,7 @@
       }
     },
     "Backend" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1948,6 +1952,7 @@
       }
     },
     "Blocked link: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2273,6 +2278,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择私钥或OpenSSH用户证书文件。"
+          }
+        }
+      }
+    },
+    "Choose between provider-native search and local Web Search on this Mac." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择提供方原生搜索或这台Mac上的本地网页搜索。"
           }
         }
       }
@@ -4218,6 +4233,7 @@
       }
     },
     "Empty response body" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -4317,7 +4333,18 @@
         }
       }
     },
+    "Every model searches Google, Bing, DuckDuckGo, and Yahoo from this Mac and reads result pages as Markdown." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有模型都从这台Mac搜索Google、Bing、DuckDuckGo和Yahoo，并以Markdown读取结果页面。"
+          }
+        }
+      }
+    },
     "Every model uses the backend below, which behaves the same on every endpoint." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5416,6 +5443,7 @@
       }
     },
     "How the assistant finds pages before it reads them." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -6197,6 +6225,16 @@
         }
       }
     },
+    "Markdown" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown"
+          }
+        }
+      }
+    },
     "Matches a fork-bomb pattern." : {
       "localizations" : {
         "zh-Hans" : {
@@ -6409,6 +6447,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模型"
+          }
+        }
+      }
+    },
+    "Models with provider-native search use it directly. Other models search Google, Bing, DuckDuckGo, and Yahoo from this Mac and read result pages as Markdown." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持提供方原生搜索的模型会直接使用该能力；其他模型从这台Mac搜索Google、Bing、DuckDuckGo和Yahoo，并以Markdown读取结果页面。"
           }
         }
       }
@@ -6714,6 +6762,7 @@
       }
     },
     "No account or key." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -6724,6 +6773,7 @@
       }
     },
     "No account or key. Reachable almost anywhere." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -7019,6 +7069,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无输出"
+          }
+        }
+      }
+    },
+    "No readable page content" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可读的网页内容"
           }
         }
       }
@@ -7529,6 +7589,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "橙色"
+          }
+        }
+      }
+    },
+    "Original HTML" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原始HTML"
           }
         }
       }
@@ -8184,6 +8254,7 @@
       }
     },
     "Providers that run search on their own servers do it themselves, and read whole pages rather than snippets. Anything else falls back to the backend below. Whether an endpoint really does is inferred from the model, and a gateway can make that wrong — turn this off if search fails or the model reports an unknown tool." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -8440,6 +8511,7 @@
       }
     },
     "Reached the backend, but it returned no results." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -8475,6 +8547,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "只读"
+          }
+        }
+      }
+    },
+    "Readable pages:" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可读页面："
           }
         }
       }
@@ -9052,6 +9134,7 @@
       }
     },
     "Response body" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -9062,6 +9145,7 @@
       }
     },
     "Response headers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -11891,7 +11975,18 @@
         }
       }
     },
+    "The search completed, but no readable pages were found." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索已完成，但没有找到可读页面。"
+          }
+        }
+      }
+    },
     "The search query is empty." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12162,6 +12257,7 @@
       }
     },
     "The Web Search endpoint redirected somewhere Termind will not follow." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12172,6 +12268,7 @@
       }
     },
     "The Web Search endpoint returned %lld: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -12188,6 +12285,7 @@
       }
     },
     "The Web Search endpoint returned an unsupported response format." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12198,6 +12296,7 @@
       }
     },
     "The Web Search endpoint URL is invalid." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12469,6 +12568,16 @@
         }
       }
     },
+    "Title" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题"
+          }
+        }
+      }
+    },
     "To" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12725,6 +12834,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "传输方式"
+          }
+        }
+      }
+    },
+    "Truncated" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已截断"
           }
         }
       }
@@ -13420,6 +13539,7 @@
       }
     },
     "Web Search has no API key configured." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -13627,106 +13747,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "黄色"
-          }
-        }
-      }
-    },
-    "Choose between provider-native search and local Web Search on this Mac." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择提供方原生搜索或这台Mac上的本地网页搜索。"
-          }
-        }
-      }
-    },
-    "Every model searches Google, Bing, DuckDuckGo, and Yahoo from this Mac and reads result pages as Markdown." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "所有模型都从这台Mac搜索Google、Bing、DuckDuckGo和Yahoo，并以Markdown读取结果页面。"
-          }
-        }
-      }
-    },
-    "Markdown" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Markdown"
-          }
-        }
-      }
-    },
-    "Models with provider-native search use it directly. Other models search Google, Bing, DuckDuckGo, and Yahoo from this Mac and read result pages as Markdown." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "支持提供方原生搜索的模型会直接使用该能力；其他模型从这台Mac搜索Google、Bing、DuckDuckGo和Yahoo，并以Markdown读取结果页面。"
-          }
-        }
-      }
-    },
-    "No readable page content" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有可读的网页内容"
-          }
-        }
-      }
-    },
-    "Original HTML" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "原始HTML"
-          }
-        }
-      }
-    },
-    "Readable pages:" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可读页面："
-          }
-        }
-      }
-    },
-    "The search completed, but no readable pages were found." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜索已完成，但没有找到可读页面。"
-          }
-        }
-      }
-    },
-    "Title" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标题"
-          }
-        }
-      }
-    },
-    "Truncated" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已截断"
           }
         }
       }
