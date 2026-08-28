@@ -151,18 +151,7 @@ struct WorkspaceNavigatorView: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
         } header: {
-            sectionHeader("Workspace") {
-                Button {
-                    workspaceExpanded = true
-                    app.connect(in: window)
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-                .help(Text("New Workspace"))
-                .accessibilityLabel(Text("New Workspace"))
-            }
+            sectionHeader("Workspace")
             .onGeometryChange(for: CGRect.self) {
                 $0.frame(in: .named(Self.coordinateSpace))
             } action: { workspaceHeaderFrame = $0 }
