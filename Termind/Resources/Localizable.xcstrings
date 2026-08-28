@@ -21,6 +21,26 @@
         }
       }
     },
+    "Hide Session Details" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏会话详情"
+          }
+        }
+      }
+    },
+    "Show Session Details" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示会话详情"
+          }
+        }
+      }
+    },
     "[… %lld characters omitted …]" : {
       "localizations" : {
         "zh-Hans" : {
