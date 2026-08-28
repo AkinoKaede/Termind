@@ -22,25 +22,24 @@ struct AssistantSidebarView: View {
                         )
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .termindSidebarGlassButton()
 
                 Button {
                     window.showAssistantArchive()
                 } label: {
                     Image(systemName: "archivebox")
+                        .foregroundStyle(
+                            window.isAssistantArchivePresented ? Color.accentColor : Color.primary
+                        )
                         .frame(
                             width: Metrics.Sidebar.navigationRowHeight,
                             height: Metrics.Sidebar.navigationRowHeight
                         )
-                        .background(
-                            window.isAssistantArchivePresented
-                                ? Color.accentColor.opacity(0.16) : Color.clear,
-                            in: .rect(cornerRadius: Metrics.Radius.small)
-                        )
                 }
-                .buttonStyle(.plain)
+                .termindSidebarGlassButton()
                 .help(Text("Archived"))
                 .accessibilityLabel(Text("Archived"))
+                .accessibilityAddTraits(window.isAssistantArchivePresented ? .isSelected : [])
             }
             .padding(.horizontal, Metrics.Space.m)
             .padding(.vertical, Metrics.Space.s)
@@ -296,8 +295,7 @@ private struct AssistantConversationList: View {
         switch item.content {
         case .section(let section):
             Text(section.title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .termindSidebarSectionLabel()
                 .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
                 .padding(.top, Metrics.Space.m)
                 .padding(.bottom, Metrics.Space.xs)
@@ -617,48 +615,38 @@ private struct AssistantConversationRow: View {
     @FocusState private var titleFocused: Bool
 
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(
-                    isSelected
-                        ? Color.accentColor.opacity(0.16)
-                        : hovering
-                            ? Color.primary.opacity(0.055)
-                            : Color.clear
-                )
-
-            rowContent
-                .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: Metrics.Sidebar.navigationRowHeight)
-        .contentShape(.rect)
-        .onTapGesture { if !isRenaming { onOpen() } }
-        .onHover { hovering = $0 }
-        .focusable(false)
-        .focusEffectDisabled()
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .onChange(of: isRenaming, initial: true) {
-            if isRenaming {
-                DispatchQueue.main.async { titleFocused = true }
+        rowContent
+            .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: Metrics.Sidebar.navigationRowHeight)
+            .contentShape(.rect)
+            .termindSidebarRowBackground(isSelected: isSelected)
+            .onTapGesture { if !isRenaming { onOpen() } }
+            .onHover { hovering = $0 }
+            .focusable(false)
+            .focusEffectDisabled()
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .onChange(of: isRenaming, initial: true) {
+                if isRenaming {
+                    DispatchQueue.main.async { titleFocused = true }
+                }
             }
-        }
-        .overlay {
-            ConversationContextMenuHost(
-                isArchived: conversation.isArchived,
-                isPinned: conversation.isPinned,
-                managementDisabled: conversation.isStreaming || conversation.isCompacting,
-                onTogglePin: { window.toggleAssistantPin(conversation.id) },
-                onRename: onBeginRename,
-                onToggleArchive: {
-                    window.setAssistantArchived(
-                        conversation.id, archived: !conversation.isArchived
-                    )
-                },
-                onDelete: onDelete
-            )
-            .accessibilityHidden(true)
-        }
+            .overlay {
+                ConversationContextMenuHost(
+                    isArchived: conversation.isArchived,
+                    isPinned: conversation.isPinned,
+                    managementDisabled: conversation.isStreaming || conversation.isCompacting,
+                    onTogglePin: { window.toggleAssistantPin(conversation.id) },
+                    onRename: onBeginRename,
+                    onToggleArchive: {
+                        window.setAssistantArchived(
+                            conversation.id, archived: !conversation.isArchived
+                        )
+                    },
+                    onDelete: onDelete
+                )
+                .accessibilityHidden(true)
+            }
     }
 
     private var rowContent: some View {

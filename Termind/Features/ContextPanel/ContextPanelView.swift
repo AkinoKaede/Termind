@@ -11,6 +11,8 @@ struct SidebarView: View {
     let detailCatalog: ContextPanelDetailCatalog
 
     @Environment(WindowModel.self) private var window
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var modeGlassNamespace
 
     var body: some View {
         @Bindable var window = window
@@ -18,14 +20,12 @@ struct SidebarView: View {
 
         VStack(spacing: 0) {
             if window.availableSidebarModes.count > 1 {
-                HStack(spacing: Metrics.Space.xs) {
-                    ForEach(window.availableSidebarModes) { mode in
-                        sidebarModeButton(mode)
-                    }
-                }
-                .padding(Metrics.Space.m)
+                modeSelector
+                    .padding(.horizontal, Metrics.Space.m)
+                    .padding(.vertical, Metrics.Space.s)
 
                 Divider()
+                    .opacity(0.55)
             }
 
             switch window.sidebarMode {
@@ -51,6 +51,7 @@ struct SidebarView: View {
         // picker floats in the middle of the column instead of sitting under the
         // toolbar.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .termindSidebarSurface()
         .onChange(of: availableDetails, initial: true) {
             window.sidebar.pruneSelections(available: availableDetails)
         }
@@ -65,7 +66,28 @@ struct SidebarView: View {
 
     private var focusedPaneID: Pane.ID? { window.selectedTab?.focusedPaneID }
 
-    private func sidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
+    @ViewBuilder
+    private var modeSelector: some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: Metrics.Space.xs) {
+                HStack(spacing: Metrics.Space.xs) {
+                    ForEach(window.availableSidebarModes) { mode in
+                        glassSidebarModeButton(mode)
+                    }
+                }
+            }
+            .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
+        } else {
+            HStack(spacing: Metrics.Space.xs) {
+                ForEach(window.availableSidebarModes) { mode in
+                    fallbackSidebarModeButton(mode)
+                }
+            }
+        }
+    }
+
+    @available(macOS 26.0, *)
+    private func glassSidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
         let isSelected = window.sidebarMode == mode
         let isEnabled = window.isSidebarModeEnabled(mode)
         return Button {
@@ -74,10 +96,40 @@ struct SidebarView: View {
             Image(systemName: mode.symbol)
                 .font(.callout.weight(.medium))
                 .frame(maxWidth: .infinity, minHeight: 28)
-                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                .background {
+                    if isSelected {
+                        Color.clear
+                            .glassEffect(
+                                .regular.tint(Color.accentColor.opacity(0.14)).interactive(),
+                                in: .rect(cornerRadius: Metrics.Sidebar.rowCornerRadius)
+                            )
+                            .glassEffectID("sidebar-mode-selection", in: modeGlassNamespace)
+                    }
+                }
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.38)
+        .help(Text(mode.label))
+        .accessibilityLabel(Text(mode.label))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func fallbackSidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
+        let isSelected = window.sidebarMode == mode
+        let isEnabled = window.isSidebarModeEnabled(mode)
+        return Button {
+            window.sidebarMode = mode
+        } label: {
+            Image(systemName: mode.symbol)
+                .font(.callout.weight(.medium))
+                .frame(maxWidth: .infinity, minHeight: 28)
+                .foregroundStyle(isSelected ? Color.primary : Color.secondary)
                 .background(
-                    isSelected ? Color.accentColor.opacity(0.14) : Color.clear,
-                    in: .rect(cornerRadius: Metrics.Radius.small)
+                    Highlight.fill(isSelected: isSelected),
+                    in: .rect(cornerRadius: Metrics.Sidebar.rowCornerRadius)
                 )
                 .contentShape(.rect)
         }
@@ -159,8 +211,7 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
 
 private func contextSidebarSectionTitle(_ title: String) -> some View {
     Text(title)
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        .termindSidebarSectionLabel()
         .padding(.horizontal, Metrics.Space.m)
         .padding(.top, Metrics.Space.s)
 }
@@ -358,6 +409,7 @@ private struct SSHSessionSnippetsSidebar: View {
         SSHSessionSnippetRow(snippet: snippet)
             .padding(.horizontal, Metrics.Space.m)
             .contentShape(.rect)
+            .termindSidebarRowBackground(isSelected: false)
             .onTapGesture(count: 2) { execute(snippet) }
             .onTapGesture { insert(snippet) }
             .contextMenu {
@@ -459,6 +511,7 @@ private struct SSHSessionHistorySidebar: View {
                     case .history(let entry, _):
                         historyRow(entry)
                             .padding(.horizontal, Metrics.Space.m)
+                            .termindSidebarRowBackground(isSelected: false)
                     case .snippet:
                         EmptyView()
                     }

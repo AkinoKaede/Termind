@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Central layout constants. Kept as plain numbers rather than a theme object
@@ -35,6 +36,11 @@ nonisolated enum Metrics {
         static let navigationRowHeight: CGFloat = 36
         /// Shared content inset for the leading glyph and trailing accessory.
         static let navigationRowInset: CGFloat = 8
+        /// The fill stops short of the split-view edge like a native macOS
+        /// source-list selection, while the full row remains clickable.
+        static let rowBackgroundInset: CGFloat = 6
+        static let rowBackgroundVerticalInset: CGFloat = 2
+        static let rowCornerRadius: CGFloat = 7
         /// The fixed column every sidebar row's leading glyph sits in.
         ///
         /// Fixed rather than left to `Label`, whose icon takes the symbol's own
@@ -331,6 +337,93 @@ enum Highlight {
         } else {
             .clear
         }
+    }
+}
+
+/// The stable source-list surface shared by every mode of the left column.
+///
+/// `NavigationSplitView` supplies the column geometry, but the custom AppKit
+/// lists inside it do not inherit SwiftUI's source-list background. Hosting one
+/// visual-effect view behind the complete column keeps list rows and empty
+/// space on the same native material, including Reduce Transparency behavior.
+struct SidebarMaterialBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+    }
+}
+
+private struct TermindSidebarSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        content.background {
+            SidebarMaterialBackground()
+                .ignoresSafeArea()
+        }
+    }
+}
+
+/// A quiet source-list selection that stays stable when the terminal becomes
+/// first responder. The visual fill is inset, but hit testing still spans the
+/// row's full width.
+struct TermindSidebarRowBackground: ViewModifier {
+    let isSelected: Bool
+    @State private var isHovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: Metrics.Sidebar.rowCornerRadius)
+                    .fill(Highlight.fill(isSelected: isSelected, isHovering: isHovering))
+                    .padding(.horizontal, Metrics.Sidebar.rowBackgroundInset)
+                    .padding(.vertical, Metrics.Sidebar.rowBackgroundVerticalInset)
+            }
+            .onHover { isHovering = $0 }
+    }
+}
+
+private struct TermindSidebarSectionLabel: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+    }
+}
+
+private struct TermindSidebarGlassButton: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.buttonStyle(.glass)
+        } else {
+            content.buttonStyle(.borderless)
+        }
+    }
+}
+
+extension View {
+    func termindSidebarSurface() -> some View {
+        modifier(TermindSidebarSurface())
+    }
+
+    func termindSidebarRowBackground(isSelected: Bool) -> some View {
+        modifier(TermindSidebarRowBackground(isSelected: isSelected))
+    }
+
+    func termindSidebarSectionLabel() -> some View {
+        modifier(TermindSidebarSectionLabel())
+    }
+
+    func termindSidebarGlassButton() -> some View {
+        modifier(TermindSidebarGlassButton())
     }
 }
 

@@ -12,6 +12,7 @@ struct VaultSidebarView: View {
         VaultNavigationNativeList(items: items, compactSidebar: compactSidebar) { item in
             renderedItem(item)
         }
+        .termindSidebarSurface()
     }
 
     private var items: [VaultNavigationItem] {
@@ -45,8 +46,7 @@ struct VaultSidebarView: View {
         switch item.content {
         case .section(let section):
             Text(section.title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .termindSidebarSectionLabel()
                 .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
                 .padding(.top, Metrics.Space.m)
                 .padding(.bottom, Metrics.Space.xs)
@@ -80,7 +80,7 @@ struct VaultSidebarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .modifier(VaultNavigationHoverFill(isSelected: isSelected))
+        .termindSidebarRowBackground(isSelected: isSelected)
     }
 
     private var recentHosts: [Host] {
@@ -113,7 +113,7 @@ struct VaultSidebarView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .modifier(VaultNavigationHoverFill(isSelected: false))
+        .termindSidebarRowBackground(isSelected: false)
         .contextMenu {
             HostContextMenu(host: host)
         }
@@ -121,21 +121,6 @@ struct VaultSidebarView: View {
         .accessibilityHint("Quick Connect with SSH")
     }
 
-}
-
-private struct VaultNavigationHoverFill: ViewModifier {
-    let isSelected: Bool
-    @State private var isHovering = false
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                isSelected
-                    ? Color.accentColor.opacity(0.16)
-                    : isHovering ? Color.primary.opacity(0.055) : Color.clear
-            )
-            .onHover { isHovering = $0 }
-    }
 }
 
 nonisolated struct VaultNavigationItem: Identifiable, Hashable, Sendable {
