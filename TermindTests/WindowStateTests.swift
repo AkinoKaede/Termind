@@ -547,6 +547,32 @@ struct WindowStateTests {
     }
 
     @Test
+    func droppingNestedPaneOnNavigatorDetachesItIntoSelectedWorkspace() throws {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "First", host: "first.example")
+        )
+        let firstPane = workspace.focusedPane
+        workspace.splitFocusedPane(
+            axis: .horizontal,
+            with: .sshSession(host: Host(name: "Second", host: "second.example"))
+        )
+        let detachedPane = workspace.focusedPane
+        workspace.splitFocusedPane(
+            axis: .vertical,
+            with: .sshSession(host: Host(name: "Third", host: "third.example"))
+        )
+        let thirdPane = workspace.focusedPane
+        let window = WindowModel(workspaces: [workspace])
+
+        let detachedWorkspace = try #require(window.detachPane(detachedPane.id, at: 0))
+
+        #expect(window.workspaces.map(\.id) == [detachedWorkspace.id, workspace.id])
+        #expect(detachedWorkspace.panes.map(\.id) == [detachedPane.id])
+        #expect(workspace.panes.map(\.id) == [firstPane.id, thirdPane.id])
+        #expect(window.selectedWorkspace === detachedWorkspace)
+    }
+
+    @Test
     func hostEditorIsVaultNavigationAndCloseTabCannotCloseHiddenWork() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)

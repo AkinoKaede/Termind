@@ -14,7 +14,12 @@ struct WorkspaceContentView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            SplitNodeView(node: displayedLayout, workspace: workspace, isActive: isActive)
+            SplitNodeView(
+                node: workspace.layout,
+                workspace: workspace,
+                isActive: isActive,
+                omittedPaneID: omittedPaneID
+            )
                 .id(workspace.id)
 
             if workspace.commandGeneratorState != .idle {
@@ -82,23 +87,23 @@ struct WorkspaceContentView: View {
         #endif
     }
 
-    /// While one of this workspace's panes is being dragged, the tree is drawn without
-    /// it.
+    /// While one of this Workspace's panes is being dragged, its branch collapses
+    /// without removing the source view from the hierarchy.
     ///
     /// So the arrangement under the pointer is the one you would actually get:
     /// the remaining panes have already reflowed into the space the dragged one
     /// is leaving, and the drop rectangle lands on that rather than on a layout
     /// you are in the middle of abandoning.
     ///
-    /// Read-only — `SplitNode.removing` returns a new tree and nothing is
-    /// committed until the drop. Releasing over nothing restores this by itself,
-    /// because the drag state clears and the guard stops matching.
-    private var displayedLayout: SplitNode {
+    /// Keeping the original `PaneView` mounted is required by AppKit: removing
+    /// the view that owns `.onDrag` can end the native drag session before the
+    /// pointer reaches the Navigator. `SplitBranchView` uses this identity only
+    /// for temporary geometry; the model tree is unchanged until a drop lands.
+    private var omittedPaneID: Pane.ID? {
         guard case .pane(let id)? = window.dragging,
-            workspace.layout.pane(id) != nil,
-            let without = workspace.layout.removing(id)
-        else { return workspace.layout }
-        return without
+            workspace.layout.pane(id) != nil
+        else { return nil }
+        return id
     }
 }
 
@@ -179,6 +184,7 @@ private struct SplitNodeView: View {
     let node: SplitNode
     let workspace: Workspace
     let isActive: Bool
+    let omittedPaneID: Pane.ID?
 
     var body: some View {
         switch node {
@@ -187,8 +193,16 @@ private struct SplitNodeView: View {
             // instead of being torn down and rebuilt as the tree reshapes.
             PaneView(pane: pane, workspace: workspace, isActive: isActive)
                 .id(pane.id)
+                .opacity(omittedPaneID == pane.id ? 0 : 1)
+                .allowsHitTesting(omittedPaneID != pane.id)
+                .accessibilityHidden(omittedPaneID == pane.id)
         case .split(let branch):
-            SplitBranchView(branch: branch, workspace: workspace, isActive: isActive)
+            SplitBranchView(
+                branch: branch,
+                workspace: workspace,
+                isActive: isActive,
+                omittedPaneID: omittedPaneID
+            )
         }
     }
 }
@@ -205,6 +219,7 @@ private struct SplitBranchView: View {
     let branch: SplitNode.Branch
     let workspace: Workspace
     let isActive: Bool
+    let omittedPaneID: Pane.ID?
 
     /// The fraction previewed while the pointer is down.
     ///
@@ -218,25 +233,39 @@ private struct SplitBranchView: View {
     var body: some View {
         GeometryReader { proxy in
             let total = length(of: proxy.size)
-            let firstLength = clampedFirstLength(in: total)
+            let lengths = childLengths(in: total)
 
             switch branch.axis {
             case .horizontal:
                 HStack(spacing: 0) {
-                    SplitNodeView(node: branch.first, workspace: workspace, isActive: isActive)
-                        .frame(width: firstLength)
-                    divider(total: total)
-                    SplitNodeView(node: branch.second, workspace: workspace, isActive: isActive)
+                    child(branch.first)
+                        .frame(width: lengths.first)
+                    divider(total: total, isCollapsed: lengths.divider == 0)
+                        .frame(width: lengths.divider)
+                    child(branch.second)
+                        .frame(width: lengths.second)
                 }
             case .vertical:
                 VStack(spacing: 0) {
-                    SplitNodeView(node: branch.first, workspace: workspace, isActive: isActive)
-                        .frame(height: firstLength)
-                    divider(total: total)
-                    SplitNodeView(node: branch.second, workspace: workspace, isActive: isActive)
+                    child(branch.first)
+                        .frame(height: lengths.first)
+                    divider(total: total, isCollapsed: lengths.divider == 0)
+                        .frame(height: lengths.divider)
+                    child(branch.second)
+                        .frame(height: lengths.second)
                 }
             }
         }
+    }
+
+    private func child(_ node: SplitNode) -> some View {
+        SplitNodeView(
+            node: node,
+            workspace: workspace,
+            isActive: isActive,
+            omittedPaneID: omittedPaneID
+        )
+        .clipped()
     }
 
     // MARK: - Divider
@@ -244,7 +273,7 @@ private struct SplitBranchView: View {
     /// A hairline to look at inside a wider band to grab: one point of visible
     /// line is not a pointer target, and widening the line itself would put a
     /// grey bar between every pair of panes.
-    private func divider(total: CGFloat) -> some View {
+    private func divider(total: CGFloat, isCollapsed: Bool) -> some View {
         ZStack {
             Color.clear.contentShape(.rect)
             Rectangle().fill(.separator).frame(
@@ -253,9 +282,13 @@ private struct SplitBranchView: View {
             )
         }
         .frame(
-            width: branch.axis == .horizontal ? Metrics.Split.dividerHitLength : nil,
-            height: branch.axis == .vertical ? Metrics.Split.dividerHitLength : nil
+            width: branch.axis == .horizontal
+                ? (isCollapsed ? 0 : Metrics.Split.dividerHitLength) : nil,
+            height: branch.axis == .vertical
+                ? (isCollapsed ? 0 : Metrics.Split.dividerHitLength) : nil
         )
+        .opacity(isCollapsed ? 0 : 1)
+        .allowsHitTesting(!isCollapsed)
         .pointerStyle(branch.axis == .horizontal ? .columnResize : .rowResize)
         .gesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .global)
@@ -298,6 +331,26 @@ private struct SplitBranchView: View {
 
     private func clampedFirstLength(in total: CGFloat) -> CGFloat {
         usableLength(in: total) * clamp(draggedFraction ?? branch.fraction, in: total)
+    }
+
+    private func childLengths(in total: CGFloat) -> (
+        first: CGFloat, divider: CGFloat, second: CGFloat
+    ) {
+        if subtreeDisappearsWhenOmitted(branch.first) {
+            return (0, 0, total)
+        }
+        if subtreeDisappearsWhenOmitted(branch.second) {
+            return (total, 0, 0)
+        }
+
+        let first = clampedFirstLength(in: total)
+        let second = max(0, total - first - Metrics.Split.dividerHitLength)
+        return (first, Metrics.Split.dividerHitLength, second)
+    }
+
+    private func subtreeDisappearsWhenOmitted(_ node: SplitNode) -> Bool {
+        guard let omittedPaneID, node.pane(omittedPaneID) != nil else { return false }
+        return node.removing(omittedPaneID) == nil
     }
 
     /// Keeps both sides above `minPaneLength` — but only while there is room for
