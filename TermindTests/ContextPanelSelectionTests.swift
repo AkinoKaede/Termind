@@ -26,7 +26,7 @@ struct ContextPanelSelectionTests {
         )
 
         #expect(window.detailSelection(for: .hosts) == [.host(first), .host(second)])
-        #expect(window.sidebarSurface == .navigator)
+        #expect(window.sidebarMode == .navigation)
         #expect(!window.showsSidebar)
     }
 
@@ -115,18 +115,17 @@ struct ContextPanelSelectionTests {
         let workspace = Workspace.sshSession(host: host)
         let window = WindowModel(workspaces: [workspace])
 
-        window.sidebarSurface = .workspaceTools
-        #expect(window.availableSidebarModes == [.assistant, .snippets, .history])
+        #expect(window.availableSidebarModes == [.navigation, .assistant, .snippets, .history])
+        #expect(window.isSidebarModeEnabled(.navigation))
         #expect(window.isSidebarModeEnabled(.history))
 
         window.selectVault()
-        #expect(window.availableSidebarModes.isEmpty)
-        #expect(window.sidebarSurface == .navigator)
+        #expect(window.availableSidebarModes == [.navigation])
+        #expect(window.sidebarMode == .navigation)
 
         window.selectAssistant()
-        #expect(window.availableSidebarModes.isEmpty)
+        #expect(window.availableSidebarModes == [.navigation])
         #expect(window.sidebarMode == .navigation)
-        #expect(window.sidebarSurface == .navigator)
     }
 
     @Test
@@ -139,7 +138,6 @@ struct ContextPanelSelectionTests {
         window.select(second.id)
         window.sidebarMode = .snippets
         window.selectVault()
-        window.sidebarSurface = .workspaceTools
 
         window.select(first.id)
         #expect(window.sidebarMode == .history)
@@ -147,7 +145,6 @@ struct ContextPanelSelectionTests {
         #expect(window.sidebarMode == .snippets)
         window.selectVault()
         #expect(window.sidebarMode == .navigation)
-        #expect(window.sidebarSurface == .navigator)
     }
 
     @Test
@@ -167,13 +164,14 @@ struct ContextPanelSelectionTests {
     }
 
     @Test
-    func sftpKeepsThreeStableIconsButDisablesCommandTools() {
+    func sftpKeepsFourStableIconsButDisablesCommandTools() {
         let workspace = Workspace.sftpSession(
             host: Host(name: "Files", host: "files.example")
         )
         let window = WindowModel(workspaces: [workspace])
 
-        #expect(window.availableSidebarModes == [.assistant, .snippets, .history])
+        #expect(window.availableSidebarModes == [.navigation, .assistant, .snippets, .history])
+        #expect(window.isSidebarModeEnabled(.navigation))
         #expect(window.isSidebarModeEnabled(.assistant))
         #expect(!window.isSidebarModeEnabled(.snippets))
         #expect(!window.isSidebarModeEnabled(.history))

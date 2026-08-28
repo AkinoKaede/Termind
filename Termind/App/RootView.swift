@@ -57,12 +57,6 @@ struct RootView: View {
         .background { FullHeightWindowContent() }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { layoutWidth = $0 }
         .toolbarBackground(.hidden, for: .windowToolbar)
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                sidebarSurfacePicker
-            }
-        }
-        .toolbar(removing: .sidebarToggle)
         .sheet(item: $presentations.sheet) { route in
             switch route {
             case .hostChooser(let purpose):
@@ -109,49 +103,6 @@ struct RootView: View {
     private var sidebarMaxWidth: CGFloat {
         Metrics.Window.sidebarMaxWidth(for: layoutWidth)
     }
-
-    private var sidebarSurfacePicker: some View {
-        SidebarSurfaceSegmentedControl(
-            window: window,
-            workspaceToolsIcon: Self.workspaceToolsToolbarIcon
-        )
-        .frame(width: 80, height: 30)
-        // `.navigation` follows the split view's leading detail edge. Pulling
-        // the fixed-width selector back into that anchor keeps it at the
-        // Sidebar's trailing side as the user resizes the column, like Xcode's
-        // navigator selector, without pinning it beside the traffic lights.
-        // When collapsed it returns to the normal navigation position so the
-        // same two segments also act as the control that reopens the Sidebar.
-        .offset(x: window.showsSidebar ? -90 : 0)
-    }
-
-    private static let workspaceToolsToolbarIcon: NSImage = {
-        let image = NSImage(size: NSSize(width: 28, height: 18), flipped: false) { _ in
-            let textConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
-            let sparkleConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
-            let text = NSImage(systemSymbolName: "text.justify.leading", accessibilityDescription: nil)?
-                .withSymbolConfiguration(textConfiguration)
-            let sparkle = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
-                .withSymbolConfiguration(sparkleConfiguration)
-
-            text?.draw(
-                in: NSRect(x: 0, y: 1, width: 18, height: 16),
-                from: .zero,
-                operation: .sourceOver,
-                fraction: 1
-            )
-            sparkle?.draw(
-                in: NSRect(x: 13, y: 0, width: 16, height: 18),
-                from: .zero,
-                operation: .sourceOver,
-                fraction: 1
-            )
-            return true
-        }
-        image.isTemplate = true
-        image.accessibilityDescription = String(localized: "Workspace Tools")
-        return image
-    }()
 
     private var vaultWorkspace: some View {
         let showsWorkDetail = window.vaultWorkRoute != nil
@@ -222,66 +173,6 @@ struct RootView: View {
                 if window.workspaces.isEmpty {
                     VaultView(hostsPageState: hostsPageState)
                 }
-            }
-        }
-    }
-}
-
-private struct SidebarSurfaceSegmentedControl: NSViewRepresentable {
-    let window: WindowModel
-    let workspaceToolsIcon: NSImage
-
-    func makeCoordinator() -> Coordinator { Coordinator(window: window) }
-
-    func makeNSView(context: Context) -> NSSegmentedControl {
-        let navigatorIcon = NSImage(
-            systemSymbolName: "list.bullet",
-            accessibilityDescription: String(localized: "Navigator")
-        ) ?? NSImage()
-        let control = NSSegmentedControl(
-            images: [navigatorIcon, workspaceToolsIcon],
-            trackingMode: .selectOne,
-            target: context.coordinator,
-            action: #selector(Coordinator.selectSurface(_:))
-        )
-        control.segmentStyle = .automatic
-        control.controlSize = .regular
-        control.setWidth(38, forSegment: 0)
-        control.setWidth(42, forSegment: 1)
-        control.setToolTip(String(localized: "Navigator"), forSegment: 0)
-        control.setToolTip(String(localized: "Workspace Tools"), forSegment: 1)
-        return control
-    }
-
-    func updateNSView(_ control: NSSegmentedControl, context: Context) {
-        context.coordinator.window = window
-        control.setEnabled(window.selectedWorkspace != nil, forSegment: 1)
-        guard window.showsSidebar else {
-            control.selectedSegment = -1
-            return
-        }
-        control.selectedSegment = window.sidebarSurface == .navigator ? 0 : 1
-    }
-
-    final class Coordinator: NSObject {
-        var window: WindowModel
-
-        init(window: WindowModel) {
-            self.window = window
-        }
-
-        @objc func selectSurface(_ sender: NSSegmentedControl) {
-            let surface: WindowSidebarState.Surface =
-                sender.selectedSegment == 1 ? .workspaceTools : .navigator
-            guard surface == .navigator || window.selectedWorkspace != nil else { return }
-
-            if window.showsSidebar, window.sidebarSurface == surface {
-                window.showsSidebar = false
-                sender.selectedSegment = -1
-            } else {
-                window.sidebarSurface = surface
-                window.showsSidebar = true
-                sender.selectedSegment = surface == .navigator ? 0 : 1
             }
         }
     }

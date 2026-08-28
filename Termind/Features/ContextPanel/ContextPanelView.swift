@@ -2,9 +2,8 @@ import AppKit
 import ListViewKit
 import SwiftUI
 
-/// The window's one left-hand column. The first selector mirrors Xcode's
-/// Navigator switcher; Workspace tools replace the Navigator in the same stable
-/// column rather than opening a second sidebar.
+/// The window's one left-hand column. A native segmented picker switches the
+/// Navigator and three Workspace tools in place.
 struct SidebarView: View {
     let detailCatalog: ContextPanelDetailCatalog
 
@@ -12,22 +11,14 @@ struct SidebarView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        @Bindable var window = window
         let availableDetails = detailCatalog.availableIDs
 
         VStack(spacing: 0) {
-            switch window.sidebarSurface {
-            case .navigator:
-                WorkspaceNavigatorView()
-            case .workspaceTools:
-                VStack(spacing: 0) {
-                    modeSelector
-                        .padding(.horizontal, Metrics.Space.m)
-                        .padding(.vertical, Metrics.Space.s)
-                    Divider().opacity(0.55)
-                    workspaceTool
-                }
-            }
+            modeSelector
+                .padding(.horizontal, Metrics.Space.m)
+                .padding(.vertical, Metrics.Space.s)
+            Divider().opacity(0.55)
+            sidebarContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: availableDetails, initial: true) {
@@ -46,41 +37,32 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var modeSelector: some View {
-        HStack(spacing: Metrics.Space.xs) {
-            ForEach(window.availableSidebarModes) { mode in
-                sidebarModeButton(mode)
+        Picker("Sidebar", selection: sidebarModeBinding) {
+            ForEach(WindowSidebarState.Mode.allCases) { mode in
+                Image(systemName: mode.symbol)
+                    .tag(mode)
+                    .disabled(!window.isSidebarModeEnabled(mode))
+                    .help(Text(mode.label))
+                    .accessibilityLabel(Text(mode.label))
             }
         }
+        .pickerStyle(.segmented)
+        .labelsHidden()
         .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
     }
 
-    private func sidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
-        let isSelected = window.sidebarMode == mode
-        let isEnabled = window.isSidebarModeEnabled(mode)
-        return Button {
-            window.sidebarMode = mode
-        } label: {
-            Image(systemName: mode.symbol)
-                .font(.callout.weight(isSelected ? .semibold : .medium))
-                .foregroundStyle(isSelected ? Color.primary : Color.secondary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 28)
-                .background(
-                    isSelected ? Color.primary.opacity(0.10) : Color.clear,
-                    in: .rect(cornerRadius: Metrics.Sidebar.rowCornerRadius)
-                )
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.38)
-        .help(Text(mode.label))
-        .accessibilityLabel(Text(mode.label))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    private var sidebarModeBinding: Binding<WindowSidebarState.Mode> {
+        Binding(
+            get: { window.sidebarMode },
+            set: { mode in
+                guard mode == .navigation || window.isSidebarModeEnabled(mode) else { return }
+                window.sidebarMode = mode
+            }
+        )
     }
 
     @ViewBuilder
-    private var workspaceTool: some View {
+    private var sidebarContent: some View {
         switch window.sidebarMode {
         case .navigation:
             WorkspaceNavigatorView()

@@ -6464,16 +6464,6 @@
         }
       }
     },
-    "Navigation" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "导航"
-          }
-        }
-      }
-    },
     "Navigator" : {
       "localizations" : {
         "zh-Hans" : {
@@ -13503,16 +13493,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作区名称"
-          }
-        }
-      }
-    },
-    "Workspace Tools" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "工作区工具"
           }
         }
       }

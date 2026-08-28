@@ -146,16 +146,6 @@ struct TermindApp: App {
                 }
             }
 
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(windowDidUpdate(_:)),
-                name: NSWindow.didUpdateNotification,
-                object: nil
-            )
-            DispatchQueue.main.async { [weak self] in
-                NSApp.windows.forEach { self?.removeDefaultSidebarToggle(from: $0) }
-            }
-
             // Product screenshots must not inherit a developer's last window
             // frame from macOS state restoration. Each demo owns its capture
             // size so tightly focused scenes do not inherit the larger
@@ -179,23 +169,6 @@ struct TermindApp: App {
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
             true
-        }
-
-        @objc private func windowDidUpdate(_ notification: Notification) {
-            guard let window = notification.object as? NSWindow else { return }
-            removeDefaultSidebarToggle(from: window)
-        }
-
-        private func removeDefaultSidebarToggle(from window: NSWindow) {
-            guard let toolbar = window.toolbar else { return }
-            while let index = toolbar.items.firstIndex(where: {
-                $0.itemIdentifier.rawValue
-                    == "com.apple.SwiftUI.navigationSplitView.toggleSidebar"
-                    || $0.itemIdentifier == .toggleSidebar
-                    || $0.action == #selector(NSSplitViewController.toggleSidebar(_:))
-            }) {
-                toolbar.removeItem(at: index)
-            }
         }
 
         func applicationWillTerminate(_ notification: Notification) {

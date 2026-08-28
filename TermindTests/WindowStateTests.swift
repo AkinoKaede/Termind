@@ -32,19 +32,19 @@ struct WindowStateTests {
     }
 
     @Test
-    func closingTheLastWorkspaceReturnsToVaultAndNavigator() {
+    func closingTheLastWorkspaceReturnsToVaultNavigator() {
         let workspace = Workspace.sshSession(
             host: Host(name: "Server", host: "server.example")
         )
         let window = WindowModel(workspaces: [workspace])
-        window.sidebarSurface = .workspaceTools
+        window.sidebarMode = .history
 
         window.close(workspace.id)
         window.reconcileSidebarMode()
 
         #expect(window.workspaces.isEmpty)
         #expect(window.selectedDestination == .vault)
-        #expect(window.sidebarSurface == .navigator)
+        #expect(window.sidebarMode == .navigation)
     }
 
     @Test

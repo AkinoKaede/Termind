@@ -15,12 +15,7 @@ final class WindowModel {
     var workspaces: [Workspace] = []
     /// The top-level shell has two pinned entries followed by dynamic SSH/SFTP
     /// Workspaces. This is the single source of truth for workspace selection.
-    var selectedDestination: WindowDestination = .vault {
-        didSet {
-            if case .workspace = selectedDestination { return }
-            sidebar.surface = .navigator
-        }
-    }
+    var selectedDestination: WindowDestination = .vault
     var vaultDestination: VaultDestination = .welcome
     var vaultWorkRoute: VaultWorkRoute?
     let assistantLibrary: AssistantLibraryModel
@@ -142,7 +137,6 @@ final class WindowModel {
     }
 
     typealias SidebarMode = WindowSidebarState.Mode
-    typealias SidebarSurface = WindowSidebarState.Surface
 
     var showsSidebar: Bool {
         get { sidebar.isPresented }
@@ -172,14 +166,6 @@ final class WindowModel {
         }
     }
 
-    var sidebarSurface: SidebarSurface {
-        get { sidebar.surface }
-        set {
-            if newValue == .workspaceTools, selectedWorkspace == nil { return }
-            sidebar.surface = newValue
-        }
-    }
-
     func isSidebarModeEnabled(_ mode: SidebarMode) -> Bool {
         sidebar.isModeEnabled(
             mode, for: selectedDestination,
@@ -201,7 +187,6 @@ final class WindowModel {
         guard selectedWorkspace != nil else { return }
         refreshSessionContext()
         sidebar.isPresented = true
-        sidebar.surface = .workspaceTools
         sidebarMode = .assistant
     }
 

@@ -43,32 +43,10 @@ nonisolated struct ContextPanelDetailID: Hashable, Sendable, Identifiable {
 
 /// The one left sidebar's window-lifetime state.
 ///
-/// Navigation and contextual tools share a physical column, but their mode is
-/// remembered at the scope where it makes sense: one choice for Vault and one
-/// for each Workspace. Assistant always uses its conversation navigator.
+/// Navigation and contextual tools share a physical column. The selected mode
+/// is remembered per Workspace; Vault and Chats always resolve to Navigator.
 @Observable
 final class WindowSidebarState {
-    nonisolated enum Surface: String, Hashable, Sendable, CaseIterable, Identifiable {
-        case navigator
-        case workspaceTools
-
-        nonisolated var id: String { rawValue }
-
-        var label: LocalizedStringKey {
-            switch self {
-            case .navigator: "Navigator"
-            case .workspaceTools: "Workspace Tools"
-            }
-        }
-
-        var symbol: String {
-            switch self {
-            case .navigator: "list.bullet"
-            case .workspaceTools: "sparkle"
-            }
-        }
-    }
-
     nonisolated enum Mode: String, Hashable, Sendable, CaseIterable, Identifiable {
         case navigation, assistant, snippets, history
 
@@ -76,7 +54,7 @@ final class WindowSidebarState {
 
         var label: LocalizedStringKey {
             switch self {
-            case .navigation: "Navigation"
+            case .navigation: "Navigator"
             case .assistant: "Assistant"
             case .snippets: "Snippets"
             case .history: "History"
@@ -85,7 +63,7 @@ final class WindowSidebarState {
 
         var symbol: String {
             switch self {
-            case .navigation: "sidebar.left"
+            case .navigation: "list.bullet"
             case .assistant: "sparkles"
             case .snippets: "text.badge.plus"
             case .history: "clock.arrow.circlepath"
@@ -94,7 +72,6 @@ final class WindowSidebarState {
     }
 
     var isPresented = true
-    var surface: Surface = .navigator
 
     /// Global Assistant panel navigation is independent from the selected
     /// top-level destination. `nil` is the history + composer landing screen.
@@ -122,9 +99,9 @@ final class WindowSidebarState {
     ) -> [Mode] {
         switch destination {
         case .vault, .assistant:
-            []
+            [.navigation]
         case .workspace:
-            [.assistant, .snippets, .history]
+            [.navigation, .assistant, .snippets, .history]
         }
     }
 
@@ -152,7 +129,7 @@ final class WindowSidebarState {
         case .vault, .assistant:
             return .navigation
         case .workspace(let id):
-            stored = workspaceModes[id] ?? .assistant
+            stored = workspaceModes[id] ?? .navigation
         }
         let available = availableModes(
             for: destination,
@@ -180,7 +157,7 @@ final class WindowSidebarState {
 
         switch destination {
         case .vault, .assistant:
-            break
+            return
         case .workspace(let id):
             workspaceModes[id] = mode
         }
@@ -194,7 +171,6 @@ final class WindowSidebarState {
         hasFocusedSSHSession: Bool
     ) {
         guard case .workspace = destination else {
-            surface = .navigator
             return
         }
         let resolved = mode(
