@@ -1,3 +1,4 @@
+import GlyphixTextFx
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -756,9 +757,26 @@ private struct PaneView: View {
 struct WelcomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     @State private var query = ""
+    @State private var welcomeMessage = " "
     @FocusState private var isSearchFocused: Bool
+
+    private var welcomeGreetings: [String] {
+        [
+            String(localized: "Hello, I'm Termind."),
+            String(localized: "Your terminal, with judgment."),
+            String(localized: "SSH and SFTP, with an assistant at hand."),
+        ]
+    }
+
+    private var welcomePrompts: [String] {
+        [
+            String(localized: "What would you like to do?"),
+            String(localized: "What do you feel like doing?"),
+        ]
+    }
 
     var body: some View {
         ScrollView {
@@ -779,20 +797,28 @@ struct WelcomeView: View {
     }
 
     private var header: some View {
-        VStack(spacing: Metrics.Space.s) {
-            Image("TermindGlyph")
-                .resizable()
-                .renderingMode(.template)
-                .scaledToFit()
-                .frame(width: 88, height: 88)
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
-            Text("Termind")
-                .font(.largeTitle.weight(.semibold))
-            Text("SSH and SFTP, with an assistant at hand.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
+        GlyphixText(welcomeMessage)
+            .glyphixTextFont(.systemFont(ofSize: 30, weight: .semibold))
+            .glyphixTextColor(.labelColor)
+            .glyphixTextAnimationDisabled(accessibilityReduceMotion)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, minHeight: 88, maxHeight: 88)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: welcomeMessage))
+            .task {
+                let greeting = welcomeGreetings.randomElement() ?? welcomeGreetings[0]
+                let prompt = welcomePrompts.randomElement() ?? welcomePrompts[0]
+
+                if !accessibilityReduceMotion {
+                    try? await Task.sleep(for: .milliseconds(120))
+                }
+                guard !Task.isCancelled else { return }
+                welcomeMessage = greeting
+
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                welcomeMessage = prompt
+            }
     }
 
     // MARK: - Search

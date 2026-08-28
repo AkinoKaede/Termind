@@ -18,6 +18,7 @@
 		TRMD00000000000000100008 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
 		TRMD00000000000000100009 /* ListViewKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100018 /* ListViewKit */; };
 		TRMD00000000000000100010 /* ScrubberKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100019 /* ScrubberKit */; };
+		TRMD0000000000000010000B /* GlyphixTextFx in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001A /* GlyphixTextFx */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -93,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				TRMD0000000000000010000B /* GlyphixTextFx in Frameworks */,
 				TRMD00000000000000100005 /* ZIPFoundation in Frameworks */,
 				TRMD00000000000000100008 /* MarkdownView in Frameworks */,
 				TRMD00000000000000100009 /* ListViewKit in Frameworks */,
@@ -166,6 +168,7 @@
 			name = Termind;
 			packageProductDependencies = (
 				TRMD00000000000000100011 /* CSSH2 */,
+				TRMD0000000000000010001A /* GlyphixTextFx */,
 				TRMD00000000000000100016 /* GhosttyKit */,
 				TRMD00000000000000100012 /* GhosttyTerminal */,
 				TRMD00000000000000100013 /* GhosttyTheme */,
@@ -266,6 +269,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */,
+				TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */,
 				TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
 				TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */,
 				TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
@@ -642,6 +646,14 @@
 				revision = 4c0e55c2a257ceecae8f86c4781cfd99a6572347;
 			};
 		};
+		TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/GlyphixTextFx.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -689,6 +701,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100027 /* XCRemoteSwiftPackageReference "ScrubberKit" */;
 			productName = ScrubberKit;
+		};
+		TRMD0000000000000010001A /* GlyphixTextFx */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */;
+			productName = GlyphixTextFx;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
