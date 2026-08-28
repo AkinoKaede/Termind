@@ -127,8 +127,11 @@ is why every scratch tool is parallel. `scratch_pull` and `scratch_push` move by
 between a host and the workspace without the bytes entering the transcript, so a
 remote file can be pulled, edited and pushed back without a copy of it crossing the
 model boundary in either direction; `scratch_edit` returns a unified diff rather than
-the new file for the same reason. The SFTP tools are unchanged and know nothing about
-the workspace. Because a push is approved by filename rather than by content, its
+the new file for the same reason. `scratch_search` recursively searches UTF-8 content
+inside that same scope and returns bounded matching-line previews, so locating a small
+region does not require reading a large staged file into the transcript. The SFTP tools
+are unchanged and know nothing about the workspace. Because a push is approved by
+filename rather than by content, its
 preflight puts the size, digest and a redacted head into the approval reasons, and
 binds the approval to that digest through execution-only metadata so a file rewritten
 while the user was deciding is refused rather than written.

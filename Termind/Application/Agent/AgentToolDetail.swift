@@ -110,6 +110,7 @@ nonisolated enum AgentBuiltInToolDetailPresenters {
         AgentBuiltInTools.requestUserSecretDetailPresenter,
         AgentScratchTools.listDetailPresenter,
         AgentScratchTools.readDetailPresenter,
+        AgentScratchTools.searchDetailPresenter,
         AgentScratchTools.writeDetailPresenter,
         AgentScratchTools.editDetailPresenter,
         AgentScratchTools.diffDetailPresenter,

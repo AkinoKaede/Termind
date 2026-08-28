@@ -53,6 +53,9 @@ struct AgentScratchTests {
         // And it is not reported as content either, so nothing can act on it.
         let listed = try await workspace.list(nil, recursive: true).map(\.path)
         #expect(listed == ["anchor.txt"])
+        let searched = try await workspace.search("anchor")
+        #expect(searched.matches.map(\.path) == ["anchor.txt"])
+        #expect(searched.searchedFiles == 1)
     }
 
     @Test
@@ -146,6 +149,108 @@ struct AgentScratchTests {
         await #expect(throws: (any Error).self) { try await workspace.read("blob.bin") }
         // `data(at:)` is what scratch_push uses, and it does not decode.
         #expect(try await workspace.data(at: "blob.bin").data == binary)
+    }
+
+    // MARK: - Searching
+
+    @Test
+    func searchSupportsLiteralRegexAndSmartCaseMatching() async throws {
+        let workspace = Fixture.workspace()
+        _ = try await workspace.write(
+            "a.txt", data: Data("Alpha alpha\nneedle twice needle\nserver_42\n".utf8)
+        )
+        _ = try await workspace.write(
+            "b.txt", data: Data("alpha\nserver-x\n".utf8)
+        )
+
+        let insensitive = try await workspace.search("alpha")
+        #expect(!insensitive.caseSensitive)
+        #expect(insensitive.matchingLines == 2)
+        #expect(insensitive.matches.map { "\($0.path):\($0.line)" } == ["a.txt:1", "b.txt:1"])
+
+        let smartCase = try await workspace.search("Alpha")
+        #expect(smartCase.caseSensitive)
+        #expect(smartCase.matches.map(\.path) == ["a.txt"])
+
+        let overridden = try await workspace.search("Alpha", caseSensitive: false)
+        #expect(!overridden.caseSensitive)
+        #expect(overridden.matchingLines == 2)
+
+        let regex = try await workspace.search(#"server_[0-9]+"#, regex: true)
+        #expect(regex.matches.map { "\($0.path):\($0.line)" } == ["a.txt:3"])
+
+        // Search results are matching lines, not occurrences within those lines.
+        let duplicate = try await workspace.search("needle")
+        #expect(duplicate.matchingLines == 1)
+        #expect(duplicate.matches.count == 1)
+    }
+
+    @Test
+    func searchScopesAndOrdersFilesAndSkipsBinaryContent() async throws {
+        let workspace = Fixture.workspace()
+        _ = try await workspace.write("z.txt", data: Data("hit at root\n".utf8))
+        _ = try await workspace.write("dir/b.txt", data: Data("before\r\nhit b\r\n".utf8))
+        _ = try await workspace.write("dir/a.txt", data: Data("hit a\n".utf8))
+        _ = try await workspace.write(".hidden", data: Data("hidden hit\n".utf8))
+        _ = try await workspace.write("dir/blob.bin", data: Data([0xFF, 0x00, 0x80]))
+
+        let directory = try await workspace.search("hit", path: "dir")
+        #expect(directory.matches.map { "\($0.path):\($0.line)" } == [
+            "dir/a.txt:1", "dir/b.txt:2",
+        ])
+        #expect(directory.searchedFiles == 2)
+        #expect(directory.skippedBinaryFiles == 1)
+
+        let file = try await workspace.search("hit", path: "z.txt")
+        #expect(file.matches.map(\.path) == ["z.txt"])
+        #expect(file.searchedFiles == 1)
+
+        let wholeWorkspace = try await workspace.search("hit")
+        #expect(wholeWorkspace.matches.map(\.path) == [
+            ".hidden", "dir/a.txt", "dir/b.txt", "z.txt",
+        ])
+        #expect(wholeWorkspace.searchedFiles == 4)
+        #expect(wholeWorkspace.skippedBinaryFiles == 1)
+    }
+
+    @Test
+    func searchBoundsResultsAndKeepsTheMatchVisibleInLongLines() async throws {
+        let workspace = Fixture.workspace()
+        let longLine = String(repeating: "x", count: 5_000)
+            + "target" + String(repeating: "y", count: 5_000)
+        _ = try await workspace.write(
+            "long.txt", data: Data((longLine + "\ntarget two\ntarget three\n").utf8)
+        )
+
+        let outcome = try await workspace.search("target", limit: 1)
+        #expect(outcome.matchingLines == 3)
+        #expect(outcome.matches.count == 1)
+        #expect(outcome.matches[0].text.contains("target"))
+        #expect(outcome.matches[0].textTruncated)
+        #expect(outcome.isTruncated)
+    }
+
+    @Test
+    func searchRejectsInvalidPatternsPathsAndBounds() async throws {
+        let workspace = Fixture.workspace()
+        _ = try await workspace.write("a.txt", data: Data("text\n".utf8))
+        for query in ["", "two\nlines"] {
+            await #expect(throws: (any Error).self) {
+                try await workspace.search(query)
+            }
+        }
+        await #expect(throws: (any Error).self) {
+            try await workspace.search("[", regex: true)
+        }
+        await #expect(throws: (any Error).self) {
+            try await workspace.search("text", path: "../outside")
+        }
+        await #expect(throws: (any Error).self) {
+            try await workspace.search("text", path: "missing")
+        }
+        await #expect(throws: (any Error).self) {
+            try await workspace.search("text", limit: 101)
+        }
     }
 
     // MARK: - Editing
@@ -420,7 +525,7 @@ struct AgentScratchTests {
         let local = AgentScratchTools.make(workspace: workspace)
         #expect(local.map(\.descriptor.name).sorted() == [
             "scratch_delete", "scratch_diff", "scratch_edit",
-            "scratch_list", "scratch_read", "scratch_write",
+            "scratch_list", "scratch_read", "scratch_search", "scratch_write",
         ])
         // Every purely local tool is parallel, and only the three that change
         // something claim to.
@@ -432,6 +537,12 @@ struct AgentScratchTests {
                 == ["scratch_delete", "scratch_edit", "scratch_write"]
         )
         #expect(!local.contains { $0.descriptor.safety == .requiresAuthorization })
+        let search = try #require(local.first { $0.descriptor.name == "scratch_search" })
+        let properties = search.descriptor.inputSchema.objectValue?["properties"]?.objectValue
+        #expect(properties?.keys.sorted() == [
+            "case_sensitive", "limit", "path", "query", "regex",
+        ])
+        #expect(search.descriptor.presentation?.actionKind == .search)
 
         // Transfer is absent until a connection pool is supplied, on the same terms
         // as `web_search`: a tool that cannot work is not offered.
@@ -508,6 +619,32 @@ struct AgentScratchTests {
                 .objectValue?["required"]?.arrayValue?.compactMap(\.stringValue).sorted()
                 == ["content", "host_id", "path"]
         )
+    }
+
+    @Test
+    func searchToolBoundsItsEncodedTranscriptResult() async throws {
+        let workspace = Fixture.workspace()
+        let line = String(repeating: "\u{0001}", count: 1_100) + "target"
+        let body = Array(repeating: line, count: 100).joined(separator: "\n")
+        _ = try await workspace.write("large.txt", data: Data(body.utf8))
+        let tool = try #require(
+            AgentScratchTools.make(workspace: workspace)
+                .first { $0.descriptor.name == "scratch_search" }
+        )
+        let result = try await tool.execute(
+            Fixture.invocation("scratch_search", [
+                "query": .string("target"), "limit": .number(100),
+            ]), context: Fixture.context()
+        )
+        let payload = try #require(result.untrustedPayload)
+        let object = try #require(
+            try AgentJSONValue.decode(Data(payload.utf8)).objectValue
+        )
+        #expect(payload.utf8.count <= 128 * 1_024)
+        #expect(result.isTruncated)
+        #expect(object["matching_lines"]?.integerValue == 100)
+        #expect((object["returned_matches"]?.integerValue ?? 100) < 100)
+        #expect(object["truncated"]?.boolValue == true)
     }
 
     // MARK: - Transfer

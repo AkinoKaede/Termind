@@ -45,6 +45,24 @@ nonisolated struct ScratchText: Hashable, Sendable {
     var lineEnding: LineEnding
 }
 
+nonisolated struct ScratchSearchMatch: Hashable, Sendable {
+    var path: String
+    /// 1-based, matching `scratch_read`, diffs and editors.
+    var line: Int
+    var text: String
+    var textTruncated: Bool
+}
+
+nonisolated struct ScratchSearchOutcome: Hashable, Sendable {
+    var matches: [ScratchSearchMatch]
+    /// Matching lines in the whole search, including those past `limit`.
+    var matchingLines: Int
+    var searchedFiles: Int
+    var skippedBinaryFiles: Int
+    var caseSensitive: Bool
+    var isTruncated: Bool
+}
+
 /// One exact-text replacement, matched against the file as it was before any edit in
 /// the same call was applied.
 nonisolated struct ScratchEdit: Hashable, Sendable {
@@ -101,6 +119,9 @@ actor AgentScratchWorkspace {
         /// `sftp_read`'s inline ceiling. A *file* may be far larger; reading it whole
         /// is what the offset/limit window and `scratch_push` are for.
         static let inlineReadBytes = 128 * 1_024
+        static let searchQueryCharacters = 4_096
+        static let searchLineBytes = 1_024
+        static let searchResults = 100
         static let edits = 32
     }
 
@@ -204,6 +225,88 @@ actor AgentScratchWorkspace {
         else { throw AgentToolError.scratchNotFound(path) }
         let data = try Data(contentsOf: url)
         return ScratchFile(path: path, data: data, sha256: Self.digest(data))
+    }
+
+    /// Search UTF-8 files one line at a time without putting whole files into the
+    /// transcript. A directory scope is always recursive; `nil` means the workspace
+    /// root. Non-text files are counted and skipped rather than making a mixed tree
+    /// impossible to search.
+    func search(
+        _ query: String, path: String? = nil, regex: Bool = false,
+        caseSensitive requestedCaseSensitivity: Bool? = nil, limit: Int = 20
+    ) throws -> ScratchSearchOutcome {
+        guard !query.isEmpty else {
+            throw AgentToolError.invalidArguments("query is required.")
+        }
+        guard query.count <= Limits.searchQueryCharacters else {
+            throw AgentToolError.invalidArguments(
+                "query is past the limit of \(Limits.searchQueryCharacters) characters."
+            )
+        }
+        guard !query.contains("\n"), !query.contains("\r") else {
+            throw AgentToolError.invalidArguments(
+                "query must fit on one line; scratch_search does not match across lines."
+            )
+        }
+        guard (1...Limits.searchResults).contains(limit) else {
+            throw AgentToolError.invalidArguments(
+                "limit must be between 1 and \(Limits.searchResults)."
+            )
+        }
+
+        let caseSensitive = requestedCaseSensitivity ?? query.unicodeScalars.contains {
+            CharacterSet.uppercaseLetters.contains($0)
+        }
+        let pattern = regex ? query : NSRegularExpression.escapedPattern(for: query)
+        let expression: NSRegularExpression
+        do {
+            expression = try NSRegularExpression(
+                pattern: pattern, options: caseSensitive ? [] : [.caseInsensitive]
+            )
+        } catch {
+            throw AgentToolError.invalidArguments("query is not a valid regular expression.")
+        }
+
+        let root = try root()
+        let files = try searchFiles(at: path, in: root)
+        var matches: [ScratchSearchMatch] = []
+        var matchingLines = 0
+        var searchedFiles = 0
+        var skippedBinaryFiles = 0
+        var previewWasTruncated = false
+
+        for filePath in files {
+            let file = try data(at: filePath)
+            guard let raw = String(data: file.data, encoding: .utf8) else {
+                skippedBinaryFiles += 1
+                continue
+            }
+            searchedFiles += 1
+            let normalized = LineEnding.normalizedToLF(raw)
+            let (lines, _) = UnifiedDiff.split(normalized)
+            for (index, line) in lines.enumerated() {
+                let wholeLine = NSRange(line.startIndex..<line.endIndex, in: line)
+                guard let first = expression.firstMatch(
+                    in: line, range: wholeLine
+                ), let range = Range(first.range, in: line) else { continue }
+                matchingLines += 1
+                guard matches.count < limit else { continue }
+                let preview = Self.searchPreview(
+                    of: line, around: range, maximumBytes: Limits.searchLineBytes
+                )
+                previewWasTruncated = previewWasTruncated || preview.truncated
+                matches.append(ScratchSearchMatch(
+                    path: filePath, line: index + 1, text: preview.text,
+                    textTruncated: preview.truncated
+                ))
+            }
+        }
+        return ScratchSearchOutcome(
+            matches: matches, matchingLines: matchingLines,
+            searchedFiles: searchedFiles, skippedBinaryFiles: skippedBinaryFiles,
+            caseSensitive: caseSensitive,
+            isTruncated: previewWasTruncated || matchingLines > matches.count
+        )
     }
 
     // MARK: Writing
@@ -503,6 +606,40 @@ actor AgentScratchWorkspace {
 
     static func digest(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func searchFiles(at path: String?, in root: URL) throws -> [String] {
+        guard let path else {
+            var entries: [ScratchEntry] = []
+            try walk(root, root: root, recursive: true) { entries.append($0) }
+            return entries.filter { $0.kind == .file }.map(\.path).sorted()
+        }
+        let url = try resolve(path, in: root)
+        guard let values = try? url.resourceValues(
+            forKeys: [.isDirectoryKey, .isRegularFileKey]
+        ) else { throw AgentToolError.scratchNotFound(path) }
+        if values.isRegularFile == true { return [Self.relative(url, to: root)] }
+        guard values.isDirectory == true else { throw AgentToolError.scratchNotFound(path) }
+        var entries: [ScratchEntry] = []
+        try walk(url, root: root, recursive: true) { entries.append($0) }
+        return entries.filter { $0.kind == .file }.map(\.path).sorted()
+    }
+
+    /// Keep the first match visible in a bounded UTF-8 window. The byte boundaries
+    /// are advanced to scalar boundaries so clipping never introduces replacement
+    /// characters into a valid text file.
+    private static func searchPreview(
+        of line: String, around match: Range<String.Index>, maximumBytes: Int
+    ) -> (text: String, truncated: Bool) {
+        let bytes = Array(line.utf8)
+        guard bytes.count > maximumBytes else { return (line, false) }
+        let matchOffset = line[..<match.lowerBound].utf8.count
+        var start = max(0, min(bytes.count - maximumBytes, matchOffset - maximumBytes / 2))
+        while start < bytes.count, bytes[start] & 0xC0 == 0x80 { start += 1 }
+        var end = min(bytes.count, start + maximumBytes)
+        while end < bytes.count, bytes[end] & 0xC0 == 0x80 { end -= 1 }
+        let body = String(decoding: bytes[start..<end], as: UTF8.self)
+        return ((start > 0 ? "…" : "") + body + (end < bytes.count ? "…" : ""), true)
     }
 
     // MARK: - Matching

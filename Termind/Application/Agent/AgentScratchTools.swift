@@ -2,7 +2,7 @@ import Foundation
 
 /// The agent's own staging area, exposed as tools.
 ///
-/// Six of these are `target: .local` and cannot leave `AgentScratchWorkspace`'s
+/// Seven of these are `target: .local` and cannot leave `AgentScratchWorkspace`'s
 /// scope directory — not to a host, not to the network, not to any other part of
 /// the user's disk. That containment is what earns `.locallyContained` on the three
 /// that write: they change something, but only storage the app owns.
@@ -42,7 +42,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
             transfers = []
         }
         return [
-            list(workspace), read(workspace), write(workspace),
+            list(workspace), read(workspace), search(workspace), write(workspace),
             edit(workspace), diff(workspace), delete(workspace),
         ] + transfers + (web.map { [fetch(workspace, $0)] } ?? [])
     }
@@ -127,6 +127,72 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
                 "line_ending": .string(text.lineEnding.rawValue),
             ]), truncated: text.isTruncated)
         }
+    }
+
+    private static func search(_ workspace: AgentScratchWorkspace) -> AnyAgentTool {
+        AnyAgentTool(descriptor: descriptor(
+            "scratch_search",
+            """
+            Search UTF-8 files in the scratch workspace one line at a time. Omit path to \
+            search the whole workspace, or pass a directory for a recursive search or one \
+            file to search only it. Literal matching is the default; set regex for a regular \
+            expression. Matching is smart-case unless case_sensitive is supplied: a query \
+            containing an uppercase letter is case-sensitive, and other queries are not. \
+            Binary files are skipped. Results contain bounded matching-line previews; use \
+            scratch_read around a returned line number for more context.
+            """,
+            properties: [
+                "query": string(max: AgentScratchWorkspace.Limits.searchQueryCharacters),
+                "path": string(max: pathBytes), "regex": boolean(),
+                "case_sensitive": boolean(),
+                "limit": integer(min: 1, max: AgentScratchWorkspace.Limits.searchResults),
+            ],
+            required: ["query"], target: .local, safety: .locallyReadOnly,
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "magnifyingglass",
+                activity: .semanticArgument(key: "query", fallback: .scratchWorkspace),
+                output: .json, detailPresenterID: "builtin.scratch_search",
+                actionKind: .search
+            )
+        )) { invocation, _ in
+            let arguments = try Arguments(invocation)
+            let outcome = try await workspace.search(
+                arguments.string("query"), path: arguments.optionalString("path"),
+                regex: arguments.optionalBool("regex") ?? false,
+                caseSensitive: arguments.optionalBool("case_sensitive"),
+                limit: arguments.optionalInt("limit") ?? 20
+            )
+            var returned = outcome.matches
+            var truncated = outcome.isTruncated
+            var payload = searchPayload(outcome, matches: returned, truncated: truncated)
+            while payload.encodedString.utf8.count > contentBytes, !returned.isEmpty {
+                returned.removeLast()
+                truncated = true
+                payload = searchPayload(outcome, matches: returned, truncated: truncated)
+            }
+            return result(invocation, payload, truncated: truncated)
+        }
+    }
+
+    private static func searchPayload(
+        _ outcome: ScratchSearchOutcome, matches: [ScratchSearchMatch], truncated: Bool
+    ) -> AgentJSONValue {
+        .object([
+            "matches": .array(matches.map { match in
+                .object([
+                    "path": .string(match.path), "line": .number(Double(match.line)),
+                    "text": .string(match.text),
+                    "text_truncated": .bool(match.textTruncated),
+                ])
+            }),
+            "matching_lines": .number(Double(outcome.matchingLines)),
+            "returned_matches": .number(Double(matches.count)),
+            "searched_files": .number(Double(outcome.searchedFiles)),
+            "skipped_binary_files": .number(Double(outcome.skippedBinaryFiles)),
+            "case_sensitive": .bool(outcome.caseSensitive),
+            "truncated": .bool(truncated),
+        ])
     }
 
     private static func write(_ workspace: AgentScratchWorkspace) -> AnyAgentTool {
@@ -577,6 +643,9 @@ nonisolated extension AgentScratchTools {
     static let readDetailPresenter = AgentToolDetailPresenter(
         id: "builtin.scratch_read", present: presentReadDetail
     )
+    static let searchDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_search", present: presentSearchDetail
+    )
     static let writeDetailPresenter = AgentToolDetailPresenter(
         id: "builtin.scratch_write", present: presentWriteDetail
     )
@@ -665,6 +734,69 @@ nonisolated extension AgentScratchTools {
             &items, "Line endings", object["line_ending"]?.stringValue?.uppercased(),
             locale: input.locale
         )
+        return items
+    }
+
+    private static func presentSearchDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        let matching = object["matching_lines"]?.integerValue ?? 0
+        let returned = object["returned_matches"]?.integerValue ?? 0
+        let searched = object["searched_files"]?.integerValue ?? 0
+        let skipped = object["skipped_binary_files"]?.integerValue ?? 0
+        var items: [AgentToolDetail.Item] = [
+            .message(
+                String(
+                    localized: "\(matching) matching lines in \(searched) files",
+                    locale: input.locale
+                ),
+                matching == 0 ? .secondary : .success
+            )
+        ]
+        let rows = (object["matches"]?.arrayValue ?? []).compactMap {
+            match -> AgentToolDetail.ListRow? in
+            guard let fields = match.objectValue,
+                let path = fields["path"]?.stringValue,
+                let line = fields["line"]?.integerValue
+            else { return nil }
+            return .init(
+                title: "\(path):\(line)", subtitle: fields["text"]?.stringValue,
+                badges: fields["text_truncated"]?.boolValue == true
+                    ? [F.localized("Truncated", locale: input.locale)] : [],
+                symbol: "doc.text"
+            )
+        }
+        items.append(.list(.init(
+            title: nil, rows: rows,
+            emptyMessage: F.localized("No matches", locale: input.locale)
+        )))
+        if object["truncated"]?.boolValue == true {
+            items.append(.message(
+                String(
+                    localized: "Showing \(returned) of \(matching) matching lines",
+                    locale: input.locale
+                ),
+                .warning
+            ))
+        }
+        if skipped > 0 {
+            items.append(.message(
+                String(localized: "Skipped \(skipped) binary files", locale: input.locale),
+                .secondary
+            ))
+        }
+        items.append(F.field(
+            "Case sensitive",
+            F.localized(
+                object["case_sensitive"]?.boolValue == true ? "Yes" : "No",
+                locale: input.locale
+            ),
+            locale: input.locale
+        ))
         return items
     }
 

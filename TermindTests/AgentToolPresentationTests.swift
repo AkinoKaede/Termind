@@ -664,6 +664,42 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func scratchSearchDetailIsStructuredWithoutJSONSyntax() throws {
+        var card = makeCard(
+            name: "scratch_search", target: .local,
+            arguments: ["query": .string("listen")],
+            presentation: .init(
+                symbol: "magnifyingglass",
+                activity: .semanticArgument(key: "query", fallback: .scratchWorkspace),
+                output: .json, detailPresenterID: "builtin.scratch_search",
+                actionKind: .search
+            )
+        )
+        card.result = AgentToolResult(
+            callID: "call",
+            content: AgentJSONValue.object([
+                "matches": .array([
+                    .object([
+                        "path": .string("nginx.conf"), "line": .number(12),
+                        "text": .string("listen 443 ssl;"),
+                        "text_truncated": .bool(false),
+                    ]),
+                ]),
+                "matching_lines": .number(1), "returned_matches": .number(1),
+                "searched_files": .number(2), "skipped_binary_files": .number(1),
+                "case_sensitive": .bool(false), "truncated": .bool(false),
+            ]).encodedString
+        )
+
+        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let rendered = String(describing: detail)
+        #expect(rendered.contains("nginx.conf:12"))
+        #expect(rendered.contains("listen 443 ssl;"))
+        #expect(!rendered.contains("{"))
+        #expect(!rendered.contains("}"))
+    }
+
+    @Test
     func finishedBatchSummaryCountsRepeatedActivitiesAndPreservesFailures() {
         let questionPresentation = AgentBuiltInTools.requestUserInput().descriptor.presentation
         var firstQuestion = makeCard(
