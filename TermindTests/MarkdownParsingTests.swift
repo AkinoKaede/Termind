@@ -1,213 +1,215 @@
 import Foundation
+import MarkdownParser
 import Testing
 
 @testable import Termind
 
 @Suite
 struct MarkdownParsingTests {
-
-    // MARK: - The reported failure
-
     @Test
     func blankLineSeparatedTextBecomesTwoParagraphs() {
-        let blocks = MarkdownDocumentParser.parse("first\n\nsecond")
+        let blocks = TermindMarkdownParser.parse("first\n\nsecond")
         #expect(blocks.count == 2)
         #expect(paragraphText(blocks.first) == "first")
         #expect(paragraphText(blocks.last) == "second")
     }
 
-    /// Foundation follows CommonMark and turns a single newline into an
-    /// untagged space, which is indistinguishable from a typed one — so the
-    /// choice is made on the source, before parsing.
     @Test
     func newlineInsideAParagraphSurvivesAsALineBreak() {
-        let blocks = MarkdownDocumentParser.parse("**Note:** this matters\nAnother line here")
-        #expect(blocks.count == 1)
-        let text = paragraphText(blocks.first) ?? ""
-        #expect(text.contains("\n"))
-        #expect(!text.contains("matters Another"))
+        let blocks = TermindMarkdownParser.parse("**Note:** this matters\nAnother line here")
+        guard case .paragraph(let inlines)? = blocks.first else {
+            Issue.record("expected a paragraph, got \(blocks)")
+            return
+        }
+        #expect(inlines.contains(.lineBreak))
+        #expect(inlineText(inlines).contains("matters\nAnother"))
     }
 
     @Test
     func tableCarriesItsColumnAlignments() {
-        let blocks = MarkdownDocumentParser.parse("| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |")
-        guard case .table(let table)? = blocks.first else {
+        let blocks = TermindMarkdownParser.parse(
+            "| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |"
+        )
+        guard case .table(let alignments, let rows)? = blocks.first else {
             Issue.record("expected a table, got \(blocks)")
             return
         }
-        #expect(table.alignments == [.leading, .center, .trailing])
-        #expect(table.header.map { $0.map(\.text).joined() } == ["a", "b", "c"])
-        #expect(table.rows.count == 1)
-        #expect(table.rows.first?.map { $0.map(\.text).joined() } == ["1", "2", "3"])
-    }
-
-    // MARK: - The premise the grouping algorithm rests on
-
-    /// `MarkdownDocumentParser` reverses `components` to turn a run's intent
-    /// stack into a root-to-leaf path. That reversal is only correct because
-    /// Foundation orders them innermost-first, which is an observed fact about
-    /// the framework rather than a guarantee we control.
-    @Test
-    func presentationIntentComponentsAreOrderedInnermostFirst() throws {
-        let attributed = try AttributedString(
-            markdown: "- item", options: .init(interpretedSyntax: .full)
-        )
-        let components = try #require(attributed.runs.first?.presentationIntent?.components)
-        #expect(components.count == 3)
-
-        guard case .paragraph = components[0].kind else {
-            Issue.record("expected the paragraph innermost, got \(components[0].kind)")
-            return
-        }
-        guard case .listItem = components[1].kind else {
-            Issue.record("expected the list item next, got \(components[1].kind)")
-            return
-        }
-        guard case .unorderedList = components[2].kind else {
-            Issue.record("expected the list outermost, got \(components[2].kind)")
-            return
-        }
-    }
-
-    // MARK: - Lists
-
-    @Test
-    func orderedListKeepsTheNumberItStartedAt() {
-        let blocks = MarkdownDocumentParser.parse("3. first\n4. second")
-        guard case .list(let list)? = blocks.first else {
-            Issue.record("expected a list, got \(blocks)")
-            return
-        }
-        #expect(list.isOrdered)
-        #expect(list.start == 3)
-        #expect(list.items.count == 2)
+        #expect(alignments == [.left, .center, .right])
+        #expect(rows.count == 2)
+        #expect(rows[0].cells.map { inlineText($0.content) } == ["a", "b", "c"])
+        #expect(rows[1].cells.map { inlineText($0.content) } == ["1", "2", "3"])
     }
 
     @Test
-    func nestedListIsABlockInsideItsItem() {
-        let blocks = MarkdownDocumentParser.parse("1. first\n2. second\n   - nested")
-        guard case .list(let outer)? = blocks.first else {
-            Issue.record("expected a list, got \(blocks)")
+    func orderedAndNestedListsKeepTheirShape() {
+        let blocks = TermindMarkdownParser.parse("3. first\n4. second\n   - nested")
+        guard case .numberedList(_, let start, let items)? = blocks.first else {
+            Issue.record("expected a numbered list, got \(blocks)")
             return
         }
-        let second = outer.items[1]
-        let nested = second.blocks.compactMap { block -> MarkdownList? in
-            guard case .list(let list) = block else { return nil }
-            return list
-        }
-        #expect(nested.count == 1)
-        #expect(nested.first?.isOrdered == false)
-        #expect(paragraphText(nested.first?.items.first?.blocks.first) == "nested")
+        #expect(start == 3)
+        #expect(items.count == 2)
+        #expect(items[1].children.contains { block in
+            guard case .bulletedList = block else { return false }
+            return true
+        })
     }
 
-    /// Foundation does not parse GFM task syntax, so the marker arrives as
-    /// literal text at the head of the item and has to be taken back off.
     @Test
     func taskListMarkersBecomeCheckboxes() {
-        let blocks = MarkdownDocumentParser.parse("- [x] done\n- [ ] todo")
-        guard case .list(let list)? = blocks.first else {
-            Issue.record("expected a list, got \(blocks)")
+        let blocks = TermindMarkdownParser.parse("- [x] done\n- [ ] todo")
+        guard case .taskList(_, let items)? = blocks.first else {
+            Issue.record("expected a task list, got \(blocks)")
             return
         }
-        #expect(list.items.map(\.checkbox) == [true, false])
-        #expect(paragraphText(list.items[0].blocks.first) == "done")
-        #expect(paragraphText(list.items[1].blocks.first) == "todo")
+        #expect(items.map(\.isCompleted) == [true, false])
+        #expect(paragraphText(items[0].children.first) == "done")
+        #expect(paragraphText(items[1].children.first) == "todo")
     }
 
-    // MARK: - Code
-
     @Test
-    func fencedCodeKeepsItsLanguageAndItsNewlines() {
-        let blocks = MarkdownDocumentParser.parse("```bash\nls -la\ncd /tmp\n```")
+    func fencedCodeKeepsItsLanguageAndNewlines() {
+        let blocks = TermindMarkdownParser.parse("```bash\nls -la\ncd /tmp\n```")
         guard case .codeBlock(let language, let code)? = blocks.first else {
             Issue.record("expected a code block, got \(blocks)")
             return
         }
         #expect(language == "bash")
-        #expect(code == "ls -la\ncd /tmp")
+        #expect(code.trimmingCharacters(in: .newlines) == "ls -la\ncd /tmp")
     }
 
-    /// The streaming case: every parse before the last one sees a fence that
-    /// has been opened and not yet closed.
     @Test
     func unterminatedFenceStillProducesACodeBlock() {
-        let blocks = MarkdownDocumentParser.parse("```bash\nls -la")
+        let blocks = TermindMarkdownParser.parse("```bash\nls -la")
         guard case .codeBlock(let language, let code)? = blocks.first else {
             Issue.record("expected a code block, got \(blocks)")
             return
         }
         #expect(language == "bash")
-        #expect(code == "ls -la")
+        #expect(code.trimmingCharacters(in: .newlines) == "ls -la")
     }
 
-
-    // MARK: - Links and images
-
     @Test
-    func onlyOpenableSchemesBecomeLinks() {
+    func onlyOpenableSchemesRemainLinks() {
         let allowed = linkedInline("[docs](https://example.com)")
-        #expect(allowed?.link?.absoluteString == "https://example.com")
-        #expect(allowed?.rejectedLinkTarget == nil)
-    }
-
-    @Test
-    func refusedSchemesKeepTheirLabelAsProse() {
-        for source in ["[click](javascript:alert(1))", "[open](file:///etc/passwd)"] {
-            let inline = linkedInline(source)
-            #expect(inline?.link == nil, "\(source) should not be openable")
-            #expect(inline?.rejectedLinkTarget != nil, "\(source) should report its target")
-        }
-    }
-
-    /// Foundation drops the URL and keeps the alt text, which closes the
-    /// channel where a model-chosen image URL discloses the reader's IP and
-    /// reading time the moment a message renders.
-    @Test
-    func imagesLoseTheirURL() {
-        let blocks = MarkdownDocumentParser.parse("![alt text](https://tracker.test/p.png)")
-        let rendered = blocks.compactMap(paragraphText).joined()
-        #expect(rendered.contains("alt text"))
-        #expect(!rendered.contains("tracker.test"))
-    }
-
-    // MARK: - Other blocks
-
-    @Test
-    func thematicBreakDropsItsPlaceholderGlyph() {
-        let blocks = MarkdownDocumentParser.parse("above\n\n---\n\nbelow")
-        #expect(blocks.count == 3)
-        guard case .thematicBreak = blocks[1] else {
-            Issue.record("expected a thematic break, got \(blocks[1])")
+        guard case .link(let destination, _)? = allowed else {
+            Issue.record("expected an allowed link")
             return
         }
+        #expect(destination == "https://example.com")
+
+        for source in ["[click](javascript:alert(1))", "[open](file:///etc/passwd)"] {
+            let inlines = paragraphInlines(TermindMarkdownParser.parse(source).first)
+            #expect(!inlines.contains { inline in
+                guard case .link = inline else { return false }
+                return true
+            })
+            #expect(inlineText(inlines).contains(source.contains("click") ? "click" : "open"))
+        }
     }
 
     @Test
-    func headingAndQuoteKeepTheirShape() {
-        guard case .heading(let level, let inlines)? = MarkdownDocumentParser.parse("## Title").first
+    func imagesKeepAltTextButLoseRemoteSource() {
+        let blocks = TermindMarkdownParser.parse(
+            "![alt text](https://tracker.test/p.png)"
+        )
+        let inlines = paragraphInlines(blocks.first)
+        #expect(inlineText(inlines) == "alt text")
+        #expect(!String(describing: inlines).contains("tracker.test"))
+    }
+
+    @Test
+    func headingsQuotesRulesAndMathKeepTheirShape() {
+        guard case .heading(let level, let heading)? =
+            TermindMarkdownParser.parse("## Title").first
         else {
             Issue.record("expected a heading")
             return
         }
         #expect(level == 2)
-        #expect(inlines.map(\.text).joined() == "Title")
+        #expect(inlineText(heading) == "Title")
 
-        guard case .blockQuote(let children)? = MarkdownDocumentParser.parse("> quoted").first else {
+        guard case .blockquote(let children)? =
+            TermindMarkdownParser.parse("> quoted").first
+        else {
             Issue.record("expected a block quote")
             return
         }
         #expect(paragraphText(children.first) == "quoted")
+
+        let ruleBlocks = TermindMarkdownParser.parse("above\n\n---\n\nbelow")
+        #expect(ruleBlocks.count == 3)
+        guard case .thematicBreak = ruleBlocks[1] else {
+            Issue.record("expected a thematic break")
+            return
+        }
+
+        let math = paragraphInlines(TermindMarkdownParser.parse("$x^2$").first)
+        #expect(math.contains { inline in
+            guard case .math(let content, _) = inline else { return false }
+            return content == "x^2"
+        })
+    }
+
+    @Test
+    func assistantShellFencesBecomeActionSegments() {
+        let blocks = TermindMarkdownParser.parse(
+            "before\n\n```bash\necho ok\n```\n\nafter"
+        )
+        let segments = TermindMarkdownParser.segments(
+            from: blocks,
+            allowsShellActions: true
+        )
+        #expect(segments.count == 3)
+        #expect(segments[1] == .shell(language: "bash", command: "echo ok"))
+
+        let userSegments = TermindMarkdownParser.segments(
+            from: blocks,
+            allowsShellActions: false
+        )
+        #expect(userSegments.count == 1)
+        guard case .markdown(let userBlocks) = userSegments[0] else {
+            Issue.record("user code should stay native Markdown")
+            return
+        }
+        #expect(userBlocks.count == blocks.count)
+        #expect(userBlocks.contains { block in
+            guard case .codeBlock = block else { return false }
+            return true
+        })
+    }
+
+    @Test
+    func shellFenceExtractedFromAListStillBecomesAnActionSegment() {
+        let blocks = TermindMarkdownParser.parse("- inspect\n\n  ```zsh\n  pwd\n  ```")
+        let segments = TermindMarkdownParser.segments(
+            from: blocks,
+            allowsShellActions: true
+        )
+        #expect(segments.contains { segment in
+            guard case .shell(let language, let command) = segment else { return false }
+            return language == "zsh" && command.trimmingCharacters(in: .whitespaces) == "pwd"
+        })
+    }
+
+    @Test
+    func plainTextExtractionProducesOneLine() {
+        let title = TermindMarkdownParser.plainText("""
+            **Checked both hosts.**
+
+            - Compare the logs
+            - Verify `sshd`
+            """)
+        #expect(title == "Checked both hosts. Compare the logs Verify sshd")
     }
 
     @Test
     func emptySourceProducesNothing() {
-        #expect(MarkdownDocumentParser.parse("").isEmpty)
+        #expect(TermindMarkdownParser.parse("").isEmpty)
     }
 
     // MARK: - Soft-break guards
 
-    /// Each of these marks a place where appending a hard-break backslash would
-    /// corrupt the source rather than break a line.
     @Test(arguments: [
         "```\nnot prose\nstill code\n```",
         "| a | b |\n|---|---|\n| 1 | 2 |",
@@ -230,27 +232,43 @@ struct MarkdownParsingTests {
 
     @Test
     func hardeningDoesNotDoubleUpOnAnExistingHardBreak() {
-        #expect(MarkdownSoftBreaks.hardened("first\\\nsecond").filter { $0 == "\\" }.count == 1)
+        #expect(
+            MarkdownSoftBreaks.hardened("first\\\nsecond").filter { $0 == "\\" }.count == 1
+        )
         #expect(!MarkdownSoftBreaks.hardened("first  \nsecond").contains("\\"))
     }
 
-    @Test
-    func hardeningLeavesASingleLineUntouched() {
-        #expect(MarkdownSoftBreaks.hardened("just one line") == "just one line")
-    }
-
-    // MARK: - Helpers
-
-    private func paragraphText(_ block: MarkdownBlock?) -> String? {
+    private func paragraphText(_ block: MarkdownBlockNode?) -> String? {
         guard case .paragraph(let inlines)? = block else { return nil }
-        return inlines.map(\.text).joined()
+        return inlineText(inlines)
     }
 
-    /// The one inline in `source` that carried a link, allowed or refused.
-    private func linkedInline(_ source: String) -> MarkdownInline? {
-        guard case .paragraph(let inlines)? = MarkdownDocumentParser.parse(source).first else {
-            return nil
+    private func paragraphInlines(_ block: MarkdownBlockNode?) -> [MarkdownInlineNode] {
+        guard case .paragraph(let inlines)? = block else { return [] }
+        return inlines
+    }
+
+    private func linkedInline(_ source: String) -> MarkdownInlineNode? {
+        paragraphInlines(TermindMarkdownParser.parse(source).first).first { inline in
+            guard case .link = inline else { return false }
+            return true
         }
-        return inlines.first { $0.link != nil || $0.rejectedLinkTarget != nil }
+    }
+
+    private func inlineText(_ inlines: [MarkdownInlineNode]) -> String {
+        inlines.map { inline in
+            switch inline {
+            case .text(let value), .code(let value), .html(let value), .math(let value, _):
+                value
+            case .softBreak:
+                " "
+            case .lineBreak:
+                "\n"
+            case .emphasis(let children), .strong(let children),
+                 .strikethrough(let children), .link(_, let children),
+                 .image(_, let children):
+                inlineText(children)
+            }
+        }.joined()
     }
 }

@@ -62,10 +62,7 @@ nonisolated enum AgentToolPresentation {
     /// batch header can accommodate. Structure and emphasis remain available
     /// in the live reasoning row; here only the visible words are reused.
     static func reasoningTitle(from markdown: String) -> String {
-        let text = MarkdownDocumentParser.parse(markdown)
-            .flatMap(plainText)
-            .joined(separator: " ")
-        return text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        TermindMarkdownParser.plainText(markdown)
     }
 
     static func summary(
@@ -129,27 +126,6 @@ nonisolated enum AgentToolPresentation {
             return localized("\(action) on \(hostName)", locale: locale)
         }
         return action
-    }
-
-    private static func plainText(_ block: MarkdownBlock) -> [String] {
-        switch block {
-        case .paragraph(let inlines), .heading(_, let inlines):
-            [inlines.map(\.text).joined()]
-        case .codeBlock(_, let code):
-            [code]
-        case .list(let list):
-            list.items.flatMap { $0.blocks.flatMap(plainText) }
-        case .table(let table):
-            ([table.header] + table.rows).flatMap { row in
-                row.map { $0.map(\.text).joined() }
-            }
-        case .blockQuote(let blocks):
-            blocks.flatMap(plainText)
-        case .htmlBlock(let raw):
-            [raw]
-        case .thematicBreak:
-            []
-        }
     }
 
     /// A finished contiguous batch, phrased from the same presentation

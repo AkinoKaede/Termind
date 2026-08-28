@@ -15,6 +15,7 @@
 		TRMD00000000000000100005 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
 		TRMD00000000000000100006 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
 		TRMD00000000000000100007 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
+		TRMD00000000000000100008 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +92,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				TRMD00000000000000100005 /* ZIPFoundation in Frameworks */,
+				TRMD00000000000000100008 /* MarkdownView in Frameworks */,
 				TRMD00000000000000100001 /* CSSH2 in Frameworks */,
 				TRMD00000000000000100007 /* GhosttyKit in Frameworks */,
 				TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */,
@@ -165,6 +167,7 @@
 				TRMD00000000000000100013 /* GhosttyTheme */,
 				TRMD00000000000000100014 /* OpenSSL */,
 				TRMD00000000000000100015 /* ZIPFoundation */,
+				TRMD00000000000000100017 /* MarkdownView */,
 			);
 			productName = Termind;
 			productReference = TRMD00000000000000000001 /* Termind.app */;
@@ -260,6 +263,7 @@
 				TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
 				TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */,
 				TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+				TRMD00000000000000100025 /* XCRemoteSwiftPackageReference "MarkdownView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = TRMD00000000000000000040 /* Products */;
@@ -606,6 +610,14 @@
 				minimumVersion = 0.9.19;
 			};
 		};
+		TRMD00000000000000100025 /* XCRemoteSwiftPackageReference "MarkdownView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/MarkdownView";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.3.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -638,6 +650,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */;
 			productName = GhosttyKit;
+		};
+		TRMD00000000000000100017 /* MarkdownView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100025 /* XCRemoteSwiftPackageReference "MarkdownView" */;
+			productName = MarkdownView;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

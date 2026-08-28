@@ -1,59 +1,13 @@
 import SwiftUI
 
-/// A fenced code block inside a message.
-///
-/// A shell fence in assistant output is the one thing this app's transcript can
-/// do that a general Markdown renderer cannot: classify it locally and offer to
-/// put it at a prompt. Every other language is just code, and gets a copy
-/// button.
-struct MarkdownCodeBlockView: View {
-    let language: String?
-    let code: String
-    /// Only assistant output offers to run the shell it wrote. A fence the user
-    /// pasted is their own text; "suggested command" is not what it means.
-    var isActionable = false
-
-    private static let shellLanguages: Set<String> = [
-        "bash", "sh", "zsh", "shell", "console", "terminal",
-    ]
-
-    private var isShell: Bool {
-        guard let language else { return false }
-        return Self.shellLanguages.contains(language.lowercased())
-    }
-
-    private var isEmpty: Bool {
-        code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    @Environment(\.markdownFillsWidth) private var fillsWidth
+/// The one fenced block Termind owns instead of MarkdownView: a shell command
+/// authored by the assistant and therefore eligible for local risk assessment.
+struct AssistantShellCodeBlockView: View {
+    let language: String
+    let command: String
 
     var body: some View {
-        if isActionable, isShell, !isEmpty {
-            ShellCodeBlockView(language: language ?? "", command: code)
-        } else {
-            plain
-        }
-    }
-
-    private var plain: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            HStack(spacing: Metrics.Space.xs) {
-                if let language, !language.isEmpty {
-                    Text(language)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-                CopyButton(text: code)
-            }
-            Text(code)
-                .font(MarkdownTypography.monospaced)
-                .textSelection(.enabled)
-                .markdownWidth(fills: fillsWidth)
-        }
-        .padding(Metrics.Chat.codeInset)
-        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.small))
+        ShellCodeBlockView(language: language, command: command)
     }
 }
 

@@ -507,18 +507,16 @@ private struct AgentWorkGroupView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// `isStreaming` matters even though reasoning is never actionable: without
-    /// it the live block takes the settled path, so every delta inserts a
-    /// throwaway entry into `MarkdownParseCache` and evicts the settled
-    /// messages that cache exists to keep ready.
+    /// Reasoning uses MarkdownView's streaming path but never gains terminal
+    /// actions; it is narration, not a suggested command.
     private func reasoningBlock(
         _ block: AgentReasoningBlock, isActive: Bool
     ) -> some View {
-        MarkdownView(
+        TermindMarkdownView(
             text: block.text, isStreaming: isActive,
-            isAssistant: true, isCompact: isCompact
+            isAssistant: false, isCompact: isCompact,
+            tone: .secondary
         )
-        .foregroundStyle(.secondary)
         .modifier(ScanningTextMask(isActive: isActive))
         .textSelection(.enabled)
     }
@@ -530,7 +528,7 @@ private struct AgentWorkGroupView: View {
                 WorkingIndicator()
             }
         } else {
-            MarkdownView(
+            TermindMarkdownView(
                 text: message.text, isStreaming: message.isStreaming,
                 isAssistant: true, isCompact: isCompact
             )
@@ -1233,10 +1231,6 @@ private struct AgentPlanRowView: View {
     /// off the screen at the moment the reader wants to see both.
     @State private var isExpanded = false
 
-    private var blocks: [MarkdownBlock] {
-        MarkdownDocumentParser.parse(card.plan.body)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             header
@@ -1265,7 +1259,11 @@ private struct AgentPlanRowView: View {
     /// ends there, while a fade says there is more and the chevron opens it.
     @ViewBuilder
     private var planBody: some View {
-        let rendered = MarkdownBlockListView(blocks: blocks, isCompact: true)
+        let rendered = TermindMarkdownView(
+            text: card.plan.body,
+            isAssistant: true,
+            isCompact: true
+        )
             .padding(.leading, Metrics.Sidebar.rowIcon + Metrics.Space.s)
 
         if isExpanded {

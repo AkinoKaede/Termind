@@ -85,7 +85,11 @@ struct UserMessageView: View {
                 }
             }
             if isEditing { editor } else if !message.text.isEmpty {
-                MarkdownView(text: message.text, isAssistant: false, isCompact: isCompact)
+                TermindMarkdownView(
+                    text: message.text,
+                    isAssistant: false,
+                    isCompact: isCompact
+                )
             }
         }
         .environment(\.markdownFillsWidth, false)
@@ -263,7 +267,7 @@ struct AssistantMessageView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
             if !message.text.isEmpty {
-                MarkdownView(
+                TermindMarkdownView(
                     text: message.text,
                     isStreaming: message.isStreaming,
                     isAssistant: true,
