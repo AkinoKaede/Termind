@@ -9,6 +9,7 @@ import SwiftUI
 /// grids, scrollback, and SFTP state.
 struct RootView: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var window: WindowModel
     @State private var hostsPageState = HostsPageState()
     @State private var layoutWidth = Metrics.Window.defaultWidth
@@ -168,6 +169,7 @@ struct RootView: View {
             case .assistant:
                 AssistantView()
                     .background(Color(nsColor: .windowBackgroundColor))
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
                     .zIndex(2)
             case .workspace:
                 if window.workspaces.isEmpty {
@@ -175,6 +177,15 @@ struct RootView: View {
                 }
             }
         }
+        .animation(
+            Motion.panel(reduceMotion: reduceMotion),
+            value: isAssistantFullScreen
+        )
+        .clipped()
+    }
+
+    private var isAssistantFullScreen: Bool {
+        window.selectedDestination == .assistant
     }
 }
 

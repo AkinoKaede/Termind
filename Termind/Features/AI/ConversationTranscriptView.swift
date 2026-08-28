@@ -5,8 +5,15 @@ import SwiftUI
 /// Shared by the session Assistant sidebar and full Assistant tab so the two can never drift; only
 /// the padding and the provider header differ.
 struct ConversationView: View {
+    enum Region {
+        case all
+        case transcript
+        case interaction
+    }
+
     let conversation: ConversationModel
     var isCompact: Bool = false
+    var region: Region = .all
     /// Forwarded to the composer. Only the sidebar has a focused pane to
     /// describe, so only the sidebar passes one.
     var sessionContext: SessionContext = .none
@@ -25,48 +32,60 @@ struct ConversationView: View {
     @State private var transcriptPresentation = TranscriptPresentationState()
 
     var body: some View {
-        VStack(spacing: 0) {
-            transcript
-            if conversation.isArchived {
-                archivedSurface
-            } else if let interaction = conversation.pendingUserInteraction {
-                blockingSurface { userInteraction(interaction) }
-            } else if let approval = conversation.pendingApproval {
-                blockingSurface {
-                    AgentApprovalCard(request: approval, conversation: conversation)
-                }
-            } else {
-                if !conversation.tasks.isEmpty {
-                    chatColumn {
-                        AgentTaskCapsuleView(
-                            conversation: conversation, isCompact: isCompact
-                        )
-                    }
-                    // Below the composer's Slash overlay, above Steering and
-                    // every ordinary surface in this interaction region.
-                    .zIndex(50)
-                }
-                if !conversation.pendingSteering.isEmpty {
-                    chatColumn {
-                        SteeringQueueView(
-                            conversation: conversation,
-                            isCompact: isCompact,
-                            isEmbedded: true,
-                            surfaceStyle: interactionSurfaceStyle
-                        )
-                    }
-                }
-                ComposerView(
-                    conversation: conversation,
-                    surfaceStyle: interactionSurfaceStyle,
-                    maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
-                    sessionContext: sessionContext,
-                    includesTerminalSuggestion: showsTerminalActions,
-                    onNewChat: onNewChat,
-                    onSend: onSend
-                )
-                .zIndex(100)
+        switch region {
+        case .all:
+            VStack(spacing: 0) {
+                transcript
+                interactionSurface
             }
+        case .transcript:
+            transcript
+        case .interaction:
+            interactionSurface
+        }
+    }
+
+    @ViewBuilder
+    private var interactionSurface: some View {
+        if conversation.isArchived {
+            archivedSurface
+        } else if let interaction = conversation.pendingUserInteraction {
+            blockingSurface { userInteraction(interaction) }
+        } else if let approval = conversation.pendingApproval {
+            blockingSurface {
+                AgentApprovalCard(request: approval, conversation: conversation)
+            }
+        } else {
+            if !conversation.tasks.isEmpty {
+                chatColumn {
+                    AgentTaskCapsuleView(
+                        conversation: conversation, isCompact: isCompact
+                    )
+                }
+                // Below the composer's Slash overlay, above Steering and
+                // every ordinary surface in this interaction region.
+                .zIndex(50)
+            }
+            if !conversation.pendingSteering.isEmpty {
+                chatColumn {
+                    SteeringQueueView(
+                        conversation: conversation,
+                        isCompact: isCompact,
+                        isEmbedded: true,
+                        surfaceStyle: interactionSurfaceStyle
+                    )
+                }
+            }
+            ComposerView(
+                conversation: conversation,
+                surfaceStyle: interactionSurfaceStyle,
+                maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
+                sessionContext: sessionContext,
+                includesTerminalSuggestion: showsTerminalActions,
+                onNewChat: onNewChat,
+                onSend: onSend
+            )
+            .zIndex(100)
         }
     }
 

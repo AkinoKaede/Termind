@@ -63,37 +63,102 @@ struct AssistantSidebarView: View {
 struct AssistantPanelView: View {
     @Environment(WindowModel.self) private var window
     @Environment(AppModel.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Group {
+        ZStack {
             if !isFocusedOnWorkspace {
                 AssistantSidebarView()
-            } else if window.sidebar.isAssistantArchivePresented {
-                AssistantArchiveView(
-                    isCompact: true,
-                    onBack: { window.closeAssistantInSidebar() },
-                    onOpen: { window.openAssistantInSidebar($0) }
-                )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            } else if let conversation = window.sidebarAssistantConversation {
-                conversationDetail(conversation)
-            } else {
-                landing
+                    .transition(.opacity)
+                    .zIndex(0)
             }
+
+            workspaceLayer
+                .allowsHitTesting(isFocusedOnWorkspace)
+                .accessibilityHidden(!isFocusedOnWorkspace)
+                .zIndex(1)
         }
         .animation(
-            Motion.tabSwitch,
+            Motion.panel(reduceMotion: reduceMotion),
+            value: isFocusedOnWorkspace
+        )
+        .animation(
+            Motion.panel(reduceMotion: reduceMotion),
             value: window.sidebar.isAssistantArchivePresented
         )
+        .clipped()
+    }
+
+    @ViewBuilder
+    private var workspaceLayer: some View {
+        if window.sidebar.isAssistantArchivePresented {
+            AssistantArchiveView(
+                isCompact: true,
+                onBack: { window.closeAssistantInSidebar() },
+                onOpen: { window.openAssistantInSidebar($0) }
+            )
+            .transition(.move(edge: .trailing).combined(with: .opacity))
+            .offset(x: isFocusedOnWorkspace ? 0 : Metrics.Space.xxl)
+            .opacity(isFocusedOnWorkspace ? 1 : 0)
+        } else {
+            workspaceAssistantSurface
+        }
     }
 
     private var isFocusedOnWorkspace: Bool {
         if case .workspace = window.selectedDestination { true } else { false }
     }
 
-    private var landing: some View {
-        VStack(spacing: 0) {
-            conversationList
+    private var workspaceAssistantSurface: some View {
+        let exitsAsWhole = window.sidebarAssistantConversation != nil
+
+        return VStack(spacing: 0) {
+            Group {
+                if let conversation = window.sidebarAssistantConversation {
+                    conversationContent(conversation)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                } else {
+                    conversationList
+                        .transition(.move(edge: .leading).combined(with: .opacity))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+            .offset(
+                x: !isFocusedOnWorkspace && !exitsAsWhole ? -Metrics.Space.xxl : 0
+            )
+            .opacity(isFocusedOnWorkspace || exitsAsWhole ? 1 : 0)
+            .animation(
+                Motion.panel(reduceMotion: reduceMotion),
+                value: window.sidebar.assistantConversationID
+            )
+
+            interactionSurface
+                .offset(
+                    y: !isFocusedOnWorkspace && !exitsAsWhole ? Metrics.Space.xxl : 0
+                )
+                .opacity(isFocusedOnWorkspace || exitsAsWhole ? 1 : 0)
+                .animation(nil, value: window.sidebar.assistantConversationID)
+        }
+        .offset(x: !isFocusedOnWorkspace && exitsAsWhole ? Metrics.Space.xxl : 0)
+        .opacity(isFocusedOnWorkspace || !exitsAsWhole ? 1 : 0)
+        .onKeyPress(.escape, phases: .down) { _ in
+            guard window.sidebar.assistantConversationID != nil else { return .ignored }
+            window.closeAssistantInSidebar()
+            return .handled
+        }
+    }
+
+    @ViewBuilder
+    private var interactionSurface: some View {
+        if let conversation = window.sidebarAssistantConversation {
+            ConversationView(
+                conversation: conversation, isCompact: true, region: .interaction,
+                sessionContext: window.sidebar.sessionContext,
+                showsTerminalActions: true,
+                onNewChat: { window.closeAssistantInSidebar() }
+            )
+        } else {
             Divider()
             ComposerView(
                 conversation: window.sidebar.assistantDraft,
@@ -132,7 +197,7 @@ struct AssistantPanelView: View {
         }
     }
 
-    private func conversationDetail(_ conversation: ConversationModel) -> some View {
+    private func conversationContent(_ conversation: ConversationModel) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: Metrics.Space.s) {
                 Button {
@@ -159,10 +224,9 @@ struct AssistantPanelView: View {
             }
             .compactAssistantHeader()
             ConversationView(
-                conversation: conversation, isCompact: true,
+                conversation: conversation, isCompact: true, region: .transcript,
                 sessionContext: window.sidebar.sessionContext,
-                showsTerminalActions: true,
-                onNewChat: { window.closeAssistantInSidebar() }
+                showsTerminalActions: true
             )
         }
     }
