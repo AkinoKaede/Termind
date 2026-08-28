@@ -4,7 +4,7 @@ import SwiftUI
     import AppKit
 #endif
 
-/// Type-erased selection hooks used by `CardPage`'s background drag gesture.
+/// Type-erased selection hooks used by `CardPage`'s background marquee.
 /// Pages keep their strongly typed selection; the grid only needs stable IDs to
 /// compare card frames with the marquee rectangle.
 struct CardMarqueeSelection {
@@ -14,6 +14,44 @@ struct CardMarqueeSelection {
 
 private enum CardSelectionCoordinateSpace {
     nonisolated static let name = "Termind.CardSelection"
+}
+
+/// Pure geometry shared by the AppKit input bridge and unit tests. Keeping the
+/// hit policy here ensures a blank click, a marquee start and the visible
+/// selection all agree about where cards and controls are.
+enum CardMarqueeSelectionResolver {
+    static func rectangle(from start: CGPoint, to current: CGPoint) -> CGRect {
+        CGRect(
+            x: min(start.x, current.x),
+            y: min(start.y, current.y),
+            width: abs(current.x - start.x),
+            height: abs(current.y - start.y)
+        )
+    }
+
+    static func isBlank(
+        _ point: CGPoint,
+        cardFrames: [CGRect],
+        interactiveFrames: [CGRect]
+    ) -> Bool {
+        !contains(point, in: cardFrames) && !contains(point, in: interactiveFrames)
+    }
+
+    static func selection<ID: Hashable>(
+        intersecting rect: CGRect,
+        cardFrames: [ID: CGRect],
+        base: Set<ID> = [],
+        extendsSelection: Bool = false
+    ) -> Set<ID> {
+        let intersecting = Set(
+            cardFrames.compactMap { id, frame in frame.intersects(rect) ? id : nil }
+        )
+        return extendsSelection ? base.union(intersecting) : intersecting
+    }
+
+    private static func contains(_ point: CGPoint, in frames: [CGRect]) -> Bool {
+        frames.contains { $0.insetBy(dx: -1, dy: -1).contains(point) }
+    }
 }
 
 /// Geometry used only by pointer gestures does not belong in SwiftUI state.
@@ -64,18 +102,19 @@ private final class CardGeometryStore {
         interactiveFrames.removeValue(forKey: reporter)
     }
 
-    func card(at point: CGPoint) -> Bool {
-        cardFrames.values.contains { $0.frame.insetBy(dx: -1, dy: -1).contains(point) }
-    }
-
-    func interactiveChrome(at point: CGPoint) -> Bool {
-        interactiveFrames.values.contains {
-            $0.insetBy(dx: -1, dy: -1).contains(point)
-        }
+    func isBlank(at point: CGPoint) -> Bool {
+        CardMarqueeSelectionResolver.isBlank(
+            point,
+            cardFrames: cardFrames.values.map(\.frame),
+            interactiveFrames: Array(interactiveFrames.values)
+        )
     }
 
     func cardIDs(intersecting rect: CGRect) -> Set<AnyHashable> {
-        Set(cardFrames.compactMap { id, value in value.frame.intersects(rect) ? id : nil })
+        CardMarqueeSelectionResolver.selection(
+            intersecting: rect,
+            cardFrames: cardFrames.mapValues(\.frame)
+        )
     }
 }
 
@@ -83,8 +122,8 @@ private struct CardGeometryStoreKey: EnvironmentKey {
     static let defaultValue: CardGeometryStore? = nil
 }
 
-private extension EnvironmentValues {
-    var cardGeometryStore: CardGeometryStore? {
+extension EnvironmentValues {
+    fileprivate var cardGeometryStore: CardGeometryStore? {
         get { self[CardGeometryStoreKey.self] }
         set { self[CardGeometryStoreKey.self] = newValue }
     }
@@ -109,10 +148,8 @@ private extension EnvironmentValues {
 /// where the hundreds of cards are.
 struct CardPage<Content: View>: View {
     var marqueeSelection: CardMarqueeSelection? = nil
-    /// Native item drags (`onDrag`) and a page-wide `DragGesture` both want the
-    /// same pointer stream on macOS. Pages with draggable cards disable the
-    /// marquee recognizer so AppKit can start its drag session reliably; Shift
-    /// click remains available for extending the selection.
+    /// Blank-space input is routed through an AppKit overlay that declines hits
+    /// over cards, so marquee selection can coexist with native item drags.
     var supportsMarqueeSelection = true
     /// What right-clicking the canvas offers, given where the pointer is. The
     /// page's cards keep their own menus; this only answers for the space
@@ -125,29 +162,55 @@ struct CardPage<Content: View>: View {
     @State private var marqueeCurrent: CGPoint?
     @State private var marqueeBase: Set<AnyHashable> = []
     @State private var marqueeExtendsSelection = false
-    @State private var dragStartedOnCard = false
 
     var body: some View {
-        Group {
-            if supportsMarqueeSelection {
-                pageScroll.simultaneousGesture(marqueeGesture)
-            } else {
-                pageScroll
+        pageScroll
+            .overlay {
+                if let marqueeRect {
+                    RoundedRectangle(cornerRadius: Metrics.Radius.small)
+                        .fill(Color.accentColor.opacity(0.10))
+                        .strokeBorder(Color.accentColor.opacity(0.85), lineWidth: 1)
+                        .frame(width: marqueeRect.width, height: marqueeRect.height)
+                        .position(x: marqueeRect.midX, y: marqueeRect.midY)
+                        .allowsHitTesting(false)
+                }
             }
+            .overlay { marqueeInputHost }
+            .overlay { blankAreaMenuHost }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.background)
+    }
+
+    /// This is deliberately native rather than a SwiftUI `DragGesture`: an
+    /// ancestor drag recognizer competes with `onDrag` even when its callback
+    /// later discovers that the pointer started on a card. Hit testing here
+    /// rejects card and header points before either interaction begins.
+    @ViewBuilder
+    private var marqueeInputHost: some View {
+        if let marqueeSelection {
+            NativeCardMarqueeInput(
+                allowsDragging: supportsMarqueeSelection,
+                claims: geometryStore.isBlank(at:),
+                click: { marqueeSelection.update([]) },
+                begin: { point, extendsSelection in
+                    marqueeStart = point
+                    marqueeCurrent = point
+                    marqueeBase = marqueeSelection.selected()
+                    marqueeExtendsSelection = extendsSelection
+                },
+                change: { point in
+                    marqueeCurrent = point
+                    guard let marqueeRect else { return }
+                    let intersecting = geometryStore.cardIDs(intersecting: marqueeRect)
+                    marqueeSelection.update(
+                        marqueeExtendsSelection
+                            ? marqueeBase.union(intersecting)
+                            : intersecting
+                    )
+                },
+                end: resetMarquee
+            )
         }
-        .overlay {
-            if let marqueeRect {
-                RoundedRectangle(cornerRadius: Metrics.Radius.small)
-                    .fill(Color.accentColor.opacity(0.10))
-                    .strokeBorder(Color.accentColor.opacity(0.85), lineWidth: 1)
-                    .frame(width: marqueeRect.width, height: marqueeRect.height)
-                    .position(x: marqueeRect.midX, y: marqueeRect.midY)
-                    .allowsHitTesting(false)
-            }
-        }
-        .overlay { blankAreaMenuHost }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
     }
 
     /// Declines every point occupied by a card or by a section header, so those
@@ -156,10 +219,7 @@ struct CardPage<Content: View>: View {
     private var blankAreaMenuHost: some View {
         if let blankAreaMenu {
             NativeBlankAreaMenu(
-                claims: { point in
-                    !geometryStore.card(at: point)
-                        && !geometryStore.interactiveChrome(at: point)
-                },
+                claims: geometryStore.isBlank(at:),
                 entries: blankAreaMenu
             )
         }
@@ -175,73 +235,134 @@ struct CardPage<Content: View>: View {
             .environment(\.cardGeometryStore, geometryStore)
         }
         .coordinateSpace(name: CardSelectionCoordinateSpace.name)
-        .simultaneousGesture(backgroundTapGesture)
-    }
-
-    /// A page-level spatial tap can distinguish the canvas from a card without
-    /// competing with the card's own tap recognizer. The card keeps its click;
-    /// the unoccupied canvas clears the page selection.
-    private var backgroundTapGesture: some Gesture {
-        SpatialTapGesture(coordinateSpace: .named(CardSelectionCoordinateSpace.name))
-            .onEnded { value in
-                guard let marqueeSelection else { return }
-                let hitCard = geometryStore.card(at: value.location)
-                let hitInteractiveChrome = geometryStore.interactiveChrome(at: value.location)
-                if !hitCard && !hitInteractiveChrome { marqueeSelection.update([]) }
-            }
-    }
-
-    private var marqueeGesture: some Gesture {
-        DragGesture(minimumDistance: 5, coordinateSpace: .named(CardSelectionCoordinateSpace.name))
-            .onChanged { value in
-                guard let marqueeSelection else { return }
-
-                if marqueeStart == nil {
-                    marqueeStart = value.startLocation
-                    marqueeCurrent = value.location
-                    marqueeBase = marqueeSelection.selected()
-                    marqueeExtendsSelection = Self.shiftIsPressed
-                    // A card drag belongs to the card. Marquee selection starts
-                    // only in the page's empty space, matching Finder.
-                    dragStartedOnCard = geometryStore.card(at: value.startLocation)
-                }
-
-                guard !dragStartedOnCard else { return }
-                marqueeCurrent = value.location
-                guard let marqueeRect else { return }
-
-                let enclosed = geometryStore.cardIDs(intersecting: marqueeRect)
-                marqueeSelection.update(
-                    marqueeExtendsSelection ? marqueeBase.union(enclosed) : enclosed
-                )
-            }
-            .onEnded { _ in
-                marqueeStart = nil
-                marqueeCurrent = nil
-                marqueeBase.removeAll()
-                marqueeExtendsSelection = false
-                dragStartedOnCard = false
-            }
     }
 
     private var marqueeRect: CGRect? {
-        guard !dragStartedOnCard, let marqueeStart, let marqueeCurrent else { return nil }
-        return CGRect(
-            x: min(marqueeStart.x, marqueeCurrent.x),
-            y: min(marqueeStart.y, marqueeCurrent.y),
-            width: abs(marqueeCurrent.x - marqueeStart.x),
-            height: abs(marqueeCurrent.y - marqueeStart.y)
-        )
+        guard let marqueeStart, let marqueeCurrent else { return nil }
+        return CardMarqueeSelectionResolver.rectangle(from: marqueeStart, to: marqueeCurrent)
     }
 
-    private static var shiftIsPressed: Bool {
-        #if canImport(AppKit)
-            NSEvent.modifierFlags.contains(.shift)
-        #else
-            false
-        #endif
+    private func resetMarquee() {
+        marqueeStart = nil
+        marqueeCurrent = nil
+        marqueeBase.removeAll()
+        marqueeExtendsSelection = false
     }
 }
+
+#if canImport(AppKit)
+    /// A transparent left-mouse-only overlay for the canvas between cards.
+    /// Once it accepts mouse-down, AppKit keeps subsequent drag/up events routed
+    /// here even when the pointer leaves the view bounds.
+    private struct NativeCardMarqueeInput: NSViewRepresentable {
+        var allowsDragging = true
+        var claims: (CGPoint) -> Bool = { _ in true }
+        var click: () -> Void = {}
+        var begin: (CGPoint, Bool) -> Void = { _, _ in }
+        var change: (CGPoint) -> Void = { _ in }
+        var end: () -> Void = {}
+
+        func makeNSView(context: Context) -> MarqueeInputView {
+            MarqueeInputView()
+        }
+
+        func updateNSView(_ view: MarqueeInputView, context: Context) {
+            view.allowsDragging = allowsDragging
+            view.claims = claims
+            view.click = click
+            view.begin = begin
+            view.change = change
+            view.end = end
+        }
+
+        static func dismantleNSView(_ view: MarqueeInputView, coordinator: ()) {
+            view.cancelTracking()
+        }
+
+        @MainActor
+        final class MarqueeInputView: NSView {
+            var allowsDragging = true
+            var claims: (CGPoint) -> Bool = { _ in true }
+            var click: () -> Void = {}
+            var begin: (CGPoint, Bool) -> Void = { _, _ in }
+            var change: (CGPoint) -> Void = { _ in }
+            var end: () -> Void = {}
+
+            private var start: CGPoint?
+            private var extendsSelection = false
+            private var exceededDragThreshold = false
+            private var marqueeStarted = false
+
+            override var isFlipped: Bool { true }
+
+            override func hitTest(_ point: NSPoint) -> NSView? {
+                guard let event = NSApp.currentEvent, event.type == .leftMouseDown,
+                    !Self.hitsVisibleScroller(event, in: window?.contentView)
+                else { return nil }
+                let local = convert(point, from: superview)
+                guard bounds.contains(local), claims(local) else { return nil }
+                return self
+            }
+
+            override func mouseDown(with event: NSEvent) {
+                start = convert(event.locationInWindow, from: nil)
+                extendsSelection = event.modifierFlags.contains(.shift)
+                exceededDragThreshold = false
+                marqueeStarted = false
+            }
+
+            override func mouseDragged(with event: NSEvent) {
+                guard let start else { return }
+                let current = convert(event.locationInWindow, from: nil)
+                if !exceededDragThreshold {
+                    exceededDragThreshold = hypot(current.x - start.x, current.y - start.y) >= 5
+                }
+                guard exceededDragThreshold, allowsDragging else { return }
+                if !marqueeStarted {
+                    marqueeStarted = true
+                    begin(start, extendsSelection)
+                }
+                change(current)
+            }
+
+            override func mouseUp(with event: NSEvent) {
+                if marqueeStarted {
+                    end()
+                } else if !exceededDragThreshold {
+                    click()
+                }
+                clearTracking()
+            }
+
+            func cancelTracking() {
+                if marqueeStarted { end() }
+                clearTracking()
+            }
+
+            override func viewWillMove(toWindow newWindow: NSWindow?) {
+                if newWindow == nil { cancelTracking() }
+                super.viewWillMove(toWindow: newWindow)
+            }
+
+            private func clearTracking() {
+                start = nil
+                extendsSelection = false
+                exceededDragThreshold = false
+                marqueeStarted = false
+            }
+
+            private static func hitsVisibleScroller(_ event: NSEvent, in view: NSView?) -> Bool {
+                guard let view, !view.isHidden, view.alphaValue > 0 else { return false }
+                if let scroller = view as? NSScroller,
+                    scroller.bounds.contains(scroller.convert(event.locationInWindow, from: nil))
+                {
+                    return true
+                }
+                return view.subviews.contains { hitsVisibleScroller(event, in: $0) }
+            }
+        }
+    }
+#endif
 
 /// A titled group of cards. The count sits in the header because a section that
 /// scrolled off the bottom is otherwise indistinguishable from an empty one.

@@ -172,7 +172,7 @@ struct HostsPageView: ManagedCardPage {
     var managedCapabilities: ManagedCardCapabilities<SectionID, Host.ID> {
         ManagedCardCapabilities(
             selection: .multiple,
-            marqueeSelection: false,
+            marqueeSelection: true,
             reordering: ManagedCardReordering(
                 isEnabled: !isFiltering,
                 dropPolicy: .anySection

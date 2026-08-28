@@ -227,8 +227,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     private var collection: some View {
         CardPage(
             marqueeSelection: marqueeSelection,
-            supportsMarqueeSelection: capabilities.marqueeSelection
-                && activeReordering == nil,
+            supportsMarqueeSelection: capabilities.marqueeSelection,
             blankAreaMenu: { point in blankAreaMenu(section(at: point)) }
         ) {
             ForEach(sections) { section in

@@ -136,7 +136,7 @@ struct SnippetsPageView: ManagedCardPage {
     var managedCapabilities: ManagedCardCapabilities<SectionID, Snippet.ID> {
         ManagedCardCapabilities(
             selection: .multiple,
-            marqueeSelection: false,
+            marqueeSelection: true,
             reordering: ManagedCardReordering(
                 isEnabled: !isFiltering,
                 dropPolicy: .anySection
