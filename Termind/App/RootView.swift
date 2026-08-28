@@ -124,6 +124,8 @@ struct RootView: View {
             ZStack {
                 if let route = window.vaultWorkRoute {
                     VaultWorkDetailView(route: route)
+                        .id(route)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
             .frame(
@@ -136,6 +138,10 @@ struct RootView: View {
             .allowsHitTesting(showsWorkDetail)
             .accessibilityHidden(!showsWorkDetail)
         }
+        .animation(
+            Motion.panel(reduceMotion: reduceMotion),
+            value: window.vaultWorkRoute
+        )
         .frame(
             minWidth: Metrics.VaultContent.min,
             maxWidth: .infinity,
