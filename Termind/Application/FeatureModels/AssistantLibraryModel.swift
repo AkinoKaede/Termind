@@ -99,7 +99,8 @@ final class AssistantConversationStore {
                 messageRunIDs: value.messageRunIDs,
                 runs: value.runs,
                 createdAt: value.metadata.createdAt,
-                updatedAt: value.metadata.updatedAt
+                updatedAt: value.metadata.updatedAt,
+                sortIndex: value.metadata.sortIndex
             )
             // Empty is "never summarized", not a name of nothing — `derivedTitle`
             // has to be able to tell those apart to fall back.
@@ -152,14 +153,59 @@ final class AssistantLibraryModel {
     var conversations: [ConversationModel] { store.conversations }
     var pinnedConversations: [ConversationModel] {
         conversations.filter { !$0.isArchived && $0.isPinned }
-            .sorted { $0.updatedAt > $1.updatedAt }
+            .sorted(by: Self.manualOrder)
     }
     var activeConversations: [ConversationModel] {
         conversations.filter { !$0.isArchived && !$0.isPinned }
-            .sorted { $0.updatedAt > $1.updatedAt }
+            .sorted(by: Self.manualOrder)
     }
     var archivedConversations: [ConversationModel] {
         conversations.filter(\.isArchived).sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    private static func manualOrder(_ lhs: ConversationModel, _ rhs: ConversationModel) -> Bool {
+        if lhs.sortIndex != rhs.sortIndex { return lhs.sortIndex < rhs.sortIndex }
+        if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt > rhs.updatedAt }
+        return lhs.id.uuidString < rhs.id.uuidString
+    }
+
+    /// Produces one complete, normalized order for both live groups. Removing
+    /// the source before resolving `before` makes the target mean the same thing
+    /// whether the conversation crosses the Pinned boundary or stays in place.
+    func orderUpdates(
+        moving id: ConversationModel.ID,
+        toPinned: Bool,
+        before nextID: ConversationModel.ID?
+    ) -> [StoredAgentConversationOrder]? {
+        guard let source = conversation(id: id), !source.isArchived,
+            !source.isStreaming, !source.isCompacting
+        else { return nil }
+
+        var pinned = pinnedConversations.filter { $0.id != id }
+        var chats = activeConversations.filter { $0.id != id }
+        if toPinned {
+            let index = nextID.flatMap { next in pinned.firstIndex { $0.id == next } }
+                ?? pinned.endIndex
+            pinned.insert(source, at: index)
+        } else {
+            let index = nextID.flatMap { next in chats.firstIndex { $0.id == next } }
+                ?? chats.endIndex
+            chats.insert(source, at: index)
+        }
+
+        return pinned.enumerated().map {
+            StoredAgentConversationOrder(id: $0.element.id, isPinned: true, sortIndex: Double($0.offset))
+        } + chats.enumerated().map {
+            StoredAgentConversationOrder(id: $0.element.id, isPinned: false, sortIndex: Double($0.offset))
+        }
+    }
+
+    func applyOrder(_ updates: [StoredAgentConversationOrder]) {
+        for update in updates {
+            guard let conversation = conversation(id: update.id) else { continue }
+            conversation.isPinned = update.isPinned
+            conversation.sortIndex = update.sortIndex
+        }
     }
 
     /// Joins the app-wide store, carrying over anything this window made before

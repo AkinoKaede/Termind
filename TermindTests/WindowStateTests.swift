@@ -7,6 +7,27 @@ import Testing
 @MainActor
 struct WindowStateTests {
     @Test
+    func assistantManualOrderMovesAcrossPinnedBoundaryAndStaysStableAfterActivity() throws {
+        let first = ConversationModel(updatedAt: Date(timeIntervalSinceReferenceDate: 10))
+        let second = ConversationModel(updatedAt: Date(timeIntervalSinceReferenceDate: 20))
+        let pinned = ConversationModel(updatedAt: Date(timeIntervalSinceReferenceDate: 30))
+        pinned.isPinned = true
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [first, second, pinned]
+        ))
+
+        let updates = try #require(library.orderUpdates(
+            moving: first.id, toPinned: true, before: pinned.id
+        ))
+        library.applyOrder(updates)
+
+        #expect(library.pinnedConversations.map(\.id) == [first.id, pinned.id])
+        #expect(library.activeConversations.map(\.id) == [second.id])
+        first.updatedAt = Date(timeIntervalSinceReferenceDate: 100)
+        #expect(library.pinnedConversations.map(\.id) == [first.id, pinned.id])
+    }
+
+    @Test
     func newWindowStartsOnWelcome() {
         let window = WindowModel()
 
@@ -966,6 +987,9 @@ private actor FailingConversationOperationRepository: AgentRunPersisting {
     func setConversationMetadata(
         _ metadata: StoredAgentConversationMetadata, conversationID: UUID
     ) throws {
+        throw StorageFailure()
+    }
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) throws {
         throw StorageFailure()
     }
     func truncateConversation(

@@ -20,6 +20,53 @@ struct PersistentWorkspaceDeckLayoutTests {
     }
 
     @Test
+    func workspaceDropKeepsMoveIndexAndVisibleInsertionLineIndependent() {
+        let frames = [
+            CGRect(x: 0, y: 20, width: 200, height: 30),
+            CGRect(x: 0, y: 50, width: 200, height: 30),
+            CGRect(x: 0, y: 80, width: 200, height: 30),
+        ]
+
+        let sourceUpperHalf = WorkspaceSidebarDropGeometry.target(
+            rowFrames: frames, draggedRowIndex: 1, pointerY: 55
+        )
+        #expect(sourceUpperHalf.insertionIndex == 1)
+        #expect(sourceUpperHalf.visibleBoundaryIndex == 1)
+
+        let sourceLowerHalf = WorkspaceSidebarDropGeometry.target(
+            rowFrames: frames, draggedRowIndex: 1, pointerY: 75
+        )
+        #expect(sourceLowerHalf.insertionIndex == 1)
+        #expect(sourceLowerHalf.visibleBoundaryIndex == 2)
+
+        let afterLastRow = WorkspaceSidebarDropGeometry.target(
+            rowFrames: frames, draggedRowIndex: 0, pointerY: 96
+        )
+        #expect(afterLastRow.insertionIndex == 2)
+        #expect(afterLastRow.visibleBoundaryIndex == 3)
+    }
+
+    @Test
+    func workspaceDropClampsPointsOutsideTheWorkspaceSectionToItsEdges() {
+        let frames = [
+            CGRect(x: 0, y: 100, width: 200, height: 30),
+            CGRect(x: 0, y: 130, width: 200, height: 30),
+        ]
+
+        let above = WorkspaceSidebarDropGeometry.target(
+            rowFrames: frames, draggedRowIndex: nil, pointerY: -1_000
+        )
+        #expect(above.insertionIndex == 0)
+        #expect(above.visibleBoundaryIndex == 0)
+
+        let below = WorkspaceSidebarDropGeometry.target(
+            rowFrames: frames, draggedRowIndex: nil, pointerY: 1_000
+        )
+        #expect(below.insertionIndex == 2)
+        #expect(below.visibleBoundaryIndex == 2)
+    }
+
+    @Test
     func activeWorkspaceTracksContainerWhileHiddenTabKeepsItsLastSize() {
         var state = PersistentWorkspaceDeckSizingState()
         let workspace = UUID()

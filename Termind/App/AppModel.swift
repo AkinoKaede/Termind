@@ -622,6 +622,11 @@ final class AppModel {
         window.assistantPinHandler = { [weak self, weak window] id in
             self?.togglePin(id, reportingTo: window)
         }
+        window.assistantMoveHandler = { [weak self, weak window] id, pinned, nextID in
+            self?.moveConversation(
+                id, toPinned: pinned, before: nextID, reportingTo: window
+            )
+        }
         window.assistantRenameHandler = { [weak self, weak window] id, title in
             self?.renameConversation(id, to: title, reportingTo: window)
         }
@@ -693,16 +698,33 @@ final class AppModel {
 
     private func togglePin(_ id: UUID, reportingTo window: WindowModel?) {
         guard let conversation = conversation(id), !conversation.isArchived,
-            !conversation.isStreaming, !conversation.isCompacting
+            !conversation.isStreaming, !conversation.isCompacting,
+            let library = window?.assistantLibrary
         else { return }
-        var metadata = conversation.metadata
-        metadata.isPinned.toggle()
-        Task { [weak conversation, weak window, agentRunRepository] in
+        let toPinned = !conversation.isPinned
+        let nextID = (toPinned
+            ? library.pinnedConversations
+            : library.activeConversations).first?.id
+        moveConversation(
+            id, toPinned: toPinned, before: nextID, reportingTo: window
+        )
+    }
+
+    private func moveConversation(
+        _ id: UUID,
+        toPinned: Bool,
+        before nextID: UUID?,
+        reportingTo window: WindowModel?
+    ) {
+        guard let library = window?.assistantLibrary,
+            let updates = library.orderUpdates(
+                moving: id, toPinned: toPinned, before: nextID
+            )
+        else { return }
+        Task { [weak window, agentRunRepository] in
             do {
-                try await agentRunRepository.setConversationMetadata(
-                    metadata, conversationID: id
-                )
-                conversation?.isPinned = metadata.isPinned
+                try await agentRunRepository.reorderConversations(updates)
+                library.applyOrder(updates)
             } catch {
                 window?.assistantOperationError = error.localizedDescription
             }

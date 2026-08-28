@@ -48,6 +48,50 @@ struct ListViewMigrationTests {
     }
 
     @Test
+    func assistantDropResolverSupportsEmptyPinnedAndConversationMidpoints() throws {
+        let first = UUID()
+        let second = UUID()
+        let items = [
+            AssistantConversationListItem.section(.pinned),
+            AssistantConversationListItem.section(.chats),
+            .conversation(
+                id: first, title: "First", isArchived: false, isPinned: false,
+                isStreaming: false, isCompacting: false, isSelected: false,
+                isRenaming: false
+            ),
+            .conversation(
+                id: second, title: "Second", isArchived: false, isPinned: false,
+                isStreaming: false, isCompacting: false, isSelected: false,
+                isRenaming: false
+            ),
+        ]
+        let frames = [
+            CGRect(x: 0, y: 0, width: 200, height: 34),
+            CGRect(x: 0, y: 34, width: 200, height: 34),
+            CGRect(x: 0, y: 68, width: 200, height: 30),
+            CGRect(x: 0, y: 98, width: 200, height: 30),
+        ]
+
+        let emptyPinned = try #require(AssistantConversationDropResolver.target(
+            items: items, rowFrames: frames, pointerY: 16
+        ))
+        #expect(emptyPinned.section == .pinned)
+        #expect(emptyPinned.beforeID == nil)
+
+        let beforeSecond = try #require(AssistantConversationDropResolver.target(
+            items: items, rowFrames: frames, pointerY: 100
+        ))
+        #expect(beforeSecond.section == .chats)
+        #expect(beforeSecond.beforeID == second)
+
+        let afterSecond = try #require(AssistantConversationDropResolver.target(
+            items: items, rowFrames: frames, pointerY: 127
+        ))
+        #expect(afterSecond.section == .chats)
+        #expect(afterSecond.beforeID == nil)
+    }
+
+    @Test
     func sftpScrollRequestsCanRepeatTheSameTarget() {
         let id = "/srv/example.txt"
         let first = SFTPFileScrollRequest(targetID: id, position: .nearest)

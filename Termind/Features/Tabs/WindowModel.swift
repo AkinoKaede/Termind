@@ -48,6 +48,7 @@ final class WindowModel {
     }
     var assistantConversationDeletionHandler: ((ConversationModel.ID) -> Void)?
     var assistantPinHandler: ((ConversationModel.ID) -> Void)?
+    var assistantMoveHandler: ((ConversationModel.ID, Bool, ConversationModel.ID?) -> Void)?
     var assistantRenameHandler: ((ConversationModel.ID, String) -> Void)?
     var assistantArchiveHandler: ((ConversationModel.ID, Bool) -> Void)?
     var assistantForkHandler: ((ConversationModel.ID, UUID, Bool) -> Void)?
@@ -443,7 +444,26 @@ final class WindowModel {
         if let assistantPinHandler { assistantPinHandler(id) }
         else if let conversation = assistantLibrary.conversation(id: id),
             !conversation.isArchived, !conversation.isStreaming, !conversation.isCompacting
-        { conversation.isPinned.toggle() }
+        {
+            let toPinned = !conversation.isPinned
+            let nextID = (toPinned
+                ? assistantLibrary.pinnedConversations
+                : assistantLibrary.activeConversations).first?.id
+            moveAssistantConversation(id, toPinned: toPinned, before: nextID)
+        }
+    }
+    func moveAssistantConversation(
+        _ id: ConversationModel.ID,
+        toPinned: Bool,
+        before nextID: ConversationModel.ID?
+    ) {
+        if let assistantMoveHandler {
+            assistantMoveHandler(id, toPinned, nextID)
+        } else if let updates = assistantLibrary.orderUpdates(
+            moving: id, toPinned: toPinned, before: nextID
+        ) {
+            assistantLibrary.applyOrder(updates)
+        }
     }
     func renameAssistantConversation(_ id: ConversationModel.ID, to title: String) {
         if let assistantRenameHandler { assistantRenameHandler(id, title) }
@@ -1067,11 +1087,10 @@ final class WindowModel {
     }
 
     /// Drag-reorder in the Navigator: puts `id` at `index` in the Workspace
-    /// list as it is currently drawn, which mid-drag omits the source row.
+    /// list after excluding the source workspace from insertion-index geometry.
     ///
     /// Remove-then-insert rather than `move(fromOffsets:toOffset:)`. The index
-    /// comes from where the ghost was standing, and the ghost stands in a list
-    /// this workspace has already left; the offset form would read it as an index into
+    /// comes from the other visible rows; the offset form would read it as an index into
     /// the list that still contains it, and land one place short of the preview
     /// every time the workspace moved rightwards.
     func move(_ id: Workspace.ID, to index: Int) {
@@ -1135,8 +1154,14 @@ extension WindowModel: WorkspaceLifecycleRouting {
 nonisolated enum DragPayload: Hashable, Sendable {
     case workspace(UUID)
     case pane(UUID)
+    case assistantConversation(UUID)
 
-    nonisolated var isLayoutPayload: Bool { true }
+    nonisolated var isLayoutPayload: Bool {
+        switch self {
+        case .workspace, .pane: true
+        case .assistantConversation: false
+        }
+    }
 }
 
 // MARK: - Sidebar rows

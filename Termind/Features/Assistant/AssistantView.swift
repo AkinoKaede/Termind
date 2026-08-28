@@ -255,7 +255,16 @@ private struct AssistantConversationList: View {
     }
 
     private var activeList: some View {
-        AssistantConversationNativeList(items: activeItems) { item in
+        AssistantConversationNativeList(
+            items: activeItems,
+            draggedID: draggedConversationID,
+            onMove: { id, target in
+                window.moveAssistantConversation(
+                    id, toPinned: target.section == .pinned, before: target.beforeID
+                )
+                window.dragging = nil
+            }
+        ) { item in
             renderedItem(item)
         }
         .background(Color.clear)
@@ -276,15 +285,16 @@ private struct AssistantConversationList: View {
     }
 
     private var activeItems: [AssistantConversationListItem] {
-        var items: [AssistantConversationListItem] = []
-        if !window.assistantLibrary.pinnedConversations.isEmpty {
-            items.append(.section(.pinned))
-            items.append(contentsOf: window.assistantLibrary.pinnedConversations.map(item))
-        }
-        if !window.assistantLibrary.activeConversations.isEmpty {
-            items.append(contentsOf: window.assistantLibrary.activeConversations.map(item))
-        }
+        var items: [AssistantConversationListItem] = [.section(.pinned)]
+        items.append(contentsOf: window.assistantLibrary.pinnedConversations.map(item))
+        items.append(.section(.chats))
+        items.append(contentsOf: window.assistantLibrary.activeConversations.map(item))
         return items
+    }
+
+    private var draggedConversationID: ConversationModel.ID? {
+        guard case .assistantConversation(let id)? = window.dragging else { return nil }
+        return id
     }
 
     private var archivedItems: [AssistantConversationListItem] {
@@ -423,15 +433,90 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     var isSection: Bool {
         if case .section = content { true } else { false }
     }
+
+    var section: Section? {
+        guard case .section(let section) = content else { return nil }
+        return section
+    }
+
+    var conversationID: UUID? {
+        guard case .conversation(let id, _, _, _, _, _, _, _) = content else { return nil }
+        return id
+    }
+}
+
+nonisolated struct AssistantConversationDropTarget: Hashable, Sendable {
+    let section: AssistantConversationListItem.Section
+    let beforeID: UUID?
+}
+
+nonisolated enum AssistantConversationDropResolver {
+    static func target(
+        items: [AssistantConversationListItem],
+        rowFrames: [CGRect],
+        pointerY: CGFloat
+    ) -> AssistantConversationDropTarget? {
+        guard items.count == rowFrames.count, !items.isEmpty else { return nil }
+
+        let index = rowFrames.firstIndex { $0.contains(CGPoint(x: $0.midX, y: pointerY)) }
+            ?? rowFrames.firstIndex { pointerY < $0.midY }
+            ?? (items.count - 1)
+
+        if let section = items[index].section {
+            return .init(section: section, beforeID: firstConversation(in: section, items: items))
+        }
+        guard let id = items[index].conversationID,
+            let section = containingSection(at: index, items: items)
+        else { return nil }
+        if pointerY <= rowFrames[index].midY {
+            return .init(section: section, beforeID: id)
+        }
+        return .init(
+            section: section,
+            beforeID: nextConversation(after: index, in: section, items: items)
+        )
+    }
+
+    private static func containingSection(
+        at index: Int, items: [AssistantConversationListItem]
+    ) -> AssistantConversationListItem.Section? {
+        items[...index].reversed().compactMap(\.section).first
+    }
+
+    private static func firstConversation(
+        in section: AssistantConversationListItem.Section,
+        items: [AssistantConversationListItem]
+    ) -> UUID? {
+        guard let sectionIndex = items.firstIndex(where: { $0.section == section }) else {
+            return nil
+        }
+        return nextConversation(after: sectionIndex, in: section, items: items)
+    }
+
+    private static func nextConversation(
+        after index: Int,
+        in section: AssistantConversationListItem.Section,
+        items: [AssistantConversationListItem]
+    ) -> UUID? {
+        guard index + 1 < items.count else { return nil }
+        for item in items[(index + 1)...] {
+            if item.section != nil { return nil }
+            if let id = item.conversationID { return id }
+        }
+        return nil
+    }
 }
 
 private struct AssistantConversationNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<AssistantConversationListItem>
+    typealias NSViewType = AssistantConversationListContainer
+    typealias List = ListView<AssistantConversationListItem>
     typealias Renderer = @MainActor (AssistantConversationListItem) -> AnyView
 
     let items: [AssistantConversationListItem]
     var topInset: CGFloat = 0
     var bottomInset: CGFloat = 0
+    var draggedID: UUID?
+    var onMove: ((UUID, AssistantConversationDropTarget) -> Void)?
     let renderer: Renderer
 
     @Environment(\.locale) private var locale
@@ -441,23 +526,29 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         items: [AssistantConversationListItem],
         topInset: CGFloat = 0,
         bottomInset: CGFloat = 0,
+        draggedID: UUID? = nil,
+        onMove: ((UUID, AssistantConversationDropTarget) -> Void)? = nil,
         @ViewBuilder renderer: @escaping @MainActor (AssistantConversationListItem) -> some View
     ) {
         self.items = items
         self.topInset = topInset
         self.bottomInset = bottomInset
+        self.draggedID = draggedID
+        self.onMove = onMove
         self.renderer = { AnyView(renderer($0)) }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSViewType {
-        context.coordinator.makeListView()
+        AssistantConversationListContainer(listView: context.coordinator.makeListView())
     }
 
-    func updateNSView(_ listView: NSViewType, context: Context) {
+    func updateNSView(_ container: NSViewType, context: Context) {
+        container.draggedID = draggedID
+        container.onMove = onMove
         context.coordinator.update(
-            listView: listView,
+            listView: container.listView,
             items: items,
             renderer: renderer,
             locale: locale,
@@ -474,8 +565,8 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         private var colorScheme = ColorScheme.light
         private var content: [AssistantConversationListItem] = []
 
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
+        func makeListView() -> List {
+            let listView = List()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.estimatedRowHeight = Metrics.Sidebar.navigationRowHeight
             listView.rows {
@@ -491,7 +582,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         }
 
         func update(
-            listView: NSViewType,
+            listView: List,
             items: [AssistantConversationListItem],
             renderer: @escaping Renderer,
             locale: Locale,
@@ -528,6 +619,128 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
                 .environment(\.colorScheme, colorScheme)
             row.configure(id: item.id, rootView: AnyView(content))
         }
+    }
+}
+
+@MainActor
+private final class AssistantConversationListContainer: NSView {
+    let listView: ListView<AssistantConversationListItem>
+    var draggedID: UUID?
+    var onMove: ((UUID, AssistantConversationDropTarget) -> Void)?
+
+    private let insertionLine = NSView()
+    private var target: AssistantConversationDropTarget?
+
+    init(listView: ListView<AssistantConversationListItem>) {
+        self.listView = listView
+        super.init(frame: .zero)
+        listView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(listView)
+        NSLayoutConstraint.activate([
+            listView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            listView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            listView.topAnchor.constraint(equalTo: topAnchor),
+            listView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        insertionLine.wantsLayer = true
+        insertionLine.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
+        insertionLine.layer?.cornerRadius = 1
+        insertionLine.isHidden = true
+        addSubview(insertionLine)
+        registerForDraggedTypes([.string])
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) { fatalError() }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        updateTarget(sender) ? .move : []
+    }
+
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        updateTarget(sender) ? .move : []
+    }
+
+    override func draggingExited(_: (any NSDraggingInfo)?) {
+        clearTarget()
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        guard updateTarget(sender), let draggedID, let target, let onMove else {
+            clearTarget()
+            return false
+        }
+        clearTarget()
+        onMove(draggedID, target)
+        return true
+    }
+
+    override func concludeDragOperation(_ sender: (any NSDraggingInfo)?) {
+        clearTarget()
+        super.concludeDragOperation(sender)
+    }
+
+    private func updateTarget(_ sender: any NSDraggingInfo) -> Bool {
+        guard draggedID != nil,
+            sender.draggingPasteboard.availableType(from: [.string]) != nil
+        else {
+            clearTarget()
+            return false
+        }
+        let point = listView.convert(sender.draggingLocation, from: nil)
+        let items = listView.content
+        let frames = items.indices.map { listView.rectForRow(at: $0) }
+        guard let target = AssistantConversationDropResolver.target(
+            items: items, rowFrames: frames, pointerY: point.y
+        ) else {
+            clearTarget()
+            return false
+        }
+        self.target = target
+        showInsertionLine(at: insertionY(for: target, items: items))
+        return true
+    }
+
+    private func insertionY(
+        for target: AssistantConversationDropTarget,
+        items: [AssistantConversationListItem]
+    ) -> CGFloat {
+        if let beforeID = target.beforeID,
+            let index = items.firstIndex(where: { $0.conversationID == beforeID })
+        {
+            return listView.rectForRow(at: index).minY
+        }
+        if target.section == .pinned,
+            let chats = items.firstIndex(where: { $0.section == .chats })
+        {
+            return listView.rectForRow(at: chats).minY
+        }
+        var section: AssistantConversationListItem.Section?
+        var lastConversationIndex: Int?
+        var sectionIndex: Int?
+        for (index, item) in items.enumerated() {
+            if let value = item.section {
+                section = value
+                if value == target.section { sectionIndex = index }
+            } else if section == target.section, item.conversationID != nil {
+                lastConversationIndex = index
+            }
+        }
+        if let lastConversationIndex {
+            return listView.rectForRow(at: lastConversationIndex).maxY
+        }
+        return sectionIndex.map { listView.rectForRow(at: $0).maxY } ?? listView.bounds.maxY
+    }
+
+    private func showInsertionLine(at listY: CGFloat) {
+        let point = convert(NSPoint(x: 0, y: listY), from: listView)
+        insertionLine.frame = CGRect(x: 8, y: point.y - 1, width: max(0, bounds.width - 16), height: 2)
+        insertionLine.isHidden = false
+    }
+
+    private func clearTarget() {
+        target = nil
+        insertionLine.isHidden = true
     }
 }
 
@@ -668,14 +881,40 @@ struct AssistantConversationRow: View {
     @State private var hovering = false
     @FocusState private var titleFocused: Bool
 
+    @ViewBuilder
     var body: some View {
+        if canDrag {
+            row
+                .onDrag {
+                    window.dragging = .assistantConversation(conversation.id)
+                    return NSItemProvider(object: conversation.id.uuidString as NSString)
+                } preview: {
+                    Label(conversation.derivedTitle, systemImage: "sparkles")
+                        .lineLimit(1)
+                        .padding(.horizontal, Metrics.Space.m)
+                        .padding(.vertical, Metrics.Space.s)
+                        .background(
+                            .regularMaterial,
+                            in: .rect(cornerRadius: Metrics.Radius.medium)
+                        )
+                }
+        } else {
+            row
+        }
+    }
+
+    private var row: some View {
         rowContent
             .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: Metrics.Sidebar.navigationRowHeight)
             .contentShape(.rect)
             .termindSidebarRowBackground(isSelected: isSelected)
-            .onTapGesture { if !isRenaming { onOpen() } }
+            .onTapGesture {
+                guard !isRenaming else { return }
+                window.dragging = nil
+                onOpen()
+            }
             .onHover { hovering = $0 }
             .focusable(false)
             .focusEffectDisabled()
@@ -702,6 +941,11 @@ struct AssistantConversationRow: View {
                 )
                 .accessibilityHidden(true)
             }
+    }
+
+    private var canDrag: Bool {
+        !conversation.isArchived && !conversation.isStreaming && !conversation.isCompacting
+            && !isRenaming
     }
 
     private var rowContent: some View {

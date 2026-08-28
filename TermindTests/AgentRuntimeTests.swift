@@ -927,6 +927,7 @@ private actor RecordingRunRepository: AgentRunPersisting {
     func setConversationMetadata(
         _ metadata: StoredAgentConversationMetadata, conversationID: UUID
     ) {}
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) {}
     func truncateConversation(
         _ id: UUID, fromUserMessageID messageID: UUID,
         replacingWith message: AgentTranscriptMessage

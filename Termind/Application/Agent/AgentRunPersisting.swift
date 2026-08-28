@@ -29,6 +29,7 @@ nonisolated protocol AgentRunPersisting: Sendable {
     func setConversationMetadata(
         _ metadata: StoredAgentConversationMetadata, conversationID: UUID
     ) async throws
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) async throws
     func truncateConversation(
         _ id: UUID, fromUserMessageID messageID: UUID,
         replacingWith message: AgentTranscriptMessage
@@ -59,9 +60,18 @@ nonisolated struct StoredAgentConversation: Sendable {
 nonisolated struct StoredAgentConversationMetadata: Hashable, Sendable {
     var customTitle = ""
     var isPinned = false
+    /// Manual order inside the pinned or ordinary group. Older rows have no
+    /// value and fall back to their last activity without needing a data rewrite.
+    var sortIndex: Double?
     var archivedAt: Date?
     var createdAt: Date = .now
     var updatedAt: Date = .now
+}
+
+nonisolated struct StoredAgentConversationOrder: Hashable, Sendable {
+    let id: UUID
+    let isPinned: Bool
+    let sortIndex: Double
 }
 
 nonisolated struct StoredAgentToolCard: Sendable {
@@ -121,6 +131,21 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
             snapshots.values.contains(where: { $0.conversationID == conversationID })
         else { throw AgentConversationPersistenceError.conversationNotFound }
         metadata[conversationID] = value
+    }
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) throws {
+        let ids = Set(updates.map(\.id))
+        guard updates.count == ids.count,
+            ids.allSatisfy({ id in
+                !deletedConversationIDs.contains(id)
+                    && snapshots.values.contains(where: { $0.conversationID == id })
+            })
+        else { throw AgentConversationPersistenceError.conversationNotFound }
+        for update in updates {
+            var value = metadata[update.id] ?? StoredAgentConversationMetadata()
+            value.isPinned = update.isPinned
+            value.sortIndex = update.sortIndex
+            metadata[update.id] = value
+        }
     }
     func truncateConversation(
         _ id: UUID, fromUserMessageID messageID: UUID,

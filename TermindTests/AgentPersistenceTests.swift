@@ -669,6 +669,38 @@ struct AgentPersistenceTests {
     }
 
     @Test
+    func manualConversationOrderAndPinnedStatePersistAtomically() async throws {
+        let configuration = localModelConfiguration(
+            "AgentConversationOrderTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let first = UUID()
+        let second = UUID()
+        for id in [first, second] {
+            try await repository.save(AgentRunSnapshot(
+                conversationID: id, state: .completed,
+                permissionMode: .askForApproval, messages: []
+            ))
+        }
+
+        try await repository.reorderConversations([
+            StoredAgentConversationOrder(id: first, isPinned: true, sortIndex: 0),
+            StoredAgentConversationOrder(id: second, isPinned: false, sortIndex: 1),
+        ])
+
+        let restored = try await repository.loadConversations()
+        let byID = Dictionary(uniqueKeysWithValues: restored.map { ($0.id, $0.metadata) })
+        #expect(byID[first]?.isPinned == true)
+        #expect(byID[first]?.sortIndex == 0)
+        #expect(byID[second]?.isPinned == false)
+        #expect(byID[second]?.sortIndex == 1)
+    }
+
+    @Test
     func truncationRemovesTheTargetRunAndEverythingAfterIt() async throws {
         let configuration = localModelConfiguration(
             "AgentConversationTruncationTests", schema: HostPersistence.schema,

@@ -567,6 +567,7 @@ final class ConversationModel: Identifiable {
     var updatedAt: Date
     var customTitle: String?
     var isPinned = false
+    var sortIndex: Double
     var archivedAt: Date?
     var messages: [ChatMessage] = []
     /// What the user attached by hand, each carrying its own payload. Consumed
@@ -776,11 +777,13 @@ final class ConversationModel: Identifiable {
         runState: AgentRunState = .idle,
         messageRunIDs: [UUID: UUID] = [:],
         runs: [AgentRunSummary] = [],
-        createdAt: Date = .now, updatedAt: Date = .now
+        createdAt: Date = .now, updatedAt: Date = .now,
+        sortIndex: Double? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.sortIndex = sortIndex ?? Self.defaultSortIndex(for: updatedAt)
         self.messages = messages
         self.transcript = transcript
         self.messageRunIDs = messageRunIDs
@@ -826,8 +829,13 @@ final class ConversationModel: Identifiable {
     var metadata: StoredAgentConversationMetadata {
         StoredAgentConversationMetadata(
             customTitle: customTitle ?? "", isPinned: isPinned,
-            archivedAt: archivedAt, createdAt: createdAt, updatedAt: updatedAt
+            sortIndex: sortIndex, archivedAt: archivedAt,
+            createdAt: createdAt, updatedAt: updatedAt
         )
+    }
+
+    nonisolated static func defaultSortIndex(for date: Date) -> Double {
+        -date.timeIntervalSinceReferenceDate
     }
 
     func canEditUserMessage(_ id: UUID) -> Bool {

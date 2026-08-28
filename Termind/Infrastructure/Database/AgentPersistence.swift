@@ -20,6 +20,17 @@ final class PersistentAgentConversation {
 }
 
 @Model
+final class PersistentAgentConversationOrder {
+    @Attribute(.unique) var conversationID: UUID = UUID()
+    var sortIndex = 0.0
+
+    init(conversationID: UUID, sortIndex: Double) {
+        self.conversationID = conversationID
+        self.sortIndex = sortIndex
+    }
+}
+
+@Model
 final class PersistentAgentRun {
     @Attribute(.unique) var id: UUID = UUID()
     var conversationID: UUID = UUID()
@@ -304,6 +315,10 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let conversations = try context.fetch(FetchDescriptor<PersistentAgentConversation>(
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         ))
+        let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>())
+        let sortIndexByConversation = Dictionary(
+            uniqueKeysWithValues: orderRows.map { ($0.conversationID, $0.sortIndex) }
+        )
         let runs = try context.fetch(FetchDescriptor<PersistentAgentRun>())
         let messages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
         let attachmentRows = try context.fetch(
@@ -397,6 +412,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 metadata: StoredAgentConversationMetadata(
                     customTitle: conversation.customTitle,
                     isPinned: conversation.isPinned,
+                    sortIndex: sortIndexByConversation[conversation.id],
                     archivedAt: conversation.archivedAt,
                     createdAt: conversation.createdAt,
                     updatedAt: conversation.updatedAt
@@ -438,6 +454,46 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         row.isPinned = metadata.isPinned
         row.archivedAt = metadata.archivedAt
         row.updatedAt = metadata.updatedAt
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
+    }
+
+    @MainActor
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) async throws {
+        let ids = Set(updates.map(\.id))
+        guard updates.count == ids.count else {
+            throw AgentConversationPersistenceError.conversationNotFound
+        }
+        let rows = try context.fetch(FetchDescriptor<PersistentAgentConversation>(
+            predicate: #Predicate { ids.contains($0.id) }
+        ))
+        guard rows.count == ids.count else {
+            throw AgentConversationPersistenceError.conversationNotFound
+        }
+        let updatesByID = Dictionary(uniqueKeysWithValues: updates.map { ($0.id, $0) })
+        let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>(
+            predicate: #Predicate { ids.contains($0.conversationID) }
+        ))
+        var orderByID = Dictionary(
+            uniqueKeysWithValues: orderRows.map { ($0.conversationID, $0) }
+        )
+        for row in rows {
+            guard let update = updatesByID[row.id] else { continue }
+            row.isPinned = update.isPinned
+            if let order = orderByID[row.id] {
+                order.sortIndex = update.sortIndex
+            } else {
+                let order = PersistentAgentConversationOrder(
+                    conversationID: row.id, sortIndex: update.sortIndex
+                )
+                context.insert(order)
+                orderByID[row.id] = order
+            }
+        }
         do {
             try context.save()
         } catch {
@@ -521,6 +577,11 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         conversation.archivedAt = metadata.archivedAt
         do {
             context.insert(conversation)
+            if let sortIndex = metadata.sortIndex {
+                context.insert(PersistentAgentConversationOrder(
+                    conversationID: value.id, sortIndex: sortIndex
+                ))
+            }
 
             let summaries = value.runs.isEmpty
                 ? [AgentRunSummary(
@@ -581,6 +642,8 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
         let conversations = try context.fetch(FetchDescriptor<PersistentAgentConversation>())
         for row in conversations where row.id == id { context.delete(row) }
+        let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>())
+        for row in orderRows where row.conversationID == id { context.delete(row) }
         try context.save()
     }
 

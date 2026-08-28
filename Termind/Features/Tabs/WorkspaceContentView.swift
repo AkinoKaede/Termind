@@ -415,6 +415,8 @@ private struct PaneView: View {
             // new dynamic Workspace kind is introduced later.
             guard id != workspace.id else { return false }
             return window.workspaces.first { $0.id == id }?.isCombinable ?? false
+        case .assistantConversation:
+            return false
         case nil:
             return false
         }
