@@ -333,7 +333,7 @@ struct HostsPageView: ManagedCardPage {
 
     private func setHostSelection(_ ids: Set<Host.ID>) {
         let valid = ids.intersection(Set(app.hostLibrary.hosts.map(\.id)))
-        if !valid.isEmpty { state.selectedGroupID = nil }
+        state.selectedGroupID = nil
         let ordered = visibleHosts.filter { valid.contains($0.id) }.map { ContextPanelDetailID.host($0.id) }
         window.setDetailSelection(ordered, for: .hosts)
     }

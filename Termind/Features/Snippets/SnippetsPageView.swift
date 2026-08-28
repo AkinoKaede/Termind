@@ -32,6 +32,7 @@ final class SnippetsPageState {
     }
 
     var query = ""
+    var selectedPackageID: SnippetPackage.ID?
     var confirmation: ConfirmationRoute?
 }
 
@@ -167,6 +168,8 @@ struct SnippetsPageView: ManagedCardPage {
                         )
                     },
                     isCollapsed: !package.isExpanded,
+                    select: { selectPackage(package.id) },
+                    isSelected: state.selectedPackageID == package.id,
                     isDropTarget: isDropTarget
                 )
                 .contextMenu {
@@ -284,9 +287,15 @@ struct SnippetsPageView: ManagedCardPage {
 
     private func setSelection(_ ids: Set<Snippet.ID>) {
         let valid = ids.intersection(Set(app.snippets.snippets.map(\.id)))
+        state.selectedPackageID = nil
         let ordered = visibleSnippets.filter { valid.contains($0.id) }
             .map { ContextPanelDetailID.snippet($0.id) }
         window.setDetailSelection(ordered, for: .snippets)
+    }
+
+    private func selectPackage(_ id: SnippetPackage.ID) {
+        window.clearDetailSelection(for: .snippets)
+        state.selectedPackageID = id
     }
 
     private func saveSnippet(_ snippet: Snippet) {
@@ -307,8 +316,16 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     private func deletePackage(_ package: SnippetPackage, keepSnippets: Bool) {
+        let deletedPackageIDs = Set(
+            [package.id] + app.snippets.descendantSnippetPackages(of: package.id).map(\.id)
+        )
         app.snippets.delete(snippetPackageID: package.id, keepSnippets: keepSnippets)
         state.confirmation = nil
+        if let selectedPackageID = state.selectedPackageID,
+            deletedPackageIDs.contains(selectedPackageID)
+        {
+            state.selectedPackageID = nil
+        }
         window.pruneDetailSelections(in: app.snippets)
     }
 

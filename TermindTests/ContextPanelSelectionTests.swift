@@ -71,6 +71,18 @@ struct ContextPanelSelectionTests {
     }
 
     @Test
+    func snippetFeatureStateOwnsPackageSelection() {
+        let first = SnippetsPageState()
+        let second = SnippetsPageState()
+        let package = UUID()
+
+        first.selectedPackageID = package
+
+        #expect(first.selectedPackageID == package)
+        #expect(second.selectedPackageID == nil)
+    }
+
+    @Test
     func hostAttachedContentOverridesRememberedManagerSelection() {
         let pageHostID = UUID()
         let sftpHost = Host(name: "SFTP", host: "sftp.example")
