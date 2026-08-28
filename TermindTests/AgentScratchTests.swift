@@ -460,6 +460,31 @@ struct AgentScratchTests {
             transfer.first { $0.descriptor.name == "scratch_push" }?.descriptor.concurrency
                 == .sequential
         )
+
+        // Same terms again for the web: absent without a client, and when present a
+        // network read landing in contained storage — no approval, may overlap.
+        #expect(!local.contains { $0.descriptor.name == "scratch_fetch" })
+        let withWeb = AgentScratchTools.make(workspace: workspace, web: Fixture.web())
+        let fetch = try #require(withWeb.first { $0.descriptor.name == "scratch_fetch" })
+        #expect(fetch.descriptor.target == .network)
+        #expect(fetch.descriptor.safety == .locallyContained)
+        #expect(fetch.descriptor.concurrency == .parallel)
+    }
+
+    /// `fetch` is a separate tool, not a new mode of `fetch`. The same promise
+    /// `theSFTPToolsAreUnchanged` makes about `sftp_read` / `sftp_write`.
+    @Test @MainActor
+    func theFetchToolIsUnchanged() {
+        let tools = AgentBuiltInTools.make(
+            hosts: AgentHostResolver(store: HostLibraryModel()),
+            connections: Fixture.pool(StubTransferSFTPClient())
+        )
+        let fetch = tools.first { $0.descriptor.name == "fetch" }?.descriptor
+        let properties = fetch?.inputSchema.objectValue?["properties"]?.objectValue ?? [:]
+        #expect(properties["scratch_path"] == nil)
+        #expect(properties.keys.sorted() == ["format", "url"])
+        #expect(fetch?.safety == .locallyReadOnly)
+        #expect(!tools.contains { $0.descriptor.name.hasPrefix("scratch_") })
     }
 
     /// The built-in SFTP tools were deliberately left alone: `scratch_pull` and
@@ -637,6 +662,139 @@ struct AgentScratchTests {
         )
         #expect(await client.writes["/opt/copy.bin"] == binary)
     }
+
+    // MARK: - Web
+
+    @Test
+    func fetchLandsThePageWithoutPuttingItInTheResult() async throws {
+        let workspace = Fixture.workspace()
+        let page = (1...40).map { "line \($0)" }.joined(separator: "\n") + "\n"
+        let tool = try #require(
+            AgentScratchTools.make(workspace: workspace, web: Fixture.web(markdown: page))
+                .first { $0.descriptor.name == "scratch_fetch" }
+        )
+
+        let result = try await tool.execute(
+            Fixture.invocation("scratch_fetch", [
+                "url": .string("https://example.com/docs"),
+                "scratch_path": .string("docs/page.md"),
+            ]),
+            context: Fixture.context()
+        )
+
+        #expect(!result.isError)
+        #expect(!result.content.contains("line 1"))
+        #expect(!result.content.contains("raw-marker"))
+        #expect(result.content.contains("\"lines\":40"))
+        #expect(result.content.contains("\"title\":\"Example\""))
+        #expect(result.content.contains(AgentScratchWorkspace.digest(Data(page.utf8))))
+        // The bytes are in the workspace, byte for byte.
+        #expect(try await workspace.data(at: "docs/page.md").data == Data(page.utf8))
+    }
+
+    /// The reason the tool exists. `fetch` truncates at 256 KB because that is what
+    /// crosses the context window; nothing does here, so the page arrives whole.
+    @Test
+    func fetchIsNotBoundedByTheInlineCeilingThatBoundsTheResultOfFetch() async throws {
+        let workspace = Fixture.workspace()
+        let oversized = String(repeating: "x", count: 256 * 1_024 + 100)
+        let tool = try #require(
+            AgentScratchTools.make(workspace: workspace, web: Fixture.web(markdown: oversized))
+                .first { $0.descriptor.name == "scratch_fetch" }
+        )
+
+        let result = try await tool.execute(
+            Fixture.invocation("scratch_fetch", [
+                "url": .string("https://example.com/big"), "scratch_path": .string("big.md"),
+            ]),
+            context: Fixture.context()
+        )
+
+        #expect(!result.isTruncated)
+        #expect(result.content.contains("\"bytes\":\(oversized.utf8.count)"))
+        #expect(try await workspace.data(at: "big.md").bytes == oversized.utf8.count)
+    }
+
+    @Test
+    func fetchWritesTheOriginalHTMLWhenAsked() async throws {
+        let workspace = Fixture.workspace()
+        let tool = try #require(
+            AgentScratchTools.make(workspace: workspace, web: Fixture.web())
+                .first { $0.descriptor.name == "scratch_fetch" }
+        )
+
+        let result = try await tool.execute(
+            Fixture.invocation("scratch_fetch", [
+                "url": .string("https://example.com/"), "scratch_path": .string("page.html"),
+                "format": .string("original"),
+            ]),
+            context: Fixture.context()
+        )
+
+        #expect(result.content.contains("\"format\":\"original\""))
+        #expect(!result.content.contains("raw-marker"))
+        let staged = try await workspace.data(at: "page.html")
+        #expect(String(data: staged.data, encoding: .utf8)?.contains("raw-marker") == true)
+    }
+
+    @Test
+    func fetchValidatesTheURLAndTheDestinationBeforeReachingTheNetwork() async throws {
+        let loaded = Counter()
+        let web = ScrubberWebClient(
+            document: { url in
+                await loaded.increment()
+                return ScrubbedWebDocument(
+                    title: "Example", url: url, markdown: "# Example", original: "<html/>"
+                )
+            },
+            search: { _, _ in [] }
+        )
+        let tool = try #require(
+            AgentScratchTools.make(workspace: Fixture.workspace(), web: web)
+                .first { $0.descriptor.name == "scratch_fetch" }
+        )
+
+        for arguments in [
+            ["url": "file:///etc/passwd", "scratch_path": "leak.txt"],
+            ["url": "https://user:pass@example.com/", "scratch_path": "creds.md"],
+            ["url": "https://example.com/", "scratch_path": "../escape.md"],
+            ["url": "https://example.com/", "scratch_path": "/etc/passwd"],
+        ] {
+            await #expect(throws: (any Error).self) {
+                try await tool.preflight(Fixture.invocation(
+                    "scratch_fetch", arguments.mapValues(AgentJSONValue.string)
+                ))
+            }
+        }
+        #expect(await loaded.count == 0)
+    }
+
+    /// An empty representation means extraction failed, not that the page is empty.
+    @Test
+    func fetchRefusesToStageAnEmptyExtraction() async throws {
+        let workspace = Fixture.workspace()
+        let tool = try #require(
+            AgentScratchTools.make(workspace: workspace, web: Fixture.web(markdown: ""))
+                .first { $0.descriptor.name == "scratch_fetch" }
+        )
+
+        await #expect(throws: (any Error).self) {
+            try await tool.execute(
+                Fixture.invocation("scratch_fetch", [
+                    "url": .string("https://example.com/js-only"),
+                    "scratch_path": .string("empty.md"),
+                ]),
+                context: Fixture.context()
+            )
+        }
+        #expect(try await workspace.usage().entries == 0)
+    }
+}
+
+/// Counts calls from a `@Sendable` closure without a data race.
+private actor Counter {
+    private(set) var count = 0
+    func increment() { count += 1 }
 }
 
 // MARK: - Fixtures
@@ -667,6 +825,18 @@ private enum Fixture {
             openExec: { _ in throw AgentToolError.invalidHost },
             openSFTP: { _ in client },
             sweepInterval: nil
+        )
+    }
+
+    static func web(markdown: String = "# Example") -> ScrubberWebClient {
+        ScrubberWebClient(
+            document: { url in
+                ScrubbedWebDocument(
+                    title: "Example", url: url, markdown: markdown,
+                    original: "<html><body>raw-marker</body></html>"
+                )
+            },
+            search: { _, _ in [] }
         )
     }
 

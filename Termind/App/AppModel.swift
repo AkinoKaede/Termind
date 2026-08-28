@@ -378,19 +378,24 @@ final class AppModel {
             // being keyed by conversation, so one chat can never read what another
             // pulled off a host.
             let scratch = AgentScratchWorkspace(conversationID: conversation.id)
+            // One client for both, rather than two default-constructed ones: `fetch`
+            // and `scratch_fetch` read the same web the same way and differ only in
+            // where the page ends up.
+            let web = ScrubberWebClient()
             providers.append(
                 AgentStaticToolProvider(
                     AgentBuiltInTools.make(
                         hosts: agentHosts, connections: agentConnections,
                         authentication: agentAuthentication,
-                        background: agentBackgroundCommands, search: searchPlan.local,
+                        background: agentBackgroundCommands, web: web,
+                        search: searchPlan.local,
                         includesTerminalSuggestion: includesTerminalSuggestion
                     )))
             providers.append(
                 AgentStaticToolProvider(
                     AgentScratchTools.make(
                         workspace: scratch, connections: agentConnections,
-                        authentication: agentAuthentication
+                        authentication: agentAuthentication, web: web
                     )))
             // Both write through the one ordered channel the rest of the run
             // uses, rather than reaching into the conversation directly: a tool

@@ -630,6 +630,39 @@ struct AgentToolPresentationTests {
         }
     }
 
+    /// Separate from the table above, which builds cards without a presentation and
+    /// so resolves through `legacyPresenter`. `scratch_fetch` has never shipped, so
+    /// it deliberately has no legacy name and is reached only by presenter ID.
+    @Test
+    func scratchFetchDetailIsStructuredWithoutJSONSyntax() throws {
+        var card = makeCard(
+            name: "scratch_fetch", target: .network,
+            arguments: ["url": .string("https://example.com/docs")],
+            presentation: .init(
+                symbol: "globe.badge.chevron.backward",
+                activity: .semanticArgument(key: "url", fallback: .url),
+                output: .json, detailPresenterID: "builtin.scratch_fetch",
+                actionKind: .fetch
+            )
+        )
+        card.result = AgentToolResult(
+            callID: "call",
+            content: AgentJSONValue.object([
+                "url": .string("https://example.com/docs"), "title": .string("Docs"),
+                "format": .string("markdown"), "scratch_path": .string("docs.md"),
+                "bytes": .number(4), "sha256": .string("abcd"), "lines": .number(1),
+                "total_bytes": .number(4),
+            ]).encodedString
+        )
+
+        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let rendered = String(describing: detail)
+        #expect(!rendered.contains("{"))
+        #expect(!rendered.contains("}"))
+        #expect(rendered.contains("docs.md"))
+        #expect(rendered.contains("Docs"))
+    }
+
     @Test
     func finishedBatchSummaryCountsRepeatedActivitiesAndPreservesFailures() {
         let questionPresentation = AgentBuiltInTools.requestUserInput().descriptor.presentation

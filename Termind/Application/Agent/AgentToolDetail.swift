@@ -116,6 +116,7 @@ nonisolated enum AgentBuiltInToolDetailPresenters {
         AgentScratchTools.deleteDetailPresenter,
         AgentScratchTools.pullDetailPresenter,
         AgentScratchTools.pushDetailPresenter,
+        AgentScratchTools.fetchDetailPresenter,
         AgentPlanTools.presentPlanDetailPresenter,
         AgentPlanTools.manageTasksDetailPresenter,
     ]

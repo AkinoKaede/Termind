@@ -7,14 +7,15 @@ import Foundation
 /// the user's disk. That containment is what earns `.locallyContained` on the three
 /// that write: they change something, but only storage the app owns.
 ///
-/// `scratch_pull` and `scratch_push` are the exception and the reason the rest is
-/// worth having. They move bytes between a host and the workspace *without the
-/// bytes passing through the conversation*, which is what lifts `sftp_read`'s 128 KB
-/// inline ceiling and stops an edit costing two copies of the file in tokens. They
-/// are kept separate from `sftp_read` / `sftp_write` rather than folded in as
-/// options: a tool that means two different things depending on which optional
-/// argument is present is harder for a model to choose correctly and harder for a
-/// reader to audit, and only one of the two directions needs approval.
+/// The three that reach outside — `scratch_pull`, `scratch_push` and
+/// `scratch_fetch` — are the exception and the reason the rest is worth having.
+/// They move bytes between a host or the web and the workspace *without the bytes
+/// passing through the conversation*, which is what lifts `sftp_read`'s and
+/// `fetch`'s inline ceilings and stops an edit costing two copies of the file in
+/// tokens. They are kept separate from `sftp_read` / `sftp_write` / `fetch` rather
+/// than folded in as options: a tool that means two different things depending on
+/// which optional argument is present is harder for a model to choose correctly and
+/// harder for a reader to audit, and only one of the three needs approval.
 ///
 /// Everything except `scratch_push` is `.parallel`. The workspace is an actor, so it
 /// is already the per-path mutation queue Pi builds explicitly — a read and a write
@@ -22,12 +23,14 @@ import Foundation
 /// taking the whole turn serial.
 nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
     /// Connection and authentication services travel together. If either is
-    /// absent no transfer tools are registered, rather than exposing a path
-    /// that fails on first use or bypasses Agent credential interaction.
+    /// absent no host transfer tools are registered, rather than exposing a path
+    /// that fails on first use or bypasses Agent credential interaction. `web`
+    /// governs `scratch_fetch` on the same terms.
     static func make(
         workspace: AgentScratchWorkspace,
         connections: AgentConnectionPool? = nil,
-        authentication: AgentSSHAuthenticationRegistry? = nil
+        authentication: AgentSSHAuthenticationRegistry? = nil,
+        web: ScrubberWebClient? = nil
     ) -> [AnyAgentTool] {
         let transfers: [AnyAgentTool]
         if let connections, let authentication {
@@ -41,7 +44,7 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
         return [
             list(workspace), read(workspace), write(workspace),
             edit(workspace), diff(workspace), delete(workspace),
-        ] + transfers
+        ] + transfers + (web.map { [fetch(workspace, $0)] } ?? [])
     }
 
     private static let pathBytes = AgentScratchWorkspace.Limits.pathBytes
@@ -447,6 +450,84 @@ nonisolated enum AgentScratchTools: AgentToolSchemaBuilding {
         )
     }
 
+    /// Network → workspace.
+    ///
+    /// `.locallyContained`, which is the sum of its two halves on exactly the terms
+    /// `scratch_pull` argues: reading a page — public or private-network — is what
+    /// `fetch` already does un-gated and never escalates for, and the landing site is
+    /// storage the app owns. So it stays available while planning, which is right:
+    /// staging the documentation you are planning against is planning.
+    ///
+    /// The point of it is the ceiling. `fetch` bounds what it returns at 256 KB
+    /// because that is what crosses the context window; here nothing does, so the
+    /// bound becomes the workspace's own 8 MB per-file limit and a page far larger
+    /// than `fetch` can show lands whole, to be read a window at a time.
+    private static func fetch(
+        _ workspace: AgentScratchWorkspace, _ web: ScrubberWebClient
+    ) -> AnyAgentTool {
+        let tool = descriptor(
+            "scratch_fetch",
+            """
+            Read an HTTP(S) webpage, including private-network pages, straight into the \
+            scratch workspace. Returns its title, size and digest only — the page does not \
+            enter this conversation, and there is no inline size ceiling, so a page far \
+            larger than fetch can return lands whole. Prefer fetch to read a page once; \
+            prefer this when the page is large, when you will refer back to it, or when it \
+            is going to a host. Markdown by default, or the original HTML when format is \
+            original.
+            """,
+            properties: [
+                "url": string(max: 8_192),
+                "scratch_path": string(max: pathBytes),
+                "format": enumeration(["markdown", "original"]),
+            ],
+            required: ["url", "scratch_path"], target: .network,
+            safety: .locallyContained, concurrency: .parallel,
+            presentation: .init(
+                symbol: "globe.badge.chevron.backward",
+                activity: .semanticArgument(key: "url", fallback: .url),
+                output: .json, detailPresenterID: "builtin.scratch_fetch",
+                actionKind: .fetch
+            )
+        )
+        return AnyAgentTool(
+            descriptor: tool,
+            preflight: { invocation in
+                let arguments = try Arguments(invocation)
+                _ = try ScrubberWebClient.validatedURL(arguments.string("url"))
+                // Proven here so a malformed destination costs nothing, rather than a
+                // page fetched over the network and then dropped on the floor.
+                _ = try AgentScratchWorkspace.normalize(arguments.string("scratch_path"))
+                return AgentToolPreflight(invocation: invocation, safety: .locallyContained)
+            },
+            execute: { invocation, _ in
+                let arguments = try Arguments(invocation)
+                let document = try await web.document(for: arguments.string("url"))
+                let format = arguments.optionalString("format") ?? "markdown"
+                let selected = format == "original" ? document.original : document.markdown
+                // An empty representation means extraction failed, not that the page is
+                // empty. Saying so beats spending one of the workspace's entries on a
+                // zero-byte file the model will then try to read.
+                guard !selected.isEmpty else { throw ScrubberWebError.emptyDocument }
+                let written = try await workspace.write(
+                    arguments.string("scratch_path"), data: Data(selected.utf8)
+                )
+                return result(invocation, .object([
+                    "url": .string(document.url.absoluteString),
+                    "title": .string(document.title),
+                    "format": .string(format),
+                    "scratch_path": .string(written.path),
+                    "bytes": .number(Double(written.bytes)),
+                    "sha256": .string(written.sha256),
+                    "lines": .number(Double(
+                        UnifiedDiff.split(LineEnding.normalizedToLF(selected)).lines.count
+                    )),
+                    "total_bytes": .number(Double(written.usage.bytes)),
+                ]))
+            }
+        )
+    }
+
     /// What the approval card and Security Review see in place of the content.
     ///
     /// Without this, `scratch_push` would be an approval that showed a filename where
@@ -513,6 +594,9 @@ nonisolated extension AgentScratchTools {
     )
     static let pushDetailPresenter = AgentToolDetailPresenter(
         id: "builtin.scratch_push", present: presentPushDetail
+    )
+    static let fetchDetailPresenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_fetch", present: presentFetchDetail
     )
 
     private static func presentListDetail(
@@ -728,6 +812,42 @@ nonisolated extension AgentScratchTools {
         F.appendBytes(&items, "Size", object["bytes"], locale: input.locale)
         F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
         items.append(F.field("Result", F.localized("Written", locale: input.locale), locale: input.locale))
+        return items
+    }
+
+    /// The page's identity and where it landed, since its content is deliberately
+    /// not in the result. `presentPullDetail` with a URL in place of a host path.
+    private static func presentFetchDetail(
+        _ input: AgentToolDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
+        }
+        var items: [AgentToolDetail.Item] = []
+        if let title = F.nonempty(object["title"]?.stringValue) {
+            items.append(F.field("Title", title, locale: input.locale))
+        }
+        if let url = F.nonempty(object["url"]?.stringValue) {
+            items.append(.field(.init(
+                label: F.localized("URL", locale: input.locale), value: url,
+                isMonospaced: true, url: url
+            )))
+        }
+        F.appendField(&items, "Scratch path", object["scratch_path"]?.stringValue, locale: input.locale, monospaced: true)
+        items.append(F.field(
+            "Content type",
+            object["format"]?.stringValue == "original"
+                ? F.localized("Original HTML", locale: input.locale)
+                : F.localized("Markdown", locale: input.locale),
+            locale: input.locale
+        ))
+        F.appendBytes(&items, "Size", object["bytes"], locale: input.locale)
+        if let lines = object["lines"]?.integerValue {
+            items.append(F.field("Lines", String(lines), locale: input.locale))
+        }
+        F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
+        F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
         return items
     }
 }

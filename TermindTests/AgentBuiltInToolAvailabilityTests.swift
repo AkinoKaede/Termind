@@ -50,7 +50,13 @@ struct AgentBuiltInToolAvailabilityTests {
         let workspace = AgentScratchWorkspace(
             conversationID: UUID(), base: FileManager.default.temporaryDirectory
         )
-        let scratch = AgentScratchTools.make(workspace: workspace)
+        let scratch = AgentScratchTools.make(
+            workspace: workspace,
+            web: ScrubberWebClient(
+                document: { _ in throw ScrubberWebError.emptyDocument },
+                search: { _, _ in [] }
+            )
+        )
         let planning = AgentPlanTools.make(
             workspace: workspace, tasks: AgentTaskList { _ in },
             plans: AgentPlanRecorder { _ in }
