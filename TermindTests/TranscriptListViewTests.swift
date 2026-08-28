@@ -78,35 +78,6 @@ struct TranscriptListUpdatePlanTests {
         #expect(plan.appends == [new[1]])
     }
 
-    @Test
-    func onlyANewToolCallRequestsStructuralAnimation() {
-        let card = AgentToolCard(
-            invocation: AgentToolInvocation(
-                runID: UUID(),
-                call: AgentToolCall(id: "tool-1", name: "read", arguments: .object([:]))
-            ),
-            descriptor: AgentToolDescriptor(
-                name: "read", summary: "Read", inputSchema: .object([:]),
-                target: .local, safety: .locallyReadOnly
-            )
-        )
-        let proposed = TranscriptRenderItem(
-            id: card.id, content: .timeline(.tool(card))
-        )
-        var runningCard = card
-        runningCard.state = .running
-        let running = TranscriptRenderItem(
-            id: runningCard.id, content: .timeline(.tool(runningCard))
-        )
-
-        #expect(TranscriptListUpdatePlan.introducesToolCalls(
-            old: [], new: [proposed]
-        ))
-        #expect(!TranscriptListUpdatePlan.introducesToolCalls(
-            old: [proposed], new: [running]
-        ))
-    }
-
     private func item(_ value: UInt8) -> TranscriptRenderItem {
         TranscriptRenderItem(id: uuid(value), content: .empty)
     }

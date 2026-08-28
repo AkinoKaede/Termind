@@ -174,41 +174,6 @@ nonisolated struct TranscriptListUpdatePlan: Equatable, Sendable {
         )
     }
 
-    /// Tool calls are nested inside a stable work-group row, so an ordinary
-    /// high-frequency `update` would reveal them with no structural motion.
-    /// Detect only newly introduced calls: state/progress/token revisions stay
-    /// on the inexpensive non-animated path.
-    static func introducesToolCalls(
-        old: [TranscriptRenderItem], new: [TranscriptRenderItem]
-    ) -> Bool {
-        let oldIDs = old.reduce(into: Set<UUID>()) {
-            $0.formUnion($1.toolCallIDs)
-        }
-        let newIDs = new.reduce(into: Set<UUID>()) {
-            $0.formUnion($1.toolCallIDs)
-        }
-        return !newIDs.subtracting(oldIDs).isEmpty
-    }
-}
-
-private extension TranscriptRenderItem {
-    nonisolated var toolCallIDs: Set<UUID> {
-        guard case .timeline(let item) = content else { return [] }
-        switch item {
-        case .tool(let card):
-            return [card.id]
-        case .work(let group):
-            return group.items.reduce(into: Set<UUID>()) { result, item in
-                switch item {
-                case .tool(let card): result.insert(card.id)
-                case .tools(let batch): result.formUnion(batch.cards.map(\.id))
-                case .reasoning, .message: break
-                }
-            }
-        case .message, .plan, .compaction, .compactionActivity:
-            return []
-        }
-    }
 }
 
 /// SwiftUI ownership outside, AppKit virtualization inside. The representable
@@ -306,13 +271,7 @@ struct TranscriptListView: NSViewRepresentable {
                     && !listView.isUserInteractingWithScroll)
 
             let plan = TranscriptListUpdatePlan.make(old: content, new: newItems)
-            let animatesToolInsertion = !isFirstUpdate
-                && TranscriptListUpdatePlan.introducesToolCalls(
-                    old: content, new: newItems
-                )
-            if animatesToolInsertion {
-                listView.apply(newItems, animated: true)
-            } else if plan.replacesAll {
+            if plan.replacesAll {
                 listView.apply(newItems)
             } else {
                 for item in plan.updates { listView.update(item) }
