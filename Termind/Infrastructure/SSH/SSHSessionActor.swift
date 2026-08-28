@@ -129,15 +129,6 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         }
     }
 
-    /// Explicit cancellation is kept for connection teardown and focused unit
-    /// tests. Production timeout handling uses `poll` so late output remains
-    /// eligible for filtering.
-    mutating func cancel() -> Data {
-        let visible = cleanBufferedOutput()
-        finish()
-        return visible
-    }
-
     private mutating func receiveProbe(now: UInt64, isLate: Bool) -> Update {
         let prefix = Data("__TRMD_\(token)_SHELL__".utf8)
         guard let prefixRange = buffer.range(of: prefix) else { return Update() }
@@ -1187,83 +1178,6 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         return "\(prefix): \(detail)"
     }
 
-    private static func openSocket(host: String, port: Int, timeout: TimeInterval) throws -> Int32 {
-        var hints = addrinfo()
-        hints.ai_family = AF_UNSPEC
-        hints.ai_socktype = SOCK_STREAM
-        hints.ai_protocol = IPPROTO_TCP
-        var result: UnsafeMutablePointer<addrinfo>?
-        let status = getaddrinfo(host, String(port), &hints, &result)
-        guard status == 0, let first = result else {
-            throw TermindSSHError.socket(String(cString: gai_strerror(status)))
-        }
-        defer { freeaddrinfo(first) }
-
-        var cursor: UnsafeMutablePointer<addrinfo>? = first
-        var lastError = String(localized: "Connection failed")
-        while let info = cursor?.pointee {
-            let candidate = Darwin.socket(info.ai_family, info.ai_socktype, info.ai_protocol)
-            if candidate >= 0 {
-                var yes: Int32 = 1
-                setsockopt(candidate, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout.size(ofValue: yes)))
-                var interval = timeval(
-                    tv_sec: Int(timeout),
-                    tv_usec: Int32((timeout - floor(timeout)) * 1_000_000)
-                )
-                setsockopt(candidate, SOL_SOCKET, SO_RCVTIMEO, &interval, socklen_t(MemoryLayout<timeval>.size))
-                setsockopt(candidate, SOL_SOCKET, SO_SNDTIMEO, &interval, socklen_t(MemoryLayout<timeval>.size))
-                do {
-                    try connectSocket(
-                        candidate, address: info.ai_addr,
-                        addressLength: info.ai_addrlen, timeout: timeout
-                    )
-                    return candidate
-                } catch {
-                    lastError = error.localizedDescription
-                }
-                Darwin.close(candidate)
-            }
-            cursor = info.ai_next
-        }
-        throw TermindSSHError.socket(lastError)
-    }
-
-    private static func connectSocket(
-        _ socket: Int32, address: UnsafePointer<sockaddr>,
-        addressLength: socklen_t, timeout: TimeInterval
-    ) throws {
-        let flags = fcntl(socket, F_GETFL, 0)
-        guard flags >= 0, fcntl(socket, F_SETFL, flags | O_NONBLOCK) == 0 else {
-            throw TermindSSHError.socket(String(cString: strerror(errno)))
-        }
-        defer { _ = fcntl(socket, F_SETFL, flags) }
-
-        if Darwin.connect(socket, address, addressLength) == 0 { return }
-        guard errno == EINPROGRESS else {
-            throw TermindSSHError.socket(String(cString: strerror(errno)))
-        }
-
-        var descriptor = pollfd(fd: socket, events: Int16(POLLOUT), revents: 0)
-        let milliseconds = Int32(
-            min(Double(Int32.max), max(1, timeout * 1_000))
-        )
-        let pollResult = Darwin.poll(&descriptor, 1, milliseconds)
-        if pollResult == 0 {
-            throw TermindSSHError.socket(String(localized: "Connection timed out."))
-        }
-        guard pollResult > 0 else {
-            throw TermindSSHError.socket(String(cString: strerror(errno)))
-        }
-
-        var socketError: Int32 = 0
-        var errorLength = socklen_t(MemoryLayout<Int32>.size)
-        guard getsockopt(socket, SOL_SOCKET, SO_ERROR, &socketError, &errorLength) == 0 else {
-            throw TermindSSHError.socket(String(cString: strerror(errno)))
-        }
-        guard socketError == 0 else {
-            throw TermindSSHError.socket(String(cString: strerror(socketError)))
-        }
-    }
 }
 
 private nonisolated final class SecureEnclaveSigner: @unchecked Sendable {

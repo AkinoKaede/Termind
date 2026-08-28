@@ -237,12 +237,6 @@ final class HostLibraryModel {
         return "\(username)@\(host.displayAddress)"
     }
 
-    /// Which hosts would lose their login if an identity were deleted — the
-    /// counterpart of `identities(using:)` one level up.
-    func hosts(using identity: Identity.ID) -> [Host] {
-        hosts.filter { $0.identityID == identity }
-    }
-
     /// Which identities would break if a key were deleted. The Keys list shows
     /// this count, because "delete" needs to say what it takes with it.
     func identities(using key: SSHKeyRef.ID) -> [Identity] {
@@ -371,12 +365,6 @@ final class HostLibraryModel {
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(for: host), jumps: jumps
         )
-    }
-
-    /// Resolves the already-saved hops needed to reach a destination whose own
-    /// trust or credentials may still be collected interactively by Terminal.
-    func sshJumpConfigurations(for host: Host) throws -> [SSHRouteHopConfiguration] {
-        try sshJumpConfigurations(for: host, submissions: [:], temporaryHostKeys: [:])
     }
 
     func sshJumpConfigurations(
@@ -578,12 +566,6 @@ final class HostLibraryModel {
         return uniqueTags.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
-    func hosts(taggedWith tag: String) -> [Host] {
-        hosts.filter { host in
-            host.tags.contains { $0.caseInsensitiveCompare(tag) == .orderedSame }
-        }
-    }
-
     // MARK: - Search
 
     /// Also matches the resolved identity, so filtering by `deploy` still finds
@@ -619,24 +601,6 @@ final class HostLibraryModel {
     func searchIdentities(_ query: String) -> [Identity] {
         identities.filter { $0.matches(query) }.sorted {
             manuallyOrdered($0.sortIndex, $0.name, $1.sortIndex, $1.name)
-        }
-    }
-
-    func searchSFTPTransfers(_ query: String) -> [SFTPTransfer] {
-        sftpTransfers.filter { $0.matches(query) }.sorted { $0.queuedAt > $1.queuedAt }
-    }
-
-    /// Also matches the host's name, so filtering the all-hosts tunnel page by
-    /// `web-01` narrows to that machine's forwards — the thing you actually want
-    /// from a filter field on a page grouped by host.
-    func searchPortForwardings(
-        _ query: String, host scope: Host.ID? = nil
-    ) -> [PortForwardingRule] {
-        let candidates = scope.map { portForwardings(for: $0) } ?? portForwardings
-        guard !query.isEmpty else { return candidates }
-        return candidates.filter { portForwarding in
-            portForwarding.matches(query)
-                || host(portForwarding.hostID)?.name.localizedCaseInsensitiveContains(query) == true
         }
     }
 
@@ -1041,17 +1005,6 @@ final class HostLibraryModel {
         }
     }
 
-    /// The password behind an identity's `credentialRef`, loaded from Keychain.
-    func password(for identity: Identity) -> String? {
-        guard identity.usesPassword else { return nil }
-        do {
-            return try passwordCredential(for: identity)
-        } catch {
-            storageError = error.localizedDescription
-            return nil
-        }
-    }
-
     /// Throwing counterpart used by connection setup, where a Keychain failure
     /// must remain distinguishable from an Identity that has no password.
     func passwordCredential(for identity: Identity) throws -> String? {
@@ -1405,21 +1358,6 @@ final class HostLibraryModel {
         persistCore()
     }
 
-    func delete(portForwardingID: PortForwardingRule.ID) {
-        willDeletePortForwardings?([portForwardingID])
-        portForwardings.removeAll { $0.id == portForwardingID }
-        persistCore()
-    }
-
-    func duplicate(portForwardingID: PortForwardingRule.ID) -> PortForwardingRule? {
-        guard var copy = portForwarding(portForwardingID) else { return nil }
-        copy.id = UUID()
-        if !copy.label.isEmpty { copy.label += String(localized: " Copy") }
-        portForwardings.append(copy)
-        persistCore()
-        return copy
-    }
-
     /// Root jump first and destination last. A nil result means the proposed
     /// host closes a cycle, references a missing jump, or exceeds eight hosts.
     func validatedRoute(for proposed: Host) -> [Host]? {
@@ -1552,20 +1490,6 @@ final class HostLibraryModel {
         }
     }
 
-    /// Batch Startup for SFTP transfers. Skips anything already running or finished —
-    /// see `SFTPTransfer.State.isStartable`.
-    func startSFTPTransfers(_ ids: [SFTPTransfer.ID]) {
-        let wanted = Set(ids)
-        for index in sftpTransfers.indices
-        where wanted.contains(sftpTransfers[index].id) && sftpTransfers[index].state.isStartable {
-            sftpTransfers[index].state = .running
-        }
-    }
-
-    func removeSFTPTransfer(_ id: SFTPTransfer.ID) {
-        sftpTransfers.removeAll { $0.id == id }
-    }
-
     /// Clears terminal transfer records while leaving queued and running work
     /// untouched. The transfer center is a current-session history, not a log.
     func clearFinishedSFTPTransfers() {
@@ -1575,26 +1499,6 @@ final class HostLibraryModel {
             case .queued, .running, .paused: false
             }
         }
-    }
-
-    /// Moves `hostID` to sit between two neighbours, using the midpoint of their
-    /// fractional indices so no sibling has to be renumbered.
-    func move(hostID: Host.ID, into group: HostGroup.ID?, after previous: Host.ID?, before next: Host.ID?) {
-        guard let index = hosts.firstIndex(where: { $0.id == hostID }) else { return }
-        let lower = previous.flatMap { id in hosts.first { $0.id == id }?.sortIndex }
-        let upper = next.flatMap { id in hosts.first { $0.id == id }?.sortIndex }
-
-        let newIndex: Double
-        switch (lower, upper) {
-        case (let lower?, let upper?): newIndex = (lower + upper) / 2
-        case (let lower?, nil): newIndex = lower + 1
-        case (nil, let upper?): newIndex = upper - 1
-        case (nil, nil): newIndex = 0
-        }
-
-        hosts[index].groupID = group
-        hosts[index].sortIndex = newIndex
-        persistCore()
     }
 
     /// Files one or more hosts into a group, preserving the order supplied.

@@ -109,18 +109,11 @@ final class Workspace: Identifiable {
 
     var symbol: String { isSplit ? "rectangle.split.2x1" : focusedPane.symbol }
 
-    /// Which sidebar section lists this workspace, if any.
-    var kind: PaneKind { focusedPane.kind }
-
     var status: ConnectionStatus { focusedPane.status }
 
     var hasUnreadOutput: Bool {
         panes.contains { $0.hasUnreadOutput }
     }
-
-    var hostID: Host.ID? { focusedPane.hostID }
-
-    var workingDirectory: String? { focusedPane.workingDirectory }
 
     /// A split workspace is named for itself, not for whichever half you clicked last.
     ///

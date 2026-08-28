@@ -76,10 +76,6 @@ final class MCPServerController {
         ai.secret(for: Self.tokenReference) ?? ""
     }
 
-    var enabledToolNames: [String] {
-        MCPServerTools.exportedNames.subtracting(disabledTools).sorted()
-    }
-
     func setEnabled(_ enabled: Bool) {
         isEnabled = enabled
         defaults.set(enabled, forKey: SettingsKey.mcpServerEnabled)

@@ -148,8 +148,6 @@ struct HostChooserView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     @State private var chooser: ManagedChooserState<Host.ID>
     @State private var connectionProtocol = HostConnectionProtocol.ssh
     @State private var isConfirmingDestructiveSnippet = false

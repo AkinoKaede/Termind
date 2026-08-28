@@ -27,7 +27,6 @@ nonisolated struct RemoteFile: Identifiable, Hashable, Sendable {
 
     var id: String { path }
     var isDirectory: Bool { kind == .directory }
-    var isSymbolicLink: Bool { kind == .symbolicLink }
     var isHidden: Bool { name.hasPrefix(".") }
 
     var permissionMode: UInt32 { permissions & 0o7777 }

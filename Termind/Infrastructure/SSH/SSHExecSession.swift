@@ -54,20 +54,6 @@ nonisolated protocol SSHExecSessionProtocol: AnyObject, Sendable {
 /// shape.
 typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
-nonisolated extension SSHExecSessionProtocol {
-    /// For the callers that only want the finished result — which is most of
-    /// them, and all of the ones that predate streaming.
-    func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int
-    ) async throws -> SSHExecResult {
-        try await execute(
-            command, workingDirectory: workingDirectory, stdin: stdin,
-            timeout: timeout, outputLimit: outputLimit, onOutput: nil
-        )
-    }
-}
-
 actor SSHExecSession: SSHExecSessionProtocol {
     private nonisolated let worker = SSHExecWorker()
 

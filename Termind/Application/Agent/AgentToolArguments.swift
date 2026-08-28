@@ -25,10 +25,6 @@ nonisolated struct Arguments: Sendable {
     func optionalString(_ key: String) -> String? { object[key]?.stringValue }
     func optionalInt(_ key: String) -> Int? { object[key]?.integerValue }
     func optionalBool(_ key: String) -> Bool? { object[key]?.boolValue }
-    func optionalStrings(_ key: String) -> [String] {
-        object[key]?.arrayValue?.compactMap(\.stringValue) ?? []
-    }
-
     /// The `questions` array of `request_user_input`.
     ///
     /// Everything malformed is rejected rather than dropped. A form silently

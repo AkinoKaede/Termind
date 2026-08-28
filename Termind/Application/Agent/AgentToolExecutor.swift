@@ -21,13 +21,6 @@ nonisolated enum AgentPlannedToolCall: Sendable {
         var executionMetadata: [String: AgentJSONValue]
     }
 
-    var invocation: AgentToolInvocation {
-        switch self {
-        case .ready(let ready): ready.invocation
-        case .rejected(let invocation, _): invocation
-        }
-    }
-
     /// The outcome a call already has. A planned call has none yet; the error a
     /// rejected one carries is final.
     var result: AgentToolResult {

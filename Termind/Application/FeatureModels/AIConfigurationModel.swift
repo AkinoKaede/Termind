@@ -175,10 +175,6 @@ final class AIConfigurationModel {
         AIRole.allCases.filter { roles[$0]?.modelProviderID == modelProviderID }
     }
 
-    func searchModelProviders(_ query: String) -> [ModelProvider] {
-        modelProviders.filter { $0.matches(query) }
-    }
-
     func mcpServer(_ id: MCPServer.ID) -> MCPServer? {
         mcpServers.first { $0.id == id }
     }
@@ -372,10 +368,6 @@ final class AIConfigurationModel {
 
     func assign(_ ref: AIModelRef?, to role: AIRole) {
         mutatePersistedState { roles[role] = ref }
-    }
-
-    func clearRole(_ role: AIRole) {
-        mutatePersistedState { roles[role] = nil }
     }
 
     /// Records a choice made in a conversation's model menu.

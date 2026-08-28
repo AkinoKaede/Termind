@@ -281,7 +281,6 @@ final class SFTPSessionModel: Identifiable {
 
     var canGoBack: Bool { !backHistory.isEmpty }
     var canGoForward: Bool { !forwardHistory.isEmpty }
-    var canGoUp: Bool { path != "/" }
     var conflictCount: Int {
         pendingRemoteCopyBatch?.conflictCount ?? pendingBatch?.conflictCount ?? 0
     }
@@ -705,15 +704,6 @@ final class SFTPSessionModel: Identifiable {
         )
     }
 
-    func cancelAuthentication() {
-        reconnectController.stop()
-        isRecoveringConnection = false
-        pendingAuthentication = nil
-        suppliedAuthentications.removeAll()
-        status = .disconnected
-        connectionJourney.hide()
-    }
-
     func navigate(to destination: String) {
         let destination = RemotePath.normalized(destination)
         guard destination != path else {
@@ -746,7 +736,6 @@ final class SFTPSessionModel: Identifiable {
         reloadNow()
     }
 
-    func goUp() { navigate(to: RemotePath.parent(of: path)) }
     func commitPathText() { navigate(to: pathText) }
     func reloadNow() { Task { await reload() } }
 
@@ -848,10 +837,6 @@ final class SFTPSessionModel: Identifiable {
         }
     }
 
-    func delete(_ file: RemoteFile) async {
-        await delete([file])
-    }
-
     func delete(_ files: [RemoteFile]) async {
         guard let client else { return }
         let cancellation = TransferCancellationToken()
@@ -951,10 +936,6 @@ final class SFTPSessionModel: Identifiable {
                 localDirectories: [], localDirectoryConflicts: [], conflictCount: conflicts
             )
         } catch { operationError = error.localizedDescription }
-    }
-
-    func prepareDownload(_ file: RemoteFile, to directory: URL) async {
-        await prepareDownload([file], to: directory)
     }
 
     func prepareDownload(_ files: [RemoteFile], to directory: URL) async {

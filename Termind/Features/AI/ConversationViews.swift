@@ -1819,14 +1819,6 @@ struct ComposerView: View {
         }
     }
 
-    @ViewBuilder
-    private func selectionLabel(_ title: String, isSelected: Bool) -> some View {
-        if isSelected {
-            Label(title, systemImage: "checkmark")
-        } else {
-            Text(title)
-        }
-    }
 }
 
 nonisolated private struct AssistantModelOptionListItem: Identifiable, Hashable, Sendable {

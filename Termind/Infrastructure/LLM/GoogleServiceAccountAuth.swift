@@ -65,19 +65,6 @@ actor GoogleServiceAccountAuth {
         return token
     }
 
-    /// What the editor's Test button runs.
-    ///
-    /// Returns the account it signed in as. A full round trip through the token
-    /// endpoint is the right check for Vertex precisely because it does not
-    /// spend a model token: the failures that actually happen here are a
-    /// malformed JSON, a project the account cannot see, or a missing IAM role,
-    /// and all three surface at this exchange.
-    func verify(serviceAccountJSON: String) async throws -> String {
-        let credentials = try ServiceAccount(json: serviceAccountJSON)
-        _ = try await accessToken(serviceAccountJSON: serviceAccountJSON)
-        return credentials.clientEmail
-    }
-
     /// Reads `client_email` out of a pasted JSON without signing anything, so
     /// the editor can label the field the moment a file is imported.
     static func clientEmail(in serviceAccountJSON: String) -> String? {
@@ -86,11 +73,6 @@ actor GoogleServiceAccountAuth {
 
     static func projectID(in serviceAccountJSON: String) -> String? {
         (try? ServiceAccount(json: serviceAccountJSON))?.projectID
-    }
-
-    /// Drops cached tokens for an account whose key was replaced.
-    func forget(clientEmail: String) {
-        cache[clientEmail] = nil
     }
 
     // MARK: - Token exchange

@@ -22,17 +22,4 @@ nonisolated struct KnownHostEntry: Identifiable, Codable, Hashable, Sendable {
         SSHHostKeyIdentity(algorithm: algorithm, fingerprint: fingerprint)
     }
 
-    /// OpenSSH spells a non-default port `[host]:port`, and matching that is one
-    /// less thing to explain to someone importing their own `known_hosts`.
-    var displayAddress: String {
-        port == 22 ? hostname : "[\(hostname)]:\(port)"
-    }
-
-    func matches(_ query: String) -> Bool {
-        guard !query.isEmpty else { return true }
-        let q = query.lowercased()
-        return hostname.lowercased().contains(q)
-            || fingerprint.lowercased().contains(q)
-            || algorithm.rawValue.lowercased().contains(q)
-    }
 }

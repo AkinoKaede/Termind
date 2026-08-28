@@ -52,17 +52,7 @@ nonisolated struct PortForwardingRule: Identifiable, Codable, Hashable, Sendable
         }
     }
 
-    func matches(_ query: String) -> Bool {
-        guard !query.isEmpty else { return true }
-        let q = query.lowercased()
-        return label.lowercased().contains(q)
-            || summary.lowercased().contains(q)
-            || kind.rawValue.localizedCaseInsensitiveContains(q)
-    }
-
     private static func address(_ host: String, port: Int) -> String {
         "\(host.contains(":") ? "[\(host)]" : host):\(port)"
     }
 }
-
-typealias PortForwardingKind = PortForwardingRule.Kind

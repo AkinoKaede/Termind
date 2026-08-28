@@ -1,0 +1,5 @@
+project: Termind.xcodeproj
+retain_public: true
+schemes:
+- Termind
+- TermindMCPBridge

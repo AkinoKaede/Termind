@@ -41,8 +41,6 @@ nonisolated struct AgentToolRegistry: Sendable {
 
     subscript(name: String) -> AnyAgentTool? { byName[name] }
 
-    var isEmpty: Bool { byName.isEmpty }
-
     /// Sorted, because the tool list is part of the request's cacheable prefix
     /// and a dictionary's iteration order is not stable across launches.
     var descriptors: [AgentToolDescriptor] {

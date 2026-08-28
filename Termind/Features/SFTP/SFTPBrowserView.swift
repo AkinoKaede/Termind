@@ -1238,10 +1238,6 @@ struct SFTPBrowserView: View {
         }
     }
 
-    private func chooseDownloadDestination(for file: RemoteFile) {
-        chooseDownloadDestination(for: [file])
-    }
-
     private func chooseDownloadDestination(for files: [RemoteFile]) {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false

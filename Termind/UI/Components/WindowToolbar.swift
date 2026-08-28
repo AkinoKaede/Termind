@@ -16,23 +16,6 @@ nonisolated enum WindowToolbarFindKind: String, Hashable, Sendable, CaseIterable
     case terminal
     case sftp
 
-    /// The tooltip. The field itself always reads "Search" — one placeholder for
-    /// one control — so this is where the scope is actually named.
-    var help: String {
-        switch self {
-        case .hosts: String(localized: "Search Hosts")
-        case .keychain: String(localized: "Search Keychain")
-        case .snippets: String(localized: "Search Snippets")
-        case .assistant: String(localized: "Search Conversations")
-        case .terminal: String(localized: "Find in Terminal")
-        case .sftp: String(localized: "Find in SFTP")
-        }
-    }
-
-    /// Whether Return and Shift-Return walk between matches. Only the terminal
-    /// has matches to walk — everything else filters a list in place, where
-    /// Return would have nothing to move to.
-    var navigatesMatches: Bool { self == .terminal }
 }
 
 /// Everything the titlebar Find field needs, resolved once per body from the

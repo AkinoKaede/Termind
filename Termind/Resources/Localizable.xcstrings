@@ -21,26 +21,6 @@
         }
       }
     },
-    "Hide Session Details" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "隐藏会话详情"
-          }
-        }
-      }
-    },
-    "Show Session Details" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示会话详情"
-          }
-        }
-      }
-    },
     "[… %lld characters omitted …]" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5129,6 +5109,16 @@
         }
       }
     },
+    "Hide Session Details" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏会话详情"
+          }
+        }
+      }
+    },
     "Hide tag suggestions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8026,6 +8016,7 @@
       }
     },
     "Private keys and passwords stay in the Keychain. Termind stores only labels, fingerprints, and references." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -10027,6 +10018,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示近期使用"
+          }
+        }
+      }
+    },
+    "Show Session Details" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示会话详情"
           }
         }
       }

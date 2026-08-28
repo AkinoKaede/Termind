@@ -15,7 +15,6 @@ final class SnippetLibraryModel {
     var rootSnippetPackages: [SnippetPackage] { library.rootSnippetPackages }
     var isSnippetsUngroupedExpanded: Bool { library.isSnippetsUngroupedExpanded }
 
-    func snippet(_ id: Snippet.ID) -> Snippet? { library.snippet(id) }
     func snippetPackage(_ id: SnippetPackage.ID) -> SnippetPackage? {
         library.snippetPackage(id)
     }

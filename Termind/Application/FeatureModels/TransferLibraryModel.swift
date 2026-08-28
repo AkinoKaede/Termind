@@ -8,6 +8,4 @@ final class TransferLibraryModel {
     init(library: HostLibraryModel) {
         self.library = library
     }
-
-    func host(_ id: Host.ID) -> Host? { library.host(id) }
 }

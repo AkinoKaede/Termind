@@ -28,7 +28,6 @@ nonisolated enum SettingsKey {
     static let chatsSectionExpanded = "sidebar.section.chats.expanded"
     static let pinnedChatsSectionExpanded = "sidebar.section.pinnedChats.expanded"
     static let snippetsSidebarCollapsedSections = "sidebar.snippets.collapsedSections"
-    static let recentsSectionExpanded = "sidebar.section.recents.expanded"
     /// Whether the floating status capsule shows its session details or is
     /// shrunk to its status dot. App-wide: it is a standing preference about
     /// how much of the pane you want covered, not a property of one session.

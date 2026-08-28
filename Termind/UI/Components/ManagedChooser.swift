@@ -5,23 +5,8 @@ enum ManagedChooserMode: Sendable {
     case multiple
 }
 
-/// Testable selection and keyboard policy shared by every searchable chooser.
-protocol ManagedChooser: AnyObject {
-    associatedtype ID: Hashable
-
-    var mode: ManagedChooserMode { get }
-    var query: String { get set }
-    var cursor: ID? { get set }
-    var selected: Set<ID> { get set }
-
-    func activate(_ id: ID)
-    func moveCursor(by delta: Int, through ids: [ID])
-    func queryDidChange(visible ids: [ID], enabled: Set<ID>)
-    func toggleAll(visible ids: [ID], enabled: Set<ID>)
-}
-
 @Observable
-final class ManagedChooserState<ID: Hashable>: ManagedChooser {
+final class ManagedChooserState<ID: Hashable> {
     let mode: ManagedChooserMode
     var query = ""
     var cursor: ID?
@@ -78,19 +63,6 @@ final class ManagedChooserState<ID: Hashable>: ManagedChooser {
         }
     }
 
-    func pruneSelection(available: Set<ID>) {
-        selected.formIntersection(available)
-        if let cursor, !available.contains(cursor) { self.cursor = nil }
-    }
-
-    func confirmedIDs(in order: [ID]) -> [ID] {
-        switch mode {
-        case .single:
-            return cursor.map { [$0] } ?? []
-        case .multiple:
-            return order.filter(selected.contains)
-        }
-    }
 }
 
 struct SelectionMark: View {

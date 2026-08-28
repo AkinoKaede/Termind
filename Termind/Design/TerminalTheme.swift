@@ -82,17 +82,6 @@ nonisolated struct TerminalTheme: Identifiable, Hashable, Sendable {
 
     static let all: [TerminalTheme] = [.termindDark, .termindLight]
 
-    /// Convenience accessors for surrounding terminal UI.
-    func ansi(_ index: Int) -> RGB { ansi[max(0, min(ansi.count - 1, index))] }
-
-    var red: RGB { ansi(1) }
-    var green: RGB { ansi(2) }
-    var yellow: RGB { ansi(3) }
-    var blue: RGB { ansi(4) }
-    var magenta: RGB { ansi(5) }
-    var cyan: RGB { ansi(6) }
-    var dim: RGB { ansi(8) }
-
     /// The same palette expressed in the format consumed by libghostty. The
     /// SwiftUI chrome and the terminal grid therefore share one definition
     /// instead of merely using similarly named colors.

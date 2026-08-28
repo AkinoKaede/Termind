@@ -209,10 +209,6 @@ struct KeychainPageView: ManagedCardPage {
         window.setDetailSelection(ordered, for: .keychain)
     }
 
-    private func select(_ item: ContextPanelDetailID) {
-        window.selectDetail(item, on: .keychain)
-    }
-
     private func requestExport(_ keys: [SSHKeyRef]) {
         guard !keys.isEmpty else { return }
         window.openVaultWork(.exportKeys(keys.map(\.id)), on: .keychain)

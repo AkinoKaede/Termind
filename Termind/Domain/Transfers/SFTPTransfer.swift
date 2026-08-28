@@ -12,14 +12,6 @@ nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {
 
         nonisolated var id: String { rawValue }
 
-        var displayName: String {
-            switch self {
-            case .upload: String(localized: "Upload")
-            case .download: String(localized: "Download")
-            case .copy: String(localized: "Copy")
-            }
-        }
-
         var symbol: String {
             switch self {
             case .upload: "arrow.up.circle"
@@ -48,15 +40,6 @@ nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {
             }
         }
 
-        /// Whether Batch Startup should pick this one up. Completed and already
-        /// running transfers are skipped; a failed one is a retry, which is
-        /// exactly what a batch start is for after a dropped connection.
-        var isStartable: Bool {
-            switch self {
-            case .queued, .paused, .failed: true
-            case .running, .completed, .cancelled: false
-            }
-        }
     }
 
     var id: UUID = UUID()
@@ -85,14 +68,6 @@ nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {
         return min(1, Double(transferredBytes) / Double(byteCount))
     }
 
-    var route: String {
-        switch direction {
-        case .upload: "\(localPath) → \(remotePath)"
-        case .download: "\(remotePath) → \(localPath)"
-        case .copy: "\(localPath) → \(remotePath)"
-        }
-    }
-
     var relatedHostIDs: Set<Host.ID> {
         Set([hostID, sourceHostID, destinationHostID].compactMap { $0 })
     }
@@ -101,9 +76,4 @@ nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {
         relatedHostIDs.contains(hostID)
     }
 
-    func matches(_ query: String) -> Bool {
-        guard !query.isEmpty else { return true }
-        let q = query.lowercased()
-        return localPath.lowercased().contains(q) || remotePath.lowercased().contains(q)
-    }
 }

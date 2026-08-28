@@ -1293,15 +1293,6 @@ nonisolated private extension Array where Element == AgentModelStreamEvent {
             }
         }
     }
-
-    var containsText: Bool {
-        contains {
-            switch $0 {
-            case .textDelta, .textSnapshot: true
-            default: false
-            }
-        }
-    }
 }
 
 nonisolated enum AgentProviderError: LocalizedError, Sendable {

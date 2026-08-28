@@ -46,11 +46,6 @@ private actor ScriptedTurns: AgentModelStreaming {
     }
 }
 
-private actor EventLog {
-    private(set) var events: [AgentEvent] = []
-    func append(_ event: AgentEvent) { events.append(event) }
-}
-
 /// One turn asking for `names`, then a plain answer.
 private func callingTurns(_ names: [String]) -> [[AgentModelStreamEvent]] {
     [

@@ -115,10 +115,6 @@ final class WindowModel {
         return sidebar.activeDetails(for: selectedWorkspace?.focusedPane)
     }
 
-    func clearSidebarDetailOverride() {
-        sidebar.clearOverride()
-    }
-
     /// Resolves the active ids against live store data without mutating the
     /// remembered selection. This makes deletion safe even before the next
     /// pruning pass runs.
@@ -231,11 +227,6 @@ final class WindowModel {
         set {
             selectedDestination = newValue.map(WindowDestination.workspace) ?? .vault
         }
-    }
-
-    var selectedIndex: Int? {
-        guard let selectedWorkspaceID else { return nil }
-        return workspaces.firstIndex { $0.id == selectedWorkspaceID }
     }
 
     /// The only pane that application-wide find commands may touch. A Workspace
@@ -367,8 +358,6 @@ final class WindowModel {
         return selectedWorkspace
     }
 
-    var isEmpty: Bool { workspaces.isEmpty }
-
     /// Every pane of a given kind, with the Workspace holding it.
     ///
     /// The sidebar lists *panes*, not workspaces. A Workspace can be mixed — a shell
@@ -410,42 +399,6 @@ final class WindowModel {
     }
 
     var canReopen: Bool { !reopenStack.isEmpty }
-
-    /// The most recently opened SSH session, with the workspace holding it.
-    ///
-    /// The Snippets page is itself the front workspace when a snippet is inserted, so
-    /// "the session" cannot mean "the front workspace". Most-recent is the best
-    /// answer available at P0; once sessions are real this becomes the last
-    /// *focused* one.
-    private var lastSSHSession: (workspace: Workspace, sshSession: SSHSessionModel)? {
-        for workspace in workspaces.reversed() {
-            for pane in workspace.panes.reversed() {
-                if let sshSession = pane.sshSession {
-                    return (workspace, sshSession)
-                }
-            }
-        }
-        return nil
-    }
-
-    var hasSSHSession: Bool { lastSSHSession != nil }
-
-    /// Types a command onto a session's prompt and brings that workspace forward.
-    ///
-    /// It never sends the command — pressing Return stays the user's decision,
-    /// the same rule the AI command cards follow. Returns `false` when there is
-    /// no session to type into, so the caller can fall back to the pasteboard.
-    ///
-    /// Through `Workspace.deliver` rather than straight at the session, so a
-    /// snippet inserted into a broadcasting Workspace lands in every shell in
-    /// it. Every route text takes into a prompt goes through that one door.
-    @discardableResult
-    func insertIntoSSHSession(_ command: String) -> Bool {
-        guard let (workspace, sshSession) = lastSSHSession else { return false }
-        workspace.deliver(command, from: sshSession)
-        select(workspace.id)
-        return true
-    }
 
     func select(_ id: Workspace.ID) {
         guard workspaces.contains(where: { $0.id == id }) else { return }
@@ -808,10 +761,6 @@ final class WindowModel {
         openVaultWork(.hostEditor(host?.id), on: .hosts)
     }
 
-    func closeManagement() {
-        closeVaultWork()
-    }
-
     // MARK: - Combining
 
     /// Folds every pane of `source` into `target` beside a named pane, on a named
@@ -1012,9 +961,6 @@ final class WindowModel {
 
     var canDuplicateSelected: Bool { canSplitSelected }
 
-    /// Whether ⌘B has a group to act on — see `Workspace.canBroadcast`.
-    var canBroadcastSelected: Bool { selectedWorkspace?.canBroadcast ?? false }
-
     /// Carves an empty slot beside the focused pane, for something already open
     /// to be dragged into. Deliberately not a connection: choosing a layout and
     /// choosing a machine are two decisions, and only one of them was asked for.
@@ -1179,15 +1125,6 @@ final class WindowModel {
         }
     }
 
-    /// Closes every SSH and SFTP session pane, leaving manager pages open. No
-    /// confirmation: ⇧⌘T reopens the panes, while closing them disconnects the
-    /// active connections.
-    func closeAllSessions() {
-        for ref in sessionPanes {
-            closePane(ref.pane.id)
-        }
-    }
-
     func closeWorkspaces(for hostID: Host.ID) {
         let paneIDs = workspaces.flatMap(\.panes).filter { $0.hostID == hostID }.map(\.id)
         for paneID in paneIDs { closePane(paneID) }
@@ -1205,10 +1142,6 @@ final class WindowModel {
     }
 
     // MARK: - Reordering
-
-    func move(from source: IndexSet, to destination: Int) {
-        workspaces.move(fromOffsets: source, toOffset: destination)
-    }
 
     /// Drag-reorder in the Navigator: puts `id` at `index` in the Workspace
     /// list after excluding the source workspace from insertion-index geometry.
@@ -1301,8 +1234,4 @@ struct PaneRef: Identifiable {
 
     var id: Pane.ID { pane.id }
 
-    /// True when this pane shares its Workspace with others, which is when the
-    /// row needs to say so — otherwise every row would carry a badge that means
-    /// nothing.
-    var isInWorkspace: Bool { workspace.isSplit }
 }

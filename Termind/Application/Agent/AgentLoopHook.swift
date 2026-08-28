@@ -93,8 +93,6 @@ nonisolated struct AgentLoopHooks: Sendable {
         self.hooks = hooks
     }
 
-    var isEmpty: Bool { hooks.isEmpty }
-
     /// First refusal wins, and the hooks after it are not consulted — a call
     /// that is already not happening has nothing left to decide.
     func willExecute(_ context: AgentToolCallContext) async -> AgentToolCallDecision {

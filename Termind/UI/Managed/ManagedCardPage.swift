@@ -67,10 +67,6 @@ struct ManagedCardItemContext<Item: Identifiable> {
 /// the inherited body after the shared page has been rendered.
 protocol ManagedCardPresentationModifier: ViewModifier {}
 
-struct EmptyManagedCardPresentation: ManagedCardPresentationModifier {
-    func body(content: Content) -> some View { content }
-}
-
 /// SwiftUI's protocol-oriented equivalent of a page base class. Conformers
 /// provide data and business views; this protocol extension owns the body.
 protocol ManagedCardPage: View {

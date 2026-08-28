@@ -95,11 +95,6 @@ nonisolated struct MCPServer: Identifiable, Hashable, Sendable {
         !url.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    func matches(_ query: String) -> Bool {
-        guard !query.isEmpty else { return true }
-        let q = query.lowercased()
-        return name.lowercased().contains(q) || url.lowercased().contains(q)
-    }
 }
 
 /// Shared naming rules for MCP namespaces and their model-visible functions.
@@ -206,11 +201,6 @@ nonisolated struct MCPTool: Identifiable, Hashable, Sendable, Codable {
     var annotations: MCPToolAnnotations = MCPToolAnnotations()
     var accessPolicy: AccessPolicy = .alwaysAsk
 
-    func matches(_ query: String) -> Bool {
-        guard !query.isEmpty else { return true }
-        let q = query.lowercased()
-        return id.lowercased().contains(q) || summary.lowercased().contains(q)
-    }
 }
 
 /// Hints supplied by the remote MCP server. They inform risk signals but can

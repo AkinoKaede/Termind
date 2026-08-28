@@ -19,7 +19,6 @@ final class CredentialLibraryModel {
     var storageError: String? { library.storageError }
 
     func key(_ id: SSHKeyRef.ID) -> SSHKeyRef? { library.key(id) }
-    func identity(_ id: Identity.ID) -> Identity? { library.identity(id) }
     func identities(using key: SSHKeyRef.ID) -> [Identity] { library.identities(using: key) }
     func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
     func searchHosts(_ query: String) -> [Host] { library.searchHosts(query) }
@@ -41,11 +40,6 @@ final class CredentialLibraryModel {
         try library.sshConnectionConfiguration(for: host)
     }
 
-    @discardableResult
-    func upsert(_ identity: Identity) -> Bool { library.upsert(identity) }
-    func upsert(_ identity: Identity, passwordUpdate: IdentityPasswordUpdate) throws {
-        try library.upsert(identity, passwordUpdate: passwordUpdate)
-    }
     func upsert(_ key: SSHKeyRef, credential: StoredSSHKeyCredential? = nil) throws {
         try library.upsert(key, credential: credential)
     }

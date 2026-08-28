@@ -124,11 +124,6 @@ final class SwiftDataHostRepository: HostRepository {
         try commitMutation()
     }
 
-    /// Called by repository mutations after their database transaction commits.
-    func publishMutation() throws {
-        try publishMutation(reason: .mutation)
-    }
-
     private func publishMutation(reason: RepositoryChangeReason) throws {
         let revision = try advanceRevision()
         let current = try snapshot()

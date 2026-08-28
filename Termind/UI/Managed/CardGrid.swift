@@ -364,24 +364,6 @@ struct CardPage<Content: View>: View {
     }
 #endif
 
-/// A titled group of cards. The count sits in the header because a section that
-/// scrolled off the bottom is otherwise indistinguishable from an empty one.
-struct CardSection<Content: View>: View {
-    /// A plain `String`, not a `LocalizedStringKey`: half these headers are group
-    /// names the user typed, and running those through the catalogue would be
-    /// wrong. Static headers pass `String(localized:)`, which still extracts.
-    let title: String
-    var count: Int?
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.l) {
-            CardSectionHeader(title: title, count: count)
-            CardGrid { content }
-        }
-    }
-}
-
 /// The title row a section leads with, on its own so a section whose header does
 /// something — a group, which can be collapsed, selected, renamed, deleted — can
 /// reuse it instead of drawing a second one that has to be kept looking alike.

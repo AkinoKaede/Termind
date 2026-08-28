@@ -35,11 +35,6 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         self.accessGroup = accessGroup
     }
 
-    /// Local-only compatibility entry point used by AI and MCP secrets.
-    func string(for account: String) throws -> String? {
-        try string(for: account, storage: .thisDevice)
-    }
-
     func string(for account: String, storage: PasswordStorage) throws -> String? {
         try validateStringReference(account)
         guard
@@ -52,11 +47,6 @@ nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
             throw KeychainSecretError.unexpectedValue
         }
         return value
-    }
-
-    /// Local-only compatibility entry point used by AI and MCP secrets.
-    func setString(_ value: String?, for account: String) throws {
-        try setString(value, for: account, storage: .thisDevice)
     }
 
     func setString(_ value: String?, for account: String, storage: PasswordStorage) throws {

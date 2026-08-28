@@ -241,15 +241,3 @@ struct SelectableRow<Content: View, Trailing: View>: View {
         return .clear
     }
 }
-
-extension SelectableRow where Trailing == EmptyView {
-    init(
-        isCursor: Bool, isSelected: Bool, isEnabled: Bool = true,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.init(
-            isCursor: isCursor, isSelected: isSelected, isEnabled: isEnabled,
-            content: content, trailing: { EmptyView() }
-        )
-    }
-}

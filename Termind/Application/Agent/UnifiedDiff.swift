@@ -5,13 +5,6 @@ import Foundation
 nonisolated enum LineEnding: String, Hashable, Sendable {
     case lf, crlf
 
-    var literal: String {
-        switch self {
-        case .lf: "\n"
-        case .crlf: "\r\n"
-        }
-    }
-
     /// Whichever appears first, matching Pi's `detectLineEnding`. A mixed file is
     /// reported as whatever it leads with and normalized to that on write, which is
     /// the only answer that makes the file more consistent rather than less.
@@ -157,7 +150,7 @@ nonisolated struct UnifiedDiff: Hashable, Sendable {
 
     /// The one difference that changes no line: a trailing newline gained or lost.
     private static func trailingNewlineOnly(
-        _ oldLines: [String], _ newLines: [String],
+        _: [String], _ newLines: [String],
         oldEndsWithNewline: Bool, newEndsWithNewline: Bool,
         fromPath: String, toPath: String, context: Int, maximumBytes: Int
     ) -> UnifiedDiff {

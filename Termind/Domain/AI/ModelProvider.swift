@@ -264,13 +264,6 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
         models.first { $0.id == id }
     }
 
-    func matches(_ query: String) -> Bool {
-        guard !query.isEmpty else { return true }
-        let q = query.lowercased()
-        return name.lowercased().contains(q)
-            || kind.displayName.lowercased().contains(q)
-            || resolvedBaseURL.lowercased().contains(q)
-    }
 }
 
 /// One model on one provider.

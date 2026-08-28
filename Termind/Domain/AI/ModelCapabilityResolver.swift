@@ -135,10 +135,6 @@ nonisolated enum ModelCapabilityResolver {
         return ReasoningProfile(levels: levels)
     }
 
-    static func customProfile(from resolution: Resolution) -> ReasoningProfile {
-        customProfile(from: resolution.reasoning)
-    }
-
     private static func fill(
         _ model: AIModel,
         reported: ReportedFields,

@@ -884,14 +884,6 @@ final class SSHSessionModel: Identifiable {
         connect(using: store)
     }
 
-    func cancelAuthentication() {
-        pendingAuthentication = nil
-        suppliedAuthentications.removeAll()
-        pendingInitialCommand = nil
-        status = .disconnected
-        connectionJourney.hide()
-    }
-
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: HostLibraryModel) {
         store.trust(
             KnownHostEntry(

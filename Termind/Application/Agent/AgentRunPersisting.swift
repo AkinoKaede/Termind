@@ -195,7 +195,6 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
         titles[conversation.id] = conversation.title
         metadata[conversation.id] = conversation.metadata
     }
-    func title(_ conversationID: UUID) -> String? { titles[conversationID] }
     func deleteConversation(_ id: UUID) {
         deletedConversationIDs.insert(id)
         titles.removeValue(forKey: id)

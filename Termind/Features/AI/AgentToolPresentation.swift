@@ -158,11 +158,6 @@ nonisolated enum AgentToolPresentation {
             .joined(separator: ", ")
     }
 
-    static func output(from result: AgentToolResult) -> String {
-        let raw = result.untrustedPayload ?? result.content
-        return output(raw, policy: .automatic)
-    }
-
     static func output(from result: AgentToolResult, presentation: AgentToolDescriptor.Presentation?) -> String {
         let raw = result.untrustedPayload ?? result.content
         return output(raw, policy: presentation?.output ?? .automatic)

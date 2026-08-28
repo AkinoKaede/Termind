@@ -252,36 +252,6 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
         case proposed, waitingForApproval, waitingForUser, reviewing, running, completed, denied, failed
         case interrupted
 
-        /// The transcript used to show `rawValue.capitalized`, which put the
-        /// case name itself on screen — `WaitingForApproval`. The raw value is
-        /// a storage key; this is the label.
-        var displayName: String {
-            switch self {
-            case .proposed: String(localized: "Proposed")
-            case .waitingForApproval: String(localized: "Waiting for approval")
-            case .waitingForUser: String(localized: "Waiting for authentication")
-            case .reviewing: String(localized: "Reviewing")
-            case .running: String(localized: "Running")
-            case .completed: String(localized: "Completed")
-            case .denied: String(localized: "Denied")
-            case .failed: String(localized: "Failed")
-            case .interrupted: String(localized: "Interrupted")
-            }
-        }
-
-        /// Whether a card in this state opens itself.
-        ///
-        /// Anything still in flight, or anything that went wrong, is what the
-        /// reader is actually looking for. A call that simply worked is noise
-        /// once it has worked.
-        var revealsDetailByDefault: Bool {
-            switch self {
-            case .waitingForApproval, .waitingForUser, .reviewing, .running, .denied, .failed: true
-            case .interrupted: false
-            case .proposed, .completed: false
-            }
-        }
-
         var isTerminal: Bool {
             switch self {
             case .completed, .denied, .failed, .interrupted: true
@@ -359,32 +329,6 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// What the transcript scrolls to, and what a change to it must be visible
-    /// as: streaming text grows a message without changing any count.
-    var revision: Int {
-        var hasher = Hasher()
-        hasher.combine(id)
-        switch self {
-        case .message(let message):
-            hasher.combine(message.text.count)
-            hasher.combine(message.images.count)
-            hasher.combine(message.isStreaming)
-        case .tool(let card):
-            hasher.combine(card.state)
-            hasher.combine(card.result?.content.count ?? 0)
-        case .work(let group):
-            hasher.combine(group)
-        case .plan(let card):
-            // The outcome, so answering a plan re-triggers the scroll the same
-            // way a tool card finishing does.
-            hasher.combine(card.outcome)
-        case .compaction(let mark):
-            hasher.combine(mark.keptTokens)
-        case .compactionActivity(let activity):
-            hasher.combine(activity.state)
-        }
-        return hasher.finalize()
-    }
 }
 
 nonisolated struct AgentToolBatch: Identifiable, Hashable, Sendable {
@@ -790,10 +734,6 @@ final class ConversationModel: Identifiable {
         runSummaries = Dictionary(uniqueKeysWithValues: runs.map { ($0.id, $0) })
         self.runState = runState
         runtimeState = runState
-    }
-
-    var estimatedContextTokens: Int {
-        attachments.reduce(0) { $0 + $1.approximateTokens }
     }
 
     /// The generated summary if there is one, and the opening line until then.

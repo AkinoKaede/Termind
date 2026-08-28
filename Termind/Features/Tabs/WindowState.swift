@@ -158,12 +158,6 @@ final class WindowSidebarState {
         detailOverridePaneID = nil
     }
 
-    func validActiveDetails(for pane: Pane?, available: Set<ContextPanelDetailID>)
-        -> [ContextPanelDetailID]
-    {
-        activeDetails(for: pane).filter(available.contains)
-    }
-
     func pruneSelections(available: Set<ContextPanelDetailID>) {
         for page in VaultPage.allCases {
             let valid = selection(for: page).filter(available.contains)

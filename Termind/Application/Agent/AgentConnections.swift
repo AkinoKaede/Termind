@@ -82,8 +82,6 @@ final class AgentHostResolver: Sendable {
         )
     }
 
-    func targets() -> [AgentHostTarget] { listing().hosts }
-
     /// Produces every valid path without trusting persisted parent links to be
     /// acyclic. A broken parent simply ends the path; a cycle never recurses.
     private func groupPaths() -> [HostGroup.ID: String] {

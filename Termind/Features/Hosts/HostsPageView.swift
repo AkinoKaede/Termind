@@ -327,10 +327,6 @@ struct HostsPageView: ManagedCardPage {
         sections.flatMap(\.hosts)
     }
 
-    private var selectedHosts: [Host] {
-        visibleHosts.filter { hostSelection.contains($0.id) }
-    }
-
     private func setHostSelection(_ ids: Set<Host.ID>) {
         let valid = ids.intersection(Set(app.hostLibrary.hosts.map(\.id)))
         state.selectedGroupID = nil

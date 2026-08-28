@@ -28,8 +28,6 @@ nonisolated enum Metrics {
         static let min: CGFloat = 260
         static let ideal: CGFloat = 320
         static let max: CGFloat = 520
-        /// Color stripe on the leading edge of a host row.
-        static let stripeWidth: CGFloat = 2.5
         static let statusDot: CGFloat = 7
         /// Vault and Assistant navigation use one comfortable target so every
         /// destination, chat, archive, and new-chat action keeps a steady rhythm.
@@ -123,28 +121,6 @@ nonisolated enum Metrics {
         static let height: CGFloat = 520
     }
 
-    /// The small "make one now" sheets a picker raises — a new identity, a new
-    /// group. Narrower than the host chooser: three fields and no list to scan,
-    /// so the extra width would only stretch the text fields.
-    enum CreateSheet {
-        static let width: CGFloat = 400
-    }
-
-    /// The provider and MCP editors, which are a different animal from
-    /// `CreateSheet`: each holds a form *and* a list — dozens of fetched models,
-    /// or a server's discovered tools — and 400pt cannot show a model's name
-    /// beside its capabilities without one of them truncating.
-    ///
-    /// A fixed height rather than sizing to content, so the sheet does not jump
-    /// when a fetch turns two models into sixty.
-    enum EditorSheet {
-        static let width: CGFloat = 680
-        static let height: CGFloat = 640
-        /// The master column of the model list. Wide enough for a full model id
-        /// at caption size, which is what you scan by.
-        static let listWidth: CGFloat = 236
-    }
-
     /// Settings is a page in the window rather than its own panel, so it needs a
     /// reading width of its own — a `Form` stretched across a 1600pt display puts
     /// the label and its control at opposite ends of the desk.
@@ -202,11 +178,7 @@ nonisolated enum Metrics {
         static let gutter: CGFloat = 56
         /// The same idea at 260pt, where 56 would leave a bubble two words wide.
         static let compactGutter: CGFloat = 24
-        /// The column a list marker sits in, so a wrapped second line aligns
-        /// under the text rather than under the bullet.
-        static let markerColumn: CGFloat = 20
         static let codeInset: CGFloat = 10
-        static let tableCellPadding: CGFloat = 6
         /// The leading rule on a block quote and on expanded tool output.
         static let rule: CGFloat = 2
         /// The caret shown while a reply is still arriving.
@@ -284,7 +256,6 @@ nonisolated enum Metrics {
     enum VaultContent {
         static let min: CGFloat = 420
         static let ideal: CGFloat = 680
-        static let max: CGFloat = 1_000
     }
 
     enum VaultDetail {
@@ -479,15 +450,6 @@ struct SidebarMaterialBackground: NSViewRepresentable {
     }
 }
 
-private struct TermindSidebarSurface: ViewModifier {
-    func body(content: Content) -> some View {
-        content.background {
-            SidebarMaterialBackground()
-                .ignoresSafeArea()
-        }
-    }
-}
-
 /// A native-feeling emphasized selection: the key window uses an accent fill
 /// with reversed content, while an inactive window keeps the same destination
 /// legible with a quiet accent wash and accent-colored content.
@@ -614,10 +576,6 @@ extension View {
 
     func termindGlassBar() -> some View {
         modifier(TermindGlassBar())
-    }
-
-    func termindSidebarSurface() -> some View {
-        modifier(TermindSidebarSurface())
     }
 
     func termindSidebarRowBackground(isSelected: Bool) -> some View {

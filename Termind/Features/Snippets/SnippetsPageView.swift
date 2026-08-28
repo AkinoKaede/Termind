@@ -281,10 +281,6 @@ struct SnippetsPageView: ManagedCardPage {
 
     private var visibleSnippets: [Snippet] { sections.flatMap(\.snippets) }
 
-    private var selectedSnippets: [Snippet] {
-        visibleSnippets.filter { selection.contains($0.id) }
-    }
-
     private func setSelection(_ ids: Set<Snippet.ID>) {
         let valid = ids.intersection(Set(app.snippets.snippets.map(\.id)))
         state.selectedPackageID = nil
