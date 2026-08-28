@@ -234,6 +234,7 @@ private struct SettingsSidebar: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.tertiary)
                     .tracking(0.7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Metrics.Space.m)
             case .section(let section, _):
                 sectionRow(section)
@@ -253,24 +254,13 @@ private struct SettingsSidebar: View {
     }
 
     private func sectionRow(_ section: SettingsSection) -> some View {
-        Button { select(section) } label: {
-            HStack(spacing: Metrics.Space.s) {
-                Image(systemName: section.symbol)
-                    .frame(width: Metrics.Sidebar.rowIcon)
-                    .accessibilityHidden(true)
-                Text(section.title)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.s)
-            .background(
-                Highlight.fill(isSelected: selection == section),
-                in: .rect(cornerRadius: Metrics.Radius.medium)
-            )
-            .contentShape(.rect)
+        SidebarNavigatorRow(
+            title: section.title,
+            symbol: section.symbol,
+            isSelected: selection == section
+        ) {
+            select(section)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selection == section ? .isSelected : [])
     }
 }
 

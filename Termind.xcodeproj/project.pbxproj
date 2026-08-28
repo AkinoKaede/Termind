@@ -17,8 +17,8 @@
 		TRMD00000000000000100007 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
 		TRMD00000000000000100008 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
 		TRMD00000000000000100009 /* ListViewKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100018 /* ListViewKit */; };
-		TRMD00000000000000100010 /* ScrubberKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100019 /* ScrubberKit */; };
 		TRMD0000000000000010000B /* GlyphixTextFx in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001A /* GlyphixTextFx */; };
+		TRMD00000000000000100010 /* ScrubberKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100019 /* ScrubberKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
