@@ -259,8 +259,6 @@ struct SnippetsPageView: ManagedCardPage {
         ContentUnavailableView.search(text: state.query)
     }
 
-    func managedFootnote() -> some View { EmptyView() }
-
     var managedPresentation: SnippetsPagePresentation {
         SnippetsPagePresentation(
             state: state,

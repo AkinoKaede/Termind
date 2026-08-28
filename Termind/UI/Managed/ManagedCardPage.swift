@@ -81,16 +81,12 @@ protocol ManagedCardPage: View {
     associatedtype GhostContent: View
     associatedtype EmptyContent: View
     associatedtype NoResultsContent: View
-    associatedtype FootnoteContent: View
     associatedtype Presentation: ManagedCardPresentationModifier
 
     var managedSections: [ManagedCardSection<SectionID, Item>] { get }
     var managedSelection: ManagedCardSelection<Item.ID> { get }
     var managedCapabilities: ManagedCardCapabilities<SectionID, Item.ID> { get }
     var isManagedSourceEmpty: Bool { get }
-    /// Whether the renderer should reserve and draw the page's bottom footnote.
-    /// An absent footnote takes no space in the shared vertical page chrome.
-    var showsManagedFootnote: Bool { get }
     var managedPresentation: Presentation { get }
 
     @ViewBuilder func managedCard(
@@ -109,12 +105,9 @@ protocol ManagedCardPage: View {
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry]
     @ViewBuilder func managedEmptyState() -> EmptyContent
     @ViewBuilder func managedNoResultsState() -> NoResultsContent
-    @ViewBuilder func managedFootnote() -> FootnoteContent
 }
 
 extension ManagedCardPage {
-    var showsManagedFootnote: Bool { false }
-
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] { [] }
 
     var body: some View {
@@ -123,14 +116,12 @@ extension ManagedCardPage {
             selection: managedSelection,
             capabilities: managedCapabilities,
             isSourceEmpty: isManagedSourceEmpty,
-            showsFootnote: showsManagedFootnote,
             card: managedCard,
             header: managedHeader,
             ghost: managedGhost,
             blankAreaMenu: managedBlankAreaMenu,
             emptyState: managedEmptyState,
-            noResultsState: managedNoResultsState,
-            footnote: managedFootnote
+            noResultsState: managedNoResultsState
         )
         .modifier(managedPresentation)
     }
@@ -194,14 +185,12 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     let selection: ManagedCardSelection<Page.Item.ID>
     let capabilities: ManagedCardCapabilities<Page.SectionID, Page.Item.ID>
     let isSourceEmpty: Bool
-    let showsFootnote: Bool
     let card: (Page.Item, ManagedCardItemContext<Page.Item>) -> Page.CardContent
     let header: (ManagedCardSection<Page.SectionID, Page.Item>, Bool) -> Page.HeaderContent
     let ghost: (Page.Item) -> Page.GhostContent
     let blankAreaMenu: (Page.SectionID?) -> [NativeMenuEntry]
     let emptyState: () -> Page.EmptyContent
     let noResultsState: () -> Page.NoResultsContent
-    let footnote: () -> Page.FootnoteContent
 
     @State private var dragSession: ManagedCardDragSession<Page.SectionID, Page.Item.ID>?
     @State private var omittedIDs: Set<Page.Item.ID> = []
@@ -211,22 +200,16 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
 
     @ViewBuilder
     var body: some View {
-        VStack(spacing: 0) {
-            Group {
-                if isSourceEmpty {
-                    emptyState()
-                } else if !hasVisibleContent {
-                    noResultsState()
-                } else {
-                    collection
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            if showsFootnote {
-                footnote()
+        Group {
+            if isSourceEmpty {
+                emptyState()
+            } else if !hasVisibleContent {
+                noResultsState()
+            } else {
+                collection
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
     }
 

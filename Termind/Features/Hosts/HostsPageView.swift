@@ -375,8 +375,6 @@ struct HostsPageView: ManagedCardPage {
         }
     }
 
-    func managedFootnote() -> some View { EmptyView() }
-
     var managedPresentation: HostsPagePresentation {
         HostsPagePresentation(
             state: state,

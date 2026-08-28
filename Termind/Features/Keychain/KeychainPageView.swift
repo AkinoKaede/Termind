@@ -108,8 +108,6 @@ struct KeychainPageView: ManagedCardPage {
 
     var isManagedSourceEmpty: Bool { isEmpty }
 
-    var showsManagedFootnote: Bool { true }
-
     func managedHeader(
         for section: ManagedCardSection<SectionID, Item>, isDropTarget: Bool
     ) -> some View {
@@ -238,17 +236,6 @@ struct KeychainPageView: ManagedCardPage {
             }
         }
         window.pruneDetailSelections(in: app.credentials)
-    }
-
-    // MARK: - Chrome
-
-    func managedFootnote() -> some View {
-        PageFootnote(
-            text:
-                "Private keys and passwords stay in the Keychain. Termind stores only labels, fingerprints, and references."
-        ) {
-            EmptyView()
-        }
     }
 
     func managedEmptyState() -> some View {
