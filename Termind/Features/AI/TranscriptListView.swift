@@ -229,9 +229,6 @@ struct TranscriptListView: NSViewRepresentable {
         private var pendingInvalidationMayFollow = false
         private var invalidationScheduled = false
         private var disclosureSuppressedUntil: [UUID: UInt64] = [:]
-        private let measurementController = NSHostingController(
-            rootView: AnyView(EmptyView())
-        )
 
         func makeListView() -> NSViewType {
             let listView = NSViewType()
@@ -243,9 +240,6 @@ struct TranscriptListView: NSViewRepresentable {
             listView.rows {
                 ListRow(TranscriptHostingRow.self)
                     .estimatedHeight(96)
-                    .height { [weak self] item, context in
-                        self?.measuredHeight(for: item, width: context.width) ?? 96
-                    }
                     .configure { [weak self] row, item, context in
                         self?.configure(row, with: item, purpose: context.purpose)
                     }
@@ -280,11 +274,7 @@ struct TranscriptListView: NSViewRepresentable {
             content = newItems
             latestUserMessageID = newLatestUserMessageID
 
-            guard shouldFollow else { return }
-            DispatchQueue.main.async { [weak listView] in
-                guard let listView, !listView.isUserInteractingWithScroll else { return }
-                listView.scrollToBottom(animated: false)
-            }
+            followBottom(afterLayingOut: listView, if: shouldFollow)
         }
 
         private func configure(
@@ -297,9 +287,22 @@ struct TranscriptListView: NSViewRepresentable {
                 self?.suppressFollowing(for: item.id)
                 self?.invalidate(item.id, mayFollow: false)
             }
-            let content = renderer(item, disclosureToggle)
+            let rendered = renderer(item, disclosureToggle)
                 .environment(\.locale, environment.locale)
                 .environment(\.colorScheme, environment.colorScheme)
+            let content: AnyView = switch purpose {
+            case .display:
+                // A displayed row keeps its identity while streaming so the
+                // Markdown renderer can coalesce deltas and preserve its
+                // view-owned state.
+                AnyView(rendered.id(item.id))
+            case .measurement:
+                // ListViewKit reuses one hidden prototype per row type. The
+                // complete value is the identity boundary here so that a
+                // changed work group or streaming message cannot inherit the
+                // previous measurement tree's StateObject-backed content.
+                AnyView(rendered.id(item))
+            }
             let sizeChange: (@MainActor () -> Void)?
             switch purpose {
             case .display:
@@ -315,24 +318,9 @@ struct TranscriptListView: NSViewRepresentable {
             }
             row.configure(
                 id: item.id,
-                rootView: AnyView(content),
+                rootView: content,
                 onIntrinsicSizeChange: sizeChange
             )
-        }
-
-        private func measuredHeight(
-            for item: TranscriptRenderItem,
-            width: CGFloat
-        ) -> CGFloat {
-            guard let renderer, let environment, width > 0 else { return 96 }
-            let content = renderer(item, {})
-                .environment(\.locale, environment.locale)
-                .environment(\.colorScheme, environment.colorScheme)
-            measurementController.rootView = AnyView(content)
-            return ceil(measurementController.sizeThatFits(in: CGSize(
-                width: width,
-                height: .greatestFiniteMagnitude
-            )).height)
         }
 
         private func suppressFollowing(for id: UUID) {
@@ -365,24 +353,37 @@ struct TranscriptListView: NSViewRepresentable {
                 for id in ids {
                     listView?.invalidateLayout(forRowWith: id)
                 }
-                if shouldFollow {
-                    DispatchQueue.main.async { [weak listView] in
-                        guard let listView, !listView.isUserInteractingWithScroll else { return }
-                        listView.scrollToBottom(animated: false)
-                    }
-                }
+                guard let listView else { return }
+                // Targeted invalidation only schedules ListViewKit's layout.
+                // Settle the prototype measurement and all following row
+                // frames before reading its new bottom edge.
+                listView.layoutSubtreeIfNeeded()
+                self.followBottom(afterLayingOut: listView, if: shouldFollow)
             }
+        }
+
+        private func followBottom(
+            afterLayingOut listView: NSViewType,
+            if shouldFollow: Bool
+        ) {
+            guard shouldFollow, !listView.isUserInteractingWithScroll else { return }
+            listView.layoutSubtreeIfNeeded()
+            guard !listView.isUserInteractingWithScroll else { return }
+            listView.scrollToBottom(animated: false)
         }
     }
 }
 
 @MainActor
 private final class TranscriptHostingRow: ListRowView {
-    private let hostingView = TranscriptIntrinsicHostingView(rootView: AnyView(EmptyView()))
+    private let hostingController = TranscriptHostingController(
+        rootView: AnyView(EmptyView())
+    )
     private var representedID: UUID?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        let hostingView = hostingController.view
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(hostingView)
         NSLayoutConstraint.activate([
@@ -396,8 +397,8 @@ private final class TranscriptHostingRow: ListRowView {
     override func prepareForReuse() {
         super.prepareForReuse()
         representedID = nil
-        hostingView.onIntrinsicSizeChange = nil
-        hostingView.rootView = AnyView(EmptyView())
+        hostingController.onContentSizeChange = nil
+        hostingController.rootView = AnyView(EmptyView())
     }
 
     func configure(
@@ -406,18 +407,38 @@ private final class TranscriptHostingRow: ListRowView {
         onIntrinsicSizeChange: (@MainActor () -> Void)?
     ) {
         representedID = id
-        hostingView.onIntrinsicSizeChange = onIntrinsicSizeChange
-        hostingView.rootView = rootView
+        hostingController.onContentSizeChange = onIntrinsicSizeChange
+        hostingController.rootView = rootView
+    }
+
+    override var fittingSize: NSSize {
+        let width = bounds.width
+        guard width > 0 else { return super.fittingSize }
+        return hostingController.sizeThatFits(in: CGSize(
+            width: width,
+            height: .greatestFiniteMagnitude
+        ))
     }
 }
 
 @MainActor
-private final class TranscriptIntrinsicHostingView: NSHostingView<AnyView> {
-    var onIntrinsicSizeChange: (@MainActor () -> Void)?
+private final class TranscriptHostingController: NSHostingController<AnyView> {
+    var onContentSizeChange: (@MainActor () -> Void)?
 
-    override func invalidateIntrinsicContentSize() {
-        super.invalidateIntrinsicContentSize()
-        guard let onIntrinsicSizeChange else { return }
-        DispatchQueue.main.async(execute: onIntrinsicSizeChange)
+    override init(rootView: AnyView) {
+        super.init(rootView: rootView)
+        sizingOptions = [.preferredContentSize]
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
+
+    override var preferredContentSize: NSSize {
+        didSet {
+            guard preferredContentSize != oldValue, let onContentSizeChange else { return }
+            DispatchQueue.main.async(execute: onContentSizeChange)
+        }
     }
 }

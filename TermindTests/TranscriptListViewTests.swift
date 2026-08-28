@@ -185,4 +185,129 @@ struct TranscriptListViewBridgeTests {
         #expect(tallHeight > 96)
         #expect(tallHeight > shortHeight)
     }
+
+    @Test
+    func aStableBlockGrowthRemeasuresBeforePlacingTheFollowingBlock() {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let growingID = UUID()
+        let followingID = UUID()
+        let short = TranscriptRenderItem(id: growingID, content: .empty)
+        let tall = TranscriptRenderItem(id: growingID, content: .interrupted)
+        let following = TranscriptRenderItem(id: followingID, content: .empty)
+        listView.frame = CGRect(x: 0, y: 0, width: 320, height: 1_200)
+
+        update(
+            coordinator, listView,
+            items: [short, following],
+            renderer: growingRenderer(id: growingID)
+        )
+        let shortHeight = listView.rectForRow(with: growingID).height
+
+        update(
+            coordinator, listView,
+            items: [tall, following],
+            renderer: growingRenderer(id: growingID)
+        )
+        listView.layoutSubtreeIfNeeded()
+
+        let grownFrame = listView.rectForRow(with: growingID)
+        let followingFrame = listView.rectForRow(with: followingID)
+        #expect(grownFrame.height > shortHeight)
+        #expect(followingFrame.minY == grownFrame.maxY)
+        #expect(listView.rowView(for: growingID)?.placedFrame == grownFrame)
+        #expect(listView.rowView(for: followingID)?.placedFrame == followingFrame)
+    }
+
+    @Test
+    func followingTheBottomUsesTheRemeasuredBlockHeight() {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let growingID = UUID()
+        let leading = TranscriptRenderItem(id: UUID(), content: .empty)
+        let short = TranscriptRenderItem(id: growingID, content: .empty)
+        let tall = TranscriptRenderItem(id: growingID, content: .interrupted)
+        listView.frame = CGRect(x: 0, y: 0, width: 320, height: 180)
+
+        update(
+            coordinator, listView,
+            items: [leading, short],
+            renderer: growingRenderer(id: growingID)
+        )
+        listView.scrollToBottom(animated: false)
+        let oldMaximum = listView.maximumContentOffset.y
+
+        update(
+            coordinator, listView,
+            items: [leading, tall],
+            renderer: growingRenderer(id: growingID)
+        )
+
+        #expect(listView.maximumContentOffset.y > oldMaximum)
+        #expect(listView.contentOffset.y == listView.maximumContentOffset.y)
+        let lastFrame = listView.rectForRow(with: growingID)
+        #expect(lastFrame.maxY + listView.bottomInset == listView.contentSize.height)
+    }
+
+    @Test
+    func blockGrowthDoesNotPullAReaderBackFromHistory() {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let growingID = UUID()
+        let short = TranscriptRenderItem(id: growingID, content: .empty)
+        let tall = TranscriptRenderItem(id: growingID, content: .interrupted)
+        let history = (0 ..< 10).map { _ in
+            TranscriptRenderItem(id: UUID(), content: .empty)
+        }
+        listView.frame = CGRect(x: 0, y: 0, width: 320, height: 180)
+
+        update(
+            coordinator, listView,
+            items: history + [short],
+            renderer: growingRenderer(id: growingID)
+        )
+        listView.setContentOffset(CGPoint(x: 0, y: 40), animated: false)
+        listView.layoutSubtreeIfNeeded()
+        let readerOffset = listView.contentOffset
+
+        update(
+            coordinator, listView,
+            items: history + [tall],
+            renderer: growingRenderer(id: growingID)
+        )
+
+        #expect(listView.contentOffset == readerOffset)
+        #expect(!listView.isScrolledToBottom(tolerance: Metrics.Space.l))
+    }
+
+    private func update(
+        _ coordinator: TranscriptListView.Coordinator,
+        _ listView: TranscriptListView.NSViewType,
+        items: [TranscriptRenderItem],
+        renderer: @escaping TranscriptListView.Renderer
+    ) {
+        coordinator.update(
+            listView: listView,
+            items: items,
+            latestUserMessageID: nil,
+            renderer: renderer,
+            environment: .init(locale: Locale(identifier: "en"), colorScheme: .light)
+        )
+    }
+
+    private func growingRenderer(id: UUID) -> TranscriptListView.Renderer {
+        { item, _ in
+            let isTall = item.id == id && item.content == .interrupted
+            return AnyView(
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(isTall
+                        ? String(repeating: "Expanded work detail wraps over many lines. ", count: 80)
+                        : "Short block")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Divider()
+                }
+                .padding(8)
+            )
+        }
+    }
 }
