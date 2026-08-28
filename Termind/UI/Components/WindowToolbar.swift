@@ -53,6 +53,15 @@ struct WindowToolbarFindContext {
 
 // MARK: - The field
 
+/// One native field for the lifetime of the toolbar item. SwiftUI's macOS
+/// toolbar bridge may rebuild the representable as its binding changes; reusing
+/// the AppKit control prevents the focus ring and field editor from being torn
+/// down and redrawn for every character.
+@MainActor
+final class NativeSearchFieldOwner {
+    let field = NSSearchField()
+}
+
 /// `NSSearchField`, not `.searchable`.
 ///
 /// `.searchable` gives no access to `searchMenuTemplate`, which is where the
@@ -61,6 +70,9 @@ struct WindowToolbarFindContext {
 struct NativeSearchField: NSViewRepresentable {
     @Binding var text: String
     var placeholder: String
+    /// Supplied by the window toolbar. Sidebar search fields omit it and own an
+    /// ordinary representable-scoped control.
+    var owner: NativeSearchFieldOwner? = nil
     /// `.large` for the sidebar footer, whose field is the whole footer.
     /// `NSSearchField` stretches its bezel to an explicit frame height, so the
     /// capsule is the size it is given — and on macOS 26 that capsule is the
@@ -93,7 +105,7 @@ struct NativeSearchField: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(field: self) }
 
     func makeNSView(context: Context) -> NSSearchField {
-        let field = NSSearchField()
+        let field = owner?.field ?? NSSearchField()
         field.delegate = context.coordinator
         field.placeholderString = placeholder
         field.stringValue = text
@@ -409,6 +421,7 @@ struct NativeSearchField: NSViewRepresentable {
 /// Welcome and on a workspace that has no searchable pane in front.
 struct WindowToolbarFindField: View {
     @Environment(WindowModel.self) private var window
+    @State private var searchFieldOwner = NativeSearchFieldOwner()
 
     var body: some View {
         Group {
@@ -416,6 +429,7 @@ struct WindowToolbarFindField: View {
                 NativeSearchField(
                     text: context.query,
                     placeholder: String(localized: "Search"),
+                    owner: searchFieldOwner,
                     focusRequest: context.focusRequest,
                     maintainsKeyboardFocus: window.isToolbarFindFocused,
                     navigate: context.navigate,
