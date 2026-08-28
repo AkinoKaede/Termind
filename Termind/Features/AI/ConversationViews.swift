@@ -269,20 +269,72 @@ struct FlowLayout: Layout {
 /// meant to read as the same object. Two hand-written copies of the same six
 /// lines drift the first time one radius changes, and the drift shows up as two
 /// blocks in one column that are almost — but not quite — the same shape.
+enum AssistantInteractionSurfaceStyle {
+    case standard
+    case sidebar
+
+    var panelColor: Color {
+        switch self {
+        case .standard:
+            .clear
+        case .sidebar:
+            Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+        }
+    }
+}
+
 private struct ComposerBlock: ViewModifier {
+    let style: AssistantInteractionSurfaceStyle
+    let isEmphasized: Bool
+
     func body(content: Content) -> some View {
         content
             .padding(Metrics.Space.l)
-            .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                    .stroke(.quaternary, lineWidth: 1)
+            .background {
+                surfaceBackground
             }
+            .overlay {
+                surfaceBorder
+            }
+    }
+
+    @ViewBuilder
+    private var surfaceBackground: some View {
+        switch style {
+        case .standard:
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
+                .fill(.bar)
+        case .sidebar:
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
+                .fill(style.panelColor)
+        }
+    }
+
+    @ViewBuilder
+    private var surfaceBorder: some View {
+        switch style {
+        case .standard:
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
+                .stroke(.quaternary, lineWidth: 1)
+        case .sidebar:
+            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
+                .stroke(Color.primary.opacity(isEmphasized ? 0.16 : 0.09), lineWidth: 1)
+        }
     }
 }
 
 extension View {
-    func composerBlock() -> some View { modifier(ComposerBlock()) }
+    func composerBlock(
+        style: AssistantInteractionSurfaceStyle = .standard,
+        isEmphasized: Bool = false
+    ) -> some View {
+        modifier(
+            ComposerBlock(
+                style: style,
+                isEmphasized: isEmphasized
+            )
+        )
+    }
 }
 
 /// The Plan chip, which exists only while plan mode is on.
@@ -347,6 +399,7 @@ struct ComposerView: View {
 
     let conversation: ConversationModel
     var prompt: LocalizedStringKey = "Ask anything…"
+    var surfaceStyle: AssistantInteractionSurfaceStyle = .standard
     /// The full Assistant tab shares one centered column with its transcript.
     /// `nil` keeps compact/sidebar composers fluid.
     var maxContentWidth: CGFloat? = nil
@@ -449,7 +502,10 @@ struct ComposerView: View {
             .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
             .animation(Motion.panel(reduceMotion: reduceMotion), value: showsTranscriptionControls)
         }
-        .composerBlock()
+        .composerBlock(
+            style: surfaceStyle,
+            isEmphasized: isFocused || isDropTargeted
+        )
         .overlay {
             if isDropTargeted {
                 RoundedRectangle(cornerRadius: Metrics.Radius.large)
@@ -572,7 +628,11 @@ struct ComposerView: View {
                 return .handled
             }
             .onKeyPress(.return, phases: .down) { press in
-                guard !press.modifiers.contains(.shift) else { return .ignored }
+                let editorHasMarkedText =
+                    (NSApp.keyWindow?.firstResponder as? NSTextView)?.hasMarkedText() ?? false
+                guard !hasMarkedText, !editorHasMarkedText,
+                    !press.modifiers.contains(.shift)
+                else { return .ignored }
                 let disallowed: EventModifiers = [.control, .option]
                 guard press.modifiers.intersection(disallowed).isEmpty else { return .ignored }
                 if acceptHighlightedSlashRow() { return .handled }
@@ -1034,6 +1094,7 @@ struct ComposerView: View {
                 completion: completion,
                 selection: min(slashSelection, completion.rows.count - 1),
                 scrollRequest: slashScrollRequest,
+                surfaceStyle: surfaceStyle,
                 contextShare: contextShare,
                 trailingText: slashTrailingText,
                 onHover: { slashSelection = $0 },
@@ -1410,6 +1471,7 @@ struct ComposerView: View {
             .padding(.bottom, Metrics.Space.s)
         }
         .frame(width: 320)
+        .background(surfaceStyle.panelColor)
     }
 
     private func permissionOptionRow(_ mode: ChatPermissionMode) -> some View {
@@ -1581,6 +1643,7 @@ struct ComposerView: View {
             .buttonStyle(.plain)
         }
         .frame(width: 264)
+        .background(surfaceStyle.panelColor)
     }
 
     private func modelPickerRow(

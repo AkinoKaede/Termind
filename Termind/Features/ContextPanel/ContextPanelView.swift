@@ -12,7 +12,6 @@ struct SidebarView: View {
 
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var modeGlassNamespace
 
     var body: some View {
         @Bindable var window = window
@@ -68,67 +67,27 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var modeSelector: some View {
-        if #available(macOS 26.0, *) {
-            GlassEffectContainer(spacing: Metrics.Space.xs) {
-                HStack(spacing: Metrics.Space.xs) {
-                    ForEach(window.availableSidebarModes) { mode in
-                        glassSidebarModeButton(mode)
-                    }
-                }
-            }
-            .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
-        } else {
-            HStack(spacing: Metrics.Space.xs) {
-                ForEach(window.availableSidebarModes) { mode in
-                    fallbackSidebarModeButton(mode)
-                }
+        HStack(spacing: Metrics.Space.xs) {
+            ForEach(window.availableSidebarModes) { mode in
+                sidebarModeButton(mode)
             }
         }
+        .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
     }
 
-    @available(macOS 26.0, *)
-    private func glassSidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
+    private func sidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
         let isSelected = window.sidebarMode == mode
         let isEnabled = window.isSidebarModeEnabled(mode)
         return Button {
             window.sidebarMode = mode
         } label: {
             Image(systemName: mode.symbol)
-                .font(.callout.weight(.medium))
-                .frame(maxWidth: .infinity, minHeight: 28)
+                .font(.callout.weight(isSelected ? .semibold : .medium))
                 .foregroundStyle(isSelected ? Color.primary : Color.secondary)
-                .background {
-                    if isSelected {
-                        Color.clear
-                            .glassEffect(
-                                .regular.tint(Color.accentColor.opacity(0.14)).interactive(),
-                                in: .rect(cornerRadius: Metrics.Sidebar.rowCornerRadius)
-                            )
-                            .glassEffectID("sidebar-mode-selection", in: modeGlassNamespace)
-                    }
-                }
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.38)
-        .help(Text(mode.label))
-        .accessibilityLabel(Text(mode.label))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private func fallbackSidebarModeButton(_ mode: WindowSidebarState.Mode) -> some View {
-        let isSelected = window.sidebarMode == mode
-        let isEnabled = window.isSidebarModeEnabled(mode)
-        return Button {
-            window.sidebarMode = mode
-        } label: {
-            Image(systemName: mode.symbol)
-                .font(.callout.weight(.medium))
-                .frame(maxWidth: .infinity, minHeight: 28)
-                .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 28)
                 .background(
-                    Highlight.fill(isSelected: isSelected),
+                    isSelected ? Color.primary.opacity(0.10) : Color.clear,
                     in: .rect(cornerRadius: Metrics.Sidebar.rowCornerRadius)
                 )
                 .contentShape(.rect)

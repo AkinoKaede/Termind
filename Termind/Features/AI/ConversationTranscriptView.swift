@@ -51,12 +51,14 @@ struct ConversationView: View {
                         SteeringQueueView(
                             conversation: conversation,
                             isCompact: isCompact,
-                            isEmbedded: true
+                            isEmbedded: true,
+                            surfaceStyle: interactionSurfaceStyle
                         )
                     }
                 }
                 ComposerView(
                     conversation: conversation,
+                    surfaceStyle: interactionSurfaceStyle,
                     maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
                     sessionContext: sessionContext,
                     includesTerminalSuggestion: showsTerminalActions,
@@ -68,7 +70,22 @@ struct ConversationView: View {
         }
     }
 
+    @ViewBuilder
     private var archivedSurface: some View {
+        if isCompact {
+            archivedSurfaceContent
+                .composerBlock(style: interactionSurfaceStyle)
+                .padding(.horizontal, Metrics.Space.l)
+                .padding(.top, Metrics.Space.s)
+                .padding(.bottom, Metrics.Space.s)
+        } else {
+            archivedSurfaceContent
+                .padding(Metrics.Space.l)
+                .background(.bar)
+        }
+    }
+
+    private var archivedSurfaceContent: some View {
         HStack(spacing: Metrics.Space.m) {
             Label("Archived conversations are read-only.", systemImage: "archivebox")
                 .font(.callout)
@@ -79,8 +96,10 @@ struct ConversationView: View {
             }
             .buttonStyle(.borderedProminent)
         }
-        .padding(Metrics.Space.l)
-        .background(.bar)
+    }
+
+    private var interactionSurfaceStyle: AssistantInteractionSurfaceStyle {
+        isCompact ? .sidebar : .standard
     }
 
     private func chatColumn<Content: View>(
@@ -123,7 +142,7 @@ struct ConversationView: View {
                 ),
                 alignment: .top
             )
-            .composerBlock()
+            .composerBlock(style: interactionSurfaceStyle)
             .padding(.horizontal, Metrics.Space.l)
             .frame(maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth)
             .frame(maxWidth: .infinity)
@@ -1512,9 +1531,7 @@ private struct AgentUserInputCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(
-                "Question \(conversation.currentUserInputQuestionIndex + 1) of \(request.questions.count)"
-            )
+            questionProgress
             .font(.caption.monospacedDigit())
             .foregroundStyle(.secondary)
             .fixedSize()
@@ -1531,6 +1548,16 @@ private struct AgentUserInputCard: View {
                 .disabled(!conversation.canAdvanceUserInput)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    @ViewBuilder
+    private var questionProgress: some View {
+        let current = conversation.currentUserInputQuestionIndex + 1
+        if isCompact {
+            Text("\(current) / \(request.questions.count)")
+        } else {
+            Text("Question \(current) of \(request.questions.count)")
         }
     }
 
@@ -1658,6 +1685,7 @@ struct SteeringQueueView: View {
     let conversation: ConversationModel
     var isCompact = false
     var isEmbedded = false
+    var surfaceStyle: AssistantInteractionSurfaceStyle = .standard
 
     /// The rows' own height, because a `ScrollView` will not report one — left
     /// alone it takes every point it is offered, and the strip would stand at
@@ -1710,7 +1738,12 @@ struct SteeringQueueView: View {
         .padding(.horizontal, Metrics.Space.l)
         .padding(.vertical, Metrics.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
+        .background(
+            surfaceStyle == .sidebar
+                ? AnyShapeStyle(surfaceStyle.panelColor)
+                : AnyShapeStyle(.bar),
+            in: .rect(cornerRadius: Metrics.Chat.composerRadius)
+        )
         .overlay {
             RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
                 .stroke(.quaternary, lineWidth: 1)

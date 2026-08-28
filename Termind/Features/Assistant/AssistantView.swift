@@ -74,16 +74,10 @@ struct AssistantPanelView: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             } else if let conversation = window.sidebarAssistantConversation {
                 conversationDetail(conversation)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
             } else {
                 landing
-                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
-        .animation(
-            Motion.tabSwitch,
-            value: window.sidebar.assistantConversationID
-        )
         .animation(
             Motion.tabSwitch,
             value: window.sidebar.isAssistantArchivePresented
@@ -112,6 +106,7 @@ struct AssistantPanelView: View {
             ComposerView(
                 conversation: window.sidebar.assistantDraft,
                 prompt: "Ask anything…",
+                surfaceStyle: .sidebar,
                 sessionContext: window.sidebar.sessionContext,
                 includesTerminalSuggestion: true,
                 onSend: {
@@ -163,11 +158,7 @@ struct AssistantPanelView: View {
                     .lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.s)
-            .background(.bar)
-
-            Divider()
+            .compactAssistantHeader()
             ConversationView(
                 conversation: conversation, isCompact: true,
                 sessionContext: window.sidebar.sessionContext,
@@ -551,33 +542,7 @@ private struct AssistantArchiveView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: Metrics.Space.s) {
-                if let onBack {
-                    Button(action: onBack) {
-                        Image(systemName: "arrow.left")
-                    }
-                    .buttonStyle(.borderless)
-                    .keyboardShortcut(.cancelAction)
-                    .help(Text("Back to Chats"))
-                }
-
-                Image(systemName: "archivebox")
-                    .foregroundStyle(.secondary)
-                Text("Archived")
-                    .font(isCompact ? .headline : .title2.weight(.semibold))
-                Text(window.assistantLibrary.archivedConversations.count, format: .number)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, Metrics.Space.s)
-                    .padding(.vertical, 2)
-                    .background(.quaternary, in: .capsule)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, isCompact ? Metrics.Space.m : Metrics.Space.xl)
-            .padding(.vertical, isCompact ? Metrics.Space.s : Metrics.Space.l)
-            .background(.bar)
-
-            Divider()
+            archiveHeader
 
             AssistantConversationList(
                 selectedID: nil,
@@ -595,7 +560,69 @@ private struct AssistantArchiveView: View {
                 }
             }
         }
-        .background(.background)
+        .background {
+            if !isCompact {
+                Rectangle()
+                    .fill(.background)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var archiveHeader: some View {
+        if isCompact {
+            archiveHeaderContent
+                .compactAssistantHeader()
+        } else {
+            archiveHeaderContent
+                .padding(.horizontal, Metrics.Space.xl)
+                .padding(.vertical, Metrics.Space.l)
+                .background(.bar)
+            Divider()
+        }
+    }
+
+    private var archiveHeaderContent: some View {
+        HStack(spacing: Metrics.Space.s) {
+            if let onBack {
+                Button(action: onBack) {
+                    Image(systemName: "arrow.left")
+                }
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.cancelAction)
+                .help(Text("Back to Chats"))
+            }
+
+            Image(systemName: "archivebox")
+                .foregroundStyle(.secondary)
+            Text("Archived")
+                .font(isCompact ? .headline : .title2.weight(.semibold))
+            Text(window.assistantLibrary.archivedConversations.count, format: .number)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, Metrics.Space.s)
+                .padding(.vertical, 2)
+                .background(.quaternary, in: .capsule)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct CompactAssistantHeader: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, Metrics.Space.m)
+            .padding(.vertical, Metrics.Space.s)
+            .overlay(alignment: .bottom) {
+                Divider()
+                    .opacity(0.55)
+            }
+    }
+}
+
+private extension View {
+    func compactAssistantHeader() -> some View {
+        modifier(CompactAssistantHeader())
     }
 }
 
