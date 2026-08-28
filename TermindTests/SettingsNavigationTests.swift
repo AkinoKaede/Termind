@@ -4,6 +4,41 @@ import Testing
 @testable import Termind
 
 struct SettingsNavigationTests {
+    @Test @MainActor
+    func legacySearchSettingsAndSecretAreRemoved() throws {
+        let suite = "LegacyWebSearchSettingsTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("brave", forKey: LegacyWebSearchSettings.backendKey)
+        defaults.set("https://search.example", forKey: LegacyWebSearchSettings.baseURLKey)
+        defaults.set("termind.ai.search.old", forKey: LegacyWebSearchSettings.credentialReferenceKey)
+        var deleted: [String] = []
+
+        LegacyWebSearchSettings.remove(defaults: defaults) { deleted.append($0) }
+
+        #expect(deleted == ["termind.ai.search.old"])
+        #expect(defaults.object(forKey: LegacyWebSearchSettings.backendKey) == nil)
+        #expect(defaults.object(forKey: LegacyWebSearchSettings.baseURLKey) == nil)
+        #expect(defaults.object(forKey: LegacyWebSearchSettings.credentialReferenceKey) == nil)
+    }
+
+    @Test @MainActor
+    func failedLegacySecretDeletionKeepsReferenceForRetry() throws {
+        let suite = "LegacyWebSearchSettingsTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("termind.ai.search.old", forKey: LegacyWebSearchSettings.credentialReferenceKey)
+
+        LegacyWebSearchSettings.remove(defaults: defaults) { _ in
+            throw CocoaError(.fileWriteNoPermission)
+        }
+
+        #expect(
+            defaults.string(forKey: LegacyWebSearchSettings.credentialReferenceKey)
+                == "termind.ai.search.old"
+        )
+    }
+
     @Test
     func detailRoutesKeepTheirSidebarSelection() {
         let providerID = UUID()

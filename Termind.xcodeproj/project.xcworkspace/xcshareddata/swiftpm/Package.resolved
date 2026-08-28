@@ -1,5 +1,5 @@
 {
-  "originHash" : "d6f7775e55b73f16661cb2d32fed9a81591b83b3b8da1f305f652bdfff758aa8",
+  "originHash" : "61efd12edd2ce744dc62d8629946b85f4c36fb609927b7fdde9d65754310b671",
   "pins" : [
     {
       "identity" : "highlightr",
@@ -83,6 +83,14 @@
       }
     },
     {
+      "identity" : "scrubberkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/ScrubberKit.git",
+      "state" : {
+        "revision" : "4c0e55c2a257ceecae8f86c4781cfd99a6572347"
+      }
+    },
+    {
       "identity" : "swift-cmark",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-cmark",
@@ -107,6 +115,15 @@
       "state" : {
         "revision" : "fa8244ed032f4a1ade4cb0571bf87d2f1a9fd2d7",
         "version" : "1.7.3"
+      }
+    },
+    {
+      "identity" : "swiftsoup",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/scinfu/SwiftSoup",
+      "state" : {
+        "revision" : "18b80329749eca5ea29fc50211dca5c7eff5bfec",
+        "version" : "2.13.9"
       }
     },
     {

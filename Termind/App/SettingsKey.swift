@@ -54,10 +54,8 @@ nonisolated enum SettingsKey {
 
     /// Let the assistant search the web.
     ///
-    /// On by default, which it can only be because the default backend needs no
-    /// account: `SearchBackend.default` reads a results page the way a browser
-    /// would. A default that required a key would be a switch that did nothing
-    /// until the user went and got one, which is the same as off.
+    /// On by default because ScrubberKit searches from this Mac without an
+    /// account or API key.
     static let webSearchEnabled = "search.enabled"
     static let defaultWebSearchEnabled = true
     static var isWebSearchEnabled: Bool {
@@ -80,14 +78,6 @@ nonisolated enum SettingsKey {
         UserDefaults.standard.object(forKey: webSearchBuiltIn) as? Bool
             ?? defaultWebSearchBuiltIn
     }
-    /// A `SearchBackend` raw value. Unrecognised falls back to the default.
-    static let webSearchBackend = "search.backend"
-    /// Blank means the backend's own default, exactly as a model provider's
-    /// blank base URL means its kind's default.
-    static let webSearchBaseURL = "search.baseURL"
-    /// Where the search key is filed in the Keychain. Never the key itself.
-    static let webSearchCredentialRef = "search.credentialRef"
-
     /// Summarize older turns automatically as a conversation approaches the
     /// model's context window.
     ///

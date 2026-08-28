@@ -16,6 +16,7 @@ struct TermindApp: App {
 
     init() {
         ContextAttachmentOpener.cleanPreviousSession()
+        ScrubberWebClient.setup()
         let screenshotDemo = ScreenshotDemoMode.active
         launchLanguage = ScreenshotDemoMode.language ?? AppLanguage.stored()
         do {
@@ -40,6 +41,9 @@ struct TermindApp: App {
                 return
             }
             let secrets = KeychainSecretStore()
+            LegacyWebSearchSettings.remove { reference in
+                try secrets.setString(nil, for: reference, storage: .thisDevice)
+            }
             let hosts = HostLibraryModel(
                 modelContext: container.mainContext, secrets: secrets
             )

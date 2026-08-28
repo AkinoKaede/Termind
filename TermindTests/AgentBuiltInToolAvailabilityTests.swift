@@ -41,7 +41,10 @@ struct AgentBuiltInToolAvailabilityTests {
         )
         let builtIns = AgentBuiltInTools.make(
             hosts: hosts, connections: connections,
-            search: WebSearchClient(backend: .bing),
+            search: ScrubberWebClient(
+                document: { _ in throw ScrubberWebError.emptyDocument },
+                search: { _, _ in [] }
+            ),
             includesTerminalSuggestion: true
         )
         let workspace = AgentScratchWorkspace(

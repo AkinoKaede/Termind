@@ -164,7 +164,7 @@ struct SettingsPageView: View {
         case .webSearch:
             SettingsFormPage(
                 title: "Web Search",
-                subtitle: "How the assistant finds pages before it reads them."
+                subtitle: "Choose between provider-native search and local Web Search on this Mac."
             ) {
                 WebSearchSettings()
             }

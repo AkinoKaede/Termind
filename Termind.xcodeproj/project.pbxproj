@@ -17,6 +17,7 @@
 		TRMD00000000000000100007 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
 		TRMD00000000000000100008 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
 		TRMD00000000000000100009 /* ListViewKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100018 /* ListViewKit */; };
+		TRMD00000000000000100010 /* ScrubberKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100019 /* ScrubberKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,6 +96,7 @@
 				TRMD00000000000000100005 /* ZIPFoundation in Frameworks */,
 				TRMD00000000000000100008 /* MarkdownView in Frameworks */,
 				TRMD00000000000000100009 /* ListViewKit in Frameworks */,
+				TRMD00000000000000100010 /* ScrubberKit in Frameworks */,
 				TRMD00000000000000100001 /* CSSH2 in Frameworks */,
 				TRMD00000000000000100007 /* GhosttyKit in Frameworks */,
 				TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */,
@@ -171,6 +173,7 @@
 				TRMD00000000000000100015 /* ZIPFoundation */,
 				TRMD00000000000000100017 /* MarkdownView */,
 				TRMD00000000000000100018 /* ListViewKit */,
+				TRMD00000000000000100019 /* ScrubberKit */,
 			);
 			productName = Termind;
 			productReference = TRMD00000000000000000001 /* Termind.app */;
@@ -268,6 +271,7 @@
 				TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				TRMD00000000000000100025 /* XCRemoteSwiftPackageReference "MarkdownView" */,
 				TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */,
+				TRMD00000000000000100027 /* XCRemoteSwiftPackageReference "ScrubberKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = TRMD00000000000000000040 /* Products */;
@@ -630,6 +634,14 @@
 				version = 4.3.2;
 			};
 		};
+		TRMD00000000000000100027 /* XCRemoteSwiftPackageReference "ScrubberKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/ScrubberKit.git";
+			requirement = {
+				kind = revision;
+				revision = 4c0e55c2a257ceecae8f86c4781cfd99a6572347;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -672,6 +684,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */;
 			productName = ListViewKit;
+		};
+		TRMD00000000000000100019 /* ScrubberKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100027 /* XCRemoteSwiftPackageReference "ScrubberKit" */;
+			productName = ScrubberKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

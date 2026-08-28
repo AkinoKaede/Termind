@@ -546,28 +546,14 @@ final class AppModel {
     /// record afterwards.
     private func webSearchPlan(
         model: AIModel, provider: ModelProvider
-    ) -> (isNative: Bool, local: WebSearchClient?) {
+    ) -> (isNative: Bool, local: ScrubberWebClient?) {
         guard SettingsKey.isWebSearchEnabled else { return (false, nil) }
         if SettingsKey.isBuiltInWebSearchEnabled,
             provider.supportsNativeWebSearch(model: model)
         {
             return (true, nil)
         }
-        let defaults = UserDefaults.standard
-        let backend =
-            SearchBackend(
-                rawValue: defaults.string(forKey: SettingsKey.webSearchBackend) ?? ""
-            ) ?? .default
-        let client = WebSearchClient(
-            backend: backend,
-            baseURL: defaults.string(forKey: SettingsKey.webSearchBaseURL) ?? "",
-            apiKey: ai.secret(
-                for: defaults.string(forKey: SettingsKey.webSearchCredentialRef) ?? ""
-            ) ?? ""
-        )
-        // A keyed backend with no key registers nothing rather than a tool that
-        // fails on first use — see `AgentBuiltInTools.make(search:)`.
-        return (false, client.isConfigured ? client : nil)
+        return (false, ScrubberWebClient())
     }
 
     /// Arms the one-shot summary for this conversation.

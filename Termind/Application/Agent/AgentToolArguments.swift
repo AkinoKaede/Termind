@@ -104,20 +104,6 @@ nonisolated struct Arguments: Sendable {
         }
     }
 
-    func requestHeaders() throws -> [RestrictedHTTPHeader] {
-        guard let value = object["headers"], value != .null else { return [] }
-        guard let rows = value.arrayValue else {
-            throw AgentToolError.invalidArguments("headers must be an array.")
-        }
-        return try rows.map { row in
-            guard let fields = row.objectValue,
-                let name = fields["name"]?.stringValue,
-                let value = fields["value"]?.stringValue
-            else { throw AgentToolError.invalidArguments("Each header requires name and value.") }
-            return RestrictedHTTPHeader(name: name, value: value)
-        }
-    }
-
     /// `new_text` may legitimately be empty — that is how a block is deleted — so it
     /// is read for presence rather than through `string(_:)`, which rejects empty.
     func scratchEdits() throws -> [ScratchEdit] {
