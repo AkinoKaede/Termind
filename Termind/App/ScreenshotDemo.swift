@@ -134,7 +134,10 @@ enum ScreenshotDemoMode: String {
         }
 
         let window = WindowModel(workspaces: [workspace])
-        window.showsSidebar = false
+        window.showsSidebar = showsCommandResult
+        if showsCommandResult {
+            window.sidebarMode = .navigation
+        }
         return window
     }
 
