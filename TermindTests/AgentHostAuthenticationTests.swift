@@ -161,6 +161,68 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
+    func savedIdentityWithProtectedKeyRequestsOnlyPassphraseExternally() async throws {
+        let keychain = MemoryHostSecretStore()
+        let reference = "termind.key.\(UUID().uuidString)"
+        let key = SSHKeyRef(
+            label: "Protected", publicKey: "ssh-ed25519 test",
+            fingerprint: "SHA256:key", credentialRef: reference,
+            storage: .thisDevice, hasPassphrase: true
+        )
+        try keychain.setKeyCredential(
+            .software(SSHPrivateKeySecret(privateKey: "encrypted")),
+            for: reference, storage: .thisDevice
+        )
+        let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
+        let host = Host(
+            name: "Server", host: "server.example", identityID: identity.id
+        )
+        let store = HostLibraryModel(
+            hosts: [host], keys: [key], identities: [identity],
+            knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")],
+            secrets: keychain
+        )
+        let coordinator = ExternalAuthCoordinator()
+        let session = AgentSSHConfigurationSession(
+            resolver: AgentHostResolver(store: store), hostID: host.id,
+            invocationID: UUID(),
+            interaction: coordinator.handler(clientName: "Codex", runID: UUID())
+        )
+        let configuration = Task { try await session.configuration() }
+
+        for _ in 0..<100 {
+            if case .ssh? = coordinator.current?.request { break }
+            await Task.yield()
+        }
+        guard case .ssh(let request)? = coordinator.current?.request else {
+            Issue.record("Expected a Passphrase request")
+            return
+        }
+        guard case .passphrase(let requestedKeyID) = request.mode else {
+            Issue.record("Expected Passphrase without an Identity step")
+            return
+        }
+        #expect(requestedKeyID == key.id)
+        #expect(request.selectedIdentityID == identity.id)
+        #expect(request.username == identity.username)
+        #expect(request.selectedKeyID == key.id)
+
+        coordinator.respondSSH(.submit(AgentSSHAuthenticationAnswer(
+            identityID: request.selectedIdentityID,
+            username: request.username, passphrase: "one-use",
+            keyID: request.selectedKeyID, save: false
+        )))
+
+        let resolved = try await configuration.value
+        guard case .privateKey(_, _, let passphrase) = resolved.credentials.first else {
+            Issue.record("Expected a private-key credential")
+            return
+        }
+        #expect(passphrase == "one-use")
+        #expect(coordinator.pending.isEmpty)
+    }
+
+    @Test
     func sftpCollectsJumpAndDestinationAuthenticationInRouteOrder() async throws {
         let jump = Host(name: "Bastion", host: "jump.example")
         var destination = Host(name: "Files", host: "files.example")
@@ -494,7 +556,7 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
-    func routeVerifiesEachHostBeforeRequestingThatHostsCredentials() async throws {
+    func routeCollectsLocalCredentialsBeforeStartingEachHostsHandshake() async throws {
         let jump = Host(name: "Bastion", host: "jump.example")
         var destination = Host(name: "Files", host: "files.example")
         destination.jumpHostID = jump.id
@@ -529,11 +591,61 @@ struct AgentHostAuthenticationTests {
         _ = try await session.configuration()
 
         #expect(events == [
-            "verify:\(jump.id)",
             "authenticate:\(jump.id)",
-            "verify:\(destination.id)",
+            "verify:\(jump.id)",
             "authenticate:\(destination.id)",
+            "verify:\(destination.id)",
         ])
+    }
+
+    @Test
+    func directPassphraseIsPresentedBeforeABannerFailure() async throws {
+        let keychain = MemoryHostSecretStore()
+        let reference = "termind.key.\(UUID().uuidString)"
+        let key = SSHKeyRef(
+            label: "Protected", publicKey: "ssh-ed25519 test",
+            fingerprint: "SHA256:key", credentialRef: reference,
+            storage: .thisDevice, hasPassphrase: true
+        )
+        try keychain.setKeyCredential(
+            .software(SSHPrivateKeySecret(privateKey: "encrypted")),
+            for: reference, storage: .thisDevice
+        )
+        let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
+        let host = Host(name: "N1", host: "n1.example", identityID: identity.id)
+        let store = HostLibraryModel(
+            hosts: [host], keys: [key], identities: [identity], secrets: keychain
+        )
+        let probe = PassphraseRequestProbe()
+        let interaction = AuthenticationResponder { request in
+            guard case .passphrase(let keyID) = request.mode else {
+                Issue.record("Expected Passphrase before network discovery")
+                return .cancelled
+            }
+            #expect(keyID == key.id)
+            probe.wasRequested = true
+            return .submit(AgentSSHAuthenticationAnswer(
+                identityID: identity.id, username: identity.username,
+                passphrase: "one-use", keyID: key.id, save: false
+            ))
+        }
+        let resolver = AgentHostResolver(
+            store: store,
+            discoverHostKey: { _, _, _, _, _ in
+                let requestedPassphrase = await probe.wasRequested
+                #expect(requestedPassphrase)
+                throw TermindSSHError.socket("SSH handshake failed: Failed getting banner")
+            }
+        )
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: host.id,
+            invocationID: UUID(), interaction: interaction
+        )
+
+        await #expect(throws: TermindSSHError.self) {
+            _ = try await session.configuration()
+        }
+        #expect(probe.wasRequested)
     }
 
     @Test
@@ -847,6 +959,11 @@ private final class MemoryHostSecretStore: SecretStoring, @unchecked Sendable {
     func removeKeyCredential(_ account: String, storage: KeyStorage) throws {
         keys[KeyKey(account: account, storage: storage)] = nil
     }
+}
+
+@MainActor
+private final class PassphraseRequestProbe {
+    var wasRequested = false
 }
 
 private final class AuthenticationResponder: AgentUserInteractionHandling, @unchecked Sendable {

@@ -125,6 +125,14 @@ final class ExternalAuthCoordinator {
 
     func windowClosed() { cancelAll() }
 
+    /// A scene can finish disappearing after SwiftUI has already opened its
+    /// replacement for a newer request. Only the window that actually displayed
+    /// the current checkpoint is allowed to treat its close as user cancellation.
+    func windowClosed(presenting requestID: UUID?) {
+        guard let requestID, current?.id == requestID else { return }
+        cancelAll()
+    }
+
     func cancelAll() {
         secretTimeoutTask?.cancel()
         secretTimeoutTask = nil

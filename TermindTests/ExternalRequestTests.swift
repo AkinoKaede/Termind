@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 
@@ -6,6 +7,39 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct ExternalAuthCoordinatorTests {
+    @Test
+    func authenticationWindowUsesFocusableNativeChrome() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 240),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+
+        ExternalAuthWindowChrome.configure(window)
+
+        #expect(window.styleMask.contains(.titled))
+        #expect(window.styleMask.contains(.closable))
+        #expect(window.styleMask.contains(.miniaturizable))
+        #expect(window.styleMask.contains(.fullSizeContentView))
+        #expect(window.title == "Authentication Request")
+        #expect(window.titleVisibility == .visible)
+        #expect(window.titlebarAppearsTransparent)
+        #expect(window.titlebarSeparatorStyle == .none)
+        #expect(window.canBecomeKey)
+        #expect(!window.isOpaque)
+        #expect(window.backgroundColor.alphaComponent == 0)
+        #expect(!window.isMovableByWindowBackground)
+        #expect(window.hasShadow)
+        #expect(window.level == .floating)
+        #expect(!window.hidesOnDeactivate)
+        #expect(window.collectionBehavior.contains(.moveToActiveSpace))
+        #expect(window.collectionBehavior.contains(.fullScreenAuxiliary))
+        #expect(window.standardWindowButton(.closeButton)?.isHidden == false)
+        #expect(window.standardWindowButton(.miniaturizeButton)?.isHidden == false)
+        #expect(window.standardWindowButton(.zoomButton)?.isHidden == false)
+    }
+
     @Test
     func popupQueueResumesInFIFOOrder() async throws {
         let coordinator = ExternalAuthCoordinator()
@@ -35,6 +69,57 @@ struct ExternalAuthCoordinatorTests {
     }
 
     @Test
+    func protectedKeyCanRaisePassphraseImmediatelyAfterIdentity() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let handler = coordinator.handler(clientName: "Codex", runID: UUID())
+        let invocationID = UUID()
+        let hostID = UUID()
+        let keyID = UUID()
+        let identity = AgentSSHAuthenticationRequest(
+            invocationID: invocationID, hostID: hostID,
+            displayName: "Server", address: "server.example",
+            mode: .identity, username: "", failureMessage: nil
+        )
+        let flow = Task {
+            let first = await handler.requestSSHAuthentication(identity)
+            guard case .submit = first else { return first }
+            return await handler.requestSSHAuthentication(
+                AgentSSHAuthenticationRequest(
+                    invocationID: invocationID, hostID: hostID,
+                    displayName: "Server", address: "server.example",
+                    mode: .passphrase(keyID: keyID), username: "deploy",
+                    selectedKeyID: keyID, failureMessage: nil
+                )
+            )
+        }
+        try await waitUntil { coordinator.current?.id == identity.id }
+
+        coordinator.respondSSH(.submit(AgentSSHAuthenticationAnswer(
+            username: "deploy", keyID: keyID, save: false
+        )))
+
+        try await waitUntil {
+            guard case .ssh(let request)? = coordinator.current?.request,
+                case .passphrase(let presentedKeyID) = request.mode
+            else { return false }
+            return presentedKeyID == keyID
+        }
+        guard case .ssh(let passphrase)? = coordinator.current?.request else {
+            Issue.record("Expected a Passphrase request")
+            return
+        }
+        #expect(passphrase.username == "deploy")
+        #expect(passphrase.selectedKeyID == keyID)
+
+        let answer = AgentSSHAuthenticationAnswer(
+            username: "deploy", passphrase: "one-use", keyID: keyID, save: false
+        )
+        coordinator.respondSSH(.submit(answer))
+        #expect(await flow.value == .submit(answer))
+        #expect(coordinator.pending.isEmpty)
+    }
+
+    @Test
     func closingThePopupCancelsEveryWaiter() async throws {
         let coordinator = ExternalAuthCoordinator()
         let task = Task {
@@ -47,6 +132,46 @@ struct ExternalAuthCoordinatorTests {
         coordinator.windowClosed()
 
         #expect(await task.value == .cancelled)
+        #expect(coordinator.pending.isEmpty)
+    }
+
+    @Test
+    func staleWindowDisappearanceCannotCancelANewerPassphraseRequest() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let firstRequest = authenticationRequest(name: "First")
+        let first = Task {
+            await coordinator.enqueue(
+                firstRequest, clientName: "Client", runID: UUID()
+            )
+        }
+        try await waitUntil { coordinator.current?.id == firstRequest.id }
+        coordinator.respondSSH(.cancelled)
+        #expect(await first.value == .cancelled)
+
+        let keyID = UUID()
+        let passphraseRequest = AgentSSHAuthenticationRequest(
+            invocationID: UUID(), hostID: UUID(),
+            displayName: "Server", address: "server.example",
+            mode: .passphrase(keyID: keyID), username: "deploy",
+            selectedKeyID: keyID, failureMessage: nil
+        )
+        let passphrase = Task {
+            await coordinator.enqueue(
+                passphraseRequest, clientName: "Client", runID: UUID()
+            )
+        }
+        try await waitUntil { coordinator.current?.id == passphraseRequest.id }
+
+        // The old scene completes its close after the new one has opened.
+        coordinator.windowClosed(presenting: firstRequest.id)
+
+        #expect(coordinator.current?.id == passphraseRequest.id)
+        let answer = AgentSSHAuthenticationAnswer(
+            username: "deploy", passphrase: "one-use",
+            keyID: keyID, save: false
+        )
+        coordinator.respondSSH(.submit(answer))
+        #expect(await passphrase.value == .submit(answer))
         #expect(coordinator.pending.isEmpty)
     }
 

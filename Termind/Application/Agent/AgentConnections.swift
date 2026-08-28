@@ -180,11 +180,51 @@ final class AgentHostResolver: Sendable {
         var temporaryHostKeys = initialTemporaryHostKeys
         var forcedHostID = initialForcedHostID
         var failure = initialFailure
-        // Match the Journey's route semantics: verify each machine before
-        // collecting credentials for that machine, then use those credentials
-        // only to reach the next node. A destination credential is therefore
-        // never requested before every preceding hop has been verified.
+        // Match Terminal and SFTP: resolve local credential requirements first,
+        // then begin the network handshake and host-key verification. In
+        // particular, a protected key must raise Passphrase even when the peer
+        // later fails before returning its SSH banner.
         for node in store.route(for: destination) {
+            while let requirement = authenticationRequirement(
+                for: node, submissions: submissions, forcedHostID: forcedHostID
+            ) {
+                let existing = submissions[node.id]
+                let identity = existing?.identityID.flatMap(store.identity)
+                    ?? store.identity(for: node)
+                let request = AgentSSHAuthenticationRequest(
+                    invocationID: invocationID, hostID: node.id,
+                    displayName: node.name, address: node.displayAddress,
+                    mode: requirement.mode,
+                    selectedIdentityID: existing?.identityID ?? identity?.id,
+                    username: existing?.username ?? identity?.username ?? "",
+                    selectedKeyID: existing?.keyID ?? identity?.keyID,
+                    failureMessage: failure
+                )
+                switch await interaction.requestSSHAuthentication(request) {
+                case .cancelled:
+                    throw AgentToolError.cancelled
+                case .submit(let answer):
+                    if case .passphrase = requirement.mode,
+                        var retained = submissions[node.id]
+                    {
+                        // A protected key may have been chosen beside a password
+                        // in the preceding Identity step. The passphrase card only
+                        // returns the newly-entered secret, so merge it into that
+                        // staged submission instead of replacing (and silently
+                        // dropping) the password and other choices.
+                        guard let passphrase = answer.passphrase, !passphrase.isEmpty else {
+                            throw TermindSSHError.keyPassphraseRequired
+                        }
+                        retained.passphrase = passphrase
+                        submissions[node.id] = retained
+                    } else {
+                        submissions[node.id] = try submission(from: answer, for: node)
+                    }
+                }
+                forcedHostID = nil
+                failure = nil
+            }
+
             if let discoverHostKey {
                 let trusted = Set(store.knownHosts(for: node).map(\.identity))
                 let observation = try await discoverHostKey(
@@ -231,45 +271,6 @@ final class AgentHostResolver: Sendable {
                 }
             }
 
-            while let requirement = authenticationRequirement(
-                for: node, submissions: submissions, forcedHostID: forcedHostID
-            ) {
-                let existing = submissions[node.id]
-                let identity = existing?.identityID.flatMap(store.identity)
-                    ?? store.identity(for: node)
-                let request = AgentSSHAuthenticationRequest(
-                    invocationID: invocationID, hostID: node.id,
-                    displayName: node.name, address: node.displayAddress,
-                    mode: requirement.mode,
-                    selectedIdentityID: existing?.identityID ?? identity?.id,
-                    username: existing?.username ?? identity?.username ?? "",
-                    selectedKeyID: existing?.keyID ?? identity?.keyID,
-                    failureMessage: failure
-                )
-                switch await interaction.requestSSHAuthentication(request) {
-                case .cancelled:
-                    throw AgentToolError.cancelled
-                case .submit(let answer):
-                    if case .passphrase = requirement.mode,
-                        var retained = submissions[node.id]
-                    {
-                        // A protected key may have been chosen beside a password
-                        // in the preceding Identity step. The passphrase card only
-                        // returns the newly-entered secret, so merge it into that
-                        // staged submission instead of replacing (and silently
-                        // dropping) the password and other choices.
-                        guard let passphrase = answer.passphrase, !passphrase.isEmpty else {
-                            throw TermindSSHError.keyPassphraseRequired
-                        }
-                        retained.passphrase = passphrase
-                        submissions[node.id] = retained
-                    } else {
-                        submissions[node.id] = try submission(from: answer, for: node)
-                    }
-                }
-                forcedHostID = nil
-                failure = nil
-            }
         }
 
         return InteractiveResolution(
