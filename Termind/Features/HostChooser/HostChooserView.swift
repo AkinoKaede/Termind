@@ -128,7 +128,22 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
 /// rows carry checkboxes and `selection` stops being the answer — it demotes to
 /// the keyboard cursor, and `checked` is what Connect acts on.
 struct HostChooserView: View {
+    /// How this chooser got on screen, and therefore what closing it means.
+    ///
+    /// The same view is raised two ways: as a sheet over the window, and as
+    /// Vault's third column when a Snippet on the Snippets page asks for its
+    /// targets. Closing used to be inferred from the front destination, which
+    /// got it wrong for the case that is now easy to reach — the Snippets shelf
+    /// in the sidebar raises the *sheet* while Vault is the front destination,
+    /// so Cancel called `closeVaultWork()` and the sheet stayed up with nothing
+    /// to dismiss it.
+    enum Presentation {
+        case sheet
+        case vaultWork
+    }
+
     let purpose: HostChooserPurpose
+    let presentation: Presentation
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
@@ -139,13 +154,21 @@ struct HostChooserView: View {
     @State private var connectionProtocol = HostConnectionProtocol.ssh
     @State private var isConfirmingDestructiveSnippet = false
 
-    init(purpose: HostChooserPurpose) {
+    init(purpose: HostChooserPurpose, presentation: Presentation = .sheet) {
         self.purpose = purpose
+        self.presentation = presentation
         _chooser = State(
             initialValue: ManagedChooserState(
                 mode: purpose.allowsMultiple ? .multiple : .single
             )
         )
+    }
+
+    /// The protocol-choosing variant carries an extra row of controls above the
+    /// list and needs the room; everything else uses the standard picker width.
+    private var sheetWidth: CGFloat? {
+        guard presentation == .sheet else { return nil }
+        return purpose.choosesConnectionProtocol ? 520 : Metrics.HostPicker.width
     }
 
     private var query: String { chooser.query }
@@ -165,9 +188,14 @@ struct HostChooserView: View {
         } footer: {
             footer
         }
+        // A sheet has to name its own size. The host list has no intrinsic
+        // height, so without one the panel collapses to its header and footer
+        // with no room to show a single host — which is what "choose targets
+        // for this Snippet" used to open as. Vault's third column supplies its
+        // own geometry, so the chooser fills it instead.
         .frame(
-            width: purpose.choosesConnectionProtocol ? 520 : nil,
-            height: purpose.choosesConnectionProtocol ? Metrics.HostPicker.height : nil
+            width: sheetWidth,
+            height: presentation == .sheet ? Metrics.HostPicker.height : nil
         )
         .onChange(of: chooser.query) {
             let ids = results.map(\.id)
@@ -385,10 +413,9 @@ struct HostChooserView: View {
     }
 
     private func close() {
-        if case .snippet = purpose, window.selectedDestination == .vault {
-            window.closeVaultWork()
-        } else {
-            dismiss()
+        switch presentation {
+        case .sheet: dismiss()
+        case .vaultWork: window.closeVaultWork()
         }
     }
 

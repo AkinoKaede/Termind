@@ -65,11 +65,14 @@ struct WorkspaceContentView: View {
             let sshSession = workspace.focusedPane.sshSession
 
             Group {
-                Button("") { sshSession?.presentFindAndNavigate(.next) }
+                // F3 is ⌘G's twin and carries the same mapping: `.previous`
+                // walks toward older output, which is the direction that finds
+                // matches when a search starts at the bottom of the buffer.
+                Button("") { sshSession?.presentFindAndNavigate(.previous) }
                     .keyboardShortcut(f3, modifiers: [])
                     .disabled(!isActive || sshSession == nil)
 
-                Button("") { sshSession?.presentFindAndNavigate(.previous) }
+                Button("") { sshSession?.presentFindAndNavigate(.next) }
                     .keyboardShortcut(f3, modifiers: .shift)
                     .disabled(!isActive || sshSession == nil)
 
@@ -122,7 +125,7 @@ private struct CommandGeneratorOverlay: View {
         }
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.vertical, Metrics.Space.l)
-        .background(.regularMaterial, in: .rect(cornerRadius: Metrics.Radius.large))
+        .termindGlassSurface(cornerRadius: Metrics.Radius.large)
         .overlay {
             RoundedRectangle(cornerRadius: Metrics.Radius.large)
                 .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
@@ -632,7 +635,7 @@ private struct PaneView: View {
         }
         .padding(.horizontal, Metrics.Space.m)
         .frame(height: Metrics.Split.headerHeight)
-        .background(.bar)
+        .termindGlassBar()
     }
 
     /// Broadcast: type here, and every shell in the Workspace hears it.
@@ -722,7 +725,7 @@ private struct PaneView: View {
         .font(.system(size: 11, weight: .medium))
         .padding(.horizontal, Metrics.Space.m)
         .padding(.vertical, Metrics.Space.s)
-        .background(.regularMaterial, in: .rect(cornerRadius: Metrics.Radius.medium))
+        .termindGlassSurface(cornerRadius: Metrics.Radius.medium)
     }
 
     private func beginRename() {

@@ -78,18 +78,24 @@ struct TermindCommands: Commands {
 
             Divider()
 
-            Button("Find in Terminal") { window?.presentTerminalFind() }
+            // One Find for the whole window: this focuses the field in the
+            // titlebar, whatever that field is currently pointed at. See
+            // `WindowModel.findKind`.
+            Button("Find") { window?.focusToolbarFind() }
                 .keyboardShortcut("f")
-                .disabled(!(window?.canFindInTerminal ?? false))
+                .disabled(!(window?.canFindInMainContent ?? false))
 
+            // `.previous` walks toward older output, which is where the matches
+            // are when a search starts at the bottom of the buffer — so it is
+            // what "next" means to a reader. Return in the Find field agrees.
             Button("Find Next in Terminal") {
-                window?.navigateTerminalFind(.next)
+                window?.navigateTerminalFind(.previous)
             }
             .keyboardShortcut("g")
             .disabled(!(window?.canFindInTerminal ?? false))
 
             Button("Find Previous in Terminal") {
-                window?.navigateTerminalFind(.previous)
+                window?.navigateTerminalFind(.next)
             }
             .keyboardShortcut("g", modifiers: [.command, .shift])
             .disabled(!(window?.canFindInTerminal ?? false))

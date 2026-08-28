@@ -2,57 +2,74 @@ import AppKit
 import ListViewKit
 import SwiftUI
 
-/// Assistant's conversation navigator inside the window's shared sidebar.
+/// Assistant's conversation navigator inside the window's shared sidebar: the
+/// chat list, over a bar holding the two things you do to the list itself.
+///
+/// The bar is the same height as the Snippets and History search footers, so
+/// every mode of the column ends at the same line. Its two controls are shaped
+/// by what they are: New Chat is a capsule because it is a labelled action that
+/// takes the width, and Archived is a circle because it is one glyph that
+/// toggles — the same distinction the mode rail at the top of the column makes.
 struct AssistantSidebarView: View {
     @Environment(WindowModel.self) private var window
 
     var body: some View {
         VStack(spacing: 0) {
-            chatList
-            Divider()
+            AssistantConversationList(
+                selectedID: window.isAssistantArchivePresented
+                    ? nil : window.assistantLibrary.selectedConversationID,
+                query: window.assistantQuery,
+                onOpen: { window.selectAssistant($0) }
+            )
+
             HStack(spacing: Metrics.Space.s) {
                 Button {
                     window.openNewAssistantChat()
                 } label: {
                     Label("New Chat", systemImage: "plus.bubble")
-                        .padding(.leading, Metrics.Sidebar.navigationRowInset)
                         .frame(
                             maxWidth: .infinity,
-                            minHeight: Metrics.Sidebar.navigationRowHeight,
-                            alignment: .leading
+                            maxHeight: .infinity,
+                            alignment: .center
                         )
-                        .contentShape(.rect)
+                        .contentShape(.capsule)
                 }
-                .termindSidebarGlassButton()
+                .buttonStyle(.plain)
+                .termindGlassCapsule(isInteractive: true)
 
                 Button {
                     window.showAssistantArchive()
                 } label: {
                     Image(systemName: "archivebox")
+                        // Filled and reversed while it is the destination on
+                        // screen, the same way a selected row states itself.
+                        // An accent-on-glass glyph reads as "tinted", not as
+                        // "this is where you are".
                         .foregroundStyle(
-                            window.isAssistantArchivePresented ? Color.accentColor : Color.primary
+                            window.isAssistantArchivePresented
+                                ? AnyShapeStyle(.white) : AnyShapeStyle(.primary)
                         )
                         .frame(
-                            width: Metrics.Sidebar.navigationRowHeight,
-                            height: Metrics.Sidebar.navigationRowHeight
+                            width: Metrics.Sidebar.searchFieldHeight,
+                            height: Metrics.Sidebar.searchFieldHeight
                         )
+                        .background {
+                            if window.isAssistantArchivePresented {
+                                Circle().fill(Color.accentColor)
+                            }
+                        }
+                        .contentShape(.circle)
                 }
-                .termindSidebarGlassButton()
+                .buttonStyle(.plain)
+                .termindGlassCircle(isInteractive: true)
                 .help(Text("Archived"))
                 .accessibilityLabel(Text("Archived"))
                 .accessibilityAddTraits(window.isAssistantArchivePresented ? .isSelected : [])
             }
+            .frame(height: Metrics.Sidebar.searchFieldHeight)
             .padding(.horizontal, Metrics.Space.m)
             .padding(.vertical, Metrics.Space.s)
         }
-    }
-
-    private var chatList: some View {
-        AssistantConversationList(
-            selectedID: window.isAssistantArchivePresented
-                ? nil : window.assistantLibrary.selectedConversationID,
-            onOpen: { window.selectAssistant($0) }
-        )
     }
 }
 
@@ -235,16 +252,19 @@ struct AssistantPanelView: View {
 
 private struct AssistantConversationList: View {
     let selectedID: UUID?
+    /// The titlebar Find field. A non-empty query replaces Pinned and Chats
+    /// with one flat Results section — when you are hunting for a conversation,
+    /// which of the two groups it was filed under is noise.
+    var query: String = ""
     let onOpen: (UUID) -> Void
     var scope: Scope = .active
     var archiveMaxWidth: CGFloat?
 
-    enum Scope {
-        case active
-        case archived
-    }
+    typealias Scope = AssistantLibraryModel.SearchScope
 
     @Environment(WindowModel.self) private var window
+    @AppStorage(SettingsKey.pinnedChatsSectionExpanded) private var pinnedExpanded = true
+    @AppStorage(SettingsKey.chatsSectionExpanded) private var chatsExpanded = true
     @State private var deleteTarget: ConversationModel?
     @State private var renamingID: ConversationModel.ID?
     @State private var renameTitle = ""
@@ -254,6 +274,13 @@ private struct AssistantConversationList: View {
         .onChange(of: visibleConversationIDs) {
             guard let renamingID, !visibleConversationIDs.contains(renamingID) else { return }
             cancelRename()
+        }
+        .onChange(of: selectedID) {
+            guard case .active = scope,
+                let id = selectedID,
+                let conversation = window.assistantLibrary.conversation(id: id)
+            else { return }
+            setExpanded(true, for: conversation.isPinned ? .pinned : .chats)
         }
         .alert(
             "Delete Conversation?",
@@ -284,6 +311,10 @@ private struct AssistantConversationList: View {
         }
     }
 
+    private var isSearching: Bool {
+        !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     @ViewBuilder
     private var content: some View {
         switch scope {
@@ -297,13 +328,20 @@ private struct AssistantConversationList: View {
     private var activeList: some View {
         AssistantConversationNativeList(
             items: activeItems,
-            draggedID: draggedConversationID,
-            onMove: { id, target in
+            // Structural changes are not animated while a section is folding.
+            // ListViewKit recycles the rows a collapse removes and reconfigures
+            // the section header in place; doing that inside the very click
+            // that asked for it tears down the Button mid-dispatch.
+            animatesStructuralChanges: false,
+            draggedID: { isSearching ? nil : draggedConversationID },
+            onMove: isSearching ? nil : { id, target in
+                setExpanded(true, for: target.section)
                 window.moveAssistantConversation(
                     id, toPinned: target.section == .pinned, before: target.beforeID
                 )
                 window.dragging = nil
-            }
+            },
+            blankAreaMenu: { blankAreaMenu }
         ) { item in
             renderedItem(item)
         }
@@ -314,7 +352,8 @@ private struct AssistantConversationList: View {
         AssistantConversationNativeList(
             items: archivedItems,
             topInset: Metrics.Space.m,
-            bottomInset: Metrics.Space.m
+            bottomInset: Metrics.Space.m,
+            blankAreaMenu: { blankAreaMenu }
         ) { item in
             renderedItem(item)
                 .frame(maxWidth: archiveMaxWidth ?? .infinity)
@@ -324,11 +363,43 @@ private struct AssistantConversationList: View {
         .background(Color.clear)
     }
 
+    /// New Chat and Show Archive are the Assistant's global verbs, so they stay
+    /// live with nothing under the pointer. That also covers the one place the
+    /// titlebar cannot: the chat list showing while Vault is the front content.
+    private var blankAreaMenu: [NativeMenuEntry] {
+        [
+            NativeMenuEntry(title: String(localized: "New Chat")) {
+                window.openNewAssistantChat()
+            },
+            NativeMenuEntry(
+                title: String(localized: "Show Archive"),
+                isOn: window.isAssistantArchivePresented
+            ) { window.showAssistantArchive() },
+        ]
+    }
+
     private var activeItems: [AssistantConversationListItem] {
-        var items: [AssistantConversationListItem] = [.section(.pinned)]
-        items.append(contentsOf: window.assistantLibrary.pinnedConversations.map(item))
-        items.append(.section(.chats))
-        items.append(contentsOf: window.assistantLibrary.activeConversations.map(item))
+        guard !isSearching else {
+            return window.assistantLibrary.search(query, scope: .active).map(item)
+        }
+        var items: [AssistantConversationListItem] = [
+            .section(
+                .pinned,
+                isExpanded: pinnedExpanded,
+                count: window.assistantLibrary.pinnedConversations.count
+            )
+        ]
+        if pinnedExpanded {
+            items.append(contentsOf: window.assistantLibrary.pinnedConversations.map(item))
+        }
+        items.append(.section(
+            .chats,
+            isExpanded: chatsExpanded,
+            count: window.assistantLibrary.activeConversations.count
+        ))
+        if chatsExpanded {
+            items.append(contentsOf: window.assistantLibrary.activeConversations.map(item))
+        }
         return items
     }
 
@@ -338,7 +409,7 @@ private struct AssistantConversationList: View {
     }
 
     private var archivedItems: [AssistantConversationListItem] {
-        window.assistantLibrary.archivedConversations.map(item)
+        window.assistantLibrary.search(query, scope: .archived).map(item)
     }
 
     private func item(_ conversation: ConversationModel) -> AssistantConversationListItem {
@@ -357,22 +428,14 @@ private struct AssistantConversationList: View {
     @ViewBuilder
     private func renderedItem(_ item: AssistantConversationListItem) -> some View {
         switch item.content {
-        case .section(let section):
-            Text(section.title)
-                .termindSidebarSectionLabel()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(
-                    .horizontal,
-                    Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
-                )
-                .padding(.top, Metrics.Space.m)
-                .padding(.bottom, Metrics.Space.xs)
+        case .section(let section, let isExpanded, let count):
+            assistantSectionHeader(section, isExpanded: isExpanded, count: count)
         case .conversation(let id, _, _, _, _, _, _, _):
             if let conversation = window.assistantLibrary.conversation(id: id) {
-            AssistantConversationRow(
-                conversation: conversation,
-                isSelected: selectedID == conversation.id,
-                onOpen: { onOpen(conversation.id) },
+                AssistantConversationRow(
+                    conversation: conversation,
+                    isSelected: selectedID == conversation.id,
+                    onOpen: { onOpen(conversation.id) },
                     onDelete: { deleteTarget = conversation },
                     isRenaming: renamingID == conversation.id,
                     renameTitle: Binding(
@@ -382,8 +445,63 @@ private struct AssistantConversationList: View {
                     onBeginRename: { beginRename(conversation) },
                     onCommitRename: { commitRename(conversation) },
                     onCancelRename: cancelRename
-            )
+                )
                 .id(conversation.id)
+            }
+        }
+    }
+
+    private func assistantSectionHeader(
+        _ section: AssistantConversationListItem.Section,
+        isExpanded: Bool,
+        count: Int
+    ) -> some View {
+        return Button {
+            setExpanded(!isExpanded, for: section)
+        } label: {
+            HStack(spacing: Metrics.Space.s) {
+                Text(section.title)
+                Spacer(minLength: 0)
+                Text(count, format: .number)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: Metrics.Sidebar.rowIcon)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 34)
+            .padding(
+                .horizontal,
+                Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
+            )
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .termindSidebarSectionLabel()
+        .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+        .accessibilityAction(named: Text(isExpanded ? "Collapse" : "Expand")) {
+            setExpanded(!isExpanded, for: section)
+        }
+    }
+
+    /// Folding a section removes its rows, which makes ListViewKit recycle them
+    /// and reconfigure the header's hosting view. Doing that synchronously from
+    /// the header Button's own action replaces the root view of the Button that
+    /// is still dispatching — so the write is deferred by one main-loop turn and
+    /// the rebuild lands after the click has returned.
+    ///
+    /// The number, the title and the chevron remain one hit region: the button
+    /// is unchanged, only when its effect is applied.
+    private func setExpanded(
+        _ expanded: Bool,
+        for section: AssistantConversationListItem.Section
+    ) {
+        DispatchQueue.main.async {
+            switch section {
+            case .pinned: pinnedExpanded = expanded
+            case .chats: chatsExpanded = expanded
             }
         }
     }
@@ -425,7 +543,7 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     }
 
     nonisolated enum Content: Hashable, Sendable {
-        case section(Section)
+        case section(Section, isExpanded: Bool, count: Int)
         case conversation(
             id: UUID,
             title: String,
@@ -441,8 +559,15 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     let id: ID
     let content: Content
 
-    static func section(_ section: Section) -> Self {
-        .init(id: .section(section), content: .section(section))
+    static func section(
+        _ section: Section,
+        isExpanded: Bool = true,
+        count: Int = 0
+    ) -> Self {
+        .init(
+            id: .section(section),
+            content: .section(section, isExpanded: isExpanded, count: count)
+        )
     }
 
     static func conversation(
@@ -475,7 +600,7 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     }
 
     var section: Section? {
-        guard case .section(let section) = content else { return nil }
+        guard case .section(let section, _, _) = content else { return nil }
         return section
     }
 
@@ -555,8 +680,16 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
     let items: [AssistantConversationListItem]
     var topInset: CGFloat = 0
     var bottomInset: CGFloat = 0
-    var draggedID: UUID?
+    var animatesStructuralChanges = true
+    /// Asked at drag time rather than cached from a render pass.
+    ///
+    /// `onDrag` sets `WindowModel.dragging` and AppKit enters its modal drag
+    /// loop in the same breath, so SwiftUI may not run another update between
+    /// the drag starting and the pointer arriving here — leaving a cached id
+    /// nil and the insertion line hidden for the whole drag.
+    var draggedID: () -> UUID? = { nil }
     var onMove: ((UUID, AssistantConversationDropTarget) -> Void)?
+    var blankAreaMenu: (() -> [NativeMenuEntry])?
     let renderer: Renderer
 
     @Environment(\.locale) private var locale
@@ -566,15 +699,19 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         items: [AssistantConversationListItem],
         topInset: CGFloat = 0,
         bottomInset: CGFloat = 0,
-        draggedID: UUID? = nil,
+        animatesStructuralChanges: Bool = true,
+        draggedID: @escaping () -> UUID? = { nil },
         onMove: ((UUID, AssistantConversationDropTarget) -> Void)? = nil,
+        blankAreaMenu: (() -> [NativeMenuEntry])? = nil,
         @ViewBuilder renderer: @escaping @MainActor (AssistantConversationListItem) -> some View
     ) {
         self.items = items
         self.topInset = topInset
         self.bottomInset = bottomInset
+        self.animatesStructuralChanges = animatesStructuralChanges
         self.draggedID = draggedID
         self.onMove = onMove
+        self.blankAreaMenu = blankAreaMenu
         self.renderer = { AnyView(renderer($0)) }
     }
 
@@ -587,6 +724,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
     func updateNSView(_ container: NSViewType, context: Context) {
         container.draggedID = draggedID
         container.onMove = onMove
+        container.blankAreaMenu = blankAreaMenu
         context.coordinator.update(
             listView: container.listView,
             items: items,
@@ -594,7 +732,8 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
             locale: locale,
             colorScheme: colorScheme,
             topInset: topInset,
-            bottomInset: bottomInset
+            bottomInset: bottomInset,
+            animated: animatesStructuralChanges
         )
     }
 
@@ -628,7 +767,8 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
             locale: Locale,
             colorScheme: ColorScheme,
             topInset: CGFloat,
-            bottomInset: CGFloat
+            bottomInset: CGFloat,
+            animated: Bool
         ) {
             self.renderer = renderer
             let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
@@ -644,7 +784,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
                     listView.update(new)
                 }
             } else {
-                listView.apply(items, animated: !content.isEmpty)
+                listView.apply(items, animated: animated && !content.isEmpty)
             }
             content = items
         }
@@ -665,8 +805,9 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
 @MainActor
 private final class AssistantConversationListContainer: NSView {
     let listView: ListView<AssistantConversationListItem>
-    var draggedID: UUID?
+    var draggedID: () -> UUID? = { nil }
     var onMove: ((UUID, AssistantConversationDropTarget) -> Void)?
+    var blankAreaMenu: (() -> [NativeMenuEntry])?
 
     private let insertionLine = NSView()
     private var target: AssistantConversationDropTarget?
@@ -693,6 +834,17 @@ private final class AssistantConversationListContainer: NSView {
     @available(*, unavailable)
     required init?(coder _: NSCoder) { fatalError() }
 
+    /// A row's own menu is installed by SwiftUI on its hosting view, which
+    /// AppKit finds first — only a right-click that landed on no row walks the
+    /// responder chain this far. That is the blank area, with no geometry
+    /// needed to recognise it.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        guard let entries = blankAreaMenu?(), !entries.isEmpty else {
+            return super.menu(for: event)
+        }
+        return NativeMenuEntry.menu(entries)
+    }
+
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
         updateTarget(sender) ? .move : []
     }
@@ -706,7 +858,7 @@ private final class AssistantConversationListContainer: NSView {
     }
 
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-        guard updateTarget(sender), let draggedID, let target, let onMove else {
+        guard updateTarget(sender), let draggedID = draggedID(), let target, let onMove else {
             clearTarget()
             return false
         }
@@ -721,7 +873,7 @@ private final class AssistantConversationListContainer: NSView {
     }
 
     private func updateTarget(_ sender: any NSDraggingInfo) -> Bool {
-        guard draggedID != nil,
+        guard draggedID() != nil,
             sender.draggingPasteboard.availableType(from: [.string]) != nil
         else {
             clearTarget()
@@ -815,6 +967,10 @@ private final class AssistantConversationHostingRow: ListRowView {
 
 private struct AssistantArchiveView: View {
     let isCompact: Bool
+    /// The titlebar Find field, which searches whichever scope is on screen.
+    /// The compact sidebar archive passes none — the titlebar is describing the
+    /// main content, not this column.
+    var query: String = ""
     var onBack: (() -> Void)?
     let onOpen: (UUID) -> Void
 
@@ -826,6 +982,7 @@ private struct AssistantArchiveView: View {
 
             AssistantConversationList(
                 selectedID: nil,
+                query: query,
                 onOpen: onOpen,
                 scope: .archived,
                 archiveMaxWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth
@@ -837,6 +994,8 @@ private struct AssistantArchiveView: View {
                         systemImage: "archivebox",
                         description: Text("Chats you archive will appear here.")
                     )
+                } else if window.assistantLibrary.search(query, scope: .archived).isEmpty {
+                    ContentUnavailableView.search(text: query)
                 }
             }
         }
@@ -857,7 +1016,7 @@ private struct AssistantArchiveView: View {
             archiveHeaderContent
                 .padding(.horizontal, Metrics.Space.xl)
                 .padding(.vertical, Metrics.Space.l)
-                .background(.bar)
+                .termindGlassBar()
             Divider()
         }
     }
@@ -918,6 +1077,7 @@ struct AssistantConversationRow: View {
     let onCancelRename: () -> Void
 
     @Environment(WindowModel.self) private var window
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var hovering = false
     @FocusState private var titleFocused: Bool
 
@@ -949,7 +1109,7 @@ struct AssistantConversationRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: Metrics.Sidebar.navigationRowHeight)
             .contentShape(.rect)
-            .termindSidebarRowBackground(isSelected: isSelected)
+            .termindSidebarRow(isSelected: isSelected) { contextMenu }
             .onTapGesture {
                 guard !isRenaming else { return }
                 window.dragging = nil
@@ -964,23 +1124,46 @@ struct AssistantConversationRow: View {
                     DispatchQueue.main.async { titleFocused = true }
                 }
             }
-            .overlay {
-                ConversationContextMenuHost(
-                    isArchived: conversation.isArchived,
-                    isPinned: conversation.isPinned,
-                    managementDisabled: conversation.isStreaming || conversation.isCompacting,
-                    onOpenFullScreen: { window.openAssistantFullScreen(conversation.id) },
-                    onTogglePin: { window.toggleAssistantPin(conversation.id) },
-                    onRename: onBeginRename,
-                    onToggleArchive: {
-                        window.setAssistantArchived(
-                            conversation.id, archived: !conversation.isArchived
-                        )
-                    },
-                    onDelete: onDelete
+    }
+
+    private var contextMenu: [NativeMenuEntry] {
+        let managementDisabled = conversation.isStreaming || conversation.isCompacting
+        var entries: [NativeMenuEntry] = [
+            NativeMenuEntry(title: String(localized: "Open Full Screen")) {
+                window.openAssistantFullScreen(conversation.id)
+            },
+            .separator,
+        ]
+        if !conversation.isArchived {
+            entries.append(
+                NativeMenuEntry(
+                    title: conversation.isPinned
+                        ? String(localized: "Unpin") : String(localized: "Pin"),
+                    isEnabled: !managementDisabled
+                ) { window.toggleAssistantPin(conversation.id) }
+            )
+        }
+        entries.append(
+            NativeMenuEntry(title: String(localized: "Rename"), action: onBeginRename)
+        )
+        entries.append(
+            NativeMenuEntry(
+                title: conversation.isArchived
+                    ? String(localized: "Unarchive") : String(localized: "Archive"),
+                isEnabled: conversation.isArchived || !managementDisabled
+            ) {
+                window.setAssistantArchived(
+                    conversation.id, archived: !conversation.isArchived
                 )
-                .accessibilityHidden(true)
             }
+        )
+        entries.append(.separator)
+        entries.append(
+            NativeMenuEntry(title: String(localized: "Delete"), isDestructive: true) {
+                onDelete()
+            }
+        )
+        return entries
     }
 
     private var canDrag: Bool {
@@ -991,7 +1174,11 @@ struct AssistantConversationRow: View {
     private var rowContent: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: conversation.isArchived ? "archivebox" : "sparkles")
-                .foregroundStyle(.tint)
+                .foregroundStyle(SidebarSelectionStyle.foreground(
+                    isSelected: isSelected,
+                    controlActiveState: controlActiveState,
+                    unselected: AnyShapeStyle(.secondary)
+                ))
             if isRenaming {
                 TextField("Conversation Name", text: $renameTitle)
                     .textFieldStyle(.plain)
@@ -1010,6 +1197,14 @@ struct AssistantConversationRow: View {
                 } label: {
                     Image(systemName: conversation.isArchived ? "arrow.uturn.backward" : "archivebox")
                         .font(.caption)
+                        // The row's own foreground, so on a selected card in a
+                        // key window this reads white with the title beside it
+                        // rather than as an accent-coloured glyph on accent.
+                        .foregroundStyle(SidebarSelectionStyle.foreground(
+                            isSelected: isSelected,
+                            controlActiveState: controlActiveState,
+                            unselected: AnyShapeStyle(.secondary)
+                        ))
                 }
                 .buttonStyle(.plain)
                 .help(Text(
@@ -1018,97 +1213,6 @@ struct AssistantConversationRow: View {
                 ))
             }
         }
-    }
-}
-
-/// SwiftUI's `contextMenu` paints a thick blue source outline on macOS even
-/// when the row itself is not focusable. The menu is native either way, so host
-/// it directly in AppKit: right clicks still get the standard menu while row
-/// selection remains our quiet filled state rather than a second outlined one.
-private struct ConversationContextMenuHost: NSViewRepresentable {
-    let isArchived: Bool
-    let isPinned: Bool
-    let managementDisabled: Bool
-    let onOpenFullScreen: () -> Void
-    let onTogglePin: () -> Void
-    let onRename: () -> Void
-    let onToggleArchive: () -> Void
-    let onDelete: () -> Void
-
-    func makeNSView(context: Context) -> MenuView {
-        MenuView()
-    }
-
-    func updateNSView(_ view: MenuView, context: Context) {
-        view.isArchived = isArchived
-        view.isPinned = isPinned
-        view.managementDisabled = managementDisabled
-        view.onOpenFullScreen = onOpenFullScreen
-        view.onTogglePin = onTogglePin
-        view.onRename = onRename
-        view.onToggleArchive = onToggleArchive
-        view.onDelete = onDelete
-    }
-
-    final class MenuView: NSView {
-        var isArchived = false
-        var isPinned = false
-        var managementDisabled = false
-        var onOpenFullScreen: () -> Void = {}
-        var onTogglePin: () -> Void = {}
-        var onRename: () -> Void = {}
-        var onToggleArchive: () -> Void = {}
-        var onDelete: () -> Void = {}
-
-        override func hitTest(_ point: NSPoint) -> NSView? {
-            guard let event = NSApp.currentEvent,
-                event.type == .rightMouseDown || event.type == .rightMouseUp
-            else { return nil }
-            return self
-        }
-
-        override func rightMouseDown(with event: NSEvent) {
-            NSMenu.popUpContextMenu(makeMenu(), with: event, for: self)
-        }
-
-        private func makeMenu() -> NSMenu {
-            let menu = NSMenu()
-            menu.addItem(item(
-                String(localized: "Open Full Screen"), action: #selector(openFullScreen)
-            ))
-            menu.addItem(.separator())
-            if !isArchived {
-                menu.addItem(item(
-                    isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
-                    action: #selector(togglePin),
-                    enabled: !managementDisabled
-                ))
-            }
-            menu.addItem(item(String(localized: "Rename"), action: #selector(rename)))
-            menu.addItem(item(
-                isArchived ? String(localized: "Unarchive") : String(localized: "Archive"),
-                action: #selector(toggleArchive),
-                enabled: isArchived || !managementDisabled
-            ))
-            menu.addItem(.separator())
-            menu.addItem(item(String(localized: "Delete"), action: #selector(deleteConversation)))
-            return menu
-        }
-
-        private func item(
-            _ title: String, action: Selector, enabled: Bool = true
-        ) -> NSMenuItem {
-            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-            item.target = self
-            item.isEnabled = enabled
-            return item
-        }
-
-        @objc private func togglePin() { onTogglePin() }
-        @objc private func openFullScreen() { onOpenFullScreen() }
-        @objc private func rename() { onRename() }
-        @objc private func toggleArchive() { onToggleArchive() }
-        @objc private func deleteConversation() { onDelete() }
     }
 }
 
@@ -1125,6 +1229,7 @@ struct AssistantView: View {
         if window.isAssistantArchivePresented {
             AssistantArchiveView(
                 isCompact: false,
+                query: window.assistantQuery,
                 onOpen: { window.selectAssistant($0) }
             )
             .background(.background)

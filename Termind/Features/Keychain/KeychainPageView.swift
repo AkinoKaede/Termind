@@ -50,7 +50,11 @@ struct KeychainPageView: ManagedCardPage {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    @State private var state = KeychainPageState()
+    let state: KeychainPageState
+
+    init(state: KeychainPageState = KeychainPageState()) {
+        self.state = state
+    }
 
     private var keys: [SSHKeyRef] { app.credentials.searchKeys(state.query) }
     private var identities: [Identity] { app.credentials.searchIdentities(state.query) }
@@ -178,18 +182,22 @@ struct KeychainPageView: ManagedCardPage {
         }
     }
 
-    @ViewBuilder
-    func managedSupplementaryContent(for section: SectionID) -> some View {
-        switch section {
-        case .keys:
-            AddCardTile(title: "Import Key") {
+    /// Both sections offer every verb: a key and an identity are made in the
+    /// same visit often enough that hiding one behind the other section would
+    /// just be a second right-click.
+    func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
+        [
+            NativeMenuEntry(title: String(localized: "Import Key")) {
                 window.openVaultWork(.importKey, on: .keychain)
-            }
-        case .identities:
-            AddCardTile(title: "New Identity") {
+            },
+            NativeMenuEntry(title: String(localized: "Generate Key")) {
+                window.openVaultWork(.generateKey, on: .keychain)
+            },
+            .separator,
+            NativeMenuEntry(title: String(localized: "New Identity")) {
                 window.openVaultWork(.identityEditor(nil), on: .keychain)
-            }
-        }
+            },
+        ]
     }
 
     // MARK: - Selection
@@ -233,28 +241,6 @@ struct KeychainPageView: ManagedCardPage {
     }
 
     // MARK: - Chrome
-
-    func managedToolbar() -> some View {
-        PageToolbar(
-            query: Binding(get: { state.query }, set: { state.query = $0 }),
-            prompt: "Filter keys and identities"
-        ) {
-            Button("Import Key") {
-                window.openVaultWork(.importKey, on: .keychain)
-            }
-            Button("Generate Key") {
-                window.openVaultWork(.generateKey, on: .keychain)
-            }
-            Button("New Identity") {
-                window.openVaultWork(.identityEditor(nil), on: .keychain)
-            }
-            if let error = state.errorMessage {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-                    .lineLimit(1)
-            }
-        }
-    }
 
     func managedFootnote() -> some View {
         PageFootnote(
@@ -315,6 +301,21 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
         @Bindable var state = state
         content
             .onAppear(perform: actions.pruneSelection)
+            // A refused Keychain delete used to be a line of orange text in the
+            // page toolbar. With the toolbar gone it needs somewhere it cannot
+            // be missed: leaving a key the user asked to remove sitting there
+            // with no explanation is the one outcome worth interrupting for.
+            .alert(
+                "Keychain Operation Failed",
+                isPresented: Binding(
+                    get: { state.errorMessage != nil },
+                    set: { if !$0 { state.errorMessage = nil } }
+                )
+            ) {
+                Button("OK") { state.errorMessage = nil }
+            } message: {
+                Text(state.errorMessage ?? "")
+            }
     }
 }
 

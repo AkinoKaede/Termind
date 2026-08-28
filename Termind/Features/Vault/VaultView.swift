@@ -95,7 +95,6 @@ struct VaultSidebarView: View {
             app.open(host, as: .sshSession, in: window)
         } label: {
             HStack(spacing: Metrics.Space.s) {
-                StatusDot(status: app.hostLibrary.status(of: host.id))
                 Text(host.name)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -106,10 +105,10 @@ struct VaultSidebarView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .termindSidebarRowBackground(isSelected: false)
         .contextMenu {
             HostContextMenu(host: host)
         }
+        .termindSidebarRowBackground(isSelected: false)
         .help(Text("Quick Connect to \(app.hostLibrary.loginAddress(for: host))"))
         .accessibilityHint("Quick Connect with SSH")
     }
@@ -289,10 +288,10 @@ private final class VaultNavigationHostingRow: ListRowView {
 /// window-level split view and remains alive while top-level tabs change.
 struct VaultView: View {
     @Environment(WindowModel.self) private var window
-    let hostsPageState: HostsPageState
+    let pages: VaultPageStates
 
-    init(hostsPageState: HostsPageState = HostsPageState()) {
-        self.hostsPageState = hostsPageState
+    init(pages: VaultPageStates = VaultPageStates()) {
+        self.pages = pages
     }
 
     var body: some View {
@@ -304,9 +303,9 @@ struct VaultView: View {
     private var destination: some View {
         switch window.vaultDestination {
         case .welcome: WelcomeView()
-        case .hosts: HostsPageView(state: hostsPageState)
-        case .keychain: KeychainPageView()
-        case .snippets: SnippetsPageView()
+        case .hosts: HostsPageView(state: pages.hosts)
+        case .keychain: KeychainPageView(state: pages.keychain)
+        case .snippets: SnippetsPageView(state: pages.snippets)
         }
     }
 }

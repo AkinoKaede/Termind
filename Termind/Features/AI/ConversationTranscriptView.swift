@@ -100,7 +100,7 @@ struct ConversationView: View {
         } else {
             archivedSurfaceContent
                 .padding(Metrics.Space.l)
-                .background(.bar)
+                .termindGlassBar()
         }
     }
 
@@ -1050,10 +1050,7 @@ struct AgentTaskCapsuleView: View {
             }
             .padding(.horizontal, Metrics.Space.m)
             .padding(.vertical, 3)
-            .background(.bar, in: .capsule)
-            .overlay {
-                Capsule().stroke(.quaternary, lineWidth: 1)
-            }
+            .termindGlassCapsule(isInteractive: true)
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
@@ -1085,11 +1082,7 @@ struct AgentTaskCapsuleView: View {
             width: isCompact
                 ? Metrics.Chat.compactTaskListWidth : Metrics.Chat.taskListWidth
         )
-        .background(.bar, in: .rect(cornerRadius: Metrics.Chat.composerRadius))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                .stroke(.quaternary, lineWidth: 1)
-        }
+        .termindGlassSurface(cornerRadius: Metrics.Chat.composerRadius)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Tasks"))
     }
@@ -1731,19 +1724,12 @@ struct SteeringQueueView: View {
             .frame(height: min(rowsHeight, Metrics.Chat.steeringQueueMaxHeight))
             .scrollBounceBehavior(.basedOnSize)
         }
-        .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            surfaceStyle == .sidebar
-                ? AnyShapeStyle(surfaceStyle.panelColor)
-                : AnyShapeStyle(.bar),
-            in: .rect(cornerRadius: Metrics.Chat.composerRadius)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                .stroke(.quaternary, lineWidth: 1)
-        }
+        // The same surface the Composer directly below it uses, so the two read
+        // as one object with a queue on top rather than as two panels — see
+        // `assistantInteractionSurface`. No hand-drawn stroke: system glass
+        // draws its own edge, and a second one on top of it reads as a seam.
+        .assistantInteractionSurface(style: surfaceStyle)
         .padding(.horizontal, isEmbedded ? 0 : Metrics.Space.l)
         .padding(.top, Metrics.Space.s)
         .accessibilityElement(children: .contain)
@@ -1779,10 +1765,13 @@ struct SteeringQueueView: View {
             .padding(.horizontal, Metrics.Space.s)
             .padding(.vertical, Metrics.Space.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
+            // Transparent at rest, so the rows read as content on the surface
+            // rather than as chips laid on top of it. The hover fill is the
+            // app's one hover level — see `Highlight`.
             .background(
-                hoveredMessageID == pending.id
-                    ? AnyShapeStyle(.quaternary.opacity(0.72))
-                    : AnyShapeStyle(.clear),
+                Highlight.fill(
+                    isSelected: false, isHovering: hoveredMessageID == pending.id
+                ),
                 in: .rect(cornerRadius: Metrics.Radius.medium)
             )
             .contentShape(.rect)

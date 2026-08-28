@@ -60,7 +60,7 @@ struct StatusBarView: View {
         .lineLimit(1)
         .padding(.horizontal, Metrics.Space.l)
         .frame(height: Metrics.StatusBar.height)
-        .background(.bar)
+        .termindGlassBar()
         .overlay(alignment: .top) { Divider() }
     }
 

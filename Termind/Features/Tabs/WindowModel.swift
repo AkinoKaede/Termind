@@ -22,6 +22,13 @@ final class WindowModel {
     let sidebar = WindowSidebarState()
     let presentations = WindowPresentationState()
     let dragState = WorkspaceDragState()
+    /// Query and confirmation state for the three manager pages, kept here so a
+    /// half-typed search survives a trip to another page — see `VaultPageStates`.
+    let vaultPages = VaultPageStates()
+    /// What the titlebar Find field holds while the Assistant is in front.
+    /// Deliberately window-local and never persisted: a search is a way of
+    /// looking at the list, not a property of it.
+    var assistantQuery = ""
     /// Archived chats are a destination, not a third section in live history.
     /// This remains window-local so two windows may independently manage the
     /// archive and continue a conversation.
@@ -238,6 +245,10 @@ final class WindowModel {
         return selectedWorkspace?.focusedPane.sshSession
     }
 
+    var focusedSFTPSession: SFTPSessionModel? {
+        selectedWorkspace?.focusedPane.sftpSession
+    }
+
     var canFindInTerminal: Bool { focusedSSHSession != nil }
 
     var canGenerateTerminalCommand: Bool { focusedSSHSession != nil }
@@ -246,10 +257,60 @@ final class WindowModel {
         selectedWorkspace?.generateFocusedCommand(using: controller)
     }
 
-    func presentTerminalFind() {
-        focusedSSHSession?.presentFind()
+    // MARK: - Find
+
+    /// Bumped by ⌘F. The titlebar field watches it and takes first responder,
+    /// so pressing ⌘F while the field is already showing refocuses rather than
+    /// doing nothing.
+    private(set) var findFocusRequest: UInt64 = 0
+
+    /// True while the titlebar Find field holds the keyboard.
+    ///
+    /// The field is outside every pane, but what it filters is inside one — so
+    /// typing in it changes state the pane observes, and a pane that claims
+    /// first responder whenever it is the focused pane takes the caret back
+    /// after each keystroke. Panes read this and stand down while it is set.
+    var isToolbarFindFocused = false
+
+    /// What the window's one Find field is pointed at, decided by the content in
+    /// front. A split Workspace resolves to its *focused* pane — "any session in
+    /// the workspace" would make ⌘F search a buffer other than the one under the
+    /// caret.
+    var findKind: WindowToolbarFindKind? {
+        switch selectedDestination {
+        case .assistant:
+            return .assistant
+        case .workspace:
+            if focusedSSHSession != nil { return .terminal }
+            if focusedSFTPSession != nil { return .sftp }
+            return nil
+        case .vault:
+            switch vaultDestination {
+            // Welcome has its own field, and it is the page's whole point.
+            case .welcome: return nil
+            case .hosts: return .hosts
+            case .keychain: return .keychain
+            case .snippets: return .snippets
+            }
+        }
     }
 
+    var canFindInMainContent: Bool { findKind != nil }
+
+    /// ⌘F. Focuses the titlebar field, and for a terminal also starts Ghostty's
+    /// search again on a query retained from last time.
+    func focusToolbarFind() {
+        guard findKind != nil else { return }
+        if findKind == .terminal { focusedSSHSession?.presentFind() }
+        findFocusRequest &+= 1
+    }
+
+    /// ⌘G and F3.
+    ///
+    /// A terminal search starts at the bottom of the buffer, so Ghostty's
+    /// `.previous` is the direction that reaches the first match — which is what
+    /// a reader means by "next". Return in the Find field is bound the same way;
+    /// the two used to disagree.
     func navigateTerminalFind(_ direction: TerminalFindDirection) {
         focusedSSHSession?.presentFindAndNavigate(direction)
     }

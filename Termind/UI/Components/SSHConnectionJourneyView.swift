@@ -324,7 +324,7 @@ struct SSHConnectionJourneyView: View {
             }
             .frame(maxHeight: 210)
         }
-        .background(.regularMaterial, in: .rect(cornerRadius: 12))
+        .termindGlassSurface(cornerRadius: 12)
         .overlay {
             RoundedRectangle(cornerRadius: 12).strokeBorder(.separator.opacity(0.7))
         }
@@ -821,7 +821,7 @@ struct SSHAuthenticationForm: View {
             if usesContainerChrome {
                 form
                     .padding(18)
-                    .background(.regularMaterial, in: .rect(cornerRadius: 14))
+                    .termindGlassSurface(cornerRadius: 14)
                     .overlay {
                         RoundedRectangle(cornerRadius: 14)
                             .strokeBorder(.separator.opacity(0.7))
@@ -1083,7 +1083,7 @@ struct SSHHostKeyConfirmationForm: View {
             if usesContainerChrome {
                 form
                     .padding(18)
-                    .background(.regularMaterial, in: .rect(cornerRadius: 14))
+                    .termindGlassSurface(cornerRadius: 14)
                     .overlay {
                         RoundedRectangle(cornerRadius: 14)
                             .strokeBorder(.separator.opacity(0.7))

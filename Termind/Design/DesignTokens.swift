@@ -33,16 +33,15 @@ nonisolated enum Metrics {
         static let statusDot: CGFloat = 7
         /// Vault and Assistant navigation use one comfortable target so every
         /// destination, chat, archive, and new-chat action keeps a steady rhythm.
-        static let navigationRowHeight: CGFloat = 36
+        static let navigationRowHeight: CGFloat = 44
         /// Workspaces may carry a secondary pane count or host path.
-        static let workspaceRowHeight: CGFloat = 46
+        static let workspaceRowHeight: CGFloat = navigationRowHeight
         /// Shared content inset for the leading glyph and trailing accessory.
-        static let navigationRowInset: CGFloat = 8
-        /// Breathing room between every source-list row and the sidebar edge.
+        static let navigationRowInset: CGFloat = 6
+        /// One shared breathing edge for every card in the left column.
+        /// Keeping it here makes SwiftUI List and ListViewKit rows line up.
         static let rowHorizontalMargin: CGFloat = 8
-        /// The fill stops short of the split-view edge like a native macOS
-        /// source-list selection, while the full row remains clickable.
-        static let rowBackgroundInset: CGFloat = 2
+        static let rowBackgroundInset: CGFloat = 0
         static let rowBackgroundVerticalInset: CGFloat = 2
         static let rowCornerRadius: CGFloat = 7
         /// The fixed column every sidebar row's leading glyph sits in.
@@ -52,6 +51,25 @@ nonisolated enum Metrics {
         /// three different widths, so a section built from plain `Label`s starts
         /// its titles at three different places. See `SidebarRowLabel`.
         static let rowIcon: CGFloat = 16
+        /// The local search field at the foot of the Snippets and History modes.
+        ///
+        /// One height for every mode, so switching between them does not move
+        /// the boundary between the list and its footer.
+        static let searchFieldHeight: CGFloat = 36
+        /// Two lines and a little air: what a history card needs for a command
+        /// and its time, a file and its path, or a host and its login address.
+        static let historyCardHeight: CGFloat = 52
+        /// The same card while a command is being named as a snippet — the row
+        /// grows for the field rather than the field being squeezed into 52pt.
+        static let historyCardEditingHeight: CGFloat = 66
+    }
+
+    /// The window titlebar, which holds the app's one Find field and the New
+    /// control belonging to whatever content is in front.
+    enum Toolbar {
+        /// Wide enough for a login address or a middling command without
+        /// truncating, and narrow enough to leave the titlebar mostly window.
+        static let searchFieldWidth: CGFloat = 220
     }
 
     /// Splits inside a Workspace. Proportions are stored on the layout tree —
@@ -86,9 +104,9 @@ nonisolated enum Metrics {
         /// The floor every tile in a grid shares — the natural height of the
         /// standard two-row card, measured at 79pt and rounded onto the grid.
         ///
-        /// Named because `AddCardTile` has to match it. Left to itself that tile
-        /// is one line of text in some padding, which came out 32pt shorter than
-        /// the cards beside it and made every row it sat in look ragged.
+        /// `CardGrid` aligns its cells to `.top`, so a card that comes out
+        /// shorter than its neighbours hangs off the top of the row and reads as
+        /// a gap rather than as a smaller card.
         static let minHeight: CGFloat = 80
     }
 
@@ -128,14 +146,6 @@ nonisolated enum Metrics {
     enum SettingsPage {
         static let sidebarWidth: CGFloat = 208
         static let contentWidth: CGFloat = 720
-    }
-
-    /// The Hosts page's tag filter popover. Narrow because it holds one word per
-    /// row, and scrolling beats a panel that runs off the bottom of the window
-    /// once a fleet has twenty tags.
-    enum TagFilter {
-        static let width: CGFloat = 220
-        static let maxListHeight: CGFloat = 260
     }
 
     enum StatusBar {
@@ -313,11 +323,111 @@ nonisolated enum Metrics {
 enum Highlight {
     static func fill(isSelected: Bool, isHovering: Bool = false) -> Color {
         if isSelected {
-            .primary.opacity(0.10)
+            .accentColor.opacity(0.14)
         } else if isHovering {
             .primary.opacity(0.05)
         } else {
             .clear
+        }
+    }
+}
+
+/// One system-adaptive surface for the app's floating controls and cards.
+///
+/// macOS 26 supplies the real Liquid Glass renderer. The deployment target is
+/// still macOS 15, where a native material is the honest fallback: it preserves
+/// translucency and accessibility settings without trying to paint a fake
+/// highlight gradient that can never respond like system glass.
+private struct TermindGlassSurface: ViewModifier {
+    let cornerRadius: CGFloat
+    let tint: Color?
+    let isInteractive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.glassEffect(
+                .regular.tint(tint).interactive(isInteractive),
+                in: .rect(cornerRadius: cornerRadius)
+            )
+        } else {
+            content
+                .background {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .fill(.regularMaterial)
+                    if let tint {
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .fill(tint)
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+        }
+    }
+}
+
+private struct TermindGlassCapsule: ViewModifier {
+    let tint: Color?
+    let isInteractive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.glassEffect(
+                .regular.tint(tint).interactive(isInteractive),
+                in: .capsule
+            )
+        } else {
+            content
+                .background {
+                    Capsule().fill(.regularMaterial)
+                    if let tint { Capsule().fill(tint) }
+                }
+                .overlay {
+                    Capsule()
+                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+        }
+    }
+}
+
+private struct TermindGlassCircle: ViewModifier {
+    let tint: Color?
+    let isInteractive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.glassEffect(
+                .regular.tint(tint).interactive(isInteractive),
+                in: .circle
+            )
+        } else {
+            content
+                .background {
+                    Circle().fill(.regularMaterial)
+                    if let tint { Circle().fill(tint) }
+                }
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+        }
+    }
+}
+
+private struct TermindGlassBar: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.glassEffect(.regular, in: .rect)
+        } else {
+            content.background(.bar)
         }
     }
 }
@@ -333,16 +443,19 @@ enum Highlight {
 struct SidebarMaterialBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .sidebar
+        // `.sidebar` is deliberately quite opaque and gray. With floating glass
+        // controls above it that becomes a muddy slab; window material is the
+        // quieter translucent canvas and lets those controls carry the hierarchy.
+        view.material = .windowBackground
         view.blendingMode = .withinWindow
-        view.state = .active
+        view.state = .followsWindowActiveState
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = .sidebar
+        view.material = .windowBackground
         view.blendingMode = .withinWindow
-        view.state = .active
+        view.state = .followsWindowActiveState
     }
 }
 
@@ -355,23 +468,92 @@ private struct TermindSidebarSurface: ViewModifier {
     }
 }
 
-/// A quiet source-list selection that stays stable when the terminal becomes
-/// first responder. The visual fill is inset, but hit testing still spans the
-/// row's full width.
+/// A native-feeling emphasized selection: the key window uses an accent fill
+/// with reversed content, while an inactive window keeps the same destination
+/// legible with a quiet accent wash and accent-colored content.
+///
+/// The row's context menu is drawn here rather than by the caller, and it is a
+/// native menu rather than SwiftUI's: `contextMenu` derives its source rectangle
+/// from the frame of the view it is attached to, which for a sidebar row is the
+/// card *plus* the breathing edge around it — a visibly oversized box. AppKit
+/// draws no source rectangle, so the outline below can sit exactly on the filled
+/// shape, tight to the card.
 struct TermindSidebarRowBackground: ViewModifier {
     let isSelected: Bool
+    let menu: (() -> [NativeMenuEntry])?
+
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var isHovering = false
+    @State private var isMenuPresented = false
 
     func body(content: Content) -> some View {
         content
-            .background {
-                RoundedRectangle(cornerRadius: Metrics.Sidebar.rowCornerRadius)
-                    .fill(Highlight.fill(isSelected: isSelected, isHovering: isHovering))
-                    .padding(.horizontal, Metrics.Sidebar.rowBackgroundInset)
-                    .padding(.vertical, Metrics.Sidebar.rowBackgroundVerticalInset)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .foregroundStyle(SidebarSelectionStyle.foreground(
+                isSelected: isSelected,
+                controlActiveState: controlActiveState,
+                unselected: AnyShapeStyle(.primary)
+            ))
+            .fontWeight(isSelected ? .semibold : .regular)
+            .background { backgroundFill }
+            .overlay { menuHost }
+            .overlay { menuOutline }
             .padding(.horizontal, Metrics.Sidebar.rowHorizontalMargin)
             .onHover { isHovering = $0 }
+    }
+
+    /// The one inset the fill, the right-click target and the outline all share,
+    /// so a right-clicked row lights up exactly the card the user aimed at.
+    private func cardInsets<V: View>(_ view: V) -> some View {
+        view
+            .padding(.horizontal, Metrics.Sidebar.rowBackgroundInset)
+            .padding(.vertical, Metrics.Sidebar.rowBackgroundVerticalInset)
+    }
+
+    @ViewBuilder
+    private var menuHost: some View {
+        if let menu {
+            cardInsets(
+                NativeRowContextMenu(entries: menu, isPresented: $isMenuPresented)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var menuOutline: some View {
+        if isMenuPresented {
+            cardInsets(
+                RoundedRectangle(cornerRadius: Metrics.Sidebar.rowCornerRadius)
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
+            )
+            .allowsHitTesting(false)
+        }
+    }
+
+    private var backgroundFill: some View {
+        cardInsets(
+            RoundedRectangle(cornerRadius: Metrics.Sidebar.rowCornerRadius)
+                .fill(fillColor)
+        )
+    }
+
+    private var fillColor: Color {
+        if isSelected {
+            controlActiveState == .key ? .accentColor : .accentColor.opacity(0.14)
+        } else {
+            Highlight.fill(isSelected: false, isHovering: isHovering)
+        }
+    }
+}
+
+enum SidebarSelectionStyle {
+    static func foreground(
+        isSelected: Bool,
+        controlActiveState: ControlActiveState,
+        unselected: AnyShapeStyle
+    ) -> AnyShapeStyle {
+        guard isSelected else { return unselected }
+        return controlActiveState == .key ? AnyShapeStyle(.white) : AnyShapeStyle(.tint)
     }
 }
 
@@ -383,37 +565,57 @@ private struct TermindSidebarSectionLabel: ViewModifier {
     }
 }
 
-private struct TermindSidebarGlassButton: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .buttonStyle(.plain)
-            .background(
-                Color.primary.opacity(0.055),
-                in: .rect(cornerRadius: Metrics.Sidebar.rowCornerRadius)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.Sidebar.rowCornerRadius)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-    }
-}
-
 extension View {
+    func termindGlassSurface(
+        cornerRadius: CGFloat = Metrics.Radius.large,
+        tint: Color? = nil,
+        isInteractive: Bool = false
+    ) -> some View {
+        modifier(TermindGlassSurface(
+            cornerRadius: cornerRadius,
+            tint: tint,
+            isInteractive: isInteractive
+        ))
+    }
+
+    func termindGlassCapsule(
+        tint: Color? = nil,
+        isInteractive: Bool = false
+    ) -> some View {
+        modifier(TermindGlassCapsule(tint: tint, isInteractive: isInteractive))
+    }
+
+    func termindGlassCircle(
+        tint: Color? = nil,
+        isInteractive: Bool = false
+    ) -> some View {
+        modifier(TermindGlassCircle(tint: tint, isInteractive: isInteractive))
+    }
+
+    func termindGlassBar() -> some View {
+        modifier(TermindGlassBar())
+    }
+
     func termindSidebarSurface() -> some View {
         modifier(TermindSidebarSurface())
     }
 
     func termindSidebarRowBackground(isSelected: Bool) -> some View {
-        modifier(TermindSidebarRowBackground(isSelected: isSelected))
+        modifier(TermindSidebarRowBackground(isSelected: isSelected, menu: nil))
+    }
+
+    /// The same row, with a native right-click menu and an outline that hugs
+    /// the card. Prefer this over a separate `.contextMenu`, which would draw a
+    /// source rectangle around the row's whole frame — margin included.
+    func termindSidebarRow(
+        isSelected: Bool,
+        menu: @escaping () -> [NativeMenuEntry]
+    ) -> some View {
+        modifier(TermindSidebarRowBackground(isSelected: isSelected, menu: menu))
     }
 
     func termindSidebarSectionLabel() -> some View {
         modifier(TermindSidebarSectionLabel())
-    }
-
-    func termindSidebarGlassButton() -> some View {
-        modifier(TermindSidebarGlassButton())
     }
 }
 

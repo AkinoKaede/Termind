@@ -115,14 +115,12 @@ struct TerminalPlaceholderView: View {
                 .zIndex(10)
             }
         }
-        .animation(Motion.panel, value: sshSession.find.isPresented)
         .animation(
             Motion.tabSwitch,
             value: isExternalFileDropTargeted
         )
         .animation(Motion.panel, value: uploadNotice)
         .background(terminalBackground)
-        .overlay(alignment: .top) { terminalChrome }
         .onAppear {
             // The mounted view is the final source of truth after any drag,
             // merge, detach, or SwiftUI tree rebuild. Reassert the relationship
@@ -348,23 +346,6 @@ struct TerminalPlaceholderView: View {
         closePane()
     }
 
-    /// Find remains terminal chrome; connection state belongs exclusively to
-    /// the journey overlay above. There is intentionally no legacy disconnected
-    /// banner to reveal when a journey ends.
-    private var terminalChrome: some View {
-        VStack(spacing: 0) {
-            if sshSession.find.isPresented {
-                HStack {
-                    Spacer(minLength: Metrics.Space.l)
-                    TerminalFindBar(sshSession: sshSession, isPaneFocused: requestsFocus)
-                }
-                .padding(.top, Metrics.Space.m)
-                .padding(.horizontal, Metrics.Space.m)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-    }
-
     @ViewBuilder
     private var terminalSurface: some View {
         #if canImport(AppKit)
@@ -436,7 +417,7 @@ private struct TerminalUploadTargetOverlay: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, Metrics.Space.xl)
             .padding(.vertical, Metrics.Space.l)
-            .background(.regularMaterial, in: .rect(cornerRadius: Metrics.Radius.large))
+            .termindGlassSurface(cornerRadius: Metrics.Radius.large)
             .overlay {
                 RoundedRectangle(cornerRadius: Metrics.Radius.large)
                     .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
@@ -463,7 +444,7 @@ private struct TerminalUploadOverlay: View {
         .multilineTextAlignment(.center)
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.vertical, Metrics.Space.l)
-        .background(.regularMaterial, in: .rect(cornerRadius: Metrics.Radius.large))
+        .termindGlassSurface(cornerRadius: Metrics.Radius.large)
         .overlay {
             RoundedRectangle(cornerRadius: Metrics.Radius.large)
                 .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
@@ -504,119 +485,5 @@ private struct TerminalUploadOverlay: View {
         case .preparing(let path), .queued(_, let path): path
         case .rejected(let reason): reason
         }
-    }
-}
-
-/// A compact, industrial find widget: one input and the three actions users scan
-/// for in VS Code. Ghostty draws the matches underneath; this view owns only the
-/// query, navigation intents and focus handoff.
-private struct TerminalFindBar: View {
-    let sshSession: SSHSessionModel
-    let isPaneFocused: Bool
-
-    @FocusState private var fieldFocused: Bool
-
-    private var query: Binding<String> {
-        Binding(
-            get: { sshSession.find.query },
-            set: { sshSession.updateFindQuery($0) }
-        )
-    }
-
-    private var canNavigate: Bool { !sshSession.find.query.isEmpty }
-
-    var body: some View {
-        HStack(spacing: Metrics.Space.xs) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-
-            TextField("Find", text: query)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12))
-                .frame(width: 184)
-                .focused($fieldFocused)
-                .onKeyPress(.return, phases: .down) { press in
-                    let nonShiftModifiers: EventModifiers = [.command, .control, .option]
-                    guard press.modifiers.intersection(nonShiftModifiers).isEmpty else {
-                        return .ignored
-                    }
-                    sshSession.navigateFind(press.modifiers.contains(.shift) ? .next : .previous)
-                    return .handled
-                }
-                .onKeyPress(.escape, phases: .down) { _ in
-                    sshSession.dismissFind()
-                    return .handled
-                }
-                .accessibilityLabel(Text("Find in terminal"))
-
-            Divider().frame(height: 16)
-
-            findButton(
-                systemName: "chevron.up",
-                label: "Previous match",
-                help: "Previous match — Return, ⇧⌘G, ⇧F3",
-                action: { sshSession.navigateFind(.previous) }
-            )
-            .disabled(!canNavigate)
-
-            findButton(
-                systemName: "chevron.down",
-                label: "Next match",
-                help: "Next match — ⇧Return, ⌘G, F3",
-                action: { sshSession.navigateFind(.next) }
-            )
-            .disabled(!canNavigate)
-
-            findButton(
-                systemName: "xmark",
-                label: "Close find",
-                help: "Close find — Esc",
-                action: sshSession.dismissFind
-            )
-        }
-        .padding(.leading, Metrics.Space.m)
-        .padding(.trailing, Metrics.Space.xs)
-        .padding(.vertical, Metrics.Space.xs)
-        .background(.regularMaterial, in: .rect(cornerRadius: Metrics.Radius.medium))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.medium)
-                .strokeBorder(.separator.opacity(0.75), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
-        .onAppear {
-            // Rebuilding a split can recreate every open find bar. Only the
-            // focused pane may claim the window's first responder at that time.
-            if isPaneFocused { focusFieldAfterInsertion() }
-        }
-        .onChange(of: sshSession.find.focusRequest) { focusFieldAfterInsertion() }
-        .onExitCommand { sshSession.dismissFind() }
-        .accessibilityElement(children: .contain)
-    }
-
-    /// SwiftUI can run `onAppear` before the newly inserted NSTextField has a
-    /// window. Defer one main-loop turn so ⌘F reliably takes focus away from the
-    /// native Ghostty surface; the same path also makes a second ⌘F refocus it.
-    private func focusFieldAfterInsertion() {
-        DispatchQueue.main.async { fieldFocused = true }
-    }
-
-    private func findButton(
-        systemName: String,
-        label: LocalizedStringKey,
-        help: LocalizedStringKey,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 10, weight: .semibold))
-                .frame(width: 22, height: 22)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
-        .accessibilityLabel(Text(label))
-        .help(Text(help))
     }
 }

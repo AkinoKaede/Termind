@@ -79,8 +79,6 @@ protocol ManagedCardPage: View {
     associatedtype CardContent: View
     associatedtype HeaderContent: View
     associatedtype GhostContent: View
-    associatedtype SupplementaryContent: View
-    associatedtype ToolbarContent: View
     associatedtype EmptyContent: View
     associatedtype NoResultsContent: View
     associatedtype FootnoteContent: View
@@ -102,9 +100,13 @@ protocol ManagedCardPage: View {
         for section: ManagedCardSection<SectionID, Item>, isDropTarget: Bool
     ) -> HeaderContent
     @ViewBuilder func managedGhost(for item: Item) -> GhostContent
-    @ViewBuilder func managedSupplementaryContent(for section: SectionID)
-        -> SupplementaryContent
-    @ViewBuilder func managedToolbar() -> ToolbarContent
+    /// What right-clicking the canvas offers, given the section the pointer is
+    /// over — nil when it is past the last one.
+    ///
+    /// This is where creation lives now that the dashed New tiles are gone: the
+    /// page's own verbs are in the window titlebar, and the empty space beside
+    /// the cards answers the same question with the section already chosen.
+    func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry]
     @ViewBuilder func managedEmptyState() -> EmptyContent
     @ViewBuilder func managedNoResultsState() -> NoResultsContent
     @ViewBuilder func managedFootnote() -> FootnoteContent
@@ -112,6 +114,8 @@ protocol ManagedCardPage: View {
 
 extension ManagedCardPage {
     var showsManagedFootnote: Bool { false }
+
+    func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] { [] }
 
     var body: some View {
         ManagedCardPageRenderer<Self>(
@@ -123,8 +127,7 @@ extension ManagedCardPage {
             card: managedCard,
             header: managedHeader,
             ghost: managedGhost,
-            supplementaryContent: managedSupplementaryContent,
-            toolbar: managedToolbar,
+            blankAreaMenu: managedBlankAreaMenu,
             emptyState: managedEmptyState,
             noResultsState: managedNoResultsState,
             footnote: managedFootnote
@@ -195,8 +198,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     let card: (Page.Item, ManagedCardItemContext<Page.Item>) -> Page.CardContent
     let header: (ManagedCardSection<Page.SectionID, Page.Item>, Bool) -> Page.HeaderContent
     let ghost: (Page.Item) -> Page.GhostContent
-    let supplementaryContent: (Page.SectionID) -> Page.SupplementaryContent
-    let toolbar: () -> Page.ToolbarContent
+    let blankAreaMenu: (Page.SectionID?) -> [NativeMenuEntry]
     let emptyState: () -> Page.EmptyContent
     let noResultsState: () -> Page.NoResultsContent
     let footnote: () -> Page.FootnoteContent
@@ -210,13 +212,6 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     @ViewBuilder
     var body: some View {
         VStack(spacing: 0) {
-            // Keep page chrome outside the conditional content. A toolbar in a
-            // safe-area inset inherits the intrinsic height of `No Results` on
-            // macOS; when a query changes the content branch, the inset jumps
-            // to the middle of the page and SwiftUI recreates its TextField,
-            // dropping keyboard focus after the first unmatched character.
-            toolbar()
-
             Group {
                 if isSourceEmpty {
                     emptyState()
@@ -250,7 +245,8 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
         CardPage(
             marqueeSelection: marqueeSelection,
             supportsMarqueeSelection: capabilities.marqueeSelection
-                && activeReordering == nil
+                && activeReordering == nil,
+            blankAreaMenu: { point in blankAreaMenu(section(at: point)) }
         ) {
             ForEach(sections) { section in
                 managedSection(section)
@@ -273,26 +269,35 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
         .simultaneousGesture(TapGesture().onEnded(cancelDrag))
     }
 
-    @ViewBuilder
+    /// Which section the pointer is inside, for the blank-area menu. Reported
+    /// in the drag coordinate space, which is anchored to the page's own frame
+    /// and therefore already accounts for how far the page is scrolled.
+    private func section(at point: CGPoint) -> Page.SectionID? {
+        sections.lazy
+            .compactMap { section -> (Page.SectionID, CGRect)? in
+                guard let frame = sectionFrames[section.id] else { return nil }
+                return (section.id, frame)
+            }
+            .first { $0.1.contains(point) }?
+            .0
+    }
+
     private func managedSection(
         _ section: ManagedCardSection<Page.SectionID, Page.Item>
     ) -> some View {
-        let content = VStack(alignment: .leading, spacing: Metrics.Space.l) {
+        // Geometry is reported for every section, not only while a drag is in
+        // flight: the blank-area menu asks the same question with no drag.
+        VStack(alignment: .leading, spacing: Metrics.Space.l) {
             header(section, ghostLocation?.section == section.id)
 
             if section.isExpanded ?? true {
                 CardGrid { cards(in: section) }
             }
         }
-
-        if section.canAcceptDrop, activeReordering != nil {
-            content.onGeometryChange(for: CGRect.self) {
-                $0.frame(in: .named(managedCardDragSpace))
-            } action: {
-                sectionFrames[section.id] = $0
-            }
-        } else {
-            content
+        .onGeometryChange(for: CGRect.self) {
+            $0.frame(in: .named(managedCardDragSpace))
+        } action: {
+            sectionFrames[section.id] = $0
         }
     }
 
@@ -316,7 +321,6 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
         if ghostLocation?.section == section.id, ghostLocation?.index == displayed.count {
             ghosts
         }
-        supplementaryContent(section.id)
     }
 
     @ViewBuilder

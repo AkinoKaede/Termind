@@ -11,7 +11,6 @@ struct RootView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var window: WindowModel
-    @State private var hostsPageState = HostsPageState()
     @State private var layoutWidth = Metrics.Window.defaultWidth
 
     init(window: WindowModel = WindowModel()) {
@@ -58,6 +57,17 @@ struct RootView: View {
         .background { FullHeightWindowContent() }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { layoutWidth = $0 }
         .toolbarBackground(.hidden, for: .windowToolbar)
+        // The window's only toolbar. Creation on the left, one Find on the
+        // right, both following the content in front rather than the sidebar —
+        // see `WindowToolbarLeadingActions` and `WindowModel.findKind`.
+        .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                WindowToolbarLeadingActions()
+            }
+            ToolbarItem(placement: .primaryAction) {
+                WindowToolbarFindField()
+            }
+        }
         .sheet(item: $presentations.sheet) { route in
             switch route {
             case .hostChooser(let purpose):
@@ -109,7 +119,7 @@ struct RootView: View {
         let showsWorkDetail = window.vaultWorkRoute != nil
 
         return HStack(spacing: 0) {
-            VaultView(hostsPageState: hostsPageState)
+            VaultView(pages: window.vaultPages)
                 .frame(
                     minWidth: Metrics.VaultContent.min,
                     idealWidth: Metrics.VaultContent.ideal,
@@ -179,7 +189,7 @@ struct RootView: View {
                     .zIndex(2)
             case .workspace:
                 if window.workspaces.isEmpty {
-                    VaultView(hostsPageState: hostsPageState)
+                    VaultView(pages: window.vaultPages)
                 }
             }
         }

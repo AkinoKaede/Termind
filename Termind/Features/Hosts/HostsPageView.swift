@@ -4,20 +4,32 @@ import SwiftUI
 final class HostsPageState {
     enum ConfirmationRoute: Identifiable {
         case deleteGroup(HostGroup)
-        case deleteTag(String)
 
         var id: String {
             switch self {
             case .deleteGroup(let group): "delete-group-\(group.id)"
-            case .deleteTag(let tag): "delete-tag-\(tag)"
             }
         }
     }
 
     var query = ""
     var selectedGroupID: HostGroup.ID?
+    /// Which tags the grid is narrowed to, ticked in the titlebar search
+    /// field's magnifier menu. Several at once means "carries all of these".
     var selectedTags: Set<String> = []
     var confirmation: ConfirmationRoute?
+
+    /// Drops filters for tags no host carries any more.
+    ///
+    /// There is no tag registry to delete from — `HostLibraryModel.hostTags` is
+    /// derived from the hosts themselves — so a tag disappears the moment its
+    /// last host loses it. Without this the page would sit filtered by a tag
+    /// that matches nothing, showing an empty grid and no obvious way back.
+    func pruneSelectedTags(against available: [String]) {
+        let live = Set(available)
+        guard !selectedTags.isSubset(of: live) else { return }
+        selectedTags.formIntersection(live)
+    }
 }
 
 /// Every saved host, as a grid of cards grouped the way the user filed them.
@@ -50,7 +62,6 @@ struct HostsPageView: ManagedCardPage {
     @Environment(WindowModel.self) private var window
 
     let state: HostsPageState
-    @FocusState private var searchFocused: Bool
 
     init(state: HostsPageState = HostsPageState()) {
         self.state = state
@@ -225,13 +236,54 @@ struct HostsPageView: ManagedCardPage {
         HostGhostCard(host: host, address: app.hostLibrary.loginAddress(for: host))
     }
 
-    @ViewBuilder
-    func managedSupplementaryContent(for section: SectionID) -> some View {
-        if section == .ungrouped || sections.count == 1 {
-            AddCardTile(title: "New Host") {
+    /// The canvas beside the cards, which is where New Host, New Group and the
+    /// tag filter live now that the dashed tiles and the page toolbar are gone.
+    /// Right-clicking inside a group files the new host there without a second
+    /// decision.
+    func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
+        let groupID = section?.groupID
+        return [
+            NativeMenuEntry(title: String(localized: "New Host")) {
                 openHostEditor(nil)
+            },
+            NativeMenuEntry(title: String(localized: "New Group")) {
+                openWork(.hostGroupEditor(groupID: nil, parentID: groupID))
+            },
+            .separator,
+            tagFilterMenu,
+        ]
+    }
+
+    /// Every tag in use, each one a toggle, plus a way out.
+    ///
+    /// There is no Delete Tag, and no tag registry behind this either:
+    /// `HostLibraryModel.hostTags` is derived from the hosts themselves, so a
+    /// tag stops being offered the moment its last host stops carrying it.
+    private var tagFilterMenu: NativeMenuEntry {
+        let tags = app.hostLibrary.hostTags
+        var children = tags.map { tag in
+            NativeMenuEntry(title: tag, isOn: state.selectedTags.contains(tag)) {
+                if state.selectedTags.contains(tag) {
+                    state.selectedTags.remove(tag)
+                } else {
+                    state.selectedTags.insert(tag)
+                }
             }
         }
+        if !tags.isEmpty {
+            children.append(.separator)
+            children.append(
+                NativeMenuEntry(
+                    title: String(localized: "Clear Filter"),
+                    isEnabled: !state.selectedTags.isEmpty
+                ) { state.selectedTags.removeAll() }
+            )
+        }
+        return NativeMenuEntry(
+            title: String(localized: "Filter by Tag"),
+            isEnabled: !tags.isEmpty,
+            children: children
+        )
     }
 
     // MARK: - Deleting a group
@@ -254,15 +306,6 @@ struct HostsPageView: ManagedCardPage {
 
         if state.selectedGroupID == group.id { state.selectedGroupID = nil }
         window.pruneDetailSelections(in: app.hostLibrary)
-    }
-
-    /// A deleted tag also stops being something the list is narrowed by —
-    /// otherwise the page would sit filtered by a tag no host has, showing
-    /// nothing, with no obvious way back.
-    private func deleteTag(_ tag: String) {
-        app.hostLibrary.deleteTag(tag)
-        state.selectedTags.remove(tag)
-        state.confirmation = nil
     }
 
     private func deletionMessage(for group: HostGroup) -> String {
@@ -306,63 +349,6 @@ struct HostsPageView: ManagedCardPage {
 
     // MARK: - Chrome
 
-    func managedToolbar() -> some View {
-        PageToolbar(
-            query: Binding(get: { state.query }, set: { state.query = $0 }),
-            prompt: "Filter hosts",
-            searchFocused: $searchFocused
-        ) {
-            TagFilterButton(
-                tags: app.hostLibrary.hostTags,
-                selection: Binding(
-                    get: { state.selectedTags }, set: { state.selectedTags = $0 }
-                ),
-                requestDelete: { state.confirmation = .deleteTag($0) }
-            )
-        } actions: {
-            if !selectedHosts.isEmpty {
-                if selectedHosts.count == 1 {
-                    Button("Quick Connect") {
-                        app.open(selectedHosts, as: .sshSession, in: window)
-                    }
-                    .buttonStyle(.borderedProminent)
-                } else {
-                    Menu("Quick Connect") {
-                        Button("Separate Workspaces") {
-                            app.open(selectedHosts, as: .sshSession, in: window)
-                        }
-                        Button("One Workspace") {
-                            app.open(
-                                selectedHosts, as: .sshSession,
-                                layout: .oneWorkspace, in: window
-                            )
-                        }
-                    }
-                    .menuStyle(.button)
-                    .buttonStyle(.borderedProminent)
-                }
-                HostConnectMenu(hosts: selectedHosts)
-                    .menuStyle(.button)
-                if selectedHosts.count == 1, let host = selectedHosts.first {
-                    Button("Edit") { openHostEditor(host) }
-                }
-            }
-            // The same slot, for the other kind of selection — the two can never
-            // both be set, so the toolbar only ever offers one set of verbs.
-            if let group = state.selectedGroupID.flatMap({ app.hostLibrary.group($0) }) {
-                Button("Edit Group") { editGroup(group) }
-                Button("Delete Group", role: .destructive) { requestDelete(group) }
-            }
-            // Groups are made here rather than only in the host editor: filing
-            // is what this page is for, and a folder should not have to wait on
-            // a host to exist.
-            Button("New Group") {
-                openWork(.hostGroupEditor(groupID: nil, parentID: nil))
-            }
-            Button("New Host") { openHostEditor(nil) }
-        }
-    }
-
     func managedEmptyState() -> some View {
         ContentUnavailableView {
             Label("No Hosts", systemImage: "server.rack")
@@ -394,10 +380,9 @@ struct HostsPageView: ManagedCardPage {
     var managedPresentation: HostsPagePresentation {
         HostsPagePresentation(
             state: state,
+            liveTags: app.hostLibrary.hostTags,
             actions: HostsPagePresentation.Actions(
-                store: app.hostLibrary,
                 deleteGroup: { delete($0, keepHosts: $1) },
-                deleteTag: deleteTag,
                 deletionMessage: deletionMessage
             )
         )
@@ -409,36 +394,30 @@ struct HostsPageView: ManagedCardPage {
 
     private func openHostEditor(_ host: Host?) {
         window.openHostEditor(host: host)
-        restoreSearchFocus()
     }
 
     private func openWork(_ route: VaultWorkRoute) {
         window.openVaultWork(route, on: .hosts)
-        restoreSearchFocus()
-    }
-
-    private func restoreSearchFocus() {
-        Task { @MainActor in
-            await Task.yield()
-            searchFocused = true
-        }
     }
 }
 
 struct HostsPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
-        let store: HostLibraryModel
         let deleteGroup: (HostGroup, Bool) -> Void
-        let deleteTag: (String) -> Void
         let deletionMessage: (HostGroup) -> String
     }
 
     let state: HostsPageState
+    /// Tags at least one host still carries — see `HostsPageState.pruneSelectedTags`.
+    let liveTags: [String]
     let actions: Actions
 
     func body(content: Content) -> some View {
         @Bindable var state = state
         content
+            .onChange(of: liveTags, initial: true) { _, tags in
+                state.pruneSelectedTags(against: tags)
+            }
             .confirmationDialog(
                 confirmationTitle,
                 isPresented: Binding(
@@ -452,8 +431,6 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
                         actions.deleteGroup(group, false)
                     }
                     Button("Keep Hosts") { actions.deleteGroup(group, true) }
-                case .deleteTag(let tag):
-                    Button("Delete Tag", role: .destructive) { actions.deleteTag(tag) }
                 case nil:
                     EmptyView()
                 }
@@ -466,7 +443,6 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
     private var confirmationTitle: Text {
         switch state.confirmation {
         case .deleteGroup(let group): Text("Delete “\(group.name)”?" )
-        case .deleteTag(let tag): Text("Delete tag “\(tag)”?" )
         case nil: Text("")
         }
     }
@@ -474,8 +450,6 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
     private var confirmationMessage: Text {
         switch state.confirmation {
         case .deleteGroup(let group): Text(actions.deletionMessage(group))
-        case .deleteTag(let tag):
-            Text("Removes it from \(actions.store.hosts(taggedWith: tag).count) hosts. Snippet tags are unchanged.")
         case nil: Text("")
         }
     }

@@ -300,4 +300,40 @@ final class AssistantLibraryModel {
             self.selectedConversationID = nil
         }
     }
+
+    // MARK: - Search
+
+    /// Which half of the list a search runs over. Active and archived are
+    /// separate destinations, so a match in one must never surface in the other
+    /// — finding an archived chat while looking at live ones, and then opening
+    /// it, would silently take the user somewhere they did not navigate.
+    nonisolated enum SearchScope: Sendable {
+        case active
+        case archived
+    }
+
+    /// Titles and visible message bodies, and deliberately nothing else.
+    ///
+    /// `ChatMessage.reasoning`, the tool cards and the raw `transcript` are all
+    /// excluded: they hold hidden thinking, unredacted tool output and whatever
+    /// a command printed, none of which the user chose to put on screen. A
+    /// search field is not a way to read them.
+    func search(_ query: String, scope: SearchScope) -> [ConversationModel] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidates: [ConversationModel] = switch scope {
+        case .active: pinnedConversations + activeConversations
+        case .archived: archivedConversations
+        }
+        guard !trimmed.isEmpty else { return candidates }
+        return candidates.filter { $0.matches(trimmed) }
+    }
+}
+
+extension ConversationModel {
+    /// See `AssistantLibraryModel.search(_:scope:)` for what is deliberately
+    /// not searched here.
+    func matches(_ query: String) -> Bool {
+        if derivedTitle.localizedCaseInsensitiveContains(query) { return true }
+        return messages.contains { $0.text.localizedCaseInsensitiveContains(query) }
+    }
 }

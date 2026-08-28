@@ -789,19 +789,6 @@ final class HostLibraryModel {
         statuses[hostID] = nil
     }
 
-    /// Takes a tag off every host that carries it.
-    ///
-    /// Hosts only, deliberately: this is reached from the Hosts page's tag
-    /// filter, and a command there should not quietly reach into the snippets
-    /// on another page. Matching is case-insensitive, so a tag that was typed
-    /// two ways goes in one action rather than leaving a variant behind.
-    func deleteTag(_ tag: String) {
-        for index in hosts.indices {
-            hosts[index].tags.removeAll { $0.caseInsensitiveCompare(tag) == .orderedSame }
-        }
-        persistCore()
-    }
-
     func markUsed(_ id: Host.ID, at date: Date) {
         guard let index = hosts.firstIndex(where: { $0.id == id }) else { return }
         hosts[index].lastUsedAt = date

@@ -36,6 +36,9 @@ struct ListViewMigrationTests {
     @Test
     func assistantSectionIdentityIsSeparateFromConversationIdentity() {
         let pinned = AssistantConversationListItem.section(.pinned)
+        let collapsedPinned = AssistantConversationListItem.section(
+            .pinned, isExpanded: false, count: 3
+        )
         let chats = AssistantConversationListItem.section(.chats)
         let conversation = AssistantConversationListItem.conversation(
             id: UUID(), title: "Chat", isArchived: false, isPinned: false,
@@ -45,6 +48,8 @@ struct ListViewMigrationTests {
 
         #expect(pinned.id != chats.id)
         #expect(pinned.id != conversation.id)
+        #expect(pinned.id == collapsedPinned.id)
+        #expect(pinned != collapsedPinned)
     }
 
     @Test
@@ -118,7 +123,45 @@ struct ListViewMigrationTests {
 
         #expect(normal.id == naming.id)
         #expect(normal != naming)
-        #expect(normal.height < naming.height)
+        #expect(normal.height == Metrics.Sidebar.historyCardHeight)
+        #expect(normal.height == 52)
+        #expect(naming.height == Metrics.Sidebar.historyCardEditingHeight)
+        #expect(naming.height > normal.height)
+    }
+
+    /// The three histories are one card with three fillings, so a row is the
+    /// same height whichever one it came from — and never zero, which is what a
+    /// mismatched identity would produce after a collapse.
+    @Test
+    func everyHistoryKindSharesOneCardHeight() {
+        let hostID = UUID()
+        let items: [ContextSidebarListItem] = [
+            .history(CommandHistoryEntry(hostID: hostID, command: "pwd"), isNaming: false),
+            .sftpHistory(
+                SFTPHistoryEntry(hostID: hostID, kind: .directory, path: "/var/log")
+            ),
+            .connection(Host(name: "web-01", host: "web-01.example"), address: "deploy@web-01.example"),
+        ]
+
+        for item in items {
+            #expect(item.height == Metrics.Sidebar.historyCardHeight)
+            #expect(item.height > 0)
+        }
+        #expect(Set(items.map(\.id)).count == items.count)
+    }
+
+    @Test
+    func historyIdentityIgnoresPresentationButNotTheRecord() {
+        let host = Host(name: "web-01", host: "web-01.example")
+        let sameHost = ContextSidebarListItem.connection(host, address: "root@web-01.example")
+        let renamedAddress = ContextSidebarListItem.connection(host, address: "deploy@web-01.example")
+        let otherHost = ContextSidebarListItem.connection(
+            Host(name: "db-01", host: "db-01.example"), address: "deploy@db-01.example"
+        )
+
+        #expect(sameHost.id == renamedAddress.id)
+        #expect(sameHost != renamedAddress)
+        #expect(sameHost.id != otherHost.id)
     }
 
     @Test

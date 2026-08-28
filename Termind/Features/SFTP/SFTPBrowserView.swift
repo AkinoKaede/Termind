@@ -216,6 +216,7 @@ struct SFTPBrowserView: View {
     let closePane: () -> Void
 
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
     @Environment(\.controlActiveState) private var controlActiveState
     @State private var newFolderPresented = false
     @State private var newFolderName = ""
@@ -229,11 +230,9 @@ struct SFTPBrowserView: View {
     @State private var selectionCursor: RemoteFile.ID?
     @State private var hoveredFileID: RemoteFile.ID?
     @State private var editsPath = false
-    @State private var showsCompactSearch = false
     @State private var fileScrollRequest: SFTPFileScrollRequest?
     @FocusState private var listFocused: Bool
     @FocusState private var pathFocused: Bool
-    @FocusState private var searchFocused: Bool
 
     private var deleteConfirmationMessage: String {
         let paths = deleteTargets.prefix(6).map(\.path).joined(separator: "\n")
@@ -269,10 +268,13 @@ struct SFTPBrowserView: View {
             browser(layout: layout)
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .clipped()
-                .onChange(of: layout) { _, density in
-                    if density == .full { showsCompactSearch = false }
-                    else if !sftpSession.query.isEmpty { showsCompactSearch = true }
-                }
+        }
+        // The file list is held focused by `listFocused`, and SwiftUI restores
+        // that focus whenever the view rebuilds — which typing in the titlebar
+        // Find field does, because it narrows this very list. Standing the list
+        // down keeps the caret where the user is typing.
+        .onChange(of: window.isToolbarFindFocused) { _, isFindFocused in
+            if isFindFocused { listFocused = false }
         }
     }
 
@@ -437,24 +439,6 @@ struct SFTPBrowserView: View {
                     breadcrumbs(layout: layout)
                 }
 
-                if layout == .full {
-                    TermindSearchField(
-                        text: $sftpSession.query, prompt: "Filter", density: .compact,
-                        externalFocus: $searchFocused
-                    )
-                    .frame(width: 180)
-                } else {
-                    Button {
-                        showsCompactSearch.toggle()
-                        if showsCompactSearch {
-                            Task { @MainActor in searchFocused = true }
-                        }
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .help("Filter")
-                }
-
                 Button(action: chooseUploadItems) {
                     if layout == .full {
                         Label("Upload", systemImage: "arrow.up.doc")
@@ -469,15 +453,6 @@ struct SFTPBrowserView: View {
             }
             .padding(.horizontal, Metrics.Space.l)
             .frame(height: 48)
-
-            if layout != .full, showsCompactSearch {
-                TermindSearchField(
-                    text: $sftpSession.query, prompt: "Filter", density: .compact,
-                    externalFocus: $searchFocused
-                )
-                .padding(.horizontal, Metrics.Space.l)
-                .padding(.bottom, Metrics.Space.m)
-            }
         }
         .buttonStyle(.plain)
         .background(.background)
@@ -658,7 +633,7 @@ struct SFTPBrowserView: View {
                     .font(.headline)
                     .padding(.horizontal, Metrics.Space.xl)
                     .padding(.vertical, Metrics.Space.l)
-                    .background(.regularMaterial, in: .rect(cornerRadius: Metrics.Radius.medium))
+                    .termindGlassSurface(cornerRadius: Metrics.Radius.medium)
                 }
                 .allowsHitTesting(false)
                 .transition(.opacity)
@@ -729,7 +704,7 @@ struct SFTPBrowserView: View {
     }
 
     private func fileListItems(layout: Layout) -> [SFTPFileListItem] {
-        let emphasized = isPaneFocused && !pathFocused && !searchFocused
+        let emphasized = isPaneFocused && !pathFocused
             && controlActiveState == .key
         let layoutKey: Int
         switch layout {
@@ -775,7 +750,7 @@ struct SFTPBrowserView: View {
         .padding(.leading, Metrics.Space.xxl)
         .padding(.trailing, Metrics.Space.xl)
         .frame(height: 40)
-        .background(.bar)
+        .termindGlassBar()
         .overlay(alignment: .bottom) { Divider().opacity(0.7) }
     }
 
@@ -816,7 +791,7 @@ struct SFTPBrowserView: View {
         // click even though this remains the active pane. Text editing and an
         // inactive window still deliberately use the subdued selection style.
         let emphasized =
-            selected && isPaneFocused && !pathFocused && !searchFocused
+            selected && isPaneFocused && !pathFocused
             && controlActiveState == .key
         return HStack(spacing: 0) {
             nameColumn(row, layout: layout, emphasized: emphasized)
@@ -1355,7 +1330,7 @@ private struct SFTPEditPermissionsSheet: View {
             }
             .padding(.horizontal, Metrics.Space.xxl)
             .padding(.vertical, Metrics.Space.l)
-            .background(.bar)
+            .termindGlassBar()
         }
         .frame(width: 520)
         .disabled(isSaving)

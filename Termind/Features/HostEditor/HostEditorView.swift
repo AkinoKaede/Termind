@@ -441,7 +441,7 @@ struct HostEditorView: View {
                 .disabled(!isValid)
         }
         .padding(Metrics.Space.l)
-        .background(.bar)
+        .termindGlassBar()
     }
 
     /// An identity is not required. A host can be filed before it is known how

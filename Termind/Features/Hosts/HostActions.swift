@@ -90,6 +90,48 @@ struct HostContextMenu: View {
     }
 }
 
+/// `HostContextMenu` as native menu entries, for the sidebar rows that draw
+/// their own selection outline and so cannot use SwiftUI's `contextMenu`.
+///
+/// Deliberately in this file, beside the SwiftUI version: these two are one set
+/// of verbs and the only thing keeping them from drifting is being read
+/// together. Anything added above belongs here too.
+@MainActor
+enum HostMenuEntries {
+    static func entries(
+        for host: Host,
+        app: AppModel,
+        window: WindowModel
+    ) -> [NativeMenuEntry] {
+        [
+            NativeMenuEntry(title: String(localized: "Quick Connect")) {
+                app.open([host], as: .sshSession, in: window)
+            },
+            NativeMenuEntry(
+                title: String(localized: "Connect"),
+                children: [
+                    NativeMenuEntry(title: String(localized: "With SSH")) {
+                        app.open([host], as: .sshSession, in: window)
+                    },
+                    NativeMenuEntry(title: String(localized: "With SFTP")) {
+                        app.open([host], as: .sftpSession, in: window)
+                    },
+                ]
+            ),
+            .separator,
+            NativeMenuEntry(title: String(localized: "Edit")) {
+                window.openHostEditor(host: host)
+            },
+            NativeMenuEntry(title: String(localized: "Copy SSH Command"),
+                isEnabled: app.hostLibrary.sshCommand(for: host) != nil
+            ) {
+                guard let command = app.hostLibrary.sshCommand(for: host) else { return }
+                copyToPasteboard(command)
+            },
+        ]
+    }
+}
+
 struct HostConnectMenu: View {
     let hosts: [Host]
 

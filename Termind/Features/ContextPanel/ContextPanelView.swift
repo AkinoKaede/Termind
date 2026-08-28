@@ -2,8 +2,9 @@ import AppKit
 import ListViewKit
 import SwiftUI
 
-/// The window's one left-hand column. A native segmented picker switches the
-/// Navigator and three Workspace tools in place.
+/// The window's one left-hand column. A glass mode rail switches the Navigator
+/// and three Workspace tools in place without the square selection segments of
+/// `NSSegmentedControl`.
 struct SidebarView: View {
     let detailCatalog: ContextPanelDetailCatalog
 
@@ -17,7 +18,6 @@ struct SidebarView: View {
             modeSelector
                 .padding(.horizontal, Metrics.Space.m)
                 .padding(.vertical, Metrics.Space.s)
-            Divider().opacity(0.55)
             sidebarContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -37,28 +37,86 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var modeSelector: some View {
-        Picker("Sidebar", selection: sidebarModeBinding) {
-            ForEach(WindowSidebarState.Mode.allCases) { mode in
-                Image(systemName: mode.symbol)
-                    .tag(mode)
-                    .disabled(!window.isSidebarModeEnabled(mode))
-                    .help(Text(mode.label))
-                    .accessibilityLabel(Text(mode.label))
+        Group {
+            if #available(macOS 26.0, *) {
+                GlassEffectContainer(spacing: Metrics.Space.xs) {
+                    modeButtons(usesSystemGlass: true)
+                }
+                .padding(Metrics.Space.xs)
+                .glassEffect(.regular, in: .capsule)
+            } else {
+                modeButtons(usesSystemGlass: false)
+                    .padding(Metrics.Space.xs)
+                    .termindGlassCapsule()
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
         .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Sidebar"))
     }
 
-    private var sidebarModeBinding: Binding<WindowSidebarState.Mode> {
-        Binding(
-            get: { window.sidebarMode },
-            set: { mode in
-                guard mode == .navigation || window.isSidebarModeEnabled(mode) else { return }
-                window.sidebarMode = mode
+    private func modeButtons(usesSystemGlass: Bool) -> some View {
+        HStack(spacing: Metrics.Space.xs) {
+            ForEach(Array(WindowSidebarState.Mode.allCases.enumerated()), id: \.element.id) {
+                index, mode in
+                if index > 0 {
+                    Divider()
+                        .frame(height: 18)
+                        .opacity(0.55)
+                }
+                modeButton(mode, usesSystemGlass: usesSystemGlass)
             }
-        )
+        }
+    }
+
+    private func modeButton(
+        _ mode: WindowSidebarState.Mode,
+        usesSystemGlass: Bool
+    ) -> some View {
+        let isSelected = window.sidebarMode == mode
+        let isEnabled = window.isSidebarModeEnabled(mode)
+
+        return Button {
+            guard mode == .navigation || isEnabled else { return }
+            window.sidebarMode = mode
+        } label: {
+            Group {
+                if #available(macOS 26.0, *), usesSystemGlass, isSelected {
+                    modeIcon(mode, isSelected: true, isEnabled: isEnabled)
+                        .background(Circle().fill(Color.accentColor))
+                        .glassEffect(.clear.interactive(), in: .circle)
+                } else {
+                    modeIcon(mode, isSelected: isSelected, isEnabled: isEnabled)
+                        .background {
+                            if isSelected {
+                                Circle().fill(Color.accentColor)
+                            }
+                        }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .help(Text(mode.label))
+        .accessibilityLabel(Text(mode.label))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func modeIcon(
+        _ mode: WindowSidebarState.Mode,
+        isSelected: Bool,
+        isEnabled: Bool
+    ) -> some View {
+        Image(systemName: mode.symbol)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(
+                isSelected
+                    ? AnyShapeStyle(Color.white)
+                    : isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary)
+            )
+            .frame(width: 36, height: 36)
+            .contentShape(.circle)
     }
 
     @ViewBuilder
@@ -87,12 +145,16 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
         case section(SectionID)
         case snippet(Snippet.ID)
         case history(CommandHistoryEntry.ID)
+        case sftpHistory(SFTPHistoryEntry.ID)
+        case connection(Host.ID)
     }
 
     nonisolated enum Content: Hashable, Sendable {
         case section(SectionID, title: String)
         case snippet(Snippet)
         case history(CommandHistoryEntry, isNaming: Bool)
+        case sftpHistory(SFTPHistoryEntry)
+        case connection(Host, address: String)
     }
 
     let id: ID
@@ -110,30 +172,63 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
         .init(id: .history(entry.id), content: .history(entry, isNaming: isNaming))
     }
 
+    static func sftpHistory(_ entry: SFTPHistoryEntry) -> Self {
+        .init(id: .sftpHistory(entry.id), content: .sftpHistory(entry))
+    }
+
+    static func connection(_ host: Host, address: String) -> Self {
+        .init(id: .connection(host.id), content: .connection(host, address: address))
+    }
+
+    /// One height for every content card, because they are one card with four
+    /// fillings — see `SidebarCard`. The exception is a command being named as
+    /// a snippet, where the row grows for the field rather than the field being
+    /// squeezed into a row built for two lines of text.
     var height: CGFloat {
         switch content {
         case .section: 32
-        case .snippet: 46
-        case .history(_, let isNaming): isNaming ? 58 : 46
+        case .snippet: Metrics.Sidebar.historyCardHeight
+        case .history(_, let isNaming):
+            isNaming
+                ? Metrics.Sidebar.historyCardEditingHeight
+                : Metrics.Sidebar.historyCardHeight
+        case .sftpHistory, .connection: Metrics.Sidebar.historyCardHeight
         }
     }
 }
 
+/// The heading above a group of cards.
+///
+/// Inset exactly like `SidebarSectionHeader` in the Navigator and the Assistant,
+/// so every section label in the column starts on the same vertical line —
+/// this one used to sit 2pt further right for no reason anyone could see except
+/// by putting the two modes side by side.
 private func contextSidebarSectionTitle(_ title: String) -> some View {
     Text(title)
         .termindSidebarSectionLabel()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(
             .horizontal,
-            Metrics.Space.m + Metrics.Sidebar.rowHorizontalMargin
+            Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
         )
         .padding(.top, Metrics.Space.s)
 }
 
 private struct ContextSidebarNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<ContextSidebarListItem>
+    typealias NSViewType = ContextSidebarListContainer
+    typealias List = ListView<ContextSidebarListItem>
     typealias Renderer = @MainActor (ContextSidebarListItem) -> AnyView
 
     let items: [ContextSidebarListItem]
+    /// Whether adding and removing rows animates.
+    ///
+    /// History says no. Its content reorders as a side effect of something the
+    /// user did elsewhere — opening a host moves it to the top of Recents — and
+    /// animating that reorder makes the list jump under a pointer that is aimed
+    /// at a row which has already moved.
+    var animatesStructuralChanges = true
+    /// The right-click menu for the space below the last row.
+    var blankAreaMenu: (() -> [NativeMenuEntry])?
     let renderer: Renderer
 
     @Environment(\.locale) private var locale
@@ -141,25 +236,31 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
 
     init(
         items: [ContextSidebarListItem],
+        animatesStructuralChanges: Bool = true,
+        blankAreaMenu: (() -> [NativeMenuEntry])? = nil,
         @ViewBuilder renderer: @escaping @MainActor (ContextSidebarListItem) -> some View
     ) {
         self.items = items
+        self.animatesStructuralChanges = animatesStructuralChanges
+        self.blankAreaMenu = blankAreaMenu
         self.renderer = { AnyView(renderer($0)) }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSViewType {
-        context.coordinator.makeListView()
+        ContextSidebarListContainer(listView: context.coordinator.makeListView())
     }
 
-    func updateNSView(_ listView: NSViewType, context: Context) {
+    func updateNSView(_ container: NSViewType, context: Context) {
+        container.blankAreaMenu = blankAreaMenu
         context.coordinator.update(
-            listView: listView,
+            listView: container.listView,
             items: items,
             renderer: renderer,
             locale: locale,
-            colorScheme: colorScheme
+            colorScheme: colorScheme,
+            animated: animatesStructuralChanges
         )
     }
 
@@ -170,12 +271,12 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
         private var colorScheme = ColorScheme.light
         private var content: [ContextSidebarListItem] = []
 
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
+        func makeListView() -> List {
+            let listView = List()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.topInset = Metrics.Space.xs
             listView.bottomInset = Metrics.Space.xs
-            listView.estimatedRowHeight = 46
+            listView.estimatedRowHeight = Metrics.Sidebar.navigationRowHeight
             listView.rows {
                 ListRow(ContextSidebarHostingRow.self)
                     .height { item, _ in item.height }
@@ -187,11 +288,12 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
         }
 
         func update(
-            listView: NSViewType,
+            listView: List,
             items: [ContextSidebarListItem],
             renderer: @escaping Renderer,
             locale: Locale,
-            colorScheme: ColorScheme
+            colorScheme: ColorScheme,
+            animated: Bool
         ) {
             self.renderer = renderer
             let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
@@ -202,7 +304,7 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
                     listView.update(new)
                 }
             } else {
-                listView.apply(items, animated: !content.isEmpty)
+                listView.apply(items, animated: animated && !content.isEmpty)
             }
             content = items
         }
@@ -215,6 +317,41 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
                 .environment(\.colorScheme, colorScheme)
             row.configure(rootView: AnyView(root))
         }
+    }
+}
+
+/// Wraps the list so the space below the last row has a menu of its own.
+///
+/// A row's own menu is installed by SwiftUI on its hosting view, which AppKit
+/// finds first; only a click that landed on no row walks up the responder chain
+/// this far. That is exactly the distinction the blank-area menu needs, and it
+/// needs no geometry to make it.
+@MainActor
+final class ContextSidebarListContainer: NSView {
+    let listView: ListView<ContextSidebarListItem>
+    var blankAreaMenu: (() -> [NativeMenuEntry])?
+
+    init(listView: ListView<ContextSidebarListItem>) {
+        self.listView = listView
+        super.init(frame: .zero)
+        listView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(listView)
+        NSLayoutConstraint.activate([
+            listView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            listView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            listView.topAnchor.constraint(equalTo: topAnchor),
+            listView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) { fatalError() }
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        guard let entries = blankAreaMenu?(), !entries.isEmpty else {
+            return super.menu(for: event)
+        }
+        return NativeMenuEntry.menu(entries)
     }
 }
 
@@ -258,31 +395,26 @@ private struct SSHSessionSnippetsSidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TermindSearchField(text: $query, prompt: "Search Snippets", density: .compact)
-                .padding(.horizontal, Metrics.Space.m)
-                .padding(.vertical, Metrics.Space.s)
-
             if displayedSnippets.isEmpty {
                 ContentUnavailableView.search(text: query)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ContextSidebarNativeList(items: snippetListItems) { item in
+                ContextSidebarNativeList(
+                    items: snippetListItems,
+                    blankAreaMenu: { blankAreaMenu }
+                ) { item in
                     switch item.content {
                     case .section(_, let title):
                         contextSidebarSectionTitle(title)
                     case .snippet(let snippet):
                         snippetRow(snippet)
-                    case .history:
+                    case .history, .sftpHistory, .connection:
                         EmptyView()
                     }
                 }
             }
 
-            Divider()
-            Text("Double-click to execute on default Targets")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.vertical, Metrics.Space.s)
+            SidebarSearchFooter(text: $query, placeholder: String(localized: "Search Snippets"))
         }
         .confirmationDialog(
             "Execute a destructive script?",
@@ -318,17 +450,33 @@ private struct SSHSessionSnippetsSidebar: View {
         return items
     }
 
+    /// This shelf only runs what is already saved; snippets are made on the
+    /// Snippets page. With nothing under the pointer both verbs grey out rather
+    /// than the menu not appearing, so the shelf answers a right-click the same
+    /// way wherever it lands.
+    private var blankAreaMenu: [NativeMenuEntry] {
+        [
+            NativeMenuEntry(title: String(localized: "Copy"), isEnabled: false),
+            NativeMenuEntry(title: String(localized: "Execute"), isEnabled: false),
+        ]
+    }
+
     private func snippetRow(_ snippet: Snippet) -> some View {
-        SSHSessionSnippetRow(snippet: snippet)
-            .padding(.horizontal, Metrics.Space.m)
-            .contentShape(.rect)
-            .termindSidebarRowBackground(isSelected: selectedSnippetID == snippet.id)
+        SSHSessionSnippetRow(
+            snippet: snippet, isSelected: selectedSnippetID == snippet.id
+        )
+            .termindSidebarRow(isSelected: selectedSnippetID == snippet.id) {
+                [
+                    NativeMenuEntry(title: String(localized: "Copy")) {
+                        copyToPasteboard(snippet.body)
+                    },
+                    NativeMenuEntry(title: String(localized: "Execute")) {
+                        requestExecution(snippet)
+                    },
+                ]
+            }
             .onTapGesture(count: 2) { requestExecution(snippet) }
             .onTapGesture { selectedSnippetID = snippet.id }
-            .contextMenu {
-                Button("Copy") { copyToPasteboard(snippet.body) }
-                Button("Execute") { requestExecution(snippet) }
-            }
     }
 
     private var displayedSnippets: [Snippet] {
@@ -376,6 +524,65 @@ private struct SSHSessionSnippetsSidebar: View {
 
 // MARK: - Focus-sensitive History
 
+/// One card, four fillings.
+///
+/// The three histories and the Snippet shelf answer the same shape of question
+/// about different things — what did I run, what did I open, where did I
+/// connect, what have I saved — so they are one component rather than four
+/// lists that drifted into four paddings, four heights and four ideas of where
+/// the selection highlight goes.
+private struct SidebarCard<Trailing: View>: View {
+    let symbol: String?
+    var symbolTint: AnyShapeStyle?
+    let title: String
+    var titleIsMonospaced = false
+    let subtitle: String?
+    var subtitleIsMonospaced = true
+    var truncatesSubtitleInMiddle = false
+    let isSelected: Bool
+    @ViewBuilder var trailing: Trailing
+
+    @Environment(\.controlActiveState) private var controlActiveState
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.s) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .foregroundStyle(SidebarSelectionStyle.foreground(
+                        isSelected: isSelected,
+                        controlActiveState: controlActiveState,
+                        unselected: symbolTint ?? AnyShapeStyle(.secondary)
+                    ))
+                    .frame(width: Metrics.Sidebar.rowIcon)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(titleIsMonospaced ? .caption.monospaced() : .body)
+                    .lineLimit(titleIsMonospaced ? 2 : 1)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(subtitleIsMonospaced ? .caption.monospaced() : .caption)
+                        .foregroundStyle(SidebarSelectionStyle.foreground(
+                            isSelected: isSelected,
+                            controlActiveState: controlActiveState,
+                            unselected: AnyShapeStyle(.secondary)
+                        ))
+                        .lineLimit(1)
+                        .truncationMode(truncatesSubtitleInMiddle ? .middle : .tail)
+                }
+            }
+
+            Spacer(minLength: Metrics.Space.s)
+
+            trailing
+        }
+        .padding(.horizontal, Metrics.Space.m)
+        .frame(height: Metrics.Sidebar.historyCardHeight)
+        .contentShape(.rect)
+    }
+}
+
 private struct AdaptiveHistorySidebar: View {
     @Environment(WindowModel.self) private var window
 
@@ -399,6 +606,7 @@ private struct SSHCommandHistorySidebar: View {
     @State private var confirmsClear = false
     @State private var namingEntryID: CommandHistoryEntry.ID?
     @State private var snippetName = ""
+    @State private var selectedID: CommandHistoryEntry.ID?
 
     private var sshSession: SSHSessionModel? {
         window.selectedWorkspace?.focusedPane.sshSession
@@ -422,23 +630,22 @@ private struct SSHCommandHistorySidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TermindSearchField(text: $query, prompt: "Search History", density: .compact)
-                .padding(.horizontal, Metrics.Space.m)
-                .padding(.vertical, Metrics.Space.s)
-
             if allEntries.isEmpty {
                 emptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .sidebarBlankAreaMenu { globalMenu }
             } else {
-                ContextSidebarNativeList(items: historyListItems) { item in
+                ContextSidebarNativeList(
+                    items: historyListItems,
+                    animatesStructuralChanges: false,
+                    blankAreaMenu: { globalMenu }
+                ) { item in
                     switch item.content {
                     case .section(_, let title):
                         contextSidebarSectionTitle(title)
                     case .history(let entry, _):
                         historyRow(entry)
-                            .padding(.horizontal, Metrics.Space.m)
-                            .termindSidebarRowBackground(isSelected: false)
-                    case .snippet:
+                    case .snippet, .sftpHistory, .connection:
                         EmptyView()
                     }
                 }
@@ -455,19 +662,7 @@ private struct SSHCommandHistorySidebar: View {
                     .padding(.vertical, Metrics.Space.s)
             }
 
-            Divider()
-            HStack(spacing: Metrics.Space.s) {
-                Text("Click to insert · Double-click to execute")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-                Button("Clear", role: .destructive) { confirmsClear = true }
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .disabled(historyIsEmpty)
-            }
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.s)
+            SidebarSearchFooter(text: $query, placeholder: String(localized: "Search History"))
         }
         .confirmationDialog(
             "Clear command history for this Host?",
@@ -496,13 +691,29 @@ private struct SSHCommandHistorySidebar: View {
         }
     }
 
+    /// The blank area offers the same menu a row does, with everything that
+    /// needs a row greyed out. Clear History is not one of those — it is about
+    /// the list, so it stays live where there is nothing under the pointer.
+    private var globalMenu: [NativeMenuEntry] {
+        [
+            NativeMenuEntry(title: String(localized: "Copy"), isEnabled: false),
+            NativeMenuEntry(title: String(localized: "Save as Snippet"), isEnabled: false),
+            .separator,
+            NativeMenuEntry(
+                title: String(localized: "Clear History"),
+                isEnabled: !allEntries.isEmpty,
+                isDestructive: true
+            ) { confirmsClear = true },
+        ]
+    }
+
     @ViewBuilder
     private func historyRow(_ entry: CommandHistoryEntry) -> some View {
         if namingEntryID == entry.id {
             VStack(alignment: .leading, spacing: 3) {
                 SidebarInlineTextField(
                     text: $snippetName,
-                    prompt: "Snippet Name",
+                    prompt: String(localized: "Snippet Name"),
                     onSubmit: { saveSnippet(from: entry) },
                     onCancel: cancelSnippetNaming
                 )
@@ -523,17 +734,39 @@ private struct SSHCommandHistorySidebar: View {
                     .lineLimit(1)
             }
             .padding(.vertical, 2)
+            .padding(.horizontal, Metrics.Space.m)
         } else {
-            CommandHistoryRow(entry: entry, delete: { delete(entry) })
-                .contentShape(.rect)
-                .onTapGesture(count: 2) { execute(entry) }
-                .onTapGesture { insert(entry) }
-                .contextMenu {
-                    Button("Copy") { copyToPasteboard(entry.command) }
-                    Button("Save as Snippet") { beginSnippetNaming(entry) }
-                    Divider()
-                    Button("Clear History", role: .destructive) { confirmsClear = true }
-                }
+            CommandHistoryCard(
+                entry: entry,
+                isSelected: selectedID == entry.id,
+                delete: { delete(entry) }
+            )
+            .onTapGesture(count: 2) {
+                selectedID = entry.id
+                execute(entry)
+            }
+            .onTapGesture {
+                selectedID = entry.id
+                insert(entry)
+            }
+            .termindSidebarRow(isSelected: selectedID == entry.id) {
+                [
+                    NativeMenuEntry(title: String(localized: "Copy")) {
+                        copyToPasteboard(entry.command)
+                    },
+                    NativeMenuEntry(title: String(localized: "Save as Snippet")) {
+                        beginSnippetNaming(entry)
+                    },
+                    .separator,
+                    NativeMenuEntry(
+                        title: String(localized: "Delete from History"),
+                        isDestructive: true
+                    ) { delete(entry) },
+                    NativeMenuEntry(
+                        title: String(localized: "Clear History"), isDestructive: true
+                    ) { confirmsClear = true },
+                ]
+            }
         }
     }
 
@@ -542,7 +775,7 @@ private struct SSHCommandHistorySidebar: View {
             ContextSidebarListItem.history($0, isNaming: namingEntryID == $0.id)
         }
         guard !query.isEmpty else { return entries }
-        return [.section(.results, title: "Results")] + entries
+        return [.section(.results, title: String(localized: "Results"))] + entries
     }
 
     @ViewBuilder
@@ -551,18 +784,10 @@ private struct SSHCommandHistorySidebar: View {
             ContentUnavailableView.search(text: query)
         } else {
             ContentUnavailableView(
-                "No Command History", systemImage: "clock.arrow.circlepath",
+                "No History", systemImage: "clock.arrow.circlepath",
                 description: Text("Commands confirmed by the remote shell appear here.")
             )
         }
-    }
-
-    private var historyIsEmpty: Bool {
-        guard let sshSession else { return true }
-        if isSavedHost {
-            return app.commandHistory.entries(for: sshSession.hostID).isEmpty
-        }
-        return sshSession.transientCommandHistory.isEmpty
     }
 
     private func insert(_ entry: CommandHistoryEntry) {
@@ -639,15 +864,11 @@ private struct SFTPBrowseHistorySidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TermindSearchField(text: $query, prompt: "Search SFTP History", density: .compact)
-                .padding(.horizontal, Metrics.Space.m)
-                .padding(.vertical, Metrics.Space.s)
-
             if entries.isEmpty {
                 Group {
                     if query.isEmpty {
                         ContentUnavailableView(
-                            "No SFTP History", systemImage: "clock.arrow.circlepath",
+                            "No History", systemImage: "clock.arrow.circlepath",
                             description: Text("Folders you visit and files you open appear here.")
                         )
                     } else {
@@ -655,53 +876,20 @@ private struct SFTPBrowseHistorySidebar: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .sidebarBlankAreaMenu { globalMenu }
             } else {
-                List(entries, selection: $selectedID) { entry in
-                    HStack(spacing: Metrics.Space.s) {
-                        Image(systemName: entry.kind.symbol)
-                            .foregroundStyle(
-                                entry.kind == .directory
-                                    ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
-                            )
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.name).lineLimit(1)
-                            Text(entry.path)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .frame(height: 42)
-                    .contentShape(.rect)
-                    .tag(entry.id)
-                    .onTapGesture(count: 2) { reopen(entry) }
-                    .contextMenu {
-                        Button("Open") { reopen(entry) }
-                        Divider()
-                        Button("Delete from History", role: .destructive) {
-                            app.sftpHistory.delete(entry.id)
-                        }
+                ContextSidebarNativeList(
+                    items: entries.map(ContextSidebarListItem.sftpHistory),
+                    animatesStructuralChanges: false,
+                    blankAreaMenu: { globalMenu }
+                ) { item in
+                    if case .sftpHistory(let entry) = item.content {
+                        row(entry)
                     }
                 }
-                .listStyle(.sidebar)
-                .scrollContentBackground(.hidden)
             }
 
-            Divider()
-            HStack {
-                Text("Double-click to open")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-                Button("Clear", role: .destructive) { confirmsClear = true }
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .disabled(entries.isEmpty)
-            }
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.s)
+            SidebarSearchFooter(text: $query, placeholder: String(localized: "Search History"))
         }
         .confirmationDialog(
             "Clear SFTP history for this Host?", isPresented: $confirmsClear,
@@ -711,6 +899,49 @@ private struct SFTPBrowseHistorySidebar: View {
                 if let session { app.sftpHistory.clear(for: session.hostID) }
             }
             Button("Cancel", role: .cancel) {}
+        }
+    }
+
+    private var globalMenu: [NativeMenuEntry] {
+        [
+            NativeMenuEntry(title: String(localized: "Open"), isEnabled: false),
+            NativeMenuEntry(
+                title: String(localized: "Delete from History"), isEnabled: false
+            ),
+            .separator,
+            NativeMenuEntry(
+                title: String(localized: "Clear History"),
+                isEnabled: !entries.isEmpty,
+                isDestructive: true
+            ) { confirmsClear = true },
+        ]
+    }
+
+    private func row(_ entry: SFTPHistoryEntry) -> some View {
+        SidebarCard(
+            symbol: entry.kind.symbol,
+            symbolTint: entry.kind == .directory
+                ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary),
+            title: entry.name,
+            subtitle: entry.path,
+            truncatesSubtitleInMiddle: true,
+            isSelected: selectedID == entry.id
+        ) {
+            EmptyView()
+        }
+        .onTapGesture(count: 2) { reopen(entry) }
+        .onTapGesture { selectedID = entry.id }
+        .termindSidebarRow(isSelected: selectedID == entry.id) {
+            [
+                NativeMenuEntry(title: String(localized: "Open")) { reopen(entry) },
+                .separator,
+                NativeMenuEntry(
+                    title: String(localized: "Delete from History"), isDestructive: true
+                ) { app.sftpHistory.delete(entry.id) },
+                NativeMenuEntry(
+                    title: String(localized: "Clear History"), isDestructive: true
+                ) { confirmsClear = true },
+            ]
         }
     }
 
@@ -730,66 +961,158 @@ private struct SFTPBrowseHistorySidebar: View {
 }
 
 private struct ConnectionHistorySidebar: View {
+    @Environment(\.locale) private var locale
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @AppStorage(SettingsKey.showRecents) private var showRecents = true
+    @State private var query = ""
     @State private var selectedID: Host.ID?
+    @State private var confirmsClear = false
 
-    private var hosts: [Host] { showRecents ? app.hostLibrary.recents(limit: 10) : [] }
+    private var allHosts: [Host] { showRecents ? app.hostLibrary.recents(limit: 10) : [] }
+
+    private var hosts: [Host] {
+        guard !query.isEmpty else { return allHosts }
+        return allHosts.filter {
+            $0.matches(query)
+                || app.hostLibrary.loginAddress(for: $0).localizedCaseInsensitiveContains(query)
+        }
+    }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
             if hosts.isEmpty {
-                ContentUnavailableView(
-                    "No Recent Hosts", systemImage: "clock.arrow.circlepath",
-                    description: Text("Hosts you connect to appear here.")
-                )
-            } else {
-                List(hosts, selection: $selectedID) { host in
-                    HStack(spacing: Metrics.Space.s) {
-                        StatusDot(status: app.hostLibrary.status(of: host.id))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(host.name).lineLimit(1)
-                            Text(app.hostLibrary.loginAddress(for: host))
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
+                Group {
+                    if query.isEmpty {
+                        ContentUnavailableView(
+                            "No History", systemImage: "clock.arrow.circlepath",
+                            description: Text("Hosts you connect to appear here.")
+                        )
+                    } else {
+                        ContentUnavailableView.search(text: query)
                     }
-                    .frame(height: 42)
-                    .contentShape(.rect)
-                    .tag(host.id)
-                    .onTapGesture(count: 2) {
-                        app.open(host, as: .sshSession, in: window)
-                    }
-                    .contextMenu { HostContextMenu(host: host) }
                 }
-                .listStyle(.sidebar)
-                .scrollContentBackground(.hidden)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .sidebarBlankAreaMenu { globalMenu }
+            } else {
+                // Never animated. Opening a host moves it to the top of
+                // Recents, and animating that reorder made the list jump
+                // upwards under a pointer aimed at the row that had just moved.
+                ContextSidebarNativeList(
+                    items: hosts.map {
+                        .connection($0, address: app.hostLibrary.loginAddress(for: $0))
+                    },
+                    animatesStructuralChanges: false,
+                    blankAreaMenu: { globalMenu }
+                ) { item in
+                    if case .connection(let host, let address) = item.content {
+                        row(host, address: address)
+                    }
+                }
+            }
+
+            SidebarSearchFooter(text: $query, placeholder: String(localized: "Search History"))
+        }
+        .confirmationDialog(
+            "Clear connection history?",
+            isPresented: $confirmsClear,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                app.hostLibrary.clearRecents()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes all Hosts from Recents without deleting the Hosts themselves.")
+        }
+    }
+
+    private var globalMenu: [NativeMenuEntry] {
+        [
+            NativeMenuEntry(title: String(localized: "Quick Connect"), isEnabled: false),
+            NativeMenuEntry(
+                title: String(localized: "Delete from History"), isEnabled: false
+            ),
+            .separator,
+            NativeMenuEntry(
+                title: String(localized: "Clear History"),
+                isEnabled: !allHosts.isEmpty,
+                isDestructive: true
+            ) { confirmsClear = true },
+        ]
+    }
+
+    private func row(_ host: Host, address: String) -> some View {
+        SidebarCard(
+            symbol: "server.rack",
+            title: host.name,
+            subtitle: address,
+            isSelected: selectedID == host.id
+        ) {
+            if let date = host.lastUsedAt {
+                Text(date, format: .relative(presentation: .numeric).locale(locale))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
         }
-        .overlay(alignment: .bottom) {
-            Text("Double-click to connect")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.vertical, Metrics.Space.s)
+        .onTapGesture(count: 2) {
+            app.open(host, as: .sshSession, in: window)
+        }
+        .onTapGesture { selectedID = host.id }
+        .termindSidebarRow(isSelected: selectedID == host.id) {
+            HostMenuEntries.entries(for: host, app: app, window: window) + [
+                .separator,
+                NativeMenuEntry(
+                    title: String(localized: "Delete from History"), isDestructive: true
+                ) { app.hostLibrary.forgetRecent(host.id) },
+                NativeMenuEntry(
+                    title: String(localized: "Clear History"), isDestructive: true
+                ) { confirmsClear = true },
+            ]
         }
     }
 }
 
-private struct CommandHistoryRow: View {
+/// The blank-area menu for an empty-state view, which has no list to hang one on.
+private struct SidebarBlankAreaMenu: ViewModifier {
+    let entries: () -> [NativeMenuEntry]
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            NativeBlankAreaMenu(entries: { _ in entries() })
+        }
+    }
+}
+
+extension View {
+    fileprivate func sidebarBlankAreaMenu(
+        _ entries: @escaping () -> [NativeMenuEntry]
+    ) -> some View {
+        modifier(SidebarBlankAreaMenu(entries: entries))
+    }
+}
+
+/// A command as it appears in History: what was run, and how alarming it is.
+private struct CommandHistoryCard: View {
     let entry: CommandHistoryEntry
+    let isSelected: Bool
     let delete: () -> Void
+
+    @Environment(\.locale) private var locale
     @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: Metrics.Space.s) {
-            Text(entry.command)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        SidebarCard(
+            symbol: nil,
+            title: entry.command,
+            titleIsMonospaced: true,
+            subtitle: entry.executedAt.formatted(
+                .relative(presentation: .numeric).locale(locale)
+            ),
+            subtitleIsMonospaced: false,
+            isSelected: isSelected
+        ) {
             ZStack {
                 if isHovering {
                     Button(action: delete) {
@@ -810,7 +1133,6 @@ private struct CommandHistoryRow: View {
             }
             .frame(width: 18, height: 18, alignment: .center)
         }
-        .padding(.vertical, 2)
         .onHover { isHovering = $0 }
         .help(Text(entry.command))
     }
@@ -899,24 +1221,24 @@ private struct SidebarInlineTextField: NSViewRepresentable {
     }
 }
 
+/// A snippet on the shelf, built from the same card as the three histories —
+/// name over script, one height, one set of insets. The shelf and History are
+/// the same kind of list and used to be two slightly different ones.
 private struct SSHSessionSnippetRow: View {
     let snippet: Snippet
+    let isSelected: Bool
 
     private var assessment: RiskAssessment { CommandRiskClassifier.assess(snippet.body) }
 
     var body: some View {
-        HStack(spacing: Metrics.Space.s) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(snippet.title).font(.callout.weight(.medium)).lineLimit(1)
-                Text(snippet.body)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: Metrics.Space.s)
+        SidebarCard(
+            symbol: nil,
+            title: snippet.title,
+            subtitle: snippet.body,
+            isSelected: isSelected
+        ) {
             RiskBadge(assessment: assessment, compact: true)
         }
-        .padding(.vertical, 2)
         .help(Text(snippet.body))
     }
 }

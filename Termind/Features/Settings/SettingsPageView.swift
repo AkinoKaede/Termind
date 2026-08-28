@@ -241,7 +241,7 @@ private struct SettingsSidebar: View {
         }
         .padding(.horizontal, Metrics.Space.m)
         .padding(.vertical, Metrics.Space.xl)
-        .background(.bar)
+        .termindGlassBar()
     }
 
     private var items: [SettingsNavigationItem] {
@@ -456,7 +456,7 @@ struct SettingsPageHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Metrics.Space.xxl)
         .padding(.vertical, Metrics.Space.xl)
-        .background(.bar)
+        .termindGlassBar()
     }
 }
 
@@ -485,7 +485,7 @@ struct SettingsDetailHeader: View {
         }
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.vertical, Metrics.Space.m)
-        .background(.bar)
+        .termindGlassBar()
     }
 }
 

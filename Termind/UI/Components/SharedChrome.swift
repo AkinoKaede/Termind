@@ -38,6 +38,15 @@ struct TermindSearchField: View {
     @FocusState private var localFocus: Bool
 
     var body: some View {
+        fieldContent
+            .termindGlassSurface(
+                cornerRadius: density == .prominent
+                    ? Metrics.Radius.large : Metrics.Radius.medium,
+                isInteractive: true
+            )
+    }
+
+    private var fieldContent: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
@@ -58,16 +67,6 @@ struct TermindSearchField: View {
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
-        .background(
-            .thinMaterial,
-            in: .rect(cornerRadius: density == .prominent ? Metrics.Radius.large : Metrics.Radius.medium)
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius: density == .prominent ? Metrics.Radius.large : Metrics.Radius.medium
-            )
-            .strokeBorder(.quaternary.opacity(0.8))
-        }
     }
 
     private var horizontalPadding: CGFloat {
@@ -92,14 +91,14 @@ struct SheetScaffold<Header: View, Content: View, Footer: View>: View {
         VStack(spacing: 0) {
             header
                 .frame(maxWidth: .infinity)
-                .background(.bar)
+                .termindGlassBar()
             Divider().opacity(0.7)
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(.background)
             Divider().opacity(0.7)
             footer
-                .background(.bar)
+                .termindGlassBar()
         }
     }
 }
@@ -133,7 +132,7 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
             }
             .padding(.horizontal, Metrics.Space.l)
             .padding(.vertical, Metrics.Space.m)
-            .background(.bar)
+            .termindGlassBar()
 
             Divider().opacity(0.7)
             content
@@ -141,7 +140,7 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
                 .background(.background)
             Divider().opacity(0.7)
             footer
-                .background(.bar)
+                .termindGlassBar()
         }
     }
 }

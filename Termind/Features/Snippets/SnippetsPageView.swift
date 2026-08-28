@@ -6,7 +6,7 @@ struct SnippetExecutionTargetsView: View {
     let request: SnippetHostChooserRequest
 
     var body: some View {
-        HostChooserView(purpose: .snippet(request))
+        HostChooserView(purpose: .snippet(request), presentation: .vaultWork)
     }
 }
 
@@ -60,7 +60,11 @@ struct SnippetsPageView: ManagedCardPage {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    @State private var state = SnippetsPageState()
+    let state: SnippetsPageState
+
+    init(state: SnippetsPageState = SnippetsPageState()) {
+        self.state = state
+    }
 
     private var selection: Set<Snippet.ID> {
         Set(
@@ -217,33 +221,19 @@ struct SnippetsPageView: ManagedCardPage {
         SnippetGhostCard(snippet: snippet)
     }
 
-    @ViewBuilder
-    func managedSupplementaryContent(for section: SectionID) -> some View {
-        if section != .results {
-            AddCardTile(title: "New Snippet") {
-                openSnippetEditor(snippetID: nil, packageID: section.packageID)
-            }
-        }
-    }
-
-    func managedToolbar() -> some View {
-        PageToolbar(
-            query: Binding(get: { state.query }, set: { state.query = $0 }),
-            prompt: "Filter snippets"
-        ) {
-            let selected = selectedSnippets
-            if !selected.isEmpty {
-                Button("Execute") { requestExecution(selected) }
-                    .buttonStyle(.borderedProminent)
-                Button("Execute on Hosts") { executeOnHosts(selected) }
-            }
-            Button("New Package") {
-                openPackageEditor(packageID: nil, parentID: nil)
-            }
-            Button("New Snippet") {
-                openSnippetEditor(snippetID: nil, packageID: nil)
-            }
-        }
+    /// Right-clicking inside a package files the new snippet or subpackage
+    /// there. Results is a view of matches from everywhere, so it files at the
+    /// root rather than guessing which package the user meant.
+    func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
+        let packageID = section?.packageID
+        return [
+            NativeMenuEntry(title: String(localized: "New Snippet")) {
+                openSnippetEditor(snippetID: nil, packageID: packageID)
+            },
+            NativeMenuEntry(title: String(localized: "New Package")) {
+                openPackageEditor(packageID: nil, parentID: packageID)
+            },
+        ]
     }
 
     func managedEmptyState() -> some View {

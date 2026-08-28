@@ -7,6 +7,20 @@ import Testing
 @MainActor
 struct SFTPSessionTests {
     @Test
+    func findFocusRequestsRepeatWithoutClearingTheQuery() throws {
+        let host = Host(name: "Files", host: "files.example")
+        let window = WindowModel(workspaces: [Workspace.sftpSession(host: host)])
+        let session = try #require(window.focusedSFTPSession)
+        session.query = "release"
+
+        window.focusToolbarFind()
+        window.focusToolbarFind()
+
+        #expect(window.findFocusRequest == 2)
+        #expect(session.query == "release")
+    }
+
+    @Test
     func navigationAndHistoryBelongToTheSession() {
         let sftpSession = SFTPSessionModel(hostID: UUID(), initialPath: "/var/log/")
 

@@ -26,6 +26,7 @@ nonisolated enum SettingsKey {
     static let vaultSectionExpanded = "sidebar.section.vault.expanded"
     static let workspaceSectionExpanded = "sidebar.section.workspace.expanded"
     static let chatsSectionExpanded = "sidebar.section.chats.expanded"
+    static let pinnedChatsSectionExpanded = "sidebar.section.pinnedChats.expanded"
     static let recentsSectionExpanded = "sidebar.section.recents.expanded"
     /// Terminal palette name, matched against `GhosttyThemeCatalog`.
     static let terminalThemeDark = "terminal.theme.dark"

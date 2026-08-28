@@ -269,71 +269,58 @@ struct FlowLayout: Layout {
 /// meant to read as the same object. Two hand-written copies of the same six
 /// lines drift the first time one radius changes, and the drift shows up as two
 /// blocks in one column that are almost — but not quite — the same shape.
+/// Which column the interaction surface is in. It no longer changes what the
+/// surface is *made of* — both are system glass — only how much room it has.
 enum AssistantInteractionSurfaceStyle {
     case standard
     case sidebar
-
-    var panelColor: Color {
-        switch self {
-        case .standard:
-            .clear
-        case .sidebar:
-            Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
-        }
-    }
 }
 
-private struct ComposerBlock: ViewModifier {
+/// The one interactive surface in the Assistant column.
+///
+/// Composer, Steering and the archived-conversation notice are the same object
+/// seen three times, so they share a radius, a material and a tint rather than
+/// each drawing its own. Steering used to paint an opaque `.bar` with a
+/// hand-drawn stroke directly above a Composer made of system glass, which read
+/// as two unrelated panels stacked by accident.
+private struct AssistantInteractionSurface: ViewModifier {
     let style: AssistantInteractionSurfaceStyle
     let isEmphasized: Bool
 
     func body(content: Content) -> some View {
         content
             .padding(Metrics.Space.l)
-            .background {
-                surfaceBackground
-            }
-            .overlay {
-                surfaceBorder
-            }
-    }
-
-    @ViewBuilder
-    private var surfaceBackground: some View {
-        switch style {
-        case .standard:
-            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                .fill(.bar)
-        case .sidebar:
-            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                .fill(style.panelColor)
-        }
-    }
-
-    @ViewBuilder
-    private var surfaceBorder: some View {
-        switch style {
-        case .standard:
-            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                .stroke(.quaternary, lineWidth: 1)
-        case .sidebar:
-            RoundedRectangle(cornerRadius: Metrics.Chat.composerRadius)
-                .stroke(Color.primary.opacity(isEmphasized ? 0.16 : 0.09), lineWidth: 1)
-        }
+            // Untinted. The sidebar copy used to carry a grey wash to separate
+            // it from the column behind, which is a job system glass already
+            // does — and the wash was enough to make the composer read as a
+            // flat box with a sheen rather than as glass.
+            .termindGlassSurface(
+                cornerRadius: Metrics.Chat.composerRadius,
+                isInteractive: isEmphasized
+            )
     }
 }
 
 extension View {
-    func composerBlock(
+    func assistantInteractionSurface(
         style: AssistantInteractionSurfaceStyle = .standard,
         isEmphasized: Bool = false
     ) -> some View {
         modifier(
-            ComposerBlock(
+            AssistantInteractionSurface(
                 style: style,
                 isEmphasized: isEmphasized
             )
         )
+    }
+
+    /// The composer's own name for the shared surface, kept so the call sites
+    /// that mean "this is the composer block" still read that way.
+    func composerBlock(
+        style: AssistantInteractionSurfaceStyle = .standard,
+        isEmphasized: Bool = false
+    ) -> some View {
+        assistantInteractionSurface(style: style, isEmphasized: isEmphasized)
     }
 }
 
@@ -1471,7 +1458,13 @@ struct ComposerView: View {
             .padding(.bottom, Metrics.Space.s)
         }
         .frame(width: 320)
-        .background(surfaceStyle.panelColor)
+        // The same system glass the composer that raised it is made of, rather
+        // than a flat panel colour — a popover anchored to a glass surface that
+        // is itself opaque reads as a different app's window. The presentation
+        // background is cleared so the glass is the background rather than a
+        // sheen painted over the popover's own opaque chrome.
+        .termindGlassSurface(cornerRadius: Metrics.Radius.large)
+        .presentationBackground(.clear)
     }
 
     private func permissionOptionRow(_ mode: ChatPermissionMode) -> some View {
@@ -1643,7 +1636,8 @@ struct ComposerView: View {
             .buttonStyle(.plain)
         }
         .frame(width: 264)
-        .background(surfaceStyle.panelColor)
+        .termindGlassSurface(cornerRadius: Metrics.Radius.large)
+        .presentationBackground(.clear)
     }
 
     private func modelPickerRow(

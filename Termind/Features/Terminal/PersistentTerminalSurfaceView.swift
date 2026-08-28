@@ -242,7 +242,7 @@
                 terminalView.setSurfaceVisible(isVisible)
             }
 
-            synchronizeFocus(requested: requestsFocus && isVisible)
+            synchronizeFocus(requested: requestsFocus && isVisible, force: false)
         }
 
         func unmount(from oldContainer: TerminalMountView) {
@@ -260,8 +260,11 @@
             container = nil
         }
 
+        /// An explicit hand-back — Escape in the Find field, a pane becoming
+        /// focused. This one is allowed to take the keyboard away from a text
+        /// field, because taking it away is the whole point.
         func requestFocus() {
-            synchronizeFocus(requested: true)
+            synchronizeFocus(requested: true, force: true)
         }
 
         @discardableResult
@@ -304,7 +307,7 @@
             container.mountOrdinals[ownerIdentifier] = nextMountOrdinal
         }
 
-        private func synchronizeFocus(requested: Bool) {
+        private func synchronizeFocus(requested: Bool, force: Bool) {
             wantsFocus = requested
             guard let window = terminalView.window else {
                 if requested { scheduleFocusAfterMount() }
@@ -312,11 +315,31 @@
             }
 
             if requested {
-                if window.firstResponder !== terminalView {
-                    window.makeFirstResponder(terminalView)
-                }
+                guard window.firstResponder !== terminalView else { return }
+                // Never pull the caret out of a text field somebody is typing
+                // in. This runs from `mount`, which SwiftUI re-enters for any
+                // observed change on the session — including the Find query
+                // being typed into the window titlebar. Claiming the keyboard
+                // there emptied the field's focus after every keystroke.
+                //
+                // `force` is the explicit hand-back — Escape in the Find field,
+                // or a pane taking focus — and skips the check.
+                guard force || !isEditingText(in: window) else { return }
+                window.makeFirstResponder(terminalView)
             } else if window.firstResponder === terminalView {
                 window.makeFirstResponder(nil)
+            }
+        }
+
+        /// Whether the window's keyboard focus is in a text field. A focused
+        /// `NSTextField` or `NSSearchField` delegates to a shared field editor,
+        /// so the first responder is usually that `NSTextView` rather than the
+        /// control the user sees.
+        private func isEditingText(in window: NSWindow) -> Bool {
+            switch window.firstResponder {
+            case let textView as NSTextView: textView.isFieldEditor
+            case is NSTextField: true
+            default: false
             }
         }
 

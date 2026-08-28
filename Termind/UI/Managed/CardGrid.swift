@@ -114,6 +114,10 @@ struct CardPage<Content: View>: View {
     /// marquee recognizer so AppKit can start its drag session reliably; Shift
     /// click remains available for extending the selection.
     var supportsMarqueeSelection = true
+    /// What right-clicking the canvas offers, given where the pointer is. The
+    /// page's cards keep their own menus; this only answers for the space
+    /// between them, which is where creating a new one now lives.
+    var blankAreaMenu: ((CGPoint) -> [NativeMenuEntry])? = nil
     @ViewBuilder var content: Content
 
     @State private var geometryStore = CardGeometryStore()
@@ -141,8 +145,24 @@ struct CardPage<Content: View>: View {
                     .allowsHitTesting(false)
             }
         }
+        .overlay { blankAreaMenuHost }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
+    }
+
+    /// Declines every point occupied by a card or by a section header, so those
+    /// keep the menus they already have and only the canvas answers here.
+    @ViewBuilder
+    private var blankAreaMenuHost: some View {
+        if let blankAreaMenu {
+            NativeBlankAreaMenu(
+                claims: { point in
+                    !geometryStore.card(at: point)
+                        && !geometryStore.interactiveChrome(at: point)
+                },
+                entries: blankAreaMenu
+            )
+        }
     }
 
     private var pageScroll: some View {
@@ -413,9 +433,17 @@ struct CardTile<Content: View>: View {
             // A floor rather than a height: the two-row card this page is built
             // around already measures 80pt, so this changes nothing today. It is
             // here so a card that loses a row — a host with no tags, a future
-            // one-line tile — cannot reopen the gap `AddCardTile` had.
+            // one-line tile — still sits level with its neighbours.
             .frame(minHeight: Metrics.Card.minHeight, alignment: .top)
-            .background(fill, in: .rect(cornerRadius: Metrics.Radius.large))
+            .background(
+                isHovering && !isSelected ? Color.primary.opacity(0.035) : .clear,
+                in: .rect(cornerRadius: Metrics.Radius.large)
+            )
+            .termindGlassSurface(
+                cornerRadius: Metrics.Radius.large,
+                tint: isSelected ? Color.accentColor.opacity(0.16) : nil,
+                isInteractive: true
+            )
             // Nothing a card holds may paint outside the card. Clipped here
             // rather than trusted to each page, because the failure is silent
             // until it isn't: one subtitle that will not compress and the text
@@ -449,11 +477,6 @@ struct CardTile<Content: View>: View {
             .accessibilityAddTraits(.isButton)
     }
 
-    private var fill: some ShapeStyle {
-        isSelected
-            ? AnyShapeStyle(Color.accentColor.opacity(0.12))
-            : AnyShapeStyle(.quaternary.opacity(isHovering ? 0.7 : 0.35))
-    }
 }
 
 /// A selection-only card has no double-click recognizer at all. Besides making
@@ -483,49 +506,6 @@ private struct CardTapModifier: ViewModifier {
             }
         #endif
         select()
-    }
-}
-
-/// The tile that creates a new one of whatever the section holds. Dashed, so it
-/// reads as an affordance rather than as an item that already exists.
-struct AddCardTile: View {
-    let title: LocalizedStringKey
-    var symbol: String = "plus"
-    var isEnabled: Bool = true
-    let action: () -> Void
-
-    @State private var isHovering = false
-
-    var body: some View {
-        Label(title, systemImage: symbol)
-            .font(.callout)
-            .foregroundStyle(isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
-            .padding(.horizontal, Metrics.Space.l)
-            // Same floor as `CardTile`, so this tile is the size of the cards it
-            // sits beside instead of a short box hanging off the top of the row —
-            // `CardGrid` aligns its cells to `.top`, which is what made the
-            // difference read as a gap. The maximum lets it grow with a row that
-            // is taller than the floor: a `SnippetCard` reserves three lines of
-            // command text, and matching 80pt there would be just as ragged.
-            .frame(
-                maxWidth: .infinity,
-                minHeight: Metrics.Card.minHeight,
-                maxHeight: .infinity,
-                alignment: .center
-            )
-            .background(
-                isHovering && isEnabled ? AnyShapeStyle(.quaternary.opacity(0.4)) : AnyShapeStyle(.clear),
-                in: .rect(cornerRadius: Metrics.Radius.large)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                    .strokeBorder(.quaternary, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
-            .contentShape(.rect(cornerRadius: Metrics.Radius.large))
-            .onTapGesture { if isEnabled { action() } }
-            .cardInteractiveFrame()
-            .onHover { isHovering = $0 }
-            .accessibilityAddTraits(.isButton)
     }
 }
 

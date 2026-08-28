@@ -23,11 +23,21 @@ struct WorkspaceNavigatorView: View {
 
     var body: some View {
         List {
-            welcomeRow
-            vaultSection
-            workspaceSection
+            // Applied once here rather than on each row: the rows are shared
+            // with the ListViewKit-backed modes, which have no list of their
+            // own to inset, and the one rendered edge everything lines up on is
+            // `Metrics.Sidebar.rowHorizontalMargin` inside the row itself.
+            Group {
+                welcomeRow
+                vaultSection
+                workspaceSection
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
-        .listStyle(.sidebar)
+        .listStyle(.plain)
+        .contentMargins(.horizontal, 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 0)
         .coordinateSpace(.named(Self.coordinateSpace))
@@ -65,22 +75,27 @@ struct WorkspaceNavigatorView: View {
     }
 
     private var vaultSection: some View {
-        Section(isExpanded: $vaultExpanded) {
-            ForEach(VaultPage.allCases.filter { $0 != .welcome }) { page in
-                navigatorRow(
-                    title: page.label,
-                    symbol: page.symbol,
-                    count: count(for: page),
-                    isSelected: window.selectedDestination == .vault
-                        && window.vaultDestination.page == page
-                ) {
-                    window.dragging = nil
-                    vaultExpanded = true
-                    window.openPage(page)
+        Group {
+            navigatorSectionHeader("Vault", isExpanded: $vaultExpanded)
+
+            if vaultExpanded {
+                ForEach(VaultPage.allCases.filter { $0 != .welcome }) { page in
+                    SidebarNavigatorRow(
+                        title: page.label,
+                        symbol: page.symbol,
+                        count: count(for: page),
+                        isSelected: window.selectedDestination == .vault
+                            && window.vaultDestination.page == page,
+                        // The page's own New verbs, so adding a host does not
+                        // require visiting Hosts first.
+                        menu: { window.creationMenu(for: page) }
+                    ) {
+                        window.dragging = nil
+                        vaultExpanded = true
+                        window.openPage(page)
+                    }
                 }
             }
-        } header: {
-            sectionHeader("Vault")
         }
     }
 
@@ -96,65 +111,59 @@ struct WorkspaceNavigatorView: View {
     // MARK: - Workspaces
 
     private var workspaceSection: some View {
-        Section(isExpanded: $workspaceExpanded) {
-            if window.workspaces.isEmpty {
-                emptyRow("No Workspaces")
-            }
-            ForEach(Array(window.workspaces.enumerated()), id: \.element.id) { index, workspace in
-                WorkspaceNavigatorRow(
-                    workspace: workspace,
-                    isSelected: window.selectedWorkspaceID == workspace.id,
-                    isRenaming: renamingWorkspaceID == workspace.id,
-                    renameTitle: $workspaceRenameTitle,
-                    onBeginRename: { beginWorkspaceRename(workspace) },
-                    onCommitRename: { commitWorkspaceRename(workspace) },
-                    onCancelRename: cancelWorkspaceRename
-                )
+        Group {
+            navigatorSectionHeader("Workspace", isExpanded: $workspaceExpanded)
                 .onGeometryChange(for: CGRect.self) {
                     $0.frame(in: .named(Self.coordinateSpace))
-                } action: { workspaceFrames[workspace.id] = $0 }
-                .overlay(alignment: .top) {
-                    if workspaceDropTarget?.visibleBoundaryIndex == index {
-                        workspaceInsertionLine
-                    }
-                }
-                .overlay(alignment: .bottom) {
-                    if index == window.workspaces.indices.last,
-                        workspaceDropTarget?.visibleBoundaryIndex == window.workspaces.count
-                    {
-                        workspaceInsertionLine
-                    }
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-            }
+                } action: { workspaceHeaderFrame = $0 }
 
-            Button {
-                workspaceExpanded = true
-                app.batchStartup(in: window)
-            } label: {
-                Label("Batch Startup", systemImage: "wind")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(height: Metrics.Sidebar.navigationRowHeight)
-                    .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
-                    .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .overlay(alignment: .top) {
-                if window.workspaces.isEmpty, workspaceDropTarget != nil {
-                    workspaceInsertionLine
+            if workspaceExpanded {
+                if window.workspaces.isEmpty {
+                    emptyRow("No Workspaces")
                 }
+                ForEach(Array(window.workspaces.enumerated()), id: \.element.id) { index, workspace in
+                    WorkspaceNavigatorRow(
+                        workspace: workspace,
+                        isSelected: window.selectedWorkspaceID == workspace.id,
+                        isRenaming: renamingWorkspaceID == workspace.id,
+                        renameTitle: $workspaceRenameTitle,
+                        onBeginRename: { beginWorkspaceRename(workspace) },
+                        onCommitRename: { commitWorkspaceRename(workspace) },
+                        onCancelRename: cancelWorkspaceRename
+                    )
+                    .onGeometryChange(for: CGRect.self) {
+                        $0.frame(in: .named(Self.coordinateSpace))
+                    } action: { workspaceFrames[workspace.id] = $0 }
+                    .overlay(alignment: .top) {
+                        if workspaceDropTarget?.visibleBoundaryIndex == index {
+                            workspaceInsertionLine
+                        }
+                    }
+                    .overlay(alignment: .bottom) {
+                        if index == window.workspaces.indices.last,
+                            workspaceDropTarget?.visibleBoundaryIndex == window.workspaces.count
+                        {
+                            workspaceInsertionLine
+                        }
+                    }
+                }
+
+                // The same container as the destinations above it. Drawn by
+                // hand it sat 8pt further left than every other row and never
+                // lit up under the pointer.
+                SidebarNavigatorRow(title: "Batch Startup", symbol: "wind") {
+                    workspaceExpanded = true
+                    app.batchStartup(in: window)
+                }
+                .overlay(alignment: .top) {
+                    if window.workspaces.isEmpty, workspaceDropTarget != nil {
+                        workspaceInsertionLine
+                    }
+                }
+                .onGeometryChange(for: CGRect.self) {
+                    $0.frame(in: .named(Self.coordinateSpace))
+                } action: { batchStartupFrame = $0 }
             }
-            .onGeometryChange(for: CGRect.self) {
-                $0.frame(in: .named(Self.coordinateSpace))
-            } action: { batchStartupFrame = $0 }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-        } header: {
-            sectionHeader("Workspace")
-            .onGeometryChange(for: CGRect.self) {
-                $0.frame(in: .named(Self.coordinateSpace))
-            } action: { workspaceHeaderFrame = $0 }
         }
     }
 
@@ -242,43 +251,17 @@ struct WorkspaceNavigatorView: View {
         isSelected: Bool,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            HStack(spacing: Metrics.Space.s) {
-                Label(title, systemImage: symbol)
-                Spacer(minLength: Metrics.Space.xs)
-                if count > 0 {
-                    Text(count, format: .number)
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: Metrics.Sidebar.navigationRowHeight)
-            .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
-            .contentShape(.rect)
-            .termindSidebarRowBackground(isSelected: isSelected)
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .listRowInsets(EdgeInsets())
-        .listRowBackground(Color.clear)
+        SidebarNavigatorRow(
+            title: title, symbol: symbol, count: count,
+            isSelected: isSelected, action: action
+        )
     }
 
-    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
-        sectionHeader(title) { EmptyView() }
-    }
-
-    private func sectionHeader<Actions: View>(
+    private func navigatorSectionHeader(
         _ title: LocalizedStringKey,
-        @ViewBuilder actions: () -> Actions
+        isExpanded: Binding<Bool>
     ) -> some View {
-        HStack(spacing: Metrics.Space.s) {
-            Text(title)
-            Spacer(minLength: 0)
-            actions()
-        }
-        .frame(maxWidth: .infinity)
+        SidebarSectionHeader(title: title, isExpanded: isExpanded)
     }
 
     private func emptyRow(_ title: LocalizedStringKey) -> some View {
@@ -288,8 +271,9 @@ struct WorkspaceNavigatorView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: Metrics.Sidebar.navigationRowHeight)
             .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+            // The same breathing edge the rows around it carry, so "No
+            // Workspaces" starts where a workspace name would.
+            .padding(.horizontal, Metrics.Sidebar.rowHorizontalMargin)
     }
 
     private func beginWorkspaceRename(_ workspace: Workspace) {
@@ -349,13 +333,18 @@ private struct WorkspaceNavigatorRow: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var hovering = false
     @FocusState private var titleFocused: Bool
 
     var body: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: workspace.symbol)
-                .foregroundStyle(isSelected ? .primary : .secondary)
+                .foregroundStyle(SidebarSelectionStyle.foreground(
+                    isSelected: isSelected,
+                    controlActiveState: controlActiveState,
+                    unselected: AnyShapeStyle(.secondary)
+                ))
                 .frame(width: Metrics.Sidebar.rowIcon)
 
             if isRenaming {
@@ -386,7 +375,7 @@ private struct WorkspaceNavigatorRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: Metrics.Sidebar.workspaceRowHeight)
         .contentShape(.rect)
-        .termindSidebarRowBackground(isSelected: isSelected)
+        .termindSidebarRow(isSelected: isSelected) { contextMenu }
         .onTapGesture {
             guard !isRenaming else { return }
             window.dragging = nil
@@ -398,7 +387,6 @@ private struct WorkspaceNavigatorRow: View {
             window.dragging = .workspace(workspace.id)
             return NSItemProvider(object: workspace.id.uuidString as NSString)
         }
-        .contextMenu { contextMenu }
         .help(Text(workspace.title(in: app.hostLibrary)))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(workspace.title(in: app.hostLibrary)))
@@ -432,38 +420,72 @@ private struct WorkspaceNavigatorRow: View {
         }
     }
 
-    @ViewBuilder
-    private var contextMenu: some View {
+    private var contextMenu: [NativeMenuEntry] {
+        var entries: [NativeMenuEntry] = []
         if workspace.isRenameable {
-            Button("Rename", action: onBeginRename)
+            entries.append(
+                NativeMenuEntry(title: String(localized: "Rename"), action: onBeginRename)
+            )
             if namedTitle != nil {
-                Button("Reset Name") { window.rename(workspace.id, to: "") }
+                entries.append(
+                    NativeMenuEntry(title: String(localized: "Reset Name")) {
+                        window.rename(workspace.id, to: "")
+                    }
+                )
             }
-            Divider()
+            entries.append(.separator)
         }
         if workspace.isCombinable {
             if workspace.isSplit {
-                Button("Duplicate in New Workspace") {
-                    act { window.duplicateSelectedInNewWorkspace() }
-                }
-            } else {
-                Menu("Duplicate") {
-                    Button("In Current Workspace") {
-                        act { window.duplicateSelected(axis: .horizontal) }
-                    }
-                    Button("In New Workspace") {
+                entries.append(
+                    NativeMenuEntry(title: String(localized: "Duplicate in New Workspace")) {
                         act { window.duplicateSelectedInNewWorkspace() }
                     }
-                }
+                )
+            } else {
+                entries.append(
+                    NativeMenuEntry(
+                        title: String(localized: "Duplicate"),
+                        children: [
+                            NativeMenuEntry(title: String(localized: "In Current Workspace")) {
+                                act { window.duplicateSelected(axis: .horizontal) }
+                            },
+                            NativeMenuEntry(title: String(localized: "In New Workspace")) {
+                                act { window.duplicateSelectedInNewWorkspace() }
+                            },
+                        ]
+                    )
+                )
             }
-            Divider()
-            Button("Split Right") { act { window.splitSelected(axis: .horizontal) } }
-            Button("Split Down") { act { window.splitSelected(axis: .vertical) } }
-            Divider()
+            entries.append(.separator)
+            entries.append(
+                NativeMenuEntry(title: String(localized: "Split Right")) {
+                    act { window.splitSelected(axis: .horizontal) }
+                }
+            )
+            entries.append(
+                NativeMenuEntry(title: String(localized: "Split Down")) {
+                    act { window.splitSelected(axis: .vertical) }
+                }
+            )
+            entries.append(.separator)
         }
-        Button("Close Workspace") { window.close(workspace.id) }
-        Button("Close Other Workspaces") { window.closeOthers(than: workspace.id) }
-        Button("Close All Workspaces") { window.closeAll() }
+        entries.append(
+            NativeMenuEntry(title: String(localized: "Close Workspace")) {
+                window.close(workspace.id)
+            }
+        )
+        entries.append(
+            NativeMenuEntry(title: String(localized: "Close Other Workspaces")) {
+                window.closeOthers(than: workspace.id)
+            }
+        )
+        entries.append(
+            NativeMenuEntry(title: String(localized: "Close All Workspaces")) {
+                window.closeAll()
+            }
+        )
+        return entries
     }
 
     private var namedTitle: String? {
