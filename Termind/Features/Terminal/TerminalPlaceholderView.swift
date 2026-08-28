@@ -76,6 +76,8 @@ struct TerminalPlaceholderView: View {
                     .transition(.opacity)
             } else if let uploadNotice {
                 TerminalUploadOverlay(notice: uploadNotice)
+                    // Above the floating status capsule, not on top of it.
+                    .padding(.bottom, Metrics.StatusBar.overlayClearance)
                     .zIndex(8)
                     .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }

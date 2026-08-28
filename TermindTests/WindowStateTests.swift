@@ -666,6 +666,57 @@ struct WindowStateTests {
         #expect(window.selectedWorkspace === detachedWorkspace)
     }
 
+    /// The inverse of a merge, in one move. Merging is a single gesture, so
+    /// undoing it must be too — and the last pane cannot be dragged out at all,
+    /// because a pane alone in its Workspace has nothing to detach from.
+    @Test
+    func separatingPanesUndoesAMergeKeepingLayoutOrder() throws {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "First", host: "first.example")
+        )
+        let first = workspace.focusedPane
+        workspace.splitFocusedPane(
+            axis: .horizontal,
+            with: .sshSession(host: Host(name: "Second", host: "second.example"))
+        )
+        let second = workspace.focusedPane
+        workspace.splitFocusedPane(
+            axis: .vertical,
+            with: .sshSession(host: Host(name: "Third", host: "third.example"))
+        )
+        let third = workspace.focusedPane
+        let neighbour = Workspace.sshSession(
+            host: Host(name: "Other", host: "other.example")
+        )
+        let window = WindowModel(workspaces: [workspace, neighbour])
+        let laidOut = workspace.panes.map(\.id)
+
+        window.separatePanes(in: workspace.id)
+
+        // One Workspace per pane, in the order the panes were laid out, all
+        // before the Workspace that already followed them.
+        #expect(window.workspaces.count == 4)
+        #expect(window.workspaces.flatMap { $0.panes.map(\.id) } == laidOut + [neighbour.panes[0].id])
+        #expect(window.workspaces.allSatisfy { $0.panes.count == 1 })
+
+        // The row that was right-clicked is still there, and still selected.
+        #expect(window.workspaces.first?.id == workspace.id)
+        #expect(window.selectedWorkspaceID == workspace.id)
+        #expect(Set([first.id, second.id, third.id]) == Set(laidOut))
+    }
+
+    /// Nothing to take apart is not an error, and must not reorder anything.
+    @Test
+    func separatingPanesLeavesASingleePaneWorkspaceAlone() {
+        let workspace = Workspace.sshSession(host: Host(name: "Only", host: "only.example"))
+        let window = WindowModel(workspaces: [workspace])
+
+        window.separatePanes(in: workspace.id)
+
+        #expect(window.workspaces.map(\.id) == [workspace.id])
+        #expect(workspace.panes.count == 1)
+    }
+
     @Test
     func hostEditorIsVaultNavigationAndCloseTabCannotCloseHiddenWork() {
         let host = Host(name: "Server", host: "server.example")

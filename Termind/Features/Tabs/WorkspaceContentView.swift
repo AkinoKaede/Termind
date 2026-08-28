@@ -25,6 +25,8 @@ struct WorkspaceContentView: View {
             if workspace.commandGeneratorState != .idle {
                 CommandGeneratorOverlay(state: workspace.commandGeneratorState)
                     .padding(Metrics.Space.l)
+                    // Above the floating status capsule, not on top of it.
+                    .padding(.bottom, Metrics.StatusBar.overlayClearance)
                     .zIndex(20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }

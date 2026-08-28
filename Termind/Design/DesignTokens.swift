@@ -154,7 +154,22 @@ nonisolated enum Metrics {
     }
 
     enum StatusBar {
-        static let height: CGFloat = 22
+        /// Taller than the docked strip it replaces: a floating capsule needs
+        /// enough body to read as an object rather than as a seam.
+        static let height: CGFloat = 30
+        /// How far a working directory may push the capsule before it
+        /// truncates. Wide enough for a deep path, short of covering the pane.
+        static let maxWidth: CGFloat = 460
+        /// How far the capsule floats above the foot of the pane.
+        static let floatingInset: CGFloat = Metrics.Space.l
+        /// What anything else anchored to the bottom of a pane — the command
+        /// generator, the upload notices — has to clear to sit above it.
+        ///
+        /// A constant rather than a measurement, and applied whether or not the
+        /// capsule is currently showing: a notice that changes height depending
+        /// on whether a transfer happens to be running is worse than one that
+        /// always sits in the same place.
+        static let overlayClearance: CGFloat = height + floatingInset * 2
     }
 
     /// The assistant transcript: message bubbles and the Markdown inside them.

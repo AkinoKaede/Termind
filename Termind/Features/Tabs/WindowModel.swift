@@ -918,6 +918,31 @@ final class WindowModel {
         return workspace
     }
 
+    /// The inverse of `merge`: every pane of a split Workspace becomes a
+    /// Workspace of its own.
+    ///
+    /// A Workspace is built by folding things together, so it has to be possible
+    /// to take one back apart in a single move — otherwise undoing a merge means
+    /// dragging each pane out to the Navigator one at a time, and the last one
+    /// cannot be dragged out at all.
+    ///
+    /// The panes keep their layout order, and the first stays in the original
+    /// Workspace so the row you right-clicked is still there afterwards. The
+    /// sessions are untouched: this is a rearrangement, and nothing disconnects.
+    func separatePanes(in id: Workspace.ID) {
+        guard let source = workspaces.first(where: { $0.id == id }), source.isSplit,
+            let index = workspaces.firstIndex(where: { $0.id == id })
+        else { return }
+
+        // Front to back, each inserted just after the one before it. Detaching
+        // never removes the source — `detachPane` refuses a pane that is already
+        // alone — so this index stays correct for the whole run.
+        for (offset, pane) in source.panes.dropFirst().enumerated() {
+            detachPane(pane.id, at: index + 1 + offset)
+        }
+        select(id)
+    }
+
     /// Takes a pane out of whatever holds it, closing that workspace if it was the
     /// last one there.
     private func detach(_ paneID: Pane.ID) {

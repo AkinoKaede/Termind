@@ -2,7 +2,17 @@ import AppKit
 import ListViewKit
 import SwiftUI
 
-/// The one-line footer for focused-session context and app-wide transfers.
+/// Focused-session context and app-wide transfers, as one floating capsule.
+///
+/// It used to be a docked strip with a hairline above it, which read as a piece
+/// of window chrome bolted under the content. Floating, it belongs to the pane
+/// it describes and matches the other glass objects in the app — the mode rail,
+/// the composer, the sidebar's search.
+///
+/// It hugs its content and sits in the trailing corner rather than spanning the
+/// width: a full-width bar over a terminal covers whole lines of output, and the
+/// prompt lives on the left. Anything else anchored to the bottom of a pane
+/// clears it by `Metrics.StatusBar.overlayClearance`.
 struct StatusBarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
@@ -45,8 +55,6 @@ struct StatusBarView: View {
                 }
             }
 
-            Spacer()
-
             if hasTransfers {
                 TransferCenterButton(
                     coordinator: app.sftpTransfers,
@@ -60,8 +68,13 @@ struct StatusBarView: View {
         .lineLimit(1)
         .padding(.horizontal, Metrics.Space.l)
         .frame(height: Metrics.StatusBar.height)
-        .termindGlassBar()
-        .overlay(alignment: .top) { Divider() }
+        .termindGlassCapsule()
+        // A ceiling on what the capsule is *offered*, not a width it takes.
+        // The row inside has no `Spacer`, so it hugs its text; this only stops a
+        // very long working directory from spanning the pane, and the trailing
+        // alignment keeps the capsule pinned to the corner as it grows and
+        // shrinks rather than drifting from the edge.
+        .frame(maxWidth: Metrics.StatusBar.maxWidth, alignment: .trailing)
     }
 
     @ViewBuilder

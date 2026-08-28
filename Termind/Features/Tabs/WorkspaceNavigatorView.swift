@@ -435,6 +435,18 @@ private struct WorkspaceNavigatorRow: View {
             }
             entries.append(.separator)
         }
+        // Only a merged Workspace can be taken apart, and taking it apart is
+        // the only way back — the last pane cannot be dragged out to the
+        // Navigator, because a pane alone in its Workspace has nothing to
+        // detach from.
+        if workspace.isSplit {
+            entries.append(
+                NativeMenuEntry(title: String(localized: "Separate Panes")) {
+                    window.separatePanes(in: workspace.id)
+                }
+            )
+            entries.append(.separator)
+        }
         if workspace.isCombinable {
             if workspace.isSplit {
                 entries.append(

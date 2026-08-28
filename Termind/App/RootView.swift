@@ -33,10 +33,14 @@ struct RootView: View {
                 max: sidebarMaxWidth
             )
         } detail: {
-            VStack(spacing: 0) {
-                detail
+            detail
+            // Floating over the pane rather than docked under it, so switching
+            // to a Workspace no longer resizes the content area — and so the
+            // bar reads as belonging to the session it describes.
+            .overlay(alignment: .bottomTrailing) {
                 if case .workspace = window.selectedDestination {
                     StatusBarView()
+                        .padding(Metrics.StatusBar.floatingInset)
                 }
             }
             .frame(
