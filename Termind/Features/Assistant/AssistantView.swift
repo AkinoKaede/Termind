@@ -93,21 +93,6 @@ struct AssistantPanelView: View {
 
     private var landing: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Chats").font(.headline)
-                Spacer(minLength: 0)
-                Button {
-                    openAssistantFullScreen()
-                } label: {
-                    Label("Open Full Screen", systemImage: "arrow.up.left.and.arrow.down.right")
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-            }
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.s)
-
-            Divider()
             conversationList
             Divider()
             ComposerView(
@@ -182,15 +167,6 @@ struct AssistantPanelView: View {
         }
     }
 
-    private func openAssistantFullScreen() {
-        if let id = window.sidebar.assistantConversationID
-            ?? window.assistantLibrary.selectedConversationID
-        {
-            window.openAssistantFullScreen(id)
-        } else {
-            window.openAssistantFullScreen()
-        }
-    }
 }
 
 private struct AssistantConversationList: View {

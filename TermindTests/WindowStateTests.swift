@@ -69,6 +69,47 @@ struct WindowStateTests {
     }
 
     @Test
+    func closingTheLastWorkspacePromotesTheVisibleSidebarConversationFullScreen() {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "Server", host: "server.example")
+        )
+        let conversation = ConversationModel()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
+        window.sidebarMode = .assistant
+        window.openAssistantInSidebar(conversation.id)
+
+        window.close(workspace.id)
+
+        #expect(window.workspaces.isEmpty)
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+        #expect(window.sidebarMode == .assistant)
+    }
+
+    @Test
+    func closingAllWorkspacesPromotesTheVisibleSidebarConversationFullScreen() {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "Server", host: "server.example")
+        )
+        let conversation = ConversationModel()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
+        window.sidebarMode = .assistant
+        window.openAssistantInSidebar(conversation.id)
+
+        window.closeAll()
+
+        #expect(window.workspaces.isEmpty)
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+    }
+
+    @Test
     func assistantFeatureOwnsConversationLifecycleOutsideWorkspaces() {
         let window = WindowModel()
         let first = window.assistantLibrary.createConversation()

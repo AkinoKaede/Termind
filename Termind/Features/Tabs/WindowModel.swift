@@ -1004,10 +1004,13 @@ final class WindowModel {
 
         if selectedWorkspaceID == id {
             // Select the neighbour that visually takes its place.
-            selectedDestination =
-                workspaces.indices.contains(index)
-                ? .workspace(workspaces[index].id)
-                : workspaces.last.map { .workspace($0.id) } ?? .vault
+            if workspaces.indices.contains(index) {
+                selectedDestination = .workspace(workspaces[index].id)
+            } else if let neighbour = workspaces.last {
+                selectedDestination = .workspace(neighbour.id)
+            } else {
+                promoteVisibleSidebarConversationOrSelectVault()
+            }
         }
     }
 
@@ -1039,7 +1042,18 @@ final class WindowModel {
         for workspace in workspaces { workspace.disconnectConnections() }
         reopenStack.append(contentsOf: workspaces)
         workspaces.removeAll()
-        selectedDestination = .vault
+        promoteVisibleSidebarConversationOrSelectVault()
+    }
+
+    private func promoteVisibleSidebarConversationOrSelectVault() {
+        guard sidebarMode == .assistant,
+            let conversationID = sidebar.assistantConversationID,
+            assistantLibrary.conversation(id: conversationID) != nil
+        else {
+            selectedDestination = .vault
+            return
+        }
+        openAssistantFullScreen(conversationID)
     }
 
     /// Closes one pane, and the Workspace with it when that was the last one.
