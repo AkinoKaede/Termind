@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// Settled messages are the overwhelming majority of a transcript and their
 /// text never changes again, so parsing belongs behind a cache rather than in a
-/// `body` that a `LazyVStack` re-evaluates on every scroll frame.
+/// `body` that re-runs whenever anything the row depends on changes.
 ///
 /// Main-actor isolated by the project's default, which is what makes an
 /// unsynchronised dictionary safe here.
@@ -38,6 +38,15 @@ enum MarkdownParseCache {
 /// message would be quadratic. Streamed strings are deliberately not cached;
 /// there are hundreds of them and every one is garbage a keystroke later.
 ///
+/// The debounce alone was not enough. Nothing on the path from the provider
+/// coalesces deltas, so a fast reply cancels and restarts the parse before the
+/// sleep can ever finish — and a message whose blocks were still empty drew
+/// *nothing* for its whole burst, after its Working indicator had already gone.
+/// `unparsedCharacterBudget` bounds that: once enough text has arrived unseen,
+/// the parse happens immediately instead of waiting for a pause that may not
+/// come. Cost stays linear in the same way the debounce intended — one parse
+/// per budget of new characters rather than one per delta.
+///
 /// Parsing stays on the main actor: at chat-message sizes it is well under a
 /// millisecond, and a detached hop would cost more than it saves.
 /// `MarkdownDocumentParser` is `nonisolated` and returns only `Sendable`
@@ -50,7 +59,15 @@ struct MarkdownView: View {
     var isAssistant = true
     var isCompact = false
 
+    /// Roughly a line of prose: small enough that the reader sees text arrive
+    /// continuously, large enough that a burst parses tens of times rather than
+    /// once per token.
+    private static let unparsedCharacterBudget = 64
+
     @State private var streamedBlocks: [MarkdownBlock] = []
+    /// What `streamedBlocks` was built from, so the budget measures text the
+    /// reader cannot see yet rather than the message's total length.
+    @State private var parsedLength = 0
 
     private var blocks: [MarkdownBlock] {
         isStreaming ? streamedBlocks : MarkdownParseCache.blocks(for: text)
@@ -60,10 +77,21 @@ struct MarkdownView: View {
         MarkdownBlockListView(blocks: blocks, isAssistant: isAssistant, isCompact: isCompact)
             .task(id: text) {
                 guard isStreaming else { return }
+                // `utf8.count` rather than `count`: this runs once per delta on
+                // a message that only grows, and grapheme counting does not.
+                if text.utf8.count - parsedLength >= Self.unparsedCharacterBudget {
+                    parse()
+                    return
+                }
                 try? await Task.sleep(for: .milliseconds(80))
                 guard !Task.isCancelled else { return }
-                streamedBlocks = MarkdownDocumentParser.parse(text)
+                parse()
             }
+    }
+
+    private func parse() {
+        parsedLength = text.utf8.count
+        streamedBlocks = MarkdownDocumentParser.parse(text)
     }
 }
 

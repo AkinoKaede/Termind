@@ -29,8 +29,8 @@ struct ConversationView: View {
     @State private var isUserScrollingTranscript = false
     @State private var isTranscriptScrollPending = true
     @State private var transcriptScrollMetrics: TranscriptScrollMetrics?
-    @State private var isSuppressingDisclosureExpansion = false
-    @State private var disclosureExpansionGeneration = 0
+    @State private var isSuppressingDisclosureLayout = false
+    @State private var disclosureToggleGeneration = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -146,7 +146,29 @@ struct ConversationView: View {
                 // No rules between turns. A bubble on one side and unframed
                 // prose on the other already separate the speakers, and a line
                 // through every gap turns a conversation into a ledger.
-                LazyVStack(alignment: .leading, spacing: Metrics.Chat.turnSpacing) {
+                //
+                // Not lazy, and that is load-bearing. A `LazyVStack` reports an
+                // *estimated* content height, and collapsing a tall row —
+                // closing a tool call, or a run ending and folding its work away
+                // — makes that estimate wrong in a way it will not correct on
+                // its own. Measured in an `NSHostingView` harness: collapsing a
+                // 2400pt group inside a lazy stack settled at contentSize 2924
+                // with the viewport parked at 2324, when the true height was
+                // 1031. The viewport therefore sat 1300pt past the end of the
+                // document with nothing built there — a blank transcript that
+                // stayed blank, because `isBeyondBottom` computed against the
+                // stale estimate reads false and no repair fires. Neither
+                // `ScrollViewProxy.scrollTo(id:)` nor
+                // `ScrollPosition.scrollTo(edge:)` could correct it; only a real
+                // scroll, which forces re-measurement. The same collapse in a
+                // plain `VStack` settles at 1031/431 with no repair at all.
+                //
+                // The cost is a longer first layout — about 240ms at 300 rows
+                // against 23ms lazy — while a streaming delta stays under one
+                // frame either way (6ms against 2.5ms). If opening a very long
+                // conversation starts to hitch, window the transcript by count
+                // rather than restoring the laziness.
+                VStack(alignment: .leading, spacing: Metrics.Chat.turnSpacing) {
                     if conversation.isEmpty {
                         emptyState
                     } else {
@@ -195,7 +217,7 @@ struct ConversationView: View {
                     from: oldMetrics, to: newMetrics,
                     isFollowingBottom: isFollowingTranscriptBottom,
                     isUserScrolling: isUserScrollingTranscript,
-                    isSuppressingDisclosureExpansion: isSuppressingDisclosureExpansion
+                    isSuppressingDisclosureLayout: isSuppressingDisclosureLayout
                 ) {
                 case .none:
                     break
@@ -232,15 +254,16 @@ struct ConversationView: View {
             // Sending a new prompt is an explicit return to the live edge,
             // even if the reader had previously scrolled up through history.
             .onChange(of: conversation.messages.last(where: { $0.role == .user })?.id) {
-                isSuppressingDisclosureExpansion = false
+                isSuppressingDisclosureLayout = false
                 requestScrollToBottom(force: true)
             }
-            .task(id: disclosureExpansionGeneration) {
-                guard disclosureExpansionGeneration > 0 else { return }
+            .task(id: disclosureToggleGeneration) {
+                guard disclosureToggleGeneration > 0 else { return }
                 do {
-                    // A nested LazyVStack can settle over more than one layout
-                    // pass. Keep all of those passes classified as the same
-                    // user expansion rather than as live model output.
+                    // Text wrapping and images settle a disclosure's contents
+                    // over more than one layout pass. Keep all of those passes
+                    // classified as the same user toggle rather than as live
+                    // model output.
                     try await Task.sleep(for: .milliseconds(120))
                 } catch {
                     return
@@ -248,7 +271,7 @@ struct ConversationView: View {
                 if transcriptScrollMetrics?.isAtBottom == false {
                     isFollowingTranscriptBottom = false
                 }
-                isSuppressingDisclosureExpansion = false
+                isSuppressingDisclosureLayout = false
             }
             .task(id: isTranscriptScrollPending) {
                 // One view-owned debounce coalesces rapid layout changes.
@@ -277,10 +300,14 @@ struct ConversationView: View {
         isTranscriptScrollPending = true
     }
 
-    private func disclosureWillExpand() {
+    /// Both directions, deliberately. A collapse used to reach the coordinator
+    /// as an anonymous contraction, so a reader closing a long tool row while
+    /// the run was still following the live edge was thrown to the bottom of
+    /// the transcript — the opposite of what closing it asked for.
+    private func disclosureDidToggle() {
         isTranscriptScrollPending = false
-        isSuppressingDisclosureExpansion = true
-        disclosureExpansionGeneration &+= 1
+        isSuppressingDisclosureLayout = true
+        disclosureToggleGeneration &+= 1
     }
 
     private func repairTranscriptBottom(using proxy: ScrollViewProxy) {
@@ -319,22 +346,22 @@ struct ConversationView: View {
                 }
             )
         case .tool(let card):
-            AgentToolRowView(card: card, onExpansion: disclosureWillExpand)
+            AgentToolRowView(card: card, onDisclosureToggle: disclosureDidToggle)
         case .work(let group):
             AgentWorkGroupView(
                 group: group, isCompact: isCompact,
-                onExpansion: disclosureWillExpand
+                onDisclosureToggle: disclosureDidToggle
             )
         case .plan(let card):
             AgentPlanRowView(
                 card: card, conversation: conversation,
-                onExpansion: disclosureWillExpand
+                onDisclosureToggle: disclosureDidToggle
             )
         case .compaction(let mark):
             AgentCompactionRowView(mark: mark)
         case .compactionActivity(let activity):
             AgentCompactionActivityRowView(
-                activity: activity, onExpansion: disclosureWillExpand
+                activity: activity, onDisclosureToggle: disclosureDidToggle
             )
         }
     }
@@ -361,15 +388,18 @@ struct ConversationView: View {
 private struct AgentWorkGroupView: View {
     let group: AgentWorkGroup
     let isCompact: Bool
-    let onExpansion: () -> Void
+    let onDisclosureToggle: () -> Void
 
     @State private var isExpanded: Bool
+    /// Whether the reader has stated a preference for this group. A run ending
+    /// is otherwise allowed to close a process someone opened deliberately.
+    @State private var readerDidToggle = false
     @Environment(\.locale) private var locale
 
-    init(group: AgentWorkGroup, isCompact: Bool, onExpansion: @escaping () -> Void) {
+    init(group: AgentWorkGroup, isCompact: Bool, onDisclosureToggle: @escaping () -> Void) {
         self.group = group
         self.isCompact = isCompact
-        self.onExpansion = onExpansion
+        self.onDisclosureToggle = onDisclosureToggle
         _isExpanded = State(
             initialValue: AgentWorkPresentation.isExpandedByDefault(
                 for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer,
@@ -378,77 +408,20 @@ private struct AgentWorkGroupView: View {
         )
     }
 
+    /// One disclosure for both lives of a run, not one per state. Branching the
+    /// whole disclosure on `isTerminal` changed its structural identity, so the
+    /// moment a run finished SwiftUI tore the entire process subtree down and
+    /// rebuilt it — discarding every tool row the reader had open — in the same
+    /// frame as the largest content shrink of the run. Only the header's clock
+    /// differs, so only the header branches.
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            if group.run.state.isTerminal {
-                terminalDisclosure
-                Divider()
-            } else {
-                liveDisclosure
-                Divider()
-            }
-        }
-        .onChange(of: group.run.state) { _, state in
-            // Runtime transitions are authoritative. Once a run has ended,
-            // later user toggles remain untouched because the state is frozen.
-            isExpanded = AgentWorkPresentation.isExpandedByDefault(
-                for: state, appearsAfterAnswer: group.appearsAfterAnswer,
-                isCompact: isCompact
-            )
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private var liveDisclosure: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
             Button {
-                if !isExpanded { onExpansion() }
+                readerDidToggle = true
+                onDisclosureToggle()
                 isExpanded.toggle()
             } label: {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    HStack(spacing: Metrics.Space.s) {
-                        Text(title(at: context.date))
-                            .font(MarkdownTypography.body)
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 8, weight: .bold))
-                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                            .foregroundStyle(.tertiary)
-                        Spacer(minLength: 0)
-                    }
-                    .contentShape(.rect)
-                }
-            }
-            .buttonStyle(.plain)
-            .help(Text(
-                isExpanded ? String(localized: "Hide work") : String(localized: "Show work")
-            ))
-            .accessibilityLabel(Text(title(at: .now)))
-            .accessibilityValue(Text(
-                isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
-            ))
-
-            if isExpanded { workItems }
-        }
-    }
-
-    private var terminalDisclosure: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Button {
-                if !isExpanded { onExpansion() }
-                isExpanded.toggle()
-            } label: {
-                HStack(spacing: Metrics.Space.s) {
-                    Text(title(at: group.run.finishedAt ?? .now))
-                        .font(MarkdownTypography.body)
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .bold))
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .foregroundStyle(.tertiary)
-                    Spacer(minLength: 0)
-                }
-                .contentShape(.rect)
+                header
             }
             .buttonStyle(.plain)
             .help(Text(
@@ -465,11 +438,56 @@ private struct AgentWorkGroupView: View {
             ))
 
             if isExpanded { workItems }
+            Divider()
+        }
+        .onChange(of: group.run.state) { _, state in
+            // Runtime transitions are authoritative only until the reader says
+            // otherwise. Someone who opened this process to watch it did not
+            // ask for it to close the instant the run reported success.
+            guard !readerDidToggle else { return }
+            isExpanded = AgentWorkPresentation.isExpandedByDefault(
+                for: state, appearsAfterAnswer: group.appearsAfterAnswer,
+                isCompact: isCompact
+            )
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var header: some View {
+        if group.run.state.isTerminal {
+            headerRow(at: group.run.finishedAt ?? .now)
+        } else {
+            // Anchored to the run's own start rather than `.now`, which is
+            // re-read on every body evaluation — many times a second while a
+            // reply streams — and re-seeds the tick phase each time.
+            TimelineView(.periodic(from: group.run.startedAt, by: 1)) { context in
+                headerRow(at: context.date)
+            }
         }
     }
 
+    private func headerRow(at date: Date) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            Text(title(at: date))
+                .font(MarkdownTypography.body)
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 8, weight: .bold))
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                .foregroundStyle(.tertiary)
+            Spacer(minLength: 0)
+        }
+        .contentShape(.rect)
+    }
+
+    /// Plain, like every stack in the transcript column. See the note on the
+    /// column itself: nothing here may report an estimated height, because a
+    /// collapse is exactly what makes such an estimate wrong and unrecoverable.
+    /// A group holds tens of rows and only exists while it is open, so laziness
+    /// bought nothing to weigh against that.
     private var workItems: some View {
-        LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
+        VStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
             ForEach(group.items) { item in
                 switch item {
                 case .reasoning(let block):
@@ -480,20 +498,25 @@ private struct AgentWorkGroupView: View {
                 case .message(let message):
                     processMessage(message)
                 case .tool(let card):
-                    AgentToolRowView(card: card, onExpansion: onExpansion)
+                    AgentToolRowView(card: card, onDisclosureToggle: onDisclosureToggle)
                 case .tools(let batch):
-                    AgentToolBatchView(batch: batch, onExpansion: onExpansion)
+                    AgentToolBatchView(batch: batch, onDisclosureToggle: onDisclosureToggle)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// `isStreaming` matters even though reasoning is never actionable: without
+    /// it the live block takes the settled path, so every delta inserts a
+    /// throwaway entry into `MarkdownParseCache` and evicts the settled
+    /// messages that cache exists to keep ready.
     private func reasoningBlock(
         _ block: AgentReasoningBlock, isActive: Bool
     ) -> some View {
         MarkdownView(
-            text: block.text, isAssistant: true, isCompact: isCompact
+            text: block.text, isStreaming: isActive,
+            isAssistant: true, isCompact: isCompact
         )
         .foregroundStyle(.secondary)
         .modifier(ScanningTextMask(isActive: isActive))
@@ -528,7 +551,7 @@ private struct AgentWorkGroupView: View {
 /// terminal batch changes over to a compact action summary.
 private struct AgentToolBatchView: View {
     let batch: AgentToolBatch
-    let onExpansion: () -> Void
+    let onDisclosureToggle: () -> Void
 
     @Environment(AppModel.self) private var app
     @Environment(\.locale) private var locale
@@ -567,7 +590,7 @@ private struct AgentToolBatchView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
-                if !isExpanded { onExpansion() }
+                onDisclosureToggle()
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
@@ -599,11 +622,12 @@ private struct AgentToolBatchView: View {
             ))
 
             if isExpanded {
-                LazyVStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
+                // Plain, for the same reason `AgentWorkGroupView.workItems` is.
+                VStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
                     ForEach(cards) { card in
                         AgentToolRowView(
                             card: card, showsActivityAnimation: false,
-                            onExpansion: onExpansion
+                            onDisclosureToggle: onDisclosureToggle
                         )
                     }
                 }
@@ -635,7 +659,7 @@ private struct AgentToolBatchView: View {
 private struct AgentToolRowView: View {
     let card: AgentToolCard
     var showsActivityAnimation = true
-    let onExpansion: () -> Void
+    let onDisclosureToggle: () -> Void
 
     @Environment(AppModel.self) private var app
     @Environment(\.locale) private var locale
@@ -648,7 +672,7 @@ private struct AgentToolRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
-                if !isExpanded { onExpansion() }
+                onDisclosureToggle()
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
@@ -842,10 +866,13 @@ private struct AgentToolDetailView: View {
         }
     }
 
+    /// Plain rather than lazy: when the list is short enough not to need its own
+    /// `ScrollView`, this renders straight into the transcript column, which is
+    /// non-lazy throughout so that no row ever reports an estimated height.
     private func groupedListContents(
         _ list: AgentToolDetail.GroupedList
     ) -> some View {
-        LazyVStack(alignment: .leading, spacing: Metrics.Space.m) {
+        VStack(alignment: .leading, spacing: Metrics.Space.m) {
             ForEach(Array(list.sections.enumerated()), id: \.offset) { _, section in
                 VStack(alignment: .leading, spacing: Metrics.Space.s) {
                     Text(section.title)
@@ -915,7 +942,7 @@ private struct AgentToolDetailView: View {
 
 private struct AgentCompactionActivityRowView: View {
     let activity: AgentCompactionActivity
-    let onExpansion: () -> Void
+    let onDisclosureToggle: () -> Void
 
     @State private var isExpanded = false
 
@@ -940,7 +967,7 @@ private struct AgentCompactionActivityRowView: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
                 guard failure != nil else { return }
-                if !isExpanded { onExpansion() }
+                onDisclosureToggle()
                 isExpanded.toggle()
             } label: {
                 HStack(spacing: Metrics.Space.s) {
@@ -1198,7 +1225,7 @@ struct AgentTaskCapsuleView: View {
 private struct AgentPlanRowView: View {
     let card: AgentPlanCard
     let conversation: ConversationModel
-    let onExpansion: () -> Void
+    let onDisclosureToggle: () -> Void
 
     @Environment(AppModel.self) private var app
     /// Collapsed until the reader opens it. A plan is long by construction, and
@@ -1248,7 +1275,7 @@ private struct AgentPlanRowView: View {
             // is a promise that there is more, and answering it by hunting for
             // an 8pt chevron would be a poor return on having read that far.
             Button {
-                onExpansion()
+                onDisclosureToggle()
                 isExpanded = true
             } label: {
                 rendered
@@ -1275,7 +1302,7 @@ private struct AgentPlanRowView: View {
 
     private var header: some View {
         Button {
-            if !isExpanded { onExpansion() }
+            onDisclosureToggle()
             isExpanded.toggle()
         } label: {
             HStack(spacing: Metrics.Space.s) {

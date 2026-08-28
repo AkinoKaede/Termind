@@ -27,7 +27,7 @@ nonisolated enum TranscriptScrollCoordination {
         to new: TranscriptScrollMetrics,
         isFollowingBottom: Bool,
         isUserScrolling: Bool,
-        isSuppressingDisclosureExpansion: Bool
+        isSuppressingDisclosureLayout: Bool
     ) -> TranscriptScrollAdjustment {
         guard !isUserScrolling else { return .none }
 
@@ -36,20 +36,22 @@ nonisolated enum TranscriptScrollCoordination {
 
         // A contraction can leave AppKit's old offset below the new end of
         // the document. A composer or blocking form changing height has the
-        // same effect on the viewport. Repair those changes synchronously so
-        // an out-of-range viewport never becomes a blank frame.
+        // same effect on the viewport.
         if contentShrank || viewportChanged {
-            if isFollowingBottom || new.isBeyondBottom {
-                return .repairBottomImmediately
-            }
-            return .none
+            // An out-of-range viewport is a blank frame whatever caused it, so
+            // repair it synchronously before asking who asked for the change.
+            if new.isBeyondBottom { return .repairBottomImmediately }
+            // Closing a disclosure is navigation, exactly like opening one: the
+            // reader asked to see less, not to be taken to the live edge.
+            if isSuppressingDisclosureLayout { return .none }
+            return isFollowingBottom ? .repairBottomImmediately : .none
         }
 
         guard new.contentHeight > old.contentHeight + 0.5 else { return .none }
 
         // Opening a disclosure is navigation, not new conversation output.
         // Preserve the row the reader chose instead of pulling them past it.
-        if isSuppressingDisclosureExpansion { return .none }
+        if isSuppressingDisclosureLayout { return .none }
 
         return isFollowingBottom ? .followBottomAfterLayout : .none
     }
