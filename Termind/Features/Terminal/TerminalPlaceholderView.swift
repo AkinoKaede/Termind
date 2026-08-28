@@ -67,56 +67,21 @@ struct TerminalPlaceholderView: View {
         ).color
     }
 
+    /// The surface decides the pane's size; everything else is an overlay.
+    ///
+    /// These used to be siblings in a `ZStack`, which makes a stack as tall as
+    /// its tallest child — and the journey has a minimum height. In a short pane
+    /// it reported more than it was offered (measured: 512 for a 440 proposal),
+    /// `.frame(maxHeight: .infinity)` passed that up rather than clamping it,
+    /// and the oversize climbed the whole chain and came back down as a larger
+    /// proposal, so the journey was laid out taller than the pane and centred —
+    /// which is what threw it upward at the moment a connection settled. An
+    /// overlay is proposed the base's size and never reports one, so the
+    /// terminal alone answers for the pane.
     var body: some View {
-        ZStack(alignment: .bottom) {
-            terminalSurface
-            if isExternalFileDropTargeted {
-                uploadTargetOverlay
-                    .zIndex(8)
-                    .transition(.opacity)
-            } else if let uploadNotice {
-                TerminalUploadOverlay(notice: uploadNotice)
-                    // Above the floating status capsule, not on top of it.
-                    .padding(.bottom, Metrics.StatusBar.overlayClearance)
-                    .zIndex(8)
-                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
-            }
-            if isVisible, sshSession.connectionJourney.isPresented {
-                SSHConnectionJourneyView(
-                    journey: sshSession.connectionJourney,
-                    authenticationPrompt: sshSession.pendingAuthentication,
-                    hostKey: sshSession.pendingHostKey,
-                    submitAuthentication: {
-                        identityID, username, password, passphrase, keyID, save in
-                        sshSession.continueAuthentication(
-                            identityID: identityID, username: username, password: password,
-                            passphrase: passphrase, keyID: keyID, save: save, using: app.hostLibrary
-                        )
-                    },
-                    continueHostKey: {
-                        sshSession.continueWithTemporaryHostKey($0, using: app.hostLibrary)
-                    },
-                    trustHostKey: { sshSession.trustAndConnect($0, using: app.hostLibrary) },
-                    denyHostKey: {
-                        cancelConnection()
-                    },
-                    retry: { sshSession.connect(using: app.hostLibrary) },
-                    cancel: cancelConnection,
-                    askAI: {
-                        if case .failed(let message) = sshSession.connectionJourney.phase {
-                            askAI(
-                                about: message,
-                                log: sshSession.connectionJourney.plainTextLog
-                            )
-                        }
-                    },
-                    reconnectState: sshSession.reconnectState,
-                    retryReconnectNow: sshSession.retryReconnectNow,
-                    stopReconnecting: sshSession.stopReconnecting
-                )
-                .zIndex(10)
-            }
-        }
+        terminalSurface
+            .overlay(alignment: .bottom) { uploadDecoration }
+            .overlay { connectionJourney }
         .animation(
             Motion.tabSwitch,
             value: isExternalFileDropTargeted
@@ -178,6 +143,57 @@ struct TerminalPlaceholderView: View {
             Button("OK") { uploadError = nil }
         } message: {
             Text(uploadError ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var uploadDecoration: some View {
+        if isExternalFileDropTargeted {
+            uploadTargetOverlay
+                .transition(.opacity)
+        } else if let uploadNotice {
+            TerminalUploadOverlay(notice: uploadNotice)
+                // Above the floating status capsule, not on top of it.
+                .padding(.bottom, Metrics.StatusBar.overlayClearance)
+                .transition(.opacity.combined(with: .scale(scale: 0.97)))
+        }
+    }
+
+    @ViewBuilder
+    private var connectionJourney: some View {
+        if isVisible, sshSession.connectionJourney.isPresented {
+            SSHConnectionJourneyView(
+                journey: sshSession.connectionJourney,
+                authenticationPrompt: sshSession.pendingAuthentication,
+                hostKey: sshSession.pendingHostKey,
+                submitAuthentication: {
+                    identityID, username, password, passphrase, keyID, save in
+                    sshSession.continueAuthentication(
+                        identityID: identityID, username: username, password: password,
+                        passphrase: passphrase, keyID: keyID, save: save, using: app.hostLibrary
+                    )
+                },
+                continueHostKey: {
+                    sshSession.continueWithTemporaryHostKey($0, using: app.hostLibrary)
+                },
+                trustHostKey: { sshSession.trustAndConnect($0, using: app.hostLibrary) },
+                denyHostKey: {
+                    cancelConnection()
+                },
+                retry: { sshSession.connect(using: app.hostLibrary) },
+                cancel: cancelConnection,
+                askAI: {
+                    if case .failed(let message) = sshSession.connectionJourney.phase {
+                        askAI(
+                            about: message,
+                            log: sshSession.connectionJourney.plainTextLog
+                        )
+                    }
+                },
+                reconnectState: sshSession.reconnectState,
+                retryReconnectNow: sshSession.retryReconnectNow,
+                stopReconnecting: sshSession.stopReconnecting
+            )
         }
     }
 

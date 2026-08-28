@@ -326,14 +326,23 @@ private struct AssistantConversationList: View {
     }
 
     private var activeList: some View {
-        AssistantConversationNativeList(
+        // Bound here, in `body`, and captured by value from there on. Every
+        // closure below is called back from AppKit — a layout pass filling a
+        // recycled row, a drag, a right-click — where reading `@Environment`
+        // off this struct is not a legal read: it traps with "No Observable
+        // object of type WindowModel found". The list is handed the same
+        // reference so it can put it back into each row's hosting view.
+        let window = window
+
+        return AssistantConversationNativeList(
             items: activeItems,
+            window: window,
             // Structural changes are not animated while a section is folding.
             // ListViewKit recycles the rows a collapse removes and reconfigures
             // the section header in place; doing that inside the very click
             // that asked for it tears down the Button mid-dispatch.
             animatesStructuralChanges: false,
-            draggedID: { isSearching ? nil : draggedConversationID },
+            draggedID: { isSearching ? nil : Self.draggedConversationID(in: window) },
             onMove: isSearching ? nil : { id, target in
                 setExpanded(true, for: target.section)
                 window.moveAssistantConversation(
@@ -341,21 +350,24 @@ private struct AssistantConversationList: View {
                 )
                 window.dragging = nil
             },
-            blankAreaMenu: { blankAreaMenu }
+            blankAreaMenu: { Self.blankAreaMenu(in: window) }
         ) { item in
-            renderedItem(item)
+            renderedItem(item, window: window)
         }
         .background(Color.clear)
     }
 
     private var archivedList: some View {
-        AssistantConversationNativeList(
+        let window = window
+
+        return AssistantConversationNativeList(
             items: archivedItems,
+            window: window,
             topInset: Metrics.Space.m,
             bottomInset: Metrics.Space.m,
-            blankAreaMenu: { blankAreaMenu }
+            blankAreaMenu: { Self.blankAreaMenu(in: window) }
         ) { item in
-            renderedItem(item)
+            renderedItem(item, window: window)
                 .frame(maxWidth: archiveMaxWidth ?? .infinity)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
                 .padding(.horizontal, archiveMaxWidth == nil ? 0 : Metrics.Space.xl)
@@ -366,7 +378,10 @@ private struct AssistantConversationList: View {
     /// New Chat and Show Archive are the Assistant's global verbs, so they stay
     /// live with nothing under the pointer. That also covers the one place the
     /// titlebar cannot: the chat list showing while Vault is the front content.
-    private var blankAreaMenu: [NativeMenuEntry] {
+    ///
+    /// Static, and given the window rather than reading it: AppKit asks for this
+    /// when the pointer is already down, long after the body that built the list.
+    private static func blankAreaMenu(in window: WindowModel) -> [NativeMenuEntry] {
         [
             NativeMenuEntry(title: String(localized: "New Chat")) {
                 window.openNewAssistantChat()
@@ -397,7 +412,9 @@ private struct AssistantConversationList: View {
         return items
     }
 
-    private var draggedConversationID: ConversationModel.ID? {
+    private static func draggedConversationID(
+        in window: WindowModel
+    ) -> ConversationModel.ID? {
         guard case .assistantConversation(let id)? = window.dragging else { return nil }
         return id
     }
@@ -420,7 +437,10 @@ private struct AssistantConversationList: View {
     }
 
     @ViewBuilder
-    private func renderedItem(_ item: AssistantConversationListItem) -> some View {
+    private func renderedItem(
+        _ item: AssistantConversationListItem,
+        window: WindowModel
+    ) -> some View {
         switch item.content {
         case .section(let section, let count):
             AssistantSectionHeaderRow(section: section, count: count)
@@ -689,6 +709,14 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
     typealias Renderer = @MainActor (AssistantConversationListItem) -> AnyView
 
     let items: [AssistantConversationListItem]
+    /// Put back into every row's hosting view.
+    ///
+    /// A row is its own `NSHostingView`, which inherits the environment from
+    /// whatever it is attached to — and ListViewKit parks recycled rows in a
+    /// reuse pool with no superview. A row rendered from there has no ancestor
+    /// to inherit from, so a `@Environment(WindowModel.self)` inside it traps.
+    /// Handing it over explicitly makes a row self-sufficient, attached or not.
+    let window: WindowModel
     var topInset: CGFloat = 0
     var bottomInset: CGFloat = 0
     var animatesStructuralChanges = true
@@ -708,6 +736,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
 
     init(
         items: [AssistantConversationListItem],
+        window: WindowModel,
         topInset: CGFloat = 0,
         bottomInset: CGFloat = 0,
         animatesStructuralChanges: Bool = true,
@@ -717,6 +746,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         @ViewBuilder renderer: @escaping @MainActor (AssistantConversationListItem) -> some View
     ) {
         self.items = items
+        self.window = window
         self.topInset = topInset
         self.bottomInset = bottomInset
         self.animatesStructuralChanges = animatesStructuralChanges
@@ -740,6 +770,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
             listView: container.listView,
             items: items,
             renderer: renderer,
+            window: window,
             locale: locale,
             colorScheme: colorScheme,
             topInset: topInset,
@@ -751,6 +782,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
     @MainActor
     final class Coordinator {
         private var renderer: Renderer?
+        private var window: WindowModel?
         private var locale = Locale.current
         private var colorScheme = ColorScheme.light
         private var content: [AssistantConversationListItem] = []
@@ -775,6 +807,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
             listView: List,
             items: [AssistantConversationListItem],
             renderer: @escaping Renderer,
+            window: WindowModel,
             locale: Locale,
             colorScheme: ColorScheme,
             topInset: CGFloat,
@@ -782,7 +815,10 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
             animated: Bool
         ) {
             self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
+            let environmentChanged =
+                self.locale != locale || self.colorScheme != colorScheme
+                || self.window !== window
+            self.window = window
             self.locale = locale
             self.colorScheme = colorScheme
             listView.topInset = topInset
@@ -804,8 +840,9 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
             _ row: AssistantConversationHostingRow,
             item: AssistantConversationListItem
         ) {
-            guard let renderer else { return }
+            guard let renderer, let window else { return }
             let content = renderer(item)
+                .environment(window)
                 .environment(\.locale, locale)
                 .environment(\.colorScheme, colorScheme)
             row.configure(id: item.id, rootView: AnyView(content))
@@ -966,13 +1003,28 @@ private final class AssistantConversationHostingRow: ListRowView {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        representedID = nil
-        hostingView.rootView = AnyView(EmptyView())
+        empty()
+    }
+
+    /// A recycled row is detached and parked in ListViewKit's reuse pool, where
+    /// it may sit for as long as the list lives. Left holding its old root, it
+    /// keeps observing that conversation and re-renders on every change — with
+    /// no ancestor to inherit the environment from. Emptying it on the way out
+    /// is what makes the pool inert.
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        guard superview == nil else { return }
+        empty()
     }
 
     func configure(id: AssistantConversationListItem.ID, rootView: AnyView) {
         representedID = id
         hostingView.rootView = rootView
+    }
+
+    private func empty() {
+        representedID = nil
+        hostingView.rootView = AnyView(EmptyView())
     }
 }
 
