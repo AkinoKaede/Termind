@@ -5,8 +5,6 @@ import SwiftUI
 /// Shared by the session Assistant sidebar and full Assistant tab so the two can never drift; only
 /// the padding and the provider header differ.
 struct ConversationView: View {
-    private enum ScrollTarget: Hashable { case bottom }
-
     let conversation: ConversationModel
     var isCompact: Bool = false
     /// Forwarded to the composer. Only the sidebar has a focused pane to
@@ -22,15 +20,9 @@ struct ConversationView: View {
     /// before the app starts its first run.
     var onSend: (() -> Void)?
 
+    @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-
-    @State private var isAtTranscriptBottom = true
-    @State private var isFollowingTranscriptBottom = true
-    @State private var isUserScrollingTranscript = false
-    @State private var isTranscriptScrollPending = true
-    @State private var transcriptScrollMetrics: TranscriptScrollMetrics?
-    @State private var isSuppressingDisclosureLayout = false
-    @State private var disclosureToggleGeneration = 0
+    @State private var transcriptPresentation = TranscriptPresentationState()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -141,190 +133,62 @@ struct ConversationView: View {
     }
 
     private var transcript: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                // No rules between turns. A bubble on one side and unframed
-                // prose on the other already separate the speakers, and a line
-                // through every gap turns a conversation into a ledger.
-                //
-                // Not lazy, and that is load-bearing. A `LazyVStack` reports an
-                // *estimated* content height, and collapsing a tall row —
-                // closing a tool call, or a run ending and folding its work away
-                // — makes that estimate wrong in a way it will not correct on
-                // its own. Measured in an `NSHostingView` harness: collapsing a
-                // 2400pt group inside a lazy stack settled at contentSize 2924
-                // with the viewport parked at 2324, when the true height was
-                // 1031. The viewport therefore sat 1300pt past the end of the
-                // document with nothing built there — a blank transcript that
-                // stayed blank, because `isBeyondBottom` computed against the
-                // stale estimate reads false and no repair fires. Neither
-                // `ScrollViewProxy.scrollTo(id:)` nor
-                // `ScrollPosition.scrollTo(edge:)` could correct it; only a real
-                // scroll, which forces re-measurement. The same collapse in a
-                // plain `VStack` settles at 1031/431 with no repair at all.
-                //
-                // The cost is a longer first layout — about 240ms at 300 rows
-                // against 23ms lazy — while a streaming delta stays under one
-                // frame either way (6ms against 2.5ms). If opening a very long
-                // conversation starts to hitch, window the transcript by count
-                // rather than restoring the laziness.
-                VStack(alignment: .leading, spacing: Metrics.Chat.turnSpacing) {
-                    if conversation.isEmpty {
-                        emptyState
-                    } else {
-                        ForEach(conversation.timeline) { item in
-                            row(for: item).id(item.id)
-                        }
-                        if conversation.runState == .interrupted {
-                            Label(
-                                "This run was interrupted and was not resumed.",
-                                systemImage: "pause.circle"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                        Color.clear
-                            .frame(height: 1)
-                            .id(ScrollTarget.bottom)
-                    }
-                }
-                // Horizontal padding belongs to the column, not to each turn:
-                // it is what lines a bubble's trailing edge up with the left
-                // edge of unframed assistant text.
-                .padding(.horizontal, isCompact ? Metrics.Space.l : Metrics.Space.xl)
-                .padding(.vertical, Metrics.Space.xl)
-                .frame(
-                    maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth
-                )
-                .frame(maxWidth: .infinity)
-            }
-            .onScrollGeometryChange(for: TranscriptScrollMetrics.self) { geometry in
-                TranscriptScrollMetrics(
-                    isAtBottom: geometry.visibleRect.maxY
-                        >= geometry.contentSize.height - Metrics.Space.l,
-                    contentHeight: geometry.contentSize.height,
-                    viewportHeight: geometry.containerSize.height,
-                    visibleMinY: geometry.visibleRect.minY
-                )
-            } action: { oldMetrics, newMetrics in
-                transcriptScrollMetrics = newMetrics
-                isAtTranscriptBottom = newMetrics.isAtBottom
-                if isUserScrollingTranscript {
-                    isFollowingTranscriptBottom = newMetrics.isAtBottom
-                }
-
-                switch TranscriptScrollCoordination.adjustment(
-                    from: oldMetrics, to: newMetrics,
-                    isFollowingBottom: isFollowingTranscriptBottom,
-                    isUserScrolling: isUserScrollingTranscript,
-                    isSuppressingDisclosureLayout: isSuppressingDisclosureLayout
-                ) {
-                case .none:
-                    break
-                case .followBottomAfterLayout:
-                    // A token only needs a scroll when it actually wraps or
-                    // adds a block. Coalesce that ordinary live growth, but do
-                    // not send disclosure growth through the same path.
-                    requestScrollToBottom()
-                case .repairBottomImmediately:
-                    repairTranscriptBottom(using: proxy)
-                }
-            }
-            .onScrollPhaseChange { _, phase in
-                switch phase {
-                case .tracking, .interacting, .decelerating:
-                    isUserScrollingTranscript = true
-                    if !isAtTranscriptBottom {
-                        isFollowingTranscriptBottom = false
-                    }
-                case .idle:
-                    if isUserScrollingTranscript {
-                        isFollowingTranscriptBottom = isAtTranscriptBottom
-                    }
-                    isUserScrollingTranscript = false
-                    if transcriptScrollMetrics?.isBeyondBottom == true {
-                        repairTranscriptBottom(using: proxy)
-                    }
-                case .animating:
-                    // Programmatic scrolling is not an instruction to stop
-                    // following. Only direct user interaction changes it.
-                    break
-                }
-            }
-            // Sending a new prompt is an explicit return to the live edge,
-            // even if the reader had previously scrolled up through history.
-            .onChange(of: conversation.messages.last(where: { $0.role == .user })?.id) {
-                isSuppressingDisclosureLayout = false
-                requestScrollToBottom(force: true)
-            }
-            .task(id: disclosureToggleGeneration) {
-                guard disclosureToggleGeneration > 0 else { return }
-                do {
-                    // Text wrapping and images settle a disclosure's contents
-                    // over more than one layout pass. Keep all of those passes
-                    // classified as the same user toggle rather than as live
-                    // model output.
-                    try await Task.sleep(for: .milliseconds(120))
-                } catch {
-                    return
-                }
-                if transcriptScrollMetrics?.isAtBottom == false {
-                    isFollowingTranscriptBottom = false
-                }
-                isSuppressingDisclosureLayout = false
-            }
-            .task(id: isTranscriptScrollPending) {
-                // One view-owned debounce coalesces rapid layout changes.
-                // Unlike an unstructured Task per token, it is cancelled with
-                // the Sidebar and can never retain a stale ScrollViewProxy.
-                guard isTranscriptScrollPending else { return }
-                do {
-                    try await Task.sleep(for: .milliseconds(80))
-                } catch {
-                    return
-                }
-
-                guard isFollowingTranscriptBottom else {
-                    isTranscriptScrollPending = false
-                    return
-                }
-                proxy.scrollTo(ScrollTarget.bottom, anchor: .bottom)
-                isTranscriptScrollPending = false
-            }
+        let timeline = conversation.timeline
+        let items = TranscriptRenderItem.items(
+            timeline: timeline,
+            isInterrupted: conversation.runState == .interrupted
+        )
+        return TranscriptListView(
+            items: items,
+            latestUserMessageID: conversation.messages.last(where: { $0.role == .user })?.id
+        ) { item, disclosureDidToggle in
+            AnyView(
+                renderItem(item, onDisclosureToggle: disclosureDidToggle)
+                    .padding(.horizontal, isCompact ? Metrics.Space.l : Metrics.Space.xl)
+                    .padding(.top, item.hasLeadingSpacing ? Metrics.Chat.turnSpacing : 0)
+                    .frame(maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth)
+                    .frame(maxWidth: .infinity)
+                    .environment(app)
+                    .environment(window)
+            )
         }
-    }
-
-    private func requestScrollToBottom(force: Bool = false) {
-        guard force || isFollowingTranscriptBottom else { return }
-        if force { isFollowingTranscriptBottom = true }
-        isTranscriptScrollPending = true
-    }
-
-    /// Both directions, deliberately. A collapse used to reach the coordinator
-    /// as an anonymous contraction, so a reader closing a long tool row while
-    /// the run was still following the live edge was thrown to the bottom of
-    /// the transcript — the opposite of what closing it asked for.
-    private func disclosureDidToggle() {
-        isTranscriptScrollPending = false
-        isSuppressingDisclosureLayout = true
-        disclosureToggleGeneration &+= 1
-    }
-
-    private func repairTranscriptBottom(using proxy: ScrollViewProxy) {
-        isTranscriptScrollPending = false
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            proxy.scrollTo(ScrollTarget.bottom, anchor: .bottom)
+        .onChange(of: items.reduce(into: Set<UUID>()) {
+            $0.formUnion($1.presentationIDs)
+        }, initial: true) { _, validIDs in
+            transcriptPresentation.prune(validTimelineIDs: validIDs)
         }
     }
 
     @ViewBuilder
-    private func row(for item: TimelineItem) -> some View {
+    private func renderItem(
+        _ item: TranscriptRenderItem,
+        onDisclosureToggle: @escaping @MainActor () -> Void
+    ) -> some View {
+        switch item.content {
+        case .timeline(let item):
+            row(for: item, onDisclosureToggle: onDisclosureToggle)
+        case .empty:
+            emptyState
+        case .interrupted:
+            Label(
+                "This run was interrupted and was not resumed.",
+                systemImage: "pause.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func row(
+        for item: TimelineItem,
+        onDisclosureToggle disclosureDidToggle: @escaping @MainActor () -> Void
+    ) -> some View {
         switch item {
         case .message(let message) where message.role == .user:
             UserMessageView(
                 message: message, isCompact: isCompact,
+                presentation: transcriptPresentation,
                 canEdit: conversation.canEditUserMessage(message.id),
                 onEdit: { text in
                     window.editAssistantUserMessage(
@@ -346,22 +210,28 @@ struct ConversationView: View {
                 }
             )
         case .tool(let card):
-            AgentToolRowView(card: card, onDisclosureToggle: disclosureDidToggle)
+            AgentToolRowView(
+                card: card, presentation: transcriptPresentation,
+                onDisclosureToggle: disclosureDidToggle
+            )
         case .work(let group):
             AgentWorkGroupView(
                 group: group, isCompact: isCompact,
+                presentation: transcriptPresentation,
                 onDisclosureToggle: disclosureDidToggle
             )
         case .plan(let card):
             AgentPlanRowView(
                 card: card, conversation: conversation,
+                presentation: transcriptPresentation,
                 onDisclosureToggle: disclosureDidToggle
             )
         case .compaction(let mark):
             AgentCompactionRowView(mark: mark)
         case .compactionActivity(let activity):
             AgentCompactionActivityRowView(
-                activity: activity, onDisclosureToggle: disclosureDidToggle
+                activity: activity, presentation: transcriptPresentation,
+                onDisclosureToggle: disclosureDidToggle
             )
         }
     }
@@ -388,24 +258,20 @@ struct ConversationView: View {
 private struct AgentWorkGroupView: View {
     let group: AgentWorkGroup
     let isCompact: Bool
+    let presentation: TranscriptPresentationState
     let onDisclosureToggle: () -> Void
 
-    @State private var isExpanded: Bool
-    /// Whether the reader has stated a preference for this group. A run ending
-    /// is otherwise allowed to close a process someone opened deliberately.
-    @State private var readerDidToggle = false
     @Environment(\.locale) private var locale
 
-    init(group: AgentWorkGroup, isCompact: Bool, onDisclosureToggle: @escaping () -> Void) {
-        self.group = group
-        self.isCompact = isCompact
-        self.onDisclosureToggle = onDisclosureToggle
-        _isExpanded = State(
-            initialValue: AgentWorkPresentation.isExpandedByDefault(
-                for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer,
-                isCompact: isCompact
-            )
+    private var defaultExpanded: Bool {
+        AgentWorkPresentation.isExpandedByDefault(
+            for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer,
+            isCompact: isCompact
         )
+    }
+
+    private var isExpanded: Bool {
+        presentation.isExpanded(group.id, default: defaultExpanded)
     }
 
     /// One disclosure for both lives of a run, not one per state. Branching the
@@ -417,9 +283,8 @@ private struct AgentWorkGroupView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
             Button {
-                readerDidToggle = true
                 onDisclosureToggle()
-                isExpanded.toggle()
+                presentation.toggleDisclosure(group.id, default: defaultExpanded)
             } label: {
                 header
             }
@@ -444,10 +309,12 @@ private struct AgentWorkGroupView: View {
             // Runtime transitions are authoritative only until the reader says
             // otherwise. Someone who opened this process to watch it did not
             // ask for it to close the instant the run reported success.
-            guard !readerDidToggle else { return }
-            isExpanded = AgentWorkPresentation.isExpandedByDefault(
-                for: state, appearsAfterAnswer: group.appearsAfterAnswer,
-                isCompact: isCompact
+            presentation.followDefault(
+                AgentWorkPresentation.isExpandedByDefault(
+                    for: state, appearsAfterAnswer: group.appearsAfterAnswer,
+                    isCompact: isCompact
+                ),
+                for: group.id
             )
         }
         .accessibilityElement(children: .contain)
@@ -498,9 +365,15 @@ private struct AgentWorkGroupView: View {
                 case .message(let message):
                     processMessage(message)
                 case .tool(let card):
-                    AgentToolRowView(card: card, onDisclosureToggle: onDisclosureToggle)
+                    AgentToolRowView(
+                        card: card, presentation: presentation,
+                        onDisclosureToggle: onDisclosureToggle
+                    )
                 case .tools(let batch):
-                    AgentToolBatchView(batch: batch, onDisclosureToggle: onDisclosureToggle)
+                    AgentToolBatchView(
+                        batch: batch, presentation: presentation,
+                        onDisclosureToggle: onDisclosureToggle
+                    )
                 }
             }
         }
@@ -549,11 +422,12 @@ private struct AgentWorkGroupView: View {
 /// terminal batch changes over to a compact action summary.
 private struct AgentToolBatchView: View {
     let batch: AgentToolBatch
+    let presentation: TranscriptPresentationState
     let onDisclosureToggle: () -> Void
 
     @Environment(AppModel.self) private var app
     @Environment(\.locale) private var locale
-    @State private var isExpanded = false
+    private var isExpanded: Bool { presentation.isExpanded(batch.id) }
 
     private var cards: [AgentToolCard] { batch.cards }
 
@@ -589,7 +463,7 @@ private struct AgentToolBatchView: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
                 onDisclosureToggle()
-                isExpanded.toggle()
+                presentation.toggleDisclosure(batch.id)
             } label: {
                 HStack(spacing: Metrics.Space.s) {
                     Image(systemName: AgentToolPresentation.batchSymbol(for: cards))
@@ -625,6 +499,7 @@ private struct AgentToolBatchView: View {
                     ForEach(cards) { card in
                         AgentToolRowView(
                             card: card, showsActivityAnimation: false,
+                            presentation: presentation,
                             onDisclosureToggle: onDisclosureToggle
                         )
                     }
@@ -657,11 +532,12 @@ private struct AgentToolBatchView: View {
 private struct AgentToolRowView: View {
     let card: AgentToolCard
     var showsActivityAnimation = true
+    let presentation: TranscriptPresentationState
     let onDisclosureToggle: () -> Void
 
     @Environment(AppModel.self) private var app
     @Environment(\.locale) private var locale
-    @State private var isExpanded = false
+    private var isExpanded: Bool { presentation.isExpanded(card.id) }
 
     private var summary: String {
         AgentToolPresentation.summary(for: card, hostName: hostName, locale: locale)
@@ -671,7 +547,7 @@ private struct AgentToolRowView: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Button {
                 onDisclosureToggle()
-                isExpanded.toggle()
+                presentation.toggleDisclosure(card.id)
             } label: {
                 HStack(spacing: Metrics.Space.s) {
                     Image(systemName: AgentToolPresentation.symbol(for: card))
@@ -940,9 +816,10 @@ private struct AgentToolDetailView: View {
 
 private struct AgentCompactionActivityRowView: View {
     let activity: AgentCompactionActivity
+    let presentation: TranscriptPresentationState
     let onDisclosureToggle: () -> Void
 
-    @State private var isExpanded = false
+    private var isExpanded: Bool { presentation.isExpanded(activity.id) }
 
     private var failure: String? {
         guard case .failed(let reason) = activity.state else { return nil }
@@ -966,7 +843,7 @@ private struct AgentCompactionActivityRowView: View {
             Button {
                 guard failure != nil else { return }
                 onDisclosureToggle()
-                isExpanded.toggle()
+                presentation.toggleDisclosure(activity.id)
             } label: {
                 HStack(spacing: Metrics.Space.s) {
                     if failure == nil {
@@ -1223,13 +1100,14 @@ struct AgentTaskCapsuleView: View {
 private struct AgentPlanRowView: View {
     let card: AgentPlanCard
     let conversation: ConversationModel
+    let presentation: TranscriptPresentationState
     let onDisclosureToggle: () -> Void
 
     @Environment(AppModel.self) private var app
     /// Collapsed until the reader opens it. A plan is long by construction, and
     /// one that unfurled on arrival would push the conversation it belongs to
     /// off the screen at the moment the reader wants to see both.
-    @State private var isExpanded = false
+    private var isExpanded: Bool { presentation.isExpanded(card.id) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
@@ -1274,7 +1152,7 @@ private struct AgentPlanRowView: View {
             // an 8pt chevron would be a poor return on having read that far.
             Button {
                 onDisclosureToggle()
-                isExpanded = true
+                if !isExpanded { presentation.toggleDisclosure(card.id) }
             } label: {
                 rendered
                     .frame(maxHeight: Metrics.Chat.planPreviewHeight, alignment: .top)
@@ -1301,7 +1179,7 @@ private struct AgentPlanRowView: View {
     private var header: some View {
         Button {
             onDisclosureToggle()
-            isExpanded.toggle()
+            presentation.toggleDisclosure(card.id)
         } label: {
             HStack(spacing: Metrics.Space.s) {
                 Image(systemName: symbol)

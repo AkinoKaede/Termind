@@ -16,6 +16,7 @@
 		TRMD00000000000000100006 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
 		TRMD00000000000000100007 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
 		TRMD00000000000000100008 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
+		TRMD00000000000000100009 /* ListViewKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100018 /* ListViewKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -93,6 +94,7 @@
 			files = (
 				TRMD00000000000000100005 /* ZIPFoundation in Frameworks */,
 				TRMD00000000000000100008 /* MarkdownView in Frameworks */,
+				TRMD00000000000000100009 /* ListViewKit in Frameworks */,
 				TRMD00000000000000100001 /* CSSH2 in Frameworks */,
 				TRMD00000000000000100007 /* GhosttyKit in Frameworks */,
 				TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */,
@@ -168,6 +170,7 @@
 				TRMD00000000000000100014 /* OpenSSL */,
 				TRMD00000000000000100015 /* ZIPFoundation */,
 				TRMD00000000000000100017 /* MarkdownView */,
+				TRMD00000000000000100018 /* ListViewKit */,
 			);
 			productName = Termind;
 			productReference = TRMD00000000000000000001 /* Termind.app */;
@@ -264,6 +267,7 @@
 				TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */,
 				TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				TRMD00000000000000100025 /* XCRemoteSwiftPackageReference "MarkdownView" */,
+				TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = TRMD00000000000000000040 /* Products */;
@@ -618,6 +622,14 @@
 				minimumVersion = 4.3.1;
 			};
 		};
+		TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/ListViewKit";
+			requirement = {
+				kind = exactVersion;
+				version = 4.3.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -655,6 +667,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100025 /* XCRemoteSwiftPackageReference "MarkdownView" */;
 			productName = MarkdownView;
+		};
+		TRMD00000000000000100018 /* ListViewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */;
+			productName = ListViewKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

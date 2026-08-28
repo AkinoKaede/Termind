@@ -10,16 +10,18 @@ import SwiftUI
 struct UserMessageView: View {
     let message: ChatMessage
     var isCompact = false
+    let presentation: TranscriptPresentationState
     var canEdit = false
     var onEdit: ((String) -> Void)?
 
     @State private var isHovering = false
-    @State private var isEditing = false
-    @State private var editText = ""
-    @State private var bubbleWidth: CGFloat = 0
     @State private var hasMarkedText = false
     @State private var attachmentOpenError: String?
     @FocusState private var editFocused: Bool
+
+    private var isEditing: Bool { presentation.isEditingMessage(message.id) }
+    private var editText: String { presentation.messageEditText(message.id) }
+    private var bubbleWidth: CGFloat { presentation.messageBubbleWidth(message.id) }
 
     var body: some View {
         VStack(alignment: .trailing, spacing: Metrics.Chat.blockSpacing) {
@@ -59,8 +61,7 @@ struct UserMessageView: View {
     }
 
     private func beginEdit() {
-        editText = message.text
-        isEditing = true
+        presentation.beginEditingMessage(message.id, text: message.text)
         editFocused = true
     }
 
@@ -105,7 +106,7 @@ struct UserMessageView: View {
             // Capture the resting bubble, not the editor. The edit control can
             // then occupy the same silhouette instead of accepting the list's
             // full-width proposal and turning into a second composer.
-            if !isEditing { bubbleWidth = width }
+            if !isEditing { presentation.setMessageBubbleWidth(width, for: message.id) }
         }
     }
 
@@ -139,7 +140,7 @@ struct UserMessageView: View {
 
     private var editor: some View {
         VStack(alignment: .trailing, spacing: Metrics.Space.s) {
-            TextEditor(text: $editText)
+            TextEditor(text: presentation.messageEditBinding(for: message.id))
                 .scrollContentBackground(.hidden)
                 .font(.body)
                 .focused($editFocused)
@@ -159,12 +160,12 @@ struct UserMessageView: View {
                     return .handled
                 }
                 .onKeyPress(.escape, phases: .down) { _ in
-                    isEditing = false
+                    presentation.endEditingMessage(message.id)
                     return .handled
                 }
                 .onAppear { editFocused = true }
             HStack(spacing: Metrics.Space.s) {
-                Button("Cancel") { isEditing = false }
+                Button("Cancel") { presentation.endEditingMessage(message.id) }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
                 Button("Send", action: commitEdit)
@@ -191,7 +192,7 @@ struct UserMessageView: View {
     private func commitEdit() {
         let text = editText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        isEditing = false
+        presentation.endEditingMessage(message.id)
         onEdit?(text)
     }
 }

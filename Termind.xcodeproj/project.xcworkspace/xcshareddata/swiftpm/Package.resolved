@@ -1,5 +1,5 @@
 {
-  "originHash" : "2b3dca4cc1943e866780af4287f00d9358f15a96bc20e632a8cdd365ec2cf52d",
+  "originHash" : "d6f7775e55b73f16661cb2d32fed9a81591b83b3b8da1f305f652bdfff758aa8",
   "pins" : [
     {
       "identity" : "highlightr",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "d211fdf8587532cd952927d9f9f3f5167ce6a77f",
         "version" : "2.0.3"
+      }
+    },
+    {
+      "identity" : "listviewkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/ListViewKit",
+      "state" : {
+        "revision" : "c6a067ba837758a50612f88dd1d6bb025175df6c",
+        "version" : "4.3.2"
       }
     },
     {
