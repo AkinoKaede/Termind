@@ -602,12 +602,27 @@ private struct PaneView: View {
     /// trade something you do constantly for something you do rarely.
     @ViewBuilder
     private var header: some View {
-        if pane.kind == .sshSession {
+        if presentsConnectionJourney {
+            headerContent.background {
+                SSHConnectionJourneyBackground(center: .bottomLeading)
+            }
+        } else if pane.kind == .sshSession {
             headerContent.background(terminalAppearance.background)
         } else if pane.kind == .sftpSession {
             headerContent.background(.background)
         } else {
             headerContent.termindGlassBar()
+        }
+    }
+
+    private var presentsConnectionJourney: Bool {
+        switch pane.content {
+        case .sshSession(let session):
+            session.connectionJourney.isPresented
+        case .sftpSession(let session):
+            session.connectionJourney.isPresented
+        case .empty:
+            false
         }
     }
 
