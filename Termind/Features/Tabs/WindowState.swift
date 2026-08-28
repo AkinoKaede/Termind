@@ -44,7 +44,7 @@ nonisolated struct ContextPanelDetailID: Hashable, Sendable, Identifiable {
 /// The one left sidebar's window-lifetime state.
 ///
 /// Navigation and contextual tools share a physical column. The selected mode
-/// is remembered per Workspace; Vault and Chats always resolve to Navigator.
+/// belongs to the window and remains unchanged as its destination changes.
 @Observable
 final class WindowSidebarState {
     nonisolated enum Mode: String, Hashable, Sendable, CaseIterable, Identifiable {
@@ -87,101 +87,22 @@ final class WindowSidebarState {
     /// selected so a stale host and directory cannot be left on screen.
     var sessionContext: SessionContext = .none
 
-    private var workspaceModes: [Workspace.ID: Mode] = [:]
+    var mode: Mode = .navigation
 
     private var selections: [VaultPage: [ContextPanelDetailID]] = [:]
     private var detailOverride: ContextPanelDetailID?
     private var detailOverridePaneID: Pane.ID?
 
-    func availableModes(
-        for destination: WindowDestination,
-        hasFocusedSSHSession: Bool
-    ) -> [Mode] {
-        switch destination {
-        case .vault, .assistant:
-            [.navigation]
-        case .workspace:
-            [.navigation, .assistant, .snippets, .history]
-        }
+    var availableModes: [Mode] {
+        Mode.allCases
     }
 
-    func isModeEnabled(
-        _ mode: Mode, for destination: WindowDestination,
-        hasFocusedSSHSession: Bool
-    ) -> Bool {
-        guard availableModes(
-            for: destination, hasFocusedSSHSession: hasFocusedSSHSession
-        ).contains(mode) else { return false }
-        if case .workspace = destination,
-            (mode == .snippets || mode == .history)
-        {
-            return hasFocusedSSHSession
-        }
-        return true
+    func isModeEnabled(_ mode: Mode) -> Bool {
+        availableModes.contains(mode)
     }
 
-    func mode(
-        for destination: WindowDestination,
-        hasFocusedSSHSession: Bool
-    ) -> Mode {
-        let stored: Mode
-        switch destination {
-        case .vault, .assistant:
-            return .navigation
-        case .workspace(let id):
-            stored = workspaceModes[id] ?? .navigation
-        }
-        let available = availableModes(
-            for: destination,
-            hasFocusedSSHSession: hasFocusedSSHSession
-        )
-        if available.contains(stored), isModeEnabled(
-            stored, for: destination,
-            hasFocusedSSHSession: hasFocusedSSHSession
-        ) { return stored }
-        if (stored == .snippets || stored == .history), available.contains(.assistant) {
-            return .assistant
-        }
-        return available[0]
-    }
-
-    func setMode(
-        _ mode: Mode,
-        for destination: WindowDestination,
-        hasFocusedSSHSession: Bool
-    ) {
-        guard isModeEnabled(
-            mode, for: destination,
-            hasFocusedSSHSession: hasFocusedSSHSession
-        ) else { return }
-
-        switch destination {
-        case .vault, .assistant:
-            return
-        case .workspace(let id):
-            workspaceModes[id] = mode
-        }
-    }
-
-    /// Commits a compatibility fallback, such as Snippets -> Assistant when an
-    /// SFTP pane takes focus, so returning to SSH does not resurrect a mode the
-    /// user has already been moved away from.
-    func reconcileMode(
-        for destination: WindowDestination,
-        hasFocusedSSHSession: Bool
-    ) {
-        guard case .workspace = destination else {
-            return
-        }
-        let resolved = mode(
-            for: destination,
-            hasFocusedSSHSession: hasFocusedSSHSession
-        )
-        setMode(
-            resolved,
-            for: destination,
-            hasFocusedSSHSession: hasFocusedSSHSession
-        )
+    func reconcileMode() {
+        // Every mode has a useful global or focus-sensitive presentation.
     }
 
     func selection(for page: VaultPage) -> [ContextPanelDetailID] {

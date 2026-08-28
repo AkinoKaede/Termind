@@ -355,9 +355,17 @@ enum TermindSchemaV3: VersionedSchema {
     }
 }
 
+enum TermindSchemaV4: VersionedSchema {
+    static let versionIdentifier = Schema.Version(4, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV3.models + [PersistentSFTPHistoryEntry.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self]
+        [TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self, TermindSchemaV4.self]
     }
 
     static var stages: [MigrationStage] {
@@ -367,6 +375,9 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             ),
             MigrationStage.lightweight(
                 fromVersion: TermindSchemaV2.self, toVersion: TermindSchemaV3.self
+            ),
+            MigrationStage.lightweight(
+                fromVersion: TermindSchemaV3.self, toVersion: TermindSchemaV4.self
             )
         ]
     }
@@ -374,7 +385,7 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV3.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV4.self)
 
     let context: ModelContext
 

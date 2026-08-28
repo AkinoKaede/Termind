@@ -40,6 +40,12 @@ final class WindowModel {
             for workspace in workspaces { workspace.configureCommandHistory(using: commandHistoryStore) }
         }
     }
+    weak var sftpHistoryStore: SFTPHistoryModel? {
+        didSet {
+            guard let sftpHistoryStore else { return }
+            for workspace in workspaces { workspace.configureSFTPHistory(using: sftpHistoryStore) }
+        }
+    }
     var assistantConversationDeletionHandler: ((ConversationModel.ID) -> Void)?
     var assistantPinHandler: ((ConversationModel.ID) -> Void)?
     var assistantRenameHandler: ((ConversationModel.ID, String) -> Void)?
@@ -144,40 +150,23 @@ final class WindowModel {
     }
 
     var availableSidebarModes: [SidebarMode] {
-        sidebar.availableModes(
-            for: selectedDestination,
-            hasFocusedSSHSession: focusedSSHSession != nil
-        )
+        sidebar.availableModes
     }
 
     var sidebarMode: SidebarMode {
-        get {
-            sidebar.mode(
-                for: selectedDestination,
-                hasFocusedSSHSession: focusedSSHSession != nil
-            )
-        }
+        get { sidebar.mode }
         set {
-            sidebar.setMode(
-                newValue,
-                for: selectedDestination,
-                hasFocusedSSHSession: focusedSSHSession != nil
-            )
+            guard sidebar.isModeEnabled(newValue) else { return }
+            sidebar.mode = newValue
         }
     }
 
     func isSidebarModeEnabled(_ mode: SidebarMode) -> Bool {
-        sidebar.isModeEnabled(
-            mode, for: selectedDestination,
-            hasFocusedSSHSession: focusedSSHSession != nil
-        )
+        sidebar.isModeEnabled(mode)
     }
 
     func reconcileSidebarMode() {
-        sidebar.reconcileMode(
-            for: selectedDestination,
-            hasFocusedSSHSession: focusedSSHSession != nil
-        )
+        sidebar.reconcileMode()
     }
 
     /// Opens the shared column and selects the current Workspace's assistant.
@@ -395,6 +384,17 @@ final class WindowModel {
         selectedDestination = .assistant
     }
 
+    /// Promotes a compact Sidebar preview into the main Assistant surface while
+    /// keeping the conversation navigator visible in the shared Sidebar.
+    func openAssistantFullScreen(_ id: ConversationModel.ID? = nil) {
+        sidebarMode = .assistant
+        if let id {
+            selectAssistant(id)
+        } else {
+            _ = openNewAssistantChat()
+        }
+    }
+
     func showAssistantArchive() {
         isAssistantArchivePresented = true
         selectedDestination = .assistant
@@ -540,13 +540,19 @@ final class WindowModel {
     // MARK: - Opening
 
     @discardableResult
-    func open(_ workspace: Workspace, select shouldSelect: Bool = true) -> Workspace {
+    func open(
+        _ workspace: Workspace,
+        select shouldSelect: Bool = true
+    ) -> Workspace {
         workspace.lifecycleRouter = self
         if let connectionCoordinator {
             workspace.configureConnections(using: connectionCoordinator)
         }
         if let commandHistoryStore {
             workspace.configureCommandHistory(using: commandHistoryStore)
+        }
+        if let sftpHistoryStore {
+            workspace.configureSFTPHistory(using: sftpHistoryStore)
         }
         workspaces.append(workspace)
         if shouldSelect { select(workspace.id) }
@@ -664,6 +670,8 @@ final class WindowModel {
     ) -> Workspace {
         let pane = Pane.sftpSession(host: host, initialPath: initialPath)
         numberPane(pane)
+        if let connectionCoordinator { pane.configureConnections(using: connectionCoordinator) }
+        if let sftpHistoryStore { pane.configureSFTPHistory(using: sftpHistoryStore) }
 
         if placement == .currentWorkspace,
             let workspace = selectedWorkspace,

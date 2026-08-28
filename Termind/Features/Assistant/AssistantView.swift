@@ -66,7 +66,9 @@ struct AssistantPanelView: View {
 
     var body: some View {
         Group {
-            if window.sidebar.isAssistantArchivePresented {
+            if !isFocusedOnWorkspace {
+                AssistantSidebarView()
+            } else if window.sidebar.isAssistantArchivePresented {
                 AssistantArchiveView(
                     isCompact: true,
                     onBack: { window.closeAssistantInSidebar() },
@@ -85,15 +87,19 @@ struct AssistantPanelView: View {
         )
     }
 
+    private var isFocusedOnWorkspace: Bool {
+        if case .workspace = window.selectedDestination { true } else { false }
+    }
+
     private var landing: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("Chats").font(.headline)
                 Spacer(minLength: 0)
                 Button {
-                    window.showAssistantArchiveInSidebar()
+                    openAssistantFullScreen()
                 } label: {
-                    Label("Archived", systemImage: "archivebox")
+                    Label("Open Full Screen", systemImage: "arrow.up.left.and.arrow.down.right")
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
@@ -158,6 +164,13 @@ struct AssistantPanelView: View {
                     .font(.headline)
                     .lineLimit(1)
                 Spacer(minLength: 0)
+                Button {
+                    window.openAssistantFullScreen(conversation.id)
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                }
+                .buttonStyle(.borderless)
+                .help(Text("Open Full Screen"))
             }
             .compactAssistantHeader()
             ConversationView(
@@ -166,6 +179,16 @@ struct AssistantPanelView: View {
                 showsTerminalActions: true,
                 onNewChat: { window.closeAssistantInSidebar() }
             )
+        }
+    }
+
+    private func openAssistantFullScreen() {
+        if let id = window.sidebar.assistantConversationID
+            ?? window.assistantLibrary.selectedConversationID
+        {
+            window.openAssistantFullScreen(id)
+        } else {
+            window.openAssistantFullScreen()
         }
     }
 }
@@ -259,7 +282,6 @@ private struct AssistantConversationList: View {
             items.append(contentsOf: window.assistantLibrary.pinnedConversations.map(item))
         }
         if !window.assistantLibrary.activeConversations.isEmpty {
-            items.append(.section(.chats))
             items.append(contentsOf: window.assistantLibrary.activeConversations.map(item))
         }
         return items
@@ -668,6 +690,7 @@ struct AssistantConversationRow: View {
                     isArchived: conversation.isArchived,
                     isPinned: conversation.isPinned,
                     managementDisabled: conversation.isStreaming || conversation.isCompacting,
+                    onOpenFullScreen: { window.openAssistantFullScreen(conversation.id) },
                     onTogglePin: { window.toggleAssistantPin(conversation.id) },
                     onRename: onBeginRename,
                     onToggleArchive: {
@@ -722,6 +745,7 @@ private struct ConversationContextMenuHost: NSViewRepresentable {
     let isArchived: Bool
     let isPinned: Bool
     let managementDisabled: Bool
+    let onOpenFullScreen: () -> Void
     let onTogglePin: () -> Void
     let onRename: () -> Void
     let onToggleArchive: () -> Void
@@ -735,6 +759,7 @@ private struct ConversationContextMenuHost: NSViewRepresentable {
         view.isArchived = isArchived
         view.isPinned = isPinned
         view.managementDisabled = managementDisabled
+        view.onOpenFullScreen = onOpenFullScreen
         view.onTogglePin = onTogglePin
         view.onRename = onRename
         view.onToggleArchive = onToggleArchive
@@ -745,6 +770,7 @@ private struct ConversationContextMenuHost: NSViewRepresentable {
         var isArchived = false
         var isPinned = false
         var managementDisabled = false
+        var onOpenFullScreen: () -> Void = {}
         var onTogglePin: () -> Void = {}
         var onRename: () -> Void = {}
         var onToggleArchive: () -> Void = {}
@@ -763,6 +789,10 @@ private struct ConversationContextMenuHost: NSViewRepresentable {
 
         private func makeMenu() -> NSMenu {
             let menu = NSMenu()
+            menu.addItem(item(
+                String(localized: "Open Full Screen"), action: #selector(openFullScreen)
+            ))
+            menu.addItem(.separator())
             if !isArchived {
                 menu.addItem(item(
                     isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
@@ -791,6 +821,7 @@ private struct ConversationContextMenuHost: NSViewRepresentable {
         }
 
         @objc private func togglePin() { onTogglePin() }
+        @objc private func openFullScreen() { onOpenFullScreen() }
         @objc private func rename() { onRename() }
         @objc private func toggleArchive() { onToggleArchive() }
         @objc private func deleteConversation() { onDelete() }

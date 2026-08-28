@@ -71,7 +71,7 @@ struct SidebarView: View {
         case .snippets:
             SSHSessionSnippetsSidebar()
         case .history:
-            SSHSessionHistorySidebar()
+            AdaptiveHistorySidebar()
         }
     }
 }
@@ -80,7 +80,6 @@ nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
     nonisolated enum SectionID: Hashable, Sendable {
         case package(UUID)
         case ungrouped
-        case recents
         case results
     }
 
@@ -247,15 +246,15 @@ private final class ContextSidebarHostingRow: ListRowView {
 
 // MARK: - Session Snippets
 
-/// The compact command shelf shown only while a terminal pane has focus.
-/// Commands are sent straight to that pane, deliberately bypassing Workspace
-/// broadcast and the snippet's saved Targets.
+/// The global Snippet shelf. Execution always respects the Snippet's saved
+/// Targets; the focused terminal is never an implicit destination.
 private struct SSHSessionSnippetsSidebar: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
     @State private var query = ""
     @State private var destructiveSnippet: Snippet?
+    @State private var selectedSnippetID: Snippet.ID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -280,7 +279,7 @@ private struct SSHSessionSnippetsSidebar: View {
             }
 
             Divider()
-            Text("Click to insert · Double-click to execute")
+            Text("Double-click to execute on default Targets")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.vertical, Metrics.Space.s)
@@ -323,13 +322,12 @@ private struct SSHSessionSnippetsSidebar: View {
         SSHSessionSnippetRow(snippet: snippet)
             .padding(.horizontal, Metrics.Space.m)
             .contentShape(.rect)
-            .termindSidebarRowBackground(isSelected: false)
-            .onTapGesture(count: 2) { execute(snippet) }
-            .onTapGesture { insert(snippet) }
+            .termindSidebarRowBackground(isSelected: selectedSnippetID == snippet.id)
+            .onTapGesture(count: 2) { requestExecution(snippet) }
+            .onTapGesture { selectedSnippetID = snippet.id }
             .contextMenu {
                 Button("Copy") { copyToPasteboard(snippet.body) }
-                Button("Insert") { insert(snippet) }
-                Button("Execute") { execute(snippet) }
+                Button("Execute") { requestExecution(snippet) }
             }
     }
 
@@ -356,12 +354,13 @@ private struct SSHSessionSnippetsSidebar: View {
         }
     }
 
-    private func insert(_ snippet: Snippet) {
-        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
-        tab.deliver(snippet.body, from: sshSession)
-    }
-
-    private func execute(_ snippet: Snippet) {
+    private func requestExecution(_ snippet: Snippet) {
+        if snippet.targetHostIDs.isEmpty {
+            window.hostChooser = .snippet(SnippetHostChooserRequest(
+                snippetIDs: [snippet.id], strategy: .fillMissingTargets
+            ))
+            return
+        }
         if CommandRiskClassifier.assess(snippet.body).requiresSecondConfirmation {
             destructiveSnippet = snippet
         } else {
@@ -370,15 +369,28 @@ private struct SSHSessionSnippetsSidebar: View {
     }
 
     private func executeNow(_ snippet: Snippet) {
-        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
-        tab.deliver(snippet.body, from: sshSession, submit: true)
+        app.execute([snippet], in: window)
         destructiveSnippet = nil
     }
 }
 
-// MARK: - Session History
+// MARK: - Focus-sensitive History
 
-private struct SSHSessionHistorySidebar: View {
+private struct AdaptiveHistorySidebar: View {
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        if window.selectedWorkspace?.focusedPane.sshSession != nil {
+            SSHCommandHistorySidebar()
+        } else if window.selectedWorkspace?.focusedPane.sftpSession != nil {
+            SFTPBrowseHistorySidebar()
+        } else {
+            ConnectionHistorySidebar()
+        }
+    }
+}
+
+private struct SSHCommandHistorySidebar: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
@@ -526,10 +538,11 @@ private struct SSHSessionHistorySidebar: View {
     }
 
     private var historyListItems: [ContextSidebarListItem] {
-        [.section(query.isEmpty ? .recents : .results, title: query.isEmpty ? "Recents" : "Results")]
-            + allEntries.map {
-                .history($0, isNaming: namingEntryID == $0.id)
-            }
+        let entries = allEntries.map {
+            ContextSidebarListItem.history($0, isNaming: namingEntryID == $0.id)
+        }
+        guard !query.isEmpty else { return entries }
+        return [.section(.results, title: "Results")] + entries
     }
 
     @ViewBuilder
@@ -603,6 +616,165 @@ private struct SSHSessionHistorySidebar: View {
         guard !name.isEmpty else { return }
         app.hostLibrary.upsert(Snippet(title: name, body: entry.command))
         cancelSnippetNaming()
+    }
+}
+
+private struct SFTPBrowseHistorySidebar: View {
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+
+    @State private var query = ""
+    @State private var selectedID: SFTPHistoryEntry.ID?
+    @State private var confirmsClear = false
+
+    private var session: SFTPSessionModel? {
+        window.selectedWorkspace?.focusedPane.sftpSession
+    }
+
+    private var entries: [SFTPHistoryEntry] {
+        guard let session else { return [] }
+        _ = app.sftpHistory.revision
+        return app.sftpHistory.entries(for: session.hostID, matching: query)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TermindSearchField(text: $query, prompt: "Search SFTP History", density: .compact)
+                .padding(.horizontal, Metrics.Space.m)
+                .padding(.vertical, Metrics.Space.s)
+
+            if entries.isEmpty {
+                Group {
+                    if query.isEmpty {
+                        ContentUnavailableView(
+                            "No SFTP History", systemImage: "clock.arrow.circlepath",
+                            description: Text("Folders you visit and files you open appear here.")
+                        )
+                    } else {
+                        ContentUnavailableView.search(text: query)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(entries, selection: $selectedID) { entry in
+                    HStack(spacing: Metrics.Space.s) {
+                        Image(systemName: entry.kind.symbol)
+                            .foregroundStyle(
+                                entry.kind == .directory
+                                    ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
+                            )
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.name).lineLimit(1)
+                            Text(entry.path)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .frame(height: 42)
+                    .contentShape(.rect)
+                    .tag(entry.id)
+                    .onTapGesture(count: 2) { reopen(entry) }
+                    .contextMenu {
+                        Button("Open") { reopen(entry) }
+                        Divider()
+                        Button("Delete from History", role: .destructive) {
+                            app.sftpHistory.delete(entry.id)
+                        }
+                    }
+                }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+            }
+
+            Divider()
+            HStack {
+                Text("Double-click to open")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Button("Clear", role: .destructive) { confirmsClear = true }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .disabled(entries.isEmpty)
+            }
+            .padding(.horizontal, Metrics.Space.m)
+            .padding(.vertical, Metrics.Space.s)
+        }
+        .confirmationDialog(
+            "Clear SFTP history for this Host?", isPresented: $confirmsClear,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                if let session { app.sftpHistory.clear(for: session.hostID) }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+
+    private func reopen(_ entry: SFTPHistoryEntry) {
+        guard let session else { return }
+        switch entry.kind {
+        case .directory:
+            session.navigate(to: entry.path)
+        case .file:
+            session.reopenHistoryFile(at: entry.path, coordinator: app.sftpTransfers) {
+                if NSWorkspace.shared.open($0) {
+                    session.recordOpenedFile(at: entry.path)
+                }
+            }
+        }
+    }
+}
+
+private struct ConnectionHistorySidebar: View {
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    @AppStorage(SettingsKey.showRecents) private var showRecents = true
+    @State private var selectedID: Host.ID?
+
+    private var hosts: [Host] { showRecents ? app.hostLibrary.recents(limit: 10) : [] }
+
+    var body: some View {
+        Group {
+            if hosts.isEmpty {
+                ContentUnavailableView(
+                    "No Recent Hosts", systemImage: "clock.arrow.circlepath",
+                    description: Text("Hosts you connect to appear here.")
+                )
+            } else {
+                List(hosts, selection: $selectedID) { host in
+                    HStack(spacing: Metrics.Space.s) {
+                        StatusDot(status: app.hostLibrary.status(of: host.id))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(host.name).lineLimit(1)
+                            Text(app.hostLibrary.loginAddress(for: host))
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .frame(height: 42)
+                    .contentShape(.rect)
+                    .tag(host.id)
+                    .onTapGesture(count: 2) {
+                        app.open(host, as: .sshSession, in: window)
+                    }
+                    .contextMenu { HostContextMenu(host: host) }
+                }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            Text("Double-click to connect")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.vertical, Metrics.Space.s)
+        }
     }
 }
 

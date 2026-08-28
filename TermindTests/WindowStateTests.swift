@@ -32,7 +32,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func closingTheLastWorkspaceReturnsToVaultNavigator() {
+    func closingTheLastWorkspaceKeepsTheGlobalSidebarMode() {
         let workspace = Workspace.sshSession(
             host: Host(name: "Server", host: "server.example")
         )
@@ -44,7 +44,7 @@ struct WindowStateTests {
 
         #expect(window.workspaces.isEmpty)
         #expect(window.selectedDestination == .vault)
-        #expect(window.sidebarMode == .navigation)
+        #expect(window.sidebarMode == .history)
     }
 
     @Test
@@ -122,6 +122,38 @@ struct WindowStateTests {
         window.openAssistantInSidebar(conversation.id)
         #expect(!window.sidebar.isAssistantArchivePresented)
         #expect(window.sidebarAssistantConversation === conversation)
+    }
+
+    @Test
+    func openingSidebarConversationFullScreenKeepsAssistantSidebarSelected() {
+        let conversation = ConversationModel()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(assistantLibrary: library)
+
+        window.openAssistantFullScreen(conversation.id)
+
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+        #expect(window.sidebarMode == .assistant)
+    }
+
+    @Test
+    func openingRecentHostKeepsTheGlobalHistoryMode() {
+        let host = Host(name: "Recent", host: "recent.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let window = WindowModel()
+        window.sidebarMode = .history
+
+        let workspace = app.open(host, as: .sshSession, in: window)
+
+        #expect(window.selectedDestination == .workspace(workspace.id))
+        #expect(window.sidebarMode == .history)
+
+        window.selectVault()
+        window.select(workspace.id)
+        #expect(window.sidebarMode == .history)
     }
 
     @Test

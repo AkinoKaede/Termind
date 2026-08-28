@@ -15,7 +15,6 @@ struct VaultSidebarView: View {
 
     private var items: [VaultNavigationItem] {
         var result: [VaultNavigationItem] = [
-            .section(.welcome),
             .page(.welcome, count: 0, selected: window.vaultDestination.page == .welcome),
             .section(.vault),
             .page(.hosts, count: app.hostLibrary.hosts.count, selected: window.vaultDestination.page == .hosts),
@@ -119,13 +118,11 @@ struct VaultSidebarView: View {
 
 nonisolated struct VaultNavigationItem: Identifiable, Hashable, Sendable {
     nonisolated enum Section: Hashable, Sendable {
-        case welcome
         case vault
         case recents
 
         var title: LocalizedStringKey {
             switch self {
-            case .welcome: "Welcome"
             case .vault: "Vault"
             case .recents: "Recents"
             }

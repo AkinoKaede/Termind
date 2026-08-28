@@ -122,6 +122,11 @@ final class Pane: Identifiable {
         session.commandHistoryStore = store
     }
 
+    func configureSFTPHistory(using store: SFTPHistoryModel) {
+        guard case .sftpSession(let session) = content else { return }
+        session.historyStore = store
+    }
+
     var kind: PaneKind {
         switch content {
         case .sftpSession: .sftpSession

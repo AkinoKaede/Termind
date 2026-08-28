@@ -2,17 +2,14 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The native source list shared by Vault, Workspaces, Chats, and Recents.
+/// The native source list for Vault and Workspaces.
 /// Workspace layout drops are accepted only inside the Workspace section.
 struct WorkspaceNavigatorView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    @AppStorage(SettingsKey.showRecents) private var showRecents = true
     @AppStorage(SettingsKey.vaultSectionExpanded) private var vaultExpanded = true
     @AppStorage(SettingsKey.workspaceSectionExpanded) private var workspaceExpanded = true
-    @AppStorage(SettingsKey.chatsSectionExpanded) private var chatsExpanded = true
-    @AppStorage(SettingsKey.recentsSectionExpanded) private var recentsExpanded = true
 
     @State private var ghostIndex: Int?
     @State private var workspaceFrames: [Workspace.ID: CGRect] = [:]
@@ -21,20 +18,14 @@ struct WorkspaceNavigatorView: View {
 
     @State private var renamingWorkspaceID: Workspace.ID?
     @State private var workspaceRenameTitle = ""
-    @State private var deletingConversation: ConversationModel?
-    @State private var renamingConversationID: ConversationModel.ID?
-    @State private var conversationRenameTitle = ""
 
     nonisolated private static let coordinateSpace = "termind.workspaceNavigator"
 
     var body: some View {
         List {
+            welcomeRow
             vaultSection
             workspaceSection
-            chatsSection
-            if showRecents {
-                recentsSection
-            }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
@@ -53,44 +44,31 @@ struct WorkspaceNavigatorView: View {
         .onChange(of: window.selectedDestination) {
             switch window.selectedDestination {
             case .vault: vaultExpanded = true
-            case .assistant: chatsExpanded = true
+            case .assistant: break
             case .workspace: workspaceExpanded = true
             }
         }
         .onChange(of: window.vaultDestination) { vaultExpanded = true }
-        .onChange(of: window.assistantLibrary.selectedConversationID) {
-            if window.selectedDestination == .assistant { chatsExpanded = true }
-        }
-        .onChange(of: visibleConversationIDs) {
-            if let renamingConversationID,
-                !visibleConversationIDs.contains(renamingConversationID)
-            {
-                cancelConversationRename()
-            }
-        }
-        .alert(
-            "Delete Conversation?",
-            isPresented: Binding(
-                get: { deletingConversation != nil },
-                set: { if !$0 { deletingConversation = nil } }
-            ),
-            presenting: deletingConversation
-        ) { conversation in
-            Button("Cancel", role: .cancel) { deletingConversation = nil }
-            Button("Delete", role: .destructive) {
-                window.deleteAssistantConversation(conversation.id)
-                deletingConversation = nil
-            }
-        } message: { _ in
-            Text("This permanently removes the conversation and its scratch files.")
-        }
     }
 
     // MARK: - Vault
 
+    private var welcomeRow: some View {
+        navigatorRow(
+            title: VaultPage.welcome.label,
+            symbol: VaultPage.welcome.symbol,
+            count: 0,
+            isSelected: window.selectedDestination == .vault
+                && window.vaultDestination.page == .welcome
+        ) {
+            window.dragging = nil
+            window.openPage(.welcome)
+        }
+    }
+
     private var vaultSection: some View {
         Section(isExpanded: $vaultExpanded) {
-            ForEach(VaultPage.allCases) { page in
+            ForEach(VaultPage.allCases.filter { $0 != .welcome }) { page in
                 navigatorRow(
                     title: page.label,
                     symbol: page.symbol,
@@ -249,118 +227,6 @@ struct WorkspaceNavigatorView: View {
         }
     }
 
-    // MARK: - Chats
-
-    private var chatsSection: some View {
-        Section(isExpanded: $chatsExpanded) {
-            if window.assistantLibrary.pinnedConversations.isEmpty,
-                window.assistantLibrary.activeConversations.isEmpty
-            {
-                emptyRow("No Chats")
-            }
-            if !window.assistantLibrary.pinnedConversations.isEmpty {
-                subgroupLabel("Pinned")
-                ForEach(window.assistantLibrary.pinnedConversations) { conversation in
-                    conversationRow(conversation)
-                }
-            }
-            if !window.assistantLibrary.activeConversations.isEmpty {
-                if !window.assistantLibrary.pinnedConversations.isEmpty {
-                    subgroupLabel("Chats")
-                }
-                ForEach(window.assistantLibrary.activeConversations) { conversation in
-                    conversationRow(conversation)
-                }
-            }
-        } header: {
-            sectionHeader("Chats") {
-                HStack(spacing: Metrics.Space.xs) {
-                    Button {
-                        chatsExpanded = true
-                        window.openNewAssistantChat()
-                    } label: {
-                        Image(systemName: "plus.bubble")
-                    }
-                    .help(Text("New Chat"))
-
-                    Button {
-                        chatsExpanded = true
-                        window.showAssistantArchive()
-                    } label: {
-                        Image(systemName: "archivebox")
-                    }
-                    .help(Text("Archived"))
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-            }
-        }
-    }
-
-    private var visibleConversationIDs: Set<ConversationModel.ID> {
-        Set(
-            (window.assistantLibrary.pinnedConversations
-                + window.assistantLibrary.activeConversations).map(\.id)
-        )
-    }
-
-    private func conversationRow(_ conversation: ConversationModel) -> some View {
-        AssistantConversationRow(
-            conversation: conversation,
-            isSelected: window.selectedDestination == .assistant
-                && !window.isAssistantArchivePresented
-                && window.assistantLibrary.selectedConversationID == conversation.id,
-            onOpen: {
-                window.dragging = nil
-                chatsExpanded = true
-                window.selectAssistant(conversation.id)
-            },
-            onDelete: { deletingConversation = conversation },
-            isRenaming: renamingConversationID == conversation.id,
-            renameTitle: $conversationRenameTitle,
-            onBeginRename: { beginConversationRename(conversation) },
-            onCommitRename: { commitConversationRename(conversation) },
-            onCancelRename: cancelConversationRename
-        )
-        .listRowInsets(EdgeInsets())
-        .listRowBackground(Color.clear)
-    }
-
-    // MARK: - Recents
-
-    private var recentsSection: some View {
-        Section(isExpanded: $recentsExpanded) {
-            if recentHosts.isEmpty {
-                emptyRow("No Recent Hosts")
-            }
-            ForEach(recentHosts) { host in
-                Button {
-                    recentsExpanded = true
-                    app.open(host, as: .sshSession, in: window)
-                } label: {
-                    HStack(spacing: Metrics.Space.s) {
-                        StatusDot(status: app.hostLibrary.status(of: host.id))
-                        Text(host.name).lineLimit(1)
-                        Spacer(minLength: 0)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(height: Metrics.Sidebar.navigationRowHeight)
-                    .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .contextMenu { HostContextMenu(host: host) }
-                .help(Text("Quick Connect to \(app.hostLibrary.loginAddress(for: host))"))
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-            }
-        } header: {
-            sectionHeader("Recents")
-        }
-    }
-
-    private var recentHosts: [Host] { app.hostLibrary.recents(limit: 10) }
-
     // MARK: - Shared rows and editing
 
     private func navigatorRow(
@@ -409,16 +275,6 @@ struct WorkspaceNavigatorView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func subgroupLabel(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .termindSidebarSectionLabel()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Metrics.Sidebar.navigationRowInset)
-            .padding(.top, Metrics.Space.s)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-    }
-
     private func emptyRow(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.callout)
@@ -446,22 +302,6 @@ struct WorkspaceNavigatorView: View {
         workspaceRenameTitle = ""
     }
 
-    private func beginConversationRename(_ conversation: ConversationModel) {
-        renamingConversationID = conversation.id
-        conversationRenameTitle = conversation.derivedTitle
-    }
-
-    private func commitConversationRename(_ conversation: ConversationModel) {
-        let value = conversationRenameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        window.renameAssistantConversation(conversation.id, to: value)
-        cancelConversationRename()
-    }
-
-    private func cancelConversationRename() {
-        renamingConversationID = nil
-        conversationRenameTitle = ""
-    }
 }
 
 nonisolated enum WorkspaceSidebarDropGeometry {

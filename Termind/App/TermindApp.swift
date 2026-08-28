@@ -64,6 +64,7 @@ struct TermindApp: App {
                         modelContext: container.mainContext, secrets: secrets
                     ),
                     commandHistory: CommandHistoryModel(modelContext: container.mainContext),
+                    sftpHistory: SFTPHistoryModel(modelContext: container.mainContext),
                     externalToolCalls: externalToolCalls,
                     dependencies: AppDependencies(
                         hostRepository: repository,

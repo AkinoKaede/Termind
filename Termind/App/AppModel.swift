@@ -54,6 +54,7 @@ final class AppModel {
     let forwardings: ForwardingLibraryModel
     let transfers: TransferLibraryModel
     let commandHistory: CommandHistoryModel
+    let sftpHistory: SFTPHistoryModel
     private let externalToolCalls: ToolAuditModel
     var toolAudit: ToolAuditModel { externalToolCalls }
     let externalAuthentication: ExternalAuthCoordinator
@@ -100,6 +101,7 @@ final class AppModel {
     init(
         hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
+        sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil
@@ -112,6 +114,7 @@ final class AppModel {
         forwardings = ForwardingLibraryModel(library: hosts)
         transfers = TransferLibraryModel(library: hosts)
         self.commandHistory = commandHistory
+        self.sftpHistory = sftpHistory
         self.externalToolCalls = externalToolCalls
         externalAuthentication = ExternalAuthCoordinator()
         connections = connectionCoordinator
@@ -611,6 +614,7 @@ final class AppModel {
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
         window.commandHistoryStore = commandHistory
+        window.sftpHistoryStore = sftpHistory
         window.assistantLibrary.adopt(assistantConversations)
         window.assistantConversationDeletionHandler = { [weak self] id in
             self?.deleteAgentConversation(id)
@@ -824,6 +828,7 @@ final class AppModel {
         do {
             try hostRepository.requestHostDeletion(hostID)
             commandHistory.clear(for: hostID)
+            sftpHistory.clear(for: hostID)
             hosts.projectHostDeletion(hostID)
         } catch {
             hosts.reportStorageError(error)
@@ -882,7 +887,11 @@ final class AppModel {
     /// know which workspace was first. Discardable because nearly every caller opens
     /// one host and has nothing to decide afterwards.
     @discardableResult
-    func open(_ host: Host, as target: HostOpenTarget, in window: WindowModel) -> Workspace {
+    func open(
+        _ host: Host,
+        as target: HostOpenTarget,
+        in window: WindowModel
+    ) -> Workspace {
         beginOpening(host, as: target)
 
         switch target {

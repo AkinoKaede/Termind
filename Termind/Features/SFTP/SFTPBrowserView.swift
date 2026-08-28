@@ -978,7 +978,9 @@ struct SFTPBrowserView: View {
             sftpSession.navigate(to: file.path)
         } else {
             sftpSession.open(file, coordinator: app.sftpTransfers) { localURL in
-                NSWorkspace.shared.open(localURL)
+                if NSWorkspace.shared.open(localURL) {
+                    sftpSession.recordOpenedFile(at: file.path)
+                }
             }
         }
     }

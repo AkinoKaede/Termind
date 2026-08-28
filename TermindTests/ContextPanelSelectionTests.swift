@@ -120,51 +120,51 @@ struct ContextPanelSelectionTests {
         #expect(window.isSidebarModeEnabled(.history))
 
         window.selectVault()
-        #expect(window.availableSidebarModes == [.navigation])
+        #expect(window.availableSidebarModes == [.navigation, .assistant, .snippets, .history])
         #expect(window.sidebarMode == .navigation)
 
         window.selectAssistant()
-        #expect(window.availableSidebarModes == [.navigation])
+        #expect(window.availableSidebarModes == [.navigation, .assistant, .snippets, .history])
         #expect(window.sidebarMode == .navigation)
     }
 
     @Test
-    func eachWorkspaceRemembersItsOwnModeAndVaultUsesNavigator() {
+    func sidebarModeIsSharedAcrossAllDestinations() {
         let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
         let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
         let window = WindowModel(workspaces: [first, second])
 
         window.sidebarMode = .history
         window.select(second.id)
-        window.sidebarMode = .snippets
-        window.selectVault()
-
-        window.select(first.id)
         #expect(window.sidebarMode == .history)
-        window.select(second.id)
-        #expect(window.sidebarMode == .snippets)
+
         window.selectVault()
+        #expect(window.sidebarMode == .history)
+
+        window.selectAssistant()
+        #expect(window.sidebarMode == .history)
+
+        window.sidebarMode = .navigation
+        window.openPage(.keychain)
+        #expect(window.selectedDestination == .vault)
+        #expect(window.vaultDestination == .keychain)
         #expect(window.sidebarMode == .navigation)
     }
 
     @Test
-    func unavailableCommandModesCommitAssistantFallback() {
-        let workspaceID = UUID()
+    func globalModesRemainSelectedWithoutAnSSHFocus() {
         let state = WindowSidebarState()
 
         for mode in [WindowSidebarState.Mode.snippets, .history] {
-            state.setMode(mode, for: .workspace(workspaceID), hasFocusedSSHSession: true)
-            state.reconcileMode(for: .workspace(workspaceID), hasFocusedSSHSession: false)
+            state.mode = mode
+            state.reconcileMode()
 
-            #expect(
-                state.mode(for: .workspace(workspaceID), hasFocusedSSHSession: true)
-                    == .assistant
-            )
+            #expect(state.mode == mode)
         }
     }
 
     @Test
-    func sftpKeepsFourStableIconsButDisablesCommandTools() {
+    func sftpEnablesAllFourSidebarModes() {
         let workspace = Workspace.sftpSession(
             host: Host(name: "Files", host: "files.example")
         )
@@ -173,8 +173,8 @@ struct ContextPanelSelectionTests {
         #expect(window.availableSidebarModes == [.navigation, .assistant, .snippets, .history])
         #expect(window.isSidebarModeEnabled(.navigation))
         #expect(window.isSidebarModeEnabled(.assistant))
-        #expect(!window.isSidebarModeEnabled(.snippets))
-        #expect(!window.isSidebarModeEnabled(.history))
+        #expect(window.isSidebarModeEnabled(.snippets))
+        #expect(window.isSidebarModeEnabled(.history))
     }
 
     @Test

@@ -250,6 +250,7 @@ final class SFTPSessionModel: Identifiable {
     weak var navigationRouter: (any SFTPSessionNavigationRouting)?
     private weak var statusStore: HostLibraryModel?
     private weak var transferCoordinator: SFTPTransferCoordinator?
+    weak var historyStore: SFTPHistoryModel?
     private var didResolveInitialPath: Bool
     private let automaticRefreshInterval: Duration
     var connectionCoordinator: RemoteConnectionCoordinator?
@@ -761,6 +762,9 @@ final class SFTPSessionModel: Identifiable {
             let snapshot = try await client.listDirectory(at: requestedPath)
             guard status == .connected, path == requestedPath else { return }
             replaceDirectoryContents(with: snapshot)
+            if !silently {
+                historyStore?.record(kind: .directory, path: requestedPath, for: hostID)
+            }
             hint = String(localized: "\(snapshot.count) items")
         } catch let error as SFTPError {
             if case .connectionLost(let message) = error {
@@ -1081,9 +1085,36 @@ final class SFTPSessionModel: Identifiable {
                 remotePath: file.path, byteCount: file.size, hostID: hostID,
                 connection: connection, scopedRoot: directory, overwrite: false
             ) { state in
-                if state == .completed { completion(localURL) }
+                if state == .completed {
+                    completion(localURL)
+                }
             }
         } catch { operationError = error.localizedDescription }
+    }
+
+    func recordOpenedFile(at path: String) {
+        historyStore?.record(kind: .file, path: path, for: hostID)
+    }
+
+    func reopenHistoryFile(
+        at path: String, coordinator: SFTPTransferCoordinator,
+        completion: @escaping (URL) -> Void
+    ) {
+        guard let client, status == .connected else {
+            operationError = String(localized: "The SFTP connection is not available.")
+            return
+        }
+        Task {
+            do {
+                guard let file = try await client.attributes(at: path), !file.isDirectory else {
+                    operationError = String(localized: "The remote file is no longer available.")
+                    return
+                }
+                open(file, coordinator: coordinator, completion: completion)
+            } catch {
+                operationError = error.localizedDescription
+            }
+        }
     }
 
     func downloadPromisedFile(

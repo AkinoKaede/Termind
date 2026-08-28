@@ -2365,6 +2365,16 @@
         }
       }
     },
+    "Clear SFTP history for this Host?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除此主机的SFTP历史记录？"
+          }
+        }
+      }
+    },
     "Click to insert · Double-click to execute" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3926,6 +3936,36 @@
         }
       }
     },
+    "Double-click to connect" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双击连接"
+          }
+        }
+      }
+    },
+    "Double-click to execute on default Targets" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双击在默认Target上执行"
+          }
+        }
+      }
+    },
+    "Double-click to open" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双击打开"
+          }
+        }
+      }
+    },
     "Double-click to rename" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4876,6 +4916,16 @@
         }
       }
     },
+    "Folders you visit and files you open appear here." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "访问过的文件夹和打开过的文件会显示在这里。"
+          }
+        }
+      }
+    },
     "Follow Permissions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5362,6 +5412,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "主机"
+          }
+        }
+      }
+    },
+    "Hosts you connect to appear here." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接过的主机会显示在这里。"
           }
         }
       }
@@ -6715,6 +6775,7 @@
       }
     },
     "No Chats" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -7070,6 +7131,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未添加服务账户"
+          }
+        }
+      }
+    },
+    "No SFTP History" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无SFTP历史记录"
           }
         }
       }
@@ -7430,6 +7501,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开页面、工作区、主机或命令"
+          }
+        }
+      }
+    },
+    "Open Full Screen" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏打开"
           }
         }
       }
@@ -9489,6 +9570,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索主机，或输入user@host"
+          }
+        }
+      }
+    },
+    "Search SFTP History" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索SFTP历史记录"
           }
         }
       }
@@ -11759,6 +11850,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "远程命令"
+          }
+        }
+      }
+    },
+    "The remote file is no longer available." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远程文件已不存在。"
           }
         }
       }
