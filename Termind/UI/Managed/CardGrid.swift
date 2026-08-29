@@ -569,6 +569,7 @@ struct CardTile<Content: View>: View {
                 )
             )
             .focusable(activatesOnReturn && activate != nil)
+            .termindInputAwareFocusEffect()
             .onKeyPress(.return) {
                 guard activatesOnReturn, let activate else { return .ignored }
                 activate()
