@@ -148,6 +148,14 @@
                 return true
             }
 
+            if modifiers == .command, let character,
+                character.count == 1, "123456789".contains(character)
+            {
+                // Ghostty owns its own tab shortcuts and otherwise consumes
+                // these before SwiftUI's Window menu can select a Workspace.
+                return true
+            }
+
             switch character {
             case "i":
                 return modifiers == .command

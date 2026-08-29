@@ -333,6 +333,59 @@ struct BroadcastInputTests {
             #expect(secondWrites == [Data("x".utf8)])
         }
 
+        @Test(.disabled(
+            if: !ghosttyHasActiveDisplay,
+            "Ghostty's Metal surface requires an active display"
+        ))
+        func commandDigitsFallThroughToAppKitWorkspaceCommands() async throws {
+            let host = Host(name: "host", host: "host.example")
+            let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
+            let mount = TerminalMountView(
+                frame: NSRect(x: 0, y: 0, width: 640, height: 400)
+            )
+            let window = NSWindow(
+                contentRect: mount.frame,
+                styleMask: [.titled],
+                backing: .buffered,
+                defer: false
+            )
+            window.contentView = mount
+            window.makeKeyAndOrderFront(nil)
+            defer { window.orderOut(nil) }
+            NSApp.activate(ignoringOtherApps: true)
+            sshSession.terminalViewOwner.mount(
+                in: mount,
+                state: sshSession.terminalState,
+                isVisible: true,
+                requestsFocus: true
+            )
+            mount.layoutSubtreeIfNeeded()
+            for _ in 0..<100 where !sshSession.terminalViewOwner.hasKeyboardFocusForTesting {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            #expect(sshSession.terminalViewOwner.hasKeyboardFocusForTesting)
+
+            let numberRowKeyCodes: [UInt16] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
+            for (offset, keyCode) in numberRowKeyCodes.enumerated() {
+                let digit = String(offset + 1)
+                let event = try #require(
+                    NSEvent.keyEvent(
+                        with: .keyDown,
+                        location: .zero,
+                        modifierFlags: .command,
+                        timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: window.windowNumber,
+                        context: nil,
+                        characters: digit,
+                        charactersIgnoringModifiers: digit,
+                        isARepeat: false,
+                        keyCode: keyCode
+                    ))
+
+                #expect(!sshSession.terminalViewOwner.performKeyEquivalentForTesting(event))
+            }
+        }
+
         @Test
         func commandQFallsThroughToAppKitQuitCommand() throws {
             let host = Host(name: "host", host: "host.example")
