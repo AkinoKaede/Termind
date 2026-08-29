@@ -8,6 +8,9 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
     case terminalAppearance, sftp
     case providers, modelRoles, assistant, webSearch, mcp, mcpServer
     case sync
+    #if DEBUG
+        case developer
+    #endif
 
     var id: String { rawValue }
 
@@ -26,6 +29,9 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
         case .mcp: "MCP"
         case .mcpServer: "MCP Server"
         case .sync: "iCloud"
+        #if DEBUG
+            case .developer: "Developer"
+        #endif
         }
     }
 
@@ -44,6 +50,9 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
         case .mcp: "wrench.and.screwdriver"
         case .mcpServer: "server.rack"
         case .sync: "icloud"
+        #if DEBUG
+            case .developer: "hammer"
+        #endif
         }
     }
 }
@@ -193,6 +202,10 @@ struct SettingsPageView: View {
             ) { MCPServerSettings() }
         case .sync:
             SettingsFormPage(title: "iCloud", subtitle: "Sync status and data protection.") { SyncSettings() }
+        #if DEBUG
+            case .developer:
+                DeveloperSettingsPage()
+        #endif
         }
     }
 
@@ -305,6 +318,9 @@ private struct SettingsSidebar: View {
 
 nonisolated enum SettingsNavigationGroup: CaseIterable, Hashable, Sendable {
     case general, terminal, ai, sync
+    #if DEBUG
+        case development
+    #endif
 
     var title: LocalizedStringKey {
         switch self {
@@ -312,6 +328,9 @@ nonisolated enum SettingsNavigationGroup: CaseIterable, Hashable, Sendable {
         case .terminal: "Terminal"
         case .ai: "AI"
         case .sync: "Sync"
+        #if DEBUG
+            case .development: "Development"
+        #endif
         }
     }
 
@@ -321,6 +340,9 @@ nonisolated enum SettingsNavigationGroup: CaseIterable, Hashable, Sendable {
         case .terminal: [.terminalAppearance, .sftp]
         case .ai: [.providers, .modelRoles, .webSearch, .mcp, .mcpServer]
         case .sync: [.sync]
+        #if DEBUG
+            case .development: [.developer]
+        #endif
         }
     }
 }
@@ -614,31 +636,6 @@ private struct ProSettings: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
 
-        #if DEBUG
-            Section {
-                Button {
-                    app.proAccess.unlockForTesting()
-                } label: {
-                    Text(verbatim: "Unlock Pro (Debug)")
-                }
-                Button {
-                    Task { await app.proAccess.expireTrialForTesting() }
-                } label: {
-                    Text(verbatim: "Expire Trial Now (Debug)")
-                }
-                .disabled(!hasActiveTrial)
-                Button(role: .destructive) {
-                    Task { await app.proAccess.resetTrialForTesting() }
-                } label: {
-                    Text(verbatim: "Reset Trial State (Debug)")
-                }
-                Text(verbatim: "Debug only. These controls are not compiled into App Store builds.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } header: {
-                Text(verbatim: "Development")
-            }
-        #endif
     }
 
     @ViewBuilder
@@ -655,13 +652,6 @@ private struct ProSettings: View {
         case .unrestrictedForTesting: Label("Development Access", systemImage: "hammer")
         }
     }
-
-    #if DEBUG
-        private var hasActiveTrial: Bool {
-            if case .trialActive = app.proAccess.status { return true }
-            return false
-        }
-    #endif
 }
 
 private struct StartupSettings: View {

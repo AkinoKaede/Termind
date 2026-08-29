@@ -59,9 +59,15 @@ struct TermindApp: App {
                 modelContext: container.mainContext,
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }
             )
-            let proAccess: ProAccessController = isRunningTests
-                ? .unrestrictedForTesting()
-                : .live()
+            #if DEBUG
+                let proAccess: ProAccessController = isRunningTests
+                    ? .unrestrictedForTesting()
+                    : .developmentDefault()
+            #else
+                let proAccess: ProAccessController = isRunningTests
+                    ? .unrestrictedForTesting()
+                    : .live()
+            #endif
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,

@@ -169,34 +169,18 @@ final class ProAccessController {
     }
 
     #if DEBUG
-        func resetTrialForTesting() async {
-            guard let trialStore else { return }
+        /// The only shared seam used by the Debug-only entitlement simulator.
+        /// Release compilation removes this method before type checking and SIL emission.
+        func applyDevelopmentEntitlement(_ next: EntitlementStatus) {
             refreshGeneration &+= 1
-            do {
-                try await trialStore.resetForTesting()
-                hasResolvedLocalState = true
-                workspaceCompositionGrantedForLaunch = false
-                apply(.free(trialAvailable: true))
-                message = nil
-            } catch {
-                message = error.localizedDescription
-            }
-        }
-
-        func expireTrialForTesting() async {
-            guard let trialStore else { return }
-            do {
-                guard try await trialStore.expireForTesting() else { return }
-                apply(Self.status(for: await trialStore.assessment(includeCloud: false)))
-            } catch {
-                message = error.localizedDescription
-            }
-        }
-
-        func unlockForTesting() {
-            refreshGeneration &+= 1
-            apply(.unrestrictedForTesting)
-            workspaceCompositionGrantedForLaunch = true
+            refreshTask?.cancel()
+            transactionUpdates?.cancel()
+            trialExpirationTask?.cancel()
+            hasResolvedLocalState = true
+            status = next
+            workspaceCompositionGrantedForLaunch = next.hasProAccess
+            requestedFeature = nil
+            isPaywallPresented = false
             message = nil
         }
     #endif

@@ -50,6 +50,14 @@ struct SettingsNavigationTests {
         #expect(SettingsRoute.terminalConfiguration(.dark).section == .terminalAppearance)
     }
 
+    #if DEBUG
+        @Test
+        func developmentSettingsAreTheLastNavigationGroup() {
+            #expect(SettingsNavigationGroup.allCases.last == .development)
+            #expect(SettingsNavigationGroup.development.sections == [.developer])
+        }
+    #endif
+
     @Test
     func emptyProviderDraftIsDiscarded() {
         let provider = ModelProvider(name: String(localized: "New Provider"))
