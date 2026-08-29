@@ -319,7 +319,8 @@ struct TranscriptListView: NSViewRepresentable {
             row.configure(
                 id: item.id,
                 rootView: content,
-                onIntrinsicSizeChange: sizeChange
+                onIntrinsicSizeChange: sizeChange,
+                isMeasurementPrototype: purpose == .measurement
             )
         }
 
@@ -404,11 +405,18 @@ private final class TranscriptHostingRow: ListRowView {
     func configure(
         id: UUID,
         rootView: AnyView,
-        onIntrinsicSizeChange: (@MainActor () -> Void)?
+        onIntrinsicSizeChange: (@MainActor () -> Void)?,
+        isMeasurementPrototype: Bool
     ) {
         representedID = id
         hostingController.onContentSizeChange = onIntrinsicSizeChange
         hostingController.rootView = rootView
+        // ListViewKit measures self-sizing rows with an off-screen prototype.
+        // AppKit's prepareForReuse() unhides that row, which leaked a second
+        // copy of the empty transcript into New Chat. Restore the visibility
+        // declared by the row purpose after reuse and root replacement.
+        isHidden = isMeasurementPrototype
+        hostingController.view.isHidden = isMeasurementPrototype
     }
 
     override var fittingSize: NSSize {

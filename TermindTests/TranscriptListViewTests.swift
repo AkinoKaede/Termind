@@ -1,4 +1,5 @@
 import Foundation
+import ListViewKit
 import SwiftUI
 import Testing
 
@@ -184,6 +185,29 @@ struct TranscriptListViewBridgeTests {
         #expect(shortHeight > 0)
         #expect(tallHeight > 96)
         #expect(tallHeight > shortHeight)
+    }
+
+    @Test
+    func selfSizingKeepsTheMeasurementPrototypeContentHidden() {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let item = TranscriptRenderItem(id: UUID(), content: .empty)
+        listView.frame = CGRect(x: 0, y: 0, width: 320, height: 400)
+
+        update(
+            coordinator, listView,
+            items: [item],
+            renderer: { _, _ in AnyView(Text("Only once")) }
+        )
+        listView.layoutSubtreeIfNeeded()
+
+        let rows = listView.subviews.compactMap { $0 as? ListRowView }
+        #expect(rows.count == 2)
+        #expect(rows.filter(\.isHidden).count == 1)
+        #expect(rows.filter { !$0.isHidden }.count == 1)
+        #expect(
+            rows.first(where: \.isHidden)?.subviews.allSatisfy(\.isHidden) == true
+        )
     }
 
     @Test
