@@ -32,7 +32,39 @@ nonisolated struct SSHKeyRef: Identifiable, Codable, Hashable, Sendable {
     var hasPassphrase = false
     var requiresUserPresence = false
     var createdAt: Date = Date(timeIntervalSince1970: 0)
+    var colorTag: TagColor = .none
     var sortIndex: Double = 0
 
     var requiresPassphraseEntry: Bool { hasPassphrase }
+}
+
+nonisolated extension SSHKeyRef {
+    private enum CodingKeys: String, CodingKey {
+        case id, label, algorithm, publicKey, certificate, fingerprint
+        case credentialRef, storage, keySize, hasPassphrase, requiresUserPresence
+        case createdAt, colorTag, sortIndex
+    }
+
+    /// Vault records written before key colors existed do not contain
+    /// `colorTag`. Treating that absence as `.none` keeps those records valid
+    /// while preserving synthesized encoding for new records.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try container.decode(UUID.self, forKey: .id),
+            label: try container.decode(String.self, forKey: .label),
+            algorithm: try container.decode(SSHKeyAlgorithm.self, forKey: .algorithm),
+            publicKey: try container.decode(String.self, forKey: .publicKey),
+            certificate: try container.decode(String.self, forKey: .certificate),
+            fingerprint: try container.decode(String.self, forKey: .fingerprint),
+            credentialRef: try container.decode(String.self, forKey: .credentialRef),
+            storage: try container.decode(KeyStorage.self, forKey: .storage),
+            keySize: try container.decodeIfPresent(Int.self, forKey: .keySize),
+            hasPassphrase: try container.decode(Bool.self, forKey: .hasPassphrase),
+            requiresUserPresence: try container.decode(Bool.self, forKey: .requiresUserPresence),
+            createdAt: try container.decode(Date.self, forKey: .createdAt),
+            colorTag: (try? container.decode(TagColor.self, forKey: .colorTag)) ?? .none,
+            sortIndex: try container.decode(Double.self, forKey: .sortIndex)
+        )
+    }
 }

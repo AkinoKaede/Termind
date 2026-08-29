@@ -884,7 +884,8 @@ final class SSHSessionModel: Identifiable {
                 passwordStorage: existing?.passwordStorage ?? .iCloud,
                 keyID: submittedKeyID,
                 notes: existing?.notes ?? "",
-                lastUsedAt: existing?.lastUsedAt
+                lastUsedAt: existing?.lastUsedAt,
+                colorTag: existing?.colorTag ?? .none
             )
             let passwordUpdate: IdentityPasswordUpdate =
                 submittedPassword.map(

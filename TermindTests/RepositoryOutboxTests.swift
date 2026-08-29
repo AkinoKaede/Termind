@@ -18,12 +18,13 @@ struct RepositoryOutboxTests {
         let host = Host(name: "Production", host: "prod.example")
         let group = HostGroup(name: "Servers")
         let identity = Identity(
-            name: "Operator", username: "deploy", passwordStorage: .iCloud
+            name: "Operator", username: "deploy", passwordStorage: .iCloud,
+            colorTag: .orange
         )
         let key = SSHKeyRef(
             label: "Deployment", publicKey: "ssh-ed25519 AAAA baseline",
             fingerprint: "SHA256:baseline", credentialRef: "key-baseline",
-            storage: .iCloud
+            storage: .iCloud, colorTag: .purple
         )
         let knownHost = KnownHostEntry(
             hostname: "prod.example", algorithm: .ed25519,
@@ -79,6 +80,68 @@ struct RepositoryOutboxTests {
             try context.fetch(FetchDescriptor<PersistentPortForwardingRule>()).map(\.value)
                 == [rule]
         )
+    }
+
+    @Test
+    func schemaV6MigratesKeysAndIdentitiesWithNoColor() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CredentialColorMigration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appendingPathComponent("Termind.store")
+        let legacySchema = Schema(versionedSchema: TermindSchemaV6.self)
+        let identity = Identity(name: "Legacy", username: "legacy")
+        let key = SSHKeyRef(label: "Legacy Key", fingerprint: "SHA256:legacy")
+
+        var legacyContainer: ModelContainer? = try ModelContainer(
+            for: legacySchema,
+            configurations: [
+                localModelConfiguration(
+                    "CredentialColorMigration", schema: legacySchema, url: storeURL
+                )
+            ]
+        )
+        legacyContainer?.mainContext.insert(
+            TermindSchemaV6Models.PersistentIdentity(identity)
+        )
+        legacyContainer?.mainContext.insert(
+            TermindSchemaV6Models.PersistentSSHKey(key)
+        )
+        try legacyContainer?.mainContext.save()
+        legacyContainer = nil
+
+        let migrated = try ModelContainer(
+            for: HostPersistence.schema,
+            migrationPlan: TermindMigrationPlan.self,
+            configurations: [
+                localModelConfiguration(
+                    "CredentialColorMigration", schema: HostPersistence.schema,
+                    url: storeURL
+                )
+            ]
+        )
+
+        let identities = try migrated.mainContext.fetch(FetchDescriptor<PersistentIdentity>())
+        let keys = try migrated.mainContext.fetch(FetchDescriptor<PersistentSSHKey>())
+        #expect(identities.map(\.value.colorTag) == [.none])
+        #expect(keys.map(\.value.colorTag) == [.none])
+    }
+
+    @Test
+    func invalidPersistedCredentialColorsFallBackToNone() throws {
+        let container = try makeContainer("InvalidCredentialColors")
+        let identity = PersistentIdentity(Identity(name: "Deploy", username: "deploy"))
+        let key = PersistentSSHKey(SSHKeyRef(label: "Deploy Key"))
+        identity.colorTag = "future-identity-color"
+        key.colorTag = "future-key-color"
+        container.mainContext.insert(identity)
+        container.mainContext.insert(key)
+        try container.mainContext.save()
+
+        #expect(identity.value.colorTag == .none)
+        #expect(key.value.colorTag == .none)
     }
 
     @Test

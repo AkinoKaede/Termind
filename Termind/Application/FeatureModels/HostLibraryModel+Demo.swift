@@ -16,13 +16,13 @@ extension HostLibraryModel {
         let personalKey = SSHKeyRef(
             label: "Personal", algorithm: .ed25519,
             fingerprint: "SHA256:9pKQ2vC0nJ7hR4mXbL1sT8yWfE3dA6uZgN5qOiVxHkM",
-            credentialRef: "termind.key.personal"
+            credentialRef: "termind.key.personal", colorTag: .blue
         )
         let workKey = SSHKeyRef(
             label: "Work (no sync)", algorithm: .ecdsa256,
             fingerprint: "SHA256:3tBn8xLpQ2wZ7yKvR1mHcE9dS4fJ6uA0gT5iNqOxVbY",
             credentialRef: "termind.key.work",
-            storage: .thisDevice
+            storage: .thisDevice, colorTag: .purple
         )
 
         // Built before the hosts, because a host now references its login by id.
@@ -30,18 +30,18 @@ extension HostLibraryModel {
         // screen at P0: key only, key *and* password, password only, neither.
         let deploy = Identity(
             name: "Deploy", username: "deploy", keyID: personalKey.id,
-            notes: "Production web tier", lastUsedAt: now
+            notes: "Production web tier", lastUsedAt: now, colorTag: .green
         )
         let postgres = Identity(
             name: "Postgres admin", username: "postgres",
             credentialRef: "termind.password.postgres", keyID: workKey.id,
             notes: "Key to get in, password for sudo",
-            lastUsedAt: now.addingTimeInterval(-7_200)
+            lastUsedAt: now.addingTimeInterval(-7_200), colorTag: .orange
         )
         let consoleRoot = Identity(
             name: "Console root", username: "root",
             credentialRef: "termind.password.console-root",
-            notes: "Out-of-band only"
+            notes: "Out-of-band only", colorTag: .red
         )
         let unfinished = Identity(
             name: "New admin", username: "admin",

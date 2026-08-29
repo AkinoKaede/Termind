@@ -711,7 +711,8 @@ final class SFTPSessionModel: Identifiable {
                 username: submittedUsername, credentialRef: existing?.credentialRef ?? "",
                 passwordStorage: existing?.passwordStorage ?? .iCloud,
                 keyID: submittedKeyID, notes: existing?.notes ?? "",
-                lastUsedAt: existing?.lastUsedAt
+                lastUsedAt: existing?.lastUsedAt,
+                colorTag: existing?.colorTag ?? .none
             )
             let update: IdentityPasswordUpdate =
                 submittedPassword.map(IdentityPasswordUpdate.replace)

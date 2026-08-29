@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A row of color swatches for picking a `HostColor`.
+/// A row of color swatches for picking a `TagColor`.
 ///
 /// A control rather than a `Picker`, because on macOS a `Picker` inside a `Form`
 /// renders as a pop-up menu and AppKit templates the images in menu items — the
@@ -10,9 +10,9 @@ import SwiftUI
 /// the swatches directly is what makes the color visible.
 ///
 /// Lives in `Design/` rather than beside the host editor: it is a swatch row over
-/// `HostColor` and knows nothing about what is being tagged.
+/// `TagColor` and knows nothing about what is being tagged.
 struct ColorTagPicker: View {
-    @Binding var selection: HostColor
+    @Binding var selection: TagColor
 
     /// Large enough to read as a color at a glance and to hit without aiming;
     /// the ring is drawn outside it, so the row is taller than the swatch.
@@ -20,7 +20,7 @@ struct ColorTagPicker: View {
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
-            ForEach(HostColor.allCases) { color in
+            ForEach(TagColor.allCases) { color in
                 swatchButton(color)
             }
         }
@@ -30,7 +30,7 @@ struct ColorTagPicker: View {
         .accessibilityLabel(Text("Color"))
     }
 
-    private func swatchButton(_ color: HostColor) -> some View {
+    private func swatchButton(_ color: TagColor) -> some View {
         Button {
             selection = color
         } label: {
@@ -63,7 +63,7 @@ struct ColorTagPicker: View {
 }
 
 #Preview {
-    @Previewable @State var selection: HostColor = .teal
+    @Previewable @State var selection: TagColor = .teal
 
     Form {
         LabeledContent("Color") {

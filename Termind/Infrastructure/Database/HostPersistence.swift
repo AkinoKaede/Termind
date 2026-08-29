@@ -17,7 +17,7 @@ final class PersistentHost {
     var sftpSessionInitialPath = ""
     var groupID: UUID?
     var tags: [String] = []
-    var colorTag = HostColor.none.rawValue
+    var colorTag = TagColor.none.rawValue
     /// Legacy V1–V5 storage retained only so existing stores can migrate.
     /// Recents and last-connected presentation are derived from connection
     /// history; this column is never read or written by current code.
@@ -51,7 +51,7 @@ final class PersistentHost {
         var host = Host(
             id: id, name: name, host: address, port: port,
             identityID: identityID, groupID: groupID, tags: tags,
-            colorTag: HostColor(rawValue: colorTag) ?? .none,
+            colorTag: TagColor(rawValue: colorTag) ?? .none,
             sortIndex: sortIndex
         )
         host.jumpHostID = jumpHostID
@@ -150,6 +150,69 @@ final class PersistentSnippet {
     }
 }
 
+/// The V1–V6 shapes are frozen here so adding color fields to the live models
+/// does not rewrite the checksums of already-shipped schemas.
+enum TermindSchemaV6Models {
+    @Model
+    final class PersistentIdentity {
+        @Attribute(.unique) var id: UUID = UUID()
+        var name = ""
+        var username = ""
+        var credentialRef = ""
+        var passwordStorage = PasswordStorage.iCloud.rawValue
+        var keyID: UUID?
+        var notes = ""
+        var lastUsedAt: Date?
+        var sortIndex = 0.0
+
+        init(_ value: Identity) {
+            id = value.id
+            name = value.name
+            username = value.username
+            credentialRef = value.credentialRef
+            passwordStorage = value.passwordStorage.rawValue
+            keyID = value.keyID
+            notes = value.notes
+            lastUsedAt = value.lastUsedAt
+            sortIndex = value.sortIndex
+        }
+    }
+
+    @Model
+    final class PersistentSSHKey {
+        @Attribute(.unique) var id: UUID = UUID()
+        var label = ""
+        var algorithm = SSHKeyAlgorithm.ed25519.rawValue
+        var publicKey = ""
+        var certificate = ""
+        var fingerprint = ""
+        var credentialRef = ""
+        var storage = KeyStorage.iCloud.rawValue
+        var keySize: Int?
+        var hasPassphrase = false
+        var requiresUserPresence = false
+        var createdAt = Date(timeIntervalSince1970: 0)
+        var sortIndex = 0.0
+
+        init(_ value: SSHKeyRef) {
+            id = value.id
+            label = value.label
+            algorithm = value.algorithm.rawValue
+            publicKey = value.publicKey
+            certificate = value.certificate
+            fingerprint = value.fingerprint
+            credentialRef = value.credentialRef
+            storage = value.storage.rawValue
+            keySize = value.keySize
+            hasPassphrase = value.hasPassphrase
+            requiresUserPresence = value.requiresUserPresence
+            createdAt = value.createdAt
+            sortIndex = value.sortIndex
+        }
+    }
+}
+
+enum TermindSchemaV7Models {
 @Model
 final class PersistentIdentity {
     @Attribute(.unique) var id: UUID = UUID()
@@ -160,6 +223,7 @@ final class PersistentIdentity {
     var keyID: UUID?
     var notes = ""
     var lastUsedAt: Date?
+    var colorTag = TagColor.none.rawValue
     var sortIndex = 0.0
 
     init(_ value: Identity) {
@@ -175,6 +239,7 @@ final class PersistentIdentity {
         keyID = value.keyID
         notes = value.notes
         lastUsedAt = value.lastUsedAt
+        colorTag = value.colorTag.rawValue
         sortIndex = value.sortIndex
     }
 
@@ -182,7 +247,8 @@ final class PersistentIdentity {
         Identity(
             id: id, name: name, username: username, credentialRef: credentialRef,
             passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .iCloud,
-            keyID: keyID, notes: notes, lastUsedAt: lastUsedAt, sortIndex: sortIndex
+            keyID: keyID, notes: notes, lastUsedAt: lastUsedAt,
+            colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
         )
     }
 }
@@ -201,6 +267,7 @@ final class PersistentSSHKey {
     var hasPassphrase = false
     var requiresUserPresence = false
     var createdAt = Date(timeIntervalSince1970: 0)
+    var colorTag = TagColor.none.rawValue
     var sortIndex = 0.0
 
     init(_ value: SSHKeyRef) {
@@ -220,6 +287,7 @@ final class PersistentSSHKey {
         hasPassphrase = value.hasPassphrase
         requiresUserPresence = value.requiresUserPresence
         createdAt = value.createdAt
+        colorTag = value.colorTag.rawValue
         sortIndex = value.sortIndex
     }
 
@@ -232,10 +300,14 @@ final class PersistentSSHKey {
             storage: KeyStorage(rawValue: storage) ?? .iCloud,
             keySize: keySize, hasPassphrase: hasPassphrase,
             requiresUserPresence: requiresUserPresence, createdAt: createdAt,
-            sortIndex: sortIndex
+            colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
         )
     }
 }
+}
+
+typealias PersistentIdentity = TermindSchemaV7Models.PersistentIdentity
+typealias PersistentSSHKey = TermindSchemaV7Models.PersistentSSHKey
 
 @Model
 final class PersistentKnownHost {
@@ -313,8 +385,8 @@ enum TermindSchemaV1: VersionedSchema {
         [
             PersistentHost.self,
             PersistentHostGroup.self,
-            PersistentIdentity.self,
-            PersistentSSHKey.self,
+            TermindSchemaV6Models.PersistentIdentity.self,
+            TermindSchemaV6Models.PersistentSSHKey.self,
             PersistentKnownHost.self,
             PersistentSnippetPackage.self,
             PersistentSnippet.self,
@@ -381,11 +453,23 @@ enum TermindSchemaV6: VersionedSchema {
     }
 }
 
+enum TermindSchemaV7: VersionedSchema {
+    static let versionIdentifier = Schema.Version(7, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV6.models.filter {
+            $0 != TermindSchemaV6Models.PersistentIdentity.self
+                && $0 != TermindSchemaV6Models.PersistentSSHKey.self
+        } + [PersistentIdentity.self, PersistentSSHKey.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self,
             TermindSchemaV4.self, TermindSchemaV5.self, TermindSchemaV6.self,
+            TermindSchemaV7.self,
         ]
     }
 
@@ -412,14 +496,17 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                     }
                     try context.save()
                 }
-            )
+            ),
+            MigrationStage.lightweight(
+                fromVersion: TermindSchemaV6.self, toVersion: TermindSchemaV7.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV6.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV7.self)
 
     let context: ModelContext
 

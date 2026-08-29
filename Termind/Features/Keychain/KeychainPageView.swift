@@ -314,7 +314,7 @@ struct KeychainImportDetail: View {
     }
 
     private func save(
-        name: String, storage: KeyStorage, privateKey: String,
+        name: String, colorTag: TagColor, storage: KeyStorage, privateKey: String,
         passphrase: String?, certificate: String, material: SSHKeyMaterial
     ) async throws -> SSHKeyRef {
         let key = SSHKeyRef(
@@ -323,7 +323,7 @@ struct KeychainImportDetail: View {
             certificate: certificate, fingerprint: material.fingerprint,
             credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
             keySize: material.keySize, hasPassphrase: passphrase != nil,
-            createdAt: Date()
+            createdAt: Date(), colorTag: colorTag
         )
         try app.credentials.upsert(
             key,
@@ -344,11 +344,12 @@ private struct SoftwareKeyEditor: View {
     let loadPrivateKey: (() throws -> String)?
     let save:
         (
-            _ name: String, _ storage: KeyStorage, _ privateKey: String,
+            _ name: String, _ colorTag: TagColor, _ storage: KeyStorage, _ privateKey: String,
             _ passphrase: String?, _ certificate: String, _ material: SSHKeyMaterial
         ) async throws -> SSHKeyRef
 
     @State private var name: String
+    @State private var colorTag: TagColor
     @State private var storage: KeyStorage
     @State private var privateKey = ""
     @State private var originalPrivateKey = ""
@@ -365,7 +366,7 @@ private struct SoftwareKeyEditor: View {
         symbol: String, close: @escaping () -> Void,
         loadPrivateKey: (() throws -> String)? = nil,
         save: @escaping (
-            String, KeyStorage, String, String?, String, SSHKeyMaterial
+            String, TagColor, KeyStorage, String, String?, String, SSHKeyMaterial
         ) async throws -> SSHKeyRef
     ) {
         self.existing = existing
@@ -375,6 +376,7 @@ private struct SoftwareKeyEditor: View {
         self.loadPrivateKey = loadPrivateKey
         self.save = save
         _name = State(initialValue: existing?.label ?? "")
+        _colorTag = State(initialValue: existing?.colorTag ?? .none)
         _storage = State(initialValue: existing?.storage ?? .iCloud)
         _certificate = State(initialValue: existing?.certificate ?? "")
         _isLoading = State(initialValue: loadPrivateKey != nil)
@@ -396,6 +398,9 @@ private struct SoftwareKeyEditor: View {
 
                     Section("Key") {
                         TextField("Name", text: $name, prompt: Text("Defaults to key type"))
+                        LabeledContent("Color") {
+                            ColorTagPicker(selection: $colorTag)
+                        }
                         Picker("Store in", selection: $storage) {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                             Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
@@ -508,7 +513,7 @@ private struct SoftwareKeyEditor: View {
                 )
             }
             _ = try await save(
-                name.trimmingCharacters(in: .whitespacesAndNewlines), storage,
+                name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, storage,
                 privateKey, passphrase, normalizedCertificate, inspected
             )
             close()
@@ -617,7 +622,7 @@ struct KeychainGenerateDetail: View {
     }
 
     private func generate(
-        label: String, generation: SSHKeyMaterial.Generation, passphrase: String?,
+        label: String, colorTag: TagColor, generation: SSHKeyMaterial.Generation, passphrase: String?,
         cipher: SSHKeyMaterial.Cipher, rounds: Int, storage: KeyStorage,
         requiresUserPresence: Bool
     ) async throws -> SSHKeyRef {
@@ -635,7 +640,7 @@ struct KeychainGenerateDetail: View {
                 credentialRef: "termind.key.\(UUID().uuidString)",
                 storage: .secureEnclave, keySize: 256, hasPassphrase: false,
                 requiresUserPresence: requiresUserPresence,
-                createdAt: Date()
+                createdAt: Date(), colorTag: colorTag
             )
             try app.credentials.upsert(key, credential: .secureEnclave(material.credential))
         } else {
@@ -650,7 +655,7 @@ struct KeychainGenerateDetail: View {
                 publicKey: material.publicKey, fingerprint: material.fingerprint,
                 credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
                 keySize: material.keySize, hasPassphrase: passphrase != nil,
-                createdAt: Date()
+                createdAt: Date(), colorTag: colorTag
             )
             try app.credentials.upsert(
                 key,
@@ -675,12 +680,13 @@ private struct GenerateKeySheet: View {
 
     let generate:
         (
-            String, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int,
+            String, TagColor, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int,
             KeyStorage, Bool
         ) async throws -> SSHKeyRef
     let close: () -> Void
 
     @State private var label = ""
+    @State private var colorTag = TagColor.none
     @State private var storage = KeyStorage.iCloud
     @State private var kind = Kind.ed25519
     @State private var curveBits = 256
@@ -716,6 +722,9 @@ private struct GenerateKeySheet: View {
         VaultDetailScaffold(title: "Generate Key", symbol: "key.fill", close: close) {
             Form {
                 TextField("Name", text: $label, prompt: Text(defaultName))
+                LabeledContent("Color") {
+                    ColorTagPicker(selection: $colorTag)
+                }
                 Picker("Store in", selection: $storage) {
                     ForEach(availableStorage) { location in
                         Label(location.displayName, systemImage: location.symbol)
@@ -803,7 +812,7 @@ private struct GenerateKeySheet: View {
         errorMessage = nil
         do {
             _ = try await generate(
-                resolvedLabel, generation,
+                resolvedLabel, colorTag, generation,
                 storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
                 cipher, rounds, storage,
                 storage == .secureEnclave && requiresUserPresence
@@ -837,16 +846,19 @@ struct KeychainEditDetail: View {
             if key.storage == .secureEnclave {
                 SecureEnclaveKeyEditor(
                     key: key, close: window.closeVaultWork,
-                    save: { name in try saveSecureEnclave(key, name: name) }
+                    save: { name, colorTag in
+                        try saveSecureEnclave(key, name: name, colorTag: colorTag)
+                    }
                 )
             } else {
                 SoftwareKeyEditor(
                     existing: key, title: "Edit Key", symbol: "pencil",
                     close: window.closeVaultWork,
                     loadPrivateKey: { try loadPrivateKey(key) },
-                    save: { name, storage, privateKey, passphrase, certificate, material in
+                    save: {
+                        name, colorTag, storage, privateKey, passphrase, certificate, material in
                         try await saveSoftwareKey(
-                            key, name: name, storage: storage,
+                            key, name: name, colorTag: colorTag, storage: storage,
                             privateKey: privateKey, passphrase: passphrase,
                             certificate: certificate, material: material
                         )
@@ -868,12 +880,13 @@ struct KeychainEditDetail: View {
     }
 
     private func saveSoftwareKey(
-        _ original: SSHKeyRef, name: String, storage: KeyStorage,
+        _ original: SSHKeyRef, name: String, colorTag: TagColor, storage: KeyStorage,
         privateKey: String, passphrase: String?, certificate: String,
         material: SSHKeyMaterial
     ) async throws -> SSHKeyRef {
         var updated = original
         updated.label = name.isEmpty ? material.algorithm.typeName : name
+        updated.colorTag = colorTag
         updated.storage = storage
         updated.algorithm = material.algorithm
         updated.publicKey = material.publicKey
@@ -892,9 +905,12 @@ struct KeychainEditDetail: View {
         return updated
     }
 
-    private func saveSecureEnclave(_ original: SSHKeyRef, name: String) throws {
+    private func saveSecureEnclave(
+        _ original: SSHKeyRef, name: String, colorTag: TagColor
+    ) throws {
         var updated = original
         updated.label = name
+        updated.colorTag = colorTag
         try app.credentials.upsert(updated)
         window.selectVaultItem(.key(updated.id), on: .keychain)
     }
@@ -903,16 +919,21 @@ struct KeychainEditDetail: View {
 private struct SecureEnclaveKeyEditor: View {
     let key: SSHKeyRef
     let close: () -> Void
-    let save: (String) throws -> Void
+    let save: (String, TagColor) throws -> Void
 
     @State private var name: String
+    @State private var colorTag: TagColor
     @State private var errorMessage: String?
 
-    init(key: SSHKeyRef, close: @escaping () -> Void, save: @escaping (String) throws -> Void) {
+    init(
+        key: SSHKeyRef, close: @escaping () -> Void,
+        save: @escaping (String, TagColor) throws -> Void
+    ) {
         self.key = key
         self.close = close
         self.save = save
         _name = State(initialValue: key.label)
+        _colorTag = State(initialValue: key.colorTag)
     }
 
     var body: some View {
@@ -920,6 +941,9 @@ private struct SecureEnclaveKeyEditor: View {
             Form {
                 Section("Key") {
                     TextField("Name", text: $name)
+                    LabeledContent("Color") {
+                        ColorTagPicker(selection: $colorTag)
+                    }
                 }
                 Section("Secure Enclave") {
                     LabeledContent("Stored in", value: key.storage.displayName)
@@ -944,7 +968,9 @@ private struct SecureEnclaveKeyEditor: View {
                 Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Button("Save") {
                     do {
-                        try save(name.trimmingCharacters(in: .whitespacesAndNewlines))
+                        try save(
+                            name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag
+                        )
                         close()
                     } catch { errorMessage = error.localizedDescription }
                 }
@@ -1449,7 +1475,10 @@ private struct KeyCard: View {
         ) {
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 HStack(spacing: Metrics.Space.m) {
-                    CardIcon(symbol: "key.fill", tint: TermindColor.accent)
+                    CardIcon(
+                        symbol: "key.fill",
+                        tint: key.colorTag.color ?? TermindColor.accent
+                    )
 
                     // The fingerprint is deliberately *not* selectable, and this
                     // is not a style preference.
@@ -1580,7 +1609,10 @@ private struct IdentityCard: View {
         ) {
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 HStack(spacing: Metrics.Space.m) {
-                    CardIcon(symbol: "person.badge.key.fill", tint: .accentColor)
+                    CardIcon(
+                        symbol: "person.badge.key.fill",
+                        tint: identity.colorTag.color ?? .accentColor
+                    )
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text(identity.name)

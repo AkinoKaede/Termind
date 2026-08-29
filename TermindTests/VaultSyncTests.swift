@@ -12,8 +12,10 @@ struct VaultSyncTests {
     func allVaultPayloadsRoundTripWithStableRecordNames() throws {
         let host = Host(name: "Production", host: "prod.example")
         let group = HostGroup(name: "Servers")
-        let identity = Identity(name: "Deploy", username: "deploy")
-        let key = SSHKeyRef(label: "Deploy Key", publicKey: "ssh-ed25519 AAAA")
+        let identity = Identity(name: "Deploy", username: "deploy", colorTag: .green)
+        let key = SSHKeyRef(
+            label: "Deploy Key", publicKey: "ssh-ed25519 AAAA", colorTag: .blue
+        )
         let knownHost = KnownHostEntry(hostname: "prod.example", fingerprint: "SHA256:test")
         let package = SnippetPackage(name: "Operations")
         let snippet = Snippet(title: "Uptime", body: "uptime", packageID: package.id)
@@ -32,6 +34,35 @@ struct VaultSyncTests {
             let decoded = try VaultSyncCodec.decode(VaultSyncCodec.encode(envelope))
             #expect(decoded == envelope)
             #expect(VaultRecordKey(recordName: payload.key.recordName) == payload.key)
+        }
+    }
+
+    @Test
+    func legacyCredentialPayloadsWithoutColorsDecodeAsNone() throws {
+        let writer = UUID()
+        let identity = Identity(name: "Deploy", username: "deploy", colorTag: .pink)
+        let key = SSHKeyRef(label: "Deploy Key", colorTag: .teal)
+        let envelopes = [
+            VaultEnvelope(
+                key: VaultRecordKey(kind: .identity, id: identity.id),
+                version: .baseline(writerID: writer), payload: .identity(identity)
+            ),
+            VaultEnvelope(
+                key: VaultRecordKey(kind: .sshKey, id: key.id),
+                version: .baseline(writerID: writer), payload: .sshKey(key)
+            ),
+        ]
+
+        for envelope in envelopes {
+            let legacyData = try removingJSONKey(
+                "colorTag", from: VaultSyncCodec.encode(envelope)
+            )
+            let decoded = try VaultSyncCodec.decode(legacyData)
+            switch decoded.payload {
+            case .identity(let value): #expect(value.colorTag == .none)
+            case .sshKey(let value): #expect(value.colorTag == .none)
+            default: Issue.record("Expected a credential payload")
+            }
         }
     }
 
@@ -195,4 +226,20 @@ struct VaultSyncTests {
             for: HostPersistence.schema, configurations: [configuration]
         )
     }
+}
+
+private func removingJSONKey(_ key: String, from data: Data) throws -> Data {
+    func remove(from value: Any) -> Any {
+        if var dictionary = value as? [String: Any] {
+            dictionary.removeValue(forKey: key)
+            return dictionary.mapValues(remove)
+        }
+        if let array = value as? [Any] {
+            return array.map(remove)
+        }
+        return value
+    }
+
+    let object = try JSONSerialization.jsonObject(with: data)
+    return try JSONSerialization.data(withJSONObject: remove(from: object))
 }

@@ -70,7 +70,7 @@ struct ColorSystemTests {
             .appending(path: "Termind", directoryHint: .isDirectory)
         let exemptPaths = [
             "Design/TerminalTheme.swift",
-            "DesignSystem/HostColor+Presentation.swift",
+            "DesignSystem/TagColor+Presentation.swift",
         ]
         let forbidden = [
             "Color.white", "Color.black", "NSColor.white", "NSColor.gray",

@@ -74,7 +74,7 @@ nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     var sftpSessionInitialPath: String = ""
     var groupID: HostGroup.ID?
     var tags: [String] = []
-    var colorTag: HostColor = .none
+    var colorTag: TagColor = .none
     /// Fractional index so reordering never has to renumber siblings — CloudKit
     /// has no ordered relationships, so order has to be an ordinary attribute.
     var sortIndex: Double = 0

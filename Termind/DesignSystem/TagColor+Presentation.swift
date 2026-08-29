@@ -1,6 +1,6 @@
 import SwiftUI
 
-extension HostColor {
+extension TagColor {
     var displayName: LocalizedStringKey {
         switch self {
         case .none: "None"

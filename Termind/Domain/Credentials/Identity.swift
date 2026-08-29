@@ -72,6 +72,7 @@ nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
     var keyID: SSHKeyRef.ID?
     var notes: String = ""
     var lastUsedAt: Date?
+    var colorTag: TagColor = .none
     /// User-defined position on the Keychain page. It is independent from the
     /// display name so renaming an identity never silently moves its card.
     var sortIndex: Double = 0
@@ -97,5 +98,31 @@ nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
         return name.lowercased().contains(q)
             || username.lowercased().contains(q)
             || notes.lowercased().contains(q)
+    }
+}
+
+nonisolated extension Identity {
+    private enum CodingKeys: String, CodingKey {
+        case id, name, username, credentialRef, passwordStorage, keyID, notes
+        case lastUsedAt, colorTag, sortIndex
+    }
+
+    /// Older Vault payloads predate identity colors. Missing or unrecognized
+    /// values intentionally become `.none` instead of quarantining an otherwise
+    /// valid credential record.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try container.decode(UUID.self, forKey: .id),
+            name: try container.decode(String.self, forKey: .name),
+            username: try container.decode(String.self, forKey: .username),
+            credentialRef: try container.decode(String.self, forKey: .credentialRef),
+            passwordStorage: try container.decode(PasswordStorage.self, forKey: .passwordStorage),
+            keyID: try container.decodeIfPresent(SSHKeyRef.ID.self, forKey: .keyID),
+            notes: try container.decode(String.self, forKey: .notes),
+            lastUsedAt: try container.decodeIfPresent(Date.self, forKey: .lastUsedAt),
+            colorTag: (try? container.decode(TagColor.self, forKey: .colorTag)) ?? .none,
+            sortIndex: try container.decode(Double.self, forKey: .sortIndex)
+        )
     }
 }

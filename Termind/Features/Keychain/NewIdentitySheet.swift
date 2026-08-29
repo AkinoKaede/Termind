@@ -66,6 +66,7 @@ struct NewIdentitySheet: View {
     @State private var password = ""
     @State private var passwordStorage: PasswordStorage
     @State private var keyID: SSHKeyRef.ID?
+    @State private var colorTag: TagColor
     @State private var removesPassword = false
     @State private var saveError: String?
 
@@ -85,6 +86,7 @@ struct NewIdentitySheet: View {
         _username = State(initialValue: identity?.username ?? "")
         _passwordStorage = State(initialValue: identity?.passwordStorage ?? .iCloud)
         _keyID = State(initialValue: identity?.keyID)
+        _colorTag = State(initialValue: identity?.colorTag ?? .none)
     }
 
     var body: some View {
@@ -150,6 +152,10 @@ struct NewIdentitySheet: View {
                             Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
                         }
                     }
+                }
+
+                LabeledContent("Color") {
+                    ColorTagPicker(selection: $colorTag)
                 }
 
                 Text(passwordHelp)
@@ -260,7 +266,8 @@ struct NewIdentitySheet: View {
             passwordStorage: passwordStorage,
             keyID: configuration.showsKey ? keyID : nil,
             notes: existing?.notes ?? "",
-            lastUsedAt: existing?.lastUsedAt
+            lastUsedAt: existing?.lastUsedAt,
+            colorTag: colorTag
         )
         do {
             try create(identity, passwordUpdate)
