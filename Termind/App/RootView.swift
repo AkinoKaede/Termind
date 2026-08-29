@@ -1,4 +1,4 @@
-import AppKit
+@preconcurrency import AppKit
 import SwiftUI
 
 /// One window with one native Navigator column and one persistent detail deck.
@@ -12,6 +12,8 @@ struct RootView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var window: WindowModel
     @State private var layoutWidth = Metrics.Window.defaultWidth
+    @State private var automaticQuickOpenReady = false
+    @AppStorage(SettingsKey.statusBarExpanded) private var isStatusBarExpanded = true
 
     init(window: WindowModel = WindowModel()) {
         _window = State(initialValue: window)
@@ -57,6 +59,10 @@ struct RootView: View {
         .background {
             ActiveRemoteWindowTitleReporter(sshSession: window.focusedSSHSession)
             WindowToolbarSearchHost()
+            WindowActivityReader {
+                app.onboarding.windowBecameActive(window)
+                considerOnboarding()
+            }
         }
         .overlay { ExternalAuthWindowPresenter() }
         .frame(
@@ -95,6 +101,21 @@ struct RootView: View {
                 )
             }
         }
+        .overlay(alignment: onboardingAlignment) {
+            if let onboardingPresentation {
+                OnboardingCoachMark(
+                    presentation: onboardingPresentation,
+                    dismiss: { app.onboarding.dismissCurrent() },
+                    performAction: performOnboardingAction
+                )
+                .padding(onboardingPadding)
+                .zIndex(90)
+            }
+        }
+        .animation(
+            Motion.panel(reduceMotion: reduceMotion),
+            value: app.onboarding.presentation
+        )
         .animation(Motion.panel(reduceMotion: reduceMotion), value: presentations.route?.id)
         .alert(
             "Conversation Operation Failed",
@@ -123,8 +144,124 @@ struct RootView: View {
             window.refreshSessionContext()
             window.reconcileSidebarMode()
             app.reconcileProAccess()
+            app.onboarding.windowBecameActive(window)
+            considerOnboarding()
         }
         .onChange(of: app.proAccess.status) { app.reconcileProAccess() }
+        .onChange(of: onboardingContext) { considerOnboarding() }
+        .onChange(of: app.onboarding.revision) { considerOnboarding() }
+        .task {
+            try? await Task.sleep(for: .milliseconds(800))
+            guard !Task.isCancelled else { return }
+            automaticQuickOpenReady = true
+            considerOnboarding()
+        }
+    }
+
+    private var onboardingPresentation: OnboardingPresentation? {
+        guard let presentation = app.onboarding.presentation,
+            presentation.windowID == ObjectIdentifier(window)
+        else { return nil }
+        return presentation
+    }
+
+    private var onboardingContext: OnboardingContext {
+        _ = app.onboarding.revision
+        return OnboardingContext(
+            canPresentCoachMark: window.presentations.route == nil
+                && app.proAccess.status != .loading,
+            automaticQuickOpenReady: automaticQuickOpenReady,
+            statusBarPath: onboardingPathContext,
+            canGenerateCommand: window.focusedSSHSession?.canGenerateFromCurrentDraft == true
+                && app.commandGenerator.isLocallyAvailable
+        )
+    }
+
+    private var onboardingPathContext: OnboardingPathContext? {
+        guard isStatusBarExpanded, let pane = window.selectedWorkspace?.focusedPane,
+            let hostID = pane.hostID
+        else { return nil }
+        switch pane.content {
+        case .sshSession(let session):
+            guard app.hostLibrary.host(hostID) != nil, session.status.isLive,
+                let path = session.workingDirectory, !path.isEmpty,
+                session.displayedWorkingDirectory != nil
+            else {
+                return nil
+            }
+            return OnboardingPathContext(direction: .sshToSFTP, hostID: hostID, path: path)
+        case .sftpSession(let session):
+            guard app.hostLibrary.host(hostID) != nil, session.status == .connected,
+                !session.path.isEmpty, session.displayedPath != nil
+            else { return nil }
+            return OnboardingPathContext(
+                direction: .sftpToSSH, hostID: hostID, path: session.path
+            )
+        case .serialSession, .empty:
+            return nil
+        }
+    }
+
+    private var onboardingAlignment: Alignment {
+        switch onboardingPresentation?.step {
+        case .quickOpen: .topTrailing
+        case .statusBarPath: .bottomTrailing
+        case .commandGenerator: .bottomLeading
+        case nil: .topTrailing
+        }
+    }
+
+    private var onboardingPadding: EdgeInsets {
+        switch onboardingPresentation?.step {
+        case .statusBarPath:
+            EdgeInsets(
+                top: Metrics.Space.xl, leading: Metrics.Space.xl,
+                bottom: Metrics.StatusBar.overlayClearance, trailing: Metrics.Space.xl
+            )
+        case .commandGenerator:
+            EdgeInsets(
+                top: Metrics.Space.xl, leading: Metrics.Space.xl,
+                bottom: Metrics.StatusBar.overlayClearance, trailing: Metrics.Space.xl
+            )
+        case .quickOpen, nil:
+            EdgeInsets(
+                top: Metrics.Space.xl, leading: Metrics.Space.xl,
+                bottom: Metrics.Space.xl, trailing: Metrics.Space.xl
+            )
+        }
+    }
+
+    private func considerOnboarding() {
+        app.onboarding.consider(window: window, context: onboardingContext)
+    }
+
+    private func performOnboardingAction() {
+        guard let presentation = onboardingPresentation else { return }
+        switch presentation.step {
+        case .quickOpen:
+            app.onboarding.complete(.quickOpen)
+            window.isQuickOpenPresented = true
+        case .statusBarPath:
+            guard let context = onboardingPathContext,
+                let host = app.hostLibrary.host(context.hostID)
+            else {
+                app.onboarding.dismissCurrent()
+                return
+            }
+            app.onboarding.complete(.statusBarPath)
+            switch context.direction {
+            case .sshToSFTP:
+                window.openSFTPSession(
+                    host: host, initialPath: context.path, placement: .currentWorkspace
+                )
+            case .sftpToSSH:
+                window.openSSHSession(
+                    host: host, initialPath: context.path, placement: .currentWorkspace
+                )
+            }
+        case .commandGenerator:
+            app.onboarding.complete(.commandGenerator)
+        }
     }
 
     private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
@@ -237,6 +374,62 @@ private struct FullHeightWindowContent: NSViewRepresentable {
 
     func updateNSView(_ view: WindowContentBridgeView, context: Context) {
         view.configureWindow()
+    }
+}
+
+/// Reports which SwiftUI scene owns AppKit's key window so app-wide onboarding
+/// previews and automatic steps never appear in two windows at once.
+private struct WindowActivityReader: NSViewRepresentable {
+    let becameKey: () -> Void
+
+    func makeNSView(context _: Context) -> WindowActivityBridgeView {
+        WindowActivityBridgeView(becameKey: becameKey)
+    }
+
+    func updateNSView(_ view: WindowActivityBridgeView, context _: Context) {
+        view.becameKey = becameKey
+        view.observeWindow()
+    }
+}
+
+private final class WindowActivityBridgeView: NSView {
+    var becameKey: () -> Void
+    private var observer: (any NSObjectProtocol)?
+    private weak var observedWindow: NSWindow?
+
+    init(becameKey: @escaping () -> Void) {
+        self.becameKey = becameKey
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) { nil }
+
+    deinit {
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        observeWindow()
+    }
+
+    func observeWindow() {
+        guard observedWindow !== window else { return }
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+        observedWindow = window
+        guard let window else {
+            observer = nil
+            return
+        }
+        observer = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.becameKey() }
+        }
+        if window.isKeyWindow { becameKey() }
     }
 }
 

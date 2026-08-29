@@ -36,7 +36,8 @@ struct TermindApp: App {
             if let screenshotDemo {
                 let hosts = HostLibraryModel.demo()
                 let app = AppModel(
-                    hosts: hosts, ai: .demo(), proAccess: .unrestrictedForTesting()
+                    hosts: hosts, ai: .demo(), proAccess: .unrestrictedForTesting(),
+                    onboarding: OnboardingController(automaticPresentationEnabled: false)
                 )
                 _app = State(initialValue: app)
                 launchWindow = screenshotDemo.makeWindow(hosts: hosts)

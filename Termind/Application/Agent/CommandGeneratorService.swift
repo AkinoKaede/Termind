@@ -111,6 +111,15 @@ final class CommandGeneratorController: CommandGenerating {
         self.service = service
     }
 
+    /// A local readiness check for contextual UI. It never contacts a model;
+    /// it only resolves the configured role and its already local credential.
+    var isLocallyAvailable: Bool {
+        guard let resolved = ai.resolve(.commandGenerator) else { return false }
+        let credentialRef = resolved.provider.usesVertex && resolved.provider.kind == .google
+            ? resolved.provider.vertex.credentialRef : resolved.provider.credentialRef
+        return ai.secret(for: credentialRef)?.isEmpty == false
+    }
+
     func generate(_ context: CommandGeneratorContext) async throws -> String {
         guard let resolved = ai.resolve(.commandGenerator) else {
             throw CommandGeneratorError.missingModel

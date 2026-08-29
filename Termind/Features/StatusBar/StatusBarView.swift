@@ -243,41 +243,61 @@ struct StatusBarView: View {
 
     private func workingDirectoryButton(_ path: String, displayed: String) -> some View {
         Button {
+            app.onboarding.recordUse(of: .statusBarPath)
             openInSFTP(path, placement: .currentWorkspace)
         } label: {
-            item("folder", displayed)
+            StatusBarPathLabel(
+                symbol: "folder", text: displayed, destinationSymbol: "arrow.up.right"
+            )
         }
         .buttonStyle(.plain)
-        .help(Text("Open in SFTP"))
+        .help(Text("Open current directory in SFTP — right-click for more options"))
         .accessibilityLabel(Text("Open in SFTP"))
         .contextMenu {
             Menu("Open in SFTP") {
                 Button("Current Workspace") {
+                    app.onboarding.recordUse(of: .statusBarPath)
                     openInSFTP(path, placement: .currentWorkspace)
                 }
-                Button("New Workspace") { openInSFTP(path, placement: .newWorkspace) }
+                Button("New Workspace") {
+                    app.onboarding.recordUse(of: .statusBarPath)
+                    openInSFTP(path, placement: .newWorkspace)
+                }
             }
-            Button("Copy Path") { copyToPasteboard(path) }
+            Button("Copy Path") {
+                app.onboarding.recordUse(of: .statusBarPath)
+                copyToPasteboard(path)
+            }
         }
     }
 
     private func sftpDirectoryButton(_ path: String, displayed: String) -> some View {
         Button {
+            app.onboarding.recordUse(of: .statusBarPath)
             openInSSH(path, placement: .currentWorkspace)
         } label: {
-            item("folder", displayed)
+            StatusBarPathLabel(
+                symbol: "apple.terminal", text: displayed, destinationSymbol: "arrow.up.right"
+            )
         }
         .buttonStyle(.plain)
-        .help(Text("Open in SSH"))
+        .help(Text("Open current directory in SSH — right-click for more options"))
         .accessibilityLabel(Text("Open in SSH"))
         .contextMenu {
             Menu("Open in SSH") {
                 Button("Current Workspace") {
+                    app.onboarding.recordUse(of: .statusBarPath)
                     openInSSH(path, placement: .currentWorkspace)
                 }
-                Button("New Workspace") { openInSSH(path, placement: .newWorkspace) }
+                Button("New Workspace") {
+                    app.onboarding.recordUse(of: .statusBarPath)
+                    openInSSH(path, placement: .newWorkspace)
+                }
             }
-            Button("Copy Path") { copyToPasteboard(path) }
+            Button("Copy Path") {
+                app.onboarding.recordUse(of: .statusBarPath)
+                copyToPasteboard(path)
+            }
         }
     }
 
@@ -307,6 +327,35 @@ struct StatusBarView: View {
     private func openInSSH(_ path: String, placement: SessionOpenPlacement) {
         guard let host else { return }
         window.openSSHSession(host: host, initialPath: path, placement: placement)
+    }
+}
+
+private struct StatusBarPathLabel: View {
+    let symbol: String
+    let text: String
+    let destinationSymbol: String
+
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.xs) {
+            Image(systemName: symbol)
+            Text(text).truncationMode(.head)
+            Image(systemName: destinationSymbol)
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .foregroundStyle(isHovering ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+        .padding(.horizontal, Metrics.Space.s)
+        .padding(.vertical, Metrics.Space.xxs)
+        .background(
+            isHovering ? Color.accentColor.opacity(0.12) : .clear,
+            in: .rect(cornerRadius: Metrics.Radius.small)
+        )
+        .contentShape(.rect)
+        .onHover { isHovering = $0 }
+        .pointerStyle(.link)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
     }
 }
 

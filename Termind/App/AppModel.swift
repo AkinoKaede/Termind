@@ -62,6 +62,7 @@ final class AppModel {
     let externalAuthentication: ExternalAuthCoordinator
     let mcpServer: MCPServerController
     let commands = AppCommandRegistry()
+    let onboarding: OnboardingController
     let connections: RemoteConnectionCoordinator
     let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
@@ -109,12 +110,14 @@ final class AppModel {
         externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil,
-        proAccess: ProAccessController = .unrestrictedForTesting()
+        proAccess: ProAccessController = .unrestrictedForTesting(),
+        onboarding: OnboardingController = OnboardingController()
     ) {
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         let connectionCoordinator = dependencies.connectionCoordinator
         self.hosts = hosts
         self.proAccess = proAccess
+        self.onboarding = onboarding
         credentials = CredentialLibraryModel(library: hosts)
         snippets = SnippetLibraryModel(library: hosts)
         forwardings = ForwardingLibraryModel(library: hosts)

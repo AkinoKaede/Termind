@@ -53,6 +53,9 @@ nonisolated enum SettingsKey {
     /// Mirror the focused SSH terminal's OSC 0/2 title in the macOS menu bar.
     static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"
     static let defaultRemoteWindowTitleInMenuBarEnabled = true
+    static let onboardingQuickOpenCompleted = "onboarding.quickOpen.completed"
+    static let onboardingStatusBarPathCompleted = "onboarding.statusBarPath.completed"
+    static let onboardingCommandGeneratorCompleted = "onboarding.commandGenerator.completed"
     static var isRemoteWindowTitleInMenuBarEnabled: Bool {
         UserDefaults.standard.object(forKey: remoteWindowTitleInMenuBar) as? Bool
             ?? defaultRemoteWindowTitleInMenuBarEnabled

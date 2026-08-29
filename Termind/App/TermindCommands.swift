@@ -22,7 +22,10 @@ struct TermindCommands: Commands {
             // separate group after `.newItem` makes SwiftUI discard it when
             // this replacement is merged into the final File menu, leaving
             // no menu item (and therefore no working Command-P shortcut).
-            Button("Quick Open") { window?.isQuickOpenPresented = true }
+            Button("Quick Open") {
+                app.onboarding.recordUse(of: .quickOpen)
+                window?.isQuickOpenPresented = true
+            }
                 .termindShortcut("p")
                 .disabled(window == nil)
 
@@ -71,6 +74,7 @@ struct TermindCommands: Commands {
 
         CommandGroup(after: .pasteboard) {
             Button("Generate Command") {
+                app.onboarding.recordUse(of: .commandGenerator)
                 window?.generateTerminalCommand(using: app.commandGenerator)
             }
             .termindShortcut("i")
