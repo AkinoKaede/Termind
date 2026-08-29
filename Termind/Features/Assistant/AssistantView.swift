@@ -75,7 +75,7 @@ struct AssistantSidebarView: View {
 
 /// The global Assistant contained entirely in a Workspace sidebar.
 ///
-/// Its route is deliberately separate from the fixed Assistant tab's selection:
+/// Its route is deliberately separate from the fixed Assistant destination's selection:
 /// opening a chat here never takes the user's terminal out of the foreground.
 struct AssistantPanelView: View {
     @Environment(WindowModel.self) private var window
@@ -1279,7 +1279,7 @@ struct AssistantConversationRow: View {
     }
 }
 
-/// The second pinned tab's main conversation surface.
+/// The second pinned destination's main conversation surface.
 ///
 /// It passes no session context, and that is the point: this tab is not attached
 /// to a Workspace, so there is no focused pane whose host and directory it could

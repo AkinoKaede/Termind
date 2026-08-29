@@ -12,7 +12,11 @@ enum SessionOpenPlacement: Equatable {
 /// `FocusedValues.window`.
 @Observable
 final class WindowModel {
-    var workspaces: [Workspace] = []
+    let workspaceDeck: WorkspaceDeckModel
+    var workspaces: [Workspace] {
+        get { workspaceDeck.workspaces }
+        set { workspaceDeck.workspaces = newValue }
+    }
     /// The top-level shell has two pinned entries followed by dynamic SSH/SFTP
     /// Workspaces. This is the single source of truth for workspace selection.
     var selectedDestination: WindowDestination = .vault
@@ -53,13 +57,7 @@ final class WindowModel {
             for workspace in workspaces { workspace.configureSFTPHistory(using: sftpHistoryStore) }
         }
     }
-    var assistantConversationDeletionHandler: ((ConversationModel.ID) -> Void)?
-    var assistantPinHandler: ((ConversationModel.ID) -> Void)?
-    var assistantMoveHandler: ((ConversationModel.ID, Bool, ConversationModel.ID?) -> Void)?
-    var assistantRenameHandler: ((ConversationModel.ID, String) -> Void)?
-    var assistantArchiveHandler: ((ConversationModel.ID, Bool) -> Void)?
-    var assistantForkHandler: ((ConversationModel.ID, UUID, Bool) -> Void)?
-    var assistantEditHandler: ((ConversationModel.ID, UUID, String, SessionContext, Bool) -> Void)?
+    var assistantCommands: AssistantConversationCommands?
     var assistantOperationError: String?
     var hostStore: HostLibraryModel? {
         didSet { refreshSessionContext() }
@@ -80,66 +78,49 @@ final class WindowModel {
         set { dragState.payload = newValue }
     }
 
-    /// Ordered selection saved for a manager page.
-    func detailSelection(for page: VaultPage) -> [ContextPanelDetailID] {
-        sidebar.selection(for: page)
+    /// Ordered selection saved for a Vault manager page.
+    func vaultSelection(for page: VaultPage) -> [VaultSelectionID] {
+        vaultPages.selection.selection(for: page)
     }
 
     /// Replaces a page selection, removing duplicates and ids belonging to a
     /// different page while keeping the first occurrence of each item.
-    func setDetailSelection(_ details: [ContextPanelDetailID], for page: VaultPage) {
-        sidebar.setSelection(details, for: page)
+    func setVaultSelection(_ details: [VaultSelectionID], for page: VaultPage) {
+        vaultPages.selection.set(details, for: page)
     }
 
-    func selectDetail(_ detail: ContextPanelDetailID, on page: VaultPage) {
-        sidebar.select(detail, on: page)
+    func selectVaultItem(_ detail: VaultSelectionID, on page: VaultPage) {
+        vaultPages.selection.select(detail, on: page)
     }
 
     /// Shift-click semantics: selected items retain their order; a newly added
     /// item is appended at the point the user selected it.
-    func toggleDetail(_ detail: ContextPanelDetailID, on page: VaultPage) {
-        sidebar.toggle(detail, on: page)
+    func toggleVaultItem(_ detail: VaultSelectionID, on page: VaultPage) {
+        vaultPages.selection.toggle(detail, on: page)
     }
 
-    func clearDetailSelection(for page: VaultPage) {
-        sidebar.clearSelection(for: page)
-    }
-
-    /// The selection that belongs to the content currently in front. Manager
-    /// pages use their remembered selection; work attached to a host describes
-    /// that host without overwriting the Hosts page selection.
-    var activeDetailSelection: [ContextPanelDetailID] {
-        if selectedDestination == .vault, let page = vaultDestination.page {
-            return sidebar.selection(for: page)
-        }
-        return sidebar.activeDetails(for: selectedWorkspace?.focusedPane)
-    }
-
-    /// Resolves the active ids against live store data without mutating the
-    /// remembered selection. This makes deletion safe even before the next
-    /// pruning pass runs.
-    func activeDetailSelection(in store: HostLibraryModel) -> [ContextPanelDetailID] {
-        activeDetailSelection.filter(Self.availableContextPanelDetails(in: store).contains)
+    func clearVaultSelection(for page: VaultPage) {
+        vaultPages.selection.clear(page)
     }
 
     /// Removes records deleted out from under a remembered selection.
-    func pruneDetailSelections(in store: HostLibraryModel) {
-        sidebar.pruneSelections(available: Self.availableContextPanelDetails(in: store))
+    func pruneVaultSelections(in store: HostLibraryModel) {
+        vaultPages.selection.prune(available: Self.availableVaultSelections(in: store))
     }
 
-    func pruneDetailSelections(in store: CredentialLibraryModel) {
-        let available = Set(store.keys.map { ContextPanelDetailID.key($0.id) })
+    func pruneVaultSelections(in store: CredentialLibraryModel) {
+        let available = Set(store.keys.map { VaultSelectionID.key($0.id) })
             .union(store.identities.map { .identity($0.id) })
-        sidebar.pruneSelections(available: available)
+        vaultPages.selection.prune(available: available)
     }
 
-    func pruneDetailSelections(in store: SnippetLibraryModel) {
-        sidebar.pruneSelections(
-            available: Set(store.snippets.map { ContextPanelDetailID.snippet($0.id) })
+    func pruneVaultSelections(in store: SnippetLibraryModel) {
+        vaultPages.selection.prune(
+            available: Set(store.snippets.map { VaultSelectionID.snippet($0.id) })
         )
     }
 
-    private static func availableContextPanelDetails(in store: HostLibraryModel) -> Set<ContextPanelDetailID> {
+    private static func availableVaultSelections(in store: HostLibraryModel) -> Set<VaultSelectionID> {
         Set(store.hosts.map { .host($0.id) })
             .union(store.keys.map { .key($0.id) })
             .union(store.identities.map { .identity($0.id) })
@@ -196,14 +177,17 @@ final class WindowModel {
     /// Closed workspaces, most recent last. ⇧⌘T pops from here. The Workspace retains
     /// its layout, names, and conversation, while `prepareForReopen` replaces
     /// terminal models because a dead SSH channel cannot be revived.
-    private var reopenStack: [Workspace] = []
+    private var reopenStack: [Workspace] {
+        get { workspaceDeck.reopenStack }
+        set { workspaceDeck.reopenStack = newValue }
+    }
 
     init(
         workspaces: [Workspace] = [],
         vaultDestination: VaultDestination = .welcome,
         assistantLibrary: AssistantLibraryModel = AssistantLibraryModel()
     ) {
-        self.workspaces = workspaces
+        self.workspaceDeck = WorkspaceDeckModel(workspaces: workspaces)
         self.vaultDestination = vaultDestination
         self.assistantLibrary = assistantLibrary
         selectedDestination = workspaces.first.map { .workspace($0.id) } ?? .vault
@@ -464,8 +448,8 @@ final class WindowModel {
     }
 
     func deleteAssistantConversation(_ id: ConversationModel.ID) {
-        if let assistantConversationDeletionHandler {
-            assistantConversationDeletionHandler(id)
+        if let assistantCommands {
+            assistantCommands.delete(id)
             return
         }
         let wasArchived = assistantLibrary.conversation(id: id)?.isArchived == true
@@ -479,7 +463,7 @@ final class WindowModel {
     }
 
     func toggleAssistantPin(_ id: ConversationModel.ID) {
-        if let assistantPinHandler { assistantPinHandler(id) }
+        if let assistantCommands { assistantCommands.togglePin(id) }
         else if let conversation = assistantLibrary.conversation(id: id),
             !conversation.isArchived, !conversation.isStreaming, !conversation.isCompacting
         {
@@ -495,8 +479,8 @@ final class WindowModel {
         toPinned: Bool,
         before nextID: ConversationModel.ID?
     ) {
-        if let assistantMoveHandler {
-            assistantMoveHandler(id, toPinned, nextID)
+        if let assistantCommands {
+            assistantCommands.move(id, toPinned, nextID)
         } else if let updates = assistantLibrary.orderUpdates(
             moving: id, toPinned: toPinned, before: nextID
         ) {
@@ -504,7 +488,7 @@ final class WindowModel {
         }
     }
     func renameAssistantConversation(_ id: ConversationModel.ID, to title: String) {
-        if let assistantRenameHandler { assistantRenameHandler(id, title) }
+        if let assistantCommands { assistantCommands.rename(id, title) }
         else {
             let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
             if !value.isEmpty {
@@ -513,7 +497,7 @@ final class WindowModel {
         }
     }
     func setAssistantArchived(_ id: ConversationModel.ID, archived: Bool) {
-        if let assistantArchiveHandler { assistantArchiveHandler(id, archived) }
+        if let assistantCommands { assistantCommands.archive(id, archived) }
         else if let conversation = assistantLibrary.conversation(id: id),
             !conversation.isStreaming, !conversation.isCompacting
         {
@@ -524,13 +508,13 @@ final class WindowModel {
     func forkAssistantConversation(
         _ id: ConversationModel.ID, at messageID: UUID, inSidebar: Bool = false
     ) {
-        assistantForkHandler?(id, messageID, inSidebar)
+        assistantCommands?.fork(id, messageID, inSidebar)
     }
     func editAssistantUserMessage(
         _ id: ConversationModel.ID, messageID: UUID, text: String,
         context: SessionContext = .none, includesTerminalSuggestion: Bool = false
     ) {
-        assistantEditHandler?(id, messageID, text, context, includesTerminalSuggestion)
+        assistantCommands?.edit(id, messageID, text, context, includesTerminalSuggestion)
     }
 
     @discardableResult

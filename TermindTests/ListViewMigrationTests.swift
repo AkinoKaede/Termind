@@ -130,10 +130,10 @@ struct ListViewMigrationTests {
     }
 
     @Test
-    func contextSidebarHistoryKeepsIdentityWhileInlineEditingChanges() {
+    func sidebarHistoryKeepsIdentityWhileInlineEditingChanges() {
         let entry = CommandHistoryEntry(hostID: UUID(), command: "pwd")
-        let normal = ContextSidebarListItem.history(entry, isNaming: false)
-        let naming = ContextSidebarListItem.history(entry, isNaming: true)
+        let normal = SidebarListItem.history(entry, isNaming: false)
+        let naming = SidebarListItem.history(entry, isNaming: true)
 
         #expect(normal.id == naming.id)
         #expect(normal != naming)
@@ -149,7 +149,7 @@ struct ListViewMigrationTests {
     @Test
     func everyHistoryKindSharesOneCardHeight() {
         let hostID = UUID()
-        let items: [ContextSidebarListItem] = [
+        let items: [SidebarListItem] = [
             .history(CommandHistoryEntry(hostID: hostID, command: "pwd"), isNaming: false),
             .sftpHistory(
                 SFTPHistoryEntry(hostID: hostID, kind: .directory, path: "/var/log")
@@ -167,9 +167,9 @@ struct ListViewMigrationTests {
     @Test
     func historyIdentityIgnoresPresentationButNotTheRecord() {
         let host = Host(name: "web-01", host: "web-01.example")
-        let sameHost = ContextSidebarListItem.connection(host, address: "root@web-01.example")
-        let renamedAddress = ContextSidebarListItem.connection(host, address: "deploy@web-01.example")
-        let otherHost = ContextSidebarListItem.connection(
+        let sameHost = SidebarListItem.connection(host, address: "root@web-01.example")
+        let renamedAddress = SidebarListItem.connection(host, address: "deploy@web-01.example")
+        let otherHost = SidebarListItem.connection(
             Host(name: "db-01", host: "db-01.example"), address: "deploy@db-01.example"
         )
 
@@ -179,10 +179,10 @@ struct ListViewMigrationTests {
     }
 
     @Test
-    func contextSidebarSectionIdentityDoesNotDependOnItsTitle() {
+    func sidebarSectionIdentityDoesNotDependOnItsTitle() {
         let packageID = UUID()
-        let short = ContextSidebarListItem.section(.package(packageID), title: "Tools")
-        let renamed = ContextSidebarListItem.section(
+        let short = SidebarListItem.section(.package(packageID), title: "Tools")
+        let renamed = SidebarListItem.section(
             .package(packageID), title: "Operations", count: 3
         )
 
@@ -192,8 +192,8 @@ struct ListViewMigrationTests {
 
     @Test
     func snippetSidebarExpansionIsIndependentAndRoundTrips() {
-        let first = ContextSidebarListItem.SectionID.package(UUID())
-        let second = ContextSidebarListItem.SectionID.package(UUID())
+        let first = SidebarListItem.SectionID.package(UUID())
+        let second = SidebarListItem.SectionID.package(UUID())
         var state = SnippetSidebarExpansionState()
 
         #expect(state.isExpanded(first))

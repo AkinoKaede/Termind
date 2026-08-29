@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Add or edit a host.
 ///
-/// A route inside Vault rather than a dynamic tab or sheet. It edits durable
+/// A route inside Vault rather than a dynamic workspace or sheet. It edits durable
 /// connection data without entering SSH/SFTP Workspace lifecycle state.
 struct HostEditorView: View {
     private enum Route: Hashable {

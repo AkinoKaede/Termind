@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The shared visual vocabulary for connection state.
 ///
-/// Sidebar rows, tab items, and the status bar all render the same dot, so a
+/// Sidebar rows, workspace items, and the status bar all render the same dot, so a
 /// color means one thing everywhere in the window.
 extension ConnectionStatus {
     var tint: Color {
@@ -26,7 +26,7 @@ extension ConnectionStatus {
 }
 
 /// A connection-state dot. Pulses while a connection is being established, and
-/// turns blue when a background tab has produced output the user has not seen.
+/// turns blue when a background workspace has produced output the user has not seen.
 struct StatusDot: View {
     let status: ConnectionStatus
     var hasUnread: Bool = false

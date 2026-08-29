@@ -502,7 +502,7 @@ nonisolated enum ChatPermissionMode: String, Codable, Sendable, CaseIterable, Id
 /// It deliberately knows nothing about a session. Where the conversation is
 /// *about* a host and a directory, that comes from the surface showing it —
 /// `WindowSidebarState.sessionContext` — because a conversation that owned its
-/// own session context carried it into the Assistant tab, which has no session
+/// own session context carried it into the Assistant destination, which has no session
 /// to describe.
 @Observable
 final class ConversationModel: Identifiable {
@@ -514,13 +514,25 @@ final class ConversationModel: Identifiable {
     var sortIndex: Double
     var archivedAt: Date?
     var messages: [ChatMessage] = []
-    /// What the user attached by hand, each carrying its own payload. Consumed
-    /// by the next user turn: an attachment belongs to one message, and once
-    /// that message is sent the content is in the transcript already.
-    var attachments: [ContextChip] = []
-    var pendingAttachments: [PendingContextAttachment] = []
-    var attachmentImportError: String?
-    var draft: String = ""
+    let composer = ConversationComposerState()
+    /// Compatibility accessors keep call sites stable while composer views move
+    /// to the focused state object.
+    var attachments: [ContextChip] {
+        get { composer.attachments }
+        set { composer.attachments = newValue }
+    }
+    var pendingAttachments: [PendingContextAttachment] {
+        get { composer.pendingAttachments }
+        set { composer.pendingAttachments = newValue }
+    }
+    var attachmentImportError: String? {
+        get { composer.attachmentImportError }
+        set { composer.attachmentImportError = newValue }
+    }
+    var draft: String {
+        get { composer.draft }
+        set { composer.draft = newValue }
+    }
     private(set) var isStreaming: Bool = false
     /// What the transcript shows. Derived — see `refreshRunState`.
     private(set) var runState: AgentRunState = .idle

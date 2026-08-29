@@ -2,8 +2,8 @@ import Foundation
 
 /// One queued or running SFTP transfer.
 ///
-/// The queue is app-wide rather than per-SFTP-tab: a copy started from one
-/// browser should keep running when that tab is closed. The browser session only
+/// The queue is app-wide rather than per-SFTP workspace: a copy started from one
+/// browser should keep running when that workspace is closed. The browser session only
 /// enqueues work; a queue region inside an SFTP session can report app-wide work
 /// without making navigation state global.
 nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {

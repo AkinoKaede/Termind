@@ -189,7 +189,8 @@ final class SSHSessionModel: Identifiable {
     /// presents the editor; the sshSession remains disconnected until it receives
     /// either Continue or Continue and Save.
     var pendingAuthentication: SSHAuthenticationPrompt?
-    let connectionJourney = SSHConnectionJourney()
+    let connection = RemoteSessionConnectionController()
+    var connectionJourney: SSHConnectionJourney { connection.journey }
 
     let terminalState: TerminalViewState
     #if canImport(AppKit)
@@ -199,13 +200,13 @@ final class SSHSessionModel: Identifiable {
         let terminalViewOwner: PersistentTerminalViewOwner
     #endif
     private let terminalBackend: InMemoryTerminalSession
-    private weak var statusStore: HostLibraryModel?
+    private weak var statusStore: (any RemoteSessionHostStore)?
     weak var commandHistoryStore: CommandHistoryModel?
     private var ssh: SSHSessionActor?
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
     private var connectionAttemptID: UUID?
-    private let reconnectController = SessionReconnectController()
+    private var reconnectController: SessionReconnectController { connection.reconnect }
     private var hasConnectedOnce = false
     private var isRecoveringConnection = false
     private var workingDirectoryObservation: AnyCancellable?
@@ -235,7 +236,7 @@ final class SSHSessionModel: Identifiable {
     private var pendingInitialCommand: PendingInitialCommand?
     private var commandExcludedFromHistory: String?
 
-    var reconnectState: ReconnectState? { reconnectController.state }
+    var reconnectState: ReconnectState? { connection.reconnectState }
 
     convenience init(hostID: Host.ID, title: String, initialCommand: String? = nil) {
         self.init(
@@ -502,11 +503,11 @@ final class SSHSessionModel: Identifiable {
     private static let bracketedPasteStart = Data("\u{1B}[200~".utf8)
     private static let bracketedPasteEnd = Data("\u{1B}[201~".utf8)
 
-    func connect(using store: HostLibraryModel) {
+    func connect(using store: any RemoteSessionHostStore) {
         startConnection(using: store)
     }
 
-    private func startConnection(using store: HostLibraryModel) {
+    private func startConnection(using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
         let reconnecting = hasConnectedOnce && isRecoveringConnection
         workingDirectory = nil
@@ -776,7 +777,7 @@ final class SSHSessionModel: Identifiable {
     func continueAuthentication(
         identityID: Identity.ID?, username: String, password: String?, passphrase: String?,
         keyID: SSHKeyRef.ID?, save: Bool,
-        using store: HostLibraryModel
+        using store: any RemoteSessionHostStore
     ) {
         let selectedIdentity = identityID.flatMap { store.identity($0) }
         let trimmedUsername = (selectedIdentity?.username ?? username)
@@ -884,7 +885,7 @@ final class SSHSessionModel: Identifiable {
         connect(using: store)
     }
 
-    func trustAndConnect(_ observation: SSHHostKeyObservation, using store: HostLibraryModel) {
+    func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
         store.trust(
             KnownHostEntry(
                 hostname: observation.hostname, port: observation.port,
@@ -901,7 +902,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func continueWithTemporaryHostKey(
-        _ observation: SSHHostKeyObservation, using store: HostLibraryModel
+        _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
     ) {
         guard let hostID = pendingHostKeyHostID else { return }
         temporaryHostKeys[hostID] = observation.identity
@@ -1069,7 +1070,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func handleConnectionAttemptFailure(
-        _ error: any Error, store: HostLibraryModel, reconnecting: Bool
+        _ error: any Error, store: any RemoteSessionHostStore, reconnecting: Bool
     ) {
         connectionAttemptID = nil
         if hasConnectedOnce || reconnecting {
@@ -1093,7 +1094,7 @@ final class SSHSessionModel: Identifiable {
         scheduleReconnect(after: message, using: store)
     }
 
-    private func scheduleReconnect(after message: String, using store: HostLibraryModel) {
+    private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
         isRecoveringConnection = true
         connectionAttemptID = nil
@@ -1110,7 +1111,7 @@ final class SSHSessionModel: Identifiable {
         }
     }
 
-    private func presentReconnectJourney(using store: HostLibraryModel) {
+    private func presentReconnectJourney(using store: any RemoteSessionHostStore) {
         guard let host = store.host(hostID) ?? transientHost else { return }
         connectionJourney.begin(
             host: host, route: store.route(for: host), purpose: .sshSession,
@@ -1172,7 +1173,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func discoverHostKey(
-        for host: Host, using store: HostLibraryModel, attemptID: UUID
+        for host: Host, using store: any RemoteSessionHostStore, attemptID: UUID
     ) async {
         do {
             let observation = try await SSHSessionActor.discoverHostKey(

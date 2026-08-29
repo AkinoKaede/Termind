@@ -6,10 +6,10 @@ struct TerminalPlaceholderView: View {
     let sshSession: SSHSessionModel
     /// The Workspace holding this pane owns broadcast input routing.
     let workspace: Workspace
-    /// Hidden tabs remain mounted to preserve Ghostty's surface, but stop
+    /// Hidden workspaces remain mounted to preserve Ghostty's surface, but stop
     /// rendering frames until they come forward again.
     let isVisible: Bool
-    /// Only the focused terminal pane in the visible tab should own keyboard
+    /// Only the focused terminal pane in the visible workspace should own keyboard
     /// focus. A split can keep several surfaces visible at once.
     let requestsFocus: Bool
     let externalFileDrop: LocalFileDropRequest?
@@ -46,7 +46,7 @@ struct TerminalPlaceholderView: View {
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
         .animation(
-            Motion.tabSwitch,
+            Motion.workspaceSwitch,
             value: isExternalFileDropTargeted
         )
         .animation(Motion.panel, value: uploadNotice)

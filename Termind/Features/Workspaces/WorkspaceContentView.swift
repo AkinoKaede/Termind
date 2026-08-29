@@ -688,7 +688,7 @@ private struct PaneView: View {
             let isOn = workspace.broadcastsInput
             if isHovering {
                 Button {
-                    withAnimation(Motion.tabSwitch) { workspace.broadcastsInput.toggle() }
+                    withAnimation(Motion.workspaceSwitch) { workspace.broadcastsInput.toggle() }
                 } label: {
                     Image(systemName: "dot.radiowaves.left.and.right")
                         .font(.system(size: 9, weight: .medium))
@@ -1059,7 +1059,7 @@ enum PaneDropZone: Equatable {
 
 /// Tracks which edge a drag is nearest while it is over a pane.
 ///
-/// A `DropDelegate` for the same reason `TabDropDelegate` is one: the preview has
+/// A `DropDelegate` for the same reason `WorkspaceDropDelegate` is one: the preview has
 /// to follow the pointer across four zones, and `dropDestination`'s `isTargeted`
 /// is a single Bool that can only say whether a drop is possible at all.
 private struct PaneDropDelegate: DropDelegate {

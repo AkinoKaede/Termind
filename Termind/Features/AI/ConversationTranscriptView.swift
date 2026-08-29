@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A conversation rendered as chips + transcript + composer.
 ///
-/// Shared by the session Assistant sidebar and full Assistant tab so the two can never drift; only
+/// Shared by the session Assistant sidebar and full Assistant destination so the two can never drift; only
 /// the padding and the provider header differ.
 struct ConversationView: View {
     enum Region {

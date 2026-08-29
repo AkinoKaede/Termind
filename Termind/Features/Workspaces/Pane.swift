@@ -2,9 +2,9 @@ import Foundation
 
 /// What a single pane is showing.
 ///
-/// The plan called this `TabContent`, but splitting means a tab can hold several
-/// of these at once, so the unit of content is the pane and a tab owns a tree of
-/// them. A tab's title, icon, and status are derived from its *focused* pane.
+/// The plan called this `WorkspaceContent`, but splitting means a workspace can hold several
+/// of these at once, so the unit of content is the pane and a workspace owns a tree of
+/// them. A workspace's title, icon, and status are derived from its *focused* pane.
 ///
 enum PaneContent {
     // Work, created on demand and listed in the sidebar.
@@ -18,7 +18,7 @@ enum PaneContent {
     /// Split makes one of these rather than opening a connection, because
     /// choosing a layout and choosing a machine are two decisions and only one
     /// of them was asked for. What fills it has to be something already open:
-    /// drag a tab out of the strip and drop it here, or move a pane over from
+    /// drag a workspace out of the strip and drop it here, or move a pane over from
     /// elsewhere in this same Workspace.
     case empty
 }
@@ -65,7 +65,7 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// answer for yourself and nobody else can.
     ///
     /// A manager page is a destination rather than a thing you own — there is
-    /// one Keychain and it is called Keychain — and renaming it would put a tab
+    /// one Keychain and it is called Keychain — and renaming it would put a workspace
     /// in the bar that no longer matches the sidebar row that opens it. A form
     /// and an unfilled slot are the same story: both are named after the state
     /// they are in, and both stop existing when that state ends.
@@ -81,7 +81,7 @@ nonisolated enum PaneKind: Hashable, Sendable {
     }
 }
 
-/// One rectangle of content inside a tab.
+/// One rectangle of content inside a workspace.
 @Observable
 final class Pane: Identifiable {
     let id = UUID()
@@ -252,7 +252,7 @@ final class Pane: Identifiable {
         }
     }
 
-    /// Resolved against the store so a renamed host renames its tabs — unless
+    /// Resolved against the store so a renamed host renames its workspaces — unless
     /// the user named this pane, in which case their word wins everywhere.
     func title(in store: HostLibraryModel) -> String {
         if let customTitle { return customTitle }
@@ -312,7 +312,7 @@ extension Pane {
     /// One shell on a host, already marked as connecting.
     ///
     /// Here rather than inside `Workspace.sshSession(host:)` because a session pane
-    /// is now born in two places — a tab of its own, and one cell of a batch
+    /// is now born in two places — a workspace of its own, and one cell of a batch
     /// Workspace — and a second copy of this is a second chance to forget the
     /// status flip.
     static func sshSession(
@@ -362,7 +362,7 @@ nonisolated enum SplitSide: Hashable, Sendable {
     case after
 }
 
-/// A tab's layout: a binary tree of panes.
+/// A workspace's layout: a binary tree of panes.
 ///
 /// The tree is recursive so nested splits need no model change later.
 indirect enum SplitNode {
@@ -375,7 +375,7 @@ indirect enum SplitNode {
     /// The fraction is stored here rather than left to `HSplitView`, which owned
     /// its divider position and handed leftover space to whichever child asked
     /// last. Two consequences of that we needed gone: a drop previewed as "the
-    /// right half" landed at whatever width AppKit chose, and resizing the tab
+    /// right half" landed at whatever width AppKit chose, and resizing the workspace
     /// grew one pane while the other stayed where it was. Reading the layout
     /// from a stored ratio makes both exact — the preview is a promise the
     /// layout keeps, and every size is recomputed proportionally on resize.
@@ -549,7 +549,7 @@ indirect enum SplitNode {
     }
 
     /// Removes a pane, collapsing the split that held it. Returns `nil` when the
-    /// tree becomes empty, which is the caller's signal to close the tab.
+    /// tree becomes empty, which is the caller's signal to close the workspace.
     func removing(_ paneID: Pane.ID) -> SplitNode? {
         switch self {
         case .leaf(let pane):

@@ -741,7 +741,7 @@ nonisolated struct AgentRunRequest: Sendable {
     var priorMessages: [AgentTranscriptMessage]
     /// Where the run is happening, as the surface that started it understood it.
     /// Per-run rather than per-conversation: the same chat continued from the
-    /// Assistant tab has no focused pane, and must not claim one.
+    /// Assistant destination has no focused pane, and must not claim one.
     var sessionContext: SessionContext
 
     init(

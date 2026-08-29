@@ -598,7 +598,7 @@ extension View {
 }
 
 enum Motion {
-    static let tabSwitch = Animation.easeOut(duration: 0.12)
+    static let workspaceSwitch = Animation.easeOut(duration: 0.12)
     static let panel = Animation.smooth(duration: 0.22)
     static let statusPulse = Animation.easeInOut(duration: 0.9).repeatForever(autoreverses: true)
 

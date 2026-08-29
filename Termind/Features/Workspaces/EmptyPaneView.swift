@@ -9,7 +9,7 @@ import SwiftUI
 /// server.
 ///
 /// What fills it has to be something already open, so the slot advertises the
-/// one gesture that works: drag a tab in.
+/// one gesture that works: drag a workspace in.
 ///
 /// Purely the prompt. The drop belongs to `PaneView`, which handles every pane
 /// now rather than only the empty ones — two nested drop targets over the same

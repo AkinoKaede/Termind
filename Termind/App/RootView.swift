@@ -25,7 +25,7 @@ struct RootView: View {
             ZStack {
                 SidebarMaterialBackground()
                     .ignoresSafeArea()
-                SidebarView(detailCatalog: .standard(store: app.hostLibrary))
+                WindowSidebarView()
             }
             .navigationSplitViewColumnWidth(
                 min: Metrics.Sidebar.min,

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Demo data
 
 extension HostLibraryModel {
-    /// Seed data for P0, so the sidebar and tab bar can be exercised before any
+    /// Seed data for P0, so the sidebar and workspace list can be exercised before any
     /// persistence or networking exists.
     static func demo() -> HostLibraryModel {
         let production = HostGroup(name: "Production", sortIndex: 0)
@@ -201,7 +201,7 @@ extension HostLibraryModel {
             knownHosts: knownHosts
         )
 
-        // A spread of connection states so the sidebar, tab bar, and status bar
+        // A spread of connection states so the sidebar, workspace list, and status bar
         // can be checked against every dot color without a server.
         store.setStatus(.connected, for: web01.id)
         store.setStatus(.connecting, for: db.id)

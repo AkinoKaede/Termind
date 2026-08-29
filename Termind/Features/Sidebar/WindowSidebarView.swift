@@ -5,15 +5,12 @@ import SwiftUI
 /// The window's one left-hand column. A glass mode rail switches the Navigator
 /// and three Workspace tools in place without the square selection segments of
 /// `NSSegmentedControl`.
-struct SidebarView: View {
-    let detailCatalog: ContextPanelDetailCatalog
+struct WindowSidebarView: View {
 
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let availableDetails = detailCatalog.availableIDs
-
         VStack(spacing: 0) {
             modeSelector
                 .padding(.horizontal, Metrics.Space.m)
@@ -21,11 +18,7 @@ struct SidebarView: View {
             sidebarContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onChange(of: availableDetails, initial: true) {
-            window.sidebar.pruneSelections(available: availableDetails)
-        }
         .onChange(of: focusedPaneID, initial: true) {
-            window.sidebar.focusedPaneDidChange(to: window.selectedWorkspace?.focusedPane)
             window.reconcileSidebarMode()
         }
         .onChange(of: window.selectedDestination, initial: true) {
@@ -127,14 +120,14 @@ struct SidebarView: View {
         case .assistant:
             AssistantPanelView()
         case .snippets:
-            SSHSessionSnippetsSidebar()
+            SnippetsSidebarView()
         case .history:
-            AdaptiveHistorySidebar()
+            HistorySidebarView()
         }
     }
 }
 
-nonisolated struct ContextSidebarListItem: Identifiable, Hashable, Sendable {
+nonisolated struct SidebarListItem: Identifiable, Hashable, Sendable {
     nonisolated enum SectionID: Hashable, Sendable {
         case package(UUID)
         case ungrouped
@@ -222,14 +215,14 @@ nonisolated struct SnippetSidebarExpansionState: Equatable, Sendable {
         collapsedSectionIDs.sorted().joined(separator: "\n")
     }
 
-    func isExpanded(_ section: ContextSidebarListItem.SectionID) -> Bool {
+    func isExpanded(_ section: SidebarListItem.SectionID) -> Bool {
         guard let id = section.snippetExpansionID else { return true }
         return !collapsedSectionIDs.contains(id)
     }
 
     mutating func setExpanded(
         _ expanded: Bool,
-        for section: ContextSidebarListItem.SectionID
+        for section: SidebarListItem.SectionID
     ) {
         guard let id = section.snippetExpansionID else { return }
         if expanded {
@@ -241,7 +234,7 @@ nonisolated struct SnippetSidebarExpansionState: Equatable, Sendable {
 }
 
 nonisolated struct SnippetSidebarGroup: Sendable {
-    let id: ContextSidebarListItem.SectionID
+    let id: SidebarListItem.SectionID
     let title: String
     let snippets: [Snippet]
 }
@@ -251,20 +244,20 @@ nonisolated enum SnippetSidebarListBuilder {
     static func groupedItems(
         _ groups: [SnippetSidebarGroup],
         expansion: SnippetSidebarExpansionState
-    ) -> [ContextSidebarListItem] {
-        var items: [ContextSidebarListItem] = []
+    ) -> [SidebarListItem] {
+        var items: [SidebarListItem] = []
         for group in groups where !group.snippets.isEmpty {
             items.append(.section(group.id, title: group.title, count: group.snippets.count))
             if expansion.isExpanded(group.id) {
-                items.append(contentsOf: group.snippets.map(ContextSidebarListItem.snippet))
+                items.append(contentsOf: group.snippets.map(SidebarListItem.snippet))
             }
         }
         return items
     }
 
-    static func searchItems(_ snippets: [Snippet]) -> [ContextSidebarListItem] {
+    static func searchItems(_ snippets: [Snippet]) -> [SidebarListItem] {
         [.section(.results, title: "Results", count: snippets.count)]
-            + snippets.map(ContextSidebarListItem.snippet)
+            + snippets.map(SidebarListItem.snippet)
     }
 }
 
@@ -274,7 +267,7 @@ nonisolated enum SnippetSidebarListBuilder {
 /// so every section label in the column starts on the same vertical line —
 /// this one used to sit 2pt further right for no reason anyone could see except
 /// by putting the two modes side by side.
-private func contextSidebarSectionTitle(_ title: String) -> some View {
+private func sidebarSectionTitle(_ title: String) -> some View {
     Text(title)
         .termindSidebarSectionLabel()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -287,9 +280,9 @@ private func contextSidebarSectionTitle(_ title: String) -> some View {
 
 /// A Snippet package heading with the same count, chevron and hit region as an
 /// Assistant section. It owns the storage read so changing expansion never
-/// changes the `ContextSidebarListItem` representing this row.
+/// changes the `SidebarListItem` representing this row.
 private struct SnippetSidebarSectionHeaderRow: View {
-    let section: ContextSidebarListItem.SectionID
+    let section: SidebarListItem.SectionID
     let title: String
     let count: Int
 
@@ -337,12 +330,12 @@ private struct SnippetSidebarSectionHeaderRow: View {
     }
 }
 
-private struct ContextSidebarNativeList: NSViewRepresentable {
-    typealias NSViewType = ContextSidebarListContainer
-    typealias List = ListView<ContextSidebarListItem>
-    typealias Renderer = @MainActor (ContextSidebarListItem) -> AnyView
+private struct SidebarNativeList: NSViewRepresentable {
+    typealias NSViewType = SidebarListContainer
+    typealias List = ListView<SidebarListItem>
+    typealias Renderer = @MainActor (SidebarListItem) -> AnyView
 
-    let items: [ContextSidebarListItem]
+    let items: [SidebarListItem]
     /// Whether adding and removing rows animates.
     ///
     /// History says no. Its content reorders as a side effect of something the
@@ -358,10 +351,10 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
     @Environment(\.colorScheme) private var colorScheme
 
     init(
-        items: [ContextSidebarListItem],
+        items: [SidebarListItem],
         animatesStructuralChanges: Bool = true,
         blankAreaMenu: (() -> [NativeMenuEntry])? = nil,
-        @ViewBuilder renderer: @escaping @MainActor (ContextSidebarListItem) -> some View
+        @ViewBuilder renderer: @escaping @MainActor (SidebarListItem) -> some View
     ) {
         self.items = items
         self.animatesStructuralChanges = animatesStructuralChanges
@@ -372,7 +365,7 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSViewType {
-        ContextSidebarListContainer(listView: context.coordinator.makeListView())
+        SidebarListContainer(listView: context.coordinator.makeListView())
     }
 
     func updateNSView(_ container: NSViewType, context: Context) {
@@ -392,7 +385,7 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
         private var renderer: Renderer?
         private var locale = Locale.current
         private var colorScheme = ColorScheme.light
-        private var content: [ContextSidebarListItem] = []
+        private var content: [SidebarListItem] = []
 
         func makeListView() -> List {
             let listView = List()
@@ -401,7 +394,7 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
             listView.bottomInset = Metrics.Space.xs
             listView.estimatedRowHeight = Metrics.Sidebar.navigationRowHeight
             listView.rows {
-                ListRow(ContextSidebarHostingRow.self)
+                ListRow(SidebarHostingRow.self)
                     .height { item, _ in item.height }
                     .configure { [weak self] row, item, _ in
                         self?.configure(row, item: item)
@@ -412,7 +405,7 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
 
         func update(
             listView: List,
-            items: [ContextSidebarListItem],
+            items: [SidebarListItem],
             renderer: @escaping Renderer,
             locale: Locale,
             colorScheme: ColorScheme,
@@ -432,7 +425,7 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
             content = items
         }
 
-        private func configure(_ row: ContextSidebarHostingRow, item: ContextSidebarListItem) {
+        private func configure(_ row: SidebarHostingRow, item: SidebarListItem) {
             guard let renderer else { return }
             let root = renderer(item)
                 .id(item.id)
@@ -450,11 +443,11 @@ private struct ContextSidebarNativeList: NSViewRepresentable {
 /// this far. That is exactly the distinction the blank-area menu needs, and it
 /// needs no geometry to make it.
 @MainActor
-final class ContextSidebarListContainer: NSView {
-    let listView: ListView<ContextSidebarListItem>
+final class SidebarListContainer: NSView {
+    let listView: ListView<SidebarListItem>
     var blankAreaMenu: (() -> [NativeMenuEntry])?
 
-    init(listView: ListView<ContextSidebarListItem>) {
+    init(listView: ListView<SidebarListItem>) {
         self.listView = listView
         super.init(frame: .zero)
         listView.translatesAutoresizingMaskIntoConstraints = false
@@ -479,7 +472,7 @@ final class ContextSidebarListContainer: NSView {
 }
 
 @MainActor
-private final class ContextSidebarHostingRow: ListRowView {
+private final class SidebarHostingRow: ListRowView {
     private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
 
     override init(frame: CGRect) {
@@ -508,7 +501,7 @@ private final class ContextSidebarHostingRow: ListRowView {
 
 /// The global Snippet shelf. Execution always respects the Snippet's saved
 /// Targets; the focused terminal is never an implicit destination.
-private struct SSHSessionSnippetsSidebar: View {
+private struct SnippetsSidebarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
@@ -524,7 +517,7 @@ private struct SSHSessionSnippetsSidebar: View {
                 ContentUnavailableView.search(text: query)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ContextSidebarNativeList(
+                SidebarNativeList(
                     items: snippetListItems,
                     // A fold removes rows during the header's click. Matching
                     // Assistant, keep that structural update synchronous.
@@ -534,7 +527,7 @@ private struct SSHSessionSnippetsSidebar: View {
                     switch item.content {
                     case .section(let section, let title, let count):
                         if section.snippetExpansionID == nil {
-                            contextSidebarSectionTitle(title)
+                            sidebarSectionTitle(title)
                         } else {
                             SnippetSidebarSectionHeaderRow(
                                 section: section, title: title, count: count
@@ -567,7 +560,7 @@ private struct SSHSessionSnippetsSidebar: View {
         }
     }
 
-    private var snippetListItems: [ContextSidebarListItem] {
+    private var snippetListItems: [SidebarListItem] {
         if !query.isEmpty {
             return SnippetSidebarListBuilder.searchItems(displayedSnippets)
         }
@@ -720,7 +713,7 @@ private struct SidebarCard<Trailing: View>: View {
     }
 }
 
-private struct AdaptiveHistorySidebar: View {
+private struct HistorySidebarView: View {
     @Environment(WindowModel.self) private var window
 
     var body: some View {
@@ -772,14 +765,14 @@ private struct SSHCommandHistorySidebar: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .sidebarBlankAreaMenu { globalMenu }
             } else {
-                ContextSidebarNativeList(
+                SidebarNativeList(
                     items: historyListItems,
                     animatesStructuralChanges: false,
                     blankAreaMenu: { globalMenu }
                 ) { item in
                     switch item.content {
                     case .section(_, let title, _):
-                        contextSidebarSectionTitle(title)
+                        sidebarSectionTitle(title)
                     case .history(let entry, _):
                         historyRow(entry)
                     case .snippet, .sftpHistory, .connection:
@@ -921,9 +914,9 @@ private struct SSHCommandHistorySidebar: View {
         }
     }
 
-    private var historyListItems: [ContextSidebarListItem] {
+    private var historyListItems: [SidebarListItem] {
         let entries = allEntries.map {
-            ContextSidebarListItem.history($0, isNaming: namingEntryID == $0.id)
+            SidebarListItem.history($0, isNaming: namingEntryID == $0.id)
         }
         guard !query.isEmpty else { return entries }
         return [.section(.results, title: String(localized: "Results"))] + entries
@@ -942,8 +935,8 @@ private struct SSHCommandHistorySidebar: View {
     }
 
     private func insert(_ entry: CommandHistoryEntry) {
-        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
-        tab.deliver(entry.command, from: sshSession)
+        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else { return }
+        workspace.deliver(entry.command, from: sshSession)
     }
 
     private func execute(_ entry: CommandHistoryEntry) {
@@ -955,8 +948,8 @@ private struct SSHCommandHistorySidebar: View {
     }
 
     private func executeNow(_ entry: CommandHistoryEntry) {
-        guard let tab = window.selectedWorkspace, let sshSession = tab.focusedPane.sshSession else { return }
-        tab.deliver(entry.command, from: sshSession, submit: true)
+        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else { return }
+        workspace.deliver(entry.command, from: sshSession, submit: true)
         destructiveEntry = nil
     }
 
@@ -1029,8 +1022,8 @@ private struct SFTPBrowseHistorySidebar: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .sidebarBlankAreaMenu { globalMenu }
             } else {
-                ContextSidebarNativeList(
-                    items: entries.map(ContextSidebarListItem.sftpHistory),
+                SidebarNativeList(
+                    items: entries.map(SidebarListItem.sftpHistory),
                     animatesStructuralChanges: false,
                     blankAreaMenu: { globalMenu }
                 ) { item in
@@ -1149,7 +1142,7 @@ private struct ConnectionHistorySidebar: View {
                 // Never animated. Opening a host moves it to the top of
                 // Recents, and animating that reorder made the list jump
                 // upwards under a pointer aimed at the row that had just moved.
-                ContextSidebarNativeList(
+                SidebarNativeList(
                     items: hosts.map {
                         .connection($0, address: app.hostLibrary.loginAddress(for: $0))
                     },

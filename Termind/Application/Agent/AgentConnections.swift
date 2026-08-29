@@ -440,7 +440,7 @@ final class AgentHostResolver: Sendable {
         guard let host = store.host(id) else {
             // A pane-backed target has no Vault record to describe, and its
             // configuration is rebuilt from the live pane on every connect. Tie
-            // the fingerprint to that pane still existing, so a closed tab
+            // the fingerprint to that pane still existing, so a closed workspace
             // invalidates the Agent's connection to it.
             guard temporaryTargets().contains(where: { $0.id == id }) else {
                 throw AgentToolError.invalidHost

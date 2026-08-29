@@ -24,7 +24,7 @@ final class AssistantConversationStore {
         conversations.insert(conversation, at: 0)
     }
 
-    /// Forks use the same lowest-free numbering as duplicated terminal tabs:
+    /// Forks use the same lowest-free numbering as duplicated terminal workspaces:
     /// `Title (1)`, `Title (2)`, and a vacated number can be reused. Forking a
     /// fork continues the original sequence instead of producing `(1) (1)`.
     func nextForkTitle(for source: ConversationModel) -> String {
@@ -140,7 +140,7 @@ final class AssistantConversationStore {
 final class AssistantLibraryModel {
     private var store: AssistantConversationStore
     var selectedConversationID: ConversationModel.ID?
-    /// Window-local scratch space for the Assistant tab's New Chat surface.
+    /// Window-local scratch space for the Assistant destination's New Chat surface.
     /// It is promoted into the shared history only after its first real send,
     /// so merely entering Assistant never creates an empty list row.
     private(set) var draftConversation = ConversationModel()

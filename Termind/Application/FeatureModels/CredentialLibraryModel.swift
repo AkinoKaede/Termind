@@ -7,7 +7,7 @@ import Foundation
 /// persistence snapshot.
 @Observable
 final class CredentialLibraryModel {
-    let library: HostLibraryModel
+    private let library: HostLibraryModel
 
     init(library: HostLibraryModel) {
         self.library = library

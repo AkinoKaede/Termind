@@ -621,35 +621,30 @@ final class AppModel {
         window.commandHistoryStore = commandHistory
         window.sftpHistoryStore = sftpHistory
         window.assistantLibrary.adopt(assistantConversations)
-        window.assistantConversationDeletionHandler = { [weak self] id in
-            self?.deleteAgentConversation(id)
-        }
-        window.assistantPinHandler = { [weak self, weak window] id in
-            self?.togglePin(id, reportingTo: window)
-        }
-        window.assistantMoveHandler = { [weak self, weak window] id, pinned, nextID in
-            self?.moveConversation(
-                id, toPinned: pinned, before: nextID, reportingTo: window
-            )
-        }
-        window.assistantRenameHandler = { [weak self, weak window] id, title in
-            self?.renameConversation(id, to: title, reportingTo: window)
-        }
-        window.assistantArchiveHandler = { [weak self, weak window] id, archived in
-            self?.setArchived(id, archived: archived, reportingTo: window)
-        }
-        window.assistantForkHandler = { [weak self, weak window] id, messageID, inSidebar in
-            self?.forkConversation(
-                id, at: messageID, selectingIn: window, inSidebar: inSidebar
-            )
-        }
-        window.assistantEditHandler = {
-            [weak self, weak window] id, messageID, text, context, includes in
-            self?.editConversation(
-                id, messageID: messageID, text: text, context: context,
-                includesTerminalSuggestion: includes, reportingTo: window
-            )
-        }
+        window.assistantCommands = AssistantConversationCommands(
+            delete: { [weak self] id in self?.deleteAgentConversation(id) },
+            togglePin: { [weak self, weak window] id in
+                self?.togglePin(id, reportingTo: window)
+            },
+            move: { [weak self, weak window] id, pinned, nextID in
+                self?.moveConversation(id, toPinned: pinned, before: nextID, reportingTo: window)
+            },
+            rename: { [weak self, weak window] id, title in
+                self?.renameConversation(id, to: title, reportingTo: window)
+            },
+            archive: { [weak self, weak window] id, archived in
+                self?.setArchived(id, archived: archived, reportingTo: window)
+            },
+            fork: { [weak self, weak window] id, messageID, inSidebar in
+                self?.forkConversation(id, at: messageID, selectingIn: window, inSidebar: inSidebar)
+            },
+            edit: { [weak self, weak window] id, messageID, text, context, includes in
+                self?.editConversation(
+                    id, messageID: messageID, text: text, context: context,
+                    includesTerminalSuggestion: includes, reportingTo: window
+                )
+            }
+        )
         Task { [agentRunRepository, weak window, weak self] in
             guard let restored = try? await agentRunRepository.loadConversations() else { return }
             let visible = restored.filter {

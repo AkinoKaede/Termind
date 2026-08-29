@@ -219,7 +219,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func forkTitlesUseTheLowestFreeTabStyleNumber() {
+    func forkTitlesUseTheLowestFreeWorkspaceStyleNumber() {
         let source = ConversationModel()
         source.customTitle = "Question"
         let store = AssistantConversationStore(conversations: [source])
@@ -484,7 +484,7 @@ struct WindowStateTests {
     }
 
     /// The reported leak: session context must belong to the sidebar, so a
-    /// conversation promoted out of it arrives in the Assistant tab carrying
+    /// conversation promoted out of it arrives in the Assistant destination carrying
     /// nothing about a host it can no longer see.
     @Test
     func sendingFromTheSidebarDoesNotAttachSessionContextToTheConversation() {
@@ -539,7 +539,7 @@ struct WindowStateTests {
 
     /// Opening a conversation in the sidebar used to stamp the focused pane's
     /// host onto it, which is how that host followed the conversation into the
-    /// Assistant tab.
+    /// Assistant destination.
     @Test
     func openingASidebarConversationLeavesItUnmarkedByTheFocusedPane() {
         let host = Host(name: "Server", host: "server.example")
@@ -718,7 +718,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func hostEditorIsVaultNavigationAndCloseTabCannotCloseHiddenWork() {
+    func hostEditorIsVaultNavigationAndCloseWorkspaceCannotCloseHiddenWork() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
         let window = WindowModel(workspaces: [workspace])
@@ -747,17 +747,17 @@ struct WindowStateTests {
     }
 
     @Test
-    func windowsKeepPresentationAndContextPanelStateIsolated() {
+    func windowsKeepPresentationAndVaultSelectionIsolated() {
         let first = WindowModel(vaultDestination: .hosts)
         let second = WindowModel(vaultDestination: .hosts)
         let host = UUID()
 
         first.hostChooser = .connect
-        first.selectDetail(.host(host), on: .hosts)
+        first.selectVaultItem(.host(host), on: .hosts)
 
         #expect(first.hostChooser == .connect)
         #expect(second.hostChooser == nil)
-        #expect(second.detailSelection(for: .hosts).isEmpty)
+        #expect(second.vaultSelection(for: .hosts).isEmpty)
     }
 
     @Test
@@ -770,23 +770,6 @@ struct WindowStateTests {
         #expect(state.hostChooser == .batchStartup)
         state.hostChooser = nil
         #expect(state.sheet == nil)
-    }
-
-    @Test
-    func contextPanelOverrideExpiresWhenFocusLeavesItsPane() {
-        let firstHost = Host(name: "First", host: "first.example")
-        let secondHost = Host(name: "Second", host: "second.example")
-        let first = Workspace.sshSession(host: firstHost)
-        let second = Workspace.sshSession(host: secondHost)
-        let window = WindowModel(workspaces: [first, second])
-        window.selectedWorkspaceID = first.id
-
-        window.sidebar.show(.snippet(UUID()), scopedTo: first.focusedPane)
-        #expect(window.activeDetailSelection.first?.kind == ContextPanelDetailID.Kind.snippet)
-
-        window.selectedWorkspaceID = second.id
-        window.sidebar.focusedPaneDidChange(to: second.focusedPane)
-        #expect(window.activeDetailSelection == [.host(secondHost.id)])
     }
 
     @Test
@@ -815,7 +798,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func sessionsMixSSHAndSFTPInTabAndPaneOrder() {
+    func sessionsMixSSHAndSFTPInWorkspaceAndPaneOrder() {
         let firstHost = Host(name: "First", host: "first.example")
         let secondHost = Host(name: "Second", host: "second.example")
         let mixed = Workspace.sshSession(host: firstHost)
@@ -868,7 +851,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func appRoutesHostsToSSHAndSFTPSessionsForTabsAndWorkspaces() {
+    func appRoutesHostsToSSHAndSFTPSessionsForWorkspaces() {
         let first = Host(name: "First", host: "first.example")
         let second = Host(name: "Second", host: "second.example")
         let store = HostLibraryModel(hosts: [first, second])
@@ -914,7 +897,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func terminalPathOpensSFTPInANewTabOrTheCurrentWorkspace() {
+    func terminalPathOpensSFTPInANewWorkspaceOrTheCurrentWorkspace() {
         var host = Host(name: "Files", host: "files.example")
         host.sftpSessionInitialPath = "/configured"
         let sshWorkspace = Workspace.sshSession(host: host)
@@ -942,7 +925,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func sftpPathOpensSSHInANewTabOrTheCurrentWorkspace() throws {
+    func sftpPathOpensSSHInANewWorkspaceOrTheCurrentWorkspace() throws {
         let host = Host(name: "Shell", host: "shell.example")
         let sftpWorkspace = Workspace.sftpSession(host: host, initialPath: "/configured")
         let window = WindowModel(workspaces: [sftpWorkspace])
@@ -1034,7 +1017,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func normalRemoteExitClosesLastPaneAndSelectsNeighboringTab() {
+    func normalRemoteExitClosesLastPaneAndSelectsNeighboringWorkspace() {
         let host = Host(name: "Host", host: "host.example")
         let sshSessionTab = Workspace.sshSession(host: host)
         let sshSession = sshSessionTab.focusedPane.sshSession!

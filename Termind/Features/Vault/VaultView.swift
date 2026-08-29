@@ -1,6 +1,6 @@
 import SwiftUI
-/// The first pinned tab's main content. Its navigator is mounted by the
-/// window-level split view and remains alive while top-level tabs change.
+/// The first pinned destination's main content. Its navigator is mounted by the
+/// window-level split view and remains alive while top-level destinations change.
 struct VaultView: View {
     @Environment(WindowModel.self) private var window
     let pages: VaultPageStates
@@ -50,7 +50,7 @@ struct VaultWorkDetailView: View {
                 identity: id.flatMap(app.hostLibrary.identity),
                 create: { identity, password in
                     try app.hostLibrary.upsert(identity, passwordUpdate: password)
-                    window.selectDetail(.identity(identity.id), on: .keychain)
+                    window.selectVaultItem(.identity(identity.id), on: .keychain)
                 },
                 close: window.closeVaultWork
             )
@@ -67,7 +67,7 @@ struct VaultWorkDetailView: View {
                 snippet: snippetID.flatMap(app.hostLibrary.snippet), packageID: packageID,
                 save: { snippet in
                     app.hostLibrary.upsert(snippet)
-                    window.selectDetail(.snippet(snippet.id), on: .snippets)
+                    window.selectVaultItem(.snippet(snippet.id), on: .snippets)
                 },
                 close: window.closeVaultWork
             )

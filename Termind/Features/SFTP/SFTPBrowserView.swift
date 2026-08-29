@@ -648,7 +648,7 @@ struct SFTPBrowserView: View {
             }
         }
         .animation(
-            Motion.tabSwitch,
+            Motion.workspaceSwitch,
             value: isRemoteDropTargeted || isExternalFileDropTargeted
         )
         .onChange(of: externalFileDrop?.id) {

@@ -32,7 +32,7 @@ framework and concrete-client restrictions that directory layout alone cannot.
 - Repository snapshots are application-wide and shared by every window.
 - A window owns one top-level shell, quick-open, and context-panel state.
 - The shell always starts with two pinned routes: `Vault`, then `Assistant`. Dynamic
-  tabs after them are SSH/SFTP Workspaces only.
+  dynamic destinations after them are SSH/SFTP Workspaces only.
 - Vault owns its navigation column, including quick-connect Recents, and routes
   for Hosts, Keychain, Snippets, Welcome, and Host Editor. These routes never
   enter the Workspace deck.
@@ -55,6 +55,16 @@ store API: `HostLibraryModel`, `CredentialLibraryModel`, `SnippetLibraryModel`,
 `CommandHistoryModel`, and `ToolAuditModel`. Aggregates that share one persisted
 vault snapshot still expose separate intent surfaces, so a feature cannot gain
 unrelated write operations merely because its records are saved together.
+
+The shared Vault transaction is isolated behind `VaultStore`. Feature facades
+keep their backing aggregate private, and Terminal/SFTP sessions depend on the
+narrow `RemoteSessionHostStore` port rather than the complete Vault mutation
+surface.
+
+Window navigation has one Navigator plus three tool sidebars: Assistant,
+Snippets, and History. Dynamic SSH/SFTP containers are consistently named
+Workspaces; “tab” is reserved for keyboard or native UI tab semantics. Vault
+selection belongs to `VaultPageStates`, not to sidebar state.
 
 ## Agent runtime and security
 

@@ -33,12 +33,12 @@ private struct ShellCodeBlockView: View {
 
     /// The shell this card would reach.
     ///
-    /// `selectedWorkspace` is `nil` whenever the pinned Assistant tab is showing, and
+    /// `selectedWorkspace` is `nil` whenever the pinned Assistant destination is showing, and
     /// that is exactly where the full-width transcript lives — so the buttons
     /// disable there instead of looking live and doing nothing.
     private var target: SSHSessionModel? {
-        guard let tab = window.selectedWorkspace else { return nil }
-        return tab.focusedPane.sshSession ?? tab.broadcastTargets.first
+        guard let workspace = window.selectedWorkspace else { return nil }
+        return workspace.focusedPane.sshSession ?? workspace.broadcastTargets.first
     }
 
     var body: some View {
@@ -110,8 +110,8 @@ private struct ShellCodeBlockView: View {
     /// every other programmatic route to a prompt. `submit: false` writes
     /// without the newline; the user's own Return is what runs it.
     private func deliver(submit: Bool) {
-        guard let tab = window.selectedWorkspace, let origin = target else { return }
-        tab.deliver(command, from: origin, submit: submit)
+        guard let workspace = window.selectedWorkspace, let origin = target else { return }
+        workspace.deliver(command, from: origin, submit: submit)
     }
 }
 

@@ -30,7 +30,7 @@ struct KeychainPageView: ManagedCardPage {
         case key(SSHKeyRef)
         case identity(Identity)
 
-        var id: ContextPanelDetailID {
+        var id: VaultSelectionID {
             switch self {
             case .key(let key): .key(key.id)
             case .identity(let identity): .identity(identity.id)
@@ -59,8 +59,8 @@ struct KeychainPageView: ManagedCardPage {
     private var keys: [SSHKeyRef] { app.credentials.searchKeys(state.query) }
     private var identities: [Identity] { app.credentials.searchIdentities(state.query) }
 
-    private var selection: Set<ContextPanelDetailID> {
-        Set(window.detailSelection(for: .keychain))
+    private var selection: Set<VaultSelectionID> {
+        Set(window.vaultSelection(for: .keychain))
     }
 
     private var isEmpty: Bool {
@@ -82,11 +82,11 @@ struct KeychainPageView: ManagedCardPage {
         ]
     }
 
-    var managedSelection: ManagedCardSelection<ContextPanelDetailID> {
+    var managedSelection: ManagedCardSelection<VaultSelectionID> {
         ManagedCardSelection(selected: { selection }, update: setSelection)
     }
 
-    var managedCapabilities: ManagedCardCapabilities<SectionID, ContextPanelDetailID> {
+    var managedCapabilities: ManagedCardCapabilities<SectionID, VaultSelectionID> {
         ManagedCardCapabilities(
             selection: .multiple,
             marqueeSelection: true,
@@ -200,13 +200,13 @@ struct KeychainPageView: ManagedCardPage {
 
     // MARK: - Selection
 
-    private func setSelection(_ selected: Set<ContextPanelDetailID>) {
-        let ordered: [ContextPanelDetailID] =
+    private func setSelection(_ selected: Set<VaultSelectionID>) {
+        let ordered: [VaultSelectionID] =
             keys.compactMap { selected.contains(.key($0.id)) ? .key($0.id) : nil }
             + identities.compactMap {
                 selected.contains(.identity($0.id)) ? .identity($0.id) : nil
             }
-        window.setDetailSelection(ordered, for: .keychain)
+        window.setVaultSelection(ordered, for: .keychain)
     }
 
     private func requestExport(_ keys: [SSHKeyRef]) {
@@ -231,7 +231,7 @@ struct KeychainPageView: ManagedCardPage {
                 state.errorMessage = error.localizedDescription
             }
         }
-        window.pruneDetailSelections(in: app.credentials)
+        window.pruneVaultSelections(in: app.credentials)
     }
 
     func managedEmptyState() -> some View {
@@ -265,7 +265,7 @@ struct KeychainPageView: ManagedCardPage {
         KeychainPagePresentation(
             state: state,
             actions: KeychainPagePresentation.Actions(
-                pruneSelection: { window.pruneDetailSelections(in: app.credentials) }
+                pruneSelection: { window.pruneVaultSelections(in: app.credentials) }
             )
         )
     }
@@ -331,7 +331,7 @@ struct KeychainImportDetail: View {
                 SSHPrivateKeySecret(privateKey: privateKey)
             )
         )
-        window.selectDetail(.key(key.id), on: .keychain)
+        window.selectVaultItem(.key(key.id), on: .keychain)
         return key
     }
 }
@@ -659,7 +659,7 @@ struct KeychainGenerateDetail: View {
                 )
             )
         }
-        window.selectDetail(.key(key.id), on: .keychain)
+        window.selectVaultItem(.key(key.id), on: .keychain)
         return key
     }
 }
@@ -888,7 +888,7 @@ struct KeychainEditDetail: View {
                 SSHPrivateKeySecret(privateKey: privateKey)
             )
         )
-        window.selectDetail(.key(updated.id), on: .keychain)
+        window.selectVaultItem(.key(updated.id), on: .keychain)
         return updated
     }
 
@@ -896,7 +896,7 @@ struct KeychainEditDetail: View {
         var updated = original
         updated.label = name
         try app.credentials.upsert(updated)
-        window.selectDetail(.key(updated.id), on: .keychain)
+        window.selectVaultItem(.key(updated.id), on: .keychain)
     }
 }
 
@@ -1400,7 +1400,7 @@ private final class ExportHostHostingRow: ListRowView {
 
 // MARK: - Key card
 
-/// The singular actions for one key, shared by its card and ContextPanel detail.
+/// The singular actions for one key, shared by its card and editor surfaces.
 /// Card actions never resolve secret material; Edit is the explicit boundary
 /// that loads a software key from Keychain.
 struct KeyObjectActions: View {
@@ -1441,7 +1441,7 @@ private struct KeyCard: View {
 
     var body: some View {
         CardTile(
-            selectionID: ContextPanelDetailID.key(key.id),
+            selectionID: VaultSelectionID.key(key.id),
             isSelected: isSelected,
             select: select,
             extendSelection: extendSelection
@@ -1572,7 +1572,7 @@ private struct IdentityCard: View {
 
     var body: some View {
         CardTile(
-            selectionID: ContextPanelDetailID.identity(identity.id),
+            selectionID: VaultSelectionID.identity(identity.id),
             isSelected: isSelected,
             select: select,
             extendSelection: extendSelection

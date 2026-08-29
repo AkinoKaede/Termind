@@ -6,7 +6,7 @@ import SwiftUI
 
 /// Everything you can do to a host, in one menu.
 ///
-/// Shared by Vault host surfaces, the Welcome page, and the tab bar's
+/// Shared by Vault host surfaces, the Welcome page, and the workspace list's
 /// recent-hosts menu — places that would otherwise drift into slightly
 /// different sets of verbs.
 struct HostContextMenu: View {
@@ -34,9 +34,9 @@ struct HostContextMenu: View {
     }
 
     var body: some View {
-        // No "Connect in Split": a Workspace is built by combining tabs that are
+        // No "Connect in Split": a Workspace is built by combining workspaces that are
         // already open, so connecting never decides a layout for you. Connect,
-        // then drag the new tab onto the one you want it beside.
+        // then drag the new workspace onto the one you want it beside.
         if hosts.count == 1 {
             Button("Quick Connect") { app.open(hosts, as: .sshSession, in: window) }
         } else {

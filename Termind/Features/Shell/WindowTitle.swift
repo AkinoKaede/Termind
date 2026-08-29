@@ -3,7 +3,7 @@ import Foundation
 /// What the titlebar calls whatever is in front.
 ///
 /// A catalog of providers rather than a switch inside `WindowModel`, for the
-/// same reason `ContextPanelDetailCatalog` exists: the window should not have to
+/// the window should not have to
 /// know that a Workspace is named after the host it connects to, or that the
 /// Assistant is named after a conversation rather than after itself. Each
 /// feature answers for its own destination and returns nil for the others; the

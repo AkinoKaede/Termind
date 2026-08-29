@@ -19,14 +19,20 @@ final class HostLibraryModel {
 
     /// The latest local persistence failure. Secret text is never included.
     private(set) var storageError: String?
-    private var persistence: (any VaultPersisting)?
+    private let vault: VaultStore
     private let keychain: any SecretStoring
     /// Runtime resources live in AppModel, so deletion announces before model
     /// references are removed and the controller can stop listeners cleanly.
     var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
     var willDeletePortForwardings: (([PortForwardingRule.ID]) -> Void)?
-    var didPersistCore: (() -> Void)?
-    var didRecordVaultChanges: ((VaultMutationSet) -> Void)?
+    var didPersistCore: (() -> Void)? {
+        get { vault.didPersist }
+        set { vault.didPersist = newValue }
+    }
+    var didRecordVaultChanges: ((VaultMutationSet) -> Void)? {
+        get { vault.didRecordChanges }
+        set { vault.didRecordChanges = newValue }
+    }
 
     func reportStorageError(_ error: any Error) {
         storageError = error.localizedDescription
@@ -74,11 +80,16 @@ final class HostLibraryModel {
         self.portForwardings = portForwardings
         self.sftpTransfers = sftpTransfers
         self.knownHosts = knownHosts
-        self.persistence = persistence
+        self.vault = VaultStore(persistence: persistence)
         self.keychain = secrets
-        guard let persistence else { return }
         do {
-            let loaded = try persistence.load()
+            let loaded = try vault.load(
+                fallback: VaultSnapshot(
+                    hosts: hosts, groups: groups, identities: identities, keys: keys,
+                    knownHosts: knownHosts, snippets: snippets,
+                    snippetPackages: snippetPackages, portForwardings: portForwardings
+                )
+            )
             self.hosts = loaded.hosts
             self.groups = loaded.groups
             self.identities = loaded.identities.sorted {
@@ -1567,19 +1578,13 @@ final class HostLibraryModel {
 
     @discardableResult
     private func persistCore() -> Bool {
-        guard let persistence else {
-            didPersistCore?()
-            return true
-        }
         do {
-            let mutations = try persistence.save(VaultSnapshot(
+            try vault.save(VaultSnapshot(
                 hosts: hosts, groups: groups, identities: identities,
                 keys: keys, knownHosts: knownHosts, snippets: snippets,
                 snippetPackages: snippetPackages, portForwardings: portForwardings
             ))
             storageError = nil
-            didPersistCore?()
-            didRecordVaultChanges?(mutations)
             return true
         } catch {
             storageError = error.localizedDescription
@@ -1607,7 +1612,7 @@ final class HostLibraryModel {
             hosts.contains { $0.id == value.hostID }
         }
         storageError = nil
-        didPersistCore?()
+        vault.didApplyRemoteSnapshot()
     }
 }
 

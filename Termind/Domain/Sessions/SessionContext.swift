@@ -5,8 +5,8 @@ import Foundation
 /// This belongs to the *surface*, not to a conversation. A conversation that
 /// owns its session context carries it wherever it is opened — which is how the
 /// Workspace sidebar's host and directory ended up on display in the fixed
-/// Assistant tab, where no session exists to describe. Holding it on
-/// `WindowSidebarState` instead means the Assistant tab has nothing to show and
+/// Assistant destination, where no session exists to describe. Holding it on
+/// `WindowSidebarState` instead means the Assistant destination has nothing to show and
 /// nothing to send, structurally rather than by remembering to clear it.
 ///
 /// Everything here is uploaded on send, which is the whole point: the chips are

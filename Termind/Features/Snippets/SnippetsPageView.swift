@@ -69,7 +69,7 @@ struct SnippetsPageView: ManagedCardPage {
 
     private var selection: Set<Snippet.ID> {
         Set(
-            window.detailSelection(for: .snippets).compactMap { detail in
+            window.vaultSelection(for: .snippets).compactMap { detail in
                 detail.snippetID
             })
     }
@@ -285,18 +285,18 @@ struct SnippetsPageView: ManagedCardPage {
         let valid = ids.intersection(Set(app.snippets.snippets.map(\.id)))
         state.selectedPackageID = nil
         let ordered = visibleSnippets.filter { valid.contains($0.id) }
-            .map { ContextPanelDetailID.snippet($0.id) }
-        window.setDetailSelection(ordered, for: .snippets)
+            .map { VaultSelectionID.snippet($0.id) }
+        window.setVaultSelection(ordered, for: .snippets)
     }
 
     private func selectPackage(_ id: SnippetPackage.ID) {
-        window.clearDetailSelection(for: .snippets)
+        window.clearVaultSelection(for: .snippets)
         state.selectedPackageID = id
     }
 
     private func saveSnippet(_ snippet: Snippet) {
         app.snippets.upsert(snippet)
-        window.selectDetail(.snippet(snippet.id), on: .snippets)
+        window.selectVaultItem(.snippet(snippet.id), on: .snippets)
     }
 
     private func duplicate(_ snippet: Snippet) {
@@ -322,13 +322,13 @@ struct SnippetsPageView: ManagedCardPage {
         {
             state.selectedPackageID = nil
         }
-        window.pruneDetailSelections(in: app.snippets)
+        window.pruneVaultSelections(in: app.snippets)
     }
 
     private func deleteSnippets(_ snippets: [Snippet]) {
         app.snippets.delete(snippetIDs: snippets.map(\.id))
         state.confirmation = nil
-        window.pruneDetailSelections(in: app.snippets)
+        window.pruneVaultSelections(in: app.snippets)
     }
 
     private func requestExecution(_ snippets: [Snippet]) {

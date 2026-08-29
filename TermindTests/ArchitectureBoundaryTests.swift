@@ -17,6 +17,43 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func retiredFeatureDirectoriesAreGone() {
+        for directory in ["Tabs", "ContextPanel"] {
+            let url = sourceRoot.appending(path: "Features/\(directory)", directoryHint: .isDirectory)
+            #expect(!FileManager.default.fileExists(atPath: url.path))
+        }
+    }
+
+    @Test
+    func sessionFeaturesDependOnTheConnectionPort() throws {
+        for path in ["Features/Terminal/SSHSessionModel.swift", "Features/SFTP/SFTPSessionModel.swift"] {
+            let text = try String(
+                contentsOf: sourceRoot.appending(path: path), encoding: .utf8
+            )
+            #expect(!text.contains("HostLibraryModel"), "\(path) bypasses RemoteSessionHostStore")
+        }
+    }
+
+    @Test
+    func retiredContextPanelTypesAreGone() throws {
+        for file in try swiftFiles(in: "Features") {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            #expect(!text.contains("ContextPanel"), "\(file.path) retains retired ContextPanel naming")
+        }
+    }
+
+    @Test
+    func featureFacadesDoNotExposeTheirBackingLibrary() throws {
+        for file in try swiftFiles(in: "Application/FeatureModels") {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            #expect(
+                !text.contains("\n    let library: HostLibraryModel"),
+                "\(file.path) exposes the backing aggregate"
+            )
+        }
+    }
+
+    @Test
     func domainImportsOnlyPlatformIndependentFrameworks() throws {
         try assertNoImports(
             in: "Domain",

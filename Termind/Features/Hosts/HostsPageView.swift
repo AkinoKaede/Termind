@@ -40,7 +40,7 @@ final class HostsPageState {
 /// problem. Groups are the sections, so the hierarchy the user built in the host
 /// editor is the hierarchy they see here.
 ///
-/// Selecting cards updates the Hosts page's ordered ContextPanel selection, which
+/// Selecting cards updates the Hosts page's ordered Vault selection, which
 /// the Details tab and this page's own Connect and Edit buttons read. Double-click
 /// connects. Nothing outside this page acts on that selection — ⌘T raises the
 /// host chooser rather than reusing whatever is highlighted here.
@@ -68,10 +68,10 @@ struct HostsPageView: ManagedCardPage {
     }
     /// A plain click replaces the window-scoped selection; Shift-click and a
     /// background marquee extend it. Keeping it on `WindowModel` lets the page
-    /// restore the same cards when its tab becomes current again.
+    /// restore the same cards when its workspace becomes current again.
     private var hostSelection: Set<Host.ID> {
         Set(
-            window.detailSelection(for: .hosts).compactMap { detail in
+            window.vaultSelection(for: .hosts).compactMap { detail in
                 detail.hostID
             })
     }
@@ -305,7 +305,7 @@ struct HostsPageView: ManagedCardPage {
         pruneHostSelection()
 
         if state.selectedGroupID == group.id { state.selectedGroupID = nil }
-        window.pruneDetailSelections(in: app.hostLibrary)
+        window.pruneVaultSelections(in: app.hostLibrary)
     }
 
     private func deletionMessage(for group: HostGroup) -> String {
@@ -330,12 +330,12 @@ struct HostsPageView: ManagedCardPage {
     private func setHostSelection(_ ids: Set<Host.ID>) {
         let valid = ids.intersection(Set(app.hostLibrary.hosts.map(\.id)))
         state.selectedGroupID = nil
-        let ordered = visibleHosts.filter { valid.contains($0.id) }.map { ContextPanelDetailID.host($0.id) }
-        window.setDetailSelection(ordered, for: .hosts)
+        let ordered = visibleHosts.filter { valid.contains($0.id) }.map { VaultSelectionID.host($0.id) }
+        window.setVaultSelection(ordered, for: .hosts)
     }
 
     private func selectGroup(_ id: HostGroup.ID) {
-        window.clearDetailSelection(for: .hosts)
+        window.clearVaultSelection(for: .hosts)
         state.selectedGroupID = id
     }
 

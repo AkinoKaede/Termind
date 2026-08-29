@@ -3,7 +3,7 @@ import Foundation
 /// The Snippets feature's deliberately narrow view of the shared vault.
 @Observable
 final class SnippetLibraryModel {
-    let library: HostLibraryModel
+    private let library: HostLibraryModel
 
     init(library: HostLibraryModel) {
         self.library = library

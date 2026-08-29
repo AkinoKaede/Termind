@@ -3,7 +3,7 @@ import Foundation
 /// Read and write access needed by the port-forwarding feature.
 @Observable
 final class ForwardingLibraryModel {
-    let library: HostLibraryModel
+    private let library: HostLibraryModel
 
     init(library: HostLibraryModel) {
         self.library = library

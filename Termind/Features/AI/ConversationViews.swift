@@ -97,7 +97,7 @@ struct TextViewMarkedTextObserver: NSViewRepresentable {
 ///
 /// Two sources, deliberately. Host and directory are pinned and come from the
 /// *surface*; everything the user added by hand comes from the conversation and
-/// can be taken back off. So a composer with no session — the Assistant tab,
+/// can be taken back off. So a composer with no session — the Assistant destination,
 /// which is handed `.none` — cannot show, or send, a host and directory it does
 /// not have.
 struct ContextChipsView: View {
@@ -387,12 +387,12 @@ struct ComposerView: View {
     let conversation: ConversationModel
     var prompt: LocalizedStringKey = "Ask anything…"
     var surfaceStyle: AssistantInteractionSurfaceStyle = .standard
-    /// The full Assistant tab shares one centered column with its transcript.
+    /// The full Assistant destination shares one centered column with its transcript.
     /// `nil` keeps compact/sidebar composers fluid.
     var maxContentWidth: CGFloat? = nil
     /// What the surface showing this composer knows about the focused pane.
     /// Defaulting to `.none` is what makes a composer outside a Workspace — the
-    /// Assistant tab — session-free by construction rather than by remembering.
+    /// Assistant destination — session-free by construction rather than by remembering.
     var sessionContext: SessionContext = .none
     /// Only the Workspace sidebar gives its agent a command-card tool.
     var includesTerminalSuggestion = false
