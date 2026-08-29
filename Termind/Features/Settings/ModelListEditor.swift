@@ -951,6 +951,9 @@ where Item: Identifiable & Hashable & Sendable, Item.ID: Hashable {
         private let rowHeight: CGFloat
         private let content = HostingListContent<Item>()
 
+        // Swift 6.3.3's optimizer can crash while synthesizing this generic deinit.
+        @_optimize(none) deinit {}
+
         init(rowHeight: CGFloat) {
             self.rowHeight = rowHeight
         }
