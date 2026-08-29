@@ -224,6 +224,8 @@ enum SettingsDraftPolicy {
 private struct SettingsSidebar: View {
     let selection: SettingsSection
     let select: (SettingsSection) -> Void
+    @FocusState private var focusedSection: SettingsSection?
+    @State private var showsKeyboardFocus = false
 
     var body: some View {
         SettingsNavigationNativeList(items: items) { item in
@@ -259,7 +261,20 @@ private struct SettingsSidebar: View {
             symbol: section.symbol,
             isSelected: selection == section
         ) {
+            showsKeyboardFocus = NSApp.currentEvent?.type == .keyDown
+            focusedSection = section
             select(section)
+        }
+        .focused($focusedSection, equals: section)
+        .focusEffectDisabled(!showsKeyboardFocus)
+        .onChange(of: focusedSection) { _, focusedSection in
+            guard focusedSection != nil else {
+                showsKeyboardFocus = false
+                return
+            }
+            if NSApp.currentEvent?.type == .keyDown {
+                showsKeyboardFocus = true
+            }
         }
     }
 }
