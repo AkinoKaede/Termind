@@ -59,20 +59,6 @@ struct RootView: View {
             WindowToolbarSearchHost()
         }
         .overlay { ExternalAuthWindowPresenter() }
-        .overlay {
-            if app.proAccess.status == .loading {
-                ZStack {
-                    Rectangle().fill(.regularMaterial).ignoresSafeArea()
-                    VStack(spacing: Metrics.Space.m) {
-                        ProgressView().controlSize(.large)
-                        Text("Checking Termind Pro…").foregroundStyle(.secondary)
-                    }
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text("Checking Termind Pro"))
-                .zIndex(100)
-            }
-        }
         .frame(
             minWidth: Metrics.Window.minWidth,
             maxWidth: .infinity,
