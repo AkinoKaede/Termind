@@ -38,8 +38,25 @@ struct WindowToolbarFindTests {
         window.openPage(.welcome)
 
         #expect(window.findKind == nil)
-        #expect(!window.canFindInMainContent)
+        #expect(window.canFindInMainContent)
         #expect(window.creationActions.isEmpty)
+    }
+
+    /// Welcome participates in the window-level Find command without growing a
+    /// second search field in the titlebar.
+    @Test
+    func focusingFindOnWelcomeRequestsItsContentSearchField() {
+        let window = WindowModel()
+        var titlebarFocusRequests = 0
+        window.focusToolbarFindField = { titlebarFocusRequests += 1 }
+        window.openPage(.welcome)
+
+        window.focusToolbarFind()
+
+        #expect(window.welcomeSearchFocusRequest == 1)
+        #expect(window.findFocusRequest == 0)
+        #expect(!window.isToolbarFindFocused)
+        #expect(titlebarFocusRequests == 0)
     }
 
     @Test
@@ -74,6 +91,7 @@ struct WindowToolbarFindTests {
         let window = WindowModel(workspaces: [Workspace(pane: Pane(.empty))])
 
         #expect(window.findKind == nil)
+        #expect(!window.canFindInMainContent)
         #expect(window.creationActions.isEmpty)
     }
 
@@ -98,12 +116,12 @@ struct WindowToolbarFindTests {
     /// counter nobody is watching.
     @Test
     func focusingFindIsANoOpWhereThereIsNoField() {
-        let window = WindowModel()
-        window.openPage(.welcome)
+        let window = WindowModel(workspaces: [Workspace(pane: Pane(.empty))])
 
         window.focusToolbarFind()
 
         #expect(window.findFocusRequest == 0)
+        #expect(window.welcomeSearchFocusRequest == 0)
     }
 
     @Test

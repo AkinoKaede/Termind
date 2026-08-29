@@ -821,6 +821,9 @@ struct WelcomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
         .onAppear { isSearchFocused = true }
+        .onChange(of: window.welcomeSearchFocusRequest) { _, _ in
+            isSearchFocused = true
+        }
     }
 
     private var header: some View {

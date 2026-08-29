@@ -239,6 +239,10 @@ final class WindowModel {
     /// doing nothing.
     private(set) var findFocusRequest: UInt64 = 0
 
+    /// Bumped by ⌘F while Welcome is in front. Welcome owns a large search
+    /// field in its content instead of borrowing the titlebar Find field.
+    private(set) var welcomeSearchFocusRequest: UInt64 = 0
+
     /// True while the titlebar Find field owns the keyboard.
     ///
     /// The field is outside every pane, but what it filters is inside one — so
@@ -284,7 +288,12 @@ final class WindowModel {
         }
     }
 
-    var canFindInMainContent: Bool { findKind != nil }
+    private var hasWelcomeSearch: Bool {
+        guard case .vault = selectedDestination else { return false }
+        return vaultDestination == .welcome
+    }
+
+    var canFindInMainContent: Bool { hasWelcomeSearch || findKind != nil }
 
     /// ⌘F. Focuses the titlebar field, and for a terminal also starts Ghostty's
     /// search again on a query retained from last time.
@@ -295,6 +304,10 @@ final class WindowModel {
     /// field and the rebuild it caused takes the caret straight back, which is
     /// how the Find menu item came to be clickable and yet do nothing.
     func focusToolbarFind() {
+        if hasWelcomeSearch {
+            welcomeSearchFocusRequest &+= 1
+            return
+        }
         guard findKind != nil else { return }
         isToolbarFindFocused = true
         if findKind == .terminal { focusedSSHSession?.presentFind() }
