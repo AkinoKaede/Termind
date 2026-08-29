@@ -23,38 +23,71 @@ nonisolated enum AgentCompaction {
     /// The index of the first message kept verbatim, or `nil` when there is
     /// nothing worth summarizing.
     ///
-    /// Walks backward accumulating recent tokens until the budget is spent, then
-    /// keeps walking until it reaches a message that may be cut at. **A `.tool`
-    /// row is never a boundary** — it only means anything beside the assistant
-    /// turn that asked for it, and a cut between the two leaves either an
-    /// orphaned result or an unanswered call, both of which every provider
-    /// rejects outright.
+    /// Walks backward accumulating recent tokens until the budget is spent.
+    /// Assistant tool calls and their contiguous results are one indivisible
+    /// unit: a cut between them leaves either an orphaned result or an unanswered
+    /// call, both of which every provider rejects outright.
+    ///
+    /// The recent budget is deliberately soft for a tool unit that exceeds the
+    /// whole budget by itself. When a later non-tool message gives us a safe
+    /// boundary, summarizing that oversized unit is much more useful than
+    /// keeping hundreds of thousands of tokens merely to satisfy a 20k floor.
     static func cutIndex(
         in messages: [AgentTranscriptMessage],
         keepRecentTokens: Int = defaultKeepRecentTokens
     ) -> Int? {
         guard !messages.isEmpty else { return nil }
+        // There is no safe suffix after an unfinished tool exchange. Compacting
+        // only the prefix would save little, while compacting through the result
+        // would leave the replacement summary with nothing after it.
+        guard messages.last?.role != .tool else { return nil }
 
         var kept = 0
         var index = messages.endIndex
         while index > messages.startIndex {
+            if kept >= keepRecentTokens { break }
+
             let candidate = index - 1
-            // Spend the budget first, *then* look for a boundary. Reversing the
-            // two would cut at the newest user turn whenever that turn alone
-            // exceeded the budget.
-            if kept >= keepRecentTokens, messages[candidate].role != .tool {
+            guard messages[candidate].role == .tool else {
+                kept += estimatedTokens(of: messages[candidate])
+                index = candidate
+                continue
+            }
+
+            // Consume every result in the batch and the assistant message that
+            // issued it as one unit. `index` is already a legal boundary after
+            // the batch; `groupStart` becomes the legal boundary before it.
+            let groupEnd = index
+            var groupStart = candidate
+            while groupStart > messages.startIndex,
+                messages[groupStart - 1].role == .tool
+            {
+                groupStart -= 1
+            }
+            guard groupStart > messages.startIndex else { return nil }
+            groupStart -= 1
+            guard messages[groupStart].role == .assistant else { return nil }
+
+            let groupTokens = messages[groupStart..<groupEnd].reduce(0) {
+                $0 + estimatedTokens(of: $1)
+            }
+            if groupTokens > keepRecentTokens, groupEnd < messages.endIndex {
+                // Keep the smaller, useful suffix even though it is below the
+                // nominal budget; the summarizer will clip the giant result.
+                index = groupEnd
                 break
             }
-            kept += estimatedTokens(of: messages[candidate])
-            index = candidate
+
+            kept += groupTokens
+            index = groupStart
         }
 
         // Everything fits, or the only cut available is at the very start —
         // which would summarize nothing and add a message for the privilege.
         guard index > messages.startIndex, index < messages.endIndex else { return nil }
-        // A boundary that is still a tool row means the walk ran out of
-        // messages before it found a legal one. Better to leave the
-        // conversation long than to make it unusable.
+        // Defensive rather than expected: both paths above leave `index` on a
+        // non-tool row, but preserving the invariant here makes future changes
+        // fail closed.
         guard messages[index].role != .tool else { return nil }
         return index
     }
@@ -114,7 +147,8 @@ nonisolated enum AgentCompaction {
     }
 
     private static func estimatedTokens(of message: AgentTranscriptMessage) -> Int {
-        let characters = message.text.count
+        let characters =
+            message.text.count
             + message.toolCalls.reduce(0) { $0 + $1.arguments.encodedString.count }
         let imageTokens = message.images.reduce(0) { total, image in
             let wide = max(1, Int(ceil(Double(image.pixelWidth) / 512)))

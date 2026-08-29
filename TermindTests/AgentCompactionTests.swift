@@ -98,18 +98,98 @@ struct AgentCompactionTests {
             user("next"),
         ]
 
-        // Under the ~21 tokens the tail holds, so the budget is met before the
-        // walk reaches the opening turn. A budget larger than everything after
-        // the first message would mean nothing is summarizable, which is the
-        // separate case `aShortConversationIsNotWorthCompacting` covers.
+        // The tool unit is just over this deliberately small budget, so it may
+        // land on either side of the cut. It must remain whole either way.
         let cut = try #require(AgentCompaction.cutIndex(in: messages, keepRecentTokens: 15))
+        let summarized = Array(messages[..<cut])
         let kept = Array(messages[cut...])
 
-        let answered = Set(kept.filter { $0.role == .assistant }.flatMap { $0.toolCalls.map(\.id) })
-        let orphans = kept.filter { $0.role == .tool }
-            .compactMap(\.toolCallID)
-            .filter { !answered.contains($0) }
-        #expect(orphans.isEmpty)
+        for side in [summarized, kept] {
+            let answered = Set(
+                side.filter { $0.role == .assistant }.flatMap { $0.toolCalls.map(\.id) }
+            )
+            let orphans = side.filter { $0.role == .tool }
+                .compactMap(\.toolCallID)
+                .filter { !answered.contains($0) }
+            #expect(orphans.isEmpty)
+        }
+    }
+
+    @Test
+    func anOversizedRecentToolResultIsSummarized() throws {
+        let messages = [
+            user("inspect the logs"),
+            assistant("checking", calls: [call("a")]),
+            toolResult(filler(tokens: 445_000), callID: "a"),
+            assistant(filler(tokens: 7_000)),
+        ]
+
+        let cut = try #require(
+            AgentCompaction.cutIndex(in: messages, keepRecentTokens: 20_000)
+        )
+
+        #expect(cut == 3)
+        #expect(messages[..<cut].contains { $0.role == .tool })
+        #expect(messages[cut...].map(\.role) == [.assistant])
+
+        let compacted =
+            [
+                AgentTranscriptMessage(role: .user, text: "summary", isCompaction: true)
+            ] + messages[cut...]
+        let repaired = AgentOrphanedToolResultRepair.apply(
+            AgentUnansweredToolCallRepair.apply(compacted)
+        )
+        #expect(repaired == compacted)
+    }
+
+    @Test
+    func parallelOversizedToolResultsAreSummarizedWithTheirCaller() throws {
+        let messages = [
+            user("inspect both hosts"),
+            assistant("checking", calls: [call("a"), call("b")]),
+            toolResult(filler(tokens: 15_000), callID: "a"),
+            toolResult(filler(tokens: 15_000), callID: "b"),
+            assistant(filler(tokens: 1_000)),
+        ]
+
+        let cut = try #require(
+            AgentCompaction.cutIndex(in: messages, keepRecentTokens: 20_000)
+        )
+
+        #expect(cut == 4)
+        #expect(messages[..<cut].filter { $0.role == .tool }.count == 2)
+        #expect(messages[..<cut].contains { $0.toolCalls.count == 2 })
+    }
+
+    @Test
+    func aSmallRecentToolUnitStillStaysVerbatim() throws {
+        let messages = [
+            user(filler(tokens: 30_000)),
+            assistant(filler(tokens: 30_000)),
+            user(filler(tokens: 1_000)),
+            assistant("checking", calls: [call("a")]),
+            toolResult(filler(tokens: 10_000), callID: "a"),
+            assistant(filler(tokens: 5_000)),
+        ]
+
+        let cut = try #require(
+            AgentCompaction.cutIndex(in: messages, keepRecentTokens: 20_000)
+        )
+
+        #expect(cut == 1)
+        #expect(messages[cut...].contains { $0.toolCallID == "a" })
+        #expect(messages[cut...].contains { $0.toolCalls.contains { $0.id == "a" } })
+    }
+
+    @Test
+    func aTranscriptEndingInAToolResultCannotBeCompacted() {
+        let messages = [
+            user(filler(tokens: 30_000)),
+            assistant("checking", calls: [call("a")]),
+            toolResult(filler(tokens: 445_000), callID: "a"),
+        ]
+
+        #expect(AgentCompaction.cutIndex(in: messages, keepRecentTokens: 20_000) == nil)
     }
 
     /// A compacted transcript is replayed as the next run's history, so it has
