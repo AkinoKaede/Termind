@@ -1683,7 +1683,10 @@ private struct IdentityCard: View {
 
         if identity.usesKey {
             if let key {
-                CardChip(text: key.label, symbol: "key.fill", tint: TermindColor.accent)
+                CardChip(
+                    text: key.label, symbol: "key.fill",
+                    tint: key.colorTag.color ?? TermindColor.accent
+                )
             } else {
                 CardChip(
                     text: String(localized: "Key missing"),
