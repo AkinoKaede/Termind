@@ -74,7 +74,7 @@ struct WebSearchSettings: View {
         Task {
             do {
                 let results = try await ScrubberWebClient().search(
-                    "Termind web search test", count: 3
+                    "test", count: 3
                 )
                 probe = .succeeded(results.count)
             } catch {
