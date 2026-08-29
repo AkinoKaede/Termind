@@ -10,6 +10,7 @@ nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
         case assistant
         case tool
         case work
+        case command
         case plan
         case compaction
         case compactionActivity
@@ -22,6 +23,7 @@ nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
         case assistant(ChatMessage, canFork: Bool)
         case tool(AgentToolCard)
         case work(AgentWorkGroup)
+        case command(SuggestedCommand)
         case plan(AgentPlanCard)
         case compaction(AgentCompactionMark)
         case compactionActivity(AgentCompactionActivity)
@@ -57,6 +59,7 @@ nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
                     .assistant(message, canFork: canFork(message.id))
                 case .tool(let card): .tool(card)
                 case .work(let group): .work(group)
+                case .command(let command): .command(command)
                 case .plan(let card): .plan(card)
                 case .compaction(let mark): .compaction(mark)
                 case .compactionActivity(let activity): .compactionActivity(activity)
@@ -86,6 +89,7 @@ nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
         case .assistant: .assistant
         case .tool: .tool
         case .work: .work
+        case .command: .command
         case .plan: .plan
         case .compaction: .compaction
         case .compactionActivity: .compactionActivity
@@ -379,6 +383,15 @@ struct TranscriptListView: NSViewRepresentable {
                     .estimatedHeight(72)
                     .height { [weak self] entry, context in
                         self?.height(for: entry, width: context.width) ?? 72
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptCommandRow.self)
+                    .when { $0.kind == .command }
+                    .estimatedHeight(160)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 160
                     }
                     .configure { [weak self] row, entry, context in
                         self?.configure(row, entry: entry, width: context.width, measurement: false)

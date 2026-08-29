@@ -885,6 +885,7 @@ struct ChatComposerStateTests {
             case .message(let message): message.role == .user ? "user" : "assistant"
             case .tool: "tool"
             case .work: "work"
+            case .command: "command"
             case .plan: "plan"
             case .compaction: "compaction"
             case .compactionActivity: "compaction-activity"
@@ -1429,6 +1430,49 @@ struct ChatComposerStateTests {
         #expect(groups == [
             ["lookup", "lookup", "lookup", "lookup"], ["terminal_suggest"],
         ])
+    }
+
+    @Test
+    func completedTerminalSuggestionIsPromotedBesidePlansInsteadOfRemainingInWorked() throws {
+        let conversation = ConversationModel()
+        let runID = UUID()
+        let createdAt = Date(timeIntervalSince1970: 2_000)
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID,
+            state: .running,
+            startedAt: createdAt
+        )))
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(
+                id: "suggest-command",
+                name: "terminal_suggest",
+                arguments: .object([
+                    "command": .string("pwd"),
+                    "explanation": .string("Show the current directory."),
+                ])
+            ),
+            createdAt: createdAt
+        )
+        conversation.handle(.toolProposed(
+            invocation,
+            AnyAgentTool(TerminalSuggestTool()).descriptor
+        ))
+        conversation.handle(.toolFinished(
+            invocation,
+            AgentToolResult(callID: invocation.call.id, content: "{}")
+        ))
+
+        #expect(conversation.workGroups.isEmpty)
+        let item = try #require(conversation.timeline.first)
+        guard case .command(let command) = item else {
+            Issue.record("Expected a promoted command card, got \(item)")
+            return
+        }
+        #expect(command.id == invocation.id)
+        #expect(command.command == "pwd")
+        #expect(command.explanation == "Show the current directory.")
+        #expect(command.createdAt == createdAt)
     }
 
     @Test

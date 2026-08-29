@@ -7,6 +7,7 @@ nonisolated struct SuggestedCommand: Identifiable, Hashable, Sendable {
     var id: UUID = UUID()
     var command: String
     var explanation: String = ""
+    var createdAt: Date = .now
 
     var risk: RiskAssessment {
         CommandRiskClassifier.assess(command)
@@ -266,6 +267,25 @@ nonisolated struct AgentToolCard: Identifiable, Hashable, Sendable {
     var state: State = .proposed
     var result: AgentToolResult?
     var review: SecurityReviewDecision?
+
+    /// `terminal_suggest` is a user-facing artifact, like `present_plan`, not
+    /// work detail. Once the tool has completed, promote its validated input to
+    /// the transcript and remove the protocol row from Worked.
+    var terminalSuggestion: SuggestedCommand? {
+        guard descriptor.name == "terminal_suggest",
+            state == .completed,
+            result?.isError == false,
+            let arguments = invocation.call.arguments.objectValue,
+            let command = arguments["command"]?.stringValue,
+            !command.isEmpty
+        else { return nil }
+        return SuggestedCommand(
+            id: id,
+            command: command,
+            explanation: arguments["explanation"]?.stringValue ?? "",
+            createdAt: invocation.createdAt
+        )
+    }
 }
 
 /// One message the user sent while a run was in flight, waiting on the next
@@ -289,6 +309,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
     case message(ChatMessage)
     case tool(AgentToolCard)
     case work(AgentWorkGroup)
+    case command(SuggestedCommand)
     case plan(AgentPlanCard)
     case compaction(AgentCompactionMark)
     case compactionActivity(AgentCompactionActivity)
@@ -298,6 +319,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         case .message(let message): message.id
         case .tool(let card): card.id
         case .work(let group): group.id
+        case .command(let command): command.id
         case .plan(let card): card.id
         case .compaction(let mark): mark.id
         case .compactionActivity(let activity): activity.id
@@ -311,6 +333,7 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
         case .message(let message): message.createdAt
         case .tool(let card): card.invocation.createdAt
         case .work(let group): group.orderedAt
+        case .command(let command): command.createdAt
         case .plan(let card): card.createdAt
         case .compaction(let mark): mark.createdAt
         case .compactionActivity(let activity): activity.createdAt
@@ -1058,7 +1081,10 @@ final class ConversationModel: Identifiable {
     /// One collapsible work group per run, keyed by source-message ownership.
     var workGroups: [AgentWorkGroup] {
         let visibleByID = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
-        let cardsByRun = Dictionary(grouping: toolCards, by: { $0.invocation.runID })
+        let cardsByRun = Dictionary(
+            grouping: toolCards.filter { $0.terminalSuggestion == nil },
+            by: { $0.invocation.runID }
+        )
         let toolProcessMessageIDs = Set(transcript.compactMap { message -> UUID? in
             message.role == .assistant && !message.toolCalls.isEmpty ? message.id : nil
         })
@@ -1271,14 +1297,19 @@ final class ConversationModel: Identifiable {
             items.append(.message(message))
         }
         items += groups.filter { !emittedGroups.contains($0.id) }.map(TimelineItem.work)
-        guard !plans.isEmpty || !compactions.isEmpty || compactionActivity != nil else {
+        let commands = toolCards.compactMap(\.terminalSuggestion)
+        guard !commands.isEmpty || !plans.isEmpty || !compactions.isEmpty
+            || compactionActivity != nil
+        else {
             return items
         }
         // Merged by time rather than woven into the loop above. A plan ends its
         // run and a compaction happens between runs, so there are never many of
         // either, and two more cursors inside that loop would be two more things
         // to keep right for no gain.
-        var extra = plans.map(TimelineItem.plan) + compactions.map(TimelineItem.compaction)
+        var extra = commands.map(TimelineItem.command)
+            + plans.map(TimelineItem.plan)
+            + compactions.map(TimelineItem.compaction)
         if let compactionActivity { extra.append(.compactionActivity(compactionActivity)) }
         return (items + extra).sorted {
             $0.orderedAt == $1.orderedAt

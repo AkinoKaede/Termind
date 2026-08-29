@@ -170,6 +170,7 @@ class TranscriptNativeRow: ListRowView {
         case .assistant: TranscriptAssistantRow()
         case .tool: TranscriptToolRow()
         case .work: TranscriptWorkRow()
+        case .command: TranscriptCommandRow()
         case .plan: TranscriptPlanRow()
         case .compaction: TranscriptCompactionRow()
         case .compactionActivity: TranscriptCompactionActivityRow()
@@ -355,6 +356,7 @@ class TranscriptNativeRow: ListRowView {
 @MainActor final class TranscriptAssistantRow: TranscriptNativeRow {}
 @MainActor final class TranscriptToolRow: TranscriptNativeRow {}
 @MainActor final class TranscriptWorkRow: TranscriptNativeRow {}
+@MainActor final class TranscriptCommandRow: TranscriptNativeRow {}
 @MainActor final class TranscriptPlanRow: TranscriptNativeRow {}
 @MainActor final class TranscriptCompactionRow: TranscriptNativeRow {}
 @MainActor final class TranscriptCompactionActivityRow: TranscriptNativeRow {}
@@ -507,6 +509,8 @@ private enum NativeTranscriptFactory {
             return tool(card, context: context)
         case .work(let group):
             return work(group, context: context)
+        case .command(let command):
+            return commandCard(command, context: context)
         case .plan(let card):
             return plan(card, context: context)
         case .compaction(let mark):
@@ -1184,17 +1188,17 @@ private enum NativeTranscriptFactory {
         context: NativeTranscriptContext
     ) -> NSView {
         let assessment = command.risk
-        let card = NativeCard(radius: Metrics.Radius.medium)
+        let card = NativeCard(radius: Metrics.Radius.large)
         card.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCard")
-        // Match the hierarchical SwiftUI fills from the original command card.
-        // `quaternaryLabelColor` already carries an alpha component, so replacing
-        // it with 0.2/0.4 made the AppKit port roughly ten times darker.
-        card.fillProvider = {
-            nativeHierarchicalColor(.quaternaryLabelColor, opacity: 0.2)
+        // The transcript's visual-effect hierarchy makes semantic control
+        // surfaces look grey. Inherit the row background instead.
+        card.fillProvider = { .clear }
+        card.strokeProvider = {
+            assessment.risk == .destructive
+                ? NSColor.systemRed.withAlphaComponent(0.4)
+                : .separatorColor
         }
-        if assessment.risk == .destructive {
-            card.strokeProvider = { NSColor.systemRed.withAlphaComponent(0.4) }
-        }
+        card.layer?.masksToBounds = true
         let stack = NativeStack.vertical(spacing: Metrics.Space.m)
         stack.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardContent")
         stack.edgeInsets = .init(
@@ -1226,9 +1230,7 @@ private enum NativeTranscriptFactory {
         commandBackground.identifier = NSUserInterfaceItemIdentifier(
             "Transcript.CommandCardCommandBackground"
         )
-        commandBackground.fillProvider = {
-            nativeHierarchicalColor(.quaternaryLabelColor, opacity: 0.4)
-        }
+        commandBackground.fillProvider = { .clear }
         let commandLabel = NativeLabel(
             command.command,
             font: .monospacedSystemFont(
