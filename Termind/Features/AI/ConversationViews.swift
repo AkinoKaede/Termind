@@ -1534,6 +1534,7 @@ struct ComposerView: View {
             if compact {
                 modelGlyph(compact: true)
                     .frame(width: 24, height: 24)
+                    .contentShape(.circle)
             } else {
                 HStack(spacing: Metrics.Space.xs) {
                     Label {
@@ -1551,6 +1552,7 @@ struct ComposerView: View {
                         .foregroundStyle(.tertiary)
                 }
                 .font(.callout)
+                .contentShape(.rect)
             }
         }
         .buttonStyle(.plain)
