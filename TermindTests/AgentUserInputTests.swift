@@ -251,6 +251,77 @@ struct AgentUserInputTests {
         #expect(conversation.userInputDraft(for: "storage").selection.isEmpty)
     }
 
+    @Test
+    func choosingASingleOptionImmediatelySubmitsAOneQuestionRequest() async {
+        let conversation = ConversationModel()
+        let answering = Task { await conversation.request(request(multiple: false)) }
+        await settle(conversation)
+
+        conversation.answerUserInputOption("postgres", in: "storage")
+
+        #expect(
+            await answering.value
+                == .answered([
+                    AgentUserInputAnswer(
+                        questionID: "storage",
+                        value: .choice(selectedIDs: ["postgres"], custom: nil)
+                    )
+                ])
+        )
+        #expect(conversation.pendingUserInput == nil)
+    }
+
+    @Test
+    func singleOptionsAdvanceAndTheLastOneSubmitsTheRequest() async {
+        let conversation = ConversationModel()
+        let answering = Task { await conversation.request(twoSingleChoiceQuestions()) }
+        await settle(conversation)
+
+        conversation.answerUserInputOption("postgres", in: "storage")
+        #expect(conversation.currentUserInputQuestion?.id == "region")
+        #expect(conversation.pendingUserInput != nil)
+
+        conversation.answerUserInputOption("eu", in: "region")
+        #expect(
+            await answering.value
+                == .answered([
+                    AgentUserInputAnswer(
+                        questionID: "storage",
+                        value: .choice(selectedIDs: ["postgres"], custom: nil)
+                    ),
+                    AgentUserInputAnswer(
+                        questionID: "region",
+                        value: .choice(selectedIDs: ["eu"], custom: nil)
+                    ),
+                ])
+        )
+    }
+
+    @Test
+    func revisitingASingleChoiceReplacesItsAnswerAndAdvancesAgain() {
+        let conversation = ConversationModel()
+        conversation.present(twoSingleChoiceQuestions())
+
+        conversation.answerUserInputOption("postgres", in: "storage")
+        conversation.previousUserInputQuestion()
+        conversation.answerUserInputOption("sqlite", in: "storage")
+
+        #expect(conversation.currentUserInputQuestion?.id == "region")
+        #expect(conversation.userInputDraft(for: "storage").selection == ["sqlite"])
+    }
+
+    @Test
+    func choosingAMultipleAnswerOptionDoesNotAdvance() {
+        let conversation = ConversationModel()
+        conversation.present(request(multiple: true))
+
+        conversation.answerUserInputOption("postgres", in: "storage")
+
+        #expect(conversation.currentUserInputQuestion?.id == "storage")
+        #expect(conversation.pendingUserInput != nil)
+        #expect(conversation.userInputDraft(for: "storage").selection == ["postgres"])
+    }
+
     /// When several answers are allowed the two routes are additive, not
     /// exclusive — "these two, plus this other thing" is a real answer.
     @Test
@@ -768,6 +839,23 @@ struct AgentUserInputTests {
                 )
             ),
             AgentUserQuestion(id: "host", prompt: "Which host is staging?", kind: .text),
+        ])
+    }
+
+    private func twoSingleChoiceQuestions() -> AgentUserInputRequest {
+        AgentUserInputRequest(questions: [
+            storage(multiple: false),
+            AgentUserQuestion(
+                id: "region", prompt: "Which region?",
+                kind: .choice(
+                    AgentUserInputChoice(
+                        options: [
+                            AgentUserInputOption(id: "us", label: "United States"),
+                            AgentUserInputOption(id: "eu", label: "Europe"),
+                        ]
+                    )
+                )
+            ),
         ])
     }
 

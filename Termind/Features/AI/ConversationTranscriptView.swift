@@ -1592,7 +1592,7 @@ private struct AgentUserInputCard: View {
     ) -> some View {
         let isSelected = conversation.userInputDraft(for: questionID).selection.contains(option.id)
         return Button {
-            conversation.toggleUserInputOption(option.id, in: questionID)
+            conversation.answerUserInputOption(option.id, in: questionID)
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
                 Image(systemName: marker(isSelected: isSelected, choice: choice))

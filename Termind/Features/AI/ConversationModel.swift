@@ -1726,6 +1726,24 @@ final class ConversationModel: Identifiable {
         skippedUserInputQuestionIDs.remove(questionID)
     }
 
+    /// Handles an option click from the question card. A radio choice is a
+    /// complete answer, so it advances immediately; checkboxes remain a draft
+    /// until the user explicitly confirms the set.
+    func answerUserInputOption(_ optionID: String, in questionID: String) {
+        guard case .choice(let choice)? = question(questionID)?.kind else { return }
+        guard !choice.allowsMultipleAnswers else {
+            toggleUserInputOption(optionID, in: questionID)
+            return
+        }
+
+        var draft = userInputDraft(for: questionID)
+        draft.selection = [optionID]
+        draft.text = ""
+        userInputDrafts[questionID] = draft
+        skippedUserInputQuestionIDs.remove(questionID)
+        advanceUserInputQuestion()
+    }
+
     /// The other half of that rule — typing clears the radio it would otherwise
     /// silently disagree with. Left alone in a multi-answer question, where the
     /// two are additive rather than exclusive.
