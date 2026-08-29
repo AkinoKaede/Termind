@@ -210,6 +210,9 @@ struct TerminalPlaceholderView: View {
     }
 
     private func receiveDroppedURLs(_ urls: [URL]) -> Bool {
+        // Only this terminal convenience is Pro. SFTPBrowserView keeps its own
+        // upload flow and remains free.
+        guard app.proAccess.require(.terminalFileUpload) else { return false }
         let files = urls.filter(\.isFileURL)
         guard !files.isEmpty else { return false }
         guard uploadTargetProblem == nil,

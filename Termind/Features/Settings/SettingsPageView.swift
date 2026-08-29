@@ -593,7 +593,7 @@ private struct ProSettings: View {
         }
 
         Section("Termind Pro") {
-            Text("Unlock multiple-pane workspaces, AI, MCP, and private iCloud Vault sync with one permanent purchase.")
+            Text("Unlock multiple-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and private iCloud Vault sync with one permanent purchase.")
                 .foregroundStyle(.secondary)
             if !app.proAccess.hasProAccess {
                 Button("View Termind Pro") { app.proAccess.presentPaywall() }
@@ -612,6 +612,32 @@ private struct ProSettings: View {
             Text("AI provider usage and charges are separate from Termind Pro.")
                 .font(.caption).foregroundStyle(.secondary)
         }
+
+        #if DEBUG
+            Section {
+                Button {
+                    app.proAccess.unlockForTesting()
+                } label: {
+                    Text(verbatim: "Unlock Pro (Debug)")
+                }
+                Button {
+                    Task { await app.proAccess.expireTrialForTesting() }
+                } label: {
+                    Text(verbatim: "Expire Trial Now (Debug)")
+                }
+                .disabled(!hasActiveTrial)
+                Button(role: .destructive) {
+                    Task { await app.proAccess.resetTrialForTesting() }
+                } label: {
+                    Text(verbatim: "Reset Trial State (Debug)")
+                }
+                Text(verbatim: "Debug only. These controls are not compiled into App Store builds.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(verbatim: "Development")
+            }
+        #endif
     }
 
     @ViewBuilder
@@ -628,6 +654,13 @@ private struct ProSettings: View {
         case .unrestrictedForTesting: Label("Development Access", systemImage: "hammer")
         }
     }
+
+    #if DEBUG
+        private var hasActiveTrial: Bool {
+            if case .trialActive = app.proAccess.status { return true }
+            return false
+        }
+    #endif
 }
 
 private struct StartupSettings: View {

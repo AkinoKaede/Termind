@@ -61,5 +61,10 @@ struct ProAccessTests {
         #expect(!access.require(.assistant))
         #expect(access.isPaywallPresented)
         #expect(access.requestedFeature == .assistant)
+
+        access.isPaywallPresented = false
+        #expect(!access.require(.terminalFileUpload))
+        #expect(access.isPaywallPresented)
+        #expect(access.requestedFeature == .terminalFileUpload)
     }
 }

@@ -3,7 +3,7 @@ import Foundation
 nonisolated enum ProFeature: String, CaseIterable, Hashable, Sendable {
     case workspaceComposition
     case assistant
-    case commandGenerator
+    case terminalFileUpload
     case remoteMCP
     case mcpServer
     case vaultSync
@@ -38,4 +38,3 @@ nonisolated enum TrialAssessment: Equatable, Sendable {
     case expired
     case recoveryRequired
 }
-

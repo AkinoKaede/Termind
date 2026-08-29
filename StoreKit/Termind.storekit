@@ -10,12 +10,12 @@
       "internalID" : "2f39bfde-c559-49a9-958f-52aeb1703dc0",
       "localizations" : [
         {
-          "description" : "Permanently unlock multi-pane workspaces, AI, MCP, and iCloud sync.",
+          "description" : "Unlock multi-pane workspaces, AI Assistant, terminal drop uploads, MCP, and iCloud sync.",
           "displayName" : "Termind Pro",
           "locale" : "en_US"
         },
         {
-          "description" : "永久解锁多窗格工作区、AI、MCP与iCloud同步。",
+          "description" : "永久解锁多窗格工作区、AI助手、终端拖放上传、MCP与iCloud同步。",
           "displayName" : "Termind Pro",
           "locale" : "zh_CN"
         }

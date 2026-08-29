@@ -168,6 +168,39 @@ final class ProAccessController {
         }
     }
 
+    #if DEBUG
+        func resetTrialForTesting() async {
+            guard let trialStore else { return }
+            refreshGeneration &+= 1
+            do {
+                try await trialStore.resetForTesting()
+                hasResolvedLocalState = true
+                workspaceCompositionGrantedForLaunch = false
+                apply(.free(trialAvailable: true))
+                message = nil
+            } catch {
+                message = error.localizedDescription
+            }
+        }
+
+        func expireTrialForTesting() async {
+            guard let trialStore else { return }
+            do {
+                guard try await trialStore.expireForTesting() else { return }
+                apply(Self.status(for: await trialStore.assessment(includeCloud: false)))
+            } catch {
+                message = error.localizedDescription
+            }
+        }
+
+        func unlockForTesting() {
+            refreshGeneration &+= 1
+            apply(.unrestrictedForTesting)
+            workspaceCompositionGrantedForLaunch = true
+            message = nil
+        }
+    #endif
+
     private func loadProduct() async throws -> Product {
         if let product { return product }
         guard let loaded = try await Product.products(for: [Self.productID]).first else {

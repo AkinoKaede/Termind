@@ -71,6 +71,13 @@ nonisolated struct TrialKeychainStore: Sendable {
         try set(value, service: Self.proofService)
     }
 
+    #if DEBUG
+        func removeTrialItems() throws {
+            try remove(service: Self.proofService)
+            try remove(service: Self.installKeyService)
+        }
+    #endif
+
     private func data(service: String) throws -> Data? {
         var query = baseQuery(service: service)
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -96,6 +103,13 @@ nonisolated struct TrialKeychainStore: Sendable {
         attributes.forEach { add[$0.key] = $0.value }
         let status = SecItemAdd(add as CFDictionary, nil)
         guard status == errSecSuccess else { throw KeychainSecretError.status(status) }
+    }
+
+    private func remove(service: String) throws {
+        let status = SecItemDelete(baseQuery(service: service) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainSecretError.status(status)
+        }
     }
 
     private func baseQuery(service: String) -> [String: Any] {
@@ -190,6 +204,36 @@ actor TrialEligibilityStore {
         }
         return .active(expiresAt: proof.startedAt.addingTimeInterval(Self.duration))
     }
+
+    #if DEBUG
+        func resetForTesting() async throws {
+            defaults.removeObject(forKey: Self.defaultsKey)
+            try keychain.removeTrialItems()
+            guard let database else { return }
+            do {
+                _ = try await database.deleteRecord(withID: recordID)
+            } catch {
+                // Local Debug testing must still be reset when Development
+                // CloudKit is offline or its zone/record does not exist.
+            }
+        }
+
+        func expireForTesting(now: Date = .now) throws -> Bool {
+            guard let key = try keychain.installKey() else { return false }
+            let envelopes = [defaults.data(forKey: Self.defaultsKey), try keychain.proof()]
+            let proofs = envelopes.compactMap { data -> TrialProof? in
+                guard let data else { return nil }
+                return try? TrialProofCodec.verify(data, key: key)
+            }
+            guard var proof = proofs.min(by: { $0.startedAt < $1.startedAt }) else {
+                return false
+            }
+            proof.startedAt = now.addingTimeInterval(-Self.duration - 60)
+            proof.lastTrustedAt = now
+            try persist(proof, key: key)
+            return true
+        }
+    #endif
 
     private func makeProof(startedAt: Date, now: Date) -> TrialProof {
         TrialProof(

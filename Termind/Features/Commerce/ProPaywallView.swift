@@ -24,7 +24,8 @@ struct ProPaywallView: View {
 
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 feature("Arrange multiple panes and broadcast input", "rectangle.split.2x1")
-                feature("Use the Assistant and Command Generator", "sparkles")
+                feature("Use the AI Assistant", "sparkles")
+                feature("Upload files by dropping them on a terminal", "arrow.up.doc")
                 feature("Connect MCP tools and run the built-in MCP Server", "server.rack")
                 feature("Sync your Vault through your private iCloud database", "icloud")
             }
