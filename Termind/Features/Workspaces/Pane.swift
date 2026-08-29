@@ -13,6 +13,7 @@ enum PaneContent {
     // because a transfer is a conversation with one machine about one path.
     case sshSession(SSHSessionModel)
     case sftpSession(SFTPSessionModel)
+    case serialSession(SerialSessionModel)
     /// A slot that has been carved out and not filled yet.
     ///
     /// Split makes one of these rather than opening a connection, because
@@ -36,6 +37,8 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// One host's SFTP browser. It shares the Sessions section with SSH while
     /// retaining its own kind for protocol-specific actions and iconography.
     case sftpSession
+    /// A temporary terminal attached directly to a local serial device.
+    case serialSession
     /// An unfilled split. Belongs in no sidebar section — it is a hole in a
     /// layout, and listing it would put a row in Sessions for something that is
     /// not a session yet and may never be one.
@@ -55,7 +58,7 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// `.empty` is not combinable, which is what stops a half-arranged Workspace
     /// from being dragged into another one before it has been filled.
     var isCombinable: Bool {
-        self == .sshSession || self == .sftpSession
+        self == .sshSession || self == .sftpSession || self == .serialSession
     }
 
     /// Whether a pane of this kind may be given a name.
@@ -70,14 +73,14 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// and an unfilled slot are the same story: both are named after the state
     /// they are in, and both stop existing when that state ends.
     var isRenameable: Bool {
-        self == .sshSession || self == .sftpSession
+        self == .sshSession || self == .sftpSession || self == .serialSession
     }
 
     /// Only work panes have transient context worth reserving a footer for.
     /// Manager pages, forms and empty slots should use the full content height
     /// instead of permanently reporting the fallback "Not connected" state.
     var showsStatusBar: Bool {
-        self == .sshSession || self == .sftpSession
+        self == .sshSession || self == .sftpSession || self == .serialSession
     }
 }
 
@@ -113,6 +116,7 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let session): session.connectionCoordinator = coordinator
         case .sftpSession(let session): session.connectionCoordinator = coordinator
+        case .serialSession: break
         case .empty: break
         }
     }
@@ -131,6 +135,7 @@ final class Pane: Identifiable {
         switch content {
         case .sftpSession: .sftpSession
         case .sshSession: .sshSession
+        case .serialSession: .serialSession
         case .empty: .empty
         }
     }
@@ -149,6 +154,7 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession: "apple.terminal"
         case .sftpSession: "folder"
+        case .serialSession: "cable.connector"
         case .empty: "rectangle.dashed"
         }
     }
@@ -165,6 +171,11 @@ final class Pane: Identifiable {
         return nil
     }
 
+    var serialSession: SerialSessionModel? {
+        if case .serialSession(let serialSession) = content { return serialSession }
+        return nil
+    }
+
     /// Ends network state only when the pane is actually being closed. View
     /// disappearance is not ownership: dragging a pane reparents its view and
     /// must leave the same live session connected.
@@ -172,6 +183,7 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let sshSession): sshSession.disconnect()
         case .sftpSession(let sftpSession): sftpSession.disconnect()
+        case .serialSession(let serialSession): serialSession.disconnect()
         default: break
         }
     }
@@ -181,17 +193,24 @@ final class Pane: Identifiable {
     /// `disconnectConnection`. Keep the Pane itself so its name, duplicate
     /// index, focus identity, and place in the split tree all survive.
     func prepareForReopen() {
-        guard case .sshSession(let sshSession) = content else { return }
-        sshSession.inputRouter = nil
-        let replacement = sshSession.copyForReconnect()
-        replacement.status = .connecting
-        content = .sshSession(replacement)
+        switch content {
+        case .sshSession(let sshSession):
+            sshSession.inputRouter = nil
+            let replacement = sshSession.copyForReconnect()
+            replacement.status = .connecting
+            content = .sshSession(replacement)
+        case .serialSession(let serialSession):
+            serialSession.status = .connecting
+        case .sftpSession, .empty:
+            break
+        }
     }
 
     var status: ConnectionStatus {
         switch content {
         case .sshSession(let sshSession): sshSession.status
         case .sftpSession(let sftpSession): sftpSession.status
+        case .serialSession(let serialSession): serialSession.status
         default: .disconnected
         }
     }
@@ -199,6 +218,7 @@ final class Pane: Identifiable {
     var hasUnreadOutput: Bool {
         switch content {
         case .sshSession(let sshSession): sshSession.hasUnreadOutput
+        case .serialSession(let serialSession): serialSession.hasUnreadOutput
         default: false
         }
     }
@@ -209,6 +229,7 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let sshSession): sshSession.hostID
         case .sftpSession(let sftpSession): sftpSession.hostID
+        case .serialSession: nil
         case .empty: nil
         }
     }
@@ -217,6 +238,7 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let sshSession): sshSession.workingDirectory
         case .sftpSession(let sftpSession): sftpSession.path
+        case .serialSession: nil
         default: nil
         }
     }
@@ -225,6 +247,7 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let sshSession): sshSession.displayedWorkingDirectory
         case .sftpSession(let sftpSession): sftpSession.displayedPath
+        case .serialSession: nil
         default: nil
         }
     }
@@ -255,6 +278,8 @@ final class Pane: Identifiable {
             return Pane(.sshSession(clone))
         case .sftpSession(let sftpSession):
             return Pane(.sftpSession(sftpSession.copyForBrowsing()))
+        case .serialSession:
+            return nil
         case .empty:
             return Pane(.empty)
         }
@@ -280,6 +305,8 @@ final class Pane: Identifiable {
             sshSession.title
         case .sftpSession(let sftpSession):
             store.host(sftpSession.hostID)?.name ?? String(localized: "SFTP")
+        case .serialSession(let serialSession):
+            serialSession.title
         case .empty:
             String(localized: "Empty")
         }
@@ -303,6 +330,8 @@ final class Pane: Identifiable {
         switch content {
         case .sftpSession(let sftpSession):
             sftpSession.displayedPath
+        case .serialSession(let serialSession):
+            serialSession.subtitle
         case _ where customTitle != nil:
             // A renamed pane shows its name and nothing under it: the subtitle
             // is the derived detail, and pairing it with a name the user chose
@@ -353,6 +382,14 @@ extension Pane {
                 SFTPSessionModel(
                     hostID: host.id, initialPath: initialPath ?? host.sftpSessionInitialPath
                 )))
+    }
+
+    static func serialSession(
+        configuration: SerialConnectionConfiguration, service: any SerialPortServing
+    ) -> Pane {
+        let session = SerialSessionModel(configuration: configuration, service: service)
+        session.status = .connecting
+        return Pane(.serialSession(session))
     }
 }
 

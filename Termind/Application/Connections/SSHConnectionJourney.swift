@@ -3,6 +3,7 @@ import Foundation
 nonisolated enum SSHConnectionPurpose: String, Hashable, Sendable {
     case sshSession
     case sftpSession
+    case serialSession
 }
 
 nonisolated struct SSHConnectionEndpoint: Identifiable, Hashable, Sendable {
@@ -15,6 +16,7 @@ nonisolated struct SSHConnectionEndpoint: Identifiable, Hashable, Sendable {
     nonisolated enum ID: Hashable, Sendable {
         case local
         case host(Host.ID)
+        case serial(String)
     }
 
     var id: ID
@@ -143,13 +145,41 @@ final class SSHConnectionJourney {
         let action = mode == .reconnection ? "Reconnecting " : "Starting "
         log(
             endpoint: endpoints.first?.name ?? String(localized: "This Mac"),
-            message: action
-                + (purpose == .sshSession ? "SSH session" : "SFTP session")
-                + " connection to " + host.name
+            message: action + purpose.logName + " connection to " + host.name
         )
         if let username, !username.isEmpty {
             log(endpoint: host.name, message: "Using login " + username)
         }
+    }
+
+    func beginSerial(name: String, address: String, mode: Mode = .connection) {
+        completionTask?.cancel()
+        purpose = .serialSession
+        self.mode = mode
+        endpoints = [
+            SSHConnectionEndpoint(
+                id: .local, hostID: nil,
+                name: String(localized: "This Mac"), address: "localhost", role: .local
+            ),
+            SSHConnectionEndpoint(
+                id: .serial(address), hostID: nil,
+                name: name, address: address, role: .destination
+            ),
+        ]
+        phase = .connecting
+        activeEndpointIndex = 1
+        completedEndpointIndex = 0
+        checkpoint = nil
+        completedCheckpoints = [:]
+        localRequirement = nil
+        logs = []
+        showsLogs = false
+        log(
+            endpoint: endpoints[0].name,
+            message: (mode == .reconnection ? "Reconnecting " : "Starting ")
+                + "serial connection to " + name
+        )
+        log(endpoint: name, message: "Opening " + address)
     }
 
     func receive(_ event: SSHRouteEvent) {
@@ -298,5 +328,15 @@ final class SSHConnectionJourney {
         localRequirement = nil
         phase = .waiting
         log(endpoint: endpoints[index].name, message: message)
+    }
+}
+
+private extension SSHConnectionPurpose {
+    var logName: String {
+        switch self {
+        case .sshSession: "SSH session"
+        case .sftpSession: "SFTP session"
+        case .serialSession: "serial session"
+        }
     }
 }

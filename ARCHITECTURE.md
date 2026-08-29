@@ -41,9 +41,9 @@ framework and concrete-client restrictions that directory layout alone cannot.
 - Assistant owns its conversation list through `AssistantLibraryModel`; conversations are
   not panes and do not participate in Workspace drag, split, close, or reconnect
   lifecycles.
-- A workspace owns only SSH/SFTP panes plus its session-scoped assistant
+- A workspace owns SSH/SFTP/serial panes plus its session-scoped assistant
   conversation. Workspace content is full width and has no left sidebar.
-- Session models own live SSH/SFTP resources and terminal/file-browser state.
+- Session models own live SSH/SFTP/serial resources and terminal/file-browser state.
 - Settings is a native singleton macOS `Settings` scene, outside window routing.
 
 Repository data is persistent truth. Runtime connection state is kept in a
@@ -60,6 +60,10 @@ The shared Vault transaction is isolated behind `VaultStore`. Feature facades
 keep their backing aggregate private, and Terminal/SFTP sessions depend on the
 narrow `RemoteSessionHostStore` port rather than the complete Vault mutation
 surface.
+
+Serial sessions are temporary and local: IOKit/termios discovery and descriptors
+stay in Infrastructure, parameters live only with the open pane, and no serial
+path is persisted or exposed as an Agent host.
 
 Window navigation has one Navigator plus three tool sidebars: Assistant,
 Snippets, and History. Dynamic SSH/SFTP containers are consistently named

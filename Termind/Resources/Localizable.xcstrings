@@ -1593,6 +1593,16 @@
         }
       }
     },
+    "Apply serial settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用串口设置"
+          }
+        }
+      }
+    },
     "Approval required" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1889,6 +1899,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "批量启动"
+          }
+        }
+      }
+    },
+    "Baud Rate" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "波特率"
           }
         }
       }
@@ -2629,6 +2649,27 @@
         }
       }
     },
+    "Common Rates" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常用速率"
+          }
+        }
+      }
+    },
+    "Communication" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通信参数"
+          }
+        }
+      }
+    },
     "Compact" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2711,6 +2752,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "配置模型提供商"
+          }
+        }
+      }
+    },
+    "Configure serial port" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置串口"
           }
         }
       }
@@ -3245,6 +3297,16 @@
         }
       }
     },
+    "CR" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CR"
+          }
+        }
+      }
+    },
     "create" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3301,6 +3363,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "严重"
+          }
+        }
+      }
+    },
+    "CRLF" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CRLF"
           }
         }
       }
@@ -3365,6 +3437,17 @@
         }
       }
     },
+    "Custom path" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义路径"
+          }
+        }
+      }
+    },
     "Customize" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3391,6 +3474,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "深色自定义配置"
+          }
+        }
+      }
+    },
+    "Data Bits" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数据位"
           }
         }
       }
@@ -3713,6 +3806,37 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "破坏性"
+          }
+        }
+      }
+    },
+    "Detected Path" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到的路径"
+          }
+        }
+      }
+    },
+    "Device" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备"
+          }
+        }
+      }
+    },
+    "Device Path" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备路径"
           }
         }
       }
@@ -4169,6 +4293,26 @@
         }
       }
     },
+    "Enter an absolute device path and a valid baud rate." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入绝对设备路径和有效的波特率。"
+          }
+        }
+      }
+    },
+    "Enter Sends" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回车键发送"
+          }
+        }
+      }
+    },
     "Enter the Passphrase for the selected key." : {
       "localizations" : {
         "zh-Hans" : {
@@ -4185,6 +4329,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在建立连接…"
+          }
+        }
+      }
+    },
+    "Even" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "偶校验"
           }
         }
       }
@@ -4661,6 +4815,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "指纹"
+          }
+        }
+      }
+    },
+    "Flow Control" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "流控制"
           }
         }
       }
@@ -5851,6 +6015,16 @@
         }
       }
     },
+    "LF" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LF"
+          }
+        }
+      }
+    },
     "libssh2" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5957,6 +6131,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本地"
+          }
+        }
+      }
+    },
+    "Local Echo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地回显"
           }
         }
       }
@@ -6583,6 +6767,16 @@
         }
       }
     },
+    "No command is running under that handle. It finished and was already reported, or it was released after going unasked-about for too long." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该句柄下没有正在运行的命令。命令可能已结束并报告结果，或因长时间无人查询而被释放。"
+          }
+        }
+      }
+    },
     "No commands match “%@”" : {
       "comment" : "A label that indicates that no commands match the current search query. The argument is the query.",
       "isCommentAutoGenerated" : true,
@@ -6595,22 +6789,34 @@
         }
       }
     },
-    "No command is running under that handle. It finished and was already reported, or it was released after going unasked-about for too long." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "该句柄下没有正在运行的命令。命令可能已结束并报告结果，或因长时间无人查询而被释放。"
-          }
-        }
-      }
-    },
     "No Conversations" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "无对话"
+          }
+        }
+      }
+    },
+    "No detected serial devices" : {
+      "comment" : "A message displayed when there are no serial devices detected.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未检测到串口设备"
+          }
+        }
+      }
+    },
+    "No detected serial devices. You can still enter any absolute device path." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未检测到串口设备。仍可输入任意绝对设备路径。"
           }
         }
       }
@@ -7089,6 +7295,16 @@
         }
       }
     },
+    "Odd" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "奇校验"
+          }
+        }
+      }
+    },
     "Off" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7229,6 +7445,16 @@
         }
       }
     },
+    "Open serial port" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开串口"
+          }
+        }
+      }
+    },
     "Open System Settings" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7255,6 +7481,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在建立SSH传输"
+          }
+        }
+      }
+    },
+    "Opening the serial port timed out." : {
+      "comment" : "Error description when opening the serial port times out.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开串口超时。"
           }
         }
       }
@@ -7385,6 +7623,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "窗格名称"
+          }
+        }
+      }
+    },
+    "Parity" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "校验"
           }
         }
       }
@@ -8165,6 +8413,26 @@
         }
       }
     },
+    "Read serial port" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取串口"
+          }
+        }
+      }
+    },
+    "Read serial settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取串口设置"
+          }
+        }
+      }
+    },
     "Read-only" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8241,6 +8509,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "推荐"
+          }
+        }
+      }
+    },
+    "Reconnect" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新连接"
           }
         }
       }
@@ -8887,6 +9165,16 @@
         }
       }
     },
+    "RTS/CTS" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RTS/CTS"
+          }
+        }
+      }
+    },
     "run" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9499,6 +9787,63 @@
         }
       }
     },
+    "Serial" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "串口"
+          }
+        }
+      }
+    },
+    "Serial device opened" : {
+      "comment" : "Message displayed when the serial port is successfully opened.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "串口设备已打开"
+          }
+        }
+      }
+    },
+    "Serial input monitoring started" : {
+      "comment" : "Message for the serial port open stage when serial input monitoring has started.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "串口输入监听已启动"
+          }
+        }
+      }
+    },
+    "Serial Port Disconnected" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "串口已断开"
+          }
+        }
+      }
+    },
+    "Serial settings applied" : {
+      "comment" : "Message displayed when the serial port settings have been successfully applied.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "串口设置已应用"
+          }
+        }
+      }
+    },
     "Served from cache" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9545,6 +9890,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "服务账户"
+          }
+        }
+      }
+    },
+    "Set baud rate" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置波特率"
           }
         }
       }
@@ -10311,6 +10666,16 @@
         }
       }
     },
+    "Stop Bits" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止位"
+          }
+        }
+      }
+    },
     "Stop current run — ⌘." : {
       "localizations" : {
         "zh-Hans" : {
@@ -10669,6 +11034,16 @@
         }
       }
     },
+    "Terminal Input" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端输入"
+          }
+        }
+      }
+    },
     "Terminal ready" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10921,6 +11296,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "数据库保存和钥匙串回滚均失败：%@"
+          }
+        }
+      }
+    },
+    "The device path does not exist." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备路径不存在。"
+          }
+        }
+      }
+    },
+    "The device path is not a character device." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备路径不是字符设备。"
           }
         }
       }
@@ -11679,6 +12074,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所选模型无法读取图像。发送前请选择支持视觉的模型。"
+          }
+        }
+      }
+    },
+    "The serial port is closed." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "串口已关闭。"
           }
         }
       }
@@ -13227,18 +13632,6 @@
         }
       }
     },
-    "Workspaces" : {
-      "comment" : "Title of a command section for workspace management.",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "工作区"
-          }
-        }
-      }
-    },
     "Workspace" : {
       "localizations" : {
         "zh-Hans" : {
@@ -13289,6 +13682,18 @@
         }
       }
     },
+    "Workspaces" : {
+      "comment" : "Title of a command section for workspace management.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区"
+          }
+        }
+      }
+    },
     "write" : {
       "localizations" : {
         "zh-Hans" : {
@@ -13309,6 +13714,16 @@
         }
       }
     },
+    "Write serial port" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入串口"
+          }
+        }
+      }
+    },
     "Writes directly to a block device." : {
       "localizations" : {
         "zh-Hans" : {
@@ -13325,6 +13740,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写入"
+          }
+        }
+      }
+    },
+    "XON/XOFF" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XON/XOFF"
           }
         }
       }

@@ -224,7 +224,11 @@ final class WindowModel {
         selectedWorkspace?.focusedPane.sftpSession
     }
 
-    var canFindInTerminal: Bool { focusedSSHSession != nil }
+    var focusedSerialSession: SerialSessionModel? {
+        selectedWorkspace?.focusedPane.serialSession
+    }
+
+    var canFindInTerminal: Bool { focusedSSHSession != nil || focusedSerialSession != nil }
 
     var canGenerateTerminalCommand: Bool { focusedSSHSession != nil }
 
@@ -274,7 +278,7 @@ final class WindowModel {
         case .assistant:
             return .assistant
         case .workspace:
-            if focusedSSHSession != nil { return .terminal }
+            if focusedSSHSession != nil || focusedSerialSession != nil { return .terminal }
             if focusedSFTPSession != nil { return .sftp }
             return nil
         case .vault:
@@ -310,7 +314,10 @@ final class WindowModel {
         }
         guard findKind != nil else { return }
         isToolbarFindFocused = true
-        if findKind == .terminal { focusedSSHSession?.presentFind() }
+        if findKind == .terminal {
+            focusedSSHSession?.presentFind()
+            focusedSerialSession?.presentFind()
+        }
         findFocusRequest &+= 1
         // On the next turn, so the update the two lines above set off has
         // already landed and cannot take the caret straight back out.
@@ -325,6 +332,7 @@ final class WindowModel {
     /// the two used to disagree.
     func navigateTerminalFind(_ direction: TerminalFindDirection) {
         focusedSSHSession?.presentFindAndNavigate(direction)
+        focusedSerialSession?.presentFindAndNavigate(direction)
     }
 
     /// The workspace whose content the detail column shows.
@@ -386,10 +394,14 @@ final class WindowModel {
     /// them: it is a page, so its `kind` is `.page`, and it lives in Manage.
     var sftpSessionPanes: [PaneRef] { panes(ofKind: .sftpSession) }
 
+    var serialSessionPanes: [PaneRef] { panes(ofKind: .serialSession) }
+
     var sessionPanes: [PaneRef] {
         workspaces.flatMap { workspace in
             workspace.panes.compactMap { pane in
-                guard pane.kind == .sshSession || pane.kind == .sftpSession else { return nil }
+                guard pane.kind == .sshSession || pane.kind == .sftpSession
+                    || pane.kind == .serialSession
+                else { return nil }
                 return PaneRef(workspace: workspace, pane: pane)
             }
         }
@@ -741,6 +753,14 @@ final class WindowModel {
         return open(Workspace(pane: pane))
     }
 
+    @discardableResult
+    func openSerialSession(
+        configuration: SerialConnectionConfiguration,
+        service: any SerialPortServing
+    ) -> Workspace {
+        open(Workspace(pane: .serialSession(configuration: configuration, service: service)))
+    }
+
     /// A one-shot directory change for a shell opened from an SFTP path.
     /// Single-quoting keeps spaces and shell punctuation inert; embedded
     /// apostrophes are closed, emitted literally, and reopened.
@@ -958,7 +978,10 @@ final class WindowModel {
         selectedWorkspace?.focusedPane.isCombinable ?? false
     }
 
-    var canDuplicateSelected: Bool { canSplitSelected }
+    var canDuplicateSelected: Bool {
+        guard canSplitSelected, let workspace = selectedWorkspace else { return false }
+        return !workspace.panes.contains { $0.serialSession != nil }
+    }
 
     /// Carves an empty slot beside the focused pane, for something already open
     /// to be dragged into. Deliberately not a connection: choosing a layout and

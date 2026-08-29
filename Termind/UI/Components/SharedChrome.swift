@@ -151,6 +151,7 @@ struct ManagedChooserHeader: View {
     let prompt: LocalizedStringKey
     @Binding var query: String
     var aboveSearch: AnyView? = nil
+    var showsSearch = true
     var onSubmit: () -> Void = {}
     var moveCursor: (Int) -> KeyPress.Result = { _ in .ignored }
     var toggleCursor: () -> KeyPress.Result = { .ignored }
@@ -167,7 +168,29 @@ struct ManagedChooserHeader: View {
                 aboveSearch
             }
 
-            HStack(spacing: Metrics.Space.s) {
+            if showsSearch {
+                searchRow
+                    .transition(
+                        .opacity.combined(with: .move(edge: .top))
+                    )
+            }
+        }
+        .padding(Metrics.Space.xl)
+        .animation(Motion.panel, value: showsSearch)
+        .onAppear {
+            if showsSearch { searchFocused = true }
+        }
+        .onChange(of: showsSearch) { _, visible in
+            if visible {
+                Task { @MainActor in searchFocused = true }
+            } else {
+                searchFocused = false
+            }
+        }
+    }
+
+    private var searchRow: some View {
+        HStack(spacing: Metrics.Space.s) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                 TextField(prompt, text: $query)
@@ -189,15 +212,12 @@ struct ManagedChooserHeader: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Clear search"))
                 }
-            }
-            .padding(Metrics.Space.s)
-            .background(
-                .quaternary.opacity(0.5),
-                in: .rect(cornerRadius: Metrics.Radius.medium)
-            )
         }
-        .padding(Metrics.Space.xl)
-        .onAppear { searchFocused = true }
+        .padding(Metrics.Space.s)
+        .background(
+            .quaternary.opacity(0.5),
+            in: .rect(cornerRadius: Metrics.Radius.medium)
+        )
     }
 }
 

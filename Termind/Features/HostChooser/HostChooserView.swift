@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import ListViewKit
 import SwiftUI
 
@@ -26,13 +27,23 @@ nonisolated struct SnippetHostChooserRequest: Hashable, Sendable {
 nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sendable {
     case ssh = "SSH"
     case sftp = "SFTP"
+    case serial = "Serial"
 
     nonisolated var id: Self { self }
 
-    var target: HostOpenTarget {
+    var displayName: String {
+        switch self {
+        case .ssh: String(localized: "SSH")
+        case .sftp: String(localized: "SFTP")
+        case .serial: String(localized: "Serial")
+        }
+    }
+
+    var target: HostOpenTarget? {
         switch self {
         case .ssh: .sshSession
         case .sftp: .sftpSession
+        case .serial: nil
         }
     }
 }
@@ -150,6 +161,10 @@ struct HostChooserView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var chooser: ManagedChooserState<Host.ID>
     @State private var connectionProtocol = HostConnectionProtocol.ssh
+    @State private var serialConfiguration = SerialConnectionConfiguration()
+    @State private var serialBaudRate = "115200"
+    @State private var serialPorts: [SerialPortDescriptor] = []
+    @State private var serialError: String?
     @State private var isConfirmingDestructiveSnippet = false
 
     init(purpose: HostChooserPurpose, presentation: Presentation = .sheet) {
@@ -195,9 +210,17 @@ struct HostChooserView: View {
             width: sheetWidth,
             height: presentation == .sheet ? Metrics.HostPicker.height : nil
         )
+        .animation(Motion.panel, value: connectionProtocol)
         .onChange(of: chooser.query) {
             let ids = results.map(\.id)
             chooser.queryDidChange(visible: ids, enabled: Set(ids))
+        }
+        .task(id: connectionProtocol) {
+            guard connectionProtocol == .serial else { return }
+            for await ports in app.serialPorts.portUpdates() {
+                guard !Task.isCancelled else { return }
+                serialPorts = ports
+            }
         }
         .confirmationDialog(
             "Execute a destructive script?",
@@ -227,6 +250,7 @@ struct HostChooserView: View {
             query: queryBinding,
             aboveSearch: purpose.choosesConnectionProtocol
                 ? AnyView(connectionProtocolPicker) : nil,
+            showsSearch: connectionProtocol != .serial,
             onSubmit: openSelected,
             moveCursor: move,
             toggleCursor: toggleCursor
@@ -235,8 +259,8 @@ struct HostChooserView: View {
 
     private var connectionProtocolPicker: some View {
         Picker("Connection Protocol", selection: $connectionProtocol) {
-            ForEach(HostConnectionProtocol.allCases) { connectionProtocol in
-                Text(connectionProtocol.rawValue).tag(connectionProtocol)
+            ForEach(availableConnectionProtocols) { connectionProtocol in
+                Text(connectionProtocol.displayName).tag(connectionProtocol)
             }
         }
         .pickerStyle(.segmented)
@@ -245,9 +269,15 @@ struct HostChooserView: View {
         .accessibilityLabel("Connection protocol")
     }
 
+    private var availableConnectionProtocols: [HostConnectionProtocol] {
+        purpose == .connect ? HostConnectionProtocol.allCases : [.ssh, .sftp]
+    }
+
     @ViewBuilder
     private var content: some View {
-        if app.hostLibrary.hosts.isEmpty {
+        if connectionProtocol == .serial {
+            serialForm
+        } else if app.hostLibrary.hosts.isEmpty {
             ContentUnavailableView {
                 Label("No Hosts", systemImage: "server.rack")
             } description: {
@@ -281,6 +311,71 @@ struct HostChooserView: View {
         }
     }
 
+    private var serialForm: some View {
+        Form {
+            Section("Device") {
+                SerialEditableComboField(
+                    title: "Device Path",
+                    value: $serialConfiguration.devicePath,
+                    options: serialPorts.map {
+                        SerialComboOption(value: $0.path, label: $0.displayName)
+                    }
+                )
+                if serialPorts.isEmpty {
+                    Text("No detected serial devices. You can still enter any absolute device path.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Communication") {
+                SerialEditableComboField(
+                    title: "Baud Rate",
+                    value: $serialBaudRate,
+                    options: SerialConnectionConfiguration.commonBaudRates.map {
+                        SerialComboOption(value: String($0), label: $0.formatted())
+                    }
+                )
+                Picker("Data Bits", selection: $serialConfiguration.dataBits) {
+                    ForEach(SerialDataBits.allCases) { Text("\($0.rawValue)").tag($0) }
+                }
+                Picker("Parity", selection: $serialConfiguration.parity) {
+                    ForEach(SerialParity.allCases) { Text($0.displayName).tag($0) }
+                }
+                Picker("Stop Bits", selection: $serialConfiguration.stopBits) {
+                    ForEach(SerialStopBits.allCases) { Text("\($0.rawValue)").tag($0) }
+                }
+                Picker("Flow Control", selection: $serialConfiguration.flowControl) {
+                    ForEach(SerialFlowControl.allCases) { Text($0.displayName).tag($0) }
+                }
+            }
+
+            Section("Terminal Input") {
+                Picker("Enter Sends", selection: $serialConfiguration.enterKey) {
+                    ForEach(SerialEnterKey.allCases) { Text($0.displayName).tag($0) }
+                }
+                Toggle("Local Echo", isOn: $serialConfiguration.localEcho)
+            }
+
+            if let serialError {
+                Text(serialError).foregroundStyle(.red).font(.caption)
+            }
+        }
+        .formStyle(.grouped)
+        .onChange(of: serialConfiguration.devicePath) {
+            serialConfiguration.deviceName = serialPorts.first {
+                $0.path == serialConfiguration.devicePath
+            }?.name
+            serialError = nil
+        }
+        .onChange(of: serialBaudRate) {
+            if let rate = Int(serialBaudRate), (1...4_000_000).contains(rate) {
+                serialConfiguration.baudRate = rate
+                serialError = nil
+            }
+        }
+    }
+
     private var hostListItems: [HostChooserListItem] {
         results.map { host in
             HostChooserListItem(
@@ -294,7 +389,7 @@ struct HostChooserView: View {
 
     private var footer: some View {
         HStack {
-            if purpose.allowsMultiple {
+            if purpose.allowsMultiple, connectionProtocol != .serial {
                 Text("\(chooser.selected.count) selected")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -319,9 +414,19 @@ struct HostChooserView: View {
 
             Button(purpose.confirmLabel, action: openSelected)
                 .keyboardShortcut(.defaultAction)
-                .disabled(purpose.allowsMultiple ? chooser.selected.isEmpty : selectedHost == nil)
+                .disabled(connectIsDisabled)
         }
         .padding(Metrics.Space.l)
+    }
+
+    private var connectIsDisabled: Bool {
+        if connectionProtocol == .serial {
+            guard let rate = Int(serialBaudRate), (1...4_000_000).contains(rate) else {
+                return true
+            }
+            return !serialConfiguration.isValid
+        }
+        return purpose.allowsMultiple ? chooser.selected.isEmpty : selectedHost == nil
     }
 
     // MARK: - Checking
@@ -342,11 +447,32 @@ struct HostChooserView: View {
     }
 
     private func openSelected() {
-        if purpose.allowsMultiple {
+        if connectionProtocol == .serial {
+            openSerial()
+        } else if purpose.allowsMultiple {
             openChecked()
         } else if let host = selectedHost {
             open(host)
         }
+    }
+
+    private func openSerial() {
+        guard serialConfiguration.isValid else { return }
+        guard let rate = Int(serialBaudRate), (1...4_000_000).contains(rate) else { return }
+        serialConfiguration.baudRate = rate
+        let path = serialConfiguration.normalizedDevicePath
+        var info = stat()
+        guard lstat(path, &info) == 0 else {
+            serialError = String(localized: "The device path does not exist.")
+            return
+        }
+        guard (info.st_mode & S_IFMT) == S_IFCHR else {
+            serialError = String(localized: "The device path is not a character device.")
+            return
+        }
+        serialConfiguration.devicePath = path
+        window.openSerialSession(configuration: serialConfiguration, service: app.serialPorts)
+        dismiss()
     }
 
     private func openChecked(as layout: BatchLayout = .separateWorkspaces) {
@@ -355,7 +481,8 @@ struct HostChooserView: View {
         if case .snippet = purpose {
             requestSnippetExecution()
         } else {
-            app.open(batch, as: connectionProtocol.target, layout: layout, in: window)
+            guard let target = connectionProtocol.target else { return }
+            app.open(batch, as: target, layout: layout, in: window)
             dismiss()
         }
     }
@@ -438,7 +565,8 @@ struct HostChooserView: View {
     }
 
     private func open(_ host: Host) {
-        app.open(host, as: connectionProtocol.target, in: window)
+        guard let target = connectionProtocol.target else { return }
+        app.open(host, as: target, in: window)
         dismiss()
     }
 }

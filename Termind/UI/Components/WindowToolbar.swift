@@ -635,6 +635,18 @@ extension WindowModel {
                 focusRequest: findFocusRequest
             )
         case .terminal:
+            if let serialSession = focusedSerialSession {
+                return WindowToolbarFindContext(
+                    kind: kind,
+                    query: Binding(
+                        get: { serialSession.findQuery },
+                        set: { serialSession.updateFindQuery($0) }
+                    ),
+                    focusRequest: findFocusRequest,
+                    navigate: { serialSession.presentFindAndNavigate($0) },
+                    cancel: { serialSession.dismissFind() }
+                )
+            }
             guard let sshSession = focusedSSHSession else { return nil }
             return WindowToolbarFindContext(
                 kind: kind,

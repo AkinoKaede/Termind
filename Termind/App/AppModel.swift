@@ -62,6 +62,7 @@ final class AppModel {
     let mcpServer: MCPServerController
     let commands = AppCommandRegistry()
     let connections: RemoteConnectionCoordinator
+    let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
     let vaultSync: VaultSyncCoordinator?
     let forwarding: PortForwardingController
@@ -121,6 +122,7 @@ final class AppModel {
         self.externalToolCalls = externalToolCalls
         externalAuthentication = ExternalAuthCoordinator()
         connections = connectionCoordinator
+        serialPorts = dependencies.serialPortService
         agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
         agentHosts = AgentHostResolver(
             store: hosts,

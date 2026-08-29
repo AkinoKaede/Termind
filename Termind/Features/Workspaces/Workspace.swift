@@ -205,6 +205,7 @@ final class Workspace: Identifiable {
     func markRead() {
         for pane in panes {
             pane.sshSession?.hasUnreadOutput = false
+            pane.serialSession?.hasUnreadOutput = false
         }
     }
 

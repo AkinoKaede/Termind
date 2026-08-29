@@ -56,6 +56,7 @@ struct StatusBarView: View {
     }
 
     private var sftpSession: SFTPSessionModel? { pane?.sftpSession }
+    private var serialSession: SerialSessionModel? { pane?.serialSession }
 
     /// One rule decides both whether the capsule appears at all and what it
     /// shrinks to, so the two can never disagree — see `StatusBarPresentation`.
@@ -203,6 +204,7 @@ struct StatusBarView: View {
     private var status: ConnectionStatus {
         sshSession?.status
             ?? sftpSession?.status
+            ?? serialSession?.status
             ?? pane?.hostID.map { app.hostLibrary.status(of: $0) }
             ?? .disconnected
     }
@@ -220,11 +222,17 @@ struct StatusBarView: View {
             if let host {
                 Text(host.name)
                 Text(host.host).foregroundStyle(.tertiary)
+            } else if let serialSession {
+                Text(serialSession.title)
+                Text(serialSession.subtitle).foregroundStyle(.tertiary)
             } else {
                 Text(status.label)
             }
         }
-        .help(Text(host.map { app.hostLibrary.loginAddress(for: $0) } ?? status.label))
+        .help(Text(
+            host.map { app.hostLibrary.loginAddress(for: $0) }
+                ?? serialSession?.subtitle ?? status.label
+        ))
     }
 
     private var host: Host? { pane?.hostID.flatMap { app.hostLibrary.host($0) } }

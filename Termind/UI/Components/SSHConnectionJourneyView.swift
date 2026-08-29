@@ -136,6 +136,9 @@ struct SSHConnectionJourneyView: View {
     var reconnectState: ReconnectState? = nil
     var retryReconnectNow: (() -> Void)? = nil
     var stopReconnecting: (() -> Void)? = nil
+    var failureCancelLabel: LocalizedStringKey = "Cancel"
+    var failureRetryLabel: LocalizedStringKey = "Retry"
+    var compactFailureActions = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -178,10 +181,7 @@ struct SSHConnectionJourneyView: View {
                 .fill(Color.accentColor.gradient)
                 .frame(width: 52, height: 52)
                 .overlay {
-                    Image(
-                        systemName: journey.purpose == .sshSession
-                            ? "apple.terminal.fill" : "folder.fill.badge.gearshape"
-                    )
+                    Image(systemName: headerSymbol)
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(.white)
                 }
@@ -276,7 +276,10 @@ struct SSHConnectionJourneyView: View {
         } else if case .failed(let message) = journey.phase {
             JourneyFailureCard(
                 message: message, retry: retry, cancel: cancel,
-                copyLogs: copyLogs, askAI: askAI
+                copyLogs: copyLogs, askAI: askAI,
+                cancelLabel: failureCancelLabel,
+                retryLabel: failureRetryLabel,
+                compactActions: compactFailureActions
             )
         } else if journey.mode == .reconnection, let reconnectState {
             JourneyReconnectStatus(
@@ -335,20 +338,34 @@ struct SSHConnectionJourneyView: View {
         case .connecting: String(localized: "Establishing connection…")
         case .waiting: String(localized: "Waiting for you…")
         case .succeeded:
-            journey.purpose == .sshSession
-                ? String(localized: "Terminal ready") : String(localized: "File browser ready")
+            switch journey.purpose {
+            case .sshSession, .serialSession: String(localized: "Terminal ready")
+            case .sftpSession: String(localized: "File browser ready")
+            }
         case .failed(let message): message
         case .hidden: ""
         }
     }
 
     private var headerDetail: String {
-        let protocolName = journey.purpose == .sshSession ? "SSH" : "SFTP"
+        let protocolName: String = switch journey.purpose {
+        case .sshSession: "SSH"
+        case .sftpSession: "SFTP"
+        case .serialSession: String(localized: "Serial")
+        }
         let address = journey.destination?.address ?? ""
         if journey.mode == .reconnection {
             return String(localized: "Reconnecting \(protocolName) · \(address)")
         }
         return "\(protocolName) \(address)"
+    }
+
+    private var headerSymbol: String {
+        switch journey.purpose {
+        case .sshSession: "apple.terminal.fill"
+        case .sftpSession: "folder.fill.badge.gearshape"
+        case .serialSession: "cable.connector"
+        }
     }
 
     private var statusSymbol: String {
@@ -645,7 +662,11 @@ private struct JourneyEndpointView: View {
             }
         case .jump: "server.rack"
         case .destination:
-            purpose == .sshSession ? "apple.terminal.fill" : "folder.fill"
+            switch purpose {
+            case .sshSession: "apple.terminal.fill"
+            case .sftpSession: "folder.fill"
+            case .serialSession: "cable.connector"
+            }
         }
     }
 
@@ -1168,22 +1189,42 @@ private struct JourneyFailureCard: View {
     let cancel: () -> Void
     let copyLogs: () -> Void
     let askAI: (() -> Void)?
+    let cancelLabel: LocalizedStringKey
+    let retryLabel: LocalizedStringKey
+    let compactActions: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Connection Failed", systemImage: "exclamationmark.triangle.fill")
                 .font(.headline).foregroundStyle(.red)
             Text(message).foregroundStyle(.secondary).textSelection(.enabled)
-            HStack {
-                Button("Cancel", action: cancel).keyboardShortcut(.cancelAction)
-                Button("Copy Logs", action: copyLogs)
-                if let askAI { Button("Ask AI", action: askAI) }
-                Spacer()
-                Button("Retry", action: retry)
-                    .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+            if compactActions {
+                HStack {
+                    Button(action: cancel) {
+                        Text(cancelLabel).frame(width: 88)
+                    }
+                        .buttonStyle(.bordered)
+                        .keyboardShortcut(.cancelAction)
+                    Spacer()
+                    Button(action: retry) {
+                        Text(retryLabel).frame(width: 88)
+                    }
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                }
+            } else {
+                HStack {
+                    Button(cancelLabel, action: cancel).keyboardShortcut(.cancelAction)
+                    Button("Copy Logs", action: copyLogs)
+                    if let askAI { Button("Ask AI", action: askAI) }
+                    Spacer()
+                    Button(retryLabel, action: retry)
+                        .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                }
             }
         }
-        .padding(18)
+        .padding(compactActions ? 14 : 18)
+        .frame(maxWidth: compactActions ? 380 : nil)
         .background(Color.red.opacity(0.065), in: .rect(cornerRadius: 14))
         .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Color.red.opacity(0.3)) }
     }

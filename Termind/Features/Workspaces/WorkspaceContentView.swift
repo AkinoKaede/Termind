@@ -503,7 +503,7 @@ private struct PaneView: View {
                     return true
                 }
             )
-        case .empty:
+        case .serialSession, .empty:
             EmptyView()
         }
     }
@@ -582,6 +582,13 @@ private struct PaneView: View {
                 isExternalFileDropTargeted: isLocalFileDropTargeted,
                 closePane: { window.closePane(pane.id) }
             )
+        case .serialSession(let serialSession):
+            SerialTerminalView(
+                session: serialSession,
+                isVisible: isActive,
+                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused,
+                closePane: { window.closePane(pane.id) }
+            )
         case .empty:
             EmptyPaneView()
         }
@@ -606,7 +613,7 @@ private struct PaneView: View {
             headerContent.background {
                 SSHConnectionJourneyBackground()
             }
-        } else if pane.kind == .sshSession {
+        } else if pane.kind == .sshSession || pane.kind == .serialSession {
             headerContent.background(terminalAppearance.background)
         } else if pane.kind == .sftpSession {
             headerContent.background(.background)
@@ -620,6 +627,8 @@ private struct PaneView: View {
         case .sshSession(let session):
             session.connectionJourney.isPresented
         case .sftpSession(let session):
+            session.connectionJourney.isPresented
+        case .serialSession(let session):
             session.connectionJourney.isPresented
         case .empty:
             false
