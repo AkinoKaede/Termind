@@ -73,14 +73,22 @@ struct RootView: View {
                 WindowToolbarFindField()
             }
         }
-        .sheet(item: $presentations.sheet) { route in
-            switch route {
-            case .hostChooser(let purpose):
-                HostChooserView(purpose: purpose)
-            case .quickOpen:
-                QuickOpenView()
+        .sheet(item: $presentations.hostChooser) { purpose in
+            HostChooserView(purpose: purpose)
+        }
+        .overlay {
+            if presentations.isQuickOpenPresented {
+                QuickOpenOverlay {
+                    presentations.isQuickOpenPresented = false
+                }
+                .transition(
+                    reduceMotion
+                        ? .opacity
+                        : .opacity.combined(with: .scale(scale: 0.985))
+                )
             }
         }
+        .animation(Motion.panel(reduceMotion: reduceMotion), value: presentations.route?.id)
         .alert(
             "Conversation Operation Failed",
             isPresented: Binding(

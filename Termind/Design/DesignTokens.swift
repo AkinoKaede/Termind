@@ -121,6 +121,22 @@ nonisolated enum Metrics {
         static let height: CGFloat = 520
     }
 
+    /// The window-level command palette raised by Command-P.
+    ///
+    /// It is deliberately wider than a chooser: command subtitles carry a
+    /// destination or connection address, while the short fixed height keeps
+    /// the window behind it recognisable as the context the command acts on.
+    enum QuickOpen {
+        static let width: CGFloat = 640
+        static let height: CGFloat = 480
+        static let cornerRadius: CGFloat = 18
+        static let searchHeight: CGFloat = 60
+        static let sectionHeight: CGFloat = 28
+        static let rowHeight: CGFloat = 48
+        static let footerHeight: CGFloat = 36
+        static let iconSize: CGFloat = 28
+    }
+
     /// Settings is a page in the window rather than its own panel, so it needs a
     /// reading width of its own — a `Form` stretched across a 1600pt display puts
     /// the label and its control at opposite ends of the desk.

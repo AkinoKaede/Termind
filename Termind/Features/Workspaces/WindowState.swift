@@ -77,7 +77,7 @@ final class WindowSidebarState {
 
 @Observable
 final class WindowPresentationState {
-    enum SheetRoute: Identifiable {
+    enum PresentationRoute: Identifiable {
         case hostChooser(HostChooserPurpose)
         case quickOpen
 
@@ -89,28 +89,28 @@ final class WindowPresentationState {
         }
     }
 
-    var sheet: SheetRoute?
+    var route: PresentationRoute?
 
     var hostChooser: HostChooserPurpose? {
         get {
-            guard case .hostChooser(let purpose) = sheet else { return nil }
+            guard case .hostChooser(let purpose) = route else { return nil }
             return purpose
         }
         set {
-            sheet = newValue.map(SheetRoute.hostChooser)
+            route = newValue.map(PresentationRoute.hostChooser)
         }
     }
 
     var isQuickOpenPresented: Bool {
         get {
-            guard case .quickOpen = sheet else { return false }
+            guard case .quickOpen = route else { return false }
             return true
         }
         set {
             if newValue {
-                sheet = .quickOpen
-            } else if case .quickOpen = sheet {
-                sheet = nil
+                route = .quickOpen
+            } else if case .quickOpen = route {
+                route = nil
             }
         }
     }

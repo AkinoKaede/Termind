@@ -1,5 +1,23 @@
 import Foundation
 
+nonisolated enum AppCommandSection: String, CaseIterable, Hashable, Sendable, Identifiable {
+    case navigation
+    case workspaces
+    case hosts
+    case actions
+
+    nonisolated var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .navigation: String(localized: "Navigation")
+        case .workspaces: String(localized: "Workspaces")
+        case .hosts: String(localized: "Hosts")
+        case .actions: String(localized: "Actions")
+        }
+    }
+}
+
 nonisolated enum AppCommandTarget: Hashable, Sendable {
     case vaultPage(VaultPage)
     case vault
@@ -17,6 +35,7 @@ nonisolated struct AppCommandDescriptor: Identifiable, Hashable, Sendable {
     let title: String
     let subtitle: String?
     let symbol: String
+    let section: AppCommandSection
     let keywords: [String]
     let target: AppCommandTarget
 
@@ -72,16 +91,19 @@ final class AppCommandRegistry {
             AppCommandDescriptor(
                 id: "fixed.vault", title: String(localized: "Vault"),
                 subtitle: String(localized: "Navigator"), symbol: "lock.square.stack",
+                section: .navigation,
                 keywords: ["hosts", "keys", "snippets"], target: .vault
             ),
             AppCommandDescriptor(
                 id: "fixed.assistant", title: String(localized: "Assistant"),
                 subtitle: String(localized: "Chats"), symbol: "sparkles",
+                section: .navigation,
                 keywords: ["chat", "conversations"], target: .assistant
             ),
             AppCommandDescriptor(
                 id: "fixed.settings", title: String(localized: "Settings"),
                 subtitle: String(localized: "Window"), symbol: "gearshape",
+                section: .navigation,
                 keywords: ["preferences"], target: .settings
             ),
         ]
@@ -94,6 +116,7 @@ final class AppCommandRegistry {
                 title: page.title,
                 subtitle: String(localized: "Vault"),
                 symbol: page.symbol,
+                section: .navigation,
                 keywords: [page.rawValue],
                 target: .vaultPage(page)
             )
@@ -108,6 +131,7 @@ final class AppCommandRegistry {
             title: workspace.title(in: store),
             subtitle: String(localized: "Open Workspace"),
             symbol: workspace.symbol,
+            section: .workspaces,
             keywords: workspace.panes.map { $0.sidebarTitle(in: store) },
             target: .workspace(workspace.id)
         )
@@ -121,6 +145,7 @@ final class AppCommandRegistry {
                 title: host.name,
                 subtitle: String(localized: "Connect with SSH · \(host.displayAddress)"),
                 symbol: "apple.terminal",
+                section: .hosts,
                 keywords: keywords + ["ssh"],
                 target: .connectHost(host.id, .sshSession)
             ),
@@ -129,6 +154,7 @@ final class AppCommandRegistry {
                 title: host.name,
                 subtitle: String(localized: "Browse with SFTP · \(host.displayAddress)"),
                 symbol: "folder",
+                section: .hosts,
                 keywords: keywords + ["sftp", "files"],
                 target: .connectHost(host.id, .sftpSession)
             ),
@@ -140,11 +166,13 @@ final class AppCommandRegistry {
             AppCommandDescriptor(
                 id: "action.new-chat", title: String(localized: "New Chat"),
                 subtitle: String(localized: "Action"), symbol: "plus.bubble",
+                section: .actions,
                 keywords: ["assistant", "conversation"], target: .newChat
             ),
             AppCommandDescriptor(
                 id: "action.new-host", title: String(localized: "New Host"),
                 subtitle: String(localized: "Action"), symbol: "plus.rectangle",
+                section: .actions,
                 keywords: ["server", "add"], target: .newHost
             ),
         ]
@@ -152,6 +180,7 @@ final class AppCommandRegistry {
             commands.append(AppCommandDescriptor(
                 id: "action.show-assistant", title: String(localized: "Show Assistant in Sidebar"),
                 subtitle: String(localized: "Action"), symbol: "sidebar.left",
+                section: .actions,
                 keywords: ["sidebar", "assistant", "context", "details"], target: .showAssistant
             ))
         }

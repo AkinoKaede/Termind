@@ -770,15 +770,22 @@ struct WindowStateTests {
     }
 
     @Test
-    func windowSheetRouteIsMutuallyExclusive() {
+    func windowPresentationRouteIsMutuallyExclusive() {
         let state = WindowPresentationState()
 
         state.hostChooser = .connect
         #expect(state.hostChooser == .connect)
+
+        state.isQuickOpenPresented = true
+        #expect(state.hostChooser == nil)
+        #expect(state.isQuickOpenPresented)
+
         state.hostChooser = .batchStartup
         #expect(state.hostChooser == .batchStartup)
+        #expect(!state.isQuickOpenPresented)
+
         state.hostChooser = nil
-        #expect(state.sheet == nil)
+        #expect(state.route == nil)
     }
 
     @Test
