@@ -47,7 +47,8 @@ struct AssistantSidebarView: View {
                         // "this is where you are".
                         .foregroundStyle(
                             window.isAssistantArchivePresented
-                                ? AnyShapeStyle(.white) : AnyShapeStyle(.primary)
+                                ? AnyShapeStyle(TermindColor.selectedForeground)
+                                : AnyShapeStyle(.primary)
                         )
                         .frame(
                             width: Metrics.Sidebar.searchFieldHeight,
@@ -827,9 +828,10 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
             let oldIDs = content.map(\.id)
             let newIDs = items.map(\.id)
             if oldIDs == newIDs {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items, animated: animated && !content.isEmpty)
             }
@@ -872,7 +874,7 @@ private final class AssistantConversationListContainer: NSView {
             listView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         insertionLine.wantsLayer = true
-        insertionLine.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
+        updateAppearanceLayers()
         insertionLine.layer?.cornerRadius = 1
         insertionLine.isHidden = true
         addSubview(insertionLine)
@@ -881,6 +883,18 @@ private final class AssistantConversationListContainer: NSView {
 
     @available(*, unavailable)
     required init?(coder _: NSCoder) { fatalError() }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearanceLayers()
+    }
+
+    private func updateAppearanceLayers() {
+        insertionLine.layer?.backgroundColor = TermindColor.resolvedNative(
+            TermindColor.nativeAccent,
+            for: effectiveAppearance
+        ).cgColor
+    }
 
     /// A row's own menu is installed by SwiftUI on its hosting view, which
     /// AppKit finds first — only a right-click that landed on no row walks the
@@ -1295,19 +1309,19 @@ struct AssistantView: View {
                 query: window.assistantQuery,
                 onOpen: { window.selectAssistant($0) }
             )
-            .background(.background)
+            .background(TermindColor.windowSurface)
         } else if let conversation = window.assistantLibrary.selectedConversation {
             ConversationView(
                 conversation: conversation,
                 onNewChat: { window.openNewAssistantChat() }
             )
-                .background(.background)
+                .background(TermindColor.windowSurface)
         } else {
             ConversationView(
                 conversation: window.assistantLibrary.draftConversation,
                 onSend: sendNewConversation
             )
-            .background(.background)
+            .background(TermindColor.windowSurface)
         }
     }
 

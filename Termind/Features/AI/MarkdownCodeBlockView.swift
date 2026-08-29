@@ -67,7 +67,7 @@ private struct ShellCodeBlockView: View {
             RoundedRectangle(cornerRadius: Metrics.Radius.large)
                 .strokeBorder(
                     assessment.risk == .destructive
-                        ? Color.red.opacity(0.4) : Color.secondary.opacity(0.2)
+                        ? TermindColor.danger.opacity(0.4) : Color.secondary.opacity(0.2)
                 )
         }
         .confirmationDialog(
@@ -90,7 +90,10 @@ private struct ShellCodeBlockView: View {
                     .disabled(target == nil)
                 Button("Run") { run() }
                     .buttonStyle(.borderedProminent)
-                    .tint(assessment.risk == .destructive ? .red : .accentColor)
+                    .tint(
+                        assessment.risk == .destructive
+                            ? TermindColor.danger : TermindColor.accent
+                    )
                     .disabled(target == nil)
             } else {
                 Text("Several commands — copy and review before running.")

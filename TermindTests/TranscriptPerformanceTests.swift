@@ -128,7 +128,8 @@ struct TranscriptPerformanceTests {
                 showsTerminalActions: false,
                 isConversationStreaming: false,
                 locale: Locale(identifier: "en"),
-                reduceMotion: true
+                reduceMotion: true,
+                colorScheme: .light
             ),
             actions: .init(),
             presentation: TranscriptPresentationState()

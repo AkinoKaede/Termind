@@ -1,6 +1,7 @@
 import AppKit
 import ListViewKit
 import MarkdownView
+import SwiftUI
 
 @MainActor
 final class TranscriptMarkdownCache {
@@ -8,12 +9,17 @@ final class TranscriptMarkdownCache {
         let source: String
         let rendered: TermindMarkdownRenderedDocument
 
-        init(source: String, allowsShellActions: Bool, tone: TermindMarkdownView.Tone) {
+        init(
+            source: String,
+            allowsShellActions: Bool,
+            tone: TermindMarkdownView.Tone,
+            colorScheme: ColorScheme
+        ) {
             self.source = source
             rendered = TermindMarkdownRenderedDocument(
                 source: source,
                 allowsShellActions: allowsShellActions,
-                theme: TermindMarkdownTheme.make(tone: tone)
+                theme: TermindMarkdownTheme.make(tone: tone, colorScheme: colorScheme)
             )
         }
     }
@@ -24,6 +30,7 @@ final class TranscriptMarkdownCache {
         let source: String
         let shell: Bool
         let tone: TermindMarkdownView.Tone
+        let colorScheme: ColorScheme
     }
 
     private let limit: Int
@@ -37,14 +44,27 @@ final class TranscriptMarkdownCache {
         slot: String,
         source: String,
         shell: Bool,
-        tone: TermindMarkdownView.Tone = .primary
+        tone: TermindMarkdownView.Tone = .primary,
+        colorScheme: ColorScheme
     ) -> Package {
-        let key = Key(entryID: entryID, slot: slot, source: source, shell: shell, tone: tone)
+        let key = Key(
+            entryID: entryID,
+            slot: slot,
+            source: source,
+            shell: shell,
+            tone: tone,
+            colorScheme: colorScheme
+        )
         if let value = values[key] {
             touch(key)
             return value
         }
-        let value = Package(source: source, allowsShellActions: shell, tone: tone)
+        let value = Package(
+            source: source,
+            allowsShellActions: shell,
+            tone: tone,
+            colorScheme: colorScheme
+        )
         values[key] = value
         touch(key)
         while order.count > limit { values[order.removeFirst()] = nil }
@@ -393,7 +413,8 @@ private enum NativeTranscriptFactory {
                         entryID: context.entryID,
                         slot: "assistant",
                         source: message.text,
-                        shell: true
+                        shell: true,
+                        colorScheme: context.configuration.colorScheme
                     ),
                     measurement: context.measurement,
                     proposedWidth: context.contentWidth,
@@ -617,7 +638,8 @@ private enum NativeTranscriptFactory {
                         entryID: context.entryID,
                         slot: "user",
                         source: message.text,
-                        shell: false
+                        shell: false,
+                        colorScheme: context.configuration.colorScheme
                     ),
                     measurement: context.measurement,
                     proposedWidth: max(
@@ -1119,7 +1141,8 @@ private enum NativeTranscriptFactory {
                 slot: slot,
                 source: source,
                 shell: shell,
-                tone: tone
+                tone: tone,
+                colorScheme: context.configuration.colorScheme
             ),
             measurement: context.measurement,
             proposedWidth: max(1, context.contentWidth - horizontalInset),
@@ -2238,7 +2261,15 @@ private final class NativeRiskBadge: NSView {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = Self.color(assessment.risk).withAlphaComponent(0.12).cgColor
+        layer?.backgroundColor = TermindColor.resolvedNative(
+            Self.color(assessment.risk).withAlphaComponent(0.12),
+            for: effectiveAppearance
+        ).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
     }
 
     private static func color(_ risk: CommandRisk) -> NSColor {
@@ -2276,7 +2307,15 @@ private final class NativeBadge: NSView {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.5).cgColor
+        layer?.backgroundColor = TermindColor.resolvedNative(
+            NSColor.quaternaryLabelColor.withAlphaComponent(0.5),
+            for: effectiveAppearance
+        ).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
     }
 }
 
@@ -2356,7 +2395,6 @@ private final class NativeVerticalRule: NSView {
         super.init(frame: frame)
         wantsLayer = true
         layer?.cornerRadius = Metrics.Chat.rule / 2
-        layer?.backgroundColor = NSColor.quaternaryLabelColor.cgColor
         widthAnchor.constraint(equalToConstant: Metrics.Chat.rule).isActive = true
     }
 
@@ -2364,6 +2402,19 @@ private final class NativeVerticalRule: NSView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    override func updateLayer() {
+        super.updateLayer()
+        layer?.backgroundColor = TermindColor.resolvedNative(
+            .quaternaryLabelColor,
+            for: effectiveAppearance
+        ).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
 }
 
 @MainActor
@@ -2708,10 +2759,16 @@ private final class NativeSpacer: NSView {
 @MainActor
 private final class NativeCard: NSView {
     var fillProvider: () -> NSColor {
-        didSet { updateLayer() }
+        didSet {
+            needsDisplay = true
+            updateLayer()
+        }
     }
     var strokeProvider: (() -> NSColor)? {
-        didSet { updateLayer() }
+        didSet {
+            needsDisplay = true
+            updateLayer()
+        }
     }
     var onLayout: (() -> Void)?
     init(radius: CGFloat) {
@@ -2728,10 +2785,16 @@ private final class NativeCard: NSView {
     required init?(coder: NSCoder) { fatalError() }
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = fillProvider().cgColor
+        layer?.backgroundColor = TermindColor.resolvedNative(
+            fillProvider(),
+            for: effectiveAppearance
+        ).cgColor
         if let strokeProvider {
             layer?.borderWidth = 1
-            layer?.borderColor = strokeProvider().cgColor
+            layer?.borderColor = TermindColor.resolvedNative(
+                strokeProvider(),
+                for: effectiveAppearance
+            ).cgColor
         } else {
             layer?.borderWidth = 0
             layer?.borderColor = nil
@@ -2771,12 +2834,12 @@ private class NativeButton: NSButton {
         controlSize = .small
         if prominent {
             bezelColor = .controlAccentColor
-            contentTintColor = .white
+            contentTintColor = TermindColor.nativeSelectedForeground
             attributedTitle = NSAttributedString(
                 string: title,
                 attributes: [
                     .font: font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize),
-                    .foregroundColor: NSColor.white,
+                    .foregroundColor: TermindColor.nativeSelectedForeground,
                 ]
             )
         }

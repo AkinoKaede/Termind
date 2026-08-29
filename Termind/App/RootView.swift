@@ -217,11 +217,11 @@ struct RootView: View {
             switch window.selectedDestination {
             case .vault:
                 vaultWorkspace
-                    .background(Color(nsColor: .windowBackgroundColor))
+                    .background(TermindColor.windowSurface)
                     .zIndex(2)
             case .assistant:
                 AssistantView()
-                    .background(Color(nsColor: .windowBackgroundColor))
+                    .background(TermindColor.windowSurface)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                     .zIndex(2)
             case .workspace:

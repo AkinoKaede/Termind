@@ -16,7 +16,7 @@ struct QuickOpenOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(colorScheme == .dark ? 0.18 : 0.10)
+            TermindColor.shadow.opacity(colorScheme == .dark ? 0.18 : 0.10)
                 .ignoresSafeArea()
                 .contentShape(.rect)
                 .onTapGesture(perform: close)
@@ -30,7 +30,7 @@ struct QuickOpenOverlay: View {
                         .allowsHitTesting(false)
                 }
                 .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.34 : 0.20),
+                    color: TermindColor.shadow.opacity(colorScheme == .dark ? 0.34 : 0.20),
                     radius: 28,
                     y: 12
                 )
@@ -428,9 +428,10 @@ private struct QuickOpenNativeList: NSViewRepresentable {
             self.locale = locale
             self.colorScheme = colorScheme
             if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items, animated: animated && !content.isEmpty)
             }

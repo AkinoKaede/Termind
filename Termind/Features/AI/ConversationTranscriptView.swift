@@ -198,6 +198,7 @@ private struct ConversationTranscriptSurface: View {
     @Environment(WindowModel.self) private var window
     @Environment(\.locale) private var locale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let timeline = conversation.timeline
@@ -215,7 +216,8 @@ private struct ConversationTranscriptSurface: View {
                 showsTerminalActions: showsTerminalActions,
                 isConversationStreaming: conversation.isStreaming,
                 locale: locale,
-                reduceMotion: reduceMotion
+                reduceMotion: reduceMotion,
+                colorScheme: colorScheme
             ),
             actions: .init(
                 hostName: { id in

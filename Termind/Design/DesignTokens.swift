@@ -320,6 +320,56 @@ nonisolated enum Metrics {
     }
 }
 
+/// Termind's complete application color vocabulary.
+///
+/// These are semantic AppKit colors instead of literal RGB values, so the same
+/// view instance can move between Aqua and Dark Aqua without being rebuilt.
+/// Feature views should use only the neutral surfaces, the app accent, or the
+/// three status roles below. Host labels and terminal ANSI palettes are the two
+/// deliberate exceptions because color is user-authored content there.
+enum TermindColor {
+    // MARK: Surfaces
+
+    static var windowSurface: Color { Color(nsColor: .windowBackgroundColor) }
+    static var contentSurface: Color { Color(nsColor: .controlBackgroundColor) }
+    static var textSurface: Color { Color(nsColor: .textBackgroundColor) }
+
+    // MARK: Foreground and borders
+
+    static var primaryForeground: Color { Color(nsColor: .labelColor) }
+    static var secondaryForeground: Color { Color(nsColor: .secondaryLabelColor) }
+    static var disabledForeground: Color { Color(nsColor: .disabledControlTextColor) }
+    static var selectedForeground: Color {
+        Color(nsColor: .alternateSelectedControlTextColor)
+    }
+    static var separator: Color { Color(nsColor: .separatorColor) }
+    static var shadow: Color { Color(nsColor: .shadowColor) }
+
+    // MARK: Accent and status
+
+    static var accent: Color { .accentColor }
+    static var success: Color { Color(nsColor: .systemGreen) }
+    static var warning: Color { Color(nsColor: .systemOrange) }
+    static var danger: Color { Color(nsColor: .systemRed) }
+
+    static var nativeAccent: NSColor { .controlAccentColor }
+    static var nativeSuccess: NSColor { .systemGreen }
+    static var nativeWarning: NSColor { .systemOrange }
+    static var nativeDanger: NSColor { .systemRed }
+    static var nativeSelectedForeground: NSColor { .alternateSelectedControlTextColor }
+
+    /// CALayer stores a concrete `CGColor`; assigning a named dynamic NSColor
+    /// directly can resolve it against the wrong appearance (or to clear while
+    /// inside a vibrant source list). Always resolve through the owning view.
+    static func resolvedNative(_ color: NSColor, for appearance: NSAppearance) -> NSColor {
+        var resolved = color
+        appearance.performAsCurrentDrawingAppearance {
+            resolved = color.usingColorSpace(.deviceRGB) ?? color
+        }
+        return resolved
+    }
+}
+
 /// The one selection highlight in the app.
 ///
 /// Derived from the text color rather than the accent, and with no emphasized /
@@ -330,7 +380,7 @@ nonisolated enum Metrics {
 enum Highlight {
     static func fill(isSelected: Bool, isHovering: Bool = false) -> Color {
         if isSelected {
-            .accentColor.opacity(0.14)
+            TermindColor.accent.opacity(0.14)
         } else if isHovering {
             .primary.opacity(0.05)
         } else {
@@ -547,7 +597,9 @@ struct TermindSidebarRowBackground: ViewModifier {
 
     private var fillColor: Color {
         if isSelected {
-            controlActiveState == .key ? .accentColor : .accentColor.opacity(0.14)
+            controlActiveState == .key
+                ? TermindColor.accent
+                : TermindColor.accent.opacity(0.14)
         } else {
             Highlight.fill(isSelected: false, isHovering: isHovering)
         }
@@ -561,7 +613,9 @@ enum SidebarSelectionStyle {
         unselected: AnyShapeStyle
     ) -> AnyShapeStyle {
         guard isSelected else { return unselected }
-        return controlActiveState == .key ? AnyShapeStyle(.white) : AnyShapeStyle(.tint)
+        return controlActiveState == .key
+            ? AnyShapeStyle(TermindColor.selectedForeground)
+            : AnyShapeStyle(.tint)
     }
 }
 

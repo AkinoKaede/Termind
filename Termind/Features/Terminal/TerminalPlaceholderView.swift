@@ -412,7 +412,7 @@ private struct TerminalUploadTargetOverlay: View {
                 RoundedRectangle(cornerRadius: Metrics.Radius.large)
                     .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.16), radius: 12, y: 5)
+            .shadow(color: TermindColor.shadow.opacity(0.16), radius: 12, y: 5)
         }
         .allowsHitTesting(false)
     }
@@ -439,7 +439,7 @@ private struct TerminalUploadOverlay: View {
             RoundedRectangle(cornerRadius: Metrics.Radius.large)
                 .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.16), radius: 12, y: 5)
+        .shadow(color: TermindColor.shadow.opacity(0.16), radius: 12, y: 5)
         .allowsHitTesting(false)
     }
 

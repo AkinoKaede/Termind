@@ -95,7 +95,7 @@ struct SheetScaffold<Header: View, Content: View, Footer: View>: View {
             Divider().opacity(0.7)
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(.background)
+                .background(TermindColor.windowSurface)
             Divider().opacity(0.7)
             footer
                 .termindGlassBar()
@@ -137,7 +137,7 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
             Divider().opacity(0.25)
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(.background)
+                .background(TermindColor.windowSurface)
             Divider().opacity(0.25)
             footer
                 .termindGlassBar()

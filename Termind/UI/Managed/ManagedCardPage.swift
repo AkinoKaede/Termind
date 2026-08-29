@@ -206,7 +206,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
+        .background(TermindColor.windowSurface)
     }
 
     private var hasVisibleContent: Bool {

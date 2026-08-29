@@ -1011,7 +1011,7 @@ struct ExportKeyToHostsSheet: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
             HStack(spacing: Metrics.Space.m) {
-                CardIcon(symbol: "key.fill", tint: .orange)
+                CardIcon(symbol: "key.fill", tint: TermindColor.accent)
                 VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
                     Text("Export to Hosts")
                         .font(.headline)
@@ -1354,9 +1354,10 @@ private struct ExportHostNativeList: NSViewRepresentable {
             self.locale = locale
             self.colorScheme = colorScheme
             if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items, animated: !content.isEmpty)
             }
@@ -1448,7 +1449,7 @@ private struct KeyCard: View {
         ) {
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 HStack(spacing: Metrics.Space.m) {
-                    CardIcon(symbol: "key.fill", tint: .orange)
+                    CardIcon(symbol: "key.fill", tint: TermindColor.accent)
 
                     // The fingerprint is deliberately *not* selectable, and this
                     // is not a style preference.
@@ -1650,7 +1651,7 @@ private struct IdentityCard: View {
 
         if identity.usesKey {
             if let key {
-                CardChip(text: key.label, symbol: "key.fill", tint: .orange)
+                CardChip(text: key.label, symbol: "key.fill", tint: TermindColor.accent)
             } else {
                 CardChip(
                     text: String(localized: "Key missing"),

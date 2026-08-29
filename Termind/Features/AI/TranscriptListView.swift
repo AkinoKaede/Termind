@@ -268,6 +268,7 @@ struct TranscriptListConfiguration: Equatable {
     let isConversationStreaming: Bool
     let locale: Locale
     let reduceMotion: Bool
+    let colorScheme: ColorScheme
     var horizontalInset: CGFloat { isCompact ? Metrics.Space.l : Metrics.Space.xl }
 }
 

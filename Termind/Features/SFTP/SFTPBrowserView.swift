@@ -120,9 +120,10 @@ private struct SFTPFileNativeList: NSViewRepresentable {
             self.onBackgroundClick = onBackgroundClick
 
             if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items)
             }
@@ -295,7 +296,7 @@ struct SFTPBrowserView: View {
                     pathBar(layout: layout)
                     columnHeader(layout: layout)
                 }
-                .background(.background)
+                .background(TermindColor.windowSurface)
 
                 browserContent(layout: layout)
             }
@@ -329,7 +330,7 @@ struct SFTPBrowserView: View {
             }
         }
         .contextMenu { browserLocationMenu }
-        .background(.background)
+        .background(TermindColor.windowSurface)
         .onAppear {
             sftpSession.bindTransfers(to: app.sftpTransfers)
             if sftpSession.status == .disconnected {
@@ -613,17 +614,17 @@ struct SFTPBrowserView: View {
                         .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(.background)
+                .background(TermindColor.windowSurface)
             } else if sftpSession.files.isEmpty, sftpSession.isLoading {
                 centeredState("Loading", symbol: "arrow.triangle.2.circlepath", progress: true)
-                    .background(.background)
+                    .background(TermindColor.windowSurface)
             } else if sftpSession.files.isEmpty, sftpSession.status == .connected {
                 centeredState("This folder is empty", symbol: "folder", progress: false)
-                    .background(.background)
+                    .background(TermindColor.windowSurface)
             } else if sftpSession.visibleRows.isEmpty, !sftpSession.query.isEmpty {
                 ContentUnavailableView.search(text: sftpSession.query)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.background)
+                    .background(TermindColor.windowSurface)
             }
         }
         .onDrop(
@@ -714,7 +715,7 @@ struct SFTPBrowserView: View {
             selectionCursor = sftpSession.filteredFiles.last?.id
             return .handled
         }
-        .background(.background)
+        .background(TermindColor.windowSurface)
     }
 
     private func fileListItems(layout: Layout) -> [SFTPFileListItem] {
@@ -867,12 +868,18 @@ struct SFTPBrowserView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(file.name)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(emphasized ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                    .foregroundStyle(
+                        emphasized
+                            ? AnyShapeStyle(TermindColor.selectedForeground)
+                            : AnyShapeStyle(.primary)
+                    )
                     .lineLimit(1)
                 Text(secondaryText(for: row, layout: layout))
                     .font(.caption.monospaced())
                     .foregroundStyle(
-                        emphasized ? AnyShapeStyle(.white.opacity(0.78)) : AnyShapeStyle(.secondary)
+                        emphasized
+                            ? AnyShapeStyle(TermindColor.selectedForeground.opacity(0.78))
+                            : AnyShapeStyle(.secondary)
                     )
                     .lineLimit(1)
             }
@@ -886,7 +893,9 @@ struct SFTPBrowserView: View {
         Text(value)
             .font(monospaced ? .body.monospacedDigit() : .body)
             .foregroundStyle(
-                emphasized ? AnyShapeStyle(.white.opacity(0.88)) : AnyShapeStyle(.secondary)
+                emphasized
+                    ? AnyShapeStyle(TermindColor.selectedForeground.opacity(0.88))
+                    : AnyShapeStyle(.secondary)
             )
             .lineLimit(1)
             .padding(.horizontal, Metrics.Space.l)
@@ -905,7 +914,9 @@ struct SFTPBrowserView: View {
 
     private func iconStyle(for file: RemoteFile, emphasized: Bool) -> AnyShapeStyle {
         if emphasized {
-            return AnyShapeStyle(Color.white.opacity(file.isDirectory ? 0.82 : 0.72))
+            return AnyShapeStyle(
+                TermindColor.selectedForeground.opacity(file.isDirectory ? 0.82 : 0.72)
+            )
         }
         return file.isDirectory ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
     }

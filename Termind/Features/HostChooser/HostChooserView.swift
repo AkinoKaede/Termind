@@ -639,9 +639,10 @@ private struct HostChooserNativeList: NSViewRepresentable {
             self.locale = locale
             self.colorScheme = colorScheme
             if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items)
             }

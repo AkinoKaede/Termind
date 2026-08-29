@@ -183,7 +183,7 @@ struct ConnectionJourneyView: View {
                 .overlay {
                     Image(systemName: headerSymbol)
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(TermindColor.selectedForeground)
                 }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -378,8 +378,8 @@ struct ConnectionJourneyView: View {
 
     private var statusTint: Color {
         switch journey.phase {
-        case .succeeded: .blue
-        case .failed: .red
+        case .succeeded: TermindColor.accent
+        case .failed: TermindColor.danger
         default: .secondary
         }
     }
@@ -497,9 +497,10 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
             self.locale = locale
             self.colorScheme = colorScheme
             if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items, animated: !content.isEmpty)
             }
@@ -563,7 +564,7 @@ private struct JourneyReconnectStatus: View {
             VStack(spacing: 12) {
                 HStack(spacing: 9) {
                     Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(TermindColor.accent)
                     Text(statusText(at: context.date))
                         .font(.headline)
                 }
@@ -607,8 +608,8 @@ private enum JourneyVisualState {
     var color: Color {
         switch self {
         case .pending: .secondary.opacity(0.55)
-        case .active, .complete: .blue
-        case .failed: .red
+        case .active, .complete: TermindColor.accent
+        case .failed: TermindColor.danger
         }
     }
 }
@@ -636,7 +637,7 @@ private struct JourneyEndpointView: View {
                     .overlay {
                         Image(systemName: symbol)
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(TermindColor.selectedForeground)
                     }
             }
             .frame(width: 56, height: 56)
@@ -696,7 +697,7 @@ private struct JourneySegmentView: View {
                 case .active:
                     if checkpointIsWaiting {
                         HStack(spacing: 0) {
-                            Rectangle().fill(Color.blue)
+                            Rectangle().fill(TermindColor.accent)
                                 .frame(width: geometry.size.width / 2, height: 4)
                             Color.clear
                                 .frame(width: geometry.size.width / 2, height: 4)
@@ -713,9 +714,10 @@ private struct JourneySegmentView: View {
                         if checkpointIsWaiting {
                             JourneyActivityRing(size: 42, reduceMotion: reduceMotion)
                         }
-                        Circle().fill(Color.blue).frame(width: 28, height: 28)
+                        Circle().fill(TermindColor.accent).frame(width: 28, height: 28)
                         Image(systemName: checkpoint == .authentication ? "key.fill" : "checkmark.shield.fill")
-                            .font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(TermindColor.selectedForeground)
                     }
                     .transition(.scale(scale: 0.65).combined(with: .opacity))
                     .accessibilityLabel(
@@ -736,7 +738,7 @@ private struct JourneyTravelingLine: View {
     var body: some View {
         if reduceMotion {
             HStack(spacing: 0) {
-                Rectangle().fill(Color.blue).frame(width: 34, height: 4)
+                Rectangle().fill(TermindColor.accent).frame(width: 34, height: 4)
                 Spacer(minLength: 0)
             }
         } else {
@@ -747,7 +749,11 @@ private struct JourneyTravelingLine: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [.blue, .blue.opacity(0.55), .clear],
+                                colors: [
+                                    TermindColor.accent,
+                                    TermindColor.accent.opacity(0.55),
+                                    .clear,
+                                ],
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )
@@ -765,7 +771,7 @@ private struct JourneyActivityRing: View {
 
     var body: some View {
         if reduceMotion {
-            Circle().stroke(Color.blue.opacity(0.45), lineWidth: 4)
+            Circle().stroke(TermindColor.accent.opacity(0.45), lineWidth: 4)
                 .frame(width: size, height: size)
         } else {
             TimelineView(.animation) { timeline in
@@ -776,7 +782,11 @@ private struct JourneyActivityRing: View {
                     .trim(from: 0.06, to: 0.78)
                     .stroke(
                         AngularGradient(
-                            colors: [.blue.opacity(0.15), .blue, .blue.opacity(0.32)],
+                            colors: [
+                                TermindColor.accent.opacity(0.15),
+                                TermindColor.accent,
+                                TermindColor.accent.opacity(0.32),
+                            ],
                             center: .center
                         ),
                         style: StrokeStyle(lineWidth: 4, lineCap: .round)
@@ -871,12 +881,14 @@ struct SSHAuthenticationForm: View {
                     Text(prompt.host.displayAddress).font(.caption.monospaced()).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "key.fill").font(.title2).foregroundStyle(.blue)
+                Image(systemName: "key.fill").font(.title2)
+                    .foregroundStyle(TermindColor.accent)
             }
 
             if let message = prompt.failureMessage {
                 Label(message, systemImage: "exclamationmark.circle.fill")
-                    .font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    .font(.caption).foregroundStyle(TermindColor.danger)
+                    .textSelection(.enabled)
             }
 
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
@@ -1141,7 +1153,9 @@ struct SSHHostKeyConfirmationForm: View {
                         ? "exclamationmark.triangle.fill" : "checkmark.shield.fill"
                 )
                 .font(.title2)
-                .foregroundStyle(isAdditionalKey ? .orange : .blue)
+                .foregroundStyle(
+                    isAdditionalKey ? TermindColor.warning : TermindColor.accent
+                )
             }
             Text(explanation)
                 .foregroundStyle(.secondary)
@@ -1196,7 +1210,7 @@ private struct JourneyFailureCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Connection Failed", systemImage: "exclamationmark.triangle.fill")
-                .font(.headline).foregroundStyle(.red)
+                .font(.headline).foregroundStyle(TermindColor.danger)
             Text(message).foregroundStyle(.secondary).textSelection(.enabled)
             if compactActions {
                 HStack {
@@ -1225,7 +1239,10 @@ private struct JourneyFailureCard: View {
         }
         .padding(compactActions ? 14 : 18)
         .frame(maxWidth: compactActions ? 380 : nil)
-        .background(Color.red.opacity(0.065), in: .rect(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Color.red.opacity(0.3)) }
+        .background(TermindColor.danger.opacity(0.065), in: .rect(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(TermindColor.danger.opacity(0.3))
+        }
     }
 }

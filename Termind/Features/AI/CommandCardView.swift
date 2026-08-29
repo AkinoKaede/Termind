@@ -3,9 +3,9 @@ import SwiftUI
 extension CommandRisk {
     var tint: Color {
         switch self {
-        case .safe: .green
-        case .caution: .orange
-        case .destructive: .red
+        case .safe: TermindColor.success
+        case .caution: TermindColor.warning
+        case .destructive: TermindColor.danger
         }
     }
 }
@@ -71,7 +71,6 @@ struct CommandCardView: View {
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(Metrics.Space.m)
-                .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.small))
 
             if !command.explanation.isEmpty {
                 Text(command.explanation)
@@ -96,7 +95,10 @@ struct CommandCardView: View {
                     Button("Insert") { insert(run: false) }
                     Button(runTitle) { run() }
                         .buttonStyle(.borderedProminent)
-                        .tint(assessment.risk == .destructive ? .red : .accentColor)
+                        .tint(
+                            assessment.risk == .destructive
+                                ? TermindColor.danger : TermindColor.accent
+                        )
                 }
                 Spacer()
                 Button {
@@ -110,10 +112,12 @@ struct CommandCardView: View {
             .controlSize(.small)
         }
         .padding(Metrics.Space.l)
-        .background(.quaternary.opacity(0.2), in: .rect(cornerRadius: Metrics.Radius.medium))
         .overlay {
             RoundedRectangle(cornerRadius: Metrics.Radius.medium)
-                .strokeBorder(assessment.risk == .destructive ? Color.red.opacity(0.4) : .clear)
+                .strokeBorder(
+                    assessment.risk == .destructive
+                        ? TermindColor.danger.opacity(0.4) : Color.secondary.opacity(0.2)
+                )
         }
         .confirmationDialog(
             Text("Run a destructive command?"),

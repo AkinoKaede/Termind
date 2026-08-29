@@ -105,7 +105,7 @@ struct WindowSidebarView: View {
             .font(.system(size: 15, weight: .medium))
             .foregroundStyle(
                 isSelected
-                    ? AnyShapeStyle(Color.white)
+                    ? AnyShapeStyle(TermindColor.selectedForeground)
                     : isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary)
             )
             .frame(width: 36, height: 36)
@@ -426,9 +426,10 @@ private struct SidebarNativeList: NSViewRepresentable {
             self.locale = locale
             self.colorScheme = colorScheme
             if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items, animated: animated && !content.isEmpty)
             }

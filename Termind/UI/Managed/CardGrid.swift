@@ -178,7 +178,7 @@ struct CardPage<Content: View>: View {
             .overlay { marqueeInputHost }
             .overlay { blankAreaMenuHost }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(.background)
+            .background(TermindColor.windowSurface)
     }
 
     /// This is deliberately native rather than a SwiftUI `DragGesture`: an

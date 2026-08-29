@@ -75,7 +75,7 @@ struct ModelListEditor: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .background(.background)
+        .background(TermindColor.windowSurface)
     }
 
     // MARK: - Toolbar
@@ -983,9 +983,10 @@ where Item: Identifiable & Hashable & Sendable, Item.ID: Hashable {
             self.locale = locale
             self.colorScheme = colorScheme
             if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where environmentChanged || old != new {
+                for (old, new) in zip(content, items) where old != new {
                     listView.update(new)
                 }
+                if environmentChanged { listView.reloadData() }
             } else {
                 listView.apply(items, animated: !content.isEmpty)
             }

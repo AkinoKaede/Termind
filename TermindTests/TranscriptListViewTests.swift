@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import ListViewKit
+import SwiftUI
 import Testing
 
 @testable import Termind
@@ -379,6 +380,56 @@ struct TranscriptListViewBridgeTests {
             let color = try #require(bubble.layer?.backgroundColor.flatMap(NSColor.init(cgColor:)))
             #expect(abs(color.alphaComponent - 0.10) < 0.002)
         }
+    }
+
+    @Test
+    func mountedTranscriptRefreshesWhenSystemAppearanceChanges() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 260)
+        let id = UUID()
+        let entry = user(id: id, text: "The same mounted row follows system appearance.")
+
+        listView.appearance = NSAppearance(named: .aqua)
+        update(
+            coordinator,
+            listView,
+            entries: [entry],
+            colorScheme: .light
+        )
+        listView.layoutSubtreeIfNeeded()
+        let lightRow = try #require(listView.rowView(for: id))
+        let lightBubble = try #require(
+            descendant(in: lightRow, identifier: "Transcript.UserBubble")
+        )
+        lightBubble.updateLayer()
+        let lightLayerColor = try #require(
+            lightBubble.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
+        )
+        let light = try #require(lightLayerColor.usingColorSpace(.deviceRGB))
+        let lightFrame = listView.rectForRow(with: id)
+
+        listView.appearance = NSAppearance(named: .darkAqua)
+        update(
+            coordinator,
+            listView,
+            entries: [entry],
+            colorScheme: .dark
+        )
+        listView.layoutSubtreeIfNeeded()
+        let darkRow = try #require(listView.rowView(for: id))
+        let darkBubble = try #require(
+            descendant(in: darkRow, identifier: "Transcript.UserBubble")
+        )
+        darkBubble.updateLayer()
+        let darkLayerColor = try #require(
+            darkBubble.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
+        )
+        let dark = try #require(darkLayerColor.usingColorSpace(.deviceRGB))
+
+        #expect(abs(light.alphaComponent - 0.10) < 0.002)
+        #expect(abs(dark.alphaComponent - 0.10) < 0.002)
+        #expect(listView.rectForRow(with: id).size == lightFrame.size)
     }
 
     @Test
@@ -983,7 +1034,8 @@ struct TranscriptListViewBridgeTests {
         isCompact: Bool = true,
         showsTerminalActions: Bool = false,
         actions: TranscriptListActions = .init(),
-        reduceMotion: Bool = true
+        reduceMotion: Bool = true,
+        colorScheme: ColorScheme = .light
     ) {
         coordinator.update(
             listView: listView,
@@ -994,7 +1046,8 @@ struct TranscriptListViewBridgeTests {
                 showsTerminalActions: showsTerminalActions,
                 isConversationStreaming: false,
                 locale: Locale(identifier: "en"),
-                reduceMotion: reduceMotion
+                reduceMotion: reduceMotion,
+                colorScheme: colorScheme
             ),
             actions: actions,
             presentation: presentation

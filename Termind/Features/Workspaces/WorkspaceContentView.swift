@@ -132,7 +132,7 @@ private struct CommandGeneratorOverlay: View {
             RoundedRectangle(cornerRadius: Metrics.Radius.large)
                 .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.16), radius: 12, y: 5)
+        .shadow(color: TermindColor.shadow.opacity(0.16), radius: 12, y: 5)
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
     }
@@ -615,7 +615,7 @@ private struct PaneView: View {
         } else if pane.kind == .sshSession || pane.kind == .serialSession {
             headerContent.background(terminalAppearance.background)
         } else if pane.kind == .sftpSession {
-            headerContent.background(.background)
+            headerContent.background(TermindColor.windowSurface)
         } else {
             headerContent.termindGlassBar()
         }
@@ -829,7 +829,7 @@ struct WelcomeView: View {
             .padding(.horizontal, Metrics.Space.xl)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
+        .background(TermindColor.windowSurface)
         .onAppear { isSearchFocused = true }
         .onChange(of: window.welcomeSearchFocusRequest) { _, _ in
             isSearchFocused = true

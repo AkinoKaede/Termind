@@ -8,9 +8,9 @@ extension ConnectionStatus {
     var tint: Color {
         switch self {
         case .disconnected: .secondary
-        case .connecting, .reconnecting: .orange
-        case .connected: .green
-        case .failed: .red
+        case .connecting, .reconnecting: TermindColor.warning
+        case .connected: TermindColor.success
+        case .failed: TermindColor.danger
         }
     }
 
@@ -54,6 +54,6 @@ struct StatusDot: View {
     /// Unread output only shows once the connection has settled — while
     /// connecting, the connection state is the more useful thing to signal.
     private var fill: Color {
-        hasUnread && !status.isBusy ? .blue : status.tint
+        hasUnread && !status.isBusy ? TermindColor.accent : status.tint
     }
 }

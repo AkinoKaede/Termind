@@ -34,7 +34,7 @@ struct EmptyPaneView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
+        .background(TermindColor.windowSurface)
         .overlay {
             RoundedRectangle(cornerRadius: Metrics.Radius.large)
                 .strokeBorder(

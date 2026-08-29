@@ -22,6 +22,7 @@ struct TermindMarkdownView: View {
     var tone: Tone = .primary
 
     @Environment(\.markdownFillsWidth) private var fillsWidth
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var model: RenderingModel
 
     init(
@@ -69,8 +70,10 @@ struct TermindMarkdownView: View {
                 text: text,
                 isStreaming: isStreaming,
                 isAssistant: isAssistant,
-                tone: tone
-            )
+                tone: tone,
+                colorScheme: colorScheme
+            ),
+            initial: true
         ) { _, _ in
             refreshIfNeeded()
         }
@@ -85,6 +88,7 @@ struct TermindMarkdownView: View {
             model.source != text
                 || model.rendered.allowsShellActions != isAssistant
                 || model.rendered.themeTone != tone
+                || model.rendered.themeColorScheme != colorScheme
         else { return }
         refresh()
     }
@@ -93,7 +97,7 @@ struct TermindMarkdownView: View {
         model.refresh(
             source: text,
             allowsShellActions: isAssistant,
-            theme: TermindMarkdownTheme.make(tone: tone)
+            theme: TermindMarkdownTheme.make(tone: tone, colorScheme: colorScheme)
         )
     }
 
@@ -102,6 +106,7 @@ struct TermindMarkdownView: View {
         let isStreaming: Bool
         let isAssistant: Bool
         let tone: Tone
+        let colorScheme: ColorScheme
     }
 
     @MainActor
@@ -444,6 +449,7 @@ struct TermindMarkdownRenderedDocument {
     let theme: MarkdownTheme
     let allowsShellActions: Bool
     let themeTone: TermindMarkdownView.Tone
+    let themeColorScheme: ColorScheme?
 
     init(source: String, allowsShellActions: Bool, theme: TermindMarkdownTheme.Value) {
         let parserResult = MarkdownParser().parse(MarkdownSoftBreaks.hardened(source))
@@ -474,6 +480,7 @@ struct TermindMarkdownRenderedDocument {
         self.theme = theme.theme
         self.allowsShellActions = allowsShellActions
         themeTone = theme.tone
+        themeColorScheme = theme.colorScheme
     }
 }
 
@@ -482,9 +489,13 @@ enum TermindMarkdownTheme {
     struct Value {
         let theme: MarkdownTheme
         let tone: TermindMarkdownView.Tone
+        let colorScheme: ColorScheme?
     }
 
-    static func make(tone: TermindMarkdownView.Tone) -> Value {
+    static func make(
+        tone: TermindMarkdownView.Tone,
+        colorScheme: ColorScheme? = nil
+    ) -> Value {
         var theme = MarkdownTheme()
         let bodySize = NSFont.systemFontSize
         let body = NSFont.systemFont(ofSize: bodySize)
@@ -498,22 +509,47 @@ enum TermindMarkdownTheme {
         theme.fonts.title = NSFont.boldSystemFont(ofSize: bodySize + 2)
         theme.fonts.largeTitle = NSFont.boldSystemFont(ofSize: bodySize + 5)
 
-        let bodyColor: NSColor = tone == .primary ? .labelColor : .secondaryLabelColor
+        let bodyColor = resolved(
+            tone == .primary ? .labelColor : .secondaryLabelColor,
+            colorScheme: colorScheme
+        )
         theme.colors.body = bodyColor
         theme.colors.code = bodyColor
-        theme.colors.highlight = .controlAccentColor
-        theme.colors.emphasis = .controlAccentColor
-        theme.colors.codeBackground = NSColor.secondaryLabelColor.withAlphaComponent(0.15)
-        theme.colors.selectionBackground = NSColor.controlAccentColor.withAlphaComponent(0.2)
+        theme.colors.highlight = resolved(.controlAccentColor, colorScheme: colorScheme)
+        theme.colors.emphasis = resolved(.controlAccentColor, colorScheme: colorScheme)
+        theme.colors.codeBackground = resolved(
+            .secondaryLabelColor, colorScheme: colorScheme
+        ).withAlphaComponent(0.15)
+        theme.colors.selectionBackground = resolved(
+            .controlAccentColor, colorScheme: colorScheme
+        ).withAlphaComponent(0.2)
 
         theme.spacings.paragraph = Metrics.Chat.blockSpacing
         theme.spacings.headingBefore = Metrics.Space.xs
         theme.spacings.list = Metrics.Space.xs
         theme.table.cornerRadius = Metrics.Radius.small
-        theme.table.borderColor = .separatorColor
-        theme.table.headerBackgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.12)
-        theme.table.stripeCellBackgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.06)
-        return Value(theme: theme, tone: tone)
+        theme.table.borderColor = resolved(.separatorColor, colorScheme: colorScheme)
+        theme.table.headerBackgroundColor = resolved(
+            .quaternaryLabelColor, colorScheme: colorScheme
+        ).withAlphaComponent(0.12)
+        theme.table.stripeCellBackgroundColor = resolved(
+            .quaternaryLabelColor, colorScheme: colorScheme
+        ).withAlphaComponent(0.06)
+        return Value(theme: theme, tone: tone, colorScheme: colorScheme)
+    }
+
+    private static func resolved(_ color: NSColor, colorScheme: ColorScheme?) -> NSColor {
+        guard let colorScheme,
+            let appearance = NSAppearance(
+                named: colorScheme == .dark ? .darkAqua : .aqua
+            )
+        else { return color }
+
+        var resolved = color
+        appearance.performAsCurrentDrawingAppearance {
+            resolved = color.usingColorSpace(.deviceRGB) ?? color
+        }
+        return resolved
     }
 }
 
