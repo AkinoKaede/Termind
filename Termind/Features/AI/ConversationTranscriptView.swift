@@ -27,7 +27,6 @@ struct ConversationView: View {
     /// before the app starts its first run.
     var onSend: (() -> Void)?
 
-    @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @State private var transcriptPresentation = TranscriptPresentationState()
 
@@ -171,120 +170,97 @@ struct ConversationView: View {
     }
 
     private var transcript: some View {
+        ConversationTranscriptSurface(
+            conversation: conversation,
+            isCompact: isCompact,
+            sessionContext: sessionContext,
+            showsTerminalActions: showsTerminalActions,
+            presentation: transcriptPresentation
+        )
+    }
+
+}
+
+/// Keeps composer draft edits outside the transcript's observation boundary.
+///
+/// `ConversationView` owns both surfaces, but a draft keystroke must not rebuild
+/// the timeline, hash every Markdown entry, or ask ListViewKit to compare a long
+/// conversation. This child observes only transcript-affecting properties; the
+/// composer remains free to update at key-repeat speed.
+private struct ConversationTranscriptSurface: View {
+    let conversation: ConversationModel
+    let isCompact: Bool
+    let sessionContext: SessionContext
+    let showsTerminalActions: Bool
+    let presentation: TranscriptPresentationState
+
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
         let timeline = conversation.timeline
-        let items = TranscriptRenderItem.items(
+        let entries = TranscriptEntry.items(
             timeline: timeline,
-            isInterrupted: conversation.runState == .interrupted
+            isInterrupted: conversation.runState == .interrupted,
+            canEdit: conversation.canEditUserMessage,
+            canFork: conversation.canForkAssistantMessage
         )
         return TranscriptListView(
-            items: items,
-            latestUserMessageID: conversation.messages.last(where: { $0.role == .user })?.id
-        ) { item, disclosureDidToggle in
-            AnyView(
-                renderItem(item, onDisclosureToggle: disclosureDidToggle)
-                    .padding(.horizontal, isCompact ? Metrics.Space.l : Metrics.Space.xl)
-                    .padding(.top, item.hasLeadingSpacing ? Metrics.Chat.turnSpacing : 0)
-                    .frame(maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth)
-                    .frame(maxWidth: .infinity)
-                    .environment(app)
-                    .environment(window)
-            )
-        }
-        .onChange(of: items.reduce(into: Set<UUID>()) {
-            $0.formUnion($1.presentationIDs)
-        }, initial: true) { _, validIDs in
-            transcriptPresentation.prune(validTimelineIDs: validIDs)
-        }
-    }
-
-    @ViewBuilder
-    private func renderItem(
-        _ item: TranscriptRenderItem,
-        onDisclosureToggle: @escaping @MainActor () -> Void
-    ) -> some View {
-        switch item.content {
-        case .timeline(let item):
-            row(for: item, onDisclosureToggle: onDisclosureToggle)
-        case .empty:
-            emptyState
-        case .interrupted:
-            Label(
-                "This run was interrupted and was not resumed.",
-                systemImage: "pause.circle"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private func row(
-        for item: TimelineItem,
-        onDisclosureToggle disclosureDidToggle: @escaping @MainActor () -> Void
-    ) -> some View {
-        switch item {
-        case .message(let message) where message.role == .user:
-            UserMessageView(
-                message: message, isCompact: isCompact,
-                presentation: transcriptPresentation,
-                canEdit: conversation.canEditUserMessage(message.id),
-                onEdit: { text in
+            entries: entries,
+            latestUserMessageID: conversation.messages.last(where: { $0.role == .user })?.id,
+            configuration: .init(
+                isCompact: isCompact,
+                showsTerminalActions: showsTerminalActions,
+                isConversationStreaming: conversation.isStreaming,
+                locale: locale,
+                reduceMotion: reduceMotion
+            ),
+            actions: .init(
+                hostName: { id in
+                    app.hostLibrary.host(id)?.name ?? String(id.uuidString.prefix(8))
+                },
+                editUserMessage: { id, text in
                     window.editAssistantUserMessage(
-                        conversation.id, messageID: message.id, text: text,
+                        conversation.id,
+                        messageID: id,
+                        text: text,
                         context: sessionContext,
                         includesTerminalSuggestion: showsTerminalActions
                     )
-                }
-            )
-        case .message(let message):
-            AssistantMessageView(
-                message: message, isCompact: isCompact,
-                showsTerminalActions: showsTerminalActions,
-                canFork: conversation.canForkAssistantMessage(message.id),
-                onFork: {
+                },
+                forkAssistantMessage: { id in
                     window.forkAssistantConversation(
-                        conversation.id, at: message.id, inSidebar: isCompact
+                        conversation.id,
+                        at: id,
+                        inSidebar: isCompact
                     )
+                },
+                resolvePlan: { id, outcome in
+                    conversation.resolvePlan(id, as: outcome)
+                },
+                implementPlan: { card in
+                    guard app.proAccess.require(.assistant) else { return }
+                    conversation.resolvePlan(card.id, as: .implemented)
+                    let prompt = ConversationModel.implementationPrompt(for: card.plan)
+                    conversation.appendUserTurn(prompt)
+                    app.startAgentRun(conversation, prompt: prompt)
+                },
+                canDeliverCommand: {
+                    guard let workspace = window.selectedWorkspace else { return false }
+                    return workspace.focusedPane.sshSession != nil
+                        || !workspace.broadcastTargets.isEmpty
+                },
+                deliverCommand: { command, submit in
+                    guard let workspace = window.selectedWorkspace,
+                        let origin = workspace.focusedPane.sshSession
+                            ?? workspace.broadcastTargets.first
+                    else { return }
+                    workspace.deliver(command, from: origin, submit: submit)
                 }
-            )
-        case .tool(let card):
-            AgentToolRowView(
-                card: card, presentation: transcriptPresentation,
-                onDisclosureToggle: disclosureDidToggle
-            )
-        case .work(let group):
-            AgentWorkGroupView(
-                group: group, isCompact: isCompact,
-                presentation: transcriptPresentation,
-                onDisclosureToggle: disclosureDidToggle
-            )
-        case .plan(let card):
-            AgentPlanRowView(
-                card: card, conversation: conversation,
-                presentation: transcriptPresentation,
-                onDisclosureToggle: disclosureDidToggle
-            )
-        case .compaction(let mark):
-            AgentCompactionRowView(mark: mark)
-        case .compactionActivity(let activity):
-            AgentCompactionActivityRowView(
-                activity: activity, presentation: transcriptPresentation,
-                onDisclosureToggle: disclosureDidToggle
-            )
-        }
-    }
-
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Text("Start a Conversation")
-                .font(.headline)
-            Text("Ask a question or describe what you want to do.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.vertical, Metrics.Space.xl)
-        .frame(maxWidth: .infinity, alignment: .leading)
+            ), presentation: presentation
+        )
     }
 }
 
@@ -327,18 +303,23 @@ private struct AgentWorkGroupView: View {
                 header
             }
             .buttonStyle(.plain)
-            .help(Text(
-                isExpanded ? String(localized: "Hide work") : String(localized: "Show work")
-            ))
+            .help(
+                Text(
+                    isExpanded ? String(localized: "Hide work") : String(localized: "Show work")
+                )
+            )
             .accessibilityLabel(Text(title(at: group.run.finishedAt ?? .now)))
-            .accessibilityValue(Text(
-                isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
-            ))
-            .accessibilityHint(Text(
-                isExpanded
-                    ? String(localized: "Collapse work process")
-                    : String(localized: "Expand work process")
-            ))
+            .accessibilityValue(
+                Text(
+                    isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
+                )
+            )
+            .accessibilityHint(
+                Text(
+                    isExpanded
+                        ? String(localized: "Collapse work process")
+                        : String(localized: "Expand work process")
+                ))
 
             if isExpanded { workItems }
             Divider()
@@ -523,13 +504,16 @@ private struct AgentToolBatchView: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(Text(
-                isExpanded ? String(localized: "Hide tools") : String(localized: "Show tools")
-            ))
+            .help(
+                Text(
+                    isExpanded ? String(localized: "Hide tools") : String(localized: "Show tools")
+                )
+            )
             .accessibilityLabel(Text(title))
-            .accessibilityValue(Text(
-                isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
-            ))
+            .accessibilityValue(
+                Text(
+                    isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed")
+                ))
 
             if isExpanded {
                 // Plain, for the same reason `AgentWorkGroupView.workItems` is.
@@ -596,9 +580,11 @@ private struct AgentToolRowView: View {
                         .lineLimit(isExpanded ? nil : 1)
                         .truncationMode(.tail)
                         .foregroundStyle(card.state == .running ? .secondary : .primary)
-                        .modifier(ScanningTextMask(
-                            isActive: showsActivityAnimation && card.state == .running
-                        ))
+                        .modifier(
+                            ScanningTextMask(
+                                isActive: showsActivityAnimation && card.state == .running
+                            )
+                        )
                         .layoutPriority(1)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .bold))
@@ -616,10 +602,11 @@ private struct AgentToolRowView: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(Text(
-                isExpanded
-                    ? String(localized: "Hide details") : String(localized: "Show details")
-            ))
+            .help(
+                Text(
+                    isExpanded
+                        ? String(localized: "Hide details") : String(localized: "Show details")
+                ))
 
             if isExpanded { detail }
         }
@@ -1013,17 +1000,17 @@ struct AgentTaskCapsuleView: View {
                         // gap between the floating list and its capsule.
                         Color.clear.frame(height: Metrics.Space.xs)
                     }
-                        .onGeometryChange(for: CGFloat.self) {
-                            $0.size.height
-                        } action: {
-                            overlayHeight = $0
-                        }
-                        // The overlay's bottom meets the capsule's top. Using
-                        // `.top` is important: bottom-aligning first and then
-                        // subtracting the list height moved it upward twice.
-                        .offset(y: -overlayHeight)
-                        .onHover { isHoveringList = $0 }
-                        .transition(.opacity)
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.height
+                    } action: {
+                        overlayHeight = $0
+                    }
+                    // The overlay's bottom meets the capsule's top. Using
+                    // `.top` is important: bottom-aligning first and then
+                    // subtracting the list height moved it upward twice.
+                    .offset(y: -overlayHeight)
+                    .onHover { isHoveringList = $0 }
+                    .transition(.opacity)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -1173,7 +1160,7 @@ private struct AgentPlanRowView: View {
             isAssistant: true,
             isCompact: true
         )
-            .padding(.leading, Metrics.Sidebar.rowIcon + Metrics.Space.s)
+        .padding(.leading, Metrics.Sidebar.rowIcon + Metrics.Space.s)
 
         if isExpanded {
             rendered
@@ -1234,10 +1221,11 @@ private struct AgentPlanRowView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .help(Text(
-            isExpanded
-                ? String(localized: "Hide the plan") : String(localized: "Show the plan")
-        ))
+        .help(
+            Text(
+                isExpanded
+                    ? String(localized: "Hide the plan") : String(localized: "Show the plan")
+            ))
     }
 
     private var actions: some View {
@@ -1522,9 +1510,9 @@ private struct AgentUserInputCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             questionProgress
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
-            .fixedSize()
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .fixedSize()
 
             HStack(spacing: Metrics.Space.s) {
                 if conversation.canSkipUserInputQuestion {

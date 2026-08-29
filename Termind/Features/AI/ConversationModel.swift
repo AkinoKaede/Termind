@@ -519,7 +519,10 @@ final class ConversationModel: Identifiable {
     /// to the focused state object.
     var attachments: [ContextChip] {
         get { composer.attachments }
-        set { composer.attachments = newValue }
+        set {
+            composer.attachments = newValue
+            refreshAttachedContextEstimate()
+        }
     }
     var pendingAttachments: [PendingContextAttachment] {
         get { composer.pendingAttachments }
@@ -615,6 +618,12 @@ final class ConversationModel: Identifiable {
     /// Google both reject. So the authoritative transcript is kept beside it and
     /// rebuilt from the same events.
     private(set) var transcript: [AgentTranscriptMessage] = []
+    private let contextEstimateTracker: AgentContextEstimateTracker
+    private(set) var contextEstimate: AgentContextEstimate
+    private var contextEstimatePublishTask: Task<Void, Never>?
+    private var contextEstimateNeedsPublish = false
+    private let contextEstimatePublishInterval: Duration
+    private(set) var contextEstimatePublishCount = 0
     private var runtime: AgentRuntime?
     private var eventTask: Task<Void, Never>?
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
@@ -666,22 +675,61 @@ final class ConversationModel: Identifiable {
 
     func noteToolSchemas(_ descriptors: [AgentToolDescriptor]) {
         toolSchemaCharacters = descriptors.reduce(0) { total, descriptor in
-            total + descriptor.name.count + descriptor.summary.count
-                + descriptor.inputSchema.encodedString.count
+            total + AgentContextEstimator.characterUnits(in: descriptor.name)
+                + AgentContextEstimator.characterUnits(in: descriptor.summary)
+                + AgentContextEstimator.characterUnits(
+                    in: descriptor.inputSchema.encodedString
+                )
+        }
+        contextEstimateTracker.setToolSchemaCharacters(toolSchemaCharacters)
+        publishContextEstimateImmediately()
+    }
+
+    var contextEstimateFullRebuildCount: Int {
+        contextEstimateTracker.fullRebuildCount
+    }
+
+    private var attachedContextCharacters: Int {
+        attachments.reduce(0) {
+            $0
+                + ($1.image == nil
+                    ? AgentContextEstimator.characterUnits(in: $1.content)
+                    : $1.approximateTokens * AgentContextEstimator.charactersPerToken)
         }
     }
 
-    /// The conversation as a gauge sees it, provider-measured where possible.
-    var contextEstimate: AgentContextEstimate {
-        AgentContextEstimator.estimate(
-            systemPrompt: AgentSystemPrompt.default,
-            toolSchemaCharacters: toolSchemaCharacters,
-            transcript: transcript,
-            attachedCharacters: attachments.reduce(0) {
-                $0 + ($1.image == nil ? $1.content.count : $1.approximateTokens * 4)
-            },
-            measured: usage
-        )
+    private func refreshAttachedContextEstimate() {
+        contextEstimateTracker.setAttachedCharacters(attachedContextCharacters)
+        publishContextEstimateImmediately()
+    }
+
+    private func publishContextEstimateImmediately() {
+        contextEstimatePublishTask?.cancel()
+        contextEstimatePublishTask = nil
+        contextEstimateNeedsPublish = false
+        let value = contextEstimateTracker.snapshot()
+        if contextEstimate != value {
+            contextEstimate = value
+            contextEstimatePublishCount += 1
+        }
+    }
+
+    private func scheduleContextEstimatePublish() {
+        contextEstimateNeedsPublish = true
+        guard contextEstimatePublishTask == nil else { return }
+        contextEstimatePublishTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: contextEstimatePublishInterval)
+            guard !Task.isCancelled else { return }
+            contextEstimatePublishTask = nil
+            guard contextEstimateNeedsPublish else { return }
+            contextEstimateNeedsPublish = false
+            let value = contextEstimateTracker.snapshot()
+            if contextEstimate != value {
+                contextEstimate = value
+                contextEstimatePublishCount += 1
+            }
+        }
     }
 
     /// What the most recent turn cost, as its provider counted it.
@@ -734,8 +782,16 @@ final class ConversationModel: Identifiable {
         messageRunIDs: [UUID: UUID] = [:],
         runs: [AgentRunSummary] = [],
         createdAt: Date = .now, updatedAt: Date = .now,
-        sortIndex: Double? = nil
+        sortIndex: Double? = nil,
+        contextEstimatePublishInterval: Duration = .milliseconds(250)
     ) {
+        let contextEstimateTracker = AgentContextEstimateTracker(
+            systemPrompt: AgentSystemPrompt.default,
+            toolSchemaCharacters: 0,
+            transcript: transcript,
+            attachedCharacters: 0,
+            measured: nil
+        )
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -746,6 +802,10 @@ final class ConversationModel: Identifiable {
         runSummaries = Dictionary(uniqueKeysWithValues: runs.map { ($0.id, $0) })
         self.runState = runState
         runtimeState = runState
+        self.contextEstimatePublishInterval = contextEstimatePublishInterval
+        self.contextEstimateTracker = contextEstimateTracker
+        contextEstimate = contextEstimateTracker.snapshot()
+        contextEstimatePublishCount = 1
     }
 
     /// The generated summary if there is one, and the opening line until then.
@@ -825,6 +885,8 @@ final class ConversationModel: Identifiable {
         let removedMessageIDs = Set(transcript[target...].map(\.id))
         let removedRunIDs = Set(removedMessageIDs.compactMap { messageRunIDs[$0] })
         transcript.replaceSubrange(target..., with: [replacement])
+        contextEstimateTracker.remove(removedMessageIDs)
+        contextEstimateTracker.upsert(replacement)
 
         if let visibleIndex = messages.firstIndex(where: { $0.id == id }) {
             messages.replaceSubrange(visibleIndex..., with: [ChatMessage(
@@ -846,6 +908,8 @@ final class ConversationModel: Identifiable {
         compactions.removeAll { $0.createdAt >= original.createdAt }
         tasks.removeAll()
         usage = nil
+        contextEstimateTracker.setMeasured(nil)
+        publishContextEstimateImmediately()
         runtimeState = .idle
         refreshRunState()
         updatedAt = replacement.createdAt
@@ -1238,7 +1302,10 @@ final class ConversationModel: Identifiable {
         guard cut > 0, cut <= transcript.count else { return }
         let summarized = transcript[..<cut]
         let summarizedTokens = summarized.reduce(0) {
-            $0 + AgentContextEstimator.tokens(inCharacters: $1.text.count)
+            $0
+                + AgentContextEstimator.tokens(
+                    inCharacters: AgentContextEstimator.characterUnits(in: $1.text)
+                )
         }
         // Anchored to the *last summarized* message rather than the first kept
         // one. `appendUserTurn` writes the visible `ChatMessage` a moment before
@@ -1250,17 +1317,24 @@ final class ConversationModel: Identifiable {
         let replacement = AgentTranscriptMessage(
             role: .user, text: summary, isCompaction: true, createdAt: stamp
         )
+        let removedIDs = transcript[..<cut].map(\.id)
         transcript.replaceSubrange(..<cut, with: [replacement])
+        contextEstimateTracker.remove(removedIDs)
+        contextEstimateTracker.upsert(replacement)
         compactions.append(
             AgentCompactionMark(
                 summarizedTokens: summarizedTokens,
-                keptTokens: AgentContextEstimator.tokens(inCharacters: summary.count),
+                keptTokens: AgentContextEstimator.tokens(
+                    inCharacters: AgentContextEstimator.characterUnits(in: summary)
+                ),
                 createdAt: stamp
             ))
         // The gauge is measuring a context that no longer exists. Dropping it
         // rather than scaling it means the next turn reports a real number and
         // until then the estimate is shown as an estimate.
         usage = nil
+        contextEstimateTracker.setMeasured(nil)
+        publishContextEstimateImmediately()
     }
 
     /// Records what the user decided about a plan.
@@ -1391,6 +1465,10 @@ final class ConversationModel: Identifiable {
                 contextAttachments: composed.contextAttachments
             )
         )
+        if let message = transcript.last {
+            contextEstimateTracker.upsert(message)
+            publishContextEstimateImmediately()
+        }
         updatedAt = .now
         return ComposedUserTurn(
             id: messageID, text: composed.text, authoredText: text, images: composed.images,
@@ -1877,6 +1955,37 @@ final class ConversationModel: Identifiable {
         skippedUserInputQuestionIDs = []
     }
 
+    private func applyMessageDelta(_ text: String, to id: AgentTranscriptMessage.ID) {
+        guard !text.isEmpty else { return }
+        contextEstimateTracker.appendStreamingText(text, to: id)
+        scheduleContextEstimatePublish()
+        if let index = messages.firstIndex(where: { $0.id == id }) {
+            messages[index].text += text
+            if !messages[index].isStreaming { messages[index].isStreaming = true }
+        } else {
+            messages.append(
+                ChatMessage(id: id, role: .assistant, text: text, isStreaming: true)
+            )
+        }
+    }
+
+    private func applyReasoningDelta(_ text: String, to id: AgentTranscriptMessage.ID) {
+        guard !text.isEmpty,
+            let index = messages.firstIndex(where: { $0.id == id })
+        else { return }
+        if messages[index].reasoning.isEmpty {
+            messages[index].reasoning.append(
+                AgentReasoningBlock(text: text, createdAt: messages[index].createdAt)
+            )
+        } else {
+            let last = messages[index].reasoning.index(
+                before: messages[index].reasoning.endIndex
+            )
+            messages[index].reasoning[last].text += text
+        }
+        if !messages[index].isStreaming { messages[index].isStreaming = true }
+    }
+
     /// What the transcript shows, from what is actually outstanding.
     ///
     /// Assigning run state at each event only worked while one thing happened
@@ -1886,24 +1995,29 @@ final class ConversationModel: Identifiable {
     /// person being waited on outranks a review, which outranks the run's own
     /// idea of itself, and a terminal state outranks everything.
     private func refreshRunState() {
+        let nextState: AgentRunState
         if runtimeState.isTerminal || runtimeState == .idle {
-            runState = runtimeState
+            nextState = runtimeState
         } else if !pendingUserInputs.isEmpty || !pendingSSHAuthentications.isEmpty
             || !pendingSSHHostKeys.isEmpty
         {
-            runState = .waitingForUser
+            nextState = .waitingForUser
         } else if !pendingApprovals.isEmpty {
-            runState = .waitingForApproval
+            nextState = .waitingForApproval
         } else if !reviewing.isEmpty {
-            runState = .reviewing
+            nextState = .reviewing
         } else {
-            runState = runtimeState
+            nextState = runtimeState
         }
+        if runState != nextState { runState = nextState }
         if let activeRunID, var summary = runSummaries[activeRunID] {
-            summary.state = runState
-            runSummaries[activeRunID] = summary
+            if summary.state != nextState {
+                summary.state = nextState
+                runSummaries[activeRunID] = summary
+            }
         }
-        isStreaming = runState != .idle && !runState.isTerminal
+        let nextIsStreaming = nextState != .idle && !nextState.isTerminal
+        if isStreaming != nextIsStreaming { isStreaming = nextIsStreaming }
     }
 
     /// Ends presentation that only makes sense while a provider stream is
@@ -1915,13 +2029,15 @@ final class ConversationModel: Identifiable {
     /// the safe fallback for a terminal event whose run boundary was missed:
     /// settle every orphaned streaming message rather than leave the UI live.
     private func settleStreamingPresentation(for runID: UUID?) {
-        activeReasoningMessageID = nil
+        if activeReasoningMessageID != nil { activeReasoningMessageID = nil }
         for index in messages.indices where messages[index].isStreaming {
             guard runID == nil || messageRunIDs[messages[index].id] == runID else {
                 continue
             }
             messages[index].isStreaming = false
         }
+        contextEstimateTracker.clearStreamingText()
+        publishContextEstimateImmediately()
     }
 
     func handle(_ event: AgentEvent) {
@@ -1969,33 +2085,16 @@ final class ConversationModel: Identifiable {
             }
             refreshRunState()
         case .messageDelta(let id, let text):
-            if let activeRunID { messageRunIDs[id] = activeRunID }
-            if let index = messages.firstIndex(where: { $0.id == id }) {
-                messages[index].text += text
-                messages[index].isStreaming = true
-            } else {
-                messages.append(
-                    ChatMessage(
-                        id: id, role: .assistant, text: text, isStreaming: true
-                    ))
+            if let activeRunID, messageRunIDs[id] != activeRunID {
+                messageRunIDs[id] = activeRunID
             }
-            refreshRunState()
+            applyMessageDelta(text, to: id)
         case .reasoningDelta(let id, let text):
-            activeReasoningMessageID = id
-            if let activeRunID { messageRunIDs[id] = activeRunID }
-            if let index = messages.firstIndex(where: { $0.id == id }) {
-                if messages[index].reasoning.isEmpty {
-                    messages[index].reasoning.append(AgentReasoningBlock(
-                        text: text, createdAt: messages[index].createdAt
-                    ))
-                } else {
-                    messages[index].reasoning[
-                        messages[index].reasoning.index(before: messages[index].reasoning.endIndex)
-                    ].text += text
-                }
-                messages[index].isStreaming = true
+            if activeReasoningMessageID != id { activeReasoningMessageID = id }
+            if let activeRunID, messageRunIDs[id] != activeRunID {
+                messageRunIDs[id] = activeRunID
             }
-            refreshRunState()
+            applyReasoningDelta(text, to: id)
         // A queued turn has entered the model's context, so now it is part of
         // the conversation — in both lists, at the position the run put it, and
         // no longer in the queue the composer is drawing.
@@ -2020,6 +2119,8 @@ final class ConversationModel: Identifiable {
                     createdAt: message.createdAt
                 ))
             transcript.append(message)
+            contextEstimateTracker.upsert(message)
+            publishContextEstimateImmediately()
         case .messageFinished(let message):
             if let activeRunID { messageRunIDs[message.id] = activeRunID }
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
@@ -2041,6 +2142,8 @@ final class ConversationModel: Identifiable {
             } else {
                 transcript.append(message)
             }
+            contextEstimateTracker.upsert(message)
+            publishContextEstimateImmediately()
             updatedAt = .now
         case .toolProposed(let invocation, let descriptor):
             toolCards.append(AgentToolCard(invocation: invocation, descriptor: descriptor))
@@ -2074,11 +2177,13 @@ final class ConversationModel: Identifiable {
             // result the provider has no matching call for — which it rejects
             // on the *next* request. See `AgentToolResult.isProviderNative`.
             guard !result.isProviderNative else { break }
-            transcript.append(
-                AgentTranscriptMessage(
-                    role: .tool, text: result.content, toolCallID: result.callID,
-                    toolName: invocation.call.name, isError: result.isError
-                ))
+            let message = AgentTranscriptMessage(
+                role: .tool, text: result.content, toolCallID: result.callID,
+                toolName: invocation.call.name, isError: result.isError
+            )
+            transcript.append(message)
+            contextEstimateTracker.upsert(message)
+            publishContextEstimateImmediately()
         // The card only. The queue belongs to `requestApproval`, which is the
         // path that also holds the continuation — see its comment.
         case .approvalRequested(let request):
@@ -2102,6 +2207,12 @@ final class ConversationModel: Identifiable {
             break
         case .usageUpdated(let reported):
             usage = reported
+            contextEstimateTracker.setMeasured(reported)
+            if isStreaming {
+                scheduleContextEstimatePublish()
+            } else {
+                publishContextEstimateImmediately()
+            }
         case .planPresented(let plan):
             plans.append(AgentPlanCard(plan: plan))
         case .tasksUpdated(let updated):

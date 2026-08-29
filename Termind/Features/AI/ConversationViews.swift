@@ -294,10 +294,23 @@ private struct AssistantInteractionSurface: ViewModifier {
             // it from the column behind, which is a job system glass already
             // does — and the wash was enough to make the composer read as a
             // flat box with a sheen rather than as glass.
+            .background {
+                AssistantInteractionGlass(isEmphasized: isEmphasized)
+                    .equatable()
+            }
+    }
+}
+
+private struct AssistantInteractionGlass: View, Equatable {
+    let isEmphasized: Bool
+
+    var body: some View {
+        Color.clear
             .termindGlassSurface(
                 cornerRadius: Metrics.Chat.composerRadius,
                 isInteractive: isEmphasized
             )
+            .allowsHitTesting(false)
     }
 }
 
@@ -460,11 +473,13 @@ struct ComposerView: View {
     }
 
     var body: some View {
-        @Bindable var conversation = conversation
+        @Bindable var composer = conversation.composer
+        let estimate = conversation.contextEstimate
+        let share = contextShare(for: estimate)
 
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            if !sessionContext.isEmpty || !conversation.attachments.isEmpty
-                || !conversation.pendingAttachments.isEmpty
+            if !sessionContext.isEmpty || !composer.attachments.isEmpty
+                || !composer.pendingAttachments.isEmpty
             {
                 ContextChipsView(
                     sessionContext: sessionContext, conversation: conversation,
@@ -473,14 +488,14 @@ struct ComposerView: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
-            draftEditor($conversation.draft)
+            draftEditor($composer.draft)
 
             ZStack {
                 if showsTranscriptionControls {
                     transcriptionControls
                         .transition(.opacity)
                 } else {
-                    standardControls
+                    standardControls(contextEstimate: estimate)
                         .transition(.opacity)
                 }
             }
@@ -508,7 +523,7 @@ struct ComposerView: View {
         // Anchored to the whole surface rather than the TextEditor. The editor
         // begins inside the surface padding (and can have Context chips above
         // it), which let the palette overlap the Chat frame.
-        .overlay(alignment: .top) { slashMenu }
+        .overlay(alignment: .top) { slashMenu(contextShare: share) }
         .padding(.horizontal, Metrics.Space.l)
         .frame(maxWidth: maxContentWidth ?? .infinity)
         .frame(maxWidth: .infinity)
@@ -677,11 +692,11 @@ struct ComposerView: View {
     /// stopping is the only thing left to do.
     private var showsStopButton: Bool { conversation.isStreaming && !conversation.canSendDraft }
 
-    private var standardControls: some View {
+    private func standardControls(contextEstimate: AgentContextEstimate) -> some View {
         HStack(spacing: Metrics.Space.s) {
             ViewThatFits(in: .horizontal) {
-                composerMenus(compact: false)
-                composerMenus(compact: true)
+                composerMenus(compact: false, contextEstimate: contextEstimate)
+                composerMenus(compact: true, contextEstimate: contextEstimate)
             }
             .frame(maxWidth: .infinity)
 
@@ -1079,7 +1094,7 @@ struct ComposerView: View {
     }
 
     @ViewBuilder
-    private var slashMenu: some View {
+    private func slashMenu(contextShare: Double?) -> some View {
         let completion = slashCompletion
         if !completion.isEmpty {
             SlashCommandMenuView(
@@ -1245,7 +1260,9 @@ struct ComposerView: View {
         return true
     }
 
-    private func composerMenus(compact: Bool) -> some View {
+    private func composerMenus(
+        compact: Bool, contextEstimate: AgentContextEstimate
+    ) -> some View {
         HStack(spacing: Metrics.Space.s) {
             addContextButton
             permissionMenu(compact: compact)
@@ -1254,7 +1271,7 @@ struct ComposerView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
             Spacer(minLength: Metrics.Space.s)
-            modelAndThinkingMenu(compact: compact)
+            modelAndThinkingMenu(compact: compact, contextEstimate: contextEstimate)
         }
         .animation(Motion.panel(reduceMotion: reduceMotion), value: conversation.isPlanning)
     }
@@ -1521,25 +1538,24 @@ struct ComposerView: View {
         resolvedPermissionMode == .fullAccess ? .red : .secondary
     }
 
-    private var contextEstimate: AgentContextEstimate {
-        conversation.contextEstimate
-    }
-
-    private var contextShare: Double? {
+    private func contextShare(for estimate: AgentContextEstimate) -> Double? {
         // No window, no ring. A gateway that does not report `contextLength`
         // leaves us with a numerator and no denominator, and a ring drawn on a
         // guessed window would be a confident picture of nothing.
-        guard contextEstimate.total > 0 else { return nil }
-        return contextEstimate.share(of: resolved?.model.contextLength)
+        guard estimate.total > 0 else { return nil }
+        return estimate.share(of: resolved?.model.contextLength)
     }
 
-    private func modelAndThinkingMenu(compact: Bool) -> some View {
-        Button {
+    private func modelAndThinkingMenu(
+        compact: Bool, contextEstimate: AgentContextEstimate
+    ) -> some View {
+        let share = contextShare(for: contextEstimate)
+        return Button {
             isPermissionPickerPresented = false
             isModelPickerPresented.toggle()
         } label: {
             if compact {
-                modelGlyph(compact: true)
+                modelGlyph(compact: true, contextShare: share)
                     .frame(width: 24, height: 24)
                     .contentShape(.circle)
             } else {
@@ -1549,7 +1565,7 @@ struct ComposerView: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                     } icon: {
-                        modelGlyph(compact: false)
+                        modelGlyph(compact: false, contextShare: share)
                             .font(.caption2)
                     }
                     .labelStyle(.titleAndIcon)
@@ -1567,7 +1583,7 @@ struct ComposerView: View {
         .foregroundStyle(.secondary)
         .fixedSize()
         .popover(isPresented: $isModelPickerPresented, arrowEdge: .bottom) {
-            modelAndThinkingPopover
+            modelAndThinkingPopover(contextEstimate: contextEstimate)
         }
         .onChange(of: isModelPickerPresented) { _, isPresented in
             if !isPresented { expandedModelPickerSection = nil }
@@ -1576,7 +1592,9 @@ struct ComposerView: View {
         .accessibilityLabel(Text(modelAndThinkingAccessibilityLabel))
     }
 
-    private var modelAndThinkingPopover: some View {
+    private func modelAndThinkingPopover(
+        contextEstimate: AgentContextEstimate
+    ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if contextEstimate.total > 0 {
                 ContextBreakdownView(
@@ -1776,7 +1794,7 @@ struct ComposerView: View {
     /// four controls wide at 260pt, and a conversation's size is a property of
     /// the model it is being sent to, which is what this menu is about.
     @ViewBuilder
-    private func modelGlyph(compact: Bool) -> some View {
+    private func modelGlyph(compact: Bool, contextShare: Double?) -> some View {
         // This is a SwiftUI popover button, not an AppKit `NSMenu` label. Use
         // the same live shape as `/compact` so its transparent centre and
         // semantic track resolve against the current light/dark appearance.

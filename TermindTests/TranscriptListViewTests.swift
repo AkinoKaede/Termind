@@ -1,6 +1,6 @@
+import AppKit
 import Foundation
 import ListViewKit
-import SwiftUI
 import Testing
 
 @testable import Termind
@@ -30,8 +30,8 @@ struct TranscriptListUpdatePlanTests {
     @Test
     func aStreamingRevisionUpdatesOnlyItsStableRow() {
         let id = uuid(1)
-        let old = TranscriptRenderItem(id: id, content: .empty)
-        let new = TranscriptRenderItem(id: id, content: .interrupted)
+        let old = TranscriptEntry(id: id, content: .empty)
+        let new = TranscriptEntry(id: id, content: .interrupted)
         let untouched = item(2)
         let plan = TranscriptListUpdatePlan.make(
             old: [old, untouched], new: [new, untouched]
@@ -47,28 +47,34 @@ struct TranscriptListUpdatePlanTests {
         let first = item(1)
         let second = item(2)
 
-        #expect(TranscriptListUpdatePlan.make(
-            old: [first, second], new: [second, first]
-        ).replacesAll)
-        #expect(TranscriptListUpdatePlan.make(
-            old: [first, second], new: [first]
-        ).replacesAll)
+        #expect(
+            TranscriptListUpdatePlan.make(
+                old: [first, second], new: [second, first]
+            ).replacesAll)
+        #expect(
+            TranscriptListUpdatePlan.make(
+                old: [first, second], new: [first]
+            ).replacesAll)
     }
 
     @Test
     func appendingMarksOnlyTheNewRowForLeadingSpacing() {
-        let firstTimeline = TimelineItem.message(ChatMessage(
-            id: uuid(1), role: .assistant, text: "first"
-        ))
-        let secondTimeline = TimelineItem.message(ChatMessage(
-            id: uuid(2), role: .assistant, text: "second"
-        ))
+        let firstTimeline = TimelineItem.message(
+            ChatMessage(
+                id: uuid(1), role: .assistant, text: "first"
+            ))
+        let secondTimeline = TimelineItem.message(
+            ChatMessage(
+                id: uuid(2), role: .assistant, text: "second"
+            ))
 
-        let old = TranscriptRenderItem.items(
-            timeline: [firstTimeline], isInterrupted: false
+        let old = TranscriptEntry.items(
+            timeline: [firstTimeline], isInterrupted: false,
+            canEdit: { _ in false }, canFork: { _ in false }
         )
-        let new = TranscriptRenderItem.items(
-            timeline: [firstTimeline, secondTimeline], isInterrupted: false
+        let new = TranscriptEntry.items(
+            timeline: [firstTimeline, secondTimeline], isInterrupted: false,
+            canEdit: { _ in false }, canFork: { _ in false }
         )
         let plan = TranscriptListUpdatePlan.make(old: old, new: new)
 
@@ -79,8 +85,8 @@ struct TranscriptListUpdatePlanTests {
         #expect(plan.appends == [new[1]])
     }
 
-    private func item(_ value: UInt8) -> TranscriptRenderItem {
-        TranscriptRenderItem(id: uuid(value), content: .empty)
+    private func item(_ value: UInt8) -> TranscriptEntry {
+        TranscriptEntry(id: uuid(value), content: .empty)
     }
 
     private func uuid(_ value: UInt8) -> UUID {
@@ -139,45 +145,503 @@ struct TranscriptPresentationStateTests {
 @Suite
 struct TranscriptListViewBridgeTests {
     @Test
-    func installsTheSubtleBouncyAnimator() throws {
+    func richTranscriptDoesNotInstallAPerFrameRowAnimator() {
         let listView = TranscriptListView.Coordinator().makeListView()
-        let animator = try #require(listView.rowAnimator)
-        let values = Dictionary(uniqueKeysWithValues:
-            Mirror(reflecting: animator).children.compactMap { child in
-                child.label.map { ($0, child.value) }
-            }
-        )
-
-        #expect(String(describing: type(of: animator)) == "ListBouncyAnimator")
-        #expect(values["damping"] as? CGFloat == 0.8)
-        #expect(values["frequency"] as? CGFloat == 2)
+        #expect(listView.rowAnimator == nil)
     }
 
     @Test
-    func hostedRowsUseTheirMeasuredIntrinsicHeights() {
+    func entryKindsUseDedicatedReusableRowTypes() {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
-        let short = TranscriptRenderItem(id: UUID(), content: .empty)
-        let tall = TranscriptRenderItem(
-            id: UUID(), content: .interrupted, hasLeadingSpacing: true
+        let empty = TranscriptEntry(id: UUID(), content: .empty)
+        let assistant = assistant(id: UUID(), text: "Hello")
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+        update(coordinator, listView, entries: [empty, assistant])
+        listView.layoutSubtreeIfNeeded()
+
+        #expect(listView.rowView(for: empty.id) is TranscriptEmptyRow)
+        #expect(listView.rowView(for: assistant.id) is TranscriptAssistantRow)
+    }
+
+    @Test
+    func streamingUpdateKeepsTheMountedAssistantRowIdentity() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let id = UUID()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+        let first = TranscriptEntry(
+            id: id,
+            content: .assistant(
+                ChatMessage(id: id, role: .assistant, text: "First", isStreaming: true),
+                canFork: false
+            )
+        )
+        update(coordinator, listView, entries: [first])
+        let mounted = try #require(listView.rowView(for: id))
+
+        let second = TranscriptEntry(
+            id: id,
+            content: .assistant(
+                ChatMessage(id: id, role: .assistant, text: "First delta", isStreaming: true),
+                canFork: false
+            )
+        )
+        update(coordinator, listView, entries: [second])
+
+        #expect(listView.rowView(for: id) === mounted)
+    }
+
+    @Test
+    func everyStreamingRevisionIsAppliedImmediately() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let id = UUID()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+        let first = streamingAssistant(id: id, text: "0")
+        update(coordinator, listView, entries: [first])
+
+        for revision in 1...20 {
+            update(
+                coordinator,
+                listView,
+                entries: [streamingAssistant(id: id, text: String(revision))]
+            )
+            let latest = try #require(listView.content.first)
+            guard case .assistant(let message, _) = latest.content else {
+                Issue.record("Expected the assistant row")
+                return
+            }
+            #expect(message.text == String(revision))
+        }
+    }
+
+    @Test
+    func userBubbleUsesMarkdownHugsShortContentAndKeepsTheTrailingGutter() throws {
+        for isCompact in [true, false] {
+            let coordinator = TranscriptListView.Coordinator()
+            let listView = coordinator.makeListView()
+            let id = UUID()
+            listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+            update(
+                coordinator,
+                listView,
+                entries: [user(id: id, text: "**Hi**")],
+                isCompact: isCompact
+            )
+            listView.layoutSubtreeIfNeeded()
+
+            let row = try #require(listView.rowView(for: id))
+            let shortBubble = try #require(
+                descendant(in: row, identifier: "Transcript.UserBubble")
+            )
+            let shortMarkdown = try #require(
+                descendant(in: row, identifier: "Transcript.UserMarkdown")
+            )
+            let shortFrame = row.convert(shortBubble.bounds, from: shortBubble)
+            let horizontalInset = isCompact ? Metrics.Space.l : Metrics.Space.xl
+            #expect(abs(shortFrame.maxX - (row.bounds.maxX - horizontalInset)) <= 1)
+            #expect(shortFrame.width < row.bounds.width / 2)
+            #expect(
+                abs(shortBubble.bounds.width - shortMarkdown.bounds.width - Metrics.Space.l * 2)
+                    <= 1
+            )
+            #expect(
+                abs(shortBubble.bounds.height - shortMarkdown.bounds.height - Metrics.Space.m * 2)
+                    <= 1
+            )
+
+            update(
+                coordinator,
+                listView,
+                entries: [
+                    user(
+                        id: id,
+                        text: String(repeating: "A long Markdown sentence that wraps. ", count: 30)
+                    )
+                ],
+                isCompact: isCompact
+            )
+            listView.layoutSubtreeIfNeeded()
+
+            let longBubble = try #require(
+                descendant(in: row, identifier: "Transcript.UserBubble")
+            )
+            let longFrame = row.convert(longBubble.bounds, from: longBubble)
+            let gutter = isCompact ? Metrics.Chat.compactGutter : Metrics.Chat.gutter
+            let maximumWidth = row.bounds.width - horizontalInset * 2 - gutter
+            #expect(longFrame.width > shortFrame.width)
+            #expect(longFrame.width <= maximumWidth + 1)
+            #expect(abs(longFrame.maxX - (row.bounds.maxX - horizontalInset)) <= 1)
+        }
+    }
+
+    @Test
+    func userBubbleUsesASubtleAccentFillInLightAndDarkAppearances() throws {
+        for appearanceName in [NSAppearance.Name.aqua, .darkAqua] {
+            let coordinator = TranscriptListView.Coordinator()
+            let listView = coordinator.makeListView()
+            listView.appearance = NSAppearance(named: appearanceName)
+            listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+            let id = UUID()
+
+            update(coordinator, listView, entries: [user(id: id, text: "Hi")])
+            listView.layoutSubtreeIfNeeded()
+
+            let row = try #require(listView.rowView(for: id))
+            let bubble = try #require(
+                descendant(in: row, identifier: "Transcript.UserBubble")
+            )
+            bubble.updateLayer()
+            let color = try #require(bubble.layer?.backgroundColor.flatMap(NSColor.init(cgColor:)))
+            #expect(abs(color.alphaComponent - 0.10) < 0.002)
+        }
+    }
+
+    @Test
+    func userChipKeepsTheOldHalfQuaternaryFillInLightAndDarkAppearances() throws {
+        for appearanceName in [NSAppearance.Name.aqua, .darkAqua] {
+            let coordinator = TranscriptListView.Coordinator()
+            let listView = coordinator.makeListView()
+            listView.appearance = NSAppearance(named: appearanceName)
+            listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+            let id = UUID()
+            let chip = ContextChipReference(kind: .file, label: "notes.md")
+            let entry = TranscriptEntry(
+                id: id,
+                content: .user(
+                    ChatMessage(
+                        id: id,
+                        role: .user,
+                        text: "Review this",
+                        contextChips: [chip]
+                    ),
+                    canEdit: false
+                )
+            )
+
+            update(coordinator, listView, entries: [entry])
+            listView.layoutSubtreeIfNeeded()
+
+            let row = try #require(listView.rowView(for: id))
+            let chipView = try #require(
+                descendant(in: row, identifier: "Transcript.UserChip")
+            )
+            let chipContent = try #require(
+                descendant(in: chipView, identifier: "Transcript.UserChipContent")
+            )
+            chipView.updateLayer()
+            let color = try #require(
+                chipView.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
+            )
+            #expect(abs(color.alphaComponent - 0.049) < 0.002)
+            #expect(abs(chipView.bounds.width - chipContent.bounds.width - 12) <= 1)
+            #expect(abs(chipView.bounds.height - chipContent.bounds.height - 6) <= 1)
+        }
+    }
+
+    @Test
+    func userImagesAndChipsSitOutsideAndAboveTheTextBubble() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+        let id = UUID()
+        let data = try #require(Data(base64Encoded:
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL7WQAAAABJRU5ErkJggg=="
+        ))
+        let attachment = AgentImageAttachment(
+            label: "Dropped image",
+            mimeType: "image/png",
+            data: data,
+            pixelWidth: 16,
+            pixelHeight: 16
+        )
+        let chip = ContextChipReference(
+            id: attachment.id,
+            kind: .image,
+            label: attachment.label
+        )
+        let entry = TranscriptEntry(
+            id: id,
+            content: .user(
+                ChatMessage(
+                    id: id,
+                    role: .user,
+                    text: "what’s this",
+                    contextChips: [chip],
+                    images: [attachment]
+                ),
+                canEdit: false
+            )
+        )
+
+        update(coordinator, listView, entries: [entry])
+        listView.layoutSubtreeIfNeeded()
+
+        let row = try #require(listView.rowView(for: id))
+        let image = try #require(descendant(in: row, identifier: "Transcript.UserImage"))
+        let chipView = try #require(descendant(in: row, identifier: "Transcript.UserChip"))
+        let bubble = try #require(descendant(in: row, identifier: "Transcript.UserBubble"))
+        #expect(!image.isDescendant(of: bubble))
+        #expect(!chipView.isDescendant(of: bubble))
+
+        let imageFrame = row.convert(image.bounds, from: image)
+        let chipFrame = row.convert(chipView.bounds, from: chipView)
+        let bubbleFrame = row.convert(bubble.bounds, from: bubble)
+        if row.isFlipped {
+            #expect(imageFrame.maxY <= chipFrame.minY)
+            #expect(chipFrame.maxY <= bubbleFrame.minY)
+        } else {
+            #expect(imageFrame.minY >= chipFrame.maxY)
+            #expect(chipFrame.minY >= bubbleFrame.maxY)
+        }
+        #expect(abs(imageFrame.maxX - bubbleFrame.maxX) <= 1)
+        #expect(abs(chipFrame.maxX - bubbleFrame.maxX) <= 1)
+    }
+
+    @Test
+    func userImageUsesAReliableSquareCenterCropForEverySourceRatio() throws {
+        let data = try #require(Data(base64Encoded:
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL7WQAAAABJRU5ErkJggg=="
+        ))
+        for (pixelWidth, pixelHeight) in [(400, 200), (200, 400)] {
+            let coordinator = TranscriptListView.Coordinator()
+            let listView = coordinator.makeListView()
+            listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+            let id = UUID()
+            let attachment = AgentImageAttachment(
+                label: "preview.png",
+                mimeType: "image/png",
+                data: data,
+                pixelWidth: pixelWidth,
+                pixelHeight: pixelHeight
+            )
+            let entry = TranscriptEntry(
+                id: id,
+                content: .user(
+                    ChatMessage(
+                        id: id,
+                        role: .user,
+                        text: "preview",
+                        images: [attachment]
+                    ),
+                    canEdit: false
+                )
+            )
+
+            update(
+                coordinator,
+                listView,
+                entries: [entry],
+                isCompact: false
+            )
+            listView.layoutSubtreeIfNeeded()
+
+            let row = try #require(listView.rowView(for: id))
+            let image = try #require(
+                descendant(in: row, identifier: "Transcript.UserImage")
+            )
+            let preview = try #require(
+                descendant(in: image, identifier: "Transcript.UserImagePreview")
+            )
+            #expect(image.bounds.width == Metrics.Chat.imageTile)
+            #expect(image.bounds.height == Metrics.Chat.imageTile)
+            #expect(preview.bounds.width == preview.bounds.height)
+            #expect(preview.layer?.contentsGravity == .resizeAspectFill)
+            #expect(preview.layer?.masksToBounds == true)
+        }
+    }
+
+    @Test
+    func userEditorExpandsFromAShortBubbleAndGrowsWithItsDraft() throws {
+        for isCompact in [true, false] {
+            let coordinator = TranscriptListView.Coordinator()
+            let listView = coordinator.makeListView()
+            let presentation = TranscriptPresentationState()
+            let id = UUID()
+            listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+            let entry = user(id: id, text: "Hi")
+
+            update(
+                coordinator,
+                listView,
+                entries: [entry],
+                presentation: presentation,
+                isCompact: isCompact
+            )
+            listView.layoutSubtreeIfNeeded()
+            let row = try #require(listView.rowView(for: id))
+            let restingBubble = try #require(
+                descendant(in: row, identifier: "Transcript.UserBubble")
+            )
+            let restingWidth = restingBubble.bounds.width
+
+            presentation.beginEditingMessage(id, text: "Hi")
+            coordinator.refreshDisplayedRow(id, in: listView)
+            listView.layoutSubtreeIfNeeded()
+
+            let shortEditor = try #require(
+                descendant(in: row, identifier: "Transcript.UserEditor")
+            )
+            let shortScroll = try #require(
+                descendant(in: row, identifier: "Transcript.UserEditorScroll")
+            )
+            let editingBubble = try #require(
+                descendant(in: row, identifier: "Transcript.UserBubble")
+            )
+            let minimumEditorWidth: CGFloat = isCompact ? 160 : 200
+            #expect(shortEditor.bounds.width >= minimumEditorWidth)
+            #expect(editingBubble.bounds.width > restingWidth)
+            #expect(
+                abs(editingBubble.bounds.width - shortEditor.bounds.width - Metrics.Space.l * 2)
+                    <= 1
+            )
+            #expect(shortScroll.bounds.height >= 44)
+
+            presentation.setMessageEditText(
+                (1...12).map { "Expanded line \($0)" }.joined(separator: "\n"),
+                for: id
+            )
+            coordinator.refreshDisplayedRow(id, in: listView)
+            listView.layoutSubtreeIfNeeded()
+
+            let tallScroll = try #require(
+                descendant(in: row, identifier: "Transcript.UserEditorScroll")
+            )
+            #expect(tallScroll.bounds.height > shortScroll.bounds.height)
+            #expect(tallScroll.bounds.height <= 160)
+        }
+    }
+
+    @Test
+    func streamingTextHasNoSupplementalCaretRowAndEmptyTextKeepsWorkingActivity() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let id = UUID()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+        update(coordinator, listView, entries: [streamingAssistant(id: id, text: "Hello")])
+        listView.layoutSubtreeIfNeeded()
+
+        let row = try #require(listView.rowView(for: id))
+        let markdown = try #require(
+            descendant(in: row, identifier: "Transcript.AssistantMarkdown")
+        )
+        let markdownFrame = row.convert(markdown.bounds, from: markdown)
+        #expect(abs(markdownFrame.maxY - row.bounds.maxY) <= 1)
+        #expect(descendant(in: row, identifier: "Transcript.WorkingActivity") == nil)
+
+        update(coordinator, listView, entries: [streamingAssistant(id: id, text: "")])
+        listView.layoutSubtreeIfNeeded()
+
+        #expect(descendant(in: row, identifier: "Transcript.WorkingActivity") != nil)
+    }
+
+    @Test
+    func hoverSurvivesTheRefreshThatAddsCompletedMessageActions() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let presentation = TranscriptPresentationState()
+        let id = UUID()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+        update(
+            coordinator,
+            listView,
+            entries: [streamingAssistant(id: id, text: "Working")],
+            presentation: presentation
+        )
+        let row = try #require(listView.rowView(for: id) as? TranscriptAssistantRow)
+        let pointerEvent = try #require(pointerEvent())
+        row.mouseEntered(with: pointerEvent)
+
+        update(
+            coordinator,
+            listView,
+            entries: [assistant(id: id, text: "Finished")],
+            presentation: presentation
+        )
+        listView.layoutSubtreeIfNeeded()
+
+        let actions = try #require(
+            descendant(in: row, identifier: "Transcript.MessageActions")
+        )
+        #expect(actions.alphaValue == 1)
+
+        row.mouseExited(with: pointerEvent)
+        #expect(actions.alphaValue == 0)
+        row.mouseEntered(with: pointerEvent)
+        #expect(actions.alphaValue == 1)
+    }
+
+    @Test
+    func preparingAHoveredRowForReuseClearsItsActionVisibility() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let id = UUID()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+        update(coordinator, listView, entries: [assistant(id: id, text: "Finished")])
+        let row = try #require(listView.rowView(for: id) as? TranscriptAssistantRow)
+        let actions = try #require(
+            descendant(in: row, identifier: "Transcript.MessageActions")
+        )
+        row.mouseEntered(with: try #require(pointerEvent()))
+        #expect(actions.alphaValue == 1)
+
+        row.prepareForReuse()
+
+        #expect(actions.alphaValue == 0)
+    }
+
+    @Test
+    func disclosureRefreshRebuildsTheVisiblePlanAndItsHeight() {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let presentation = TranscriptPresentationState()
+        let plan = AgentPlan(
+            title: "Implementation plan",
+            body: String(repeating: "A detailed paragraph that wraps over several lines.\n\n", count: 24),
+            scratchPath: "/tmp/plan.md"
+        )
+        let entry = TranscriptEntry(
+            id: plan.id,
+            content: .plan(AgentPlanCard(plan: plan))
+        )
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 1_200)
+        update(coordinator, listView, entries: [entry], presentation: presentation)
+        listView.layoutSubtreeIfNeeded()
+        let collapsedHeight = listView.rectForRow(with: plan.id).height
+
+        presentation.toggleDisclosure(plan.id)
+        coordinator.refreshDisplayedRow(plan.id, in: listView)
+        listView.layoutSubtreeIfNeeded()
+
+        #expect(listView.rectForRow(with: plan.id).height > collapsedHeight)
+    }
+
+    @Test
+    func nativeRowsUseTheirMeasuredHeights() {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let short = TranscriptEntry(id: UUID(), content: .empty)
+        let tallID = UUID()
+        let tall = TranscriptEntry(
+            id: tallID,
+            content: .assistant(
+                ChatMessage(
+                    id: tallID, role: .assistant,
+                    text: String(repeating: "A wrapping transcript line. ", count: 80)
+                ),
+                canFork: false
+            ),
+            hasLeadingSpacing: true
         )
         listView.frame = CGRect(x: 0, y: 0, width: 320, height: 400)
 
-        coordinator.update(
-            listView: listView,
-            items: [short, tall],
-            latestUserMessageID: nil,
-            renderer: { item, _ in
-                AnyView(
-                    Text(item.id == short.id
-                        ? "Short"
-                        : String(repeating: "A wrapping transcript line. ", count: 80))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(8)
-                )
-            },
-            environment: .init(locale: Locale(identifier: "en"), colorScheme: .light)
-        )
+        update(coordinator, listView, entries: [short, tall])
         listView.layoutSubtreeIfNeeded()
 
         let shortHeight = listView.rectForRow(with: short.id).height
@@ -188,26 +652,18 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
-    func selfSizingKeepsTheMeasurementPrototypeContentHidden() {
+    func explicitHeightRowsDoNotInstallVisibleMeasurementPrototypes() {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
-        let item = TranscriptRenderItem(id: UUID(), content: .empty)
+        let item = TranscriptEntry(id: UUID(), content: .empty)
         listView.frame = CGRect(x: 0, y: 0, width: 320, height: 400)
 
-        update(
-            coordinator, listView,
-            items: [item],
-            renderer: { _, _ in AnyView(Text("Only once")) }
-        )
+        update(coordinator, listView, entries: [item])
         listView.layoutSubtreeIfNeeded()
 
         let rows = listView.subviews.compactMap { $0 as? ListRowView }
-        #expect(rows.count == 2)
-        #expect(rows.filter(\.isHidden).count == 1)
-        #expect(rows.filter { !$0.isHidden }.count == 1)
-        #expect(
-            rows.first(where: \.isHidden)?.subviews.allSatisfy(\.isHidden) == true
-        )
+        #expect(rows.count == 1)
+        #expect(rows.allSatisfy { !$0.isHidden })
     }
 
     @Test
@@ -216,23 +672,18 @@ struct TranscriptListViewBridgeTests {
         let listView = coordinator.makeListView()
         let growingID = UUID()
         let followingID = UUID()
-        let short = TranscriptRenderItem(id: growingID, content: .empty)
-        let tall = TranscriptRenderItem(id: growingID, content: .interrupted)
-        let following = TranscriptRenderItem(id: followingID, content: .empty)
+        let short = assistant(id: growingID, text: "Short block")
+        let tall = assistant(
+            id: growingID,
+            text: String(repeating: "Expanded work detail wraps over many lines. ", count: 80)
+        )
+        let following = TranscriptEntry(id: followingID, content: .empty)
         listView.frame = CGRect(x: 0, y: 0, width: 320, height: 1_200)
 
-        update(
-            coordinator, listView,
-            items: [short, following],
-            renderer: growingRenderer(id: growingID)
-        )
+        update(coordinator, listView, entries: [short, following])
         let shortHeight = listView.rectForRow(with: growingID).height
 
-        update(
-            coordinator, listView,
-            items: [tall, following],
-            renderer: growingRenderer(id: growingID)
-        )
+        update(coordinator, listView, entries: [tall, following])
         listView.layoutSubtreeIfNeeded()
 
         let grownFrame = listView.rectForRow(with: growingID)
@@ -248,24 +699,19 @@ struct TranscriptListViewBridgeTests {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
         let growingID = UUID()
-        let leading = TranscriptRenderItem(id: UUID(), content: .empty)
-        let short = TranscriptRenderItem(id: growingID, content: .empty)
-        let tall = TranscriptRenderItem(id: growingID, content: .interrupted)
+        let leading = TranscriptEntry(id: UUID(), content: .empty)
+        let short = assistant(id: growingID, text: "Short block")
+        let tall = assistant(
+            id: growingID,
+            text: String(repeating: "Expanded work detail wraps over many lines. ", count: 80)
+        )
         listView.frame = CGRect(x: 0, y: 0, width: 320, height: 180)
 
-        update(
-            coordinator, listView,
-            items: [leading, short],
-            renderer: growingRenderer(id: growingID)
-        )
+        update(coordinator, listView, entries: [leading, short])
         listView.scrollToBottom(animated: false)
         let oldMaximum = listView.maximumContentOffset.y
 
-        update(
-            coordinator, listView,
-            items: [leading, tall],
-            renderer: growingRenderer(id: growingID)
-        )
+        update(coordinator, listView, entries: [leading, tall])
 
         #expect(listView.maximumContentOffset.y > oldMaximum)
         #expect(listView.contentOffset.y == listView.maximumContentOffset.y)
@@ -278,27 +724,22 @@ struct TranscriptListViewBridgeTests {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
         let growingID = UUID()
-        let short = TranscriptRenderItem(id: growingID, content: .empty)
-        let tall = TranscriptRenderItem(id: growingID, content: .interrupted)
-        let history = (0 ..< 10).map { _ in
-            TranscriptRenderItem(id: UUID(), content: .empty)
+        let short = assistant(id: growingID, text: "Short block")
+        let tall = assistant(
+            id: growingID,
+            text: String(repeating: "Expanded work detail wraps over many lines. ", count: 80)
+        )
+        let history = (0..<10).map { _ in
+            TranscriptEntry(id: UUID(), content: .empty)
         }
         listView.frame = CGRect(x: 0, y: 0, width: 320, height: 180)
 
-        update(
-            coordinator, listView,
-            items: history + [short],
-            renderer: growingRenderer(id: growingID)
-        )
+        update(coordinator, listView, entries: history + [short])
         listView.setContentOffset(CGPoint(x: 0, y: 40), animated: false)
         listView.layoutSubtreeIfNeeded()
         let readerOffset = listView.contentOffset
 
-        update(
-            coordinator, listView,
-            items: history + [tall],
-            renderer: growingRenderer(id: growingID)
-        )
+        update(coordinator, listView, entries: history + [tall])
 
         #expect(listView.contentOffset == readerOffset)
         #expect(!listView.isScrolledToBottom(tolerance: Metrics.Space.l))
@@ -307,31 +748,77 @@ struct TranscriptListViewBridgeTests {
     private func update(
         _ coordinator: TranscriptListView.Coordinator,
         _ listView: TranscriptListView.NSViewType,
-        items: [TranscriptRenderItem],
-        renderer: @escaping TranscriptListView.Renderer
+        entries: [TranscriptEntry],
+        presentation: TranscriptPresentationState = TranscriptPresentationState(),
+        isCompact: Bool = true
     ) {
         coordinator.update(
             listView: listView,
-            items: items,
+            entries: entries,
             latestUserMessageID: nil,
-            renderer: renderer,
-            environment: .init(locale: Locale(identifier: "en"), colorScheme: .light)
+            configuration: .init(
+                isCompact: isCompact,
+                showsTerminalActions: false,
+                isConversationStreaming: false,
+                locale: Locale(identifier: "en"),
+                reduceMotion: true
+            ),
+            actions: .init(),
+            presentation: presentation
         )
     }
 
-    private func growingRenderer(id: UUID) -> TranscriptListView.Renderer {
-        { item, _ in
-            let isTall = item.id == id && item.content == .interrupted
-            return AnyView(
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(isTall
-                        ? String(repeating: "Expanded work detail wraps over many lines. ", count: 80)
-                        : "Short block")
-                        .fixedSize(horizontal: false, vertical: true)
-                    Divider()
-                }
-                .padding(8)
+    private func assistant(id: UUID, text: String) -> TranscriptEntry {
+        TranscriptEntry(
+            id: id,
+            content: .assistant(
+                ChatMessage(id: id, role: .assistant, text: text),
+                canFork: false
             )
+        )
+    }
+
+    private func user(id: UUID, text: String) -> TranscriptEntry {
+        TranscriptEntry(
+            id: id,
+            content: .user(
+                ChatMessage(id: id, role: .user, text: text),
+                canEdit: false
+            )
+        )
+    }
+
+    private func streamingAssistant(id: UUID, text: String) -> TranscriptEntry {
+        TranscriptEntry(
+            id: id,
+            content: .assistant(
+                ChatMessage(id: id, role: .assistant, text: text, isStreaming: true),
+                canFork: false
+            )
+        )
+    }
+
+    private func pointerEvent() -> NSEvent? {
+        NSEvent.mouseEvent(
+            with: .mouseMoved,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 0,
+            pressure: 0
+        )
+    }
+
+    private func descendant(in root: NSView, identifier: String) -> NSView? {
+        var queue = root.subviews
+        while let view = queue.first {
+            queue.removeFirst()
+            if view.identifier?.rawValue == identifier { return view }
+            queue.append(contentsOf: view.subviews)
         }
+        return nil
     }
 }

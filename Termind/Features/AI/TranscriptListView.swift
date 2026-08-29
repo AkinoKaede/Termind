@@ -3,13 +3,28 @@ import ListViewKit
 import Observation
 import SwiftUI
 
-/// The stable list item handed to ListViewKit. Empty and interrupted states are
-/// rows as well, so every transcript state follows the same sizing and scrolling
-/// path instead of layering SwiftUI content over the native list.
-nonisolated struct TranscriptRenderItem: Identifiable, Hashable, Sendable {
-    nonisolated enum Content: Hashable, Sendable {
-        case timeline(TimelineItem)
+nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
+    enum Kind: Hashable, Sendable {
         case empty
+        case user
+        case assistant
+        case tool
+        case work
+        case plan
+        case compaction
+        case compactionActivity
+        case interrupted
+    }
+
+    nonisolated enum Content: Hashable, Sendable {
+        case empty
+        case user(ChatMessage, canEdit: Bool)
+        case assistant(ChatMessage, canFork: Bool)
+        case tool(AgentToolCard)
+        case work(AgentWorkGroup)
+        case plan(AgentPlanCard)
+        case compaction(AgentCompactionMark)
+        case compactionActivity(AgentCompactionActivity)
         case interrupted
     }
 
@@ -26,427 +41,478 @@ nonisolated struct TranscriptRenderItem: Identifiable, Hashable, Sendable {
     private static let emptyID = UUID(uuidString: "00E48921-70E7-493A-9EB3-44727BC2145B")!
     private static let interruptedID = UUID(uuidString: "FD8D34B6-E81F-4DC8-91E8-479AD9ACF5CB")!
 
-    static func items(timeline: [TimelineItem], isInterrupted: Bool) -> [Self] {
-        if timeline.isEmpty {
-            return [.init(id: emptyID, content: .empty)]
-        }
+    static func items(
+        timeline: [TimelineItem],
+        isInterrupted: Bool,
+        canEdit: (UUID) -> Bool,
+        canFork: (UUID) -> Bool
+    ) -> [Self] {
+        if timeline.isEmpty { return [.init(id: emptyID, content: .empty)] }
         var result = timeline.enumerated().map { index, item in
-            Self(
-                id: item.id,
-                content: .timeline(item),
-                hasLeadingSpacing: index > 0
-            )
+            let content: Content =
+                switch item {
+                case .message(let message) where message.role == .user:
+                    .user(message, canEdit: canEdit(message.id))
+                case .message(let message):
+                    .assistant(message, canFork: canFork(message.id))
+                case .tool(let card): .tool(card)
+                case .work(let group): .work(group)
+                case .plan(let card): .plan(card)
+                case .compaction(let mark): .compaction(mark)
+                case .compactionActivity(let activity): .compactionActivity(activity)
+                }
+            return Self(id: item.id, content: content, hasLeadingSpacing: index > 0)
         }
         if isInterrupted {
-            result.append(.init(
-                id: interruptedID,
-                content: .interrupted,
-                hasLeadingSpacing: true
-            ))
+            result.append(.init(id: interruptedID, content: .interrupted, hasLeadingSpacing: true))
         }
         return result
     }
 
-    /// Disclosure and editing state can also belong to rows nested inside a
-    /// work group. Keeping their IDs here lets a surface discard state only
-    /// after the corresponding transcript content really disappears.
     var presentationIDs: Set<UUID> {
-        guard case .timeline(let item) = content else { return [] }
-        var result: Set<UUID> = [item.id]
-        guard case .work(let group) = item else { return result }
-        for workItem in group.items {
-            result.insert(workItem.id)
-            if case .tools(let batch) = workItem {
-                result.formUnion(batch.cards.map(\.id))
-            }
+        var result: Set<UUID> = [id]
+        guard case .work(let group) = content else { return result }
+        for item in group.items {
+            result.insert(item.id)
+            if case .tools(let batch) = item { result.formUnion(batch.cards.map(\.id)) }
         }
         return result
+    }
+
+    var kind: Kind {
+        switch content {
+        case .empty: .empty
+        case .user: .user
+        case .assistant: .assistant
+        case .tool: .tool
+        case .work: .work
+        case .plan: .plan
+        case .compaction: .compaction
+        case .compactionActivity: .compactionActivity
+        case .interrupted: .interrupted
+        }
+    }
+
+    var isActivelyStreaming: Bool {
+        switch content {
+        case .assistant(let message, _): message.isStreaming
+        case .work(let group): !group.run.state.isTerminal
+        case .compactionActivity(let activity):
+            if case .running = activity.state { true } else { false }
+        default: false
+        }
     }
 }
 
-/// Row interaction state must outlive a recycled NSHostingView. It belongs to
-/// one transcript surface: the compact sidebar and full Assistant may show the
-/// same conversation without forcing one another's disclosures open.
 @MainActor
 @Observable
 final class TranscriptPresentationState {
     private struct DisclosureState {
         var isExpanded: Bool
         var readerDidToggle: Bool
+        var revision: UInt64
     }
-
-    private var disclosureStates: [UUID: DisclosureState] = [:]
     private struct MessageEditState {
         var isEditing = false
         var text = ""
         var bubbleWidth: CGFloat = 0
+        var revision: UInt64 = 0
     }
 
+    private var disclosureStates: [UUID: DisclosureState] = [:]
     private var messageEdits: [UUID: MessageEditState] = [:]
+    private var nextRevision: UInt64 = 1
 
-    func isExpanded(_ id: UUID, default defaultValue: Bool = false) -> Bool {
-        disclosureStates[id]?.isExpanded ?? defaultValue
+    func isExpanded(_ id: UUID, default value: Bool = false) -> Bool {
+        disclosureStates[id]?.isExpanded ?? value
     }
-
-    func readerDidToggle(_ id: UUID) -> Bool {
-        disclosureStates[id]?.readerDidToggle == true
+    func readerDidToggle(_ id: UUID) -> Bool { disclosureStates[id]?.readerDidToggle == true }
+    func toggleDisclosure(_ id: UUID, default value: Bool = false) {
+        disclosureStates[id] = .init(
+            isExpanded: !(disclosureStates[id]?.isExpanded ?? value),
+            readerDidToggle: true,
+            revision: takeRevision()
+        )
     }
-
-    func toggleDisclosure(_ id: UUID, default defaultValue: Bool = false) {
-        let current = disclosureStates[id]?.isExpanded ?? defaultValue
-        disclosureStates[id] = .init(isExpanded: !current, readerDidToggle: true)
-    }
-
     func followDefault(_ expanded: Bool, for id: UUID) {
         guard disclosureStates[id]?.readerDidToggle != true else { return }
-        disclosureStates[id] = .init(isExpanded: expanded, readerDidToggle: false)
+        disclosureStates[id] = .init(
+            isExpanded: expanded, readerDidToggle: false, revision: takeRevision()
+        )
     }
-
     func prune(validTimelineIDs: Set<UUID>) {
-        disclosureStates = disclosureStates.filter { validTimelineIDs.contains($0.key) }
-        messageEdits = messageEdits.filter { validTimelineIDs.contains($0.key) }
+        let staleDisclosures = disclosureStates.keys.filter { !validTimelineIDs.contains($0) }
+        let staleEdits = messageEdits.keys.filter { !validTimelineIDs.contains($0) }
+        guard !staleDisclosures.isEmpty || !staleEdits.isEmpty else { return }
+        for id in staleDisclosures { disclosureStates[id] = nil }
+        for id in staleEdits { messageEdits[id] = nil }
     }
 
-    func isEditingMessage(_ id: UUID) -> Bool {
-        messageEdits[id]?.isEditing == true
-    }
-
-    func messageEditText(_ id: UUID) -> String {
-        messageEdits[id]?.text ?? ""
-    }
-
-    func messageBubbleWidth(_ id: UUID) -> CGFloat {
-        messageEdits[id]?.bubbleWidth ?? 0
-    }
-
+    func isEditingMessage(_ id: UUID) -> Bool { messageEdits[id]?.isEditing == true }
+    func messageEditText(_ id: UUID) -> String { messageEdits[id]?.text ?? "" }
+    func messageBubbleWidth(_ id: UUID) -> CGFloat { messageEdits[id]?.bubbleWidth ?? 0 }
     func beginEditingMessage(_ id: UUID, text: String) {
         var state = messageEdits[id] ?? .init()
         state.isEditing = true
         state.text = text
+        state.revision = takeRevision()
         messageEdits[id] = state
     }
-
     func endEditingMessage(_ id: UUID) {
         var state = messageEdits[id] ?? .init()
         state.isEditing = false
+        state.revision = takeRevision()
         messageEdits[id] = state
     }
-
     func setMessageEditText(_ text: String, for id: UUID) {
         var state = messageEdits[id] ?? .init()
         state.text = text
+        state.revision = takeRevision()
         messageEdits[id] = state
     }
-
     func setMessageBubbleWidth(_ width: CGFloat, for id: UUID) {
         var state = messageEdits[id] ?? .init()
+        guard abs(state.bubbleWidth - width) > 0.5 else { return }
         state.bubbleWidth = width
+        state.revision = takeRevision()
         messageEdits[id] = state
     }
-
     func messageEditBinding(for id: UUID) -> Binding<String> {
         Binding(
             get: { [weak self] in self?.messageEditText(id) ?? "" },
             set: { [weak self] in self?.setMessageEditText($0, for: id) }
         )
     }
+    func layoutRevision(for ids: Set<UUID>) -> UInt64 {
+        ids.reduce(0) { result, id in
+            result &+ (disclosureStates[id]?.revision ?? 0) &+ (messageEdits[id]?.revision ?? 0)
+        }
+    }
+    private func takeRevision() -> UInt64 {
+        defer { nextRevision &+= 1 }
+        return nextRevision
+    }
 }
 
 nonisolated struct TranscriptListUpdatePlan: Equatable, Sendable {
     var replacesAll = false
-    var updates: [TranscriptRenderItem] = []
-    var appends: [TranscriptRenderItem] = []
+    var updates: [TranscriptEntry] = []
+    var appends: [TranscriptEntry] = []
 
-    static func make(
-        old: [TranscriptRenderItem], new: [TranscriptRenderItem]
-    ) -> Self {
+    static func make(old: [TranscriptEntry], new: [TranscriptEntry]) -> Self {
         guard !old.isEmpty else { return .init(replacesAll: true) }
-        let sharedCount = min(old.count, new.count)
-        let oldSharedIDs = old.prefix(sharedCount).map(\.id)
-        let newSharedIDs = new.prefix(sharedCount).map(\.id)
-        guard oldSharedIDs == newSharedIDs, new.count >= old.count else {
-            return .init(replacesAll: true)
-        }
-
+        let count = min(old.count, new.count)
+        guard old.prefix(count).map(\.id) == new.prefix(count).map(\.id), new.count >= old.count
+        else { return .init(replacesAll: true) }
         return .init(
             updates: zip(old, new).compactMap { $0 == $1 ? nil : $1 },
             appends: Array(new.dropFirst(old.count))
         )
     }
-
 }
 
-/// SwiftUI ownership outside, AppKit virtualization inside. The representable
-/// deliberately exposes only content and rendering; ListViewKit never leaks into
-/// the rest of the Assistant feature.
+@MainActor
+struct TranscriptListConfiguration: Equatable {
+    let isCompact: Bool
+    let showsTerminalActions: Bool
+    let isConversationStreaming: Bool
+    let locale: Locale
+    let reduceMotion: Bool
+    var horizontalInset: CGFloat { isCompact ? Metrics.Space.l : Metrics.Space.xl }
+}
+
+@MainActor
+struct TranscriptListActions {
+    var hostName: (UUID) -> String? = { _ in nil }
+    var editUserMessage: (UUID, String) -> Void = { _, _ in }
+    var forkAssistantMessage: (UUID) -> Void = { _ in }
+    var resolvePlan: (UUID, AgentPlan.Outcome) -> Void = { _, _ in }
+    var implementPlan: (AgentPlanCard) -> Void = { _ in }
+    var canDeliverCommand: () -> Bool = { false }
+    var deliverCommand: (String, Bool) -> Void = { _, _ in }
+}
+
 struct TranscriptListView: NSViewRepresentable {
-    typealias NSViewType = ListView<TranscriptRenderItem>
-    typealias Renderer = @MainActor (
-        TranscriptRenderItem, @escaping @MainActor () -> Void
-    ) -> AnyView
-
-    let items: [TranscriptRenderItem]
+    typealias NSViewType = ListView<TranscriptEntry>
+    let entries: [TranscriptEntry]
     let latestUserMessageID: UUID?
-    let renderer: Renderer
+    let configuration: TranscriptListConfiguration
+    let actions: TranscriptListActions
+    let presentation: TranscriptPresentationState
 
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    func makeNSView(context: Context) -> NSViewType {
-        context.coordinator.makeListView()
-    }
-
-    func updateNSView(_ listView: NSViewType, context: Context) {
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ view: NSViewType, context: Context) {
         context.coordinator.update(
-            listView: listView,
-            items: items,
+            listView: view,
+            entries: entries,
             latestUserMessageID: latestUserMessageID,
-            renderer: renderer,
-            environment: .init(
-                locale: locale,
-                colorScheme: colorScheme
-            )
+            configuration: configuration,
+            actions: actions,
+            presentation: presentation
         )
     }
 
     @MainActor
     final class Coordinator {
-        struct EnvironmentSnapshot {
-            let locale: Locale
-            let colorScheme: ColorScheme
-        }
-
-        private var renderer: Renderer?
-        private var environment: EnvironmentSnapshot?
-        private var content: [TranscriptRenderItem] = []
+        private var content: [TranscriptEntry] = []
         private var latestUserMessageID: UUID?
+        private var configuration: TranscriptListConfiguration?
+        private var actions = TranscriptListActions()
+        private weak var presentation: TranscriptPresentationState?
         private weak var listView: NSViewType?
-        private var pendingInvalidations: Set<UUID> = []
-        private var pendingInvalidationMayFollow = false
+        let markdownCache = TranscriptMarkdownCache(limit: 48)
+        let sizingPool = TranscriptRowSizingPool(limit: 12)
+        private var invalidations: Set<UUID> = []
         private var invalidationScheduled = false
-        private var disclosureSuppressedUntil: [UUID: UInt64] = [:]
+        private var invalidationMayFollow = false
 
         func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            self.listView = listView
-            listView.estimatedRowHeight = 96
-            listView.topInset = Metrics.Space.xl
-            listView.bottomInset = Metrics.Space.xl
-            listView.rowAnimator = ListBouncyAnimator(style: .subtle)
-            listView.rows {
-                ListRow(TranscriptHostingRow.self)
+            let view = NSViewType()
+            listView = view
+            view.estimatedRowHeight = 96
+            view.topInset = Metrics.Space.xl
+            view.bottomInset = Metrics.Space.xl
+            view.rowAnimator = nil
+            view.rows {
+                ListRow(TranscriptEmptyRow.self)
+                    .when { $0.kind == .empty }
                     .estimatedHeight(96)
-                    .configure { [weak self] row, item, context in
-                        self?.configure(row, with: item, purpose: context.purpose)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 96
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptUserRow.self)
+                    .when { $0.kind == .user }
+                    .estimatedHeight(96)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 96
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptAssistantRow.self)
+                    .when { $0.kind == .assistant }
+                    .estimatedHeight(96)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 96
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptToolRow.self)
+                    .when { $0.kind == .tool }
+                    .estimatedHeight(48)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 48
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptWorkRow.self)
+                    .when { $0.kind == .work }
+                    .estimatedHeight(72)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 72
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptPlanRow.self)
+                    .when { $0.kind == .plan }
+                    .estimatedHeight(180)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 180
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptCompactionRow.self)
+                    .when { $0.kind == .compaction }
+                    .estimatedHeight(32)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 32
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptCompactionActivityRow.self)
+                    .when { $0.kind == .compactionActivity }
+                    .estimatedHeight(48)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 48
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
+                ListRow(TranscriptInterruptedRow.self)
+                    .when { $0.kind == .interrupted }
+                    .estimatedHeight(96)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 96
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(
+                            row,
+                            entry: entry,
+                            width: context.width,
+                            measurement: false
+                        )
                     }
             }
-            return listView
+            return view
         }
 
         func update(
             listView: NSViewType,
-            items newItems: [TranscriptRenderItem],
-            latestUserMessageID newLatestUserMessageID: UUID?,
-            renderer: @escaping Renderer,
-            environment: EnvironmentSnapshot
+            entries: [TranscriptEntry],
+            latestUserMessageID: UUID?,
+            configuration: TranscriptListConfiguration,
+            actions: TranscriptListActions,
+            presentation: TranscriptPresentationState
         ) {
-            self.renderer = renderer
-            self.environment = environment
-
-            let isFirstUpdate = content.isEmpty
-            let userSentMessage = latestUserMessageID != nil
-                && latestUserMessageID != newLatestUserMessageID
-            let shouldFollow = isFirstUpdate || userSentMessage
-                || (listView.isScrolledToBottom(tolerance: Metrics.Space.l)
-                    && !listView.isUserInteractingWithScroll)
-
-            let plan = TranscriptListUpdatePlan.make(old: content, new: newItems)
-            if plan.replacesAll {
-                listView.apply(newItems)
-            } else {
-                for item in plan.updates { listView.update(item) }
-                if !plan.appends.isEmpty { listView.append(contentsOf: plan.appends) }
-            }
-            content = newItems
-            latestUserMessageID = newLatestUserMessageID
-
-            followBottom(afterLayingOut: listView, if: shouldFollow)
-        }
-
-        private func configure(
-            _ row: TranscriptHostingRow,
-            with item: TranscriptRenderItem,
-            purpose: ListRowPurpose
-        ) {
-            guard let renderer, let environment else { return }
-            let disclosureToggle: @MainActor () -> Void = { [weak self] in
-                self?.suppressFollowing(for: item.id)
-                self?.invalidate(item.id, mayFollow: false)
-            }
-            let rendered = renderer(item, disclosureToggle)
-                .environment(\.locale, environment.locale)
-                .environment(\.colorScheme, environment.colorScheme)
-            let content: AnyView = switch purpose {
-            case .display:
-                // A displayed row keeps its identity while streaming so the
-                // Markdown renderer can coalesce deltas and preserve its
-                // view-owned state.
-                AnyView(rendered.id(item.id))
-            case .measurement:
-                // ListViewKit reuses one hidden prototype per row type. The
-                // complete value is the identity boundary here so that a
-                // changed work group or streaming message cannot inherit the
-                // previous measurement tree's StateObject-backed content.
-                AnyView(rendered.id(item))
-            }
-            let sizeChange: (@MainActor () -> Void)?
-            switch purpose {
-            case .display:
-                sizeChange = { [weak self] in
-                    guard let self else { return }
-                    self.invalidate(
-                        item.id,
-                        mayFollow: !self.isFollowingSuppressed(for: item.id)
-                    )
-                }
-            case .measurement:
-                sizeChange = nil
-            }
-            row.configure(
-                id: item.id,
-                rootView: content,
-                onIntrinsicSizeChange: sizeChange,
-                isMeasurementPrototype: purpose == .measurement
+            applyUpdate(
+                listView: listView,
+                entries: entries,
+                latestUserMessageID: latestUserMessageID,
+                configuration: configuration,
+                actions: actions,
+                presentation: presentation
             )
         }
 
-        private func suppressFollowing(for id: UUID) {
-            disclosureSuppressedUntil[id] = DispatchTime.now().uptimeNanoseconds
-                + 250_000_000
+        private func applyUpdate(
+            listView: NSViewType,
+            entries: [TranscriptEntry],
+            latestUserMessageID: UUID?,
+            configuration: TranscriptListConfiguration,
+            actions: TranscriptListActions,
+            presentation: TranscriptPresentationState
+        ) {
+            let oldConfiguration = self.configuration
+            self.configuration = configuration
+            self.actions = actions
+            self.presentation = presentation
+            guard
+                content != entries || self.latestUserMessageID != latestUserMessageID
+                    || oldConfiguration != configuration
+            else { return }
+
+            let validPresentationIDs = entries.reduce(into: Set<UUID>()) {
+                $0.formUnion($1.presentationIDs)
+            }
+            presentation.prune(validTimelineIDs: validPresentationIDs)
+            let validEntryIDs = Set(entries.map(\.id))
+            markdownCache.prune(validEntryIDs: validEntryIDs)
+            sizingPool.prune(validEntryIDs: validEntryIDs)
+
+            let first = content.isEmpty
+            let userSent =
+                self.latestUserMessageID != latestUserMessageID
+                && latestUserMessageID != nil
+            let follow =
+                first || userSent
+                || (listView.isScrolledToBottom(tolerance: Metrics.Space.l)
+                    && !listView.isUserInteractingWithScroll)
+
+            if oldConfiguration != configuration {
+                sizingPool.removeAll()
+                listView.reloadData()
+            }
+            let plan = TranscriptListUpdatePlan.make(old: content, new: entries)
+            if plan.replacesAll {
+                if !content.isEmpty { sizingPool.removeAll() }
+                listView.apply(entries)
+            } else {
+                for entry in plan.updates {
+                    sizingPool.invalidate(entry.id)
+                    listView.update(entry)
+                }
+                if !plan.appends.isEmpty { listView.append(contentsOf: plan.appends) }
+            }
+            content = entries
+            self.latestUserMessageID = latestUserMessageID
+            followBottom(listView, if: follow)
         }
 
-        private func isFollowingSuppressed(for id: UUID) -> Bool {
-            guard let deadline = disclosureSuppressedUntil[id] else { return false }
-            if DispatchTime.now().uptimeNanoseconds < deadline { return true }
-            disclosureSuppressedUntil[id] = nil
-            return false
+        private func height(for entry: TranscriptEntry, width: CGFloat) -> CGFloat {
+            guard let configuration, let presentation else { return 96 }
+            return sizingPool.height(
+                for: entry,
+                width: width,
+                configuration: configuration,
+                presentation: presentation
+            ) { [weak self] row in
+                self?.configure(row, entry: entry, width: width, measurement: true)
+            }
+        }
+
+        private func configure(
+            _ row: TranscriptNativeRow,
+            entry: TranscriptEntry,
+            width: CGFloat,
+            measurement: Bool
+        ) {
+            guard let configuration, let presentation else { return }
+            row.configure(
+                entry: entry,
+                proposedWidth: width,
+                configuration: configuration,
+                actions: measurement ? .init() : actions,
+                presentation: presentation,
+                markdownCache: markdownCache,
+                measurement: measurement
+            ) { [weak self] id, mayFollow in
+                self?.sizingPool.invalidate(id)
+                self?.invalidate(id, mayFollow: mayFollow)
+            }
         }
 
         private func invalidate(_ id: UUID, mayFollow: Bool) {
-            pendingInvalidations.insert(id)
-            pendingInvalidationMayFollow = pendingInvalidationMayFollow || mayFollow
+            invalidations.insert(id)
+            invalidationMayFollow = invalidationMayFollow || mayFollow
             guard !invalidationScheduled else { return }
             invalidationScheduled = true
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                self.invalidationScheduled = false
-                let ids = self.pendingInvalidations
-                self.pendingInvalidations.removeAll()
-                let listView = self.listView
-                let shouldFollow = self.pendingInvalidationMayFollow
-                    && listView?.isScrolledToBottom(tolerance: Metrics.Space.l) == true
-                    && listView?.isUserInteractingWithScroll == false
-                self.pendingInvalidationMayFollow = false
-                for id in ids {
-                    listView?.invalidateLayout(forRowWith: id)
-                }
-                guard let listView else { return }
-                // Targeted invalidation only schedules ListViewKit's layout.
-                // Settle the prototype measurement and all following row
-                // frames before reading its new bottom edge.
-                listView.layoutSubtreeIfNeeded()
-                self.followBottom(afterLayingOut: listView, if: shouldFollow)
+                invalidationScheduled = false
+                let ids = invalidations
+                invalidations.removeAll()
+                let view = listView
+                let follow =
+                    invalidationMayFollow
+                    && view?.isScrolledToBottom(tolerance: Metrics.Space.l) == true
+                    && view?.isUserInteractingWithScroll == false
+                invalidationMayFollow = false
+                guard let view else { return }
+                for id in ids { refreshDisplayedRow(id, in: view) }
+                view.layoutSubtreeIfNeeded()
+                followBottom(view, if: follow)
             }
         }
 
-        private func followBottom(
-            afterLayingOut listView: NSViewType,
-            if shouldFollow: Bool
-        ) {
-            guard shouldFollow, !listView.isUserInteractingWithScroll else { return }
-            listView.layoutSubtreeIfNeeded()
-            guard !listView.isUserInteractingWithScroll else { return }
-            listView.scrollToBottom(animated: false)
+        func refreshDisplayedRow(_ id: UUID, in view: NSViewType) {
+            sizingPool.invalidate(id)
+            if let index = content.firstIndex(where: { $0.id == id }),
+                let row = view.rowView(for: id) as? TranscriptNativeRow
+            {
+                configure(
+                    row,
+                    entry: content[index],
+                    width: view.bounds.width,
+                    measurement: false
+                )
+            }
+            view.invalidateLayout(forRowWith: id)
         }
-    }
-}
 
-@MainActor
-private final class TranscriptHostingRow: ListRowView {
-    private let hostingController = TranscriptHostingController(
-        rootView: AnyView(EmptyView())
-    )
-    private var representedID: UUID?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        let hostingView = hostingController.view
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        representedID = nil
-        hostingController.onContentSizeChange = nil
-        hostingController.rootView = AnyView(EmptyView())
-    }
-
-    func configure(
-        id: UUID,
-        rootView: AnyView,
-        onIntrinsicSizeChange: (@MainActor () -> Void)?,
-        isMeasurementPrototype: Bool
-    ) {
-        representedID = id
-        hostingController.onContentSizeChange = onIntrinsicSizeChange
-        hostingController.rootView = rootView
-        // ListViewKit measures self-sizing rows with an off-screen prototype.
-        // AppKit's prepareForReuse() unhides that row, which leaked a second
-        // copy of the empty transcript into New Chat. Restore the visibility
-        // declared by the row purpose after reuse and root replacement.
-        isHidden = isMeasurementPrototype
-        hostingController.view.isHidden = isMeasurementPrototype
-    }
-
-    override var fittingSize: NSSize {
-        let width = bounds.width
-        guard width > 0 else { return super.fittingSize }
-        return hostingController.sizeThatFits(in: CGSize(
-            width: width,
-            height: .greatestFiniteMagnitude
-        ))
-    }
-}
-
-@MainActor
-private final class TranscriptHostingController: NSHostingController<AnyView> {
-    var onContentSizeChange: (@MainActor () -> Void)?
-
-    override init(rootView: AnyView) {
-        super.init(rootView: rootView)
-        sizingOptions = [.preferredContentSize]
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError()
-    }
-
-    override var preferredContentSize: NSSize {
-        didSet {
-            guard preferredContentSize != oldValue, let onContentSizeChange else { return }
-            DispatchQueue.main.async(execute: onContentSizeChange)
+        private func followBottom(_ view: NSViewType, if shouldFollow: Bool) {
+            guard shouldFollow, !view.isUserInteractingWithScroll else { return }
+            view.layoutSubtreeIfNeeded()
+            guard !view.isUserInteractingWithScroll else { return }
+            view.scrollToBottom(animated: false)
         }
     }
 }

@@ -390,6 +390,81 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func everyRawDeltaIsImmediatelyVisibleWhileContextPublishingStaysThrottled() {
+        let conversation = ConversationModel(
+            contextEstimatePublishInterval: .seconds(60)
+        )
+        let assistant = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.messageStarted(assistant))
+
+        for _ in 0..<1_000 {
+            conversation.handle(.messageDelta(messageID: assistant.id, text: "x"))
+        }
+
+        #expect(
+            conversation.messages.first { $0.id == assistant.id }?.text
+                == String(repeating: "x", count: 1_000)
+        )
+        #expect(conversation.contextEstimatePublishCount == 1)
+
+        let final = AgentTranscriptMessage(
+            id: assistant.id, role: .assistant,
+            text: String(repeating: "x", count: 1_000),
+            createdAt: assistant.createdAt
+        )
+        conversation.handle(.messageFinished(final))
+        #expect(conversation.messages.first { $0.id == assistant.id }?.text == final.text)
+        #expect(conversation.contextEstimatePublishCount == 2)
+        #expect(
+            conversation.contextEstimate
+                == AgentContextEstimator.estimate(
+                    systemPrompt: AgentSystemPrompt.default,
+                    toolSchemaCharacters: 0,
+                    transcript: [final],
+                    attachedCharacters: 0,
+                    measured: nil
+                )
+        )
+    }
+
+    @Test
+    func everyReasoningDeltaIsImmediatelyVisible() {
+        let conversation = ConversationModel()
+        let assistant = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.messageStarted(assistant))
+
+        conversation.handle(.reasoningDelta(messageID: assistant.id, text: "first"))
+        conversation.handle(.reasoningDelta(messageID: assistant.id, text: " tail"))
+
+        #expect(
+            conversation.messages.first { $0.id == assistant.id }?.reasoning.map(\.text)
+                == ["first tail"]
+        )
+    }
+
+    @Test
+    func stoppingSettlesAnImmediatelyPresentedPartialAnswer() {
+        let conversation = ConversationModel(
+            contextEstimatePublishInterval: .seconds(60)
+        )
+        let runID = UUID()
+        let assistant = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: .now
+        )))
+        conversation.handle(.runState(.running))
+        conversation.handle(.messageStarted(assistant))
+        conversation.handle(.messageDelta(messageID: assistant.id, text: "first"))
+        conversation.handle(.messageDelta(messageID: assistant.id, text: " tail"))
+
+        conversation.stop()
+
+        let visible = conversation.messages.first { $0.id == assistant.id }
+        #expect(visible?.text == "first tail")
+        #expect(visible?.isStreaming == false)
+    }
+
+    @Test
     func immediatelyCompletedRuntimeStillReachesTheConversation() async {
         let conversation = ConversationModel()
         let runtime = AgentRuntime(

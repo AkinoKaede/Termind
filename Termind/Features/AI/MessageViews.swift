@@ -276,13 +276,9 @@ struct AssistantMessageView: View {
                 )
             }
 
-            if message.isStreaming {
-                if message.text.isEmpty {
-                    WorkingIndicator()
-                } else {
-                    StreamingCaret()
-                }
-            } else {
+            if message.isStreaming, message.text.isEmpty {
+                WorkingIndicator()
+            } else if !message.isStreaming {
                 MessageActionRow(
                     message: message, isUser: false, isVisible: isHovering,
                     onFork: canFork ? onFork : nil
@@ -470,26 +466,5 @@ nonisolated enum ChatMessageTimestampFormatter {
         formatter.dateStyle = calendar.isDate(date, inSameDayAs: now) ? .none : .short
         formatter.timeStyle = .short
         return formatter.string(from: date)
-    }
-}
-
-/// The caret that marks a reply still being written.
-///
-/// Its own view so the blink state stays local and does not invalidate the
-/// message body on every pulse.
-private struct StreamingCaret: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isDim = false
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: Metrics.Chat.caretWidth / 2)
-            .fill(.primary)
-            .frame(width: Metrics.Chat.caretWidth, height: Metrics.Chat.caretHeight)
-            .opacity(isDim ? 0.15 : 1)
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(Motion.statusPulse) { isDim = true }
-            }
-            .accessibilityLabel(Text("Still writing"))
     }
 }

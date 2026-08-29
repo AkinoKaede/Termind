@@ -69,6 +69,15 @@ nonisolated enum AgentContextEstimator {
         count <= 0 ? 0 : max(1, count / charactersPerToken)
     }
 
+    /// Context accounting is deliberately approximate, so UTF-16 code units
+    /// are a better primitive than Swift grapheme clusters here. Foundation
+    /// strings loaded from persistence can answer `NSString.length` directly;
+    /// `String.count` has to walk every extended grapheme cluster and was the
+    /// dominant Composer cost for long conversations.
+    static func characterUnits(in value: String) -> Int {
+        (value as NSString).length
+    }
+
     /// Splits a transcript into the parts a reader can act on.
     ///
     /// `toolSchemaCharacters` is passed in rather than derived: the tool
@@ -83,7 +92,7 @@ nonisolated enum AgentContextEstimator {
         measured: AgentTokenUsage?
     ) -> AgentContextEstimate {
         var counted: [AgentContextEstimate.Part: Int] = [
-            .systemPrompt: tokens(inCharacters: systemPrompt.count),
+            .systemPrompt: tokens(inCharacters: characterUnits(in: systemPrompt)),
             .tools: tokens(inCharacters: toolSchemaCharacters),
             .attachments: tokens(inCharacters: attachedCharacters),
             .conversation: 0,
@@ -93,8 +102,10 @@ nonisolated enum AgentContextEstimator {
             // Tool *calls* are counted with the conversation rather than with
             // the results: they are the assistant's own words, they are small,
             // and compaction cannot remove one without removing the turn.
-            let characters = message.text.count
-                + message.toolCalls.reduce(0) { $0 + $1.arguments.encodedString.count }
+            let characters = characterUnits(in: message.text)
+                + message.toolCalls.reduce(0) {
+                    $0 + characterUnits(in: $1.arguments.encodedString)
+                }
             let part: AgentContextEstimate.Part =
                 message.role == .tool ? .toolResults : .conversation
             counted[part, default: 0] += tokens(inCharacters: characters)
@@ -105,6 +116,12 @@ nonisolated enum AgentContextEstimator {
             }
         }
 
+        return finalized(counted, measured: measured)
+    }
+
+    static func finalized(
+        _ counted: [AgentContextEstimate.Part: Int], measured: AgentTokenUsage?
+    ) -> AgentContextEstimate {
         let estimated = counted.values.reduce(0, +)
         guard let measured, !measured.isEmpty else {
             return AgentContextEstimate(
@@ -132,5 +149,131 @@ nonisolated enum AgentContextEstimator {
         guard let largest = result.max(by: { $0.value < $1.value })?.key else { return result }
         result[largest, default: 0] += target - result.values.reduce(0, +)
         return result
+    }
+}
+
+/// Incremental backing for the context gauge.
+///
+/// The full estimator remains the reference implementation and is used to seed
+/// this tracker. After that, ordinary conversation mutations replace only one
+/// cached contribution. Reading `snapshot()` never walks the transcript.
+@MainActor
+final class AgentContextEstimateTracker {
+    private struct Contribution {
+        let part: AgentContextEstimate.Part
+        let tokens: Int
+    }
+
+    private var contributions: [AgentTranscriptMessage.ID: Contribution] = [:]
+    private var streamingCharacters: [AgentTranscriptMessage.ID: Int] = [:]
+    private var systemPromptCharacters = 0
+    private var toolSchemaCharacters = 0
+    private var attachedCharacters = 0
+    private var measured: AgentTokenUsage?
+
+    private(set) var fullRebuildCount = 0
+
+    init(
+        systemPrompt: String,
+        toolSchemaCharacters: Int,
+        transcript: [AgentTranscriptMessage],
+        attachedCharacters: Int,
+        measured: AgentTokenUsage?
+    ) {
+        rebuild(
+            systemPrompt: systemPrompt,
+            toolSchemaCharacters: toolSchemaCharacters,
+            transcript: transcript,
+            attachedCharacters: attachedCharacters,
+            measured: measured
+        )
+    }
+
+    func rebuild(
+        systemPrompt: String,
+        toolSchemaCharacters: Int,
+        transcript: [AgentTranscriptMessage],
+        attachedCharacters: Int,
+        measured: AgentTokenUsage?
+    ) {
+        fullRebuildCount += 1
+        systemPromptCharacters = AgentContextEstimator.characterUnits(in: systemPrompt)
+        self.toolSchemaCharacters = toolSchemaCharacters
+        self.attachedCharacters = attachedCharacters
+        self.measured = measured
+        contributions = Dictionary(
+            uniqueKeysWithValues: transcript.map { ($0.id, contribution(for: $0)) }
+        )
+        streamingCharacters.removeAll()
+    }
+
+    func upsert(_ message: AgentTranscriptMessage) {
+        contributions[message.id] = contribution(for: message)
+        streamingCharacters[message.id] = nil
+    }
+
+    func remove(_ ids: some Sequence<AgentTranscriptMessage.ID>) {
+        for id in ids {
+            contributions[id] = nil
+            streamingCharacters[id] = nil
+        }
+    }
+
+    func appendStreamingText(_ text: String, to id: AgentTranscriptMessage.ID) {
+        streamingCharacters[id, default: 0] += AgentContextEstimator.characterUnits(in: text)
+    }
+
+    func clearStreamingText(for id: AgentTranscriptMessage.ID) {
+        streamingCharacters[id] = nil
+    }
+
+    func clearStreamingText() {
+        streamingCharacters.removeAll()
+    }
+
+    func setToolSchemaCharacters(_ value: Int) {
+        toolSchemaCharacters = value
+    }
+
+    func setAttachedCharacters(_ value: Int) {
+        attachedCharacters = value
+    }
+
+    func setMeasured(_ value: AgentTokenUsage?) {
+        measured = value
+    }
+
+    func snapshot() -> AgentContextEstimate {
+        var parts: [AgentContextEstimate.Part: Int] = [
+            .systemPrompt: AgentContextEstimator.tokens(inCharacters: systemPromptCharacters),
+            .tools: AgentContextEstimator.tokens(inCharacters: toolSchemaCharacters),
+            .attachments: AgentContextEstimator.tokens(inCharacters: attachedCharacters),
+            .conversation: 0,
+            .toolResults: 0,
+        ]
+        for contribution in contributions.values {
+            parts[contribution.part, default: 0] += contribution.tokens
+        }
+        for characters in streamingCharacters.values {
+            parts[.conversation, default: 0] +=
+                AgentContextEstimator.tokens(inCharacters: characters)
+        }
+        return AgentContextEstimator.finalized(parts, measured: measured)
+    }
+
+    private func contribution(for message: AgentTranscriptMessage) -> Contribution {
+        let characters = AgentContextEstimator.characterUnits(in: message.text)
+            + message.toolCalls.reduce(0) {
+                $0 + AgentContextEstimator.characterUnits(in: $1.arguments.encodedString)
+            }
+        let imageTokens = message.images.reduce(0) { total, image in
+            let wide = max(1, Int(ceil(Double(image.pixelWidth) / 512)))
+            let high = max(1, Int(ceil(Double(image.pixelHeight) / 512)))
+            return total + 85 + 170 * wide * high
+        }
+        return Contribution(
+            part: message.role == .tool ? .toolResults : .conversation,
+            tokens: AgentContextEstimator.tokens(inCharacters: characters) + imageTokens
+        )
     }
 }

@@ -37,11 +37,12 @@ struct TermindMarkdownView: View {
         self.tone = tone
 
         let theme = TermindMarkdownTheme.make(tone: tone)
-        _model = StateObject(wrappedValue: RenderingModel(
-            source: text,
-            allowsShellActions: isAssistant,
-            theme: theme
-        ))
+        _model = StateObject(
+            wrappedValue: RenderingModel(
+                source: text,
+                allowsShellActions: isAssistant,
+                theme: theme
+            ))
     }
 
     var body: some View {
@@ -63,36 +64,28 @@ struct TermindMarkdownView: View {
             }
         }
         .markdownWidth(fills: fillsWidth)
-        .task(id: UpdateID(
-            text: text,
-            isStreaming: isStreaming,
-            isAssistant: isAssistant,
-            tone: tone
-        )) {
-            await refreshIfNeeded()
+        .onChange(
+            of: UpdateID(
+                text: text,
+                isStreaming: isStreaming,
+                isAssistant: isAssistant,
+                tone: tone
+            )
+        ) { _, _ in
+            refreshIfNeeded()
         }
     }
 
     /// MarkdownView is designed for streaming, but splitting actionable shell
-    /// blocks still requires a root parse. Apply the first delta immediately,
-    /// coalesce ordinary deltas to 20 fps, and force a refresh once a line of
-    /// unseen text accumulates so an uninterrupted stream can never stay stale.
-    private func refreshIfNeeded() async {
-        guard model.source != text
-            || model.rendered.allowsShellActions != isAssistant
-            || model.rendered.themeTone != tone
+    /// blocks still requires a root parse. Upstream's balanced emitter already
+    /// controls the presentation cadence, so every emitted delta is rendered
+    /// immediately instead of being throttled again at the view layer.
+    private func refreshIfNeeded() {
+        guard
+            model.source != text
+                || model.rendered.allowsShellActions != isAssistant
+                || model.rendered.themeTone != tone
         else { return }
-
-        if !isStreaming
-            || !text.hasPrefix(model.source)
-            || text.utf8.count - model.source.utf8.count >= 64
-        {
-            refresh()
-            return
-        }
-
-        try? await Task.sleep(for: .milliseconds(50))
-        guard !Task.isCancelled else { return }
         refresh()
     }
 
@@ -186,10 +179,10 @@ nonisolated enum TermindMarkdownParser {
     static func sanitize(_ blocks: [MarkdownBlockNode]) -> [MarkdownBlockNode] {
         blocks.rewrite { (inline: MarkdownInlineNode) -> [MarkdownInlineNode] in
             switch inline {
-            case let .link(destination, children):
+            case .link(let destination, let children):
                 guard isAllowedLink(destination) else { return children }
                 return [.link(destination: destination, children: children)]
-            case let .image(_, children):
+            case .image(_, let children):
                 // Never fetch a model-chosen URL while rendering a transcript.
                 // The image's alt text remains readable ordinary prose.
                 return children
@@ -227,14 +220,15 @@ nonisolated enum TermindMarkdownParser {
 
         for block in blocks {
             if allowsShellActions,
-               case let .codeBlock(language, code) = block,
-               isActionableShell(language: language, code: code)
+                case .codeBlock(let language, let code) = block,
+                isActionableShell(language: language, code: code)
             {
                 flushMarkdown()
-                result.append(.shell(
-                    language: language ?? "",
-                    command: normalizedFenceCode(code)
-                ))
+                result.append(
+                    .shell(
+                        language: language ?? "",
+                        command: normalizedFenceCode(code)
+                    ))
             } else {
                 markdown.append(block)
             }
@@ -285,8 +279,8 @@ nonisolated enum TermindMarkdownParser {
             case .softBreak, .lineBreak:
                 " "
             case .emphasis(let children), .strong(let children),
-                 .strikethrough(let children), .link(_, let children),
-                 .image(_, let children):
+                .strikethrough(let children), .link(_, let children),
+                .image(_, let children):
                 plainText(children)
             }
         }.joined()
@@ -301,7 +295,7 @@ nonisolated enum TermindMarkdownBlockSegment: Equatable, Sendable {
 // MARK: - Rendered document
 
 @MainActor
-private struct TermindMarkdownRenderedDocument {
+struct TermindMarkdownRenderedDocument {
     struct Segment: Identifiable {
         enum Content {
             case markdown(MarkdownContent)
@@ -350,7 +344,7 @@ private struct TermindMarkdownRenderedDocument {
 }
 
 @MainActor
-private enum TermindMarkdownTheme {
+enum TermindMarkdownTheme {
     struct Value {
         let theme: MarkdownTheme
         let tone: TermindMarkdownView.Tone
@@ -464,7 +458,8 @@ private struct TermindMarkdownNativeView: NSViewRepresentable {
             }
 
             let bounded = view.boundingSize(for: availableWidth)
-            let width = fillsWidth
+            let width =
+                fillsWidth
                 ? availableWidth
                 : min(availableWidth, max(1, ceil(bounded.width)))
             let height = ceil(view.boundingSize(for: width).height)
@@ -484,9 +479,9 @@ private enum TermindMarkdownLinkOpener {
             url = URL(string: value)
         }
         guard let url,
-              TermindMarkdownParser.allowedLinkSchemes.contains(
-                  url.scheme?.lowercased() ?? ""
-              )
+            TermindMarkdownParser.allowedLinkSchemes.contains(
+                url.scheme?.lowercased() ?? ""
+            )
         else { return }
         NSWorkspace.shared.open(url)
     }
