@@ -50,6 +50,13 @@ nonisolated enum SettingsKey {
     static var isShellIntegrationEnabled: Bool {
         UserDefaults.standard.object(forKey: shellIntegration) as? Bool ?? true
     }
+    /// Mirror the focused SSH terminal's OSC 0/2 title in the macOS menu bar.
+    static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"
+    static let defaultRemoteWindowTitleInMenuBarEnabled = true
+    static var isRemoteWindowTitleInMenuBarEnabled: Bool {
+        UserDefaults.standard.object(forKey: remoteWindowTitleInMenuBar) as? Bool
+            ?? defaultRemoteWindowTitleInMenuBarEnabled
+    }
     /// Restore the previous window's Workspaces on launch. Keep the persisted
     /// key stable so this UI rename does not discard the user's preference.
     static let restoreWorkspaces = "window.restoreTabs"

@@ -51,6 +51,12 @@ struct RootView: View {
             )
         }
         .navigationSplitViewStyle(.balanced)
+        // Kitty-style macOS menu-bar title. This tiny child observes only the
+        // focused SSH session, so OSC 0/2 changes do not invalidate the full
+        // window hierarchy.
+        .background {
+            ActiveRemoteWindowTitleReporter(sshSession: window.focusedSSHSession)
+        }
         .overlay { ExternalAuthWindowPresenter() }
         .frame(
             minWidth: Metrics.Window.minWidth,

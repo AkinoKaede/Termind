@@ -591,6 +591,8 @@ private struct TerminalSettings: View {
     @AppStorage(SettingsKey.terminalFontSize) private var fontSize = 12.0
     @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
     @AppStorage(SettingsKey.shellIntegration) private var shellIntegration = true
+    @AppStorage(SettingsKey.remoteWindowTitleInMenuBar) private var remoteWindowTitleInMenuBar =
+        SettingsKey.defaultRemoteWindowTitleInMenuBarEnabled
     @AppStorage(SettingsKey.terminalThemeDark) private var darkTheme = SettingsKey.defaultTerminalThemeDark
     @AppStorage(SettingsKey.terminalThemeLight) private var lightTheme = SettingsKey.defaultTerminalThemeLight
     @AppStorage(SettingsKey.terminalCustomConfigurationDarkEnabled) private var darkCustomEnabled = false
@@ -641,6 +643,12 @@ private struct TerminalSettings: View {
                 Toggle("Shell Integration", isOn: $shellIntegration)
                 Text(
                     "Keeps the remote working directory current, records confirmed commands, and provides detected distribution, kernel, and architecture details to AI features."
+                )
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Toggle("Show Terminal Title in Menu Bar", isOn: $remoteWindowTitleInMenuBar)
+                Text(
+                    "Shows the focused SSH terminal's reported title after Help in the macOS menu bar."
                 )
                     .font(.caption).foregroundStyle(.secondary)
             }

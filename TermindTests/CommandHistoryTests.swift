@@ -119,6 +119,21 @@ struct CommandHistoryTests {
 @Suite
 struct RemoteCommandEventFilterTests {
     @Test
+    func ordinaryOSCWindowTitlesRemainVisibleToGhostty() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let data = Data(
+            "\u{1B}]0;kaede@host:/srv\u{7}\u{1B}]2;host: command\u{7}".utf8
+        )
+
+        let update = filter.receive(data)
+
+        #expect(update.visibleOutput == data)
+        #expect(update.commands.isEmpty)
+        #expect(!update.promptReady)
+        #expect(update.drafts.isEmpty)
+    }
+
+    @Test
     func filtersChunkedEventsAndPreservesSurroundingOutput() {
         var filter = RemoteCommandEventFilter(token: "TOKEN")
         let first = filter.receive(Data("before\u{1B}]777;TermindCom".utf8))
