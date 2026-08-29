@@ -423,27 +423,37 @@ private struct TermindGlassBar: ViewModifier {
     }
 }
 
-/// The stable source-list surface shared by every mode of the left column.
+/// The Liquid Glass surface shared by every mode of the left column.
 ///
 /// `NavigationSplitView` supplies the column geometry, but the custom AppKit
 /// lists inside it do not inherit SwiftUI's source-list background. Hosting one
-/// visual-effect view behind the complete column keeps list rows and empty
-/// space on the same native material, including Reduce Transparency behavior.
-/// Window-local blending prevents a full-screen Space's wallpaper tint from
-/// overwhelming the interaction surfaces drawn above it.
-struct SidebarMaterialBackground: NSViewRepresentable {
+/// system glass surface behind the complete column keeps list rows and empty
+/// space on one coherent material, including behind the window titlebar.
+struct SidebarGlassBackground: View {
+    @ViewBuilder
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: .rect)
+        } else {
+            LegacySidebarMaterialBackground()
+        }
+    }
+}
+
+/// Native material fallback for systems before Liquid Glass.
+struct LegacySidebarMaterialBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        // `.sidebar` is deliberately quite opaque and gray. With floating glass
-        // controls above it that becomes a muddy slab; window material is the
-        // quieter translucent canvas and lets those controls carry the hierarchy.
-        view.material = .windowBackground
-        view.blendingMode = .withinWindow
-        view.state = .followsWindowActiveState
+        Self.configure(view)
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        Self.configure(view)
+    }
+
+    static func configure(_ view: NSVisualEffectView) {
         view.material = .windowBackground
         view.blendingMode = .withinWindow
         view.state = .followsWindowActiveState

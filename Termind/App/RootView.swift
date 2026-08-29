@@ -23,7 +23,7 @@ struct RootView: View {
 
         NavigationSplitView(columnVisibility: sidebarVisibility) {
             ZStack {
-                SidebarMaterialBackground()
+                SidebarGlassBackground()
                     .ignoresSafeArea()
                 WindowSidebarView()
             }

@@ -1,3 +1,4 @@
+import AppKit
 import Testing
 
 @testable import Termind
@@ -5,6 +6,17 @@ import Testing
 @Suite
 @MainActor
 struct WindowSidebarTests {
+    @Test
+    func legacySidebarMaterialStaysWithinTheWindow() {
+        let view = NSVisualEffectView()
+
+        LegacySidebarMaterialBackground.configure(view)
+
+        #expect(view.material == .windowBackground)
+        #expect(view.blendingMode == .withinWindow)
+        #expect(view.state == .followsWindowActiveState)
+    }
+
     @Test
     func allDestinationsExposeNavigatorAndThreeToolSidebars() {
         let window = WindowModel()
