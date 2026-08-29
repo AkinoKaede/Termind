@@ -250,16 +250,6 @@
             if appliedVisibility != isVisible {
                 appliedVisibility = isVisible
                 terminalView.setSurfaceVisible(isVisible)
-            } else if didReparent {
-                // Re-stamp occlusion on the same live surface. Moving between
-                // SwiftUI containers in one window does not necessarily call
-                // `viewDidMoveToWindow`, so Ghostty cannot rely on that hook to
-                // learn that its still-visible view has returned to the deck.
-                terminalView.setSurfaceVisible(isVisible)
-            }
-
-            if didReparent, isVisible {
-                scheduleSurfaceRefresh(afterReparentTo: newContainer)
             }
 
             synchronizeFocus(
@@ -351,25 +341,6 @@
             guard container.mountOrdinals[ownerIdentifier] == nil else { return }
             nextMountOrdinal &+= 1
             container.mountOrdinals[ownerIdentifier] = nextMountOrdinal
-        }
-
-        /// A root-level SwiftUI modifier such as `.searchable` can replace the
-        /// hosting branch while preserving this native terminal. Constraints
-        /// are active immediately, but AppKit has not laid out the destination
-        /// container yet. Refresh one run-loop later so Ghostty receives the
-        /// final viewport and owes a frame without waiting for an unrelated
-        /// state change such as Command-F.
-        private func scheduleSurfaceRefresh(
-            afterReparentTo expectedContainer: TerminalMountView
-        ) {
-            DispatchQueue.main.async { [weak self, weak expectedContainer] in
-                guard let self, let expectedContainer,
-                    container === expectedContainer,
-                    terminalView.superview === expectedContainer,
-                    appliedVisibility == true
-                else { return }
-                terminalView.fitToSize()
-            }
         }
 
         /// Moves the keyboard to or from the terminal — but only when something
