@@ -35,7 +35,9 @@ struct TermindApp: App {
             modelContainer = container
             if let screenshotDemo {
                 let hosts = HostLibraryModel.demo()
-                let app = AppModel(hosts: hosts, ai: .demo())
+                let app = AppModel(
+                    hosts: hosts, ai: .demo(), proAccess: .unrestrictedForTesting()
+                )
                 _app = State(initialValue: app)
                 launchWindow = screenshotDemo.makeWindow(hosts: hosts)
                 return
@@ -57,6 +59,9 @@ struct TermindApp: App {
                 modelContext: container.mainContext,
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }
             )
+            let proAccess: ProAccessController = isRunningTests
+                ? .unrestrictedForTesting()
+                : .live()
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,
@@ -76,7 +81,8 @@ struct TermindApp: App {
                             context: container.mainContext
                         ),
                         vaultSync: vaultSync
-                    )
+                    ),
+                    proAccess: proAccess
                 )
             )
             launchWindow = nil
@@ -97,6 +103,7 @@ struct TermindApp: App {
                 .environment(app)
                 .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)
+                .proPaywallPresenter(app: app)
                 #if canImport(AppKit)
                     .onAppear { delegate.app = app }
                 #endif
@@ -113,6 +120,7 @@ struct TermindApp: App {
                 .environment(app)
                 .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)
+                .proPaywallPresenter(app: app)
                 .frame(minWidth: 920, minHeight: 640)
         }
 

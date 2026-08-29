@@ -1264,6 +1264,7 @@ private struct AgentPlanRowView: View {
     /// person on their own time, and a run held open across that would have kept
     /// an SSH pool and a provider connection alive while nobody was there.
     private func implement() {
+        guard app.proAccess.require(.assistant) else { return }
         conversation.resolvePlan(card.id, as: .implemented)
         let prompt = ConversationModel.implementationPrompt(for: card.plan)
         conversation.appendUserTurn(prompt)

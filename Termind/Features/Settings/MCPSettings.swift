@@ -17,6 +17,7 @@ struct MCPSettings: View {
             }
 
             FormNavigationAction(title: "Add Server") {
+                guard app.proAccess.require(.remoteMCP) else { return }
                 let server = MCPServer(name: "", namespaceID: "")
                 app.aiConfiguration.upsert(server)
                 edit(server.id, true)
@@ -84,7 +85,10 @@ private struct MCPServerRow: View {
                 .controlSize(.mini)
                 .accessibilityLabel(Text("Enable \(server.name)"))
 
-            Button(action: edit) {
+            Button {
+                guard app.proAccess.require(.remoteMCP) else { return }
+                edit()
+            } label: {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
@@ -93,14 +97,20 @@ private struct MCPServerRow: View {
             .accessibilityLabel(Text("Edit \(server.name)"))
         }
         .contentShape(.rect)
-        .onTapGesture(perform: edit)
+        .onTapGesture {
+            guard app.proAccess.require(.remoteMCP) else { return }
+            edit()
+        }
         .help(Text(app.aiConfiguration.mcpStatus(of: server.id).label))
     }
 
     private var enabled: Binding<Bool> {
         Binding(
             get: { server.isEnabled },
-            set: { app.aiConfiguration.setServerEnabled($0, for: server.id) }
+            set: {
+                guard app.proAccess.require(.remoteMCP) else { return }
+                app.aiConfiguration.setServerEnabled($0, for: server.id)
+            }
         )
     }
 }

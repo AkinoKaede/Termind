@@ -71,6 +71,7 @@ struct TermindCommands: Commands {
 
         CommandGroup(after: .pasteboard) {
             Button("Generate Command") {
+                guard app.proAccess.require(.commandGenerator) else { return }
                 window?.generateTerminalCommand(using: app.commandGenerator)
             }
             .termindShortcut("i")

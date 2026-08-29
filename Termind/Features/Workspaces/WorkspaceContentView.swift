@@ -50,7 +50,7 @@ struct WorkspaceContentView: View {
     /// Disabled when there is nothing to broadcast to, so the key falls through
     /// rather than flipping a switch with one wire on it.
     private var broadcastShortcut: some View {
-        Button("") { workspace.broadcastsInput.toggle() }
+        Button("") { window.toggleBroadcastInput(in: workspace) }
             .termindShortcut("b")
             .disabled(!isActive || !workspace.canBroadcast)
             .opacity(0)
@@ -696,7 +696,9 @@ private struct PaneView: View {
             let isOn = workspace.broadcastsInput
             if isHovering {
                 Button {
-                    withAnimation(Motion.workspaceSwitch) { workspace.broadcastsInput.toggle() }
+                    withAnimation(Motion.workspaceSwitch) {
+                        window.toggleBroadcastInput(in: workspace)
+                    }
                 } label: {
                     Image(systemName: "dot.radiowaves.left.and.right")
                         .font(.system(size: 9, weight: .medium))

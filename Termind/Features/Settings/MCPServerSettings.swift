@@ -14,7 +14,7 @@ struct MCPServerSettings: View {
     var body: some View {
         Section("Server") {
             Toggle("Enable", isOn: Binding(
-                get: { server.isEnabled },
+                get: { server.isEnabled && app.proAccess.canUse(.mcpServer) },
                 set: { server.setEnabled($0) }
             ))
 

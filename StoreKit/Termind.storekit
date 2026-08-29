@@ -1,0 +1,46 @@
+{
+  "identifier" : "f131684f-bbdd-4c4f-aad3-70ad8f6e183d",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : true,
+      "internalID" : "2f39bfde-c559-49a9-958f-52aeb1703dc0",
+      "localizations" : [
+        {
+          "description" : "Permanently unlock multi-pane workspaces, AI, MCP, and iCloud sync.",
+          "displayName" : "Termind Pro",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "永久解锁多窗格工作区、AI、MCP与iCloud同步。",
+          "displayName" : "Termind Pro",
+          "locale" : "zh_CN"
+        }
+      ],
+      "productID" : "com.akinokaede.termind.pro",
+      "referenceName" : "Termind Pro Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "0000000000",
+    "_developerTeamID" : "F6SUNDBBN9",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

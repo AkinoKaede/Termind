@@ -59,6 +59,20 @@ struct RootView: View {
             WindowToolbarSearchHost()
         }
         .overlay { ExternalAuthWindowPresenter() }
+        .overlay {
+            if app.proAccess.status == .loading {
+                ZStack {
+                    Rectangle().fill(.regularMaterial).ignoresSafeArea()
+                    VStack(spacing: Metrics.Space.m) {
+                        ProgressView().controlSize(.large)
+                        Text("Checking Termind Pro…").foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text("Checking Termind Pro"))
+                .zIndex(100)
+            }
+        }
         .frame(
             minWidth: Metrics.Window.minWidth,
             maxWidth: .infinity,
@@ -116,12 +130,15 @@ struct RootView: View {
             window.reconcileSidebarMode()
         }
         .onAppear {
+            window.proAccess = app.proAccess
             window.connectionCoordinator = app.connections
             window.hostStore = app.hostLibrary
             app.registerWindow(window)
             window.refreshSessionContext()
             window.reconcileSidebarMode()
+            app.reconcileProAccess()
         }
+        .onChange(of: app.proAccess.status) { app.reconcileProAccess() }
     }
 
     private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {

@@ -1312,6 +1312,7 @@ struct AssistantView: View {
     }
 
     private func sendNewConversation() {
+        guard app.proAccess.require(.assistant) else { return }
         guard let conversation = window.assistantLibrary.startDraftConversation()
         else { return }
         app.startAgentRun(conversation)

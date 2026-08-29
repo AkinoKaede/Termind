@@ -4,7 +4,7 @@ import ListViewKit
 import SwiftUI
 
 nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
-    case app, startup, sidebar
+    case pro, app, startup, sidebar
     case terminalAppearance, sftp
     case providers, modelRoles, assistant, webSearch, mcp, mcpServer
     case sync
@@ -13,6 +13,7 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
 
     var title: LocalizedStringKey {
         switch self {
+        case .pro: "Termind Pro"
         case .app: "App"
         case .startup: "Startup"
         case .sidebar: "Sidebar"
@@ -30,6 +31,7 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
 
     var symbol: String {
         switch self {
+        case .pro: "sparkles.rectangle.stack"
         case .app: "app.badge"
         case .startup: "arrow.clockwise"
         case .sidebar: "sidebar.left"
@@ -105,11 +107,18 @@ struct SettingsPageView: View {
                 back: { route = .modelProvider(id, isNew: isNew) }
             )
         case .mcpServer(let id, let isNew):
-            MCPServerEditorPage(
-                serverID: id, isNew: isNew,
-                back: { route = .section(.mcp) },
-                deleted: { route = .section(.mcp) }
-            )
+            if app.proAccess.canUse(.remoteMCP) {
+                MCPServerEditorPage(
+                    serverID: id, isNew: isNew,
+                    back: { route = .section(.mcp) },
+                    deleted: { route = .section(.mcp) }
+                )
+            } else {
+                ProLockedSettingsPage(
+                    title: "MCP", feature: .remoteMCP,
+                    back: { route = .section(.mcp) }
+                )
+            }
         case .terminalConfiguration(let scheme):
             TerminalCustomConfigurationEditorPage(
                 scheme: scheme,
@@ -121,6 +130,11 @@ struct SettingsPageView: View {
     @ViewBuilder
     private func sectionPage(_ section: SettingsSection) -> some View {
         switch section {
+        case .pro:
+            SettingsFormPage(
+                title: "Termind Pro",
+                subtitle: "Your permanent unlock and seven-day free trial."
+            ) { ProSettings() }
         case .app:
             SettingsFormPage(title: "App", subtitle: "About this application.") { AppSettings() }
         case .startup:
@@ -221,6 +235,31 @@ enum SettingsDraftPolicy {
     }
 }
 
+private struct ProLockedSettingsPage: View {
+    @Environment(AppModel.self) private var app
+    let title: LocalizedStringKey
+    let feature: ProFeature
+    let back: () -> Void
+
+    var body: some View {
+        VStack(spacing: Metrics.Space.l) {
+            HStack {
+                Button(action: back) { Label("Back", systemImage: "chevron.left") }
+                Spacer()
+            }
+            .padding()
+            Spacer()
+            Image(systemName: "lock.fill").font(.system(size: 34)).foregroundStyle(.tint)
+            Text(title).font(.title2.bold())
+            Text("This configuration is available with Termind Pro.")
+                .foregroundStyle(.secondary)
+            Button("View Termind Pro") { app.proAccess.presentPaywall(for: feature) }
+                .buttonStyle(.borderedProminent)
+            Spacer()
+        }
+    }
+}
+
 private struct SettingsSidebar: View {
     let selection: SettingsSection
     let select: (SettingsSection) -> Void
@@ -293,7 +332,7 @@ nonisolated enum SettingsNavigationGroup: CaseIterable, Hashable, Sendable {
 
     var sections: [SettingsSection] {
         switch self {
-        case .general: [.app, .startup, .sidebar]
+        case .general: [.pro, .app, .startup, .sidebar]
         case .terminal: [.terminalAppearance, .sftp]
         case .ai: [.providers, .modelRoles, .webSearch, .mcp, .mcpServer]
         case .sync: [.sync]
@@ -541,6 +580,68 @@ private struct AppSettings: View {
                 Text(RuntimeVersions.openSSL).foregroundStyle(.secondary).textSelection(.enabled)
             }
         }
+
+        Section("Support") {
+            Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
+                Label("Support", systemImage: "questionmark.circle")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Link(destination: URL(string: "https://termind.akinokaede.com/privacy/")!) {
+                Label("Privacy Policy", systemImage: "hand.raised")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+private struct ProSettings: View {
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        Section("Access") {
+            LabeledContent("Status") { statusLabel }
+            if case .trialActive(let expiresAt) = app.proAccess.status {
+                LabeledContent("Trial Ends") {
+                    Text(expiresAt, format: .dateTime.year().month().day().hour().minute())
+                }
+            }
+        }
+
+        Section("Termind Pro") {
+            Text("Unlock multiple-pane workspaces, AI, MCP, and private iCloud Vault sync with one permanent purchase.")
+                .foregroundStyle(.secondary)
+            if !app.proAccess.hasProAccess {
+                Button("View Termind Pro") { app.proAccess.presentPaywall() }
+                    .buttonStyle(.borderedProminent)
+            }
+            Button("Restore Purchase") { Task { await app.proAccess.restorePurchases() } }
+            if let message = app.proAccess.message {
+                Text(message).font(.caption).foregroundStyle(.orange)
+            }
+        }
+
+        Section("Included") {
+            Label("Permanent unlock", systemImage: "infinity")
+            Label("Apple Family Sharing", systemImage: "person.3")
+            Label("No subscription or automatic renewal", systemImage: "checkmark.seal")
+            Text("AI provider usage and charges are separate from Termind Pro.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var statusLabel: some View {
+        switch app.proAccess.status {
+        case .loading: Label("Checking…", systemImage: "arrow.triangle.2.circlepath")
+        case .free: Label("Free", systemImage: "person.crop.circle")
+        case .trialActive: Label("7-Day Trial", systemImage: "clock")
+        case .trialExpired: Label("Trial Ended", systemImage: "clock.badge.xmark")
+        case .purchased(.purchased): Label("Purchased", systemImage: "checkmark.seal.fill")
+        case .purchased(.familyShared): Label("Family Shared", systemImage: "person.3.fill")
+        case .purchasePending: Label("Purchase Pending", systemImage: "hourglass")
+        case .verificationFailed: Label("Verification Required", systemImage: "exclamationmark.shield")
+        case .unrestrictedForTesting: Label("Development Access", systemImage: "hammer")
+        }
     }
 }
 
@@ -686,7 +787,7 @@ private struct SyncSettings: View {
 
     var body: some View {
         Section("iCloud") {
-            Toggle("Sync Vault with iCloud", isOn: $isEnabled)
+            Toggle("Sync Vault with iCloud", isOn: syncEnabled)
             LabeledContent("Status") { statusLabel }
 
             if case .accountChangeConfirmationRequired = status {
@@ -702,11 +803,22 @@ private struct SyncSettings: View {
             Text("Hosts, identities, public key metadata, Known Hosts, snippets, and port forwards sync through your private iCloud database. Passwords and private keys remain protected separately by Keychain. Credentials marked “This Mac” will be missing on other Macs.")
                 .font(.caption).foregroundStyle(.secondary)
         }
-        .onChange(of: isEnabled) { _, enabled in app.vaultSync?.setEnabled(enabled) }
+    }
+
+    private var syncEnabled: Binding<Bool> {
+        Binding(
+            get: { isEnabled && app.proAccess.canUse(.vaultSync) },
+            set: { enabled in
+                guard !enabled || app.proAccess.require(.vaultSync) else { return }
+                isEnabled = enabled
+                app.vaultSync?.setEnabled(enabled)
+            }
+        )
     }
 
     private var status: VaultSyncStatus {
-        app.vaultSync?.status ?? (isEnabled ? .checkingAccount : .paused)
+        guard app.proAccess.canUse(.vaultSync) else { return .paused }
+        return app.vaultSync?.status ?? (isEnabled ? .checkingAccount : .paused)
     }
 
     @ViewBuilder

@@ -48,6 +48,7 @@ final class AppModel {
     }
 
     private let hosts: HostLibraryModel
+    let proAccess: ProAccessController
     var hostLibrary: HostLibraryModel { hosts }
     let credentials: CredentialLibraryModel
     let snippets: SnippetLibraryModel
@@ -107,11 +108,13 @@ final class AppModel {
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
         externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
-        speechTranscription: SpeechTranscriptionCoordinator? = nil
+        speechTranscription: SpeechTranscriptionCoordinator? = nil,
+        proAccess: ProAccessController = .unrestrictedForTesting()
     ) {
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         let connectionCoordinator = dependencies.connectionCoordinator
         self.hosts = hosts
+        self.proAccess = proAccess
         credentials = CredentialLibraryModel(library: hosts)
         snippets = SnippetLibraryModel(library: hosts)
         forwardings = ForwardingLibraryModel(library: hosts)
@@ -160,7 +163,9 @@ final class AppModel {
         mcpServer = MCPServerController(
             ai: ai, hosts: agentHosts, connections: agentConnections,
             authentication: agentAuthentication, background: agentBackgroundCommands,
-            externalAuthentication: externalAuthentication, history: externalToolCalls
+            externalAuthentication: externalAuthentication, history: externalToolCalls,
+            canUsePro: { proAccess.canUse(.mcpServer) },
+            requestPro: { proAccess.require(.mcpServer) }
         )
         agentHosts.configureTemporaryTargets(
             targets: { [weak self] in self?.temporaryAgentTargets() ?? [] },
@@ -225,7 +230,19 @@ final class AppModel {
         vaultSync?.didApplyRemote = { [weak self] snapshot, keys in
             self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
         }
-        vaultSync?.start()
+        if proAccess.canUse(.vaultSync) { vaultSync?.start() }
+    }
+
+    func reconcileProAccess() {
+        if proAccess.canUse(.vaultSync) {
+            vaultSync?.start()
+            mcpServer.resumeForProAccess()
+        } else {
+            vaultSync?.pause()
+        }
+        if !proAccess.canUse(.mcpServer), mcpServer.isEnabled {
+            mcpServer.suspendForProAccess()
+        }
     }
 
     private func applyRemoteVaultSnapshot(
@@ -265,6 +282,7 @@ final class AppModel {
         context: SessionContext = .none,
         includesTerminalSuggestion: Bool = false
     ) {
+        guard proAccess.require(.assistant) else { return }
         let draft = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard conversation.canSendDraft else { return }
         // The *returned* text, not `draft`: attachments are folded in there, and
@@ -299,6 +317,7 @@ final class AppModel {
         context: SessionContext = .none,
         includesTerminalSuggestion: Bool = false
     ) {
+        guard proAccess.require(.assistant) else { return }
         let lastUserTurn = conversation.transcript.last(where: { $0.role == .user })
         let userPrompt =
             prompt
@@ -466,6 +485,7 @@ final class AppModel {
         instructions: String = "",
         isManual: Bool = true
     ) async -> Bool {
+        guard proAccess.require(.assistant) else { return false }
         guard !conversation.isStreaming, !conversation.isCompacting else { return false }
         conversation.beginCompaction()
         guard let span = conversation.compactionSpan(keepRecentTokens: keepRecentTokens)
@@ -1019,6 +1039,7 @@ final class AppModel {
             let opened = hosts.map { open($0, as: target, in: window) }
             if let first = opened.first { window.select(first.id) }
         case .oneWorkspace:
+            guard proAccess.require(.workspaceComposition) else { return }
             for host in hosts { beginOpening(host, as: target) }
             window.openWorkspace(hosts, as: target)
         }
@@ -1040,6 +1061,7 @@ final class AppModel {
             let wanted = Set(ids)
             let targets = hosts.searchHosts("").filter { wanted.contains($0.id) }
             guard !targets.isEmpty else { continue }
+            if targets.count > 1, !proAccess.require(.workspaceComposition) { return }
             for host in targets { beginOpening(host, as: .sshSession) }
             if let workspace = window.openSnippetWorkspace(
                 hosts: targets, command: snippet.body

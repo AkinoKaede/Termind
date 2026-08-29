@@ -876,6 +876,11 @@ struct ComposerView: View {
         // it is not queued at a busy agent either. `/reasoning high` mid-run
         // changes the next request, which is exactly when someone would type it.
         if runSlashCommand() { return }
+        // Gate before consuming the draft, queueing steering text, creating a
+        // conversation, or appending a visible user turn. The runtime keeps a
+        // second guard, but by then the UI would already look as though Send
+        // succeeded.
+        guard app.proAccess.require(.assistant) else { return }
         if !conversation.pendingAttachments.isEmpty { return }
         if conversation.attachments.contains(where: { $0.image != nil }),
             resolved?.model.isVision != true

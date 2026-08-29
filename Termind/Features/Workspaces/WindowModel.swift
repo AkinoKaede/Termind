@@ -12,6 +12,7 @@ enum SessionOpenPlacement: Equatable {
 /// `FocusedValues.window`.
 @Observable
 final class WindowModel {
+    var proAccess: ProAccessController = .unrestrictedForTesting()
     let workspaceDeck: WorkspaceDeckModel
     var workspaces: [Workspace] {
         get { workspaceDeck.workspaces }
@@ -652,6 +653,12 @@ final class WindowModel {
         initialPath: String? = nil,
         placement: SessionOpenPlacement = .newWorkspace
     ) -> Workspace {
+        if placement == .currentWorkspace,
+            !proAccess.require(.workspaceComposition),
+            let selectedWorkspace
+        {
+            return selectedWorkspace
+        }
         let pane = Pane.sshSession(
             host: host,
             usernameHint: usernameHint,
@@ -679,6 +686,7 @@ final class WindowModel {
     /// enforces everywhere else.
     @discardableResult
     func openWorkspace(_ hosts: [Host], as target: HostOpenTarget) -> Workspace? {
+        if hosts.count > 1, !proAccess.require(.workspaceComposition) { return nil }
         let panes: [Pane] = hosts.compactMap { host in
             switch target {
             case .sshSession: .sshSession(host: host)
@@ -706,6 +714,7 @@ final class WindowModel {
     /// submits the same command independently after login.
     @discardableResult
     func openSnippetWorkspace(hosts: [Host], command: String) -> Workspace? {
+        if hosts.count > 1, !proAccess.require(.workspaceComposition) { return nil }
         let panes = hosts.map { Pane.sshSession(host: $0, initialCommand: command) }
         guard let first = panes.first, let layout = SplitNode.tiled(panes) else { return nil }
 
@@ -737,6 +746,12 @@ final class WindowModel {
         initialPath: String? = nil,
         placement: SessionOpenPlacement = .newWorkspace
     ) -> Workspace {
+        if placement == .currentWorkspace,
+            !proAccess.require(.workspaceComposition),
+            let selectedWorkspace
+        {
+            return selectedWorkspace
+        }
         let pane = Pane.sftpSession(host: host, initialPath: initialPath)
         numberPane(pane)
         if let connectionCoordinator { pane.configureConnections(using: connectionCoordinator) }
@@ -808,6 +823,7 @@ final class WindowModel {
         axis: SplitAxis,
         side: SplitSide
     ) {
+        guard proAccess.require(.workspaceComposition) else { return }
         guard source != target,
             let sourceWorkspace = workspaces.first(where: { $0.id == source }),
             let targetWorkspace = workspaces.first(where: { $0.id == target }),
@@ -829,6 +845,7 @@ final class WindowModel {
     /// The same fold, into a specific empty slot rather than beside the focused
     /// pane — what dropping onto an `EmptyPaneView` does.
     func fill(_ slot: Pane.ID, in target: Workspace.ID, withPanesOf source: Workspace.ID) {
+        guard proAccess.require(.workspaceComposition) else { return }
         guard source != target,
             let sourceWorkspace = workspaces.first(where: { $0.id == source }),
             let targetWorkspace = workspaces.first(where: { $0.id == target }),
@@ -858,6 +875,7 @@ final class WindowModel {
     ///
     /// Closes the source workspace when the move emptied it.
     func movePane(_ paneID: Pane.ID, beside target: Pane.ID, axis: SplitAxis, side: SplitSide) {
+        guard proAccess.require(.workspaceComposition) else { return }
         guard paneID != target, let pane = pane(paneID) else { return }
         detach(paneID)
         guard let targetWorkspace = workspace(holding: target) else { return }
@@ -870,6 +888,7 @@ final class WindowModel {
 
     /// The same move, into an unfilled slot, which the pane replaces.
     func movePane(_ paneID: Pane.ID, into slot: Pane.ID) {
+        guard proAccess.require(.workspaceComposition) else { return }
         guard paneID != slot, let pane = pane(paneID) else { return }
         detach(paneID)
         guard let targetWorkspace = workspace(holding: slot) else { return }
@@ -987,6 +1006,7 @@ final class WindowModel {
     /// to be dragged into. Deliberately not a connection: choosing a layout and
     /// choosing a machine are two decisions, and only one of them was asked for.
     func splitSelected(axis: SplitAxis) {
+        guard proAccess.require(.workspaceComposition) else { return }
         guard let workspace = selectedWorkspace, canSplitSelected else { return }
         workspace.splitFocusedPane(axis: axis, with: Pane(.empty))
     }
@@ -994,6 +1014,7 @@ final class WindowModel {
     /// Copies the focused pane beside itself, keeping its kind — a second shell
     /// on the same host, a second browser on the same machine.
     func duplicateSelected(axis: SplitAxis) {
+        guard proAccess.require(.workspaceComposition) else { return }
         guard let workspace = selectedWorkspace, let copy = copyOfFocusedPane() else { return }
         workspace.splitFocusedPane(axis: axis, with: copy)
     }
@@ -1026,6 +1047,7 @@ final class WindowModel {
     func duplicateSelectedInNewWorkspace() {
         guard let sourceWorkspace = selectedWorkspace else { return }
         guard sourceWorkspace.isSplit else { return duplicatePaneInNewWorkspace() }
+        guard proAccess.require(.workspaceComposition) else { return }
         guard let layout = sourceWorkspace.layout.copied() else { return }
 
         let duplicate = Workspace(pane: layout.firstPane)
@@ -1036,6 +1058,11 @@ final class WindowModel {
         // reads the panes already in `workspaces`, and one that is not there yet is
         // invisible to it.
         layout.panes.forEach(numberPane)
+    }
+
+    func toggleBroadcastInput(in workspace: Workspace) {
+        guard proAccess.require(.workspaceComposition) else { return }
+        workspace.broadcastsInput.toggle()
     }
 
     /// Gives `pane` the lowest number not currently in use by a pane of the same
