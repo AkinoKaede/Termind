@@ -89,7 +89,7 @@ enum LinuxDistributionBrandColor {
     private static func mixed(_ lhs: NSColor, _ rhs: NSColor, amount: CGFloat) -> NSColor {
         let left = components(lhs)
         let right = components(rhs)
-        NSColor(
+        return NSColor(
             srgbRed: left.0 + (right.0 - left.0) * amount,
             green: left.1 + (right.1 - left.1) * amount,
             blue: left.2 + (right.2 - left.2) * amount,

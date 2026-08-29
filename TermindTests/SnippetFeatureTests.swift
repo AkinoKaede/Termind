@@ -83,7 +83,7 @@ struct SnippetFeatureTests {
         )
         let store = HostLibraryModel(hosts: [removed, kept], snippets: [snippet])
 
-        store.delete(hostID: removed.id)
+        store.projectHostDeletion(removed.id)
 
         #expect(store.snippet(snippet.id)?.targetHostIDs == [kept.id])
     }

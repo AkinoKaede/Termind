@@ -346,7 +346,7 @@ struct AgentTokenUsageTests {
     }
 
     private func expectSnapshotMatchesReference(_ conversation: ConversationModel) {
-        let attachedCharacters = conversation.attachments.reduce(0) {
+        let attachedCharacters = conversation.composer.attachments.reduce(0) {
             $0
                 + ($1.image == nil
                     ? AgentContextEstimator.characterUnits(in: $1.content)

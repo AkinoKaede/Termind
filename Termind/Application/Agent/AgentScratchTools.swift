@@ -286,9 +286,7 @@ nonisolated extension ScratchListTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             let entries = object["entries"]?.arrayValue ?? []
             let entryCount = object["entry_count"]?.integerValue ?? entries.count
             let entryQuota = object["entry_quota"]?.integerValue
@@ -321,6 +319,7 @@ nonisolated extension ScratchListTool {
                     emptyMessage: F.localized("Workspace is empty", locale: input.locale)
                 )),
             ]
+            }
         }
 }
 
@@ -329,9 +328,7 @@ nonisolated extension ScratchReadTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
             let content = object["content"]?.stringValue ?? ""
@@ -351,6 +348,7 @@ nonisolated extension ScratchReadTool {
                 locale: input.locale
             )
             return items
+            }
         }
 }
 
@@ -359,9 +357,7 @@ nonisolated extension ScratchSearchTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             let matching = object["matching_lines"]?.integerValue ?? 0
             let returned = object["returned_matches"]?.integerValue ?? 0
             let searched = object["searched_files"]?.integerValue ?? 0
@@ -416,6 +412,7 @@ nonisolated extension ScratchSearchTool {
                 locale: input.locale
             ))
             return items
+            }
         }
 }
 
@@ -424,9 +421,7 @@ nonisolated extension ScratchWriteTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
             let result = object["created"]?.boolValue == true
@@ -437,6 +432,7 @@ nonisolated extension ScratchWriteTool {
             F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
             F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
             return items
+            }
         }
 }
 
@@ -445,9 +441,7 @@ nonisolated extension ScratchEditTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
             if let count = object["edits_applied"]?.integerValue {
@@ -467,6 +461,7 @@ nonisolated extension ScratchEditTool {
             F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
             F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
             return items
+            }
         }
 }
 
@@ -475,9 +470,7 @@ nonisolated extension ScratchDiffTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             F.appendField(&items, "From", object["path_a"]?.stringValue, locale: input.locale, monospaced: true)
             F.appendField(&items, "To", object["path_b"]?.stringValue, locale: input.locale, monospaced: true)
@@ -500,6 +493,7 @@ nonisolated extension ScratchDiffTool {
                 items.append(.message(F.localized("No differences", locale: input.locale), .secondary))
             }
             return items
+            }
         }
 }
 
@@ -508,9 +502,7 @@ nonisolated extension ScratchDeleteTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             F.appendField(&items, "Path", object["path"]?.stringValue, locale: input.locale, monospaced: true)
             items.append(F.field("Result", F.localized("Deleted", locale: input.locale), locale: input.locale))
@@ -529,6 +521,7 @@ nonisolated extension ScratchDeleteTool {
                 items.append(F.field("Workspace", parts.joined(separator: " · "), locale: input.locale))
             }
             return items
+            }
         }
 }
 
@@ -558,7 +551,7 @@ nonisolated struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaBuilding
         presentation: .init(
             symbol: "arrow.down.doc",
             activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
-            output: .json, actionKind: .pull, includesTarget: true
+            output: .json, actionKind: .pull
         )
     ) }
 
@@ -611,7 +604,7 @@ nonisolated struct ScratchPushTool: AgentToolDefinition, AgentToolSchemaBuilding
         presentation: .init(
             symbol: "arrow.up.doc",
             activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
-            output: .json, actionKind: .push, includesTarget: true
+            output: .json, actionKind: .push
         )
     ) }
 
@@ -724,9 +717,7 @@ nonisolated extension ScratchPullTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             F.appendField(&items, "Remote path", object["remote_path"]?.stringValue, locale: input.locale, monospaced: true)
             F.appendField(&items, "Scratch path", object["scratch_path"]?.stringValue, locale: input.locale, monospaced: true)
@@ -744,6 +735,7 @@ nonisolated extension ScratchPullTool {
             F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
             F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
             return items
+            }
         }
 }
 
@@ -752,9 +744,7 @@ nonisolated extension ScratchPushTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             F.appendField(&items, "Scratch path", object["scratch_path"]?.stringValue, locale: input.locale, monospaced: true)
             F.appendField(&items, "Remote path", object["remote_path"]?.stringValue, locale: input.locale, monospaced: true)
@@ -762,6 +752,7 @@ nonisolated extension ScratchPushTool {
             F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
             items.append(F.field("Result", F.localized("Written", locale: input.locale), locale: input.locale))
             return items
+            }
         }
 }
 
@@ -770,9 +761,7 @@ nonisolated extension ScratchFetchTool {
             _ input: AgentToolDetailInput
         ) -> [AgentToolDetail.Item] {
             typealias F = AgentToolDetailFormatting
-            guard let object = input.result.objectValue else {
-                return F.genericItems(input.result, locale: input.locale)
-            }
+            return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             if let title = F.nonempty(object["title"]?.stringValue) {
                 items.append(F.field("Title", title, locale: input.locale))
@@ -798,5 +787,6 @@ nonisolated extension ScratchFetchTool {
             F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
             F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
             return items
+            }
         }
 }

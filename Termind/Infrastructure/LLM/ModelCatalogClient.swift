@@ -21,10 +21,7 @@ nonisolated struct ModelCatalogClient: Sendable {
         if let session {
             self.session = session
         } else {
-            let configuration = URLSessionConfiguration.ephemeral
-            configuration.timeoutIntervalForRequest = Self.timeout
-            configuration.waitsForConnectivity = false
-            self.session = URLSession(configuration: configuration)
+            self.session = ProviderNetworking.session(timeout: Self.timeout)
         }
     }
 
@@ -65,9 +62,10 @@ nonisolated struct ModelCatalogClient: Sendable {
         secret: String
     ) async throws -> [AIModel] {
         var request = URLRequest(url: url)
-        if !secret.isEmpty {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
-        }
+        try await ProviderNetworking.authorize(
+            &request, provider: provider, secret: secret,
+            omittingEmptyCredential: true
+        )
         return try Self.parseOpenAIPage(try await get(request), provider: provider).models
     }
 
@@ -96,10 +94,10 @@ nonisolated struct ModelCatalogClient: Sendable {
             guard let paged = components?.url else { throw ModelCatalogError.badURL(url.absoluteString) }
 
             var request = URLRequest(url: paged)
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            if !secret.isEmpty {
-                request.setValue(secret, forHTTPHeaderField: "x-api-key")
-            }
+            try await ProviderNetworking.authorize(
+                &request, provider: provider, secret: secret,
+                omittingEmptyCredential: true
+            )
 
             let page = try Self.parseOpenAIPage(try await get(request), provider: provider)
             models += page.models
@@ -138,9 +136,10 @@ nonisolated struct ModelCatalogClient: Sendable {
             guard let paged = components?.url else { throw ModelCatalogError.badURL(url.absoluteString) }
 
             var request = URLRequest(url: paged)
-            if !secret.isEmpty {
-                request.setValue(secret, forHTTPHeaderField: "x-goog-api-key")
-            }
+            try await ProviderNetworking.authorize(
+                &request, provider: provider, secret: secret,
+                omittingEmptyCredential: true
+            )
 
             let page = try Self.parseGooglePage(try await get(request), provider: provider)
             models += page.models

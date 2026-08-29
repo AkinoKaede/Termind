@@ -14,6 +14,32 @@ nonisolated struct AgentCommandOutcome: Sendable {
     var isRunning: Bool { exitCode == nil }
 }
 
+/// Owns the identical timer lifecycle shared by idle registries. Each owning
+/// actor still decides what is idle and when an empty registry should stop it.
+nonisolated final class AgentIdleSweeper: @unchecked Sendable {
+    private let interval: Duration?
+    private var task: Task<Void, Never>?
+
+    init(interval: Duration?) { self.interval = interval }
+
+    func start(sweep: @escaping @Sendable () async -> Int) {
+        guard task == nil, let interval else { return }
+        task = Task {
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: interval) } catch { return }
+                guard await sweep() > 0 else { return }
+            }
+        }
+    }
+
+    func stop() {
+        task?.cancel()
+        task = nil
+    }
+
+    deinit { task?.cancel() }
+}
+
 /// Commands that outlived the turn that started them.
 ///
 /// A tool returns when it decides to, which for `ssh_exec` means reporting what
@@ -51,15 +77,14 @@ actor AgentBackgroundCommands {
     /// `nil` disables the timer, for tests that drive `sweepIdle` themselves
     /// with a synthetic instant. Same seam, and same reason, as the connection
     /// pool's.
-    private let sweepInterval: Duration?
-    private var sweeper: Task<Void, Never>?
+    private let sweeper: AgentIdleSweeper
 
     init(
         idleTimeout: Duration = AgentBackgroundCommands.defaultIdleTimeout,
         sweepInterval: Duration? = .seconds(60)
     ) {
         self.idleTimeout = idleTimeout
-        self.sweepInterval = sweepInterval
+        sweeper = AgentIdleSweeper(interval: sweepInterval)
     }
 
     var count: Int { entries.count }
@@ -149,19 +174,15 @@ actor AgentBackgroundCommands {
     /// Runs only while something is held. A timer ticking against an empty
     /// registry is a wakeup a laptop pays for and nobody reads.
     private func startSweeping() {
-        guard sweeper == nil, let sweepInterval else { return }
-        sweeper = Task { [weak self, sweepInterval] in
-            while !Task.isCancelled {
-                do { try await Task.sleep(for: sweepInterval) } catch { return }
-                guard let self, await self.sweepIdle(now: .now) > 0 else { return }
-            }
+        sweeper.start { [weak self] in
+            guard let self else { return 0 }
+            return await self.sweepIdle(now: .now)
         }
     }
 
     private func stopSweepingIfEmpty() {
         guard entries.isEmpty else { return }
-        sweeper?.cancel()
-        sweeper = nil
+        sweeper.stop()
     }
 
     /// Whether the task settled inside the window, without cancelling it when

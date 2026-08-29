@@ -291,7 +291,7 @@ private struct TagSuggestionNativeList: NSViewRepresentable {
             listView.bottomInset = Metrics.Space.xxs
             listView.estimatedRowHeight = 32
             listView.rows {
-                ListRow(TagSuggestionHostingRow.self)
+                ListRow(HostingListRow.self)
                     .height { _, _ in 32 }
                     .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
             }
@@ -320,7 +320,7 @@ private struct TagSuggestionNativeList: NSViewRepresentable {
             }
         }
 
-        private func configure(_ row: TagSuggestionHostingRow, item: TagSuggestionListItem) {
+        private func configure(_ row: HostingListRow, item: TagSuggestionListItem) {
             guard let renderer else { return }
             let root = renderer(item)
                 .id(item.id)
@@ -329,27 +329,6 @@ private struct TagSuggestionNativeList: NSViewRepresentable {
             row.configure(rootView: AnyView(root))
         }
     }
-}
-
-@MainActor
-private final class TagSuggestionHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 // MARK: - Row view

@@ -70,7 +70,7 @@ struct ChatComposerStateTests {
         #expect(conversation.messages.last?.contextChips.map(\.label) == ["graph.png"])
         #expect(conversation.messages.last?.images == [image])
         #expect(conversation.transcript.last?.images == [image])
-        #expect(conversation.attachments.isEmpty)
+        #expect(conversation.composer.attachments.isEmpty)
     }
 
     @Test
@@ -90,7 +90,7 @@ struct ChatComposerStateTests {
         #expect(conversation.transcript.last?.text.contains("service failed") == true)
         #expect(conversation.transcript.last?.contextAttachments.first?.data
             == Data("service failed".utf8))
-        #expect(conversation.attachments.isEmpty)
+        #expect(conversation.composer.attachments.isEmpty)
     }
 
     @Test
@@ -1773,7 +1773,7 @@ struct ChatComposerStateTests {
         conversation.attach(ContextChip(kind: .file, label: "nginx.conf", content: "worker;"))
 
         conversation.appendUserTurn("first")
-        #expect(conversation.attachments.isEmpty)
+        #expect(conversation.composer.attachments.isEmpty)
 
         let second = conversation.appendUserTurn("second")
         #expect(second == "second")
@@ -1786,11 +1786,11 @@ struct ChatComposerStateTests {
         conversation.attach(chip)
         conversation.attach(chip)
 
-        #expect(conversation.attachments.count == 1, "the same attachment twice is once")
+        #expect(conversation.composer.attachments.count == 1, "the same attachment twice is once")
 
         conversation.detach(chip.id)
 
-        #expect(conversation.attachments.isEmpty)
+        #expect(conversation.composer.attachments.isEmpty)
         #expect(conversation.appendUserTurn("hello") == "hello")
     }
 

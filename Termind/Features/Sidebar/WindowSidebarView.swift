@@ -310,32 +310,14 @@ private struct SnippetSidebarSectionHeaderRow: View {
     }
 
     var body: some View {
-        Button(action: toggleExpansion) {
-            HStack(spacing: Metrics.Space.s) {
-                Text(title)
-                Spacer(minLength: 0)
-                Text(count, format: .number)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.tertiary)
-                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .frame(width: Metrics.Sidebar.rowIcon)
-                    .accessibilityHidden(true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 34)
-            .padding(
-                .horizontal,
-                Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
+        SidebarSectionHeader(
+            title: title, count: count, height: 34,
+            isExpanded: Binding(
+                get: { isExpanded },
+                set: { expanded in
+                    if expanded != isExpanded { toggleExpansion() }
+                }
             )
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .termindSidebarSectionLabel()
-        .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
-        .accessibilityAction(
-            named: Text(isExpanded ? "Collapse" : "Expand"),
-            toggleExpansion
         )
     }
 }
@@ -392,10 +374,7 @@ private struct SidebarNativeList: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [SidebarListItem] = []
+        private let content = HostingListContent<SidebarListItem>()
 
         func makeListView() -> List {
             let listView = List()
@@ -404,7 +383,7 @@ private struct SidebarNativeList: NSViewRepresentable {
             listView.bottomInset = Metrics.Space.xs
             listView.estimatedRowHeight = Metrics.Sidebar.navigationRowHeight
             listView.rows {
-                ListRow(SidebarHostingRow.self)
+                ListRow(HostingListRow.self)
                     .height { item, _ in item.height }
                     .configure { [weak self] row, item, _ in
                         self?.configure(row, item: item)
@@ -421,28 +400,14 @@ private struct SidebarNativeList: NSViewRepresentable {
             colorScheme: ColorScheme,
             animated: Bool
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: animated && !content.isEmpty)
-            }
-            content = items
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: animated
+            )
         }
 
-        private func configure(_ row: SidebarHostingRow, item: SidebarListItem) {
-            guard let renderer else { return }
-            let root = renderer(item)
-                .id(item.id)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme)
-            row.configure(rootView: AnyView(root))
+        private func configure(_ row: HostingListRow, item: SidebarListItem) {
+            content.configure(row, item: item)
         }
     }
 }
@@ -479,32 +444,6 @@ final class SidebarListContainer: NSView {
             return super.menu(for: event)
         }
         return NativeMenuEntry.menu(entries)
-    }
-}
-
-@MainActor
-private final class SidebarHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-
-    func configure(rootView: AnyView) {
-        hostingView.rootView = rootView
     }
 }
 

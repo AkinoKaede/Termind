@@ -34,14 +34,14 @@ struct AgentSteeringTests {
         let conversation = ConversationModel()
         startRun(conversation)
         conversation.attach(ContextChip(kind: .output, label: "Last 20 lines", content: "boom"))
-        conversation.draft = "  also tail the error log  "
+        conversation.composer.draft = "  also tail the error log  "
 
         conversation.submitSteeringDraft()
 
-        #expect(conversation.draft.isEmpty)
+        #expect(conversation.composer.draft.isEmpty)
         // Consumed by the message they were attached to, exactly as a turn that
         // starts a run consumes them.
-        #expect(conversation.attachments.isEmpty)
+        #expect(conversation.composer.attachments.isEmpty)
         #expect(conversation.messages.isEmpty)
         #expect(conversation.transcript.isEmpty)
 
@@ -62,7 +62,7 @@ struct AgentSteeringTests {
         conversation.attach(
             ContextChip(kind: .pastedText, label: "Pasted text", content: "large context")
         )
-        conversation.draft = "check nginx too"
+        conversation.composer.draft = "check nginx too"
         conversation.submitSteeringDraft()
         let queued = try! #require(conversation.pendingSteering.first).message
 
@@ -89,49 +89,49 @@ struct AgentSteeringTests {
         let conversation = ConversationModel()
         startRun(conversation)
         conversation.attach(ContextChip(kind: .file, label: "nginx.conf", content: "server {}"))
-        conversation.draft = "first"
+        conversation.composer.draft = "first"
         conversation.submitSteeringDraft()
-        conversation.draft = "second"
+        conversation.composer.draft = "second"
         conversation.submitSteeringDraft()
-        conversation.draft = "third, still being typed"
+        conversation.composer.draft = "third, still being typed"
 
         conversation.stop()
 
         #expect(conversation.pendingSteering.isEmpty)
         // In the order they were typed, with whatever was still in the box
         // last, so nothing has to be reassembled by hand.
-        #expect(conversation.draft == "first\n\nsecond\n\nthird, still being typed")
+        #expect(conversation.composer.draft == "first\n\nsecond\n\nthird, still being typed")
         // The composer gets the draft back, not the folded payload.
-        #expect(!conversation.draft.contains("<file"))
-        #expect(conversation.attachments.count == 1)
-        #expect(conversation.attachments[0].label == "nginx.conf")
+        #expect(!conversation.composer.draft.contains("<file"))
+        #expect(conversation.composer.attachments.count == 1)
+        #expect(conversation.composer.attachments[0].label == "nginx.conf")
     }
 
     @Test
     func aRunThatFailsReturnsTheQueueAsWell() {
         let conversation = ConversationModel()
         startRun(conversation)
-        conversation.draft = "and restart it"
+        conversation.composer.draft = "and restart it"
         conversation.submitSteeringDraft()
 
         conversation.handle(.runState(.failed))
 
         #expect(conversation.pendingSteering.isEmpty)
-        #expect(conversation.draft == "and restart it")
+        #expect(conversation.composer.draft == "and restart it")
     }
 
     @Test
     func takingOneRowBackLeavesTheRestQueued() {
         let conversation = ConversationModel()
         startRun(conversation)
-        conversation.draft = "first"
+        conversation.composer.draft = "first"
         conversation.submitSteeringDraft()
-        conversation.draft = "second"
+        conversation.composer.draft = "second"
         conversation.submitSteeringDraft()
 
         conversation.returnSteeringToDraft(conversation.pendingSteering[0].id)
 
-        #expect(conversation.draft == "first")
+        #expect(conversation.composer.draft == "first")
         #expect(conversation.pendingSteering.count == 1)
         #expect(conversation.pendingSteering[0].draft == "second")
     }
@@ -140,12 +140,12 @@ struct AgentSteeringTests {
     func anEmptyDraftQueuesNothing() {
         let conversation = ConversationModel()
         startRun(conversation)
-        conversation.draft = "   \n "
+        conversation.composer.draft = "   \n "
 
         conversation.submitSteeringDraft()
 
         #expect(conversation.pendingSteering.isEmpty)
-        #expect(conversation.draft == "   \n ")
+        #expect(conversation.composer.draft == "   \n ")
     }
 
     @Test
@@ -164,22 +164,22 @@ struct AgentSteeringTests {
         #expect(pending.draft.isEmpty)
         #expect(pending.message.text.isEmpty)
         #expect(pending.message.images == [image])
-        #expect(conversation.attachments.isEmpty)
+        #expect(conversation.composer.attachments.isEmpty)
 
         conversation.stop()
-        #expect(conversation.attachments.first?.image == image)
+        #expect(conversation.composer.attachments.first?.image == image)
     }
 
     /// Nothing is queued without a run to hand it to — an idle composer sends.
     @Test
     func thereIsNothingToSteerWithoutARun() {
         let conversation = ConversationModel()
-        conversation.draft = "hello"
+        conversation.composer.draft = "hello"
 
         conversation.submitSteeringDraft()
 
         #expect(conversation.pendingSteering.isEmpty)
-        #expect(conversation.draft == "hello")
+        #expect(conversation.composer.draft == "hello")
     }
 
     private func startRun(_ conversation: ConversationModel) {

@@ -268,7 +268,7 @@ final class AssistantLibraryModel {
     /// real send. Empty drafts remain ephemeral and never create blank rows.
     @discardableResult
     func startConversation(_ conversation: ConversationModel) -> ConversationModel? {
-        let text = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = conversation.composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
         guard !conversations.contains(where: { $0.id == conversation.id }) else { return nil }
 

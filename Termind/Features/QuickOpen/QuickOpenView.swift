@@ -400,10 +400,7 @@ private struct QuickOpenNativeList: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [QuickOpenListItem] = []
+        private let content = HostingListContent<QuickOpenListItem>()
 
         func makeListView() -> NSViewType {
             let listView = NSViewType()
@@ -412,7 +409,7 @@ private struct QuickOpenNativeList: NSViewRepresentable {
             listView.bottomInset = Metrics.Space.xs
             listView.estimatedRowHeight = Metrics.QuickOpen.rowHeight
             listView.rows {
-                ListRow(QuickOpenHostingRow.self)
+                ListRow(HostingListRow.self)
                     .height { item, _ in item.height }
                     .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
             }
@@ -423,55 +420,17 @@ private struct QuickOpenNativeList: NSViewRepresentable {
             listView: NSViewType, items: [QuickOpenListItem], renderer: @escaping Renderer,
             locale: Locale, colorScheme: ColorScheme, animated: Bool
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: animated && !content.isEmpty)
-            }
-            content = items
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: animated
+            )
             if let selected = items.first(where: \.isSelected) {
                 listView.scrollToRow(with: selected.id, at: .nearest, animated: false)
             }
         }
 
-        private func configure(_ row: QuickOpenHostingRow, item: QuickOpenListItem) {
-            guard let renderer else { return }
-            let root = renderer(item)
-                .id(item.id)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme)
-            row.configure(rootView: AnyView(root))
+        private func configure(_ row: HostingListRow, item: QuickOpenListItem) {
+            content.configure(row, item: item)
         }
     }
-}
-
-@MainActor
-private final class QuickOpenHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-
-    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }

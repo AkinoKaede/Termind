@@ -87,12 +87,7 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     /// leaked a session, its connection pool, and its delegate queue on every
     /// turn. Sharing it also lets a multi-turn run reuse the connection it
     /// already has open.
-    private static let shared: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 120
-        configuration.waitsForConnectivity = false
-        return URLSession(configuration: configuration)
-    }()
+    private static let shared = ProviderNetworking.session(timeout: 120)
 
     func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
         AsyncThrowingStream { continuation in
@@ -104,7 +99,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
                     var responseCallIDs: [String: String] = [:]
                     var responseCallNames: [String: String] = [:]
                     var urlRequest = try buildRequest(request, streaming: true)
-                    try await authorize(&urlRequest)
+                    try await ProviderNetworking.authorize(
+                        &urlRequest, provider: provider, secret: secret
+                    )
                     let (bytes, response) = try await session.bytes(for: urlRequest)
                     guard let http = response as? HTTPURLResponse else {
                         throw AgentProviderError.notHTTP
@@ -156,7 +153,9 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
     func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent] {
         let toolNames = AgentProviderToolNameMap.flat(request.tools)
         var urlRequest = try buildRequest(request, streaming: false)
-        try await authorize(&urlRequest)
+        try await ProviderNetworking.authorize(
+            &urlRequest, provider: provider, secret: secret
+        )
         let (bytes, response) = try await session.bytes(for: urlRequest)
         guard let http = response as? HTTPURLResponse else {
             throw AgentProviderError.notHTTP
@@ -351,20 +350,6 @@ nonisolated struct AgentProviderClient: AgentModelStreaming, Sendable {
             of: #"claude-(opus|sonnet|haiku)-(4[-.]([6-9])|[5-9])"#,
             options: .regularExpression
         ) != nil
-    }
-
-    private func authorize(_ request: inout URLRequest) async throws {
-        switch provider.kind {
-        case .openAI: request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
-        case .anthropic:
-            request.setValue(secret, forHTTPHeaderField: "x-api-key")
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        case .google:
-            if provider.usesVertex {
-                let token = try await GoogleServiceAccountAuth.shared.accessToken(serviceAccountJSON: secret)
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            } else { request.setValue(secret, forHTTPHeaderField: "x-goog-api-key") }
-        }
     }
 
     private func parse(

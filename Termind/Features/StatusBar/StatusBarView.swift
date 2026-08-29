@@ -577,10 +577,7 @@ private struct TransferCenterNativeList: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [TransferCenterListItem] = []
+        private let content = HostingListContent<TransferCenterListItem>()
         private let measurement = NSHostingController(rootView: AnyView(EmptyView()))
 
         func makeListView() -> NSViewType {
@@ -588,7 +585,7 @@ private struct TransferCenterNativeList: NSViewRepresentable {
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.estimatedRowHeight = 92
             listView.rows {
-                ListRow(TransferCenterHostingRow.self)
+                ListRow(HostingListRow.self)
                     .estimatedHeight(92)
                     .height { [weak self] item, context in
                         self?.height(for: item, width: context.width) ?? 92
@@ -602,65 +599,24 @@ private struct TransferCenterNativeList: NSViewRepresentable {
             listView: NSViewType, items: [TransferCenterListItem],
             renderer: @escaping Renderer, locale: Locale, colorScheme: ColorScheme
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: !content.isEmpty)
-            }
-            content = items
-        }
-
-        private func rootView(for item: TransferCenterListItem) -> AnyView? {
-            guard let renderer else { return nil }
-            return AnyView(renderer(item)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme))
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: true
+            )
         }
 
         private func height(for item: TransferCenterListItem, width: CGFloat) -> CGFloat {
-            guard width > 0, let root = rootView(for: item) else { return 92 }
+            guard width > 0, let root = content.rootView(for: item) else { return 92 }
             measurement.rootView = root
             return ceil(measurement.sizeThatFits(in: CGSize(
                 width: width, height: .greatestFiniteMagnitude
             )).height)
         }
 
-        private func configure(_ row: TransferCenterHostingRow, item: TransferCenterListItem) {
-            guard let root = rootView(for: item) else { return }
-            row.configure(rootView: root)
+        private func configure(_ row: HostingListRow, item: TransferCenterListItem) {
+            content.configure(row, item: item)
         }
     }
-}
-
-@MainActor
-private final class TransferCenterHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-
-    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 private struct TransferCenterRow: View {

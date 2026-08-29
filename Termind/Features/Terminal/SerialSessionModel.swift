@@ -186,28 +186,6 @@ final class SerialSessionModel: Identifiable {
         #endif
     }
 
-    func applyAppearance(_ preferences: TerminalAppearancePreferences) {
-        let light = TermindTerminalThemeCatalog.terminalConfiguration(
-            themeName: preferences.lightThemeName,
-            customEnabled: preferences.lightCustomEnabled,
-            customText: preferences.lightCustomConfiguration,
-            isDark: false
-        )
-        let dark = TermindTerminalThemeCatalog.terminalConfiguration(
-            themeName: preferences.darkThemeName,
-            customEnabled: preferences.darkCustomEnabled,
-            customText: preferences.darkCustomConfiguration,
-            isDark: true
-        )
-        terminalState.setTheme(GhosttyTerminal.TerminalTheme(light: light, dark: dark))
-        terminalState.setTerminalConfiguration(
-            TerminalConfiguration { builder in
-                if !preferences.fontFollowTheme { builder.withFontSize(Float(preferences.fontSize)) }
-                builder.withWindowPaddingX(Int(Metrics.Space.m))
-                builder.withWindowPaddingY(Int(Metrics.Space.m))
-            }
-        )
-    }
 }
 
 struct SerialTerminalView: View {
@@ -231,7 +209,7 @@ struct SerialTerminalView: View {
         .focused($focused)
         .onAppear {
             session.terminalState.isSurfaceVisible = isVisible
-            session.applyAppearance(terminalAppearance.preferences)
+            session.terminalState.applyAppearance(terminalAppearance.preferences)
             if session.status == .connecting { session.connect() }
             if requestsFocus { session.requestTerminalFocus() }
         }
@@ -243,7 +221,9 @@ struct SerialTerminalView: View {
         .onChange(of: session.connectionJourney.isPresented) { _, presented in
             if !presented, requestsFocus { session.requestTerminalFocus() }
         }
-        .onChange(of: terminalAppearance.preferences) { _, value in session.applyAppearance(value) }
+        .onChange(of: terminalAppearance.preferences) { _, value in
+            session.terminalState.applyAppearance(value)
+        }
         .onDisappear { session.terminalState.isSurfaceVisible = false }
     }
 

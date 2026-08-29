@@ -300,7 +300,7 @@ struct HostsPageView: ManagedCardPage {
     }
 
     private func delete(_ group: HostGroup, keepHosts: Bool) {
-        app.hostLibrary.delete(groupID: group.id, keepHosts: keepHosts)
+        app.deleteHostGroup(group.id, keepHosts: keepHosts)
         state.confirmation = nil
         pruneHostSelection()
 

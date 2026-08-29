@@ -381,7 +381,7 @@ struct WindowStateTests {
         #expect(window.assistantLibrary.selectedConversation == nil)
         #expect(window.assistantLibrary.conversations.isEmpty)
 
-        draft.draft = "Hello from a new chat"
+        draft.composer.draft = "Hello from a new chat"
         let started = window.assistantLibrary.startDraftConversation()
 
         #expect(started === draft)
@@ -398,7 +398,7 @@ struct WindowStateTests {
         #expect(window.sendAssistantSidebarDraft() == nil)
         #expect(window.assistantLibrary.conversations.isEmpty)
 
-        window.sidebar.assistantDraft.draft = "  Explain this failure.  "
+        window.sidebar.assistantDraft.composer.draft = "  Explain this failure.  "
         let conversation = window.sendAssistantSidebarDraft()
 
         #expect(conversation?.messages.map(\.text) == ["Explain this failure."])
@@ -413,7 +413,7 @@ struct WindowStateTests {
     func sidebarConversationNavigationIsIndependentAndDeletionReturnsHome() {
         let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
         let conversation = ConversationModel()
-        conversation.draft = "Hello"
+        conversation.composer.draft = "Hello"
         let library = AssistantLibraryModel()
         _ = library.startConversation(conversation)
         let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
@@ -496,13 +496,13 @@ struct WindowStateTests {
         workspace.focusedPane.sftpSession?.homeResolution = .unavailable
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
-        window.sidebar.assistantDraft.draft = "Why is this slow?"
+        window.sidebar.assistantDraft.composer.draft = "Why is this slow?"
 
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/srv/app"])
 
         let conversation = window.sendAssistantSidebarDraft()
 
-        #expect(conversation?.attachments.isEmpty == true)
+        #expect(conversation?.composer.attachments.isEmpty == true)
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/srv/app"])
     }
 
@@ -532,13 +532,13 @@ struct WindowStateTests {
         conversation.attach(
             ContextChip(kind: .output, label: "Connection error", content: "ssh: refused")
         )
-        conversation.draft = "Explain this"
+        conversation.composer.draft = "Explain this"
 
         _ = AssistantLibraryModel().startConversation(conversation)
 
         #expect(conversation.messages.first?.text == "Explain this")
         #expect(conversation.transcript.first?.text.contains("ssh: refused") == true)
-        #expect(conversation.attachments.isEmpty, "the attachment went with the turn")
+        #expect(conversation.composer.attachments.isEmpty, "the attachment went with the turn")
     }
 
     /// Opening a conversation in the sidebar used to stamp the focused pane's
@@ -549,7 +549,7 @@ struct WindowStateTests {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
         let conversation = ConversationModel()
-        conversation.draft = "Explain this"
+        conversation.composer.draft = "Explain this"
         let library = AssistantLibraryModel()
         _ = library.startConversation(conversation)
         conversation.attach(
@@ -560,7 +560,7 @@ struct WindowStateTests {
 
         window.openAssistantInSidebar(conversation.id)
 
-        #expect(conversation.attachments.map(\.label) == ["Connection error"])
+        #expect(conversation.composer.attachments.map(\.label) == ["Connection error"])
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server"])
     }
 

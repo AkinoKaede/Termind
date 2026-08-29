@@ -185,16 +185,16 @@ struct SpeechTranscriptionTests {
         let empty = ConversationModel()
         let word = ConversationModel()
         let spaced = ConversationModel()
-        word.draft = "Existing"
-        spaced.draft = "Existing\n"
+        word.composer.draft = "Existing"
+        spaced.composer.draft = "Existing\n"
 
         #expect(empty.applyTranscription("  Voice text  ", sendAfterTranscription: false, send: {}))
         #expect(word.applyTranscription("Voice text", sendAfterTranscription: false, send: {}))
         #expect(spaced.applyTranscription("Voice text", sendAfterTranscription: false, send: {}))
 
-        #expect(empty.draft == "Voice text")
-        #expect(word.draft == "Existing Voice text")
-        #expect(spaced.draft == "Existing\nVoice text")
+        #expect(empty.composer.draft == "Voice text")
+        #expect(word.composer.draft == "Existing Voice text")
+        #expect(spaced.composer.draft == "Existing\nVoice text")
     }
 
     @Test
@@ -216,7 +216,7 @@ struct SpeechTranscriptionTests {
         #expect(applied)
         #expect(!emptyApplied)
         #expect(customSendCount == 1)
-        #expect(custom.draft == "Create a new chat")
+        #expect(custom.composer.draft == "Create a new chat")
 
         let ordinary = ConversationModel()
         _ = ordinary.applyTranscription(
@@ -224,7 +224,7 @@ struct SpeechTranscriptionTests {
             sendAfterTranscription: true,
             send: { ordinary.sendDraft() }
         )
-        #expect(ordinary.draft.isEmpty)
+        #expect(ordinary.composer.draft.isEmpty)
         #expect(ordinary.messages.map(\.text) == ["Send me"])
     }
 }

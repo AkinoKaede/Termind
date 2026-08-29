@@ -36,7 +36,7 @@ final class SwiftDataCommandHistoryRepository: CommandHistoryRepository {
     }
 
     func insert(_ entry: CommandHistoryEntry, limit: Int) throws {
-        do {
+        try context.commit {
             let hostID = entry.hostID
             var descriptor = FetchDescriptor<PersistentCommandHistoryEntry>(
                 predicate: #Predicate { $0.hostID == hostID },
@@ -45,37 +45,25 @@ final class SwiftDataCommandHistoryRepository: CommandHistoryRepository {
             descriptor.fetchOffset = max(0, limit - 1)
             for old in try context.fetch(descriptor) { context.delete(old) }
             context.insert(PersistentCommandHistoryEntry(entry))
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
         }
     }
 
     func delete(_ id: CommandHistoryEntry.ID) throws {
-        do {
+        try context.commit {
             var descriptor = FetchDescriptor<PersistentCommandHistoryEntry>(
                 predicate: #Predicate { $0.id == id }
             )
             descriptor.fetchLimit = 1
             if let entry = try context.fetch(descriptor).first { context.delete(entry) }
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
         }
     }
 
     func clear(for hostID: Host.ID) throws {
-        do {
+        try context.commit {
             try context.delete(
                 model: PersistentCommandHistoryEntry.self,
                 where: #Predicate { $0.hostID == hostID }
             )
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
         }
     }
 }

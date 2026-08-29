@@ -329,44 +329,15 @@ final class HostLibraryModel {
             for: host, temporaryHostKeys: temporaryHostKeys
         )
 
-        guard let route = validatedRoute(for: host) else {
-            throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
-        }
-        let jumps = try route.dropLast().enumerated().map { offset, jump in
-            do {
-                if let submission = submissions[jump.id] {
-                    return try sshRouteHopConfiguration(
-                        for: jump, submission: submission,
-                        temporaryHostKeys: temporaryHostKeys
-                    )
-                }
-                return try sshRouteHopConfiguration(
-                    for: jump, temporaryHostKeys: temporaryHostKeys
-                )
-            } catch {
-                let authentication =
-                    switch error as? TermindSSHError {
-                    case .missingCredential, .missingUsername, .keyPassphraseRequired: true
-                    default: false
-                    }
-                let hostKey =
-                    switch error as? TermindSSHError {
-                    case .untrustedHost: true
-                    default: false
-                    }
-                throw TermindSSHError.routeHost(
-                    hostID: jump.id, authentication: authentication,
-                    serverChallenge: false, hostKey: hostKey,
-                    message: String(localized: "Jump Host \(offset + 1) (\(jump.name)): \(error.localizedDescription)")
-                )
-            }
-        }
-
         return SSHConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.port, username: username,
             credentials: credentials,
             expectedHostKeys: expectedHostKeys,
-            proxy: try transportProxy(for: host), jumps: jumps
+            proxy: try transportProxy(for: host),
+            jumps: try sshJumpConfigurations(
+                for: host, submissions: submissions,
+                temporaryHostKeys: temporaryHostKeys
+            )
         )
     }
 
@@ -729,25 +700,14 @@ final class HostLibraryModel {
         return true
     }
 
-    func delete(hostID: Host.ID) {
-        willDeleteHost?(hostID, portForwardings(for: hostID).map(\.id))
-        hosts.removeAll { $0.id == hostID }
-        for index in hosts.indices where hosts[index].jumpHostID == hostID {
-            hosts[index].jumpHostID = nil
-        }
-        for index in snippets.indices {
-            snippets[index].targetHostIDs.removeAll { $0 == hostID }
-        }
-        portForwardings.removeAll { $0.hostID == hostID }
-        connectionStatuses = connectionStatuses.filter { $0.value.hostID != hostID }
-        statuses[hostID] = nil
-        persistCore()
-    }
-
     /// Transitional in-memory projection for repository-owned durable deletion.
     /// The repository is the only writer; this keeps legacy views in sync until
     /// they consume `HostLibraryModel` directly.
     func projectHostDeletion(_ hostID: Host.ID) {
+        removeHostProjection(hostID)
+    }
+
+    private func removeHostProjection(_ hostID: Host.ID) {
         hosts.removeAll { $0.id == hostID }
         for index in hosts.indices where hosts[index].jumpHostID == hostID {
             hosts[index].jumpHostID = nil
@@ -778,12 +738,6 @@ final class HostLibraryModel {
             connectionStatuses[connectionID] = (hostID, status)
         }
         refreshStatus(for: hostID)
-    }
-
-    func setSSHSessionStatus(
-        _ status: ConnectionStatus, sshSessionID: UUID, hostID: Host.ID
-    ) {
-        setConnectionStatus(status, connectionID: sshSessionID, hostID: hostID)
     }
 
     /// Persists only a meaningful, validated distribution transition. The
@@ -1240,27 +1194,13 @@ final class HostLibraryModel {
 
     /// Deletes a group and every group beneath it.
     ///
-    /// The nested groups are not negotiable — a child whose parent is gone has
-    /// nowhere to hang — but the *hosts* are, which is the whole reason this
-    /// takes a flag instead of just doing something. `keepHosts` unfiles them to
-    /// Ungrouped; otherwise they go through `delete(hostID:)`, which is what
-    /// also clears their port forwards and live status. Removing them from the
-    /// array directly would leave both behind, pointing at a host id that no
-    /// longer resolves.
-    func delete(groupID: HostGroup.ID, keepHosts: Bool) {
+    /// Removes a group subtree after callers have durably requested deletion
+    /// for any hosts they do not intend to keep.
+    func deleteGroupProjection(_ groupID: HostGroup.ID) {
         let doomed = Set([groupID] + descendantGroups(of: groupID).map(\.id))
-        let affected = hosts.filter { host in host.groupID.map(doomed.contains) ?? false }
-
-        if keepHosts {
-            for index in hosts.indices where hosts[index].groupID.map(doomed.contains) ?? false {
-                hosts[index].groupID = nil
-            }
-        } else {
-            for host in affected {
-                delete(hostID: host.id)
-            }
+        for index in hosts.indices where hosts[index].groupID.map(doomed.contains) ?? false {
+            hosts[index].groupID = nil
         }
-
         groups.removeAll { doomed.contains($0.id) }
         persistCore()
     }

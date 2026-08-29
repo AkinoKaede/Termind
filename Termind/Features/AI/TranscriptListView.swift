@@ -97,15 +97,6 @@ nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
         }
     }
 
-    var isActivelyStreaming: Bool {
-        switch content {
-        case .assistant(let message, _): message.isStreaming
-        case .work(let group): !group.run.state.isTerminal
-        case .compactionActivity(let activity):
-            if case .running = activity.state { true } else { false }
-        default: false
-        }
-    }
 }
 
 @MainActor
@@ -230,12 +221,6 @@ final class TranscriptPresentationState {
         state.bubbleWidth = width
         state.revision = takeRevision()
         messageEdits[id] = state
-    }
-    func messageEditBinding(for id: UUID) -> Binding<String> {
-        Binding(
-            get: { [weak self] in self?.messageEditText(id) ?? "" },
-            set: { [weak self] in self?.setMessageEditText($0, for: id) }
-        )
     }
     func layoutRevision(for ids: Set<UUID>) -> UInt64 {
         ids.reduce(0) { result, id in

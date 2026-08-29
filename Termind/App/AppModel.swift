@@ -286,13 +286,13 @@ final class AppModel {
         includesTerminalSuggestion: Bool = false
     ) {
         guard proAccess.require(.assistant) else { return }
-        let draft = conversation.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let draft = conversation.composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard conversation.canSendDraft else { return }
         // The *returned* text, not `draft`: attachments are folded in there, and
         // running on the pre-fold string would show the model a turn that does
         // not match the one the conversation recorded.
         let prompt = conversation.appendUserTurnContent(draft)
-        conversation.draft = ""
+        conversation.composer.draft = ""
         // Compaction happens *after* the turn is recorded and before the run,
         // so the message the user just typed is inside the kept window rather
         // than being the first thing summarized away. When nothing needs
@@ -864,16 +864,27 @@ final class AppModel {
         }
     }
 
-    func requestHostDeletion(_ hostID: Host.ID) {
+    @discardableResult
+    func requestHostDeletion(_ hostID: Host.ID) -> Bool {
         do {
             try hostRepository.requestHostDeletion(hostID)
             commandHistory.clear(for: hostID)
             sftpHistory.clear(for: hostID)
             connectionHistory.clear(for: hostID)
             hosts.projectHostDeletion(hostID)
+            return true
         } catch {
             hosts.reportStorageError(error)
+            return false
         }
+    }
+
+    func deleteHostGroup(_ groupID: HostGroup.ID, keepHosts: Bool) {
+        if !keepHosts {
+            let affected = hosts.hosts(inTreeOf: groupID)
+            guard affected.allSatisfy({ requestHostDeletion($0.id) }) else { return }
+        }
+        hosts.deleteGroupProjection(groupID)
     }
 
     private func closeWorkspaces(for hostID: Host.ID) {

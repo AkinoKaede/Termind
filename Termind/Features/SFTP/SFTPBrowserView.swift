@@ -75,10 +75,7 @@ private struct SFTPFileNativeList: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [SFTPFileListItem] = []
+        private let content = HostingListContent<SFTPFileListItem>()
         private var lastScrollToken: UUID?
         private var onBackgroundClick: (@MainActor () -> Void)?
         private weak var listView: NSViewType?
@@ -90,7 +87,7 @@ private struct SFTPFileNativeList: NSViewRepresentable {
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.estimatedRowHeight = 48
             listView.rows {
-                ListRow(SFTPFileHostingRow.self)
+                ListRow(HostingListRow.self)
                     .height { _, _ in 48 }
                     .configure { [weak self] row, item, _ in
                         self?.configure(row, item: item)
@@ -113,21 +110,11 @@ private struct SFTPFileNativeList: NSViewRepresentable {
             locale: Locale,
             colorScheme: ColorScheme
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
             self.onBackgroundClick = onBackgroundClick
-
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items)
-            }
-            content = items
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: true
+            )
 
             if let request = scrollRequest, request.token != lastScrollToken {
                 lastScrollToken = request.token
@@ -139,12 +126,8 @@ private struct SFTPFileNativeList: NSViewRepresentable {
             }
         }
 
-        private func configure(_ row: SFTPFileHostingRow, item: SFTPFileListItem) {
-            guard let renderer else { return }
-            let content = renderer(item)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme)
-            row.configure(rootView: AnyView(content))
+        private func configure(_ row: HostingListRow, item: SFTPFileListItem) {
+            content.configure(row, item: item)
         }
 
         func stopObservingClicks() {
@@ -167,32 +150,6 @@ private struct SFTPFileNativeList: NSViewRepresentable {
             }
             onBackgroundClick?()
         }
-    }
-}
-
-@MainActor
-private final class SFTPFileHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-
-    func configure(rootView: AnyView) {
-        hostingView.rootView = rootView
     }
 }
 

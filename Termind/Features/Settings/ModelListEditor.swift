@@ -949,25 +949,18 @@ where Item: Identifiable & Hashable & Sendable, Item.ID: Hashable {
     @MainActor
     final class Coordinator {
         private let rowHeight: CGFloat
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [Item] = []
+        private let content = HostingListContent<Item>()
 
         init(rowHeight: CGFloat) {
             self.rowHeight = rowHeight
         }
-
-        // Swift 6.3.3's performance inliner crashes while synthesizing this
-        // generic class's optimized destructor. Keep only deinit unoptimized.
-        @_optimize(none) deinit {}
 
         func makeListView() -> NSViewType {
             let listView = NSViewType()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.estimatedRowHeight = rowHeight
             listView.rows {
-                ListRow(ModelEditorHostingRow.self)
+                ListRow(HostingListRow.self)
                     .height { [rowHeight] _, _ in rowHeight }
                     .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
             }
@@ -978,51 +971,16 @@ where Item: Identifiable & Hashable & Sendable, Item.ID: Hashable {
             listView: NSViewType, items: [Item], renderer: @escaping Renderer,
             locale: Locale, colorScheme: ColorScheme
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: !content.isEmpty)
-            }
-            content = items
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: true
+            )
         }
 
-        private func configure(_ row: ModelEditorHostingRow, item: Item) {
-            guard let renderer else { return }
-            let root = renderer(item)
-                .id(item.id)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme)
-            row.configure(rootView: AnyView(root))
+        private func configure(_ row: HostingListRow, item: Item) {
+            content.configure(row, item: item)
         }
     }
-}
-
-@MainActor
-private final class ModelEditorHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 private struct CandidateRow: View {

@@ -127,7 +127,7 @@ struct PortForwardingFeatureTests {
             portForwardings: [rule]
         )
 
-        store.delete(hostID: jump.id)
+        store.projectHostDeletion(jump.id)
         #expect(store.host(destination.id)?.jumpHostID == nil)
         #expect(store.portForwarding(rule.id) == nil)
 

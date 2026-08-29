@@ -59,7 +59,7 @@ struct TerminalPlaceholderView: View {
             sshSession.inputRouter = workspace
             sshSession.terminalState.isSurfaceVisible = isVisible
             terminalFocused = requestsFocus
-            sshSession.applyAppearance(terminalAppearance.preferences)
+            sshSession.terminalState.applyAppearance(terminalAppearance.preferences)
             if sshSession.status == .connecting { sshSession.connect(using: app.hostLibrary) }
             if requestsFocus { sshSession.requestTerminalFocus() }
         }
@@ -82,7 +82,7 @@ struct TerminalPlaceholderView: View {
             cancelPendingUpload()
         }
         .onChange(of: terminalAppearance.preferences) { _, preferences in
-            sshSession.applyAppearance(preferences)
+            sshSession.terminalState.applyAppearance(preferences)
         }
         .confirmationDialog(
             uploadConflictTitle,
@@ -363,7 +363,7 @@ struct TerminalPlaceholderView: View {
             label: String(localized: "Connection error"),
             content: String(log.suffix(4_000))
         ))
-        conversation.draft = String(
+        conversation.composer.draft = String(
             localized: "SSH connection failed: \(message). What should I check?"
         )
         window.closeAssistantInSidebar()

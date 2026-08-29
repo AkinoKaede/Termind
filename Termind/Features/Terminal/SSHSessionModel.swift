@@ -130,7 +130,7 @@ final class SSHSessionModel: Identifiable {
     var title: String
     var status: ConnectionStatus = .disconnected {
         didSet {
-            statusStore?.setSSHSessionStatus(status, sshSessionID: id, hostID: hostID)
+            statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
         }
     }
     var workingDirectory: String? {
@@ -200,8 +200,7 @@ final class SSHSessionModel: Identifiable {
 
     /// Non-nil while a connection is waiting for the user to approve a first or
     /// additional server fingerprint. No credential is sent before this clears.
-    var pendingHostKey: SSHHostKeyPrompt?
-    private var pendingHostKeyHostID: Host.ID?
+    var pendingHostKey: SSHHostKeyPrompt? { connection.pendingHostKey }
 
     /// Set when this connection needs a login or credentials. The terminal view
     /// presents the editor; the sshSession remains disconnected until it receives
@@ -237,7 +236,10 @@ final class SSHSessionModel: Identifiable {
     private var transientHost: Host?
     private var usernameHint: String?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
-    private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
+    private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] {
+        get { connection.temporaryHostKeys }
+        set { connection.temporaryHostKeys = newValue }
+    }
     /// Installed by the Workspace currently holding this sshSession. Weak because
     /// the Workspace owns the pane, which owns this model.
     weak var inputRouter: (any SSHSessionInputRouting)?
@@ -264,46 +266,15 @@ final class SSHSessionModel: Identifiable {
         )
     }
 
-    init(
+    convenience init(
         hostID: Host.ID, title: String, initialCommand: String?,
         recordsInitialCommandInHistory: Bool
     ) {
-        self.hostID = hostID
-        self.title = title
-        self.pendingInitialCommand = initialCommand.map {
-            PendingInitialCommand(
-                command: $0, recordsInHistory: recordsInitialCommandInHistory
-            )
-        }
-        let relay = SSHSessionRelay()
-        let backend = InMemoryTerminalSession(
-            write: { data in
-                let isInteractiveInput = relay.inputCapture.classifyWrite()
-                Task { @MainActor in
-                    relay.owner?.handleTerminalWrite(
-                        data, isInteractiveInput: isInteractiveInput
-                    )
-                }
-            },
-            resize: { viewport in
-                Task { @MainActor in relay.owner?.resizeSSH(viewport) }
-            },
-            suppressesPixelOnlyResizes: true
+        self.init(
+            hostID: hostID, title: title, transientHost: nil, usernameHint: nil,
+            initialCommand: initialCommand,
+            recordsInitialCommandInHistory: recordsInitialCommandInHistory
         )
-        let state = TerminalViewState(configSource: .none)
-        state.configuration = TerminalSurfaceOptions(
-            backend: .inMemory(backend), resizeThrottleMilliseconds: 35
-        )
-        terminalBackend = backend
-        terminalState = state
-        #if canImport(AppKit)
-            terminalViewOwner = PersistentTerminalViewOwner(
-                state: state, inputCapture: relay.inputCapture
-            )
-        #endif
-        relay.owner = self
-        observeWorkingDirectory(from: state, through: relay)
-        observeRemoteWindowTitle(from: state, through: relay)
     }
 
     convenience init(host: Host, usernameHint: String? = nil, initialCommand: String? = nil) {
@@ -313,14 +284,25 @@ final class SSHSessionModel: Identifiable {
         )
     }
 
-    init(
+    convenience init(
         host: Host, usernameHint: String? = nil, initialCommand: String?,
         recordsInitialCommandInHistory: Bool
     ) {
-        self.transientHost = host
+        self.init(
+            hostID: host.id, title: host.name, transientHost: host,
+            usernameHint: usernameHint, initialCommand: initialCommand,
+            recordsInitialCommandInHistory: recordsInitialCommandInHistory
+        )
+    }
+
+    private init(
+        hostID: Host.ID, title: String, transientHost: Host?, usernameHint: String?,
+        initialCommand: String?, recordsInitialCommandInHistory: Bool
+    ) {
+        self.hostID = hostID
+        self.title = title
+        self.transientHost = transientHost
         self.usernameHint = usernameHint
-        self.hostID = host.id
-        self.title = host.name
         self.pendingInitialCommand = initialCommand.map {
             PendingInitialCommand(
                 command: $0, recordsInHistory: recordsInitialCommandInHistory
@@ -698,7 +680,7 @@ final class SSHSessionModel: Identifiable {
             return
         }
 
-        pendingHostKey = nil
+        connection.pendingHostKey = nil
         connectionTask?.cancel()
         status = reconnecting ? .reconnecting : .connecting
         connectionTask = Task { [weak self] in
@@ -911,29 +893,14 @@ final class SSHSessionModel: Identifiable {
     }
 
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
-        store.trust(
-            KnownHostEntry(
-                hostname: observation.hostname, port: observation.port,
-                algorithm: observation.algorithm, fingerprint: observation.fingerprint,
-                addedAt: Date()
-            ))
-        if let pendingHostKeyHostID {
-            temporaryHostKeys[pendingHostKeyHostID] = nil
-        }
-        pendingHostKey = nil
-        pendingHostKeyHostID = nil
-        connectionJourney.resume()
+        connection.trustHostKey(observation, using: store)
         connect(using: store)
     }
 
     func continueWithTemporaryHostKey(
         _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
     ) {
-        guard let hostID = pendingHostKeyHostID else { return }
-        temporaryHostKeys[hostID] = observation.identity
-        pendingHostKey = nil
-        pendingHostKeyHostID = nil
-        connectionJourney.resume()
+        guard connection.useTemporaryHostKey(observation) else { return }
         connect(using: store)
     }
 
@@ -946,12 +913,9 @@ final class SSHSessionModel: Identifiable {
         pendingInitialCommand = nil
         commandExcludedFromHistory = nil
         pendingAuthentication = nil
-        pendingHostKey = nil
-        pendingHostKeyHostID = nil
         suppliedAuthentications.removeAll()
-        temporaryHostKeys.removeAll()
         connectionAttemptID = nil
-        reconnectController.stop()
+        connection.disconnect()
         hasConnectedOnce = false
         isRecoveringConnection = false
         connectionTask?.cancel()
@@ -959,7 +923,6 @@ final class SSHSessionModel: Identifiable {
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
         status = .disconnected
-        connectionJourney.hide()
     }
 
     func retryReconnectNow() {
@@ -978,31 +941,6 @@ final class SSHSessionModel: Identifiable {
         ssh = nil
         status = .failed(reconnectState.lastError)
         connectionJourney.fail(reconnectState.lastError)
-    }
-
-    func applyAppearance(_ preferences: TerminalAppearancePreferences) {
-        let light = TermindTerminalThemeCatalog.terminalConfiguration(
-            themeName: preferences.lightThemeName,
-            customEnabled: preferences.lightCustomEnabled,
-            customText: preferences.lightCustomConfiguration,
-            isDark: false
-        )
-        let dark = TermindTerminalThemeCatalog.terminalConfiguration(
-            themeName: preferences.darkThemeName,
-            customEnabled: preferences.darkCustomEnabled,
-            customText: preferences.darkCustomConfiguration,
-            isDark: true
-        )
-        terminalState.setTheme(GhosttyTerminal.TerminalTheme(light: light, dark: dark))
-        terminalState.setTerminalConfiguration(
-            TerminalConfiguration { builder in
-                if !preferences.fontFollowTheme {
-                    builder.withFontSize(Float(preferences.fontSize))
-                }
-                builder.withWindowPaddingX(Int(Metrics.Space.m))
-                builder.withWindowPaddingY(Int(Metrics.Space.m))
-            }
-        )
     }
 
     private func openSSH(
@@ -1109,7 +1047,7 @@ final class SSHSessionModel: Identifiable {
             pendingInitialCommand = nil
             status = .failed(error.localizedDescription)
             connectionJourney.fail(
-                error.localizedDescription, at: routeHostID(from: error)
+                error.localizedDescription, at: (error as? TermindSSHError)?.routeHostID
             )
         }
     }
@@ -1135,20 +1073,15 @@ final class SSHSessionModel: Identifiable {
         ssh = nil
         transferConfiguration = nil
         status = .reconnecting
-        presentReconnectJourney(using: store)
+        let host = store.host(hostID) ?? transientHost
+        connection.presentReconnectJourney(
+            host: host, using: store, purpose: .sshSession,
+            username: host.flatMap { store.identity(for: $0)?.username } ?? usernameHint
+        )
         reconnectController.schedule(after: message) { [weak self, weak store] in
             guard let self, let store else { return }
             self.startConnection(using: store)
         }
-    }
-
-    private func presentReconnectJourney(using store: any RemoteSessionHostStore) {
-        guard let host = store.host(hostID) ?? transientHost else { return }
-        connectionJourney.begin(
-            host: host, route: store.route(for: host), purpose: .sshSession,
-            username: store.identity(for: host)?.username ?? usernameHint,
-            mode: .reconnection
-        )
     }
 
     private func appendTerminalNotice(_ message: String) {
@@ -1191,16 +1124,9 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func progressHandler(attemptID: UUID) -> SSHRouteProgressHandler {
-        { [weak self] event in
-            Task { @MainActor in
-                guard let self, self.connectionAttemptID == attemptID else { return }
-                self.connectionJourney.receive(event)
-            }
+        connection.progressHandler(attemptID: attemptID) { [weak self] id in
+            self?.connectionAttemptID == id
         }
-    }
-
-    private func routeHostID(from error: any Error) -> Host.ID? {
-        (error as? TermindSSHError)?.routeHostID
     }
 
     private func discoverHostKey(
@@ -1245,14 +1171,12 @@ final class SSHSessionModel: Identifiable {
     private func presentHostKeyPrompt(
         _ observation: SSHHostKeyObservation, kind: SSHHostKeyPrompt.Kind, hostID: Host.ID
     ) {
-        reconnectController.pauseForUserInteraction()
-        pendingHostKey = SSHHostKeyPrompt(observation: observation, kind: kind)
-        pendingHostKeyHostID = hostID
+        connection.waitForHostKey(
+            SSHHostKeyPrompt(observation: observation, kind: kind),
+            hostID: hostID, fingerprint: observation.fingerprint
+        )
         connectionAttemptID = nil
         status = .disconnected
-        connectionJourney.waitForHostKey(
-            at: hostID, fingerprint: observation.fingerprint
-        )
     }
 
     func copyForReconnect() -> SSHSessionModel {

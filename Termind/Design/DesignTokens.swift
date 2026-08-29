@@ -197,10 +197,6 @@ nonisolated enum Metrics {
         static let codeInset: CGFloat = 10
         /// The leading rule on a block quote and on expanded tool output.
         static let rule: CGFloat = 2
-        /// The caret shown while a reply is still arriving.
-        static let caretWidth: CGFloat = 2
-        static let caretHeight: CGFloat = 16
-
         /// The draft editor's floor and ceiling.
         ///
         /// `TextEditor` has no content-based ideal height — left alone it takes

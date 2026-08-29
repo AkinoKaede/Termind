@@ -46,3 +46,45 @@ nonisolated protocol AgentModelStreaming: Sendable {
 nonisolated protocol AgentModelCompleting: Sendable {
     func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent]
 }
+
+nonisolated struct AgentBufferedTextResponse: Sendable {
+    var text: String
+    var stopReason: AgentStopReason?
+}
+
+nonisolated enum AgentBufferedTextError: Error, Sendable {
+    case toolCall
+    case responseTooLarge
+}
+
+nonisolated extension AgentModelCompleting {
+    func collectText(
+        _ request: AgentModelRequest, maximumBytes: Int? = nil
+    ) async throws -> AgentBufferedTextResponse {
+        var response = AgentBufferedTextResponse(text: "", stopReason: nil)
+        for event in try await complete(request) {
+            try Task.checkCancellation()
+            switch event {
+            case .textDelta(let delta):
+                if let maximumBytes,
+                    response.text.utf8.count + delta.utf8.count > maximumBytes
+                {
+                    throw AgentBufferedTextError.responseTooLarge
+                }
+                response.text += delta
+            case .textSnapshot(let snapshot):
+                if let maximumBytes, snapshot.utf8.count > maximumBytes {
+                    throw AgentBufferedTextError.responseTooLarge
+                }
+                response.text = snapshot
+            case .toolCallDelta, .toolCallSnapshot:
+                throw AgentBufferedTextError.toolCall
+            case .finished(let reason):
+                response.stopReason = reason
+            case .reasoningDelta, .reasoningSnapshot, .providerItem, .webSearch, .usage:
+                continue
+            }
+        }
+        return response
+    }
+}

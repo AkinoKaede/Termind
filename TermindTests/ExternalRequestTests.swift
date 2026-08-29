@@ -351,20 +351,21 @@ struct ExternalToolCallHistoryTests {
     func clearingHistoryInvalidatesObservedEntriesImmediately() {
         let entry = ExternalToolCall(
             runID: UUID(), clientName: "Codex", toolName: "list_hosts",
-            summary: "List saved hosts", risk: .readOnly
+            summary: "List saved hosts", risk: .readOnly,
+            startedAt: Date(timeIntervalSince1970: 1)
         )
         let store = ToolAuditModel(entries: [entry])
-        var invalidated = false
+        let invalidated = ObservationInvalidationFlag()
 
         withObservationTracking {
             #expect(store.entries().map(\.id) == [entry.id])
         } onChange: {
-            invalidated = true
+            invalidated.value = true
         }
 
         store.clear()
 
-        #expect(invalidated)
+        #expect(invalidated.value)
         #expect(store.entries().isEmpty)
     }
 
@@ -372,20 +373,21 @@ struct ExternalToolCallHistoryTests {
     func clearingHistoryInvalidatesObservedFilteredEntriesImmediately() {
         let entry = ExternalToolCall(
             runID: UUID(), clientName: "Claude Code", toolName: "ssh_exec",
-            summary: "uname -a", risk: .readOnly
+            summary: "uname -a", risk: .readOnly,
+            startedAt: Date(timeIntervalSince1970: 1)
         )
         let store = ToolAuditModel(entries: [entry])
-        var invalidated = false
+        let invalidated = ObservationInvalidationFlag()
 
         withObservationTracking {
             #expect(store.entries(matching: "uname").map(\.id) == [entry.id])
         } onChange: {
-            invalidated = true
+            invalidated.value = true
         }
 
         store.clear()
 
-        #expect(invalidated)
+        #expect(invalidated.value)
         #expect(store.entries(matching: "uname").isEmpty)
     }
 
@@ -447,6 +449,10 @@ struct ExternalToolCallHistoryTests {
         #expect(kept.first?.summary == "row-2000")
         #expect(kept.last?.summary == "row-1")
     }
+}
+
+nonisolated private final class ObservationInvalidationFlag: @unchecked Sendable {
+    var value = false
 }
 
 private func authenticationRequest(name: String) -> AgentSSHAuthenticationRequest {

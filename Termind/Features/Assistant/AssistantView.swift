@@ -519,34 +519,10 @@ private struct AssistantSectionHeaderRow: View {
     }
 
     var body: some View {
-        Button {
-            isExpanded.toggle()
-        } label: {
-            HStack(spacing: Metrics.Space.s) {
-                Text(section.title)
-                Spacer(minLength: 0)
-                Text(count, format: .number)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.tertiary)
-                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .frame(width: Metrics.Sidebar.rowIcon)
-                    .accessibilityHidden(true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 34)
-            .padding(
-                .horizontal,
-                Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
-            )
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .termindSidebarSectionLabel()
-        .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
-        .accessibilityAction(named: Text(isExpanded ? "Collapse" : "Expand")) {
-            isExpanded.toggle()
-        }
+        SidebarSectionHeader(
+            title: section.title, count: count, height: 34,
+            isExpanded: $isExpanded
+        )
     }
 }
 

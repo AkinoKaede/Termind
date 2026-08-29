@@ -40,9 +40,7 @@ actor GoogleServiceAccountAuth {
         if let session {
             self.session = session
         } else {
-            let configuration = URLSessionConfiguration.ephemeral
-            configuration.timeoutIntervalForRequest = 20
-            self.session = URLSession(configuration: configuration)
+            self.session = ProviderNetworking.session(timeout: 20)
         }
     }
 

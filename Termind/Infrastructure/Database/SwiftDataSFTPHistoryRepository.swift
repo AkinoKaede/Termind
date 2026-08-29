@@ -39,8 +39,8 @@ final class SwiftDataSFTPHistoryRepository: SFTPHistoryRepository {
     }
 
     func upsert(_ entry: SFTPHistoryEntry, limit: Int) throws {
-        do {
-            let hostID = entry.hostID
+        let hostID = entry.hostID
+        try context.commit {
             let rows = try context.fetch(FetchDescriptor<PersistentSFTPHistoryEntry>(
                 predicate: #Predicate { $0.hostID == hostID },
                 sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
@@ -52,40 +52,35 @@ final class SwiftDataSFTPHistoryRepository: SFTPHistoryRepository {
             } else {
                 context.insert(PersistentSFTPHistoryEntry(entry))
             }
-            try context.save()
+        }
 
+        try context.commit {
             var overflow = FetchDescriptor<PersistentSFTPHistoryEntry>(
                 predicate: #Predicate { $0.hostID == hostID },
                 sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
             )
             overflow.fetchOffset = limit
-            let oldRows = try context.fetch(overflow)
-            if !oldRows.isEmpty {
-                for row in oldRows { context.delete(row) }
-                try context.save()
-            }
-        } catch { context.rollback(); throw error }
+            for row in try context.fetch(overflow) { context.delete(row) }
+        }
     }
 
     func delete(_ id: SFTPHistoryEntry.ID) throws {
-        do {
+        try context.commit {
             var descriptor = FetchDescriptor<PersistentSFTPHistoryEntry>(
                 predicate: #Predicate { $0.id == id }
             )
             descriptor.fetchLimit = 1
             if let row = try context.fetch(descriptor).first { context.delete(row) }
-            try context.save()
-        } catch { context.rollback(); throw error }
+        }
     }
 
     func clear(for hostID: Host.ID) throws {
-        do {
+        try context.commit {
             try context.delete(
                 model: PersistentSFTPHistoryEntry.self,
                 where: #Predicate { $0.hostID == hostID }
             )
-            try context.save()
-        } catch { context.rollback(); throw error }
+        }
     }
 }
 

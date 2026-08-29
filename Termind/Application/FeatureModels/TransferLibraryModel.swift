@@ -55,11 +55,6 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     ) {
         library.setConnectionStatus(status, connectionID: connectionID, hostID: hostID)
     }
-    func setSSHSessionStatus(
-        _ status: ConnectionStatus, sshSessionID: UUID, hostID: Host.ID
-    ) {
-        library.setSSHSessionStatus(status, sshSessionID: sshSessionID, hostID: hostID)
-    }
     func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID) {
         library.recordRemoteSystemInfo(systemInfo, for: hostID)
     }

@@ -550,27 +550,6 @@ final class ConversationModel: Identifiable {
     var archivedAt: Date?
     var messages: [ChatMessage] = []
     let composer = ConversationComposerState()
-    /// Compatibility accessors keep call sites stable while composer views move
-    /// to the focused state object.
-    var attachments: [ContextChip] {
-        get { composer.attachments }
-        set {
-            composer.attachments = newValue
-            refreshAttachedContextEstimate()
-        }
-    }
-    var pendingAttachments: [PendingContextAttachment] {
-        get { composer.pendingAttachments }
-        set { composer.pendingAttachments = newValue }
-    }
-    var attachmentImportError: String? {
-        get { composer.attachmentImportError }
-        set { composer.attachmentImportError = newValue }
-    }
-    var draft: String {
-        get { composer.draft }
-        set { composer.draft = newValue }
-    }
     private(set) var isStreaming: Bool = false
     /// What the transcript shows. Derived — see `refreshRunState`.
     private(set) var runState: AgentRunState = .idle
@@ -732,7 +711,7 @@ final class ConversationModel: Identifiable {
     }
 
     private var attachedContextCharacters: Int {
-        attachments.reduce(0) {
+        composer.attachments.reduce(0) {
             $0
                 + ($1.image == nil
                     ? AgentContextEstimator.characterUnits(in: $1.content)
@@ -874,7 +853,8 @@ final class ConversationModel: Identifiable {
     /// User-authored content only. Surface-owned session context is supplied
     /// separately and must never make an otherwise empty composer sendable.
     var canSendDraft: Bool {
-        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
+        !composer.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !composer.attachments.isEmpty
     }
 
     var isEmpty: Bool { timeline.isEmpty }
@@ -1425,55 +1405,60 @@ final class ConversationModel: Identifiable {
     }
 
     func attach(_ chip: ContextChip) {
-        guard !attachments.contains(where: {
+        guard !composer.attachments.contains(where: {
             if let image = chip.image, let existing = $0.image {
                 return existing.data == image.data
             }
             return $0.kind == chip.kind && $0.content == chip.content
         })
         else { return }
-        attachments.append(chip)
+        composer.attachments.append(chip)
+        refreshAttachedContextEstimate()
     }
 
     func detach(_ id: ContextChip.ID) {
-        attachments.removeAll { $0.id == id }
+        composer.attachments.removeAll { $0.id == id }
+        refreshAttachedContextEstimate()
     }
 
     func beginAttachmentImport(label: String) -> PendingContextAttachment? {
-        guard attachments.count + pendingAttachments.count < ContextAttachmentImporter.maximumAttachments
+        guard composer.attachments.count + composer.pendingAttachments.count
+                < ContextAttachmentImporter.maximumAttachments
         else {
-            attachmentImportError = String(localized: "A message can include at most 20 attachments.")
+            composer.attachmentImportError = String(
+                localized: "A message can include at most 20 attachments."
+            )
             return nil
         }
         let pending = PendingContextAttachment(label: label)
-        pendingAttachments.append(pending)
+        composer.pendingAttachments.append(pending)
         return pending
     }
 
     func finishAttachmentImport(_ id: PendingContextAttachment.ID, with chip: ContextChip) {
-        guard pendingAttachments.contains(where: { $0.id == id }) else { return }
-        pendingAttachments.removeAll { $0.id == id }
+        guard composer.pendingAttachments.contains(where: { $0.id == id }) else { return }
+        composer.pendingAttachments.removeAll { $0.id == id }
         attach(chip)
     }
 
     func failAttachmentImport(_ id: PendingContextAttachment.ID, message: String) {
-        guard pendingAttachments.contains(where: { $0.id == id }) else { return }
-        pendingAttachments.removeAll { $0.id == id }
-        attachmentImportError = [attachmentImportError, message]
+        guard composer.pendingAttachments.contains(where: { $0.id == id }) else { return }
+        composer.pendingAttachments.removeAll { $0.id == id }
+        composer.attachmentImportError = [composer.attachmentImportError, message]
             .compactMap { $0 }.joined(separator: "\n")
     }
 
     func cancelAttachmentImport(_ id: PendingContextAttachment.ID) {
-        pendingAttachments.removeAll { $0.id == id }
+        composer.pendingAttachments.removeAll { $0.id == id }
     }
 
     /// Records a local user turn. Agent-backed composers use AppModel's runtime
     /// path; the sidebar promotion flow uses this before starting that run.
     func sendDraft() {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSendDraft else { return }
         appendUserTurn(text)
-        draft = ""
+        composer.draft = ""
     }
 
     /// Adds one user turn to both the visible transcript and the model-facing
@@ -1506,13 +1491,14 @@ final class ConversationModel: Identifiable {
     func appendUserTurnContent(_ text: String) -> ComposedUserTurn {
         let composed = composed(text)
         let messageID = UUID()
-        let contextChips = attachments.map {
+        let contextChips = composer.attachments.map {
             ContextChipReference(
                 id: $0.id, kind: $0.kind, label: $0.label,
                 attachment: $0.contextAttachment
             )
         }
-        attachments.removeAll()
+        composer.attachments.removeAll()
+        refreshAttachedContextEstimate()
         messages.append(
             ChatMessage(
                 id: messageID, role: .user, text: text,
@@ -1542,13 +1528,13 @@ final class ConversationModel: Identifiable {
     /// and pasted text can be hundreds of thousands of characters and do not
     /// belong in a Markdown bubble.
     private func composed(_ text: String) -> ComposedUserTurn {
-        guard !attachments.isEmpty else {
+        guard !composer.attachments.isEmpty else {
             return ComposedUserTurn(
                 id: UUID(), text: text, authoredText: text, images: [],
                 contextAttachments: []
             )
         }
-        let blocks = attachments.compactMap { chip -> String? in
+        let blocks = composer.attachments.compactMap { chip -> String? in
             guard chip.image == nil else { return nil }
             // A label can be a filename, and a filename can contain a quote —
             // which would close the attribute and leave the block malformed.
@@ -1562,8 +1548,8 @@ final class ConversationModel: Identifiable {
         return ComposedUserTurn(
             id: UUID(), text: ([text] + blocks).joined(separator: "\n\n"),
             authoredText: text,
-            images: attachments.compactMap(\.image),
-            contextAttachments: attachments.compactMap(\.contextAttachment)
+            images: composer.attachments.compactMap(\.image),
+            contextAttachments: composer.attachments.compactMap(\.contextAttachment)
         )
     }
 
@@ -1629,19 +1615,20 @@ final class ConversationModel: Identifiable {
     /// when the runtime reports the message delivered, which is where the model
     /// really saw it.
     func submitSteeringDraft() {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSendDraft, let runtime else { return }
         let composed = composed(text)
         let pending = PendingSteeringMessage(
-            draft: text, attachments: attachments,
+            draft: text, attachments: composer.attachments,
             message: AgentTranscriptMessage(
                 role: .user, text: composed.text, authoredText: text,
                 images: composed.images, contextAttachments: composed.contextAttachments
             )
         )
         pendingSteering.append(pending)
-        attachments.removeAll()
-        draft = ""
+        composer.attachments.removeAll()
+        refreshAttachedContextEstimate()
+        composer.draft = ""
         Task { [weak self] in
             guard await runtime.steer(pending.message) == false else { return }
             // The run ended between the keystroke and this hop. Everything
@@ -1661,7 +1648,8 @@ final class ConversationModel: Identifiable {
     func returnSteeringToDraft(_ id: AgentTranscriptMessage.ID) {
         guard let index = pendingSteering.firstIndex(where: { $0.id == id }) else { return }
         let pending = pendingSteering.remove(at: index)
-        draft = [pending.draft, draft].filter { !$0.isEmpty }.joined(separator: "\n\n")
+        composer.draft = [pending.draft, composer.draft]
+            .filter { !$0.isEmpty }.joined(separator: "\n\n")
         for chip in pending.attachments { attach(chip) }
     }
 
@@ -2386,12 +2374,12 @@ final class ConversationModel: Identifiable {
         let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return false }
 
-        if draft.isEmpty {
-            draft = cleaned
-        } else if draft.last?.isWhitespace == true {
-            draft += cleaned
+        if composer.draft.isEmpty {
+            composer.draft = cleaned
+        } else if composer.draft.last?.isWhitespace == true {
+            composer.draft += cleaned
         } else {
-            draft += " " + cleaned
+            composer.draft += " " + cleaned
         }
 
         if sendAfterTranscription { send() }
@@ -2460,7 +2448,7 @@ extension ConversationModel {
             concurrency: .parallel,
             presentation: AgentToolDescriptor.Presentation(
                 symbol: "apple.terminal", activity: .argument(key: "command", fallback: "command"),
-                actionKind: .run, includesTarget: true
+                actionKind: .run
             )
         )
         let commands = [

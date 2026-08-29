@@ -21,7 +21,6 @@ nonisolated enum WindowToolbarFindKind: String, Hashable, Sendable, CaseIterable
 /// Everything the titlebar Find field needs, resolved once per body from the
 /// front content.
 struct WindowToolbarFindContext {
-    let kind: WindowToolbarFindKind
     let query: Binding<String>
     /// Bumped by ⌘F. The field takes first responder when it changes, so
     /// pressing ⌘F again refocuses instead of doing nothing.
@@ -30,8 +29,6 @@ struct WindowToolbarFindContext {
     var navigate: ((TerminalFindDirection) -> Void)?
     /// Escape.
     var cancel: (() -> Void)?
-    /// The magnifier menu. Today only Hosts has one — its tag filter.
-    var menuItems: (() -> [NativeMenuEntry])?
 }
 
 // MARK: - The field
@@ -45,11 +42,8 @@ final class NativeSearchFieldOwner {
     let field = NSSearchField()
 }
 
-/// `NSSearchField`, not `.searchable`.
-///
-/// `.searchable` gives no access to `searchMenuTemplate`, which is where the
-/// Hosts tag filter now lives, and no way to intercept Return, Shift-Return and
-/// Escape — which is the whole keyboard contract the terminal find needs.
+/// `NSSearchField`, not `.searchable`, so Return, Shift-Return and Escape can
+/// implement the terminal Find keyboard contract.
 struct NativeSearchField: NSViewRepresentable {
     @Binding var text: String
     var placeholder: String
@@ -68,7 +62,6 @@ struct NativeSearchField: NSViewRepresentable {
     var maintainsKeyboardFocus = false
     var navigate: ((TerminalFindDirection) -> Void)?
     var cancel: (() -> Void)?
-    var menuItems: (() -> [NativeMenuEntry])?
     /// Handed a closure that focuses this field, the moment the field exists.
     ///
     /// ⌘F and Edit ▸ Find go through that closure rather than through
@@ -120,7 +113,6 @@ struct NativeSearchField: NSViewRepresentable {
         if field.stringValue != text { field.stringValue = text }
         if field.placeholderString != placeholder { field.placeholderString = placeholder }
         if field.controlSize != controlSize { field.controlSize = controlSize }
-        context.coordinator.updateMenu(on: field, hasItems: menuItems != nil)
         context.coordinator.applyFocusRequest(focusRequest, to: field)
         context.coordinator.restoreKeyboardClaimIfNeeded(to: field)
     }
@@ -130,7 +122,7 @@ struct NativeSearchField: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, NSSearchFieldDelegate, NSMenuDelegate {
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
         var field: NativeSearchField
         private var lastFocusRequest: UInt64 = 0
         private var hasSeenFocusRequest = false
@@ -146,17 +138,13 @@ struct NativeSearchField: NSViewRepresentable {
         private var userExitMonitor: Any?
         private var windowResignObserver: (any NSObjectProtocol)?
         private var pendingCommandExitTimestamp: TimeInterval?
-        private let menu = NSMenu()
-
         init(field: NativeSearchField) {
             self.field = field
             super.init()
-            menu.delegate = self
         }
 
         func attach(to searchField: NSSearchField) {
             attachedSearchField = searchField
-            updateMenu(on: searchField, hasItems: field.menuItems != nil)
         }
 
         func detachForReplacement(from searchField: NSSearchField) {
@@ -164,15 +152,6 @@ struct NativeSearchField: NSViewRepresentable {
             stopUserExitObservers()
             holdsKeyboardIntent = false
             attachedSearchField = nil
-        }
-
-        /// One long-lived menu whose contents are rebuilt in `menuNeedsUpdate`.
-        /// Reassigning a freshly built `NSMenu` on every SwiftUI update would
-        /// swap the menu out from under itself while it is open.
-        func updateMenu(on searchField: NSSearchField, hasItems: Bool) {
-            let template = hasItems ? menu : nil
-            guard searchField.searchMenuTemplate !== template else { return }
-            searchField.searchMenuTemplate = template
         }
 
         func applyFocusRequest(_ request: UInt64, to searchField: NSSearchField) {
@@ -390,11 +369,6 @@ struct NativeSearchField: NSViewRepresentable {
             field.text = ""
         }
 
-        // MARK: NSMenuDelegate
-
-        func menuNeedsUpdate(_ menu: NSMenu) {
-            NativeMenuEntry.fill(menu, with: field.menuItems?() ?? [])
-        }
     }
 }
 
@@ -503,7 +477,6 @@ struct WindowToolbarFindField: View {
                     maintainsKeyboardFocus: window.isToolbarFindFocused,
                     navigate: context.navigate,
                     cancel: context.cancel,
-                    menuItems: context.menuItems,
                     installFocusHandler: { window.focusToolbarFindField = $0 },
                     onFocusChange: { window.isToolbarFindFocused = $0 }
                 )
@@ -657,27 +630,23 @@ extension WindowModel {
             // the one with a disclosure chevron: every page's field looks the
             // same. The tag filter lives on the page, in the canvas menu.
             return WindowToolbarFindContext(
-                kind: kind,
                 query: Binding(get: { state.query }, set: { state.query = $0 }),
                 focusRequest: findFocusRequest
             )
         case .keychain:
             let state = vaultPages.keychain
             return WindowToolbarFindContext(
-                kind: kind,
                 query: Binding(get: { state.query }, set: { state.query = $0 }),
                 focusRequest: findFocusRequest
             )
         case .snippets:
             let state = vaultPages.snippets
             return WindowToolbarFindContext(
-                kind: kind,
                 query: Binding(get: { state.query }, set: { state.query = $0 }),
                 focusRequest: findFocusRequest
             )
         case .assistant:
             return WindowToolbarFindContext(
-                kind: kind,
                 query: Binding(
                     get: { self.assistantQuery }, set: { self.assistantQuery = $0 }
                 ),
@@ -686,7 +655,6 @@ extension WindowModel {
         case .terminal:
             if let serialSession = focusedSerialSession {
                 return WindowToolbarFindContext(
-                    kind: kind,
                     query: Binding(
                         get: { serialSession.findQuery },
                         set: { serialSession.updateFindQuery($0) }
@@ -698,7 +666,6 @@ extension WindowModel {
             }
             guard let sshSession = focusedSSHSession else { return nil }
             return WindowToolbarFindContext(
-                kind: kind,
                 query: Binding(
                     get: { sshSession.findQuery },
                     set: { sshSession.updateFindQuery($0) }
@@ -710,7 +677,6 @@ extension WindowModel {
         case .sftp:
             guard let sftpSession = focusedSFTPSession else { return nil }
             return WindowToolbarFindContext(
-                kind: kind,
                 query: Binding(
                     get: { sftpSession.query }, set: { sftpSession.query = $0 }
                 ),

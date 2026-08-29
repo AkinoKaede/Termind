@@ -110,10 +110,10 @@ struct ContextChipsView: View {
             ForEach(sessionContext.chips) { chip in
                 ChipView(chip: chip, remove: nil)
             }
-            ForEach(conversation.attachments) { chip in
+            ForEach(conversation.composer.attachments) { chip in
                 ChipView(chip: chip) { conversation.detach(chip.id) }
             }
-            ForEach(conversation.pendingAttachments) { pending in
+            ForEach(conversation.composer.pendingAttachments) { pending in
                 PendingChipView(pending: pending) {
                     cancelPending(pending.id)
                 }
@@ -536,7 +536,7 @@ struct ComposerView: View {
         .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
         .onDisappear {
             guard transcription.isOwned(by: conversation.id) else { return }
-            conversation.draft = draftBeforeTranscription
+            conversation.composer.draft = draftBeforeTranscription
             transcription.cancel(ownerID: conversation.id)
         }
         .alert(
@@ -555,13 +555,13 @@ struct ComposerView: View {
         .alert(
             "Attachment Error",
             isPresented: Binding(
-                get: { conversation.attachmentImportError != nil },
-                set: { if !$0 { conversation.attachmentImportError = nil } }
+                get: { conversation.composer.attachmentImportError != nil },
+                set: { if !$0 { conversation.composer.attachmentImportError = nil } }
             )
         ) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(conversation.attachmentImportError ?? "")
+            Text(conversation.composer.attachmentImportError ?? "")
         }
     }
 
@@ -643,7 +643,7 @@ struct ComposerView: View {
             }
             // Typing again after Escape re-opens the palette; the dismissal
             // was about one keystroke, not about the rest of the draft.
-            .onChange(of: conversation.draft) { _, draft in
+            .onChange(of: conversation.composer.draft) { _, draft in
                 isSlashMenuDismissed = false
                 selectPreferredSlashOption(for: draft)
             }
@@ -705,7 +705,7 @@ struct ComposerView: View {
                 stopButton
             } else {
                 sendButton(
-                    enabled: conversation.canSendDraft && conversation.pendingAttachments.isEmpty,
+                    enabled: conversation.canSendDraft && conversation.composer.pendingAttachments.isEmpty,
                     help: conversation.isStreaming
                         ? "Queue for the running agent — ⏎" : "Send — ⌘⏎",
                     action: sendDraft
@@ -867,7 +867,7 @@ struct ComposerView: View {
     }
 
     private func beginTranscription() {
-        draftBeforeTranscription = conversation.draft
+        draftBeforeTranscription = conversation.composer.draft
         Task {
             await transcription.start(ownerID: conversation.id) { transcript, shouldSend in
                 let applied = conversation.applyTranscription(
@@ -881,7 +881,7 @@ struct ComposerView: View {
     }
 
     private func cancelTranscription() {
-        conversation.draft = draftBeforeTranscription
+        conversation.composer.draft = draftBeforeTranscription
         transcription.cancel(ownerID: conversation.id)
         isFocused = true
     }
@@ -896,11 +896,11 @@ struct ComposerView: View {
         // second guard, but by then the UI would already look as though Send
         // succeeded.
         guard app.proAccess.require(.assistant) else { return }
-        if !conversation.pendingAttachments.isEmpty { return }
-        if conversation.attachments.contains(where: { $0.image != nil }),
+        if !conversation.composer.pendingAttachments.isEmpty { return }
+        if conversation.composer.attachments.contains(where: { $0.image != nil }),
             resolved?.model.isVision != true
         {
-            conversation.attachmentImportError = String(
+            conversation.composer.attachmentImportError = String(
                 localized: "The selected model cannot read images. Choose a vision-capable model before sending."
             )
             return
@@ -1052,7 +1052,7 @@ struct ComposerView: View {
 
     private var slashCompletion: ChatSlashCommandCompletion {
         guard !isSlashMenuDismissed else { return ChatSlashCommandCompletion(rows: []) }
-        return slashCompletion(for: conversation.draft)
+        return slashCompletion(for: conversation.composer.draft)
     }
 
     private func slashCompletion(for draft: String) -> ChatSlashCommandCompletion {
@@ -1155,7 +1155,7 @@ struct ComposerView: View {
             let acceptedDraft = ChatSlashCommandCompletion.accepted(
                 row, takesArgument: hasOptions
             )
-            conversation.draft = acceptedDraft
+            conversation.composer.draft = acceptedDraft
             if hasOptions {
                 // Install the correct index in the same action that opens the
                 // second page, avoiding a frame highlighted on its first row.
@@ -1167,7 +1167,7 @@ struct ComposerView: View {
             }
             if !hasOptions { runSlashCommand() }
         case .option:
-            conversation.draft = ChatSlashCommandCompletion.accepted(row, takesArgument: false)
+            conversation.composer.draft = ChatSlashCommandCompletion.accepted(row, takesArgument: false)
             slashSelection = 0
             runSlashCommand()
         }
@@ -1180,7 +1180,7 @@ struct ComposerView: View {
     /// the user said to it.
     @discardableResult
     private func runSlashCommand() -> Bool {
-        guard let input = ChatSlashCommandInput.parse(conversation.draft),
+        guard let input = ChatSlashCommandInput.parse(conversation.composer.draft),
             let command = slashCommands.first(where: { $0.id == input.name.lowercased() })
         else { return false }
 
@@ -1198,7 +1198,7 @@ struct ComposerView: View {
             guard question.isEmpty else {
                 conversation.isPlanning = true
                 clearSlashDraft()
-                conversation.draft = question
+                conversation.composer.draft = question
                 sendDraft()
                 return true
             }
@@ -1238,7 +1238,7 @@ struct ComposerView: View {
     }
 
     private func clearSlashDraft() {
-        conversation.draft = ""
+        conversation.composer.draft = ""
         isSlashMenuDismissed = false
         slashSelection = 0
     }
@@ -1404,7 +1404,7 @@ struct ComposerView: View {
             ContextAttachmentImporter.shouldAttachPastedText(text)
         else { return false }
         do { conversation.attach(try ContextAttachmentImporter.pastedText(text)) }
-        catch { conversation.attachmentImportError = error.localizedDescription }
+        catch { conversation.composer.attachmentImportError = error.localizedDescription }
         return true
     }
 
@@ -1920,17 +1920,14 @@ private struct AssistantModelOptionNativeList: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [AssistantModelOptionListItem] = []
+        private let content = HostingListContent<AssistantModelOptionListItem>()
 
         func makeListView() -> NSViewType {
             let listView = NSViewType()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.estimatedRowHeight = 25
             listView.rows {
-                ListRow(AssistantModelOptionHostingRow.self)
+                ListRow(HostingListRow.self)
                     .height { item, _ in item.height }
                     .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
             }
@@ -1941,54 +1938,19 @@ private struct AssistantModelOptionNativeList: NSViewRepresentable {
             listView: NSViewType, items: [AssistantModelOptionListItem],
             renderer: @escaping Renderer, locale: Locale, colorScheme: ColorScheme
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: !content.isEmpty)
-            }
-            content = items
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: true
+            )
         }
 
         private func configure(
-            _ row: AssistantModelOptionHostingRow,
+            _ row: HostingListRow,
             item: AssistantModelOptionListItem
         ) {
-            guard let renderer else { return }
-            let root = renderer(item)
-                .id(item.id)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme)
-            row.configure(rootView: AnyView(root))
+            content.configure(row, item: item)
         }
     }
-}
-
-@MainActor
-private final class AssistantModelOptionHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 private struct SpeechWaveformView: View {

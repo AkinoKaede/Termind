@@ -102,14 +102,8 @@ struct ExternalAuthWindow: View {
         switch pending.request {
         case .ssh(let request):
             SSHAuthenticationForm(
-                prompt: prompt(for: request),
+                prompt: request.journeyPrompt,
                 submit: { identityID, username, password, passphrase, keyID, save in
-                    let requiresPassphrase: Bool
-                    if case .passphrase = request.mode {
-                        requiresPassphrase = true
-                    } else {
-                        requiresPassphrase = false
-                    }
                     app.externalAuthentication.respondSSH(
                         .submit(
                             AgentSSHAuthenticationAnswer(
@@ -119,7 +113,7 @@ struct ExternalAuthWindow: View {
                                 },
                                 username: username, password: password,
                                 passphrase: passphrase, keyID: keyID,
-                                save: requiresPassphrase ? false : save
+                                save: request.requiresPassphrase ? false : save
                             )
                         )
                     )
@@ -155,20 +149,6 @@ struct ExternalAuthWindow: View {
             )
             .id(pending.id)
         }
-    }
-
-    private func prompt(for request: AgentSSHAuthenticationRequest) -> SSHAuthenticationPrompt {
-        let requiresPassphrase: Bool
-        if case .passphrase = request.mode { requiresPassphrase = true } else { requiresPassphrase = false }
-        return SSHAuthenticationPrompt(
-            host: Host(id: request.hostID, name: request.displayName, host: request.address),
-            selectedIdentityID: request.selectedIdentityID,
-            username: request.username,
-            selectedKeyID: request.selectedKeyID,
-            failureMessage: request.failureMessage,
-            requiresPassphrase: requiresPassphrase,
-            mode: request.failureMessage == nil ? .localIdentity : .serverChallenge
-        )
     }
 
     private func updateIdleDismissal() {

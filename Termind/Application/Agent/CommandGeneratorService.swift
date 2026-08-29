@@ -39,44 +39,18 @@ actor CommandGeneratorService {
             tools: []
         )
 
-        var text = ""
-        var stopReason: AgentStopReason?
-        for event in try await model.complete(request) {
-            try Task.checkCancellation()
-            switch event {
-            case .textDelta(let delta):
-                guard text.utf8.count + delta.utf8.count <= Self.maximumPayloadBytes else {
-                    throw CommandGeneratorError.invalidResponse
-                }
-                text += delta
-            case .textSnapshot(let snapshot):
-                guard snapshot.utf8.count <= Self.maximumPayloadBytes else {
-                    throw CommandGeneratorError.invalidResponse
-                }
-                text = snapshot
-            case .toolCallDelta, .toolCallSnapshot:
-                throw CommandGeneratorError.invalidResponse
-            case .reasoningDelta, .reasoningSnapshot, .providerItem, .webSearch, .usage:
-                // Some reasoning providers require opaque output items in agent
-                // turns. This one-shot, tool-free request never replays them.
-                //
-                // A search is ignored rather than rejected for the same reason:
-                // this client never asks for one, so its only source is a
-                // gateway that searches regardless, and failing to generate a
-                // command over that would help nobody.
-                //
-                // Usage is ignored because this request is not part of any
-                // conversation: its cost belongs to generating one command, not
-                // to a context window anything is measured against.
-                continue
-            case .finished(let reason):
-                stopReason = reason
-            }
-        }
-        if let stopReason, stopReason != .completed {
+        let response: AgentBufferedTextResponse
+        do {
+            response = try await model.collectText(
+                request, maximumBytes: Self.maximumPayloadBytes
+            )
+        } catch is AgentBufferedTextError {
             throw CommandGeneratorError.invalidResponse
         }
-        return try Self.parse(text)
+        if let reason = response.stopReason, reason != .completed {
+            throw CommandGeneratorError.invalidResponse
+        }
+        return try Self.parse(response.text)
     }
 
     static func parse(_ text: String) throws -> String {

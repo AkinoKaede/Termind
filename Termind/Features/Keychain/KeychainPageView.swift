@@ -1354,17 +1354,14 @@ private struct ExportHostNativeList: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [ExportHostListItem] = []
+        private let content = HostingListContent<ExportHostListItem>()
 
         func makeListView() -> NSViewType {
             let listView = NSViewType()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.estimatedRowHeight = 52
             listView.rows {
-                ListRow(ExportHostHostingRow.self)
+                ListRow(HostingListRow.self)
                     .height { _, _ in 52 }
                     .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
             }
@@ -1375,54 +1372,19 @@ private struct ExportHostNativeList: NSViewRepresentable {
             listView: NSViewType, items: [ExportHostListItem], renderer: @escaping Renderer,
             locale: Locale, colorScheme: ColorScheme
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: !content.isEmpty)
-            }
-            content = items
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: true
+            )
             if let cursor = items.first(where: \.isCursor) {
                 listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
             }
         }
 
-        private func configure(_ row: ExportHostHostingRow, item: ExportHostListItem) {
-            guard let renderer else { return }
-            let root = renderer(item)
-                .id(item.id)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme)
-            row.configure(rootView: AnyView(root))
+        private func configure(_ row: HostingListRow, item: ExportHostListItem) {
+            content.configure(row, item: item)
         }
     }
-}
-
-@MainActor
-private final class ExportHostHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 // MARK: - Key card

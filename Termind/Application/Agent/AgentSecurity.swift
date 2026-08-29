@@ -321,6 +321,22 @@ nonisolated struct AgentSSHAuthenticationRequest: Identifiable, Hashable, Sendab
     var username: String
     var selectedKeyID: SSHKeyRef.ID?
     var failureMessage: String?
+
+    var requiresPassphrase: Bool {
+        if case .passphrase = mode { true } else { false }
+    }
+
+    var journeyPrompt: SSHAuthenticationPrompt {
+        SSHAuthenticationPrompt(
+            host: Host(id: hostID, name: displayName, host: address),
+            selectedIdentityID: selectedIdentityID,
+            username: username,
+            selectedKeyID: selectedKeyID,
+            failureMessage: failureMessage,
+            requiresPassphrase: requiresPassphrase,
+            mode: failureMessage == nil ? .localIdentity : .serverChallenge
+        )
+    }
 }
 
 nonisolated struct AgentSSHAuthenticationAnswer: Hashable, Sendable {

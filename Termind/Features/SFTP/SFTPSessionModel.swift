@@ -226,8 +226,7 @@ final class SFTPSessionModel: Identifiable {
     }
     private(set) var isLoading = false
     private(set) var hint = ""
-    var pendingHostKey: SSHHostKeyPrompt?
-    private var pendingHostKeyHostID: Host.ID?
+    var pendingHostKey: SSHHostKeyPrompt? { connection.pendingHostKey }
     var pendingAuthentication: SSHAuthenticationPrompt?
     let connection = RemoteSessionConnectionController()
     var connectionJourney: ConnectionJourney { connection.journey }
@@ -243,7 +242,10 @@ final class SFTPSessionModel: Identifiable {
     private var automaticRefreshTask: Task<Void, Never>?
     private var uploadRefreshTask: Task<Void, Never>?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
-    private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
+    private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] {
+        get { connection.temporaryHostKeys }
+        set { connection.temporaryHostKeys = newValue }
+    }
     private var connectionAttemptID: UUID?
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var hasConnectedOnce = false
@@ -335,10 +337,6 @@ final class SFTPSessionModel: Identifiable {
 
     func connect(using store: any RemoteSessionHostStore) {
         startConnection(using: store)
-    }
-
-    func connect(using transfers: TransferLibraryModel) {
-        connect(using: transfers as any RemoteSessionHostStore)
     }
 
     private func startConnection(using store: any RemoteSessionHostStore) {
@@ -505,7 +503,8 @@ final class SFTPSessionModel: Identifiable {
                     self.homeResolution = .unavailable
                     self.hint = error.localizedDescription
                     self.connectionJourney.fail(
-                        error.localizedDescription, at: self.routeHostID(from: error)
+                        error.localizedDescription,
+                        at: (error as? TermindSSHError)?.routeHostID
                     )
                 }
             }
@@ -523,14 +522,11 @@ final class SFTPSessionModel: Identifiable {
 
     func disconnect() {
         pendingAuthentication = nil
-        pendingHostKey = nil
-        pendingHostKeyHostID = nil
         suppliedAuthentications.removeAll()
-        temporaryHostKeys.removeAll()
         connectionTask?.cancel()
         connectionTask = nil
         connectionAttemptID = nil
-        reconnectController.stop()
+        connection.disconnect()
         hasConnectedOnce = false
         isRecoveringConnection = false
         automaticRefreshTask?.cancel()
@@ -544,7 +540,6 @@ final class SFTPSessionModel: Identifiable {
         usesEphemeralCredentials = false
         status = .disconnected
         homeResolution = .unavailable
-        connectionJourney.hide()
         replaceDirectoryContents(with: [])
         Task { [id] in
             await transferCoordinator?.cancelTransfers(usingBorrowedConnection: id)
@@ -597,44 +592,15 @@ final class SFTPSessionModel: Identifiable {
     }
 
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
-        store.trust(
-            KnownHostEntry(
-                hostname: observation.hostname, port: observation.port,
-                algorithm: observation.algorithm, fingerprint: observation.fingerprint,
-                addedAt: Date()
-            ))
-        if let pendingHostKeyHostID {
-            temporaryHostKeys[pendingHostKeyHostID] = nil
-        }
-        pendingHostKey = nil
-        pendingHostKeyHostID = nil
-        connectionJourney.resume()
+        connection.trustHostKey(observation, using: store)
         connect(using: store)
-    }
-
-    func trustAndConnect(
-        _ observation: SSHHostKeyObservation, using transfers: TransferLibraryModel
-    ) {
-        trustAndConnect(observation, using: transfers as any RemoteSessionHostStore)
     }
 
     func continueWithTemporaryHostKey(
         _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
     ) {
-        guard let hostID = pendingHostKeyHostID else { return }
-        temporaryHostKeys[hostID] = observation.identity
-        pendingHostKey = nil
-        pendingHostKeyHostID = nil
-        connectionJourney.resume()
+        guard connection.useTemporaryHostKey(observation) else { return }
         connect(using: store)
-    }
-
-    func continueWithTemporaryHostKey(
-        _ observation: SSHHostKeyObservation, using transfers: TransferLibraryModel
-    ) {
-        continueWithTemporaryHostKey(
-            observation, using: transfers as any RemoteSessionHostStore
-        )
     }
 
     func continueAuthentication(
@@ -729,17 +695,6 @@ final class SFTPSessionModel: Identifiable {
             }
         }
         connect(using: store)
-    }
-
-    func continueAuthentication(
-        identityID: Identity.ID?, username: String, password: String?, passphrase: String?,
-        keyID: SSHKeyRef.ID?, save: Bool, using transfers: TransferLibraryModel
-    ) {
-        continueAuthentication(
-            identityID: identityID, username: username, password: password,
-            passphrase: passphrase, keyID: keyID, save: save,
-            using: transfers as any RemoteSessionHostStore
-        )
     }
 
     func navigate(to destination: String) {
@@ -1174,44 +1129,10 @@ final class SFTPSessionModel: Identifiable {
         }
         pendingBatch = nil
         do {
-            var changedRemoteDirectory = false
-            var skippedRemotePrefixes: [String] = []
-            var remoteMappings: [(String, String)] = []
-            for originalDirectory in batch.remoteDirectories {
-                if skippedRemotePrefixes.contains(where: {
-                    originalDirectory == $0 || originalDirectory.hasPrefix($0 + "/")
-                }) {
-                    continue
-                }
-                var directory = originalDirectory
-                for mapping in remoteMappings
-                where directory == mapping.0 || directory.hasPrefix(mapping.0 + "/") {
-                    directory = mapping.1 + directory.dropFirst(mapping.0.count)
-                }
-                if batch.remoteDirectoryConflicts.contains(originalDirectory) {
-                    switch policy {
-                    case .skip:
-                        skippedRemotePrefixes.append(originalDirectory)
-                        continue
-                    case .replace:
-                        try await client.removeFile(at: originalDirectory)
-                        changedRemoteDirectory = true
-                    case .keepBoth:
-                        var index = 2
-                        var candidate = RemotePath.keepBothCandidate(for: originalDirectory, index: index)
-                        while try await client.attributes(at: candidate) != nil {
-                            index += 1
-                            candidate = RemotePath.keepBothCandidate(for: originalDirectory, index: index)
-                        }
-                        remoteMappings.append((originalDirectory, candidate))
-                        directory = candidate
-                    }
-                }
-                if try await client.attributes(at: directory) == nil {
-                    try await client.createDirectory(at: directory)
-                    changedRemoteDirectory = true
-                }
-            }
+            let remoteResolution = try await resolveRemoteDirectories(
+                batch.remoteDirectories, conflicts: batch.remoteDirectoryConflicts,
+                policy: policy, client: client
+            )
             let localRoots = Set(batch.jobs.filter { $0.direction == .download }.map(\.scopedRoot))
             var skippedLocalPrefixes: [URL] = []
             var localMappings: [(URL, URL)] = []
@@ -1248,14 +1169,14 @@ final class SFTPSessionModel: Identifiable {
                 }
             }
             for var job in batch.jobs {
-                if skippedRemotePrefixes.contains(where: { job.remotePath == $0 || job.remotePath.hasPrefix($0 + "/") })
+                if remoteResolution.skipped.contains(where: { job.remotePath == $0 || job.remotePath.hasPrefix($0 + "/") })
                     || skippedLocalPrefixes.contains(where: {
                         job.localURL.path == $0.path || job.localURL.path.hasPrefix($0.path + "/")
                     })
                 {
                     continue
                 }
-                for mapping in remoteMappings
+                for mapping in remoteResolution.mappings
                 where job.remotePath == mapping.0 || job.remotePath.hasPrefix(mapping.0 + "/") {
                     job.remotePath = mapping.1 + job.remotePath.dropFirst(mapping.0.count)
                     job.hasConflict = false
@@ -1270,28 +1191,22 @@ final class SFTPSessionModel: Identifiable {
                     )
                 }
                 if job.hasConflict {
-                    switch policy {
-                    case .skip: continue
-                    case .replace:
-                        if job.conflictingTargetIsDirectory {
-                            if job.direction == .upload,
-                                let existing = try await client.attributes(at: job.remotePath)
-                            {
-                                try await deleteRecursively(existing, client: client)
-                            } else if job.direction == .download {
+                    if job.direction == .upload {
+                        guard let resolved = try await resolveRemoteConflict(
+                            path: job.remotePath,
+                            conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
+                            policy: policy, client: client
+                        ) else { continue }
+                        job.remotePath = resolved.path
+                        job.hasConflict = resolved.overwrite
+                    } else {
+                        switch policy {
+                        case .skip: continue
+                        case .replace:
+                            if job.conflictingTargetIsDirectory {
                                 try FileManager.default.removeItem(at: job.localURL)
                             }
-                        }
-                    case .keepBoth:
-                        if job.direction == .upload {
-                            var index = 2
-                            var candidate = RemotePath.keepBothCandidate(for: job.remotePath, index: index)
-                            while try await client.attributes(at: candidate) != nil {
-                                index += 1
-                                candidate = RemotePath.keepBothCandidate(for: job.remotePath, index: index)
-                            }
-                            job.remotePath = candidate
-                        } else {
+                        case .keepBoth:
                             job.localURL = Self.keepBothLocalURL(job.localURL)
                         }
                     }
@@ -1311,7 +1226,7 @@ final class SFTPSessionModel: Identifiable {
                     completion: completion
                 )
             }
-            if changedRemoteDirectory { scheduleSilentRefresh() }
+            if remoteResolution.changed { scheduleSilentRefresh() }
         } catch { operationError = error.localizedDescription }
     }
 
@@ -1326,57 +1241,18 @@ final class SFTPSessionModel: Identifiable {
         else { return }
         pendingRemoteCopyBatch = nil
         do {
-            var changedRemoteDirectory = false
-            var skippedPrefixes: [String] = []
-            var mappings: [(String, String)] = []
-
-            for originalDirectory in batch.remoteDirectories {
-                if skippedPrefixes.contains(where: {
-                    originalDirectory == $0 || originalDirectory.hasPrefix($0 + "/")
-                }) {
-                    continue
-                }
-                var directory = originalDirectory
-                for mapping in mappings
-                where directory == mapping.0 || directory.hasPrefix(mapping.0 + "/") {
-                    directory = mapping.1 + directory.dropFirst(mapping.0.count)
-                }
-                if batch.remoteDirectoryConflicts.contains(originalDirectory) {
-                    switch policy {
-                    case .skip:
-                        skippedPrefixes.append(originalDirectory)
-                        continue
-                    case .replace:
-                        try await client.removeFile(at: originalDirectory)
-                        changedRemoteDirectory = true
-                    case .keepBoth:
-                        var index = 2
-                        var candidate = RemotePath.keepBothCandidate(
-                            for: originalDirectory, index: index
-                        )
-                        while try await client.attributes(at: candidate) != nil {
-                            index += 1
-                            candidate = RemotePath.keepBothCandidate(
-                                for: originalDirectory, index: index
-                            )
-                        }
-                        mappings.append((originalDirectory, candidate))
-                        directory = candidate
-                    }
-                }
-                if try await client.attributes(at: directory) == nil {
-                    try await client.createDirectory(at: directory)
-                    changedRemoteDirectory = true
-                }
-            }
+            let remoteResolution = try await resolveRemoteDirectories(
+                batch.remoteDirectories, conflicts: batch.remoteDirectoryConflicts,
+                policy: policy, client: client
+            )
 
             for var job in batch.jobs {
-                if skippedPrefixes.contains(where: {
+                if remoteResolution.skipped.contains(where: {
                     job.destinationPath == $0 || job.destinationPath.hasPrefix($0 + "/")
                 }) {
                     continue
                 }
-                for mapping in mappings
+                for mapping in remoteResolution.mappings
                 where job.destinationPath == mapping.0
                     || job.destinationPath.hasPrefix(mapping.0 + "/")
                 {
@@ -1386,28 +1262,13 @@ final class SFTPSessionModel: Identifiable {
                     job.hasConflict = false
                 }
                 if job.hasConflict {
-                    switch policy {
-                    case .skip:
-                        continue
-                    case .replace:
-                        if job.conflictingTargetIsDirectory,
-                            let existing = try await client.attributes(at: job.destinationPath)
-                        {
-                            try await deleteRecursively(existing, client: client)
-                        }
-                    case .keepBoth:
-                        var index = 2
-                        var candidate = RemotePath.keepBothCandidate(
-                            for: job.destinationPath, index: index
-                        )
-                        while try await client.attributes(at: candidate) != nil {
-                            index += 1
-                            candidate = RemotePath.keepBothCandidate(
-                                for: job.destinationPath, index: index
-                            )
-                        }
-                        job.destinationPath = candidate
-                    }
+                    guard let resolved = try await resolveRemoteConflict(
+                        path: job.destinationPath,
+                        conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
+                        policy: policy, client: client
+                    ) else { continue }
+                    job.destinationPath = resolved.path
+                    job.hasConflict = resolved.overwrite
                 }
 
                 coordinator.enqueueRemoteCopy(
@@ -1426,7 +1287,7 @@ final class SFTPSessionModel: Identifiable {
                     if state == .completed { self?.scheduleSilentRefresh() }
                 }
             }
-            if changedRemoteDirectory { scheduleSilentRefresh() }
+            if remoteResolution.changed { scheduleSilentRefresh() }
         } catch {
             operationError = error.localizedDescription
         }
@@ -1462,11 +1323,9 @@ final class SFTPSessionModel: Identifiable {
                 store.markKnownHostMismatched(hostname: host.host, port: host.port)
                 kind = .additionalKey(trustedKeyCount: trusted.count)
             }
-            pendingHostKey = SSHHostKeyPrompt(observation: observation, kind: kind)
-            pendingHostKeyHostID = host.id
-            reconnectController.pauseForUserInteraction()
-            connectionJourney.waitForHostKey(
-                at: host.id, fingerprint: observation.fingerprint
+            connection.waitForHostKey(
+                SSHHostKeyPrompt(observation: observation, kind: kind),
+                hostID: host.id, fingerprint: observation.fingerprint
             )
         } catch {
             if hasConnectedOnce {
@@ -1514,16 +1373,9 @@ final class SFTPSessionModel: Identifiable {
     }
 
     private func progressHandler(attemptID: UUID) -> SSHRouteProgressHandler {
-        { [weak self] event in
-            Task { @MainActor in
-                guard let self, self.connectionAttemptID == attemptID else { return }
-                self.connectionJourney.receive(event)
-            }
+        connection.progressHandler(attemptID: attemptID) { [weak self] id in
+            self?.connectionAttemptID == id
         }
-    }
-
-    private func routeHostID(from error: any Error) -> Host.ID? {
-        (error as? TermindSSHError)?.routeHostID
     }
 
     private func handleConnectionFailure(_ message: String, attemptID: UUID?) {
@@ -1547,20 +1399,16 @@ final class SFTPSessionModel: Identifiable {
         configuration = nil
         status = .reconnecting
         hint = String(localized: "Reconnecting")
-        presentReconnectJourney(using: store)
+        let host = store.host(hostID)
+        connection.presentReconnectJourney(
+            host: host, using: store, purpose: .sftpSession,
+            username: host.flatMap { store.identity(for: $0)?.username }
+        )
         reconnectController.schedule(after: message) { [weak self, weak store] in
             guard let self, let store else { return }
             self.startConnection(using: store)
         }
         Task { await client?.disconnect() }
-    }
-
-    private func presentReconnectJourney(using store: any RemoteSessionHostStore) {
-        guard let host = store.host(hostID) else { return }
-        connectionJourney.begin(
-            host: host, route: store.route(for: host), purpose: .sftpSession,
-            username: store.identity(for: host)?.username, mode: .reconnection
-        )
     }
 
     private func deleteRecursively(
@@ -1582,6 +1430,78 @@ final class SFTPSessionModel: Identifiable {
 
     private func validFilename(_ name: String) -> Bool {
         !name.isEmpty && name != "." && name != ".." && !name.contains("/") && !name.contains("\0")
+    }
+
+    private func availableRemotePath(
+        for path: String, client: any SFTPClientProtocol
+    ) async throws -> String {
+        var index = 2
+        var candidate = RemotePath.keepBothCandidate(for: path, index: index)
+        while try await client.attributes(at: candidate) != nil {
+            index += 1
+            candidate = RemotePath.keepBothCandidate(for: path, index: index)
+        }
+        return candidate
+    }
+
+    private struct RemoteDirectoryResolution {
+        var skipped: [String] = []
+        var mappings: [(String, String)] = []
+        var changed = false
+    }
+
+    private func resolveRemoteConflict(
+        path: String, conflictingTargetIsDirectory: Bool,
+        policy: TransferConflictPolicy, client: any SFTPClientProtocol
+    ) async throws -> (path: String, overwrite: Bool)? {
+        switch policy {
+        case .skip:
+            return nil
+        case .replace:
+            if conflictingTargetIsDirectory,
+                let existing = try await client.attributes(at: path)
+            {
+                try await deleteRecursively(existing, client: client)
+            }
+            return (path, true)
+        case .keepBoth:
+            return (try await availableRemotePath(for: path, client: client), false)
+        }
+    }
+
+    private func resolveRemoteDirectories(
+        _ directories: [String], conflicts: Set<String>,
+        policy: TransferConflictPolicy, client: any SFTPClientProtocol
+    ) async throws -> RemoteDirectoryResolution {
+        var result = RemoteDirectoryResolution()
+        for original in directories {
+            if result.skipped.contains(where: {
+                original == $0 || original.hasPrefix($0 + "/")
+            }) { continue }
+            var destination = original
+            for mapping in result.mappings
+            where destination == mapping.0 || destination.hasPrefix(mapping.0 + "/") {
+                destination = mapping.1 + destination.dropFirst(mapping.0.count)
+            }
+            if conflicts.contains(original) {
+                switch policy {
+                case .skip:
+                    result.skipped.append(original)
+                    continue
+                case .replace:
+                    try await client.removeFile(at: original)
+                    result.changed = true
+                case .keepBoth:
+                    destination = try await availableRemotePath(for: original, client: client)
+                    result.mappings.append((original, destination))
+                }
+            }
+            if try await client.attributes(at: destination) == nil {
+                try await client.createDirectory(at: destination)
+                result.changed = true
+            }
+        }
+        return result
     }
 
     private static func keepBothLocalURL(_ url: URL) -> URL {

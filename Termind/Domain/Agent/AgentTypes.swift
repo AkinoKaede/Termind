@@ -96,12 +96,6 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             case sshDeniedCommand, sshFailedCommand, sshInterruptedCommand
         }
 
-        nonisolated struct Action: Hashable, Sendable, Codable {
-            var infinitive: String
-            var progressive: String
-            var past: String
-        }
-
         /// A semantic unit whose counted presentation is owned by the app's
         /// localization resources instead of English descriptor metadata.
         nonisolated enum CountedUnit: String, Hashable, Sendable, Codable {
@@ -149,8 +143,7 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             symbol: String, activity: Activity, output: Output = .automatic,
             presenterID: String? = nil,
             groupsWithAdjacentTools: Bool = true,
-            action: Action? = nil, actionKind: ActionKind? = nil,
-            includesTarget: Bool = false,
+            actionKind: ActionKind? = nil,
             phaseKinds: [String: PhaseKind] = [:],
             messages overrides: [String: String] = [:]
         ) {
@@ -161,20 +154,7 @@ nonisolated struct AgentToolDescriptor: Identifiable, Hashable, Sendable, Codabl
             self.groupsWithAdjacentTools = groupsWithAdjacentTools
             self.actionKind = actionKind
             self.phaseKinds = phaseKinds
-            let target = includesTarget ? " on {target}" : ""
-            if let action {
-                messages = [
-                    "proposed": "Preparing to \(action.infinitive) {activity}\(target)",
-                    "waitingForApproval": "Waiting to \(action.infinitive) {activity}\(target)",
-                    "waitingForUser": "Waiting to \(action.infinitive) {activity}\(target)",
-                    "running": "\(action.progressive) {activity}\(target)",
-                    "completed": "\(action.past) {activity}\(target)",
-                    "denied": "Did not \(action.infinitive) {activity}\(target)",
-                    "failed": "Failed to \(action.infinitive) {activity}\(target)",
-                    "interrupted": "Interrupted while \(action.progressive.lowercased()) {activity}\(target)",
-                ]
-            }
-            messages.merge(overrides) { _, override in override }
+            messages = overrides
         }
 
         private enum CodingKeys: String, CodingKey {

@@ -69,7 +69,7 @@ struct AgentToolPresentationTests {
             name: "mcp__12345678__find_records", target: .mcp,
             presentation: .init(
                 symbol: "puzzlepiece.extension", activity: .label("find-records"), output: .json,
-                action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+                actionKind: .run
             )
         )
         card.state = .failed
@@ -92,8 +92,7 @@ struct AgentToolPresentationTests {
             arguments: ["path": .string("/etc/nginx.conf")],
             presentation: .init(
                 symbol: "doc.text", activity: .argument(key: "path", fallback: "a remote file"),
-                action: .init(infinitive: "read", progressive: "Reading", past: "Read"),
-                includesTarget: true
+                actionKind: .read
             )
         )
         sftp.state = .running
@@ -111,7 +110,7 @@ struct AgentToolPresentationTests {
             arguments: ["path": .string("notes/config")],
             presentation: .init(
                 symbol: "pencil", activity: .argument(key: "path", fallback: "a scratch file"),
-                action: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
+                actionKind: .edit
             )
         )
         scratch.state = .running
@@ -122,7 +121,7 @@ struct AgentToolPresentationTests {
             arguments: ["url": .string("https://example.com")],
             presentation: .init(
                 symbol: "globe", activity: .argument(key: "url", fallback: "a URL"),
-                action: .init(infinitive: "fetch", progressive: "Fetching", past: "Fetched")
+                actionKind: .fetch
             )
         )
         fetch.state = .running
@@ -132,7 +131,7 @@ struct AgentToolPresentationTests {
             name: "mcp__airtable__find_records", target: .mcp,
             presentation: .init(
                 symbol: "puzzlepiece.extension", activity: .label("find-records"),
-                action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+                actionKind: .run
             )
         )
         mcp.state = .running
@@ -710,7 +709,7 @@ struct AgentToolPresentationTests {
         var secondQuestion = firstQuestion
         let commandPresentation = AgentToolDescriptor.Presentation(
             symbol: "terminal", activity: .argument(key: "command", fallback: "a command"),
-            action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+            actionKind: .run
         )
         var command = makeCard(
             name: "ssh_exec", target: .host,
@@ -737,7 +736,7 @@ struct AgentToolPresentationTests {
     func batchIconFollowsLiveAndHomogeneousTools() {
         let terminal = AgentToolDescriptor.Presentation(
             symbol: "terminal", activity: .label("a command"),
-            action: .init(infinitive: "run", progressive: "Running", past: "Ran")
+            actionKind: .run
         )
         var first = makeCard(name: "ssh_exec", target: .host, presentation: terminal)
         var second = makeCard(name: "ssh_exec", target: .host, presentation: terminal)
@@ -1017,7 +1016,7 @@ struct AgentToolPresentationTests {
             arguments: ["questions": .array([.object([:]), .object([:])])],
             presentation: .init(
                 symbol: "questionmark.circle", activity: activity,
-                action: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
+                actionKind: .ask
             )
         )
         card.state = .completed

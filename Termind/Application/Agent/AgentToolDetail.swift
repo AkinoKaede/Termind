@@ -106,6 +106,26 @@ nonisolated enum AgentToolDetailFormatting {
         return fields.map(Item.field)
     }
 
+    static func objectItems(
+        _ input: AgentToolDetailInput,
+        build: ([String: AgentJSONValue]) -> [Item]
+    ) -> [Item] {
+        guard let object = input.result.objectValue else {
+            return genericItems(input.result, locale: input.locale)
+        }
+        return build(object)
+    }
+
+    static func arrayItems(
+        _ input: AgentToolDetailInput,
+        build: ([AgentJSONValue]) -> [Item]
+    ) -> [Item] {
+        guard let values = input.result.arrayValue else {
+            return genericItems(input.result, locale: input.locale)
+        }
+        return build(values)
+    }
+
     private static func flatten(
         _ value: AgentJSONValue, path: [String], locale: Locale, into fields: inout [Field]
     ) {

@@ -181,6 +181,15 @@ final class SFTPTransferCoordinator {
         var completion: ((SFTPTransfer.State) -> Void)?
     }
 
+    private struct ClientLease {
+        let client: any SFTPClientProtocol
+        let isOwned: Bool
+
+        func disconnect() async {
+            if isOwned { await client.disconnect() }
+        }
+    }
+
     private let store: HostLibraryModel
     private let clientFactory: ClientFactory
     private var runtimes: [SFTPTransfer.ID: Runtime] = [:]
@@ -271,17 +280,8 @@ final class SFTPTransferCoordinator {
         defer {
             if let borrowedID { releaseBorrowedConnections([borrowedID]) }
         }
-        let client: any SFTPClientProtocol
-        let ownsConnection: Bool
-        switch source.connection {
-        case .saved(let configuration):
-            client = clientFactory()
-            ownsConnection = true
-            try await client.connect(using: configuration, progress: nil)
-        case .borrowed(_, let borrowed):
-            client = borrowed
-            ownsConnection = false
-        }
+        let lease = try await clientLease(for: source.connection)
+        let client = lease.client
         do {
             var entries: [SFTPRemoteManifestEntry] = []
             func collect(_ file: RemoteFile, relativePath: String) async throws {
@@ -301,10 +301,10 @@ final class SFTPTransferCoordinator {
             for file in source.files {
                 try await collect(file, relativePath: file.name)
             }
-            if ownsConnection { await client.disconnect() }
+            await lease.disconnect()
             return (source, entries)
         } catch {
-            if ownsConnection { await client.disconnect() }
+            await lease.disconnect()
             throw error
         }
     }
@@ -486,19 +486,12 @@ final class SFTPTransferCoordinator {
             guard let self else { return }
             let scoped = runtime.scopedRoot.startAccessingSecurityScopedResource()
             defer { if scoped { runtime.scopedRoot.stopAccessingSecurityScopedResource() } }
-            let client: any SFTPClientProtocol
-            let ownsConnection: Bool
+            var lease: ClientLease?
             let result: SFTPTransfer.State
             do {
-                switch runtime.connection {
-                case .saved(let configuration):
-                    client = clientFactory()
-                    ownsConnection = true
-                    try await client.connect(using: configuration, progress: nil)
-                case .borrowed(_, let borrowed):
-                    client = borrowed
-                    ownsConnection = false
-                }
+                let acquired = try await clientLease(for: runtime.connection)
+                lease = acquired
+                let client = acquired.client
                 let progress: @Sendable (SFTPProgress) -> Void = { [weak self] value in
                     Task { @MainActor in
                         self?.store.updateSFTPTransfer(
@@ -535,7 +528,7 @@ final class SFTPTransferCoordinator {
             } catch {
                 result = .failed(error.localizedDescription)
             }
-            if ownsConnection { await client.disconnect() }
+            await lease?.disconnect()
             finish(
                 sftpTransfer.id, hostIDs: [hostID], borrowedIDs: borrowedIDs,
                 state: result
@@ -555,32 +548,16 @@ final class SFTPTransferCoordinator {
         activeBorrowedConnections.formUnion(borrowedIDs)
         let task = Task { [weak self] in
             guard let self else { return }
-            let source: any SFTPClientProtocol
-            var destination: (any SFTPClientProtocol)?
-            let ownsSource: Bool
-            var ownsDestination = false
+            var sourceLease: ClientLease?
+            var destinationLease: ClientLease?
             let result: SFTPTransfer.State
             do {
-                switch runtime.sourceConnection {
-                case .saved(let configuration):
-                    source = clientFactory()
-                    ownsSource = true
-                    try await source.connect(using: configuration, progress: nil)
-                case .borrowed(_, let client):
-                    source = client
-                    ownsSource = false
-                }
-                switch runtime.destinationConnection {
-                case .saved(let configuration):
-                    let client = clientFactory()
-                    destination = client
-                    ownsDestination = true
-                    try await client.connect(using: configuration, progress: nil)
-                case .borrowed(_, let client):
-                    destination = client
-                    ownsDestination = false
-                }
-                guard let destination else { throw SFTPError.notConnected }
+                let acquiredSource = try await clientLease(for: runtime.sourceConnection)
+                sourceLease = acquiredSource
+                let acquiredDestination = try await clientLease(
+                    for: runtime.destinationConnection
+                )
+                destinationLease = acquiredDestination
                 let progress: @Sendable (SFTPProgress) -> Void = { [weak self] value in
                     Task { @MainActor in
                         self?.store.updateSFTPTransfer(
@@ -590,10 +567,10 @@ final class SFTPTransferCoordinator {
                         )
                     }
                 }
-                try await source.copyFile(
+                try await acquiredSource.client.copyFile(
                     from: runtime.sourcePath,
                     to: runtime.destinationPath,
-                    on: destination,
+                    on: acquiredDestination.client,
                     byteCount: sftpTransfer.byteCount,
                     overwrite: runtime.overwrite,
                     cancellation: runtime.cancellation,
@@ -607,8 +584,8 @@ final class SFTPTransferCoordinator {
             } catch {
                 result = .failed(error.localizedDescription)
             }
-            if ownsSource { await source.disconnect() }
-            if ownsDestination { await destination?.disconnect() }
+            await sourceLease?.disconnect()
+            await destinationLease?.disconnect()
             finish(
                 sftpTransfer.id, hostIDs: involvedHostIDs,
                 borrowedIDs: borrowedIDs, state: result
@@ -622,6 +599,24 @@ final class SFTPTransferCoordinator {
             return Array(Set([runtime.sourceHostID, runtime.destinationHostID]))
         }
         return sftpTransfer.hostID.map { [$0] } ?? []
+    }
+
+    private func clientLease(
+        for connection: SFTPTransferConnection
+    ) async throws -> ClientLease {
+        switch connection {
+        case .saved(let configuration):
+            let client = clientFactory()
+            do {
+                try await client.connect(using: configuration, progress: nil)
+            } catch {
+                await client.disconnect()
+                throw error
+            }
+            return ClientLease(client: client, isOwned: true)
+        case .borrowed(_, let client):
+            return ClientLease(client: client, isOwned: false)
+        }
     }
 
     private func borrowedIDs(for sftpTransfer: SFTPTransfer) -> [UUID] {

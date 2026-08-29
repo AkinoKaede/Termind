@@ -61,11 +61,11 @@ final class SwiftDataToolAuditRepository: ToolAuditRepository {
     }
 
     func clear() throws {
-        try mutate { try context.delete(model: PersistentExternalToolCall.self) }
+        try context.commit { try context.delete(model: PersistentExternalToolCall.self) }
     }
 
     func insert(_ value: ExternalToolCall, limit: Int) throws {
-        try mutate {
+        try context.commit {
             var descriptor = FetchDescriptor<PersistentExternalToolCall>(
                 sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
             )
@@ -76,7 +76,7 @@ final class SwiftDataToolAuditRepository: ToolAuditRepository {
     }
 
     func update(_ value: ExternalToolCall) throws {
-        try mutate {
+        try context.commit {
             let id = value.id
             var descriptor = FetchDescriptor<PersistentExternalToolCall>(
                 predicate: #Predicate { $0.id == id }
@@ -96,7 +96,7 @@ final class SwiftDataToolAuditRepository: ToolAuditRepository {
 
     func recoverInterruptedCalls() throws {
         let running = ExternalToolCall.Status.running.rawValue
-        try mutate {
+        try context.commit {
             let rows = try context.fetch(FetchDescriptor<PersistentExternalToolCall>(
                 predicate: #Predicate { $0.status == running }
             ))
@@ -107,15 +107,6 @@ final class SwiftDataToolAuditRepository: ToolAuditRepository {
         }
     }
 
-    private func mutate(_ operation: () throws -> Void) throws {
-        do {
-            try operation()
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
-        }
-    }
 }
 
 extension ToolAuditModel {
@@ -129,4 +120,3 @@ extension ToolAuditModel {
         )
     }
 }
-

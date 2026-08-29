@@ -465,10 +465,7 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [ConnectionLogListItem] = []
+        private let content = HostingListContent<ConnectionLogListItem>()
         private let measurement = NSHostingController(rootView: AnyView(EmptyView()))
 
         func makeListView() -> NSViewType {
@@ -478,7 +475,7 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
             listView.bottomInset = 14
             listView.estimatedRowHeight = 26
             listView.rows {
-                ListRow(ConnectionLogHostingRow.self)
+                ListRow(HostingListRow.self)
                     .estimatedHeight(26)
                     .height { [weak self] item, context in
                         self?.height(for: item, width: context.width) ?? 26
@@ -492,66 +489,29 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
             listView: NSViewType, items: [ConnectionLogListItem], renderer: @escaping Renderer,
             locale: Locale, colorScheme: ColorScheme
         ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: !content.isEmpty)
-            }
-            content = items
-        }
-
-        private func root(for item: ConnectionLogListItem) -> AnyView? {
-            guard let renderer else { return nil }
-            return AnyView(
-                renderer(item)
+            content.update(
+                listView, items: items,
+                renderer: { item in
+                    AnyView(renderer(item)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .environment(\.locale, locale)
-                    .environment(\.colorScheme, colorScheme)
+                    .padding(.horizontal, 14))
+                },
+                locale: locale, colorScheme: colorScheme, animated: true
             )
         }
 
         private func height(for item: ConnectionLogListItem, width: CGFloat) -> CGFloat {
-            guard width > 0, let root = root(for: item) else { return 26 }
+            guard width > 0, let root = content.rootView(for: item) else { return 26 }
             measurement.rootView = root
             return max(26, ceil(measurement.sizeThatFits(in: CGSize(
                 width: width, height: .greatestFiniteMagnitude
             )).height) + 8)
         }
 
-        private func configure(_ row: ConnectionLogHostingRow, item: ConnectionLogListItem) {
-            guard let root = root(for: item) else { return }
-            row.configure(rootView: root)
+        private func configure(_ row: HostingListRow, item: ConnectionLogListItem) {
+            content.configure(row, item: item)
         }
     }
-}
-
-@MainActor
-private final class ConnectionLogHostingRow: ListRowView {
-    private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hostingView.rootView = AnyView(EmptyView())
-    }
-    func configure(rootView: AnyView) { hostingView.rootView = rootView }
 }
 
 private struct JourneyReconnectStatus: View {

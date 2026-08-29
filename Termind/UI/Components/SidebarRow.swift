@@ -118,23 +118,50 @@ struct SidebarRowCount: View {
 
 /// The collapsible heading above a group of sidebar rows.
 struct SidebarSectionHeader: View {
-    let title: LocalizedStringKey
+    let title: Text
+    var count: Int?
+    var height: CGFloat
     @Binding var isExpanded: Bool
+
+    init(
+        title: LocalizedStringKey, count: Int? = nil, height: CGFloat = 32,
+        isExpanded: Binding<Bool>
+    ) {
+        self.title = Text(title)
+        self.count = count
+        self.height = height
+        _isExpanded = isExpanded
+    }
+
+    init(
+        title: String, count: Int? = nil, height: CGFloat = 32,
+        isExpanded: Binding<Bool>
+    ) {
+        self.title = Text(title)
+        self.count = count
+        self.height = height
+        _isExpanded = isExpanded
+    }
 
     var body: some View {
         Button {
             isExpanded.toggle()
         } label: {
             HStack(spacing: Metrics.Space.s) {
-                Text(title)
+                title
                 Spacer(minLength: 0)
+                if let count {
+                    Text(count, format: .number)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.tertiary)
+                }
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
                     .frame(width: Metrics.Sidebar.rowIcon)
                     .accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 32)
+            .frame(height: height)
             .padding(
                 .horizontal,
                 Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin

@@ -466,54 +466,6 @@ nonisolated enum AgentToolPresentation {
     private static func recoveredBuiltInOperation(
         for card: AgentToolCard, locale: Locale
     ) -> RenderedOperation? {
-        let semanticArgument: (key: String, fallback: AgentToolDescriptor.Presentation.ActivityKind)? =
-            switch card.descriptor.name {
-            case "fetch": ("url", .url)
-            case "web_search": ("query", .web)
-            case "ssh_exec", "terminal_suggest": ("command", .command)
-            case "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
-                "sftp_move", "sftp_chmod", "sftp_delete":
-                ("path", .remoteFile)
-            case "request_user_secret": ("prompt", .secret)
-            case "scratch_list": ("path", .scratchWorkspace)
-            case "scratch_read", "scratch_write", "scratch_edit": ("path", .scratchFile)
-            case "scratch_diff": ("path_a", .scratchFiles)
-            case "scratch_delete": ("path", .scratchEntry)
-            case "scratch_pull", "scratch_push": ("remote_path", .remoteFile)
-            case "present_plan": ("title", .plan)
-            default: nil
-            }
-        if let semanticArgument {
-            if let value = card.invocation.call.arguments.objectValue?[semanticArgument.key]?
-                .stringValue
-            {
-                let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
-                if !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    return RenderedOperation(text: oneLine, isArgumentValue: true)
-                }
-            }
-            if card.descriptor.name == "web_search" {
-                return RenderedOperation(text: "", isArgumentValue: false)
-            }
-            return RenderedOperation(
-                text: activityName(semanticArgument.fallback, locale: locale),
-                isArgumentValue: false
-            )
-        }
-
-        let semanticLabel: AgentToolDescriptor.Presentation.ActivityKind? =
-            switch card.descriptor.name {
-            case "list_hosts": .hosts
-            case "ssh_wait": .remoteCommand
-            case "manage_tasks": .taskList
-            default: nil
-            }
-        if let semanticLabel {
-            return RenderedOperation(
-                text: activityName(semanticLabel, locale: locale), isArgumentValue: false
-            )
-        }
-
         if card.descriptor.name == "request_user_input" {
             let count = card.invocation.call.arguments.objectValue?["questions"]?.arrayValue?.count
             return RenderedOperation(
@@ -522,7 +474,18 @@ nonisolated enum AgentToolPresentation {
                 isArgumentValue: false
             )
         }
-        return nil
+        guard let metadata = legacyMetadata[card.descriptor.name] else { return nil }
+        if let key = metadata.argumentKey,
+            let value = card.invocation.call.arguments.objectValue?[key]?.stringValue
+        {
+            let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
+            if !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return RenderedOperation(text: oneLine, isArgumentValue: true)
+            }
+        }
+        let text = card.descriptor.name == "web_search"
+            ? "" : activityName(metadata.activity, locale: locale)
+        return RenderedOperation(text: text, isArgumentValue: false)
     }
 
     private static func batchClause(
@@ -703,34 +666,26 @@ nonisolated enum AgentToolPresentation {
 
     private enum ActionForm { case infinitive, progressive, past }
 
+    private struct ActionForms {
+        var infinitive: String
+        var progressive: String
+        var past: String
+
+        subscript(form: ActionForm) -> String {
+            switch form {
+            case .infinitive: infinitive
+            case .progressive: progressive
+            case .past: past
+            }
+        }
+    }
+
     private static func actionKind(
         for card: AgentToolCard
     ) -> AgentToolDescriptor.Presentation.ActionKind? {
         if let kind = card.descriptor.presentation?.actionKind { return kind }
-        return switch card.descriptor.name {
-        case "fetch": .fetch
-        case "web_search": .search
-        case "list_hosts", "sftp_list", "scratch_list": .list
-        case "ssh_wait": .wait
-        case "ssh_exec": .run
-        case "terminal_suggest": .suggest
-        case "sftp_stat": .inspect
-        case "sftp_read", "scratch_read": .read
-        case "sftp_write", "scratch_write": .write
-        case "sftp_mkdir": .create
-        case "sftp_move": .move
-        case "sftp_chmod": .changePermissions
-        case "sftp_delete", "scratch_delete": .delete
-        case "request_user_input": .ask
-        case "request_user_secret": .request
-        case "scratch_edit": .edit
-        case "scratch_diff": .compare
-        case "scratch_pull": .pull
-        case "scratch_push": .push
-        case "present_plan": .present
-        case "manage_tasks": .update
-        default: card.descriptor.target == .mcp ? .run : nil
-        }
+        return legacyMetadata[card.descriptor.name]?.action
+            ?? (card.descriptor.target == .mcp ? .run : nil)
     }
 
     private static func phaseKind(
@@ -889,74 +844,36 @@ nonisolated enum AgentToolPresentation {
         form: ActionForm, locale: Locale
     ) -> String {
         if isChinese(locale) { return localizedActionVerb(kind, locale: locale) }
-        return switch (kind, form) {
-        case (.ask, .infinitive): "ask"
-        case (.ask, .progressive): "Asking"
-        case (.ask, .past): "Asked"
-        case (.compare, .infinitive): "compare"
-        case (.compare, .progressive): "Comparing"
-        case (.compare, .past): "Compared"
-        case (.create, .infinitive): "create"
-        case (.create, .progressive): "Creating"
-        case (.create, .past): "Created"
-        case (.delete, .infinitive): "delete"
-        case (.delete, .progressive): "Deleting"
-        case (.delete, .past): "Deleted"
-        case (.edit, .infinitive): "edit"
-        case (.edit, .progressive): "Editing"
-        case (.edit, .past): "Edited"
-        case (.fetch, .infinitive): "fetch"
-        case (.fetch, .progressive): "Fetching"
-        case (.fetch, .past): "Fetched"
-        case (.inspect, .infinitive): "inspect"
-        case (.inspect, .progressive): "Inspecting"
-        case (.inspect, .past): "Inspected"
-        case (.list, .infinitive): "list"
-        case (.list, .progressive): "Listing"
-        case (.list, .past): "Listed"
-        case (.move, .infinitive): "move"
-        case (.move, .progressive): "Moving"
-        case (.move, .past): "Moved"
-        case (.present, .infinitive): "present"
-        case (.present, .progressive): "Writing"
-        case (.present, .past): "Presented"
-        case (.pull, .infinitive): "pull"
-        case (.pull, .progressive): "Pulling"
-        case (.pull, .past): "Pulled"
-        case (.push, .infinitive): "push"
-        case (.push, .progressive): "Pushing"
-        case (.push, .past): "Pushed"
-        case (.read, .infinitive): "read"
-        case (.read, .progressive): "Reading"
-        case (.read, .past): "Read"
-        case (.request, .infinitive): "request"
-        case (.request, .progressive): "Requesting"
-        case (.request, .past): "Requested"
-        case (.run, .infinitive): "run"
-        case (.run, .progressive): "Running"
-        case (.run, .past): "Ran"
-        case (.search, .infinitive): "search"
-        case (.search, .progressive): "Searching"
-        case (.search, .past): "Searched"
-        case (.suggest, .infinitive): "suggest"
-        case (.suggest, .progressive): "Suggesting"
-        case (.suggest, .past): "Suggested"
-        case (.update, .infinitive): "update"
-        case (.update, .progressive): "Updating"
-        case (.update, .past): "Updated"
-        case (.wait, .infinitive): "wait for"
-        case (.wait, .progressive): "Waiting for"
-        case (.wait, .past): "Waited for"
-        case (.write, .infinitive): "write"
-        case (.write, .progressive): "Writing"
-        case (.write, .past): "Wrote"
-        case (.changePermissions, .infinitive): "change permissions for"
-        case (.changePermissions, .progressive): "Changing permissions for"
-        case (.changePermissions, .past): "Changed permissions for"
-        case (.use, .infinitive): "use"
-        case (.use, .progressive): "Using"
-        case (.use, .past): "Used"
+        let forms: ActionForms = switch kind {
+        case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
+        case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
+        case .create: .init(infinitive: "create", progressive: "Creating", past: "Created")
+        case .delete: .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
+        case .edit: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
+        case .fetch: .init(infinitive: "fetch", progressive: "Fetching", past: "Fetched")
+        case .inspect: .init(infinitive: "inspect", progressive: "Inspecting", past: "Inspected")
+        case .list: .init(infinitive: "list", progressive: "Listing", past: "Listed")
+        case .move: .init(infinitive: "move", progressive: "Moving", past: "Moved")
+        case .present: .init(infinitive: "present", progressive: "Writing", past: "Presented")
+        case .pull: .init(infinitive: "pull", progressive: "Pulling", past: "Pulled")
+        case .push: .init(infinitive: "push", progressive: "Pushing", past: "Pushed")
+        case .read: .init(infinitive: "read", progressive: "Reading", past: "Read")
+        case .request: .init(infinitive: "request", progressive: "Requesting", past: "Requested")
+        case .run: .init(infinitive: "run", progressive: "Running", past: "Ran")
+        case .search: .init(infinitive: "search", progressive: "Searching", past: "Searched")
+        case .suggest: .init(infinitive: "suggest", progressive: "Suggesting", past: "Suggested")
+        case .update: .init(infinitive: "update", progressive: "Updating", past: "Updated")
+        case .wait: .init(infinitive: "wait for", progressive: "Waiting for", past: "Waited for")
+        case .write: .init(infinitive: "write", progressive: "Writing", past: "Wrote")
+        case .changePermissions:
+            .init(
+                infinitive: "change permissions for",
+                progressive: "Changing permissions for",
+                past: "Changed permissions for"
+            )
+        case .use: .init(infinitive: "use", progressive: "Using", past: "Used")
         }
+        return forms[form]
     }
 
     private static func localizedActionVerb(
@@ -1023,37 +940,81 @@ nonisolated enum AgentToolPresentation {
     private static func legacyActivity(
         _ fallback: String, descriptorName: String, locale: Locale
     ) -> String {
-        let sftpNames = [
-            "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
-            "sftp_move", "sftp_chmod", "sftp_delete",
-        ]
-        if sftpNames.contains(descriptorName) {
-            return activityName(.remoteFile, locale: locale)
-        }
-        let kind: AgentToolDescriptor.Presentation.ActivityKind? = switch (
-            descriptorName, fallback
-        ) {
-        case ("fetch", "a URL"): .url
-        case ("web_search", "the web"): .web
-        case ("list_hosts", "hosts"): .hosts
-        case ("ssh_wait", "the remote command"): .remoteCommand
-        case ("ssh_exec", "the SSH command"): .sshCommand
-        case ("terminal_suggest", "a command"): .command
-        case ("request_user_input", "a question"): .question
-        case ("request_user_secret", "a secret"): .secret
-        case ("present_plan", "a plan"): .plan
-        case ("manage_tasks", "the task list"): .taskList
-        case ("scratch_list", "the scratch workspace"): .scratchWorkspace
-        case ("scratch_read", "a scratch file"), ("scratch_write", "a scratch file"),
-            ("scratch_edit", "a scratch file"): .scratchFile
-        case ("scratch_diff", "scratch files"): .scratchFiles
-        case ("scratch_delete", "a scratch entry"): .scratchEntry
-        case ("scratch_pull", "a remote file"), ("scratch_push", "a remote file"):
-            .remoteFile
-        default: nil
-        }
-        return kind.map { activityName($0, locale: locale) } ?? fallback
+        guard let metadata = legacyMetadata[descriptorName] else { return fallback }
+        let legacyFallback = activityName(metadata.activity, locale: Locale(identifier: "en"))
+        guard metadata.localizesAnyFallback || fallback == legacyFallback else { return fallback }
+        return activityName(metadata.activity, locale: locale)
     }
+
+    private struct LegacyMetadata {
+        var argumentKey: String?
+        var activity: AgentToolDescriptor.Presentation.ActivityKind
+        var action: AgentToolDescriptor.Presentation.ActionKind
+        var localizesAnyFallback = false
+    }
+
+    private static let legacyMetadata: [String: LegacyMetadata] = [
+        "fetch": .init(argumentKey: "url", activity: .url, action: .fetch),
+        "web_search": .init(argumentKey: "query", activity: .web, action: .search),
+        "list_hosts": .init(argumentKey: nil, activity: .hosts, action: .list),
+        "ssh_wait": .init(argumentKey: nil, activity: .remoteCommand, action: .wait),
+        "ssh_exec": .init(argumentKey: "command", activity: .sshCommand, action: .run),
+        "terminal_suggest": .init(argumentKey: "command", activity: .command, action: .suggest),
+        "sftp_list": .init(
+            argumentKey: "path", activity: .remoteFile, action: .list,
+            localizesAnyFallback: true
+        ),
+        "sftp_stat": .init(
+            argumentKey: "path", activity: .remoteFile, action: .inspect,
+            localizesAnyFallback: true
+        ),
+        "sftp_read": .init(
+            argumentKey: "path", activity: .remoteFile, action: .read,
+            localizesAnyFallback: true
+        ),
+        "sftp_write": .init(
+            argumentKey: "path", activity: .remoteFile, action: .write,
+            localizesAnyFallback: true
+        ),
+        "sftp_mkdir": .init(
+            argumentKey: "path", activity: .remoteFile, action: .create,
+            localizesAnyFallback: true
+        ),
+        "sftp_move": .init(
+            argumentKey: "path", activity: .remoteFile, action: .move,
+            localizesAnyFallback: true
+        ),
+        "sftp_chmod": .init(
+            argumentKey: "path", activity: .remoteFile, action: .changePermissions,
+            localizesAnyFallback: true
+        ),
+        "sftp_delete": .init(
+            argumentKey: "path", activity: .remoteFile, action: .delete,
+            localizesAnyFallback: true
+        ),
+        "request_user_input": .init(argumentKey: nil, activity: .question, action: .ask),
+        "request_user_secret": .init(argumentKey: "prompt", activity: .secret, action: .request),
+        "scratch_list": .init(
+            argumentKey: "path", activity: .scratchWorkspace, action: .list
+        ),
+        "scratch_read": .init(argumentKey: "path", activity: .scratchFile, action: .read),
+        "scratch_write": .init(argumentKey: "path", activity: .scratchFile, action: .write),
+        "scratch_edit": .init(argumentKey: "path", activity: .scratchFile, action: .edit),
+        "scratch_diff": .init(
+            argumentKey: "path_a", activity: .scratchFiles, action: .compare
+        ),
+        "scratch_delete": .init(
+            argumentKey: "path", activity: .scratchEntry, action: .delete
+        ),
+        "scratch_pull": .init(
+            argumentKey: "remote_path", activity: .remoteFile, action: .pull
+        ),
+        "scratch_push": .init(
+            argumentKey: "remote_path", activity: .remoteFile, action: .push
+        ),
+        "present_plan": .init(argumentKey: "title", activity: .plan, action: .present),
+        "manage_tasks": .init(argumentKey: nil, activity: .taskList, action: .update),
+    ]
 
     private static func lowercaseFirst(_ text: String) -> String {
         guard let first = text.first else { return text }

@@ -149,6 +149,34 @@ nonisolated struct TerminalAppearancePreferences: Hashable, Sendable {
     var fontSize: Double
 }
 
+@MainActor
+extension TerminalViewState {
+    func applyAppearance(_ preferences: TerminalAppearancePreferences) {
+        let light = TermindTerminalThemeCatalog.terminalConfiguration(
+            themeName: preferences.lightThemeName,
+            customEnabled: preferences.lightCustomEnabled,
+            customText: preferences.lightCustomConfiguration,
+            isDark: false
+        )
+        let dark = TermindTerminalThemeCatalog.terminalConfiguration(
+            themeName: preferences.darkThemeName,
+            customEnabled: preferences.darkCustomEnabled,
+            customText: preferences.darkCustomConfiguration,
+            isDark: true
+        )
+        setTheme(GhosttyTerminal.TerminalTheme(light: light, dark: dark))
+        setTerminalConfiguration(
+            GhosttyTerminal.TerminalConfiguration { builder in
+                if !preferences.fontFollowTheme {
+                    builder.withFontSize(Float(preferences.fontSize))
+                }
+                builder.withWindowPaddingX(Int(Metrics.Space.m))
+                builder.withWindowPaddingY(Int(Metrics.Space.m))
+            }
+        )
+    }
+}
+
 struct ResolvedTerminalAppearance {
     var preferences: TerminalAppearancePreferences
     var background: Color

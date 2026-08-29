@@ -56,10 +56,6 @@ nonisolated enum SettingsKey {
     static let onboardingQuickOpenCompleted = "onboarding.quickOpen.completed"
     static let onboardingStatusBarPathCompleted = "onboarding.statusBarPath.completed"
     static let onboardingCommandGeneratorCompleted = "onboarding.commandGenerator.completed"
-    static var isRemoteWindowTitleInMenuBarEnabled: Bool {
-        UserDefaults.standard.object(forKey: remoteWindowTitleInMenuBar) as? Bool
-            ?? defaultRemoteWindowTitleInMenuBarEnabled
-    }
     /// Restore the previous window's Workspaces on launch. Keep the persisted
     /// key stable so this UI rename does not discard the user's preference.
     static let restoreWorkspaces = "window.restoreTabs"

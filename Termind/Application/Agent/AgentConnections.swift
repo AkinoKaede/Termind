@@ -833,10 +833,9 @@ actor AgentConnectionPool {
     private let openExec: ExecOpening
     private let openSFTP: SFTPOpening
     private let idleTimeout: Duration
-    private let sweepInterval: Duration?
+    private let sweeper: AgentIdleSweeper
     private var entries: [Key: Entry] = [:]
     private var pending: [Key: InFlight] = [:]
-    private var sweeper: Task<Void, Never>?
 
     init(
         configuration: @escaping ConfigurationResolving,
@@ -851,7 +850,7 @@ actor AgentConnectionPool {
         self.openExec = openExec
         self.openSFTP = openSFTP
         self.idleTimeout = idleTimeout
-        self.sweepInterval = sweepInterval
+        sweeper = AgentIdleSweeper(interval: sweepInterval)
     }
 
     /// Runs one command on the host's pooled session, opening one if needed.
@@ -1032,18 +1031,14 @@ actor AgentConnectionPool {
     }
 
     private func startSweeping() {
-        guard sweeper == nil, let sweepInterval else { return }
-        sweeper = Task { [weak self, sweepInterval] in
-            while !Task.isCancelled {
-                do { try await Task.sleep(for: sweepInterval) } catch { return }
-                guard let self, await self.sweepIdle(now: .now) > 0 else { return }
-            }
+        sweeper.start { [weak self] in
+            guard let self else { return 0 }
+            return await self.sweepIdle(now: .now)
         }
     }
 
     private func stopSweepingIfEmpty() {
         guard entries.isEmpty, pending.isEmpty else { return }
-        sweeper?.cancel()
-        sweeper = nil
+        sweeper.stop()
     }
 }

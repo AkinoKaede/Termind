@@ -24,13 +24,10 @@ nonisolated struct ChatProbe: Sendable {
         if let session {
             self.session = session
         } else {
-            let configuration = URLSessionConfiguration.ephemeral
             // Longer than the catalog client's: a reasoning model can take a
             // few seconds to answer even this, and timing it out would report a
             // working setup as broken.
-            configuration.timeoutIntervalForRequest = 60
-            configuration.waitsForConnectivity = false
-            self.session = URLSession(configuration: configuration)
+            self.session = ProviderNetworking.session(timeout: 60)
         }
     }
 
@@ -56,7 +53,9 @@ nonisolated struct ChatProbe: Sendable {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try Self.body(for: model, on: provider)
-        try await authorize(&request, provider: provider, secret: secret)
+        try await ProviderNetworking.authorize(
+            &request, provider: provider, secret: secret
+        )
 
         let started = Date()
         let data: Data
@@ -84,28 +83,6 @@ nonisolated struct ChatProbe: Sendable {
         let resolved = provider.resolvedRequestURL(model: model.id)
         guard let url = URL(string: resolved) else { throw ModelCatalogError.badURL(resolved) }
         return url
-    }
-
-    // MARK: - Who
-
-    private func authorize(_ request: inout URLRequest, provider: ModelProvider, secret: String) async throws {
-        switch provider.kind {
-        case .openAI:
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
-        case .anthropic:
-            request.setValue(secret, forHTTPHeaderField: "x-api-key")
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        case .google:
-            if provider.usesVertex {
-                // `secret` is the service account JSON here, not a key. The
-                // exchange is cached, so pressing Test on six models mints one
-                // token rather than six.
-                let token = try await GoogleServiceAccountAuth.shared.accessToken(serviceAccountJSON: secret)
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            } else {
-                request.setValue(secret, forHTTPHeaderField: "x-goog-api-key")
-            }
-        }
     }
 
     // MARK: - What

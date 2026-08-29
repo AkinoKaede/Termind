@@ -418,31 +418,30 @@ nonisolated extension SSHExecTool {
 nonisolated enum SSHCommandPresentation {
     static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
-        guard let object = input.result.objectValue else {
-            return F.genericItems(input.result, locale: input.locale)
+        return F.objectItems(input) { object in
+            var items: [AgentToolDetail.Item] = []
+            if let status = object["status"]?.stringValue {
+                items.append(F.field(
+                    "Status", F.statusLabel(status, locale: input.locale), locale: input.locale
+                ))
+            }
+            if let code = object["exit_code"]?.integerValue {
+                items.append(F.field("Exit code", String(code), locale: input.locale, monospaced: true))
+            }
+            F.appendField(&items, "Signal", object["signal"]?.stringValue,
+                          locale: input.locale, monospaced: true)
+            let stdout = object["stdout"]?.stringValue ?? ""
+            let stderr = object["stderr"]?.stringValue ?? ""
+            if !stdout.isEmpty { items.append(F.text("Standard output", stdout, locale: input.locale)) }
+            if !stderr.isEmpty { items.append(F.text("Standard error", stderr, locale: input.locale)) }
+            if stdout.isEmpty, stderr.isEmpty, object["note"] == nil {
+                items.append(.message(F.localized("No output", locale: input.locale), .secondary))
+            }
+            if let note = F.nonempty(object["note"]?.stringValue) {
+                items.append(.message(note, .warning))
+            }
+            return items
         }
-        var items: [AgentToolDetail.Item] = []
-        if let status = object["status"]?.stringValue {
-            items.append(F.field(
-                "Status", F.statusLabel(status, locale: input.locale), locale: input.locale
-            ))
-        }
-        if let code = object["exit_code"]?.integerValue {
-            items.append(F.field("Exit code", String(code), locale: input.locale, monospaced: true))
-        }
-        F.appendField(&items, "Signal", object["signal"]?.stringValue,
-                      locale: input.locale, monospaced: true)
-        let stdout = object["stdout"]?.stringValue ?? ""
-        let stderr = object["stderr"]?.stringValue ?? ""
-        if !stdout.isEmpty { items.append(F.text("Standard output", stdout, locale: input.locale)) }
-        if !stderr.isEmpty { items.append(F.text("Standard error", stderr, locale: input.locale)) }
-        if stdout.isEmpty, stderr.isEmpty, object["note"] == nil {
-            items.append(.message(F.localized("No output", locale: input.locale), .secondary))
-        }
-        if let note = F.nonempty(object["note"]?.stringValue) {
-            items.append(.message(note, .warning))
-        }
-        return items
     }
 }
 
@@ -459,9 +458,7 @@ nonisolated extension ListHostsTool {
         _ input: AgentToolDetailInput
     ) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
-        guard let object = input.result.objectValue else {
-            return F.genericItems(input.result, locale: input.locale)
-        }
+        return F.objectItems(input) { object in
         let hostValues = object["hosts"]?.arrayValue ?? []
         let groupValues = object["groups"]?.arrayValue ?? []
         var groups: [HostGroupDetailProjection] = []
@@ -535,6 +532,7 @@ nonisolated extension ListHostsTool {
             summary: summary.joined(separator: " · "), sections: sections,
             isScrollable: hostValues.count > 12
         ))]
+        }
     }
 
     private static func hostDetailRow(

@@ -98,7 +98,7 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
     deinit { cleanup() }
 
     func connect(using configuration: SSHConnectionConfiguration) async throws {
-        try await perform {
+        try await queue.perform {
             self.cleanup()
             let (transport, session) = try SSHSessionWorker.openAuthenticatedSession(
                 using: configuration, timeout: 20
@@ -110,14 +110,14 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
         }
     }
 
-    func disconnect() async { await performNoThrow { self.cleanup() } }
+    func disconnect() async { await queue.perform { self.cleanup() } }
 
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
         timeout: TimeInterval, outputLimit: Int, cancellation: TransferCancellationToken,
         onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
-        try await perform {
+        try await queue.perform {
             do {
                 return try self.executeOnQueue(
                     command, workingDirectory: workingDirectory, stdin: stdin,
@@ -359,23 +359,6 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
         }
         routeTransport?.close()
         routeTransport = nil
-    }
-
-    private func perform<T: Sendable>(
-        _ operation: @escaping @Sendable () throws -> T
-    ) async throws -> T {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                do { continuation.resume(returning: try operation()) }
-                catch { continuation.resume(throwing: error) }
-            }
-        }
-    }
-
-    private func performNoThrow(_ operation: @escaping @Sendable () -> Void) async {
-        await withCheckedContinuation { continuation in
-            queue.async { operation(); continuation.resume() }
-        }
     }
 
     private static func shellQuote(_ value: String) -> String {

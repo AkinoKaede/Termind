@@ -188,33 +188,20 @@ actor AgentCompactionService {
             tools: []
         )
 
-        var text = ""
-        var stopReason: AgentStopReason?
-        for event in try await model.complete(request) {
-            try Task.checkCancellation()
-            switch event {
-            case .textDelta(let delta):
-                text += delta
-            case .textSnapshot(let snapshot):
-                text = snapshot
-            case .toolCallDelta, .toolCallSnapshot:
-                // A summarizer is given no tools. A response carrying a call is
-                // answering some other question.
-                throw AgentCompactionError.invalidResponse
-            case .reasoningDelta, .reasoningSnapshot, .providerItem, .webSearch, .usage:
-                continue
-            case .finished(let reason):
-                stopReason = reason
-            }
+        let response: AgentBufferedTextResponse
+        do {
+            response = try await model.collectText(request)
+        } catch is AgentBufferedTextError {
+            throw AgentCompactionError.invalidResponse
         }
         // `.length` is accepted rather than rejected: a summary the model ran
         // out of room to finish is still most of a summary, and the alternative
         // is a conversation that cannot continue at all.
-        if let stopReason, stopReason == .error {
+        if response.stopReason == .error {
             throw AgentCompactionError.invalidResponse
         }
 
-        let summary = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let summary = response.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !summary.isEmpty else { throw AgentCompactionError.invalidResponse }
         return String(summary.prefix(Self.maximumSummaryCharacters))
     }

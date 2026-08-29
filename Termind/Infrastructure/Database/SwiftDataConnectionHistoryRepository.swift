@@ -36,48 +36,41 @@ final class SwiftDataConnectionHistoryRepository: ConnectionHistoryRepository {
     }
 
     func insert(_ entry: ConnectionHistoryEntry, limit: Int) throws {
-        do {
+        try context.commit {
             context.insert(PersistentConnectionHistoryEntry(entry))
-            try context.save()
-
+        }
+        try context.commit {
             var overflow = FetchDescriptor<PersistentConnectionHistoryEntry>(
                 sortBy: [SortDescriptor(\.connectedAt, order: .reverse)]
             )
             overflow.fetchOffset = limit
-            let oldRows = try context.fetch(overflow)
-            if !oldRows.isEmpty {
-                for row in oldRows { context.delete(row) }
-                try context.save()
-            }
-        } catch { context.rollback(); throw error }
+            for row in try context.fetch(overflow) { context.delete(row) }
+        }
     }
 
     func delete(_ id: ConnectionHistoryEntry.ID) throws {
-        do {
+        try context.commit {
             var descriptor = FetchDescriptor<PersistentConnectionHistoryEntry>(
                 predicate: #Predicate { $0.id == id }
             )
             descriptor.fetchLimit = 1
             if let row = try context.fetch(descriptor).first { context.delete(row) }
-            try context.save()
-        } catch { context.rollback(); throw error }
+        }
     }
 
     func clear(for hostID: Host.ID) throws {
-        do {
+        try context.commit {
             try context.delete(
                 model: PersistentConnectionHistoryEntry.self,
                 where: #Predicate { $0.hostID == hostID }
             )
-            try context.save()
-        } catch { context.rollback(); throw error }
+        }
     }
 
     func clearAll() throws {
-        do {
+        try context.commit {
             try context.delete(model: PersistentConnectionHistoryEntry.self)
-            try context.save()
-        } catch { context.rollback(); throw error }
+        }
     }
 }
 

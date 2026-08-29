@@ -89,59 +89,57 @@ nonisolated struct WebSearchTool: AgentToolDefinition, AgentToolSchemaBuilding {
 nonisolated extension FetchTool {
     static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
-        guard let object = input.result.objectValue else {
-            return F.genericItems(input.result, locale: input.locale)
+        return F.objectItems(input) { object in
+            var items: [AgentToolDetail.Item] = []
+            if let title = F.nonempty(object["title"]?.stringValue) {
+                items.append(F.field("Title", title, locale: input.locale))
+            }
+            if let url = F.nonempty(object["url"]?.stringValue) {
+                items.append(.field(.init(
+                    label: F.localized("URL", locale: input.locale), value: url,
+                    isMonospaced: true, url: url
+                )))
+            }
+            let format = object["format"]?.stringValue ?? "markdown"
+            let content = object["content"]?.stringValue ?? ""
+            items.append(content.isEmpty
+                ? .message(F.localized("No readable page content", locale: input.locale), .secondary)
+                : .text(.init(
+                    title: F.localized(format == "original" ? "Original HTML" : "Markdown",
+                                       locale: input.locale),
+                    text: content, style: .plain
+                )))
+            return items
         }
-        var items: [AgentToolDetail.Item] = []
-        if let title = F.nonempty(object["title"]?.stringValue) {
-            items.append(F.field("Title", title, locale: input.locale))
-        }
-        if let url = F.nonempty(object["url"]?.stringValue) {
-            items.append(.field(.init(
-                label: F.localized("URL", locale: input.locale), value: url,
-                isMonospaced: true, url: url
-            )))
-        }
-        let format = object["format"]?.stringValue ?? "markdown"
-        let content = object["content"]?.stringValue ?? ""
-        items.append(content.isEmpty
-            ? .message(F.localized("No readable page content", locale: input.locale), .secondary)
-            : .text(.init(
-                title: F.localized(format == "original" ? "Original HTML" : "Markdown",
-                                   locale: input.locale),
-                text: content, style: .plain
-            )))
-        return items
     }
 }
 
 nonisolated extension WebSearchTool {
     static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
-        guard let values = input.result.arrayValue else {
-            return F.genericItems(input.result, locale: input.locale)
+        return F.arrayItems(input) { values in
+            let rows = values.compactMap { entry -> AgentToolDetail.ListRow? in
+                guard let object = entry.objectValue else { return nil }
+                let url = F.nonempty(object["url"]?.stringValue)
+                let title = F.nonempty(object["title"]?.stringValue) ?? url
+                    ?? F.localized("Untitled result", locale: input.locale)
+                let engine = F.nonempty(object["engine"]?.stringValue)
+                let truncated = object["truncated"]?.boolValue == true
+                    ? F.localized("Truncated", locale: input.locale) : nil
+                return .init(
+                    title: title, subtitle: url,
+                    detail: [engine, truncated].compactMap { $0 }.joined(separator: " · "),
+                    symbol: "link", url: url
+                )
+            }
+            return [
+                .message(String(localized: "\(rows.count) results", locale: input.locale), .secondary),
+                .list(.init(
+                    title: nil, rows: rows,
+                    emptyMessage: F.localized("No results", locale: input.locale)
+                )),
+            ]
         }
-        let rows = values.compactMap { entry -> AgentToolDetail.ListRow? in
-            guard let object = entry.objectValue else { return nil }
-            let url = F.nonempty(object["url"]?.stringValue)
-            let title = F.nonempty(object["title"]?.stringValue) ?? url
-                ?? F.localized("Untitled result", locale: input.locale)
-            let engine = F.nonempty(object["engine"]?.stringValue)
-            let truncated = object["truncated"]?.boolValue == true
-                ? F.localized("Truncated", locale: input.locale) : nil
-            return .init(
-                title: title, subtitle: url,
-                detail: [engine, truncated].compactMap { $0 }.joined(separator: " · "),
-                symbol: "link", url: url
-            )
-        }
-        return [
-            .message(String(localized: "\(rows.count) results", locale: input.locale), .secondary),
-            .list(.init(
-                title: nil, rows: rows,
-                emptyMessage: F.localized("No results", locale: input.locale)
-            )),
-        ]
     }
 }
 
