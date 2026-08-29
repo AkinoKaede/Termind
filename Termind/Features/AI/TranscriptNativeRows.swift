@@ -1655,11 +1655,14 @@ private final class NativeMarkdownView: NSView {
 
     private func shell(language: String, command: String, actions: Actions) -> NSView {
         let assessment = CommandRiskClassifier.assess(command)
-        let card = NativeCard(radius: Metrics.Radius.medium)
-        card.fillProvider = { NSColor.quaternaryLabelColor.withAlphaComponent(0.3) }
-        if assessment.risk == .destructive {
-            card.strokeProvider = { NSColor.systemRed.withAlphaComponent(0.4) }
+        let card = NativeCard(radius: Metrics.Radius.large)
+        card.fillProvider = { .controlBackgroundColor }
+        card.strokeProvider = {
+            assessment.risk == .destructive
+                ? NSColor.systemRed.withAlphaComponent(0.4)
+                : .separatorColor
         }
+        card.layer?.masksToBounds = true
         let stack = NativeStack.vertical()
         stack.edgeInsets = .init(
             top: Metrics.Chat.codeInset,
@@ -2704,12 +2707,16 @@ private final class NativeSpacer: NSView {
 
 @MainActor
 private final class NativeCard: NSView {
-    var fillProvider: () -> NSColor = {
-        NSColor.quaternaryLabelColor.withAlphaComponent(0.2)
+    var fillProvider: () -> NSColor {
+        didSet { updateLayer() }
     }
-    var strokeProvider: (() -> NSColor)?
+    var strokeProvider: (() -> NSColor)? {
+        didSet { updateLayer() }
+    }
     var onLayout: (() -> Void)?
     init(radius: CGFloat) {
+        fillProvider = { NSColor.quaternaryLabelColor.withAlphaComponent(0.2) }
+        strokeProvider = nil
         super.init(frame: .zero)
         wantsLayer = true
         layer?.cornerRadius = radius

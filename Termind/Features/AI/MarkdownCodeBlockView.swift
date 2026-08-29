@@ -59,10 +59,16 @@ private struct ShellCodeBlockView: View {
             actions
         }
         .padding(Metrics.Chat.codeInset)
-        .background(.quaternary.opacity(0.3), in: .rect(cornerRadius: Metrics.Radius.medium))
+        .background(
+            Color(nsColor: .controlBackgroundColor),
+            in: .rect(cornerRadius: Metrics.Radius.large)
+        )
         .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.medium)
-                .strokeBorder(assessment.risk == .destructive ? Color.red.opacity(0.4) : .clear)
+            RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                .strokeBorder(
+                    assessment.risk == .destructive
+                        ? Color.red.opacity(0.4) : Color.secondary.opacity(0.2)
+                )
         }
         .confirmationDialog(
             Text("Run a destructive command?"),
