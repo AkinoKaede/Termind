@@ -235,7 +235,7 @@ struct StatusBarView: View {
 
     private func workingDirectoryButton(_ path: String, displayed: String) -> some View {
         Button {
-            openInSFTP(path, placement: .newWorkspace)
+            openInSFTP(path, placement: .currentWorkspace)
         } label: {
             item("folder", displayed)
         }
@@ -244,10 +244,10 @@ struct StatusBarView: View {
         .accessibilityLabel(Text("Open in SFTP"))
         .contextMenu {
             Menu("Open in SFTP") {
-                Button("New Workspace") { openInSFTP(path, placement: .newWorkspace) }
                 Button("Current Workspace") {
                     openInSFTP(path, placement: .currentWorkspace)
                 }
+                Button("New Workspace") { openInSFTP(path, placement: .newWorkspace) }
             }
             Button("Copy Path") { copyToPasteboard(path) }
         }
@@ -255,7 +255,7 @@ struct StatusBarView: View {
 
     private func sftpDirectoryButton(_ path: String, displayed: String) -> some View {
         Button {
-            openInSSH(path, placement: .newWorkspace)
+            openInSSH(path, placement: .currentWorkspace)
         } label: {
             item("folder", displayed)
         }
@@ -264,10 +264,10 @@ struct StatusBarView: View {
         .accessibilityLabel(Text("Open in SSH"))
         .contextMenu {
             Menu("Open in SSH") {
-                Button("New Workspace") { openInSSH(path, placement: .newWorkspace) }
                 Button("Current Workspace") {
                     openInSSH(path, placement: .currentWorkspace)
                 }
+                Button("New Workspace") { openInSSH(path, placement: .newWorkspace) }
             }
             Button("Copy Path") { copyToPasteboard(path) }
         }
