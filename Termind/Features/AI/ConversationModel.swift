@@ -2427,23 +2427,31 @@ extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 // MARK: - Demo data
 
 extension ConversationModel {
-    static func demo() -> ConversationModel {
+    static func demo(language: AppLanguage = .english) -> ConversationModel {
+        func text(_ en: String, _ zh: String) -> String {
+            language == .simplifiedChineseChina ? zh : en
+        }
         let now = Date(timeIntervalSinceReferenceDate: 809_020_800)
         let user = ChatMessage(
             role: .user,
-            text: "Find the cause of the 502 responses. Inspect only—do not change configuration.",
+            text: text(
+                "Find the cause of the 502 responses. Inspect only—do not change configuration.",
+                "查明 502 响应的原因。仅检查，不要更改配置。"
+            ),
             createdAt: now.addingTimeInterval(-18)
         )
         let answer = ChatMessage(
             role: .assistant,
-            text:
+            text: text(
                 "The upstream service is not listening on `127.0.0.1:8080`. Nginx itself is healthy, and no configuration was changed. Start the upstream service, then verify `/health` before considering a reload.",
+                "上游服务没有监听 `127.0.0.1:8080`。Nginx 本身运行正常，且没有更改任何配置。请先启动上游服务并验证 `/health`，再考虑重新加载。"
+            ),
             createdAt: now
         )
         let runID = UUID()
         let descriptor = AgentToolDescriptor(
             name: "ssh_exec",
-            summary: "Run a command on a remote host.",
+            summary: text("Run a command on a remote host.", "在远程主机上运行命令。"),
             inputSchema: .object([:]), target: .host, safety: .locallyReadOnly,
             concurrency: .parallel,
             presentation: AgentToolDescriptor.Presentation(
@@ -2471,7 +2479,7 @@ extension ConversationModel {
             )
         }
         let conversation = ConversationModel(messages: [user, answer])
-        conversation.customTitle = "Diagnose 502 responses"
+        conversation.customTitle = text("Diagnose 502 responses", "诊断 502 响应")
         conversation.messages = [
             user, answer,
         ]

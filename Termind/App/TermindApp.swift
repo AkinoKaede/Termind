@@ -17,14 +17,23 @@ struct TermindApp: App {
     init() {
         ContextAttachmentOpener.cleanPreviousSession()
         ScrubberWebClient.setup()
-        let screenshotDemo = ScreenshotDemoMode.active
-        launchLanguage = ScreenshotDemoMode.language ?? AppLanguage.stored()
+        #if DEBUG
+            let screenshotDemo = ScreenshotDemoConfiguration.active
+            launchLanguage = screenshotDemo?.language ?? AppLanguage.stored()
+        #else
+            launchLanguage = AppLanguage.stored()
+        #endif
         do {
             let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"]
                 != nil
+            #if DEBUG
+                let usesInMemoryStore = isRunningTests || screenshotDemo != nil
+            #else
+                let usesInMemoryStore = isRunningTests
+            #endif
             let configuration = ModelConfiguration(
                 "Termind", schema: HostPersistence.schema,
-                isStoredInMemoryOnly: isRunningTests || screenshotDemo != nil,
+                isStoredInMemoryOnly: usesInMemoryStore,
                 cloudKitDatabase: .none
             )
             let container = try ModelContainer(
@@ -33,16 +42,18 @@ struct TermindApp: App {
                 configurations: [configuration]
             )
             modelContainer = container
-            if let screenshotDemo {
-                let hosts = HostLibraryModel.demo()
-                let app = AppModel(
-                    hosts: hosts, ai: .demo(), proAccess: .unrestrictedForTesting(),
-                    onboarding: OnboardingController(automaticPresentationEnabled: false)
-                )
-                _app = State(initialValue: app)
-                launchWindow = screenshotDemo.makeWindow(hosts: hosts)
-                return
-            }
+            #if DEBUG
+                if let screenshotDemo {
+                    let hosts = HostLibraryModel.demo(language: screenshotDemo.language)
+                    let app = AppModel(
+                        hosts: hosts, ai: .demo(), proAccess: .unrestrictedForTesting(),
+                        onboarding: OnboardingController(automaticPresentationEnabled: false)
+                    )
+                    _app = State(initialValue: app)
+                    launchWindow = screenshotDemo.makeWindow(hosts: hosts)
+                    return
+                }
+            #endif
             let secrets = KeychainSecretStore()
             LegacyWebSearchSettings.remove { reference in
                 try secrets.setString(nil, for: reference, storage: .thisDevice)
@@ -169,21 +180,23 @@ struct TermindApp: App {
             // frame from macOS state restoration. Each demo owns its capture
             // size so tightly focused scenes do not inherit the larger
             // workspace composition.
-            if let screenshotDemo = ScreenshotDemoMode.active {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-                    guard let window = NSApp.windows.first(where: \.isVisible) else { return }
-                    window.isRestorable = false
-                    window.contentMinSize = .zero
-                    window.setFrame(
-                        NSRect(
-                            origin: window.frame.origin,
-                            size: screenshotDemo.windowSize
-                        ),
-                        display: true
-                    )
-                    window.center()
+            #if DEBUG
+                if let screenshotDemo = ScreenshotDemoConfiguration.active {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                        guard let window = NSApp.windows.first(where: \.isVisible) else { return }
+                        window.isRestorable = false
+                        window.contentMinSize = .zero
+                        window.setFrame(
+                            NSRect(
+                                origin: window.frame.origin,
+                                size: screenshotDemo.windowSize
+                            ),
+                            display: true
+                        )
+                        window.center()
+                    }
                 }
-            }
+            #endif
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
