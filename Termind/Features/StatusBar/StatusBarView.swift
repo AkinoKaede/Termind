@@ -374,6 +374,7 @@ private struct TransferCenterButton: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .termindInputAwareFocusEffect()
         .help(Text(summary))
         .accessibilityLabel(Text(summary))
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
@@ -428,6 +429,7 @@ private struct TransferCenterPopover: View {
                         if coordinator.sftpTransfers.isEmpty { dismiss() }
                     }
                     .buttonStyle(.plain)
+                    .termindInputAwareFocusEffect()
                     .foregroundStyle(.tint)
                 }
             }
@@ -681,6 +683,7 @@ private struct TransferCenterRow: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .termindInputAwareFocusEffect()
                 .help("Cancel transfer")
                 .accessibilityLabel("Cancel transfer")
             }

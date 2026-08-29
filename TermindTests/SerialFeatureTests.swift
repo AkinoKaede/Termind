@@ -26,12 +26,12 @@ nonisolated private struct InertSerialService: SerialPortServing {
 @Suite
 struct SerialFeatureTests {
     @Test
-    func defaultConfigurationIs115200EightNOneWithRawCarriageReturn() {
+    func defaultConfigurationIs9600EightNOneWithRawCarriageReturn() {
         var configuration = SerialConnectionConfiguration()
         configuration.devicePath = "/dev/ttyUSB0"
 
         #expect(configuration.isValid)
-        #expect(configuration.summary == "115200 8-N-1")
+        #expect(configuration.summary == "9600 8-N-1")
         #expect(configuration.flowControl == .none)
         #expect(configuration.enterKey == .carriageReturn)
         #expect(!configuration.localEcho)

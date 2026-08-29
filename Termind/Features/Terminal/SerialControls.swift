@@ -40,6 +40,7 @@ struct SerialEditableComboField: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
+                .termindInputAwareFocusEffect()
                 .fixedSize()
                 // Arrow on the popover's top edge keeps the option list below
                 // the editable field instead of letting NSMenu align it beside
@@ -110,6 +111,7 @@ struct SerialEditableComboField: View {
                             .foregroundStyle(.primary)
                         }
                         .buttonStyle(.plain)
+                        .termindInputAwareFocusEffect()
                     }
                 }
             }

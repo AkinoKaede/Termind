@@ -49,6 +49,7 @@ struct SidebarNavigatorRow<Trailing: View>: View {
             .modifier(SidebarRowChrome(isSelected: isSelected, menu: menu))
         }
         .buttonStyle(.plain)
+        .termindInputAwareFocusEffect()
         .disabled(!isEnabled)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

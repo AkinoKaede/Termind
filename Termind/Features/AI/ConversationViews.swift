@@ -1431,6 +1431,7 @@ struct ComposerView: View {
             }
         }
         .buttonStyle(.plain)
+        .termindInputAwareFocusEffect()
         .fixedSize()
         .popover(isPresented: $isPermissionPickerPresented, arrowEdge: .bottom) {
             permissionPopover
@@ -1457,6 +1458,7 @@ struct ComposerView: View {
                         permissionOptionRow(mode)
                     }
                     .buttonStyle(.plain)
+                    .termindInputAwareFocusEffect()
                 }
             }
             .padding(.horizontal, Metrics.Space.s)
@@ -1561,6 +1563,7 @@ struct ComposerView: View {
             }
         }
         .buttonStyle(.plain)
+        .termindInputAwareFocusEffect()
         .foregroundStyle(.secondary)
         .fixedSize()
         .popover(isPresented: $isModelPickerPresented, arrowEdge: .bottom) {
@@ -1597,6 +1600,7 @@ struct ComposerView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .termindInputAwareFocusEffect()
 
                 if expandedModelPickerSection == .model {
                     modelOptions
@@ -1614,6 +1618,7 @@ struct ComposerView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .termindInputAwareFocusEffect()
 
                     if expandedModelPickerSection == .thinking {
                         thinkingOptions(reasoningResolution)
@@ -1641,6 +1646,7 @@ struct ComposerView: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
+            .termindInputAwareFocusEffect()
         }
         .frame(width: 264)
         .termindGlassSurface(cornerRadius: Metrics.Radius.large)
@@ -1690,6 +1696,7 @@ struct ComposerView: View {
                     pickerOptionRow(model.label, isSelected: selected)
                 }
                 .buttonStyle(.plain)
+                .termindInputAwareFocusEffect()
             }
         }
         // A max height alone has no intrinsic answer inside a newly presented
@@ -1728,6 +1735,7 @@ struct ComposerView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .termindInputAwareFocusEffect()
             }
         }
         .padding(.bottom, Metrics.Space.xs)
