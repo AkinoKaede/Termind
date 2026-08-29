@@ -73,7 +73,7 @@ nonisolated struct SerialConnectionConfiguration: Hashable, Sendable {
 
     var devicePath = ""
     var deviceName: String?
-    var baudRate = 115_200
+    var baudRate = 9_600
     var dataBits: SerialDataBits = .eight
     var parity: SerialParity = .none
     var stopBits: SerialStopBits = .one
