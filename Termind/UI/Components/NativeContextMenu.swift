@@ -1,6 +1,27 @@
 import AppKit
 import SwiftUI
 
+/// A destructive action inside a SwiftUI context menu.
+///
+/// `ButtonRole.destructive` communicates semantics but does not consistently
+/// tint macOS context-menu titles, so the label carries the same explicit red
+/// treatment as `NativeMenuEntry.isDestructive`.
+struct DestructiveMenuButton: View {
+    let title: LocalizedStringKey
+    let action: () -> Void
+
+    init(_ title: LocalizedStringKey, action: @escaping () -> Void) {
+        self.title = title
+        self.action = action
+    }
+
+    var body: some View {
+        Button(role: .destructive, action: action) {
+            Text(title).foregroundStyle(.red)
+        }
+    }
+}
+
 /// One row of a hand-built native menu.
 ///
 /// A value type rather than an `NSMenuItem` so callers never own a target, keep

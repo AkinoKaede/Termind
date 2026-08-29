@@ -202,14 +202,6 @@ final class HostLibraryModel {
         return hosts.filter { host in host.groupID.map(tree.contains) ?? false }
     }
 
-    func recents(limit: Int = 5) -> [Host] {
-        hosts
-            .compactMap { host in host.lastUsedAt.map { (host, $0) } }
-            .sorted { $0.1 > $1.1 }
-            .prefix(limit)
-            .map(\.0)
-    }
-
     func portForwardings(for host: Host.ID) -> [PortForwardingRule] {
         portForwardings.filter { $0.hostID == host }
     }
@@ -762,27 +754,6 @@ final class HostLibraryModel {
         portForwardings.removeAll { $0.hostID == hostID }
         connectionStatuses = connectionStatuses.filter { $0.value.hostID != hostID }
         statuses[hostID] = nil
-    }
-
-    func markUsed(_ id: Host.ID, at date: Date) {
-        guard let index = hosts.firstIndex(where: { $0.id == id }) else { return }
-        hosts[index].lastUsedAt = date
-        persistCore()
-    }
-
-    /// Empties the Recents list. Only `lastUsedAt` is cleared — the hosts
-    /// themselves stay, because "clear recents" is about history, not data.
-    func clearRecents() {
-        for index in hosts.indices {
-            hosts[index].lastUsedAt = nil
-        }
-        persistCore()
-    }
-
-    func forgetRecent(_ id: Host.ID) {
-        guard let index = hosts.firstIndex(where: { $0.id == id }) else { return }
-        hosts[index].lastUsedAt = nil
-        persistCore()
     }
 
     func setStatus(_ status: ConnectionStatus, for id: Host.ID) {

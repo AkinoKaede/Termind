@@ -1124,7 +1124,7 @@ private struct ModelRow: View {
             Button("Test", action: test)
                 .disabled(!canTest)
             Divider()
-            Button("Delete", role: .destructive, action: delete)
+            DestructiveMenuButton("Delete", action: delete)
         }
         .help(Text(result?.message ?? model.id))
         .accessibilityElement(children: .combine)

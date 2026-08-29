@@ -147,7 +147,7 @@ nonisolated struct SidebarListItem: Identifiable, Hashable, Sendable {
         case snippet(Snippet.ID)
         case history(CommandHistoryEntry.ID)
         case sftpHistory(SFTPHistoryEntry.ID)
-        case connection(Host.ID)
+        case connection(ConnectionHistoryEntry.ID)
     }
 
     nonisolated enum Content: Hashable, Sendable {
@@ -158,7 +158,7 @@ nonisolated struct SidebarListItem: Identifiable, Hashable, Sendable {
         case snippet(Snippet)
         case history(CommandHistoryEntry, isNaming: Bool)
         case sftpHistory(SFTPHistoryEntry)
-        case connection(Host, address: String)
+        case connection(ConnectionHistoryEntry, Host, address: String)
     }
 
     let id: ID
@@ -180,8 +180,13 @@ nonisolated struct SidebarListItem: Identifiable, Hashable, Sendable {
         .init(id: .sftpHistory(entry.id), content: .sftpHistory(entry))
     }
 
-    static func connection(_ host: Host, address: String) -> Self {
-        .init(id: .connection(host.id), content: .connection(host, address: address))
+    static func connection(
+        _ entry: ConnectionHistoryEntry, host: Host, address: String
+    ) -> Self {
+        .init(
+            id: .connection(entry.id),
+            content: .connection(entry, host, address: address)
+        )
     }
 
     /// One height for every content card, because they are one card with four
@@ -903,7 +908,7 @@ private struct SSHCommandHistorySidebar: View {
                     },
                     .separator,
                     NativeMenuEntry(
-                        title: String(localized: "Delete from History"),
+                        title: String(localized: "Remove this History"),
                         isDestructive: true
                     ) { delete(entry) },
                     NativeMenuEntry(
@@ -1036,7 +1041,7 @@ private struct SFTPBrowseHistorySidebar: View {
             SidebarSearchFooter(text: $query, placeholder: String(localized: "Search History"))
         }
         .confirmationDialog(
-            "Clear SFTP history for this Host?", isPresented: $confirmsClear,
+            "Clear File History for this Host?", isPresented: $confirmsClear,
             titleVisibility: .visible
         ) {
             Button("Clear History", role: .destructive) {
@@ -1050,7 +1055,8 @@ private struct SFTPBrowseHistorySidebar: View {
         [
             NativeMenuEntry(title: String(localized: "Open"), isEnabled: false),
             NativeMenuEntry(
-                title: String(localized: "Delete from History"), isEnabled: false
+                title: String(localized: "Remove this History"),
+                isEnabled: false, isDestructive: true
             ),
             .separator,
             NativeMenuEntry(
@@ -1080,7 +1086,7 @@ private struct SFTPBrowseHistorySidebar: View {
                 NativeMenuEntry(title: String(localized: "Open")) { reopen(entry) },
                 .separator,
                 NativeMenuEntry(
-                    title: String(localized: "Delete from History"), isDestructive: true
+                    title: String(localized: "Remove this History"), isDestructive: true
                 ) { app.sftpHistory.delete(entry.id) },
                 NativeMenuEntry(
                     title: String(localized: "Clear History"), isDestructive: true
@@ -1108,24 +1114,30 @@ private struct ConnectionHistorySidebar: View {
     @Environment(\.locale) private var locale
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-    @AppStorage(SettingsKey.showRecents) private var showRecents = true
     @State private var query = ""
-    @State private var selectedID: Host.ID?
+    @State private var selectedID: ConnectionHistoryEntry.ID?
     @State private var confirmsClear = false
 
-    private var allHosts: [Host] { showRecents ? app.hostLibrary.recents(limit: 10) : [] }
+    private var allRows: [(entry: ConnectionHistoryEntry, host: Host)] {
+        _ = app.connectionHistory.revision
+        return app.connectionHistory.entries().compactMap { entry in
+            app.hostLibrary.host(entry.hostID).map { (entry, $0) }
+        }
+    }
 
-    private var hosts: [Host] {
-        guard !query.isEmpty else { return allHosts }
-        return allHosts.filter {
-            $0.matches(query)
-                || app.hostLibrary.loginAddress(for: $0).localizedCaseInsensitiveContains(query)
+    private var rows: [(entry: ConnectionHistoryEntry, host: Host)] {
+        guard !query.isEmpty else { return allRows }
+        return allRows.filter { entry, host in
+            host.matches(query)
+                || app.hostLibrary.loginAddress(for: host)
+                    .localizedCaseInsensitiveContains(query)
+                || entry.kind.label.localizedCaseInsensitiveContains(query)
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if hosts.isEmpty {
+            if rows.isEmpty {
                 Group {
                     if query.isEmpty {
                         ContentUnavailableView(
@@ -1139,18 +1151,20 @@ private struct ConnectionHistorySidebar: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .sidebarBlankAreaMenu { globalMenu }
             } else {
-                // Never animated. Opening a host moves it to the top of
-                // Recents, and animating that reorder made the list jump
-                // upwards under a pointer aimed at the row that had just moved.
+                // Never animated. Reopening a record inserts a new one at the
+                // top, and animating that insertion moves the clicked row.
                 SidebarNativeList(
-                    items: hosts.map {
-                        .connection($0, address: app.hostLibrary.loginAddress(for: $0))
+                    items: rows.map { entry, host in
+                        .connection(
+                            entry, host: host,
+                            address: app.hostLibrary.loginAddress(for: host)
+                        )
                     },
                     animatesStructuralChanges: false,
                     blankAreaMenu: { globalMenu }
                 ) { item in
-                    if case .connection(let host, let address) = item.content {
-                        row(host, address: address)
+                    if case .connection(let entry, let host, let address) = item.content {
+                        row(entry, host: host, address: address)
                     }
                 }
             }
@@ -1163,11 +1177,11 @@ private struct ConnectionHistorySidebar: View {
             titleVisibility: .visible
         ) {
             Button("Clear History", role: .destructive) {
-                app.hostLibrary.clearRecents()
+                app.clearConnectionHistory()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This removes all Hosts from Recents without deleting the Hosts themselves.")
+            Text("This permanently removes all connection history without deleting any Hosts.")
         }
     }
 
@@ -1175,41 +1189,51 @@ private struct ConnectionHistorySidebar: View {
         [
             NativeMenuEntry(title: String(localized: "Quick Connect"), isEnabled: false),
             NativeMenuEntry(
-                title: String(localized: "Delete from History"), isEnabled: false
+                title: String(localized: "Remove this History"),
+                isEnabled: false, isDestructive: true
             ),
             .separator,
             NativeMenuEntry(
                 title: String(localized: "Clear History"),
-                isEnabled: !allHosts.isEmpty,
+                isEnabled: !allRows.isEmpty,
                 isDestructive: true
             ) { confirmsClear = true },
         ]
     }
 
-    private func row(_ host: Host, address: String) -> some View {
+    private func row(
+        _ entry: ConnectionHistoryEntry, host: Host, address: String
+    ) -> some View {
         SidebarCard(
-            symbol: "server.rack",
+            symbol: entry.kind.symbol,
             title: host.name,
             subtitle: address,
-            isSelected: selectedID == host.id
+            isSelected: selectedID == entry.id
         ) {
-            if let date = host.lastUsedAt {
-                Text(date, format: .relative(presentation: .numeric).locale(locale))
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(entry.kind.label)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Text(entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
         }
         .onTapGesture(count: 2) {
-            app.open(host, as: .sshSession, in: window)
+            app.open(
+                host,
+                as: entry.kind == .ssh ? .sshSession : .sftpSession,
+                in: window
+            )
         }
-        .onTapGesture { selectedID = host.id }
-        .termindSidebarRow(isSelected: selectedID == host.id) {
+        .onTapGesture { selectedID = entry.id }
+        .termindSidebarRow(isSelected: selectedID == entry.id) {
             HostMenuEntries.entries(for: host, app: app, window: window) + [
                 .separator,
                 NativeMenuEntry(
-                    title: String(localized: "Delete from History"), isDestructive: true
-                ) { app.hostLibrary.forgetRecent(host.id) },
+                    title: String(localized: "Remove this History"), isDestructive: true
+                ) { app.connectionHistory.delete(entry.id) },
                 NativeMenuEntry(
                     title: String(localized: "Clear History"), isDestructive: true
                 ) { confirmsClear = true },
@@ -1266,8 +1290,8 @@ private struct CommandHistoryCard: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .help("Delete from History")
-                    .accessibilityLabel("Delete from History")
+                    .help("Remove this History")
+                    .accessibilityLabel("Remove this History")
                 } else {
                     RiskBadge(
                         assessment: CommandRiskClassifier.assess(entry.command),

@@ -180,7 +180,7 @@ struct SnippetsPageView: ManagedCardPage {
                         openPackageEditor(packageID: package.id, parentID: package.parentID)
                     }
                     Divider()
-                    Button("Delete Package", role: .destructive) {
+                    DestructiveMenuButton("Delete Package") {
                         state.confirmation = .deletePackage(package)
                     }
                 }
@@ -542,7 +542,7 @@ private struct SnippetCard: View {
                 Button("Duplicate") { duplicate(snippet) }
             }
             Divider()
-            Button("Delete", role: .destructive) { delete(actionSnippets) }
+            DestructiveMenuButton("Delete") { delete(actionSnippets) }
         }
         .help(Text(snippet.body))
     }

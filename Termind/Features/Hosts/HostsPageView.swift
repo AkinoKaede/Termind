@@ -203,7 +203,7 @@ struct HostsPageView: ManagedCardPage {
             .contextMenu {
                 Button("Edit") { editGroup(group) }
                 Divider()
-                Button("Delete Group", role: .destructive) { requestDelete(group) }
+                DestructiveMenuButton("Delete Group") { requestDelete(group) }
             }
         } else {
             CardSectionHeader(
@@ -538,7 +538,7 @@ private struct HostCard: View {
             Spacer(minLength: Metrics.Space.xs)
 
             Text(
-                host.lastUsedAt
+                app.lastConnectedAt(for: host.id)
                     .map { $0.formatted(.relative(presentation: .numeric).locale(locale)) }
                     ?? String(localized: "Never")
             )

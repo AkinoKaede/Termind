@@ -7,6 +7,20 @@ import Testing
 @MainActor
 struct SFTPSessionTests {
     @Test
+    func workspaceSubtitleTracksSFTPPathEvenWhenRenamed() throws {
+        let host = Host(name: "Files", host: "files.example")
+        let store = HostLibraryModel(hosts: [host])
+        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
+        let session = try #require(workspace.focusedPane.sftpSession)
+
+        #expect(workspace.subtitle(in: store) == "/srv")
+        session.navigate(to: "/var/log")
+        #expect(workspace.subtitle(in: store) == "/var/log")
+        workspace.focusedPane.customTitle = "Logs"
+        #expect(workspace.subtitle(in: store) == "/var/log")
+    }
+
+    @Test
     func findFocusRequestsRepeatWithoutClearingTheQuery() throws {
         let host = Host(name: "Files", host: "files.example")
         let window = WindowModel(workspaces: [Workspace.sftpSession(host: host)])

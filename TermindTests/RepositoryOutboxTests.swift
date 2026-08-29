@@ -116,6 +116,12 @@ struct RepositoryOutboxTests {
                 CommandHistoryEntry(hostID: doomed.id, command: "uptime")
             )
         )
+        context.insert(PersistentSFTPHistoryEntry(
+            SFTPHistoryEntry(hostID: doomed.id, kind: .directory, path: "/srv")
+        ))
+        context.insert(PersistentConnectionHistoryEntry(
+            ConnectionHistoryEntry(hostID: doomed.id, kind: .ssh)
+        ))
         try context.save()
         let repository = SwiftDataHostRepository(context: context)
 
@@ -150,6 +156,8 @@ struct RepositoryOutboxTests {
         )
         #expect(try context.fetch(FetchDescriptor<PersistentPortForwardingRule>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentCommandHistoryEntry>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<PersistentSFTPHistoryEntry>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentPendingDeletion>()).isEmpty)
     }
 

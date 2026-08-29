@@ -18,6 +18,9 @@ final class PersistentHost {
     var groupID: UUID?
     var tags: [String] = []
     var colorTag = HostColor.none.rawValue
+    /// Legacy V1–V5 storage retained only so existing stores can migrate.
+    /// Recents and last-connected presentation are derived from connection
+    /// history; this column is never read or written by current code.
     var lastUsedAt: Date?
     var sortIndex = 0.0
 
@@ -41,7 +44,6 @@ final class PersistentHost {
         groupID = value.groupID
         tags = value.tags
         colorTag = value.colorTag.rawValue
-        lastUsedAt = value.lastUsedAt
         sortIndex = value.sortIndex
     }
 
@@ -50,7 +52,7 @@ final class PersistentHost {
             id: id, name: name, host: address, port: port,
             identityID: identityID, groupID: groupID, tags: tags,
             colorTag: HostColor(rawValue: colorTag) ?? .none,
-            lastUsedAt: lastUsedAt, sortIndex: sortIndex
+            sortIndex: sortIndex
         )
         host.jumpHostID = jumpHostID
         host.sftpSessionInitialPath = sftpSessionInitialPath
@@ -371,11 +373,19 @@ enum TermindSchemaV5: VersionedSchema {
     }
 }
 
+enum TermindSchemaV6: VersionedSchema {
+    static let versionIdentifier = Schema.Version(6, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV5.models + [PersistentConnectionHistoryEntry.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self,
-            TermindSchemaV4.self, TermindSchemaV5.self,
+            TermindSchemaV4.self, TermindSchemaV5.self, TermindSchemaV6.self,
         ]
     }
 
@@ -392,6 +402,16 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             ),
             MigrationStage.lightweight(
                 fromVersion: TermindSchemaV4.self, toVersion: TermindSchemaV5.self
+            ),
+            MigrationStage.custom(
+                fromVersion: TermindSchemaV5.self, toVersion: TermindSchemaV6.self,
+                willMigrate: nil,
+                didMigrate: { context in
+                    for host in try context.fetch(FetchDescriptor<PersistentHost>()) {
+                        host.lastUsedAt = nil
+                    }
+                    try context.save()
+                }
             )
         ]
     }
@@ -399,7 +419,7 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV5.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV6.self)
 
     let context: ModelContext
 

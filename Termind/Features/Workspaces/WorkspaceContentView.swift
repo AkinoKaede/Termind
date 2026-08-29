@@ -901,7 +901,7 @@ struct WelcomeView: View {
     @ViewBuilder
     private var results: some View {
         if query.isEmpty {
-            let hosts = app.hostLibrary.recents(limit: 6)
+            let hosts = app.recentHosts(limit: 6)
             if !hosts.isEmpty {
                 section("Recents") {
                     ForEach(hosts) { host in
@@ -977,7 +977,7 @@ private struct WelcomeHostRow: View {
 
     @ViewBuilder
     private var trailing: some View {
-        if let date = host.lastUsedAt {
+        if let date = app.lastConnectedAt(for: host.id) {
             Text(date, format: .relative(presentation: .numeric))
                 .foregroundStyle(.tertiary)
         }

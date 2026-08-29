@@ -55,6 +55,7 @@ final class AppModel {
     let transfers: TransferLibraryModel
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
+    let connectionHistory: ConnectionHistoryModel
     private let externalToolCalls: ToolAuditModel
     var toolAudit: ToolAuditModel { externalToolCalls }
     let externalAuthentication: ExternalAuthCoordinator
@@ -102,6 +103,7 @@ final class AppModel {
         hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
+        connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
         externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil
@@ -115,6 +117,7 @@ final class AppModel {
         transfers = TransferLibraryModel(library: hosts)
         self.commandHistory = commandHistory
         self.sftpHistory = sftpHistory
+        self.connectionHistory = connectionHistory
         self.externalToolCalls = externalToolCalls
         externalAuthentication = ExternalAuthCoordinator()
         connections = connectionCoordinator
@@ -247,6 +250,8 @@ final class AppModel {
                 closeWorkspaces(for: hostID)
                 sftpTransfers.cancelAll(for: hostID)
                 commandHistory.clear(for: hostID)
+                sftpHistory.clear(for: hostID)
+                connectionHistory.clear(for: hostID)
             }
         }
         if !changedRuleIDs.isEmpty { forwarding.stop(Array(changedRuleIDs)) }
@@ -851,6 +856,7 @@ final class AppModel {
             try hostRepository.requestHostDeletion(hostID)
             commandHistory.clear(for: hostID)
             sftpHistory.clear(for: hostID)
+            connectionHistory.clear(for: hostID)
             hosts.projectHostDeletion(hostID)
         } catch {
             hosts.reportStorageError(error)
@@ -957,13 +963,48 @@ final class AppModel {
     /// thing that should differ between them. Inlining this was fine while there
     /// were two.
     private func beginOpening(_ host: Host, as target: HostOpenTarget) {
-        hosts.markUsed(host.id, at: Date())
+        if hosts.host(host.id) != nil {
+            connectionHistory.record(
+                kind: target == .sshSession ? .ssh : .sftp,
+                for: host.id
+            )
+        }
         switch target {
         case .sshSession:
             hosts.setStatus(.connecting, for: host.id)
         case .sftpSession:
             break
         }
+    }
+
+    /// Clears every user-facing history owned by the selected saved Hosts.
+    /// Host records and credentials remain intact.
+    func clearAllHistory(for hostIDs: [Host.ID]) {
+        for hostID in Set(hostIDs) {
+            connectionHistory.clear(for: hostID)
+            commandHistory.clear(for: hostID)
+            sftpHistory.clear(for: hostID)
+        }
+    }
+
+    /// Clears the global connection timeline and the Recents projection it
+    /// supersedes in the History sidebar.
+    func clearConnectionHistory() {
+        connectionHistory.clearAll()
+    }
+
+    /// Saved Hosts ordered by their latest connection event, with each Host
+    /// appearing only once.
+    func recentHosts(limit: Int = 5) -> [Host] {
+        var seen = Set<Host.ID>()
+        return connectionHistory.entries().compactMap { entry in
+            guard seen.insert(entry.hostID).inserted else { return nil }
+            return hosts.host(entry.hostID)
+        }.prefix(limit).map { $0 }
+    }
+
+    func lastConnectedAt(for hostID: Host.ID) -> Date? {
+        connectionHistory.mostRecentDate(for: hostID)
     }
 
     /// Batch Startup, in either of its two shapes.

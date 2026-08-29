@@ -60,7 +60,6 @@ struct HostContextMenu: View {
                     var copy = host
                     copy.id = UUID()
                     copy.name = String(localized: "\(host.name) copy")
-                    copy.lastUsedAt = nil
                     app.hostLibrary.upsert(copy)
                 }
             }
@@ -78,15 +77,36 @@ struct HostContextMenu: View {
             Divider()
         }
 
-        Button("Remove from Recents") {
-            for host in hosts { app.hostLibrary.forgetRecent(host.id) }
-        }
-        .disabled(!hosts.contains { $0.lastUsedAt != nil })
-        Button("Delete", role: .destructive) {
-            for host in hosts { app.hostLibrary.delete(hostID: host.id) }
+        DestructiveMenuButton("Clear All History", action: confirmClearAllHistory)
+            .disabled(!hasHistory)
+        DestructiveMenuButton("Delete") {
+            for host in hosts { app.requestHostDeletion(host.id) }
             selectionDeleted?()
         }
         .disabled(hosts.isEmpty)
+    }
+
+    private func confirmClearAllHistory() {
+        #if canImport(AppKit)
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "Clear all history for the selected Hosts?")
+            alert.informativeText = String(
+                localized: "This permanently removes connection, command, and File History without deleting the Hosts."
+            )
+            alert.addButton(withTitle: String(localized: "Clear All History"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        #endif
+        app.clearAllHistory(for: hosts.map(\.id))
+    }
+
+    private var hasHistory: Bool {
+        hosts.contains { host in
+            !app.connectionHistory.entries(for: host.id).isEmpty
+                || !app.commandHistory.entries(for: host.id).isEmpty
+                || !app.sftpHistory.entries(for: host.id).isEmpty
+        }
     }
 }
 

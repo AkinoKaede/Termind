@@ -955,7 +955,7 @@ struct SFTPBrowserView: View {
                     .disabled(!sftpSession.allowsRemoteMutations)
             }
         }
-        Button(targets.count == 1 ? "Delete" : "Delete \(targets.count) Items", role: .destructive) {
+        DestructiveMenuButton(targets.count == 1 ? "Delete" : "Delete \(targets.count) Items") {
             deleteTargets = targets
         }
         .disabled(!sftpSession.allowsRemoteMutations)

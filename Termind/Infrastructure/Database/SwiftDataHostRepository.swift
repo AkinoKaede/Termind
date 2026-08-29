@@ -115,6 +115,14 @@ final class SwiftDataHostRepository: HostRepository {
             model: PersistentCommandHistoryEntry.self,
             where: #Predicate { $0.hostID == hostID }
         )
+        try context.delete(
+            model: PersistentSFTPHistoryEntry.self,
+            where: #Predicate { $0.hostID == hostID }
+        )
+        try context.delete(
+            model: PersistentConnectionHistoryEntry.self,
+            where: #Predicate { $0.hostID == hostID }
+        )
         try commitMutation()
     }
 

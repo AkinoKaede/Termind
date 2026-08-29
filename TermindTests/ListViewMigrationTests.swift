@@ -149,12 +149,17 @@ struct ListViewMigrationTests {
     @Test
     func everyHistoryKindSharesOneCardHeight() {
         let hostID = UUID()
+        let connection = ConnectionHistoryEntry(hostID: hostID, kind: .ssh)
         let items: [SidebarListItem] = [
             .history(CommandHistoryEntry(hostID: hostID, command: "pwd"), isNaming: false),
             .sftpHistory(
                 SFTPHistoryEntry(hostID: hostID, kind: .directory, path: "/var/log")
             ),
-            .connection(Host(name: "web-01", host: "web-01.example"), address: "deploy@web-01.example"),
+            .connection(
+                connection,
+                host: Host(id: hostID, name: "web-01", host: "web-01.example"),
+                address: "deploy@web-01.example"
+            ),
         ]
 
         for item in items {
@@ -167,15 +172,27 @@ struct ListViewMigrationTests {
     @Test
     func historyIdentityIgnoresPresentationButNotTheRecord() {
         let host = Host(name: "web-01", host: "web-01.example")
-        let sameHost = SidebarListItem.connection(host, address: "root@web-01.example")
-        let renamedAddress = SidebarListItem.connection(host, address: "deploy@web-01.example")
+        let entry = ConnectionHistoryEntry(hostID: host.id, kind: .ssh)
+        let sameRecord = SidebarListItem.connection(
+            entry, host: host, address: "root@web-01.example"
+        )
+        let renamedAddress = SidebarListItem.connection(
+            entry, host: host, address: "deploy@web-01.example"
+        )
+        let otherRecord = SidebarListItem.connection(
+            ConnectionHistoryEntry(hostID: host.id, kind: .ssh),
+            host: host, address: "root@web-01.example"
+        )
         let otherHost = SidebarListItem.connection(
-            Host(name: "db-01", host: "db-01.example"), address: "deploy@db-01.example"
+            ConnectionHistoryEntry(hostID: UUID(), kind: .ssh),
+            host: Host(name: "db-01", host: "db-01.example"),
+            address: "deploy@db-01.example"
         )
 
-        #expect(sameHost.id == renamedAddress.id)
-        #expect(sameHost != renamedAddress)
-        #expect(sameHost.id != otherHost.id)
+        #expect(sameRecord.id == renamedAddress.id)
+        #expect(sameRecord != renamedAddress)
+        #expect(sameRecord.id != otherRecord.id)
+        #expect(sameRecord.id != otherHost.id)
     }
 
     @Test

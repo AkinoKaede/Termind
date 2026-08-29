@@ -293,10 +293,13 @@ final class Pane: Identifiable {
 
     func subtitle(in store: HostLibraryModel) -> String? {
         switch content {
+        case .sftpSession(let sftpSession):
+            sftpSession.path
         case _ where customTitle != nil:
             // A renamed pane shows its name and nothing under it: the subtitle
             // is the derived detail, and pairing it with a name the user chose
-            // reads as a correction.
+            // reads as a correction. SFTP is the exception above: its live
+            // path is navigation state, not an alternate name.
             nil
         case .sshSession(let sshSession):
             sshSession.status.isLive ? sshSession.workingDirectory : nil

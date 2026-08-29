@@ -167,7 +167,7 @@ private struct HostForwardingContextMenu: View {
         Button("Copy SSH Command", action: copyCommand)
             .disabled(isActive || command == nil)
         Divider()
-        Button("Delete", role: .destructive, action: delete).disabled(isActive)
+        DestructiveMenuButton("Delete", action: delete).disabled(isActive)
     }
 
     private func toggle() {

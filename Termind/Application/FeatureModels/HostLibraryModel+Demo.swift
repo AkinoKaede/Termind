@@ -51,8 +51,7 @@ extension HostLibraryModel {
         // Half the fleet is left without an identity on purpose, so the "not set
         // yet" state is visible at P0 instead of first appearing in the field.
         //
-        // No host carries `lastUsedAt`, for the same reason. A fresh install has
-        // no connection history, so Recents starts empty and the sidebar shows
+        // A fresh install has no connection history, so Recents starts empty and the sidebar shows
         // its placeholder; seeding a history here put that empty state out of
         // reach and told a first launch it had already been on production.
         // `AppModel.open` fills the list the moment anything is opened.
