@@ -162,7 +162,7 @@ struct HostChooserView: View {
     @State private var chooser: ManagedChooserState<Host.ID>
     @State private var connectionProtocol = HostConnectionProtocol.ssh
     @State private var serialConfiguration = SerialConnectionConfiguration()
-    @State private var serialBaudRate = "115200"
+    @State private var serialBaudRate = "9600"
     @State private var serialPorts: [SerialPortDescriptor] = []
     @State private var serialError: String?
     @State private var isConfirmingDestructiveSnippet = false
