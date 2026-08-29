@@ -97,7 +97,7 @@ struct QuickOpenView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
-            TextField("Open a page, workspace, host, or command", text: $query)
+            TextField("Open a page, chat, workspace, host, or command", text: $query)
                 .textFieldStyle(.plain)
                 .font(.system(size: 17, weight: .medium))
                 .focused($searchFocused)
@@ -105,7 +105,7 @@ struct QuickOpenView: View {
                 .onKeyPress(.upArrow) { moveSelection(by: -1) }
                 .onKeyPress(.downArrow) { moveSelection(by: 1) }
                 .onExitCommand(perform: dismiss)
-                .accessibilityLabel(Text("Search commands"))
+                .accessibilityLabel(Text("Search Quick Open"))
 
             if !query.isEmpty {
                 Button {
@@ -139,7 +139,7 @@ struct QuickOpenView: View {
                     .accessibilityHidden(true)
                 Text("No results")
                     .font(.headline)
-                Text("No commands match “\(query)”")
+                Text("No results match “\(query)”")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

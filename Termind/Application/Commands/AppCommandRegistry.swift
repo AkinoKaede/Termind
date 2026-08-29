@@ -2,6 +2,7 @@ import Foundation
 
 nonisolated enum AppCommandSection: String, CaseIterable, Hashable, Sendable, Identifiable {
     case navigation
+    case conversations
     case workspaces
     case hosts
     case actions
@@ -11,6 +12,7 @@ nonisolated enum AppCommandSection: String, CaseIterable, Hashable, Sendable, Id
     var title: String {
         switch self {
         case .navigation: String(localized: "Navigation")
+        case .conversations: String(localized: "Chats")
         case .workspaces: String(localized: "Workspaces")
         case .hosts: String(localized: "Hosts")
         case .actions: String(localized: "Actions")
@@ -23,6 +25,7 @@ nonisolated enum AppCommandTarget: Hashable, Sendable {
     case vault
     case assistant
     case settings
+    case assistantConversation(ConversationModel.ID)
     case workspace(Workspace.ID)
     case connectHost(Host.ID, HostOpenTarget)
     case newChat
@@ -54,6 +57,7 @@ nonisolated struct AppCommandDescriptor: Identifiable, Hashable, Sendable {
 final class AppCommandRegistry {
     func commands(app: AppModel, window: WindowModel) -> [AppCommandDescriptor] {
         fixedCommands + vaultCommands
+            + conversationCommands(window.assistantLibrary)
             + window.workspaces.map { workspaceCommand($0, store: app.hostLibrary) }
             + app.hostLibrary.searchHosts("").flatMap(hostCommands)
             + actionCommands(canShowAssistant: window.selectedWorkspace != nil)
@@ -72,6 +76,8 @@ final class AppCommandRegistry {
             window.selectAssistant()
         case .settings:
             openSettings()
+        case .assistantConversation(let id):
+            window.openAssistantFullScreen(id)
         case .workspace(let id):
             window.select(id)
         case .connectHost(let id, let target):
@@ -119,6 +125,24 @@ final class AppCommandRegistry {
                 section: .navigation,
                 keywords: [page.rawValue],
                 target: .vaultPage(page)
+            )
+        }
+    }
+
+    private func conversationCommands(
+        _ library: AssistantLibraryModel
+    ) -> [AppCommandDescriptor] {
+        library.search("", scope: .active).map { conversation in
+            AppCommandDescriptor(
+                id: "conversation.\(conversation.id.uuidString)",
+                title: conversation.derivedTitle,
+                subtitle: String(localized: "Chat"),
+                symbol: "sparkles",
+                section: .conversations,
+                // Search only what the conversation UI exposes. Hidden reasoning,
+                // tool output, and the raw transcript deliberately stay out.
+                keywords: conversation.messages.map(\.text),
+                target: .assistantConversation(conversation.id)
             )
         }
     }
