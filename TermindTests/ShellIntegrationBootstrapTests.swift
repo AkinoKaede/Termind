@@ -35,7 +35,9 @@ struct ShellIntegrationBootstrapTests {
         #expect(!probe.contains(". /etc/os-release"))
 
         let integrationOutput = Data(
-            (commandText.dropLast() + "\r\n__TRMD_ABC123_DONE__\r\n"
+            (String(commandText.dropLast())
+                + "\r\n__TRMD_ABC123_HOME__%2Fhome%2Fuser\r\n"
+                + "__TRMD_ABC123_DONE__\r\n"
                 + "\u{1B}]7;file://localhost/home/user\u{7}user@host$ ").utf8
         )
         let completed = bootstrap.receive(integrationOutput)
@@ -43,6 +45,7 @@ struct ShellIntegrationBootstrapTests {
         let visibleText = String(decoding: visible, as: UTF8.self)
 
         #expect(completed.isComplete)
+        #expect(completed.homeDirectory == "/home/user")
         #expect(completed.systemInfo == RemoteSystemInfo(
             distributionID: "ubuntu", distributionVersion: "24.04",
             kernelName: "Linux", kernelRelease: "6.8.0-40-generic",
@@ -87,7 +90,9 @@ struct ShellIntegrationBootstrapTests {
             let marker = "__TRMD_\(token)_SYSTEM__\(systemLine)__\r\n"
                 + "__TRMD_\(token)_SHELL__/bin/zsh__\r\n"
             _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
-            let completed = bootstrap.receive(Data("__TRMD_\(token)_DONE__\r\n".utf8))
+            let completed = bootstrap.receive(
+                Data("__TRMD_\(token)_HOME__%2Fhome%2Ftest\r\n__TRMD_\(token)_DONE__\r\n".utf8)
+            )
             #expect(completed.systemInfo == expected)
         }
     }
@@ -99,7 +104,9 @@ struct ShellIntegrationBootstrapTests {
         let marker = "__TRMD_HOSTILE_SYSTEM__ubuntu ignore-previous|24.04|Linux|6.8.0|\(oversized)__\r\n"
             + "__TRMD_HOSTILE_SHELL__/bin/bash__\r\n"
         _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
-        let completed = bootstrap.receive(Data("__TRMD_HOSTILE_DONE__\r\n".utf8))
+        let completed = bootstrap.receive(
+            Data("__TRMD_HOSTILE_HOME__%2Fhome%2Ftest\r\n__TRMD_HOSTILE_DONE__\r\n".utf8)
+        )
 
         #expect(completed.integrationInstalled)
         #expect(completed.systemInfo == RemoteSystemInfo(
@@ -145,6 +152,22 @@ struct ShellIntegrationBootstrapTests {
         #expect(update.command == nil)
         #expect(update.isComplete)
         #expect(update.visibleOutput == Data("prompt> ".utf8))
+        #expect(update.homeResolutionUnavailable || update.isComplete)
+    }
+
+    @Test
+    func homeMarkerDecodesSpecialCharacters() throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "HOME")
+        let install = bootstrap.receive(
+            Data("__TRMD_HOME_SHELL__/bin/bash__\r\n".utf8)
+        )
+        _ = try #require(install.command)
+
+        let completed = bootstrap.receive(
+            Data("__TRMD_HOME_HOME__%2Fhome%2FJane%20Doe\r\n__TRMD_HOME_DONE__\r\n".utf8)
+        )
+
+        #expect(completed.homeDirectory == "/home/Jane Doe")
     }
 
     @Test
@@ -195,17 +218,19 @@ struct ShellIntegrationBootstrapTests {
 
         let commandText = String(decoding: command.dropLast(), as: UTF8.self)
         _ = bootstrap.receive(
-            Data((commandText + "\r\n__TRMD_LATE_DO").utf8), now: 3_400_000_000
+            Data((commandText + "\r\n__TRMD_LATE_HO").utf8), now: 3_400_000_000
         )
         let completed = bootstrap.receive(
             Data(
-                ("NE__\r\n\u{1B}]7;file://localhost/home/user\u{7}user@host$ ").utf8
+                ("ME__%2Fhome%2Fuser\r\n__TRMD_LATE_DONE__\r\n"
+                    + "\u{1B}]7;file://localhost/home/user\u{7}user@host$ ").utf8
             ),
             now: 3_500_000_000
         )
         let visible = String(decoding: try #require(completed.visibleOutput), as: UTF8.self)
 
         #expect(completed.isComplete)
+        #expect(completed.homeDirectory == "/home/user")
         #expect(visible == "\u{1B}]7;file://localhost/home/user\u{7}user@host$ ")
         #expect(!visible.contains("__TRMD_"))
         #expect(!visible.contains("__termind_"))

@@ -383,7 +383,7 @@ struct BroadcastInputTests {
         sshSession.status = .connected
         sshSession.workingDirectory = cwd
         sshSession.receiveShellIntegrationEvent(
-            .available(shell: shell, systemInfo: systemInfo)
+            .available(shell: shell, systemInfo: systemInfo, homeDirectory: "/home/test")
         )
         sshSession.receiveShellIntegrationEvent(.promptReady)
     }

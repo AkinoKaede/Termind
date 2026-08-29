@@ -7,17 +7,30 @@ import Testing
 @MainActor
 struct SFTPSessionTests {
     @Test
-    func workspaceSubtitleTracksSFTPPathEvenWhenRenamed() throws {
+    func workspaceSubtitleTracksSFTPPathEvenWhenRenamed() async throws {
         let host = Host(name: "Files", host: "files.example")
         let store = HostLibraryModel(hosts: [host])
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
         let session = try #require(workspace.focusedPane.sftpSession)
+        try await session.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
 
         #expect(workspace.subtitle(in: store) == "/srv")
         session.navigate(to: "/var/log")
         #expect(workspace.subtitle(in: store) == "/var/log")
         workspace.focusedPane.customTitle = "Logs"
         #expect(workspace.subtitle(in: store) == "/var/log")
+    }
+
+    @Test
+    func workspaceWaitsForHomeThenUsesTilde() async throws {
+        let host = Host(name: "Files", host: "files.example")
+        let store = HostLibraryModel(hosts: [host])
+        let workspace = Workspace.sftpSession(host: host, initialPath: "/home/test/project")
+        let session = try #require(workspace.focusedPane.sftpSession)
+
+        #expect(workspace.subtitle(in: store) == nil)
+        try await session.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
+        #expect(workspace.subtitle(in: store) == "~/project")
     }
 
     @Test

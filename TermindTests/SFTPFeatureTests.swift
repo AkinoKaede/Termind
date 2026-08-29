@@ -80,6 +80,16 @@ struct SFTPFeatureTests {
         #expect(RemotePath.components(of: "/var/log/nginx").map(\.path) == [
             "/", "/var", "/var/log", "/var/log/nginx",
         ])
+        #expect(RemotePath.displayed("/home/deploy", home: .resolved("/home/deploy")) == "~")
+        #expect(RemotePath.displayed("/home/deploy/app", home: .resolved("/home/deploy")) == "~/app")
+        #expect(RemotePath.displayed("/home/deployer", home: .resolved("/home/deploy")) == "/home/deployer")
+        #expect(RemotePath.displayed("/var/log", home: .unavailable) == "/var/log")
+        #expect(RemotePath.displayed("/var/log", home: .resolved("/")) == "~/var/log")
+        #expect(
+            RemotePath.displayedComponents(
+                of: "/home/deploy/app/logs", home: .resolved("/home/deploy")
+            ).map(\.name) == ["~", "app", "logs"]
+        )
     }
 
     @Test
@@ -329,6 +339,30 @@ struct SFTPFeatureTests {
         #expect(sftpSession.path == "/home/deploy")
         #expect(sftpSession.pathText == "/home/deploy")
         #expect(await client.homeDirectoryRequestCount == 1)
+        #expect(sftpSession.displayedPath == "~")
+    }
+
+    @Test
+    func configuredInitialPathStillResolvesHomeWithoutChangingNavigation() async throws {
+        let client = ManifestSFTPClient(entries: [:], home: "/home/deploy")
+        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home/deploy/project")
+
+        try await session.resolveInitialPathIfNeeded(using: client)
+
+        #expect(session.path == "/home/deploy/project")
+        #expect(session.displayedPath == "~/project")
+        #expect(await client.homeDirectoryRequestCount == 1)
+    }
+
+    @Test
+    func configuredInitialPathFallsBackToAbsoluteWhenHomeIsUnavailable() async throws {
+        let client = ManifestSFTPClient(entries: [:], rejectsHome: true)
+        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/srv/project")
+
+        try await session.resolveInitialPathIfNeeded(using: client)
+
+        #expect(session.homeResolution == .unavailable)
+        #expect(session.displayedPath == "/srv/project")
     }
 
     @Test
@@ -1021,17 +1055,19 @@ private actor ManifestSFTPClient: SFTPClientProtocol {
     private let entries: [String: RemoteFile]
     private let rejectedAttributePrefix: String?
     private let home: String
+    private let rejectsHome: Bool
     private(set) var createdDirectories: [String] = []
     private(set) var rejectedAttributeRequestCount = 0
     private(set) var homeDirectoryRequestCount = 0
 
     init(
         entries: [String: RemoteFile], rejectedAttributePrefix: String? = nil,
-        home: String = "/Users/test"
+        home: String = "/Users/test", rejectsHome: Bool = false
     ) {
         self.entries = entries
         self.rejectedAttributePrefix = rejectedAttributePrefix
         self.home = home
+        self.rejectsHome = rejectsHome
     }
 
     func connect(
@@ -1041,6 +1077,7 @@ private actor ManifestSFTPClient: SFTPClientProtocol {
     func disconnect() async {}
     func homeDirectory() async throws -> String {
         homeDirectoryRequestCount += 1
+        if rejectsHome { throw SFTPError.operation("Home unavailable") }
         return home
     }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }

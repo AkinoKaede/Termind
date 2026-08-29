@@ -235,7 +235,8 @@ struct SFTPBrowserView: View {
     @FocusState private var pathFocused: Bool
 
     private var deleteConfirmationMessage: String {
-        let paths = deleteTargets.prefix(6).map(\.path).joined(separator: "\n")
+        let paths = deleteTargets.prefix(6).map { sftpSession.displayPath($0.path) }
+            .joined(separator: "\n")
         let remainder = max(0, deleteTargets.count - 6)
         let suffix = remainder > 0 ? "\nand \(remainder) more" : ""
         return "\(paths)\(suffix)\n\nDirectories are deleted recursively. This cannot be undone."
@@ -358,13 +359,15 @@ struct SFTPBrowserView: View {
             }
         }
         .sheet(item: $permissionTarget) { file in
-            SFTPEditPermissionsSheet(file: file) { permissions in
+            SFTPEditPermissionsSheet(
+                file: file, displayedPath: sftpSession.displayPath(file.path)
+            ) { permissions in
                 await sftpSession.updatePermissions(for: file, to: permissions)
             }
         }
         .confirmationDialog(
             deleteTargets.count == 1
-                ? "Delete \(deleteTargets.first?.path ?? "")?"
+                ? "Delete \(deleteTargets.first.map { sftpSession.displayPath($0.path) } ?? "")?"
                 : "Delete \(deleteTargets.count) items?",
             isPresented: Binding(
                 get: { !deleteTargets.isEmpty },
@@ -513,7 +516,9 @@ struct SFTPBrowserView: View {
     }
 
     private func breadcrumbs(layout: Layout) -> some View {
-        let components = RemotePath.components(of: sftpSession.path)
+        let components = RemotePath.displayedComponents(
+            of: sftpSession.path, home: sftpSession.homeResolution
+        )
         let tailCount = switch layout {
         case .full: 3
         case .medium: 2
@@ -549,7 +554,7 @@ struct SFTPBrowserView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .lineLimit(1)
         .truncationMode(.middle)
-        .help(sftpSession.path)
+        .help(sftpSession.displayPath(sftpSession.path))
     }
 
     private var breadcrumbSeparator: some View {
@@ -634,7 +639,8 @@ struct SFTPBrowserView: View {
                         .padding(Metrics.Space.m)
                     Label(
                         isRemoteDropTargeted
-                            ? "Copy to \(sftpSession.path)" : "Upload to \(sftpSession.path)",
+                            ? "Copy to \(sftpSession.displayPath(sftpSession.path))"
+                            : "Upload to \(sftpSession.displayPath(sftpSession.path))",
                         systemImage: isRemoteDropTargeted
                             ? "doc.on.doc.fill" : "arrow.up.doc.fill"
                     )
@@ -1279,6 +1285,7 @@ private struct SFTPEditPermissionsSheet: View {
     }
 
     let file: RemoteFile
+    let displayedPath: String
     let save: (UInt32) async -> Bool
 
     @Environment(\.dismiss) private var dismiss
@@ -1292,8 +1299,12 @@ private struct SFTPEditPermissionsSheet: View {
         AccessRow(title: "Others", read: 0o004, write: 0o002, execute: 0o001),
     ]
 
-    init(file: RemoteFile, save: @escaping (UInt32) async -> Bool) {
+    init(
+        file: RemoteFile, displayedPath: String,
+        save: @escaping (UInt32) async -> Bool
+    ) {
         self.file = file
+        self.displayedPath = displayedPath
         self.save = save
         _draft = State(initialValue: SFTPPermissionDraft(permissions: file.permissions))
     }
@@ -1305,11 +1316,11 @@ private struct SFTPEditPermissionsSheet: View {
                     .font(.title2.weight(.semibold))
 
                 HStack(spacing: Metrics.Space.l) {
-                    Text(file.path)
+                    Text(displayedPath)
                         .font(.body.monospaced())
                         .lineLimit(1)
                         .truncationMode(.middle)
-                        .help(file.path)
+                        .help(displayedPath)
                     Spacer(minLength: Metrics.Space.xl)
                     TextField("Mode", text: modeText)
                         .labelsHidden()

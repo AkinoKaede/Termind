@@ -26,6 +26,8 @@ nonisolated struct SessionContext: Hashable, Sendable {
     /// Reported by the remote shell through OSC 7, so untrusted — see
     /// `sanitizedLine`.
     var workingDirectory: String?
+    var workingDirectoryDisplayLabel: String?
+    var showsWorkingDirectoryChip: Bool
     var systemInfo: RemoteSystemInfo?
 
     static let none = SessionContext()
@@ -34,11 +36,15 @@ nonisolated struct SessionContext: Hashable, Sendable {
         hostID: UUID? = nil,
         hostName: String? = nil,
         workingDirectory: String? = nil,
+        workingDirectoryDisplayLabel: String? = nil,
+        showsWorkingDirectoryChip: Bool = true,
         systemInfo: RemoteSystemInfo? = nil
     ) {
         self.hostID = hostID
         self.hostName = Self.sanitizedLine(hostName)
         self.workingDirectory = Self.sanitizedLine(workingDirectory)
+        self.workingDirectoryDisplayLabel = Self.sanitizedLine(workingDirectoryDisplayLabel)
+        self.showsWorkingDirectoryChip = showsWorkingDirectoryChip
         self.systemInfo = systemInfo.flatMap { $0.isEmpty ? nil : $0 }
     }
 
@@ -53,9 +59,11 @@ nonisolated struct SessionContext: Hashable, Sendable {
         if let hostName {
             chips.append(ContextChip(kind: .host, label: hostName, content: hostName))
         }
-        if let workingDirectory {
+        if let workingDirectory, showsWorkingDirectoryChip {
             chips.append(ContextChip(
-                kind: .directory, label: workingDirectory, content: workingDirectory
+                kind: .directory,
+                label: workingDirectoryDisplayLabel ?? workingDirectory,
+                content: workingDirectory
             ))
         }
         return chips

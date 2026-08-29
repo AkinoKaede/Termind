@@ -157,7 +157,7 @@ nonisolated struct SidebarListItem: Identifiable, Hashable, Sendable {
         case section(SectionID, title: String, count: Int)
         case snippet(Snippet)
         case history(CommandHistoryEntry, isNaming: Bool)
-        case sftpHistory(SFTPHistoryEntry)
+        case sftpHistory(SFTPHistoryEntry, displayedPath: String)
         case connection(ConnectionHistoryEntry, Host, address: String)
     }
 
@@ -176,8 +176,13 @@ nonisolated struct SidebarListItem: Identifiable, Hashable, Sendable {
         .init(id: .history(entry.id), content: .history(entry, isNaming: isNaming))
     }
 
-    static func sftpHistory(_ entry: SFTPHistoryEntry) -> Self {
-        .init(id: .sftpHistory(entry.id), content: .sftpHistory(entry))
+    static func sftpHistory(
+        _ entry: SFTPHistoryEntry, displayedPath: String? = nil
+    ) -> Self {
+        .init(
+            id: .sftpHistory(entry.id),
+            content: .sftpHistory(entry, displayedPath: displayedPath ?? entry.path)
+        )
     }
 
     static func connection(
@@ -1008,7 +1013,12 @@ private struct SFTPBrowseHistorySidebar: View {
     private var entries: [SFTPHistoryEntry] {
         guard let session else { return [] }
         _ = app.sftpHistory.revision
-        return app.sftpHistory.entries(for: session.hostID, matching: query)
+        let values = app.sftpHistory.entries(for: session.hostID)
+        guard !query.isEmpty else { return values }
+        return values.filter {
+            $0.path.localizedCaseInsensitiveContains(query)
+                || session.displayPath($0.path).localizedCaseInsensitiveContains(query)
+        }
     }
 
     var body: some View {
@@ -1028,12 +1038,16 @@ private struct SFTPBrowseHistorySidebar: View {
                 .sidebarBlankAreaMenu { globalMenu }
             } else {
                 SidebarNativeList(
-                    items: entries.map(SidebarListItem.sftpHistory),
+                    items: entries.map {
+                        SidebarListItem.sftpHistory(
+                            $0, displayedPath: session?.displayPath($0.path)
+                        )
+                    },
                     animatesStructuralChanges: false,
                     blankAreaMenu: { globalMenu }
                 ) { item in
-                    if case .sftpHistory(let entry) = item.content {
-                        row(entry)
+                    if case .sftpHistory(let entry, let displayedPath) = item.content {
+                        row(entry, displayedPath: displayedPath)
                     }
                 }
             }
@@ -1067,13 +1081,13 @@ private struct SFTPBrowseHistorySidebar: View {
         ]
     }
 
-    private func row(_ entry: SFTPHistoryEntry) -> some View {
+    private func row(_ entry: SFTPHistoryEntry, displayedPath: String) -> some View {
         SidebarCard(
             symbol: entry.kind.symbol,
             symbolTint: entry.kind == .directory
                 ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary),
             title: entry.name,
-            subtitle: entry.path,
+            subtitle: displayedPath,
             truncatesSubtitleInMiddle: true,
             isSelected: selectedID == entry.id
         ) {

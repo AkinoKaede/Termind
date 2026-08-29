@@ -142,6 +142,15 @@ final class SSHSessionModel: Identifiable {
             )
         }
     }
+    private(set) var homeResolution: RemoteHomeResolutionState = .pending
+    var displayedWorkingDirectory: String? {
+        guard let workingDirectory, !homeResolution.isPending else { return nil }
+        return displayPath(workingDirectory)
+    }
+
+    func displayPath(_ path: String) -> String {
+        RemotePath.displayed(path, home: homeResolution)
+    }
     var hasUnreadOutput: Bool = false
     /// History for an unsaved Quick Connect destination. Saved Hosts use the
     /// app-wide CommandHistoryModel instead so every window sees the same list.
@@ -495,6 +504,7 @@ final class SSHSessionModel: Identifiable {
     func applyShellIntegrationPreference(isEnabled: Bool) {
         guard !isEnabled else { return }
         remoteSystemInfo = nil
+        homeResolution = .unavailable
     }
 
     private static let supportedGeneratorShells: Set<String> = ["bash", "zsh", "fish"]
@@ -509,6 +519,7 @@ final class SSHSessionModel: Identifiable {
 
     private func startConnection(using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
+        homeResolution = SettingsKey.isShellIntegrationEnabled ? .pending : .unavailable
         let reconnecting = hasConnectedOnce && isRecoveringConnection
         workingDirectory = nil
         transferConfiguration = nil
@@ -915,6 +926,7 @@ final class SSHSessionModel: Identifiable {
     func disconnect() {
         resetCommandGeneratorShellState()
         workingDirectory = nil
+        homeResolution = .unavailable
         transferConfiguration = nil
         pendingInitialCommand = nil
         commandExcludedFromHistory = nil
@@ -1054,6 +1066,7 @@ final class SSHSessionModel: Identifiable {
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
         resetCommandGeneratorShellState()
         workingDirectory = nil
+        homeResolution = .unavailable
         transferConfiguration = nil
         connectionAttemptID = nil
         ssh = nil
@@ -1282,12 +1295,21 @@ final class SSHSessionModel: Identifiable {
 
     func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
         switch event {
-        case .available(let shell, let systemInfo):
+        case .available(let shell, let systemInfo, let homeDirectory):
+            if let homeDirectory, homeDirectory.hasPrefix("/") {
+                homeResolution = .resolved(RemotePath.normalized(homeDirectory))
+            } else {
+                homeResolution = .unavailable
+            }
             integratedShell = shell
             remoteSystemInfo = systemInfo
             isShellPromptReady = false
             shellIntegrationAvailable = true
             invalidateCommandGeneration()
+            inputRouter?.sshSession(self, didChangeWorkingDirectory: workingDirectory)
+        case .homeResolutionUnavailable:
+            homeResolution = .unavailable
+            inputRouter?.sshSession(self, didChangeWorkingDirectory: workingDirectory)
         case .promptReady:
             isShellPromptReady = true
             invalidateCommandGeneration()
@@ -1371,6 +1393,7 @@ extension SSHSessionModel {
         let sshSession = SSHSessionModel(host: host)
         sshSession.status = .connected
         sshSession.workingDirectory = "/var/log/nginx"
+        sshSession.homeResolution = .resolved("/home/demo")
         sshSession.shellIntegrationAvailable = true
         sshSession.integratedShell = "zsh"
         sshSession.isShellPromptReady = true

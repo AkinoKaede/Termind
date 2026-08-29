@@ -111,8 +111,10 @@ struct StatusBarView: View {
                 connection
 
                 if let sshSession, sshSession.status.isLive {
-                    if let workingDirectory = sshSession.workingDirectory, host != nil {
-                        workingDirectoryButton(workingDirectory)
+                    if let workingDirectory = sshSession.workingDirectory,
+                        let displayed = sshSession.displayedWorkingDirectory, host != nil
+                    {
+                        workingDirectoryButton(workingDirectory, displayed: displayed)
                     }
                 }
 
@@ -120,7 +122,9 @@ struct StatusBarView: View {
                     if sftpSession.isLoading || sftpSession.canCancelOperation {
                         sftpOperationStatus(sftpSession)
                     } else {
-                        sftpDirectoryButton(sftpSession.path)
+                        if let displayed = sftpSession.displayedPath {
+                            sftpDirectoryButton(sftpSession.path, displayed: displayed)
+                        }
                     }
                 }
             }
@@ -229,11 +233,11 @@ struct StatusBarView: View {
         Label(text, systemImage: symbol).truncationMode(.head)
     }
 
-    private func workingDirectoryButton(_ path: String) -> some View {
+    private func workingDirectoryButton(_ path: String, displayed: String) -> some View {
         Button {
             openInSFTP(path, placement: .newWorkspace)
         } label: {
-            item("folder", path)
+            item("folder", displayed)
         }
         .buttonStyle(.plain)
         .help(Text("Open in SFTP"))
@@ -249,11 +253,11 @@ struct StatusBarView: View {
         }
     }
 
-    private func sftpDirectoryButton(_ path: String) -> some View {
+    private func sftpDirectoryButton(_ path: String, displayed: String) -> some View {
         Button {
             openInSSH(path, placement: .newWorkspace)
         } label: {
-            item("folder", path)
+            item("folder", displayed)
         }
         .buttonStyle(.plain)
         .help(Text("Open in SSH"))
@@ -444,20 +448,35 @@ private struct TransferCenterPopover: View {
     }
 
     private func route(for transfer: SFTPTransfer) -> String {
-        func remote(_ hostID: Host.ID?, _ path: String) -> String {
-            guard let hostID, let host = hosts.host(hostID) else { return path }
-            return "\(host.name) · \(path)"
+        func remote(_ hostID: Host.ID?, _ path: String, home: String?) -> String {
+            let displayed = RemotePath.displayed(
+                path, home: home.map(RemoteHomeResolutionState.resolved) ?? .unavailable
+            )
+            guard let hostID, let host = hosts.host(hostID) else { return displayed }
+            return "\(host.name) · \(displayed)"
         }
         switch transfer.direction {
         case .upload:
-            let destination = remote(transfer.destinationHostID, transfer.remotePath)
+            let destination = remote(
+                transfer.destinationHostID, transfer.remotePath,
+                home: transfer.destinationHomeDirectory
+            )
             return "\(transfer.localPath) → \(destination)"
         case .download:
-            let source = remote(transfer.sourceHostID, transfer.remotePath)
+            let source = remote(
+                transfer.sourceHostID, transfer.remotePath,
+                home: transfer.sourceHomeDirectory
+            )
             return "\(source) → \(transfer.localPath)"
         case .copy:
-            let source = remote(transfer.sourceHostID, transfer.localPath)
-            let destination = remote(transfer.destinationHostID, transfer.remotePath)
+            let source = remote(
+                transfer.sourceHostID, transfer.localPath,
+                home: transfer.sourceHomeDirectory
+            )
+            let destination = remote(
+                transfer.destinationHostID, transfer.remotePath,
+                home: transfer.destinationHomeDirectory
+            )
             return "\(source) → \(destination)"
         }
     }

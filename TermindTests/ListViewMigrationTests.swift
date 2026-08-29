@@ -263,5 +263,18 @@ struct ListViewMigrationTests {
                 .snippet(secondSnippet.id),
             ]
         )
+        }
     }
-}
+
+    @Test
+    func sftpHistoryDisplayPathParticipatesInRowContentUpdates() {
+        let entry = SFTPHistoryEntry(
+            hostID: UUID(), kind: .directory, path: "/home/deploy/project"
+        )
+
+        let absolute = SidebarListItem.sftpHistory(entry)
+        let abbreviated = SidebarListItem.sftpHistory(entry, displayedPath: "~/project")
+
+        #expect(absolute.id == abbreviated.id)
+        #expect(absolute != abbreviated)
+    }

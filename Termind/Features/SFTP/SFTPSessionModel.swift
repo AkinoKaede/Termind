@@ -176,6 +176,7 @@ final class SFTPSessionModel: Identifiable {
     let id = UUID()
     let hostID: Host.ID
     let initialPath: String
+    var homeResolution: RemoteHomeResolutionState = .pending
     private(set) var path: String {
         didSet {
             guard path != oldValue else { return }
@@ -252,7 +253,7 @@ final class SFTPSessionModel: Identifiable {
     private weak var statusStore: (any RemoteSessionHostStore)?
     private weak var transferCoordinator: SFTPTransferCoordinator?
     weak var historyStore: SFTPHistoryModel?
-    private var didResolveInitialPath: Bool
+    private var didResolveHomeForConnection = false
     private let automaticRefreshInterval: Duration
     var connectionCoordinator: RemoteConnectionCoordinator?
 
@@ -261,6 +262,7 @@ final class SFTPSessionModel: Identifiable {
         initialPath: String = "",
         client: (any SFTPClientProtocol)? = nil,
         configuration: SSHConnectionConfiguration? = nil,
+        homeResolution: RemoteHomeResolutionState = .pending,
         automaticRefreshInterval: Duration = .seconds(15)
     ) {
         self.hostID = hostID
@@ -271,7 +273,7 @@ final class SFTPSessionModel: Identifiable {
         self.pathText = path
         self.client = client
         self.configuration = configuration
-        self.didResolveInitialPath = !configuredPath.isEmpty
+        self.homeResolution = homeResolution
         self.automaticRefreshInterval = automaticRefreshInterval
         if client != nil { status = .connected }
         if client != nil { hasConnectedOnce = true }
@@ -279,6 +281,14 @@ final class SFTPSessionModel: Identifiable {
 
     var reconnectState: ReconnectState? { connection.reconnectState }
     var allowsRemoteMutations: Bool { status == .connected }
+    var displayedPath: String? {
+        guard !homeResolution.isPending else { return nil }
+        return displayPath(path)
+    }
+
+    func displayPath(_ path: String) -> String {
+        RemotePath.displayed(path, home: homeResolution)
+    }
 
     var canGoBack: Bool { !backHistory.isEmpty }
     var canGoForward: Bool { !forwardHistory.isEmpty }
@@ -311,7 +321,8 @@ final class SFTPSessionModel: Identifiable {
             return nil
         }
         return SFTPRemoteCopySource(
-            hostID: hostID, connection: connection, files: files
+            hostID: hostID, connection: connection, files: files,
+            homeDirectory: homeResolution.resolvedDirectory
         )
     }
 
@@ -332,6 +343,8 @@ final class SFTPSessionModel: Identifiable {
 
     private func startConnection(using store: any RemoteSessionHostStore) {
         let reconnecting = hasConnectedOnce && isRecoveringConnection
+        homeResolution = .pending
+        didResolveHomeForConnection = false
         bindStatus(to: store)
         connectionTask?.cancel()
         guard let host = store.host(hostID) else {
@@ -339,6 +352,7 @@ final class SFTPSessionModel: Identifiable {
             isRecoveringConnection = false
             let message = String(localized: "The host is no longer available.")
             status = .failed(message)
+            homeResolution = .unavailable
             connectionJourney.fail(message)
             return
         }
@@ -444,6 +458,7 @@ final class SFTPSessionModel: Identifiable {
             } catch is CancellationError {
                 guard self.connectionAttemptID == attemptID else { return }
                 self.status = .disconnected
+                self.homeResolution = .unavailable
             } catch TermindSSHError.untrustedHost {
                 await self.discoverHostKey(host: host, store: store)
             } catch let error as TermindSSHError where error.isHostKeyChanged {
@@ -459,6 +474,7 @@ final class SFTPSessionModel: Identifiable {
                     await self.discoverHostKey(host: jump, store: store)
                 } else {
                     self.status = .failed(error.localizedDescription)
+                    self.homeResolution = .unavailable
                     self.connectionJourney.fail(error.localizedDescription, at: error.routeHostID)
                 }
             } catch let error as TermindSSHError where error.shouldRequestAuthentication {
@@ -486,6 +502,7 @@ final class SFTPSessionModel: Identifiable {
                     self.scheduleReconnect(after: error.localizedDescription, using: store)
                 } else {
                     self.status = .failed(error.localizedDescription)
+                    self.homeResolution = .unavailable
                     self.hint = error.localizedDescription
                     self.connectionJourney.fail(
                         error.localizedDescription, at: self.routeHostID(from: error)
@@ -526,6 +543,7 @@ final class SFTPSessionModel: Identifiable {
         configuration = nil
         usesEphemeralCredentials = false
         status = .disconnected
+        homeResolution = .unavailable
         connectionJourney.hide()
         replaceDirectoryContents(with: [])
         Task { [id] in
@@ -551,16 +569,31 @@ final class SFTPSessionModel: Identifiable {
         self.client = nil
         configuration = nil
         status = .failed(reconnectState.lastError)
+        homeResolution = .unavailable
         hint = reconnectState.lastError
         connectionJourney.fail(reconnectState.lastError)
         Task { await client?.disconnect() }
     }
 
     func resolveInitialPathIfNeeded(using client: any SFTPClientProtocol) async throws {
-        guard !didResolveInitialPath else { return }
-        path = RemotePath.normalized(try await client.homeDirectory())
-        pathText = path
-        didResolveInitialPath = true
+        guard !didResolveHomeForConnection else { return }
+        didResolveHomeForConnection = true
+        do {
+            let proposed = try await client.homeDirectory()
+            guard proposed.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("/") else {
+                throw SFTPError.operation("The remote home directory is not absolute.")
+            }
+            let home = RemotePath.normalized(proposed)
+            homeResolution = .resolved(home)
+            if initialPath.isEmpty {
+                path = home
+                pathText = home
+            }
+        } catch {
+            homeResolution = .unavailable
+            guard !initialPath.isEmpty else { throw error }
+        }
+        navigationRouter?.sftpSession(self, didChangePath: path)
     }
 
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
@@ -1068,7 +1101,8 @@ final class SFTPSessionModel: Identifiable {
             coordinator.enqueue(
                 direction: .download, batchID: UUID(), localURL: localURL,
                 remotePath: file.path, byteCount: file.size, hostID: hostID,
-                connection: connection, scopedRoot: directory, overwrite: false
+                connection: connection, scopedRoot: directory, overwrite: false,
+                homeDirectory: homeResolution.resolvedDirectory
             ) { state in
                 if state == .completed {
                     completion(localURL)
@@ -1117,7 +1151,7 @@ final class SFTPSessionModel: Identifiable {
             direction: .download, batchID: UUID(), localURL: localURL,
             remotePath: file.path, byteCount: file.size, hostID: hostID,
             connection: connection, scopedRoot: destinationDirectory,
-            overwrite: false
+            overwrite: false, homeDirectory: homeResolution.resolvedDirectory
         ) { state in
             switch state {
             case .completed:
@@ -1272,6 +1306,7 @@ final class SFTPSessionModel: Identifiable {
                     remotePath: job.remotePath, byteCount: job.byteCount, hostID: hostID,
                     connection: connection, scopedRoot: job.scopedRoot,
                     overwrite: job.hasConflict && policy == .replace,
+                    homeDirectory: homeResolution.resolvedDirectory,
                     completion: completion
                 )
             }
@@ -1383,7 +1418,9 @@ final class SFTPSessionModel: Identifiable {
                     destinationHostID: hostID,
                     destinationConnection: destinationConnection,
                     byteCount: job.byteCount,
-                    overwrite: job.hasConflict && policy == .replace
+                    overwrite: job.hasConflict && policy == .replace,
+                    sourceHomeDirectory: batch.source.homeDirectory,
+                    destinationHomeDirectory: homeResolution.resolvedDirectory
                 ) { [weak self] state in
                     if state == .completed { self?.scheduleSilentRefresh() }
                 }
@@ -1530,7 +1567,7 @@ final class SFTPSessionModel: Identifiable {
         cancellation: TransferCancellationToken? = nil
     ) async throws {
         if cancellation?.isCancelled == true { throw SFTPError.cancelled }
-        hint = file.path
+        hint = displayPath(file.path)
         if file.isDirectory {
             for child in try await client.listDirectory(at: file.path) {
                 try await deleteRecursively(child, client: client, cancellation: cancellation)

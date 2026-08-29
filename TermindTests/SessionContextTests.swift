@@ -78,6 +78,29 @@ struct SessionContextTests {
         #expect(context.chips.map(\.kind) == [.host, .directory])
     }
 
+    @Test
+    func directoryChipUsesDisplayLabelButModelKeepsAbsolutePath() throws {
+        let context = SessionContext(
+            workingDirectory: "/home/deploy/app",
+            workingDirectoryDisplayLabel: "~/app"
+        )
+        let chip = try #require(context.chips.first)
+
+        #expect(chip.label == "~/app")
+        #expect(chip.content == "/home/deploy/app")
+        #expect(context.modelContext?.contains("cwd: /home/deploy/app") == true)
+    }
+
+    @Test
+    func pendingHomeCanHideChipWithoutRemovingAbsoluteModelContext() {
+        let context = SessionContext(
+            workingDirectory: "/home/deploy/app", showsWorkingDirectoryChip: false
+        )
+
+        #expect(context.chips.isEmpty)
+        #expect(context.modelContext?.contains("cwd: /home/deploy/app") == true)
+    }
+
     /// An all-empty probe is not a probe. Storing it would make `isEmpty` false
     /// and put a bare header in front of no facts.
     @Test

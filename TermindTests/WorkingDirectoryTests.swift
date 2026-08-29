@@ -22,6 +22,21 @@ struct WorkingDirectoryTests {
     }
 
     @Test
+    func shellIntegrationHomeControlsOnlyDisplayedDirectory() async {
+        let sshSession = SSHSessionModel(hostID: UUID(), title: "Host")
+        sshSession.terminalState.terminalDidChangeWorkingDirectory("/home/deploy/project")
+        await Task.yield()
+
+        #expect(sshSession.displayedWorkingDirectory == nil)
+        sshSession.receiveShellIntegrationEvent(
+            .available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/deploy")
+        )
+
+        #expect(sshSession.displayedWorkingDirectory == "~/project")
+        #expect(sshSession.workingDirectory == "/home/deploy/project")
+    }
+
+    @Test
     func disconnectAndReconnectClearStaleDirectory() async {
         let host = Host(name: "Host", host: "host.example")
         let workspace = Workspace.sshSession(host: host)

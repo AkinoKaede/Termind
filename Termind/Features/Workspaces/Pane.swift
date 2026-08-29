@@ -221,6 +221,14 @@ final class Pane: Identifiable {
         }
     }
 
+    var displayedWorkingDirectory: String? {
+        switch content {
+        case .sshSession(let sshSession): sshSession.displayedWorkingDirectory
+        case .sftpSession(let sftpSession): sftpSession.displayedPath
+        default: nil
+        }
+    }
+
     var remoteSystemInfo: RemoteSystemInfo? {
         guard SettingsKey.isShellIntegrationEnabled else { return nil }
         guard case .sshSession(let sshSession) = content else { return nil }
@@ -294,7 +302,7 @@ final class Pane: Identifiable {
     func subtitle(in store: HostLibraryModel) -> String? {
         switch content {
         case .sftpSession(let sftpSession):
-            sftpSession.path
+            sftpSession.displayedPath
         case _ where customTitle != nil:
             // A renamed pane shows its name and nothing under it: the subtitle
             // is the derived detail, and pairing it with a name the user chose
@@ -302,7 +310,7 @@ final class Pane: Identifiable {
             // path is navigation state, not an alternate name.
             nil
         case .sshSession(let sshSession):
-            sshSession.status.isLive ? sshSession.workingDirectory : nil
+            sshSession.status.isLive ? sshSession.displayedWorkingDirectory : nil
         default:
             nil
         }

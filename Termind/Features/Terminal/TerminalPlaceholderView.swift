@@ -166,6 +166,9 @@ struct TerminalPlaceholderView: View {
         else {
             return String(localized: "The SSH session is not ready for file transfer.")
         }
+        guard !sshSession.homeResolution.isPending else {
+            return String(localized: "Wait for the shell prompt to report its current directory.")
+        }
         guard let directory = sshSession.workingDirectory, !directory.isEmpty else {
             return String(
                 localized: "Wait for the shell prompt to report its current directory."
@@ -193,7 +196,9 @@ struct TerminalPlaceholderView: View {
         } else {
             TerminalUploadTargetOverlay(
                 title: String(localized: "Upload to \(uploadHostName)"),
-                detail: RemotePath.normalized(sshSession.workingDirectory ?? "/"),
+                detail: sshSession.displayPath(
+                    RemotePath.normalized(sshSession.workingDirectory ?? "/")
+                ),
                 systemImage: "arrow.up.doc.fill",
                 tint: .accentColor
             )
@@ -238,7 +243,8 @@ struct TerminalPlaceholderView: View {
                     hostID: sshSession.hostID,
                     initialPath: destination,
                     client: client,
-                    configuration: configuration
+                    configuration: configuration,
+                    homeResolution: sshSession.homeResolution
                 )
                 await uploadSession.prepareUpload(files)
                 try Task.checkCancellation()

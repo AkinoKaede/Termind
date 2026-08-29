@@ -50,6 +50,8 @@ nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {
     var direction: Direction = .upload
     var localPath: String
     var remotePath: String
+    var sourceHomeDirectory: String?
+    var destinationHomeDirectory: String?
     var byteCount: Int64 = 0
     var transferredBytes: Int64 = 0
     var bytesPerSecond: Int64 = 0

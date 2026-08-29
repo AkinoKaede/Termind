@@ -13,6 +13,8 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         var integrationInstalled = false
         var shell: String?
         var systemInfo: RemoteSystemInfo?
+        var homeDirectory: String?
+        var homeResolutionUnavailable = false
     }
 
     private enum Phase: Sendable {
@@ -100,7 +102,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             let visible = cleanBufferedOutput()
             phase = .scanningForLateProbe
             lastActivity = nil
-            return Update(visibleOutput: visible)
+            return Update(visibleOutput: visible, homeResolutionUnavailable: true)
         case .scanningForLateProbe:
             guard let lastActivity, now >= lastActivity + Self.quietTimeout,
                 !buffer.isEmpty
@@ -176,12 +178,31 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 
         var visible = preservedOutput
         visible.append(Data(buffer[buffer.index(after: lineEnd)...]))
+        let homeDirectory = parseHomeDirectory(in: buffer)
         finish()
         return Update(
             visibleOutput: visible, isComplete: true,
             integrationInstalled: true, shell: detectedShell,
-            systemInfo: detectedSystemInfo
+            systemInfo: detectedSystemInfo,
+            homeDirectory: homeDirectory
         )
+    }
+
+    private func parseHomeDirectory(in data: Data) -> String? {
+        let prefix = Data("__TRMD_\(token)_HOME__".utf8)
+        guard let prefixRange = data.range(of: prefix),
+            let lineEnd = data[prefixRange.upperBound...].firstIndex(of: 0x0A)
+        else { return nil }
+        var payload = Data(data[prefixRange.upperBound..<lineEnd])
+        if payload.last == 0x0D { payload.removeLast() }
+        guard let decoded = RemoteCommandEventFilter.decodePercentEncoded(payload),
+            decoded.hasPrefix("/"),
+            !decoded.unicodeScalars.contains(where: {
+                CharacterSet.controlCharacters.contains($0)
+                    || CharacterSet.newlines.contains($0)
+            })
+        else { return nil }
+        return decoded
     }
 
     private func parseSystemInfo(in data: Data) -> RemoteSystemInfo? {
@@ -261,7 +282,9 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             command: update.command, visibleOutput: combined,
             isComplete: update.isComplete,
             integrationInstalled: update.integrationInstalled,
-            shell: update.shell, systemInfo: update.systemInfo
+            shell: update.shell, systemInfo: update.systemInfo,
+            homeDirectory: update.homeDirectory,
+            homeResolutionUnavailable: update.homeResolutionUnavailable
         )
     }
 
@@ -298,7 +321,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     }
 
     private func installationCommand(for shell: String?) -> Data? {
-        let marker = "builtin printf '\\n__TRMD_%s_DONE__\\n' '\(token)'"
+        let marker = "builtin printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' \"$(__termind_encode \"$HOME\")\"; builtin printf '\\n__TRMD_%s_DONE__\\n' '\(token)'"
         let command: String
         switch shell {
         case "bash":
@@ -309,7 +332,7 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
                 " function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_prompt { __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; }; function __termind_compose_draft { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$BUFFER\")\"; zle redisplay; }; function __termind_compose_clear { BUFFER=; CURSOR=0; zle redisplay; }; zle -N __termind_compose_draft; zle -N __termind_compose_clear; for __termind_map in emacs viins vicmd; do bindkey -M $__termind_map '\\e[777;1~' __termind_compose_draft 2>/dev/null; bindkey -M $__termind_map '\\e[777;2~' __termind_compose_clear 2>/dev/null; done; unset __termind_map; autoload -Uz add-zsh-hook; add-zsh-hook preexec __termind_report_command; add-zsh-hook precmd __termind_report_prompt; add-zsh-hook chpwd __termind_report_cwd; \(marker); __termind_report_prompt\n"
         case "fish":
             command =
-                " function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token)\\a'; end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\"; end; function __termind_compose_clear; commandline -r ''; commandline -C 0; end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_prompt\n"
+                " function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token)\\a'; end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\"; end; function __termind_compose_clear; commandline -r ''; commandline -C 0; end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' (string escape --style=url $HOME); printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_prompt\n"
         default:
             return nil
         }
@@ -399,7 +422,7 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
         return candidates.min { $0.0.lowerBound < $1.0.lowerBound }
     }
 
-    private static func decodePercentEncoded(_ data: Data) -> String? {
+    static func decodePercentEncoded(_ data: Data) -> String? {
         let bytes = Array(data)
         var decoded: [UInt8] = []
         decoded.reserveCapacity(bytes.count)
@@ -429,7 +452,8 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
 }
 
 nonisolated enum SSHShellIntegrationEvent: Sendable {
-    case available(shell: String, systemInfo: RemoteSystemInfo?)
+    case available(shell: String, systemInfo: RemoteSystemInfo?, homeDirectory: String?)
+    case homeResolutionUnavailable
     case promptReady
     case commandStarted(String)
     case draft(String)
@@ -1078,8 +1102,11 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
         if update.integrationInstalled {
             shellIntegrationHandler(.available(
-                shell: update.shell ?? "unknown", systemInfo: update.systemInfo
+                shell: update.shell ?? "unknown", systemInfo: update.systemInfo,
+                homeDirectory: update.homeDirectory
             ))
+        } else if update.homeResolutionUnavailable || update.isComplete {
+            shellIntegrationHandler(.homeResolutionUnavailable)
         }
         if let visibleOutput = update.visibleOutput, !visibleOutput.isEmpty {
             deliverIntegratedOutput(visibleOutput)

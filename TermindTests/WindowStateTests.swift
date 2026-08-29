@@ -435,6 +435,7 @@ struct WindowStateTests {
     func assistantSidebarShowsFocusedWorkspaceContext() {
         let host = Host(name: "Files", host: "files.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
+        workspace.focusedPane.sftpSession?.homeResolution = .unavailable
         let window = WindowModel(workspaces: [workspace])
 
         window.hostStore = HostLibraryModel(hosts: [host])
@@ -452,6 +453,7 @@ struct WindowStateTests {
         let host = Host(name: "Files", host: "files.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
         let sftpSession = workspace.focusedPane.sftpSession!
+        sftpSession.homeResolution = .unavailable
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
 
@@ -469,6 +471,7 @@ struct WindowStateTests {
         let host = Host(name: "Files", host: "files.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/focused")
         let focusedPane = workspace.focusedPane
+        focusedPane.sftpSession?.homeResolution = .unavailable
         workspace.splitFocusedPane(
             axis: .horizontal,
             with: .sftpSession(host: host, initialPath: "/background")
@@ -490,6 +493,7 @@ struct WindowStateTests {
     func sendingFromTheSidebarDoesNotAttachSessionContextToTheConversation() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
+        workspace.focusedPane.sftpSession?.homeResolution = .unavailable
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
         window.sidebar.assistantDraft.draft = "Why is this slow?"
@@ -567,6 +571,7 @@ struct WindowStateTests {
         let sshSession = workspace.focusedPane.sshSession!
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
+        sshSession.receiveShellIntegrationEvent(.homeResolutionUnavailable)
 
         sshSession.terminalState.terminalDidChangeWorkingDirectory("/var/log")
         await Task.yield()
@@ -591,7 +596,9 @@ struct WindowStateTests {
             kernelName: "Linux", kernelRelease: "6.8.0", architecture: "x86_64"
         )
 
-        sshSession.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: info))
+        sshSession.receiveShellIntegrationEvent(
+            .available(shell: "bash", systemInfo: info, homeDirectory: "/home/test")
+        )
 
         #expect(window.sidebar.sessionContext.systemInfo == info)
         // OS facts reach the model but are not a pill: they are disclosed by the
@@ -607,7 +614,9 @@ struct WindowStateTests {
         sshSession.applyShellIntegrationPreference(isEnabled: false)
         #expect(window.sidebar.sessionContext.systemInfo == nil)
 
-        sshSession.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: info))
+        sshSession.receiveShellIntegrationEvent(
+            .available(shell: "bash", systemInfo: info, homeDirectory: "/home/test")
+        )
         sshSession.disconnect()
         #expect(window.sidebar.sessionContext.systemInfo == nil)
     }

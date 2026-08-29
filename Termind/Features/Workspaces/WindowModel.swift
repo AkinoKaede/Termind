@@ -560,6 +560,8 @@ final class WindowModel {
             hostID: workspace.focusedPane.hostID,
             hostName: workspace.focusedPane.hostID.flatMap { hostStore.host($0)?.name },
             workingDirectory: workspace.focusedPane.workingDirectory,
+            workingDirectoryDisplayLabel: workspace.focusedPane.displayedWorkingDirectory,
+            showsWorkingDirectoryChip: workspace.focusedPane.displayedWorkingDirectory != nil,
             systemInfo: workspace.focusedPane.remoteSystemInfo
         )
     }

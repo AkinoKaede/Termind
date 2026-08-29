@@ -17,11 +17,16 @@ nonisolated struct SFTPRemoteCopySource: Sendable {
     var hostID: Host.ID
     var connection: SFTPTransferConnection
     var files: [RemoteFile]
+    var homeDirectory: String?
 
-    init(hostID: Host.ID, connection: SFTPTransferConnection, files: [RemoteFile]) {
+    init(
+        hostID: Host.ID, connection: SFTPTransferConnection, files: [RemoteFile],
+        homeDirectory: String? = nil
+    ) {
         self.hostID = hostID
         self.connection = connection
         self.files = files
+        self.homeDirectory = homeDirectory
     }
 
     init(hostID: Host.ID, configuration: SSHConnectionConfiguration, files: [RemoteFile]) {
@@ -94,6 +99,36 @@ nonisolated enum RemotePath {
         return result
     }
 
+    static func displayed(_ path: String, home: RemoteHomeResolutionState) -> String {
+        let value = normalized(path)
+        guard case .resolved(let proposedHome) = home else { return value }
+        let home = normalized(proposedHome)
+        if value == home { return "~" }
+        if home == "/" { return "~" + value }
+        guard value.hasPrefix(home + "/") else { return value }
+        return "~" + value.dropFirst(home.count)
+    }
+
+    static func displayedComponents(
+        of path: String, home: RemoteHomeResolutionState
+    ) -> [Component] {
+        let value = normalized(path)
+        guard case .resolved(let proposedHome) = home else { return components(of: value) }
+        let home = normalized(proposedHome)
+        guard value == home || home == "/" || value.hasPrefix(home + "/") else {
+            return components(of: value)
+        }
+        var result = [Component(name: "~", path: home)]
+        guard value != home else { return result }
+        var current = home
+        let suffix = home == "/" ? value.dropFirst() : value.dropFirst(home.count + 1)
+        for name in suffix.split(separator: "/").map(String.init) {
+            current = join(current, name)
+            result.append(Component(name: name, path: current))
+        }
+        return result
+    }
+
     static func keepBothCandidate(for path: String, index: Int) -> String {
         let ns = path as NSString
         let parent = ns.deletingLastPathComponent
@@ -102,6 +137,21 @@ nonisolated enum RemotePath {
         let stem = name.deletingPathExtension
         let candidate = ext.isEmpty ? "\(stem).\(index)" : "\(stem).\(index).\(ext)"
         return parent == "/" ? "/\(candidate)" : "\(parent)/\(candidate)"
+    }
+}
+
+nonisolated enum RemoteHomeResolutionState: Hashable, Sendable {
+    case pending
+    case resolved(String)
+    case unavailable
+
+    var resolvedDirectory: String? {
+        guard case .resolved(let path) = self else { return nil }
+        return RemotePath.normalized(path)
+    }
+
+    var isPending: Bool {
+        if case .pending = self { true } else { false }
     }
 }
 
@@ -264,6 +314,7 @@ final class SFTPTransferCoordinator {
         localURL: URL, remotePath: String, byteCount: Int64,
         hostID: Host.ID, connection: SFTPTransferConnection,
         scopedRoot: URL, overwrite: Bool,
+        homeDirectory: String? = nil,
         completion: ((SFTPTransfer.State) -> Void)? = nil
     ) {
         let sftpTransfer = SFTPTransfer(
@@ -272,6 +323,8 @@ final class SFTPTransferCoordinator {
             destinationHostID: direction == .upload ? hostID : nil,
             direction: direction,
             localPath: localURL.path, remotePath: remotePath,
+            sourceHomeDirectory: direction == .download ? homeDirectory : nil,
+            destinationHomeDirectory: direction == .upload ? homeDirectory : nil,
             byteCount: byteCount, queuedAt: Date()
         )
         store.enqueueSFTPTransfer(sftpTransfer)
@@ -289,13 +342,14 @@ final class SFTPTransferCoordinator {
         localURL: URL, remotePath: String, byteCount: Int64,
         hostID: Host.ID, configuration: SSHConnectionConfiguration,
         scopedRoot: URL, overwrite: Bool,
+        homeDirectory: String? = nil,
         completion: ((SFTPTransfer.State) -> Void)? = nil
     ) {
         enqueue(
             direction: direction, batchID: batchID, localURL: localURL,
             remotePath: remotePath, byteCount: byteCount, hostID: hostID,
             connection: .saved(configuration), scopedRoot: scopedRoot,
-            overwrite: overwrite, completion: completion
+            overwrite: overwrite, homeDirectory: homeDirectory, completion: completion
         )
     }
 
@@ -306,6 +360,8 @@ final class SFTPTransferCoordinator {
         destinationPath: String, destinationHostID: Host.ID,
         destinationConnection: SFTPTransferConnection,
         byteCount: Int64, overwrite: Bool,
+        sourceHomeDirectory: String? = nil,
+        destinationHomeDirectory: String? = nil,
         completion: ((SFTPTransfer.State) -> Void)? = nil
     ) {
         let sftpTransfer = SFTPTransfer(
@@ -313,6 +369,8 @@ final class SFTPTransferCoordinator {
             sourceHostID: sourceHostID, destinationHostID: destinationHostID,
             direction: .copy,
             localPath: sourcePath, remotePath: destinationPath,
+            sourceHomeDirectory: sourceHomeDirectory,
+            destinationHomeDirectory: destinationHomeDirectory,
             byteCount: byteCount, queuedAt: Date()
         )
         store.enqueueSFTPTransfer(sftpTransfer)
