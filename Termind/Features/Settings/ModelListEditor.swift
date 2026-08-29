@@ -958,6 +958,10 @@ where Item: Identifiable & Hashable & Sendable, Item.ID: Hashable {
             self.rowHeight = rowHeight
         }
 
+        // Swift 6.3.3's performance inliner crashes while synthesizing this
+        // generic class's optimized destructor. Keep only deinit unoptimized.
+        @_optimize(none) deinit {}
+
         func makeListView() -> NSViewType {
             let listView = NSViewType()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
