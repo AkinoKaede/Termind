@@ -79,9 +79,9 @@
     /// Keeps application-owned shortcuts in AppKit's menu command chain.
     ///
     /// Ghostty recognizes several application commands while the terminal is
-    /// first responder. Returning `true` prevents SwiftUI's menu command from
-    /// seeing the event. Let Termind's tab and find shortcuts fall through; every
-    /// other key still uses Ghostty's input path.
+    /// first responder. Returning `true` prevents SwiftUI's command owner from
+    /// seeing the event. Registered Termind shortcuts fall through; every other
+    /// key still uses Ghostty's input path.
     private final class TermindTerminalView: TerminalView {
         var inputCapture: TerminalInteractiveInputCapture?
 
@@ -115,7 +115,7 @@
         }
 
         override func performKeyEquivalent(with event: NSEvent) -> Bool {
-            if Self.isApplicationShortcut(event) { return false }
+            if AppShortcutRegistry.shared.routesToApplication(event) { return false }
             return captureInteraction {
                 super.performKeyEquivalent(with: event)
             }
@@ -130,52 +130,6 @@
                 allowsDeferredWrite: allowsDeferredWrite,
                 operation
             )
-        }
-
-        private static func isApplicationShortcut(_ event: NSEvent) -> Bool {
-            guard event.type == .keyDown else { return false }
-            // Caps Lock, Function and Numeric Pad do not change the shortcut.
-            // Only the four modifiers users combine into menu commands matter.
-            let commandModifiers: NSEvent.ModifierFlags = [
-                .command, .control, .option, .shift,
-            ]
-            let modifiers = event.modifierFlags.intersection(commandModifiers)
-            let character = event.charactersIgnoringModifiers?.lowercased()
-
-            if event.keyCode == 53, modifiers.isEmpty || modifiers == .shift {
-                // Esc/⇧Esc close an open find bar. With no enabled find command
-                // AppKit falls back to keyDown and the shell still receives Esc.
-                return true
-            }
-
-            if modifiers == .command, let character,
-                character.count == 1, "123456789".contains(character)
-            {
-                // Ghostty owns its own tab shortcuts and otherwise consumes
-                // these before SwiftUI's Window menu can select a Workspace.
-                return true
-            }
-
-            switch character {
-            case "i":
-                return modifiers == .command
-            case "b":
-                return modifiers == .command
-            case "q":
-                return modifiers == .command
-            case "w":
-                return modifiers == .command
-            case "f":
-                return modifiers == .command
-            case "g":
-                return modifiers == .command || modifiers == [.command, .shift]
-            default:
-                // F3 and ⇧F3 are secondary VS Code terminal-find bindings.
-                guard let scalar = event.charactersIgnoringModifiers?.unicodeScalars.first?.value
-                else { return false }
-                return scalar == UInt32(NSF3FunctionKey)
-                    && (modifiers.isEmpty || modifiers == .shift)
-            }
         }
     }
 

@@ -43,6 +43,23 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func customKeyboardShortcutsUseTheApplicationRegistry() throws {
+        for file in try swiftFiles(in: "")
+        where file.lastPathComponent != "AppShortcut.swift" {
+            let lines = try String(contentsOf: file, encoding: .utf8)
+                .split(separator: "\n", omittingEmptySubsequences: false)
+            for (offset, line) in lines.enumerated() where line.contains(".keyboardShortcut(") {
+                let isStandardDialogAction = line.contains(".defaultAction")
+                    || line.contains(".cancelAction")
+                #expect(
+                    isStandardDialogAction,
+                    "\(file.path):\(offset + 1) bypasses AppShortcut"
+                )
+            }
+        }
+    }
+
+    @Test
     func featureFacadesDoNotExposeTheirBackingLibrary() throws {
         for file in try swiftFiles(in: "Application/FeatureModels") {
             let text = try String(contentsOf: file, encoding: .utf8)

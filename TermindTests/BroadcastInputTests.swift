@@ -333,6 +333,88 @@ struct BroadcastInputTests {
             #expect(secondWrites == [Data("x".utf8)])
         }
 
+        @Test
+        func registeredApplicationShortcutsFallThroughTheTerminal() throws {
+            let host = Host(name: "host", host: "host.example")
+            let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
+            let shortcuts: [AppShortcutRegistration] = [
+                AppShortcutRegistration("t"),
+                AppShortcutRegistration("t", modifiers: [.command, .shift]),
+                AppShortcutRegistration("d", modifiers: [.command, .option, .shift]),
+                AppShortcutRegistration(.tab, modifiers: [.control, .shift]),
+                AppShortcutRegistration("]", modifiers: [.command, .shift]),
+                AppShortcutRegistration(.f3, modifiers: []),
+                AppShortcutRegistration(.escape, modifiers: .shift),
+            ]
+
+            for shortcut in shortcuts {
+                AppShortcutRegistry.shared.register(shortcut)
+                let event = try #require(keyEvent(for: shortcut))
+                #expect(
+                    !sshSession.terminalViewOwner.performKeyEquivalentForTesting(event),
+                    "Ghostty consumed registered shortcut \(shortcut)"
+                )
+            }
+        }
+
+        @Test
+        func declarationChoosesWhetherTheTerminalYields() throws {
+            let registry = AppShortcutRegistry()
+            let shortcut = AppShortcutRegistration("z", modifiers: [.command, .option])
+            let event = try #require(keyEvent(for: shortcut))
+
+            registry.register(shortcut, terminalRouting: .terminal)
+            #expect(!registry.routesToApplication(event))
+
+            registry.register(shortcut, terminalRouting: .application)
+            #expect(registry.routesToApplication(event))
+        }
+
+        @Test
+        func terminalOwnedKeysAreNotRegisteredAsApplicationShortcuts() throws {
+            let cases: [(String, NSEvent.ModifierFlags, UInt16)] = [
+                ("x", [], 7),
+                ("c", .control, 8),
+                ("c", .command, 8),
+                ("v", .command, 9),
+            ]
+
+            for (character, modifiers, keyCode) in cases {
+                let event = try #require(NSEvent.keyEvent(
+                    with: .keyDown,
+                    location: .zero,
+                    modifierFlags: modifiers,
+                    timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: 0,
+                    context: nil,
+                    characters: character,
+                    charactersIgnoringModifiers: character,
+                    isARepeat: false,
+                    keyCode: keyCode
+                ))
+                #expect(!AppShortcutRegistry.shared.routesToApplication(event))
+            }
+        }
+
+        @Test
+        func shiftedPunctuationMatchesItsUnshiftedShortcutKey() throws {
+            let event = try #require(NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [.command, .shift],
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: 0,
+                context: nil,
+                characters: "}",
+                charactersIgnoringModifiers: "}",
+                isARepeat: false,
+                keyCode: 30
+            ))
+
+            let shortcut = AppShortcutRegistration("]", modifiers: [.command, .shift])
+            #expect(shortcut.matches(event))
+        }
+
         @Test(.disabled(
             if: !ghosttyHasActiveDisplay,
             "Ghostty's Metal surface requires an active display"
@@ -390,6 +472,7 @@ struct BroadcastInputTests {
         func commandQFallsThroughToAppKitQuitCommand() throws {
             let host = Host(name: "host", host: "host.example")
             let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
+            AppShortcutRegistry.shared.register(AppShortcutRegistration("q"))
             let event = try #require(
                 NSEvent.keyEvent(
                     with: .keyDown,
@@ -411,6 +494,7 @@ struct BroadcastInputTests {
         func commandIFallsThroughToAppKitGenerateCommand() throws {
             let host = Host(name: "host", host: "host.example")
             let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
+            AppShortcutRegistry.shared.register(AppShortcutRegistration("i"))
             let event = try #require(
                 NSEvent.keyEvent(
                     with: .keyDown,
@@ -426,6 +510,60 @@ struct BroadcastInputTests {
                 ))
 
             #expect(!sshSession.terminalViewOwner.performKeyEquivalentForTesting(event))
+        }
+
+        private func keyEvent(for shortcut: AppShortcutRegistration) -> NSEvent? {
+            let (characters, keyCode): (String, UInt16) = switch shortcut.key {
+            case .character(let character):
+                (String(character), keyCode(for: character))
+            case .tab:
+                ("\t", 48)
+            case .escape:
+                ("\u{1B}", 53)
+            case .f3:
+                (String(Character(UnicodeScalar(NSF3FunctionKey)!)), 99)
+            }
+            return NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: shortcut.appKitModifiers,
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: 0,
+                context: nil,
+                characters: characters,
+                charactersIgnoringModifiers: characters,
+                isARepeat: false,
+                keyCode: keyCode
+            )
+        }
+
+        private func keyCode(for character: Character) -> UInt16 {
+            switch character {
+            case "1": 18
+            case "2": 19
+            case "3": 20
+            case "4": 21
+            case "5": 23
+            case "6": 22
+            case "7": 26
+            case "8": 28
+            case "9": 25
+            case "[": 33
+            case "]": 30
+            case "b": 11
+            case "d": 2
+            case "f": 3
+            case "g": 5
+            case "i": 34
+            case "l": 37
+            case "n": 45
+            case "p": 35
+            case "q": 12
+            case "t": 17
+            case "w": 13
+            case ".": 47
+            default: 0
+            }
         }
     #endif
 

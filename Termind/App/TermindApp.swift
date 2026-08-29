@@ -138,14 +138,14 @@ struct TermindApp: App {
         weak var app: AppModel?
 
         func applicationDidFinishLaunching(_ notification: Notification) {
+            AppShortcutRegistry.shared.register(AppShortcutRegistration("q"))
             if let items = NSApp.mainMenu?.items {
                 for menuItem in items {
                     guard let submenu = menuItem.submenu else { continue }
                     for item in submenu.items
                     where item.action == #selector(NSWindow.performClose(_:)) {
                         item.title = String(localized: "Close Window")
-                        item.keyEquivalent = "w"
-                        item.keyEquivalentModifierMask = [.command, .shift]
+                        item.setTermindShortcut("w", modifiers: [.command, .shift])
                     }
                 }
             }

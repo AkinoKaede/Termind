@@ -23,7 +23,7 @@ struct TermindCommands: Commands {
             // this replacement is merged into the final File menu, leaving
             // no menu item (and therefore no working Command-P shortcut).
             Button("Quick Open") { window?.isQuickOpenPresented = true }
-                .keyboardShortcut("p")
+                .termindShortcut("p")
                 .disabled(window == nil)
 
             Divider()
@@ -38,14 +38,14 @@ struct TermindCommands: Commands {
                 guard let window else { return }
                 app.connect(in: window)
             }
-            .keyboardShortcut("t")
+            .termindShortcut("t")
             Button("New Chat") { window?.openNewAssistantChat() }
-                .keyboardShortcut("t", modifiers: [.command, .option])
+                .termindShortcut("t", modifiers: [.command, .option])
 
             Divider()
 
             Button("New Host") { window?.openHostEditor(host: nil) }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .termindShortcut("n", modifiers: [.command, .shift])
 
             Divider()
 
@@ -54,16 +54,16 @@ struct TermindCommands: Commands {
             // instead choose whether its fresh copy belongs beside it or apart.
             if window?.selectedWorkspace?.isSplit == true {
                 Button("Duplicate") { window?.duplicateSelectedInNewWorkspace() }
-                    .keyboardShortcut("d")
+                    .termindShortcut("d")
                     .disabled(!(window?.canDuplicateSelected ?? false))
             } else {
                 Menu("Duplicate") {
                     Button("In Current Workspace") {
                         window?.duplicateSelected(axis: .horizontal)
                     }
-                    .keyboardShortcut("d")
+                    .termindShortcut("d")
                     Button("In New Workspace") { window?.duplicatePaneInNewWorkspace() }
-                        .keyboardShortcut("d", modifiers: [.command, .shift])
+                        .termindShortcut("d", modifiers: [.command, .shift])
                 }
                 .disabled(!(window?.canDuplicateSelected ?? false))
             }
@@ -73,7 +73,7 @@ struct TermindCommands: Commands {
             Button("Generate Command") {
                 window?.generateTerminalCommand(using: app.commandGenerator)
             }
-            .keyboardShortcut("i")
+            .termindShortcut("i")
             .disabled(!(window?.canGenerateTerminalCommand ?? false))
 
             Divider()
@@ -82,7 +82,7 @@ struct TermindCommands: Commands {
             // titlebar, whatever that field is currently pointed at. See
             // `WindowModel.findKind`.
             Button("Find") { window?.focusToolbarFind() }
-                .keyboardShortcut("f")
+                .termindShortcut("f")
                 .disabled(!(window?.canFindInMainContent ?? false))
 
             // `.previous` walks toward older output, which is where the matches
@@ -91,28 +91,28 @@ struct TermindCommands: Commands {
             Button("Find Next in Terminal") {
                 window?.navigateTerminalFind(.previous)
             }
-            .keyboardShortcut("g")
+            .termindShortcut("g")
             .disabled(!(window?.canFindInTerminal ?? false))
 
             Button("Find Previous in Terminal") {
                 window?.navigateTerminalFind(.next)
             }
-            .keyboardShortcut("g", modifiers: [.command, .shift])
+            .termindShortcut("g", modifiers: [.command, .shift])
             .disabled(!(window?.canFindInTerminal ?? false))
         }
 
         CommandGroup(replacing: .saveItem) {
             Button("Close Workspace") { window?.closeSelected() }
-                .keyboardShortcut("w")
+                .termindShortcut("w")
                 .disabled(window?.selectedWorkspace == nil)
             Button("Close Other Workspaces") {
                 guard let window, let id = window.selectedWorkspaceID else { return }
                 window.closeOthers(than: id)
             }
-            .keyboardShortcut("w", modifiers: [.command, .option])
+            .termindShortcut("w", modifiers: [.command, .option])
             .disabled(window?.selectedWorkspace == nil)
             Button("Reopen Closed Workspace") { window?.reopenLastClosed() }
-                .keyboardShortcut("t", modifiers: [.command, .shift])
+                .termindShortcut("t", modifiers: [.command, .shift])
                 .disabled(!(window?.canReopen ?? false))
         }
 
@@ -131,7 +131,7 @@ struct TermindCommands: Commands {
                     window.showAssistant()
                 }
             }
-            .keyboardShortcut("i", modifiers: [.command, .option])
+            .termindShortcut("i", modifiers: [.command, .option])
             .disabled(window?.selectedWorkspace == nil)
 
             Divider()
@@ -140,25 +140,25 @@ struct TermindCommands: Commands {
             // opens a connection and the pair that only rearranges the window
             // are one key apart, and the ⌥ ones never touch the network.
             Button("Split Right") { window?.splitSelected(axis: .horizontal) }
-                .keyboardShortcut("d", modifiers: [.command, .option])
+                .termindShortcut("d", modifiers: [.command, .option])
                 .disabled(!(window?.canSplitSelected ?? false))
             Button("Split Down") { window?.splitSelected(axis: .vertical) }
-                .keyboardShortcut("d", modifiers: [.command, .option, .shift])
+                .termindShortcut("d", modifiers: [.command, .option, .shift])
                 .disabled(!(window?.canSplitSelected ?? false))
         }
 
         CommandGroup(before: .windowList) {
             Button("Next Workspace") { window?.selectNext() }
-                .keyboardShortcut(.tab, modifiers: .control)
+                .termindShortcut(.tab, modifiers: .control)
                 .disabled(window?.workspaces.isEmpty != false)
             Button("Previous Workspace") { window?.selectPrevious() }
-                .keyboardShortcut(.tab, modifiers: [.control, .shift])
+                .termindShortcut(.tab, modifiers: [.control, .shift])
                 .disabled(window?.workspaces.isEmpty != false)
             Button("Show Next Workspace") { window?.selectNext() }
-                .keyboardShortcut("]", modifiers: [.command, .shift])
+                .termindShortcut("]", modifiers: [.command, .shift])
                 .disabled(window?.workspaces.isEmpty != false)
             Button("Show Previous Workspace") { window?.selectPrevious() }
-                .keyboardShortcut("[", modifiers: [.command, .shift])
+                .termindShortcut("[", modifiers: [.command, .shift])
                 .disabled(window?.workspaces.isEmpty != false)
 
             Divider()
@@ -167,14 +167,14 @@ struct TermindCommands: Commands {
             // browser and terminal shares.
             ForEach(1...8, id: \.self) { index in
                 Button("Workspace \(index)") { window?.select(index: index - 1) }
-                    .keyboardShortcut(KeyEquivalent(Character("\(index)")))
+                    .termindShortcut(AppShortcutKey.character(Character("\(index)")))
                     .disabled((window?.workspaces.count ?? 0) < index)
             }
             Button("Last Workspace") {
                 guard let window else { return }
                 window.select(index: window.workspaces.count - 1)
             }
-            .keyboardShortcut("9")
+            .termindShortcut("9")
             .disabled(window?.workspaces.isEmpty != false)
 
             Divider()

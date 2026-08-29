@@ -51,7 +51,7 @@ struct WorkspaceContentView: View {
     /// rather than flipping a switch with one wire on it.
     private var broadcastShortcut: some View {
         Button("") { workspace.broadcastsInput.toggle() }
-            .keyboardShortcut("b")
+            .termindShortcut("b")
             .disabled(!isActive || !workspace.canBroadcast)
             .opacity(0)
             .frame(width: 0, height: 0)
@@ -64,7 +64,6 @@ struct WorkspaceContentView: View {
     @ViewBuilder
     private var terminalFindShortcuts: some View {
         #if canImport(AppKit)
-            let f3 = KeyEquivalent(Character(UnicodeScalar(NSF3FunctionKey)!))
             let sshSession = workspace.focusedPane.sshSession
 
             Group {
@@ -72,19 +71,19 @@ struct WorkspaceContentView: View {
                 // walks toward older output, which is the direction that finds
                 // matches when a search starts at the bottom of the buffer.
                 Button("") { sshSession?.presentFindAndNavigate(.previous) }
-                    .keyboardShortcut(f3, modifiers: [])
+                    .termindShortcut(.f3, modifiers: [])
                     .disabled(!isActive || sshSession == nil)
 
                 Button("") { sshSession?.presentFindAndNavigate(.next) }
-                    .keyboardShortcut(f3, modifiers: .shift)
+                    .termindShortcut(.f3, modifiers: .shift)
                     .disabled(!isActive || sshSession == nil)
 
                 Button("") { sshSession?.dismissFind() }
-                    .keyboardShortcut(.escape, modifiers: [])
+                    .termindShortcut(.escape, modifiers: [])
                     .disabled(!isActive || sshSession?.isFindPresented != true)
 
                 Button("") { sshSession?.dismissFind() }
-                    .keyboardShortcut(.escape, modifiers: .shift)
+                    .termindShortcut(.escape, modifiers: .shift)
                     .disabled(!isActive || sshSession?.isFindPresented != true)
             }
             .opacity(0)

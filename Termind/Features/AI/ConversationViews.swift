@@ -707,7 +707,7 @@ struct ComposerView: View {
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
-        .keyboardShortcut(".", modifiers: .command)
+        .termindShortcut(".")
         .font(.system(size: 26, weight: .semibold))
         .foregroundStyle(.red)
         .frame(width: 32, height: 32)

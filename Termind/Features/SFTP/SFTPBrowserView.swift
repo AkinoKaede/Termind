@@ -415,7 +415,7 @@ struct SFTPBrowserView: View {
         }
         .background {
             Button("") { beginPathEditing() }
-                .keyboardShortcut("l", modifiers: .command)
+                .termindShortcut("l")
                 .disabled(sftpSession.connectionJourney.isPresented)
                 .opacity(0)
                 .frame(width: 0, height: 0)
