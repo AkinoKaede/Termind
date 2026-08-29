@@ -68,6 +68,9 @@ struct RootView: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { layoutWidth = $0 }
         .toolbarBackground(.hidden, for: .windowToolbar)
         .navigationTitle(WindowTitleCatalog.standard(hosts: app.hostLibrary).title(in: window))
+        // Match the system search presentation used by sing-box-for-apple:
+        // `.searchable` owns the toolbar field, its material and its focus ring.
+        .windowToolbarSearch()
         // The window's only toolbar. Creation on the left, one Find on the
         // right, both following the content in front rather than the sidebar —
         // see `WindowToolbarLeadingActions` and `WindowModel.findKind`.
@@ -76,7 +79,7 @@ struct RootView: View {
                 WindowToolbarLeadingActions()
             }
             ToolbarItem(placement: .primaryAction) {
-                WindowToolbarFindField()
+                WindowToolbarHeightReservation()
             }
         }
         .sheet(item: $presentations.hostChooser) { purpose in

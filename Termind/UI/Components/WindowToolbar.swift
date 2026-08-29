@@ -400,43 +400,80 @@ struct NativeSearchField: NSViewRepresentable {
 
 // MARK: - Toolbar content
 
-/// The trailing half of the titlebar: one Find field, or nothing at all on
-/// Welcome and on a workspace that has no searchable pane in front.
-struct WindowToolbarFindField: View {
+/// Lets SwiftUI install its own native toolbar search item, matching the
+/// structure used by sing-box-for-apple. In particular, the system owns the
+/// focus ring outside the search material instead of an `NSSearchField` being
+/// clipped inside a manually hosted toolbar item.
+private struct WindowToolbarSearchModifier: ViewModifier {
     @Environment(WindowModel.self) private var window
-    @State private var searchFieldOwner = NativeSearchFieldOwner()
+    @State private var isPresented = false
 
-    var body: some View {
-        Group {
-            if let context = window.findContext() {
-                NativeSearchField(
-                    text: context.query,
-                    placeholder: String(localized: "Search"),
-                    owner: searchFieldOwner,
-                    focusRequest: context.focusRequest,
-                    maintainsKeyboardFocus: window.isToolbarFindFocused,
-                    navigate: context.navigate,
-                    cancel: context.cancel,
-                    menuItems: context.menuItems,
-                    installFocusHandler: { window.focusToolbarFindField = $0 },
-                    onFocusChange: { window.isToolbarFindFocused = $0 }
-                )
-                .frame(width: Metrics.Toolbar.searchFieldWidth)
-                .help(Text(String(localized: "Search")))
-                .accessibilityLabel(Text(String(localized: "Search")))
-            } else {
-                // Zero width, full height. A toolbar with nothing in it is
-                // shorter than one holding a search field, and the titlebar
-                // resizing takes the window's content up with it — which is
-                // what made a connection started from the sidebar shove the
-                // journey view upward as the destination changed from Vault
-                // to a Workspace. Reserving the height keeps the toolbar one
-                // size for every destination, without leaving a phantom slot.
-                Color.clear.frame(width: 0)
-                    .onAppear { window.isToolbarFindFocused = false }
-            }
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let context = window.findContext() {
+            searchable(content, context: context)
+        } else {
+            content
+                .onAppear { dismissSearch() }
         }
-        .frame(height: Metrics.Toolbar.height)
+    }
+
+    private func searchable(
+        _ content: Content,
+        context: WindowToolbarFindContext
+    ) -> some View {
+        content
+            .searchable(
+                text: context.query,
+                isPresented: $isPresented,
+                prompt: Text("Search")
+            )
+            .onAppear { installFocusHandler() }
+            .onChange(of: isPresented, initial: true) { _, presented in
+                window.isToolbarFindFocused = presented
+            }
+            .onKeyPress(.return, phases: .down) { press in
+                guard isPresented, let navigate = context.navigate else {
+                    return .ignored
+                }
+                navigate(press.modifiers.contains(.shift) ? .next : .previous)
+                return .handled
+            }
+            .onKeyPress(.escape, phases: .down) { _ in
+                guard isPresented, let cancel = context.cancel else {
+                    return .ignored
+                }
+                cancel()
+                dismissSearch()
+                return .handled
+            }
+    }
+
+    private func installFocusHandler() {
+        let presentation = $isPresented
+        window.focusToolbarFindField = { presentation.wrappedValue = true }
+        if window.isToolbarFindFocused { isPresented = true }
+    }
+
+    private func dismissSearch() {
+        isPresented = false
+        window.isToolbarFindFocused = false
+        window.focusToolbarFindField = nil
+    }
+}
+
+extension View {
+    func windowToolbarSearch() -> some View {
+        modifier(WindowToolbarSearchModifier())
+    }
+}
+
+/// A toolbar with no items is shorter than one with Search, moving all window
+/// content when destinations change. This zero-width item keeps that height
+/// stable while `.searchable` owns the actual Search control.
+struct WindowToolbarHeightReservation: View {
+    var body: some View {
+        Color.clear.frame(width: 0, height: Metrics.Toolbar.height)
     }
 }
 
