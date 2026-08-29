@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Observation
 import Testing
 
 @testable import Termind
@@ -346,6 +347,48 @@ struct ExternalAuthCoordinatorTests {
 @Suite(.serialized)
 @MainActor
 struct ExternalToolCallHistoryTests {
+    @Test
+    func clearingHistoryInvalidatesObservedEntriesImmediately() {
+        let entry = ExternalToolCall(
+            runID: UUID(), clientName: "Codex", toolName: "list_hosts",
+            summary: "List saved hosts", risk: .readOnly
+        )
+        let store = ToolAuditModel(entries: [entry])
+        var invalidated = false
+
+        withObservationTracking {
+            #expect(store.entries().map(\.id) == [entry.id])
+        } onChange: {
+            invalidated = true
+        }
+
+        store.clear()
+
+        #expect(invalidated)
+        #expect(store.entries().isEmpty)
+    }
+
+    @Test
+    func clearingHistoryInvalidatesObservedFilteredEntriesImmediately() {
+        let entry = ExternalToolCall(
+            runID: UUID(), clientName: "Claude Code", toolName: "ssh_exec",
+            summary: "uname -a", risk: .readOnly
+        )
+        let store = ToolAuditModel(entries: [entry])
+        var invalidated = false
+
+        withObservationTracking {
+            #expect(store.entries(matching: "uname").map(\.id) == [entry.id])
+        } onChange: {
+            invalidated = true
+        }
+
+        store.clear()
+
+        #expect(invalidated)
+        #expect(store.entries(matching: "uname").isEmpty)
+    }
+
     @Test
     func sftpBodiesAndSSHOutputNeverEnterHistory() async throws {
         let channel = AgentEventChannel(repository: InMemoryAgentRunRepository())

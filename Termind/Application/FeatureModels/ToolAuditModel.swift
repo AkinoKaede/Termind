@@ -47,6 +47,7 @@ final class ToolAuditModel {
     func entries(
         matching query: String = "", tool: String? = nil, hostID: Host.ID? = nil
     ) -> [ExternalToolCall] {
+        _ = revision
         let values: [ExternalToolCall]
         do {
             values = try repository.entries()
