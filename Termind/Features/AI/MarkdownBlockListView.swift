@@ -252,6 +252,140 @@ nonisolated enum TermindMarkdownParser {
             .joined(separator: " ")
     }
 
+    /// A one-line AppKit projection for transient tool titles. It applies the
+    /// same sanitization as the full transcript renderer, preserves inline
+    /// emphasis/code/strikethrough/safe links, and flattens block structure
+    /// without allowing it to change the disclosure header's height.
+    @MainActor
+    static func singleLineAttributedText(
+        _ source: String,
+        font: NSFont = .systemFont(ofSize: NSFont.systemFontSize),
+        color: NSColor = .secondaryLabelColor
+    ) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let base: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: color,
+        ]
+
+        func append(_ value: String, attributes: [NSAttributedString.Key: Any]) {
+            result.append(NSAttributedString(string: value, attributes: attributes))
+        }
+        func separator() {
+            guard result.length > 0,
+                !result.string.hasSuffix(" ")
+            else { return }
+            append(" ", attributes: base)
+        }
+        func converted(
+            _ source: NSFont,
+            trait: NSFontTraitMask
+        ) -> NSFont {
+            NSFontManager.shared.convert(source, toHaveTrait: trait)
+        }
+        func inlines(
+            _ nodes: [MarkdownInlineNode],
+            attributes: [NSAttributedString.Key: Any]
+        ) {
+            for node in nodes {
+                switch node {
+                case .text(let text), .html(let text), .math(let text, _):
+                    append(text, attributes: attributes)
+                case .code(let text):
+                    var code = attributes
+                    let size = (attributes[.font] as? NSFont)?.pointSize ?? font.pointSize
+                    code[.font] = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+                    append(text, attributes: code)
+                case .softBreak, .lineBreak:
+                    separator()
+                case .emphasis(let children):
+                    var emphasized = attributes
+                    emphasized[.font] = converted(
+                        attributes[.font] as? NSFont ?? font,
+                        trait: .italicFontMask
+                    )
+                    inlines(children, attributes: emphasized)
+                case .strong(let children):
+                    var strong = attributes
+                    strong[.font] = converted(
+                        attributes[.font] as? NSFont ?? font,
+                        trait: .boldFontMask
+                    )
+                    inlines(children, attributes: strong)
+                case .strikethrough(let children):
+                    var struck = attributes
+                    struck[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+                    inlines(children, attributes: struck)
+                case .link(let destination, let children):
+                    var link = attributes
+                    if let url = URL(string: destination), isAllowedLink(destination) {
+                        link[.link] = url
+                        link[.foregroundColor] = NSColor.linkColor
+                        link[.underlineStyle] = NSUnderlineStyle.single.rawValue
+                    }
+                    inlines(children, attributes: link)
+                case .image(_, let children):
+                    inlines(children, attributes: attributes)
+                }
+            }
+        }
+        func blocks(_ nodes: [MarkdownBlockNode]) {
+            for node in nodes {
+                separator()
+                switch node {
+                case .paragraph(let content), .heading(_, let content):
+                    inlines(content, attributes: base)
+                case .codeBlock(_, let content):
+                    append(
+                        content,
+                        attributes: [
+                            .font: NSFont.monospacedSystemFont(
+                                ofSize: font.pointSize,
+                                weight: .regular
+                            ),
+                            .foregroundColor: color,
+                        ]
+                    )
+                case .blockquote(let children):
+                    blocks(children)
+                case .bulletedList(_, let items), .numberedList(_, _, let items):
+                    for item in items { blocks(item.children) }
+                case .taskList(_, let items):
+                    for item in items { blocks(item.children) }
+                case .table(_, let rows):
+                    for row in rows {
+                        for cell in row.cells {
+                            inlines(cell.content, attributes: base)
+                            separator()
+                        }
+                    }
+                case .thematicBreak:
+                    break
+                }
+            }
+        }
+
+        blocks(parse(source))
+        let whitespace = try? NSRegularExpression(pattern: #"\s+"#)
+        if let matches = whitespace?.matches(
+            in: result.string,
+            range: NSRange(location: 0, length: result.length)
+        ) {
+            for match in matches.reversed() {
+                result.replaceCharacters(in: match.range, with: " ")
+            }
+        }
+        while result.string.hasPrefix(" ") {
+            result.deleteCharacters(in: NSRange(location: 0, length: 1))
+        }
+        while result.string.hasSuffix(" ") {
+            result.deleteCharacters(
+                in: NSRange(location: result.length - 1, length: 1)
+            )
+        }
+        return result
+    }
+
     private static func plainText(_ block: MarkdownBlockNode) -> [String] {
         switch block {
         case .paragraph(let content), .heading(_, let content):

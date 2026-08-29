@@ -873,25 +873,14 @@ private enum NativeTranscriptFactory {
         let stack = NativeStack.vertical(spacing: Metrics.Space.s)
         let expanded = context.presentation.isExpanded(batch.id)
         let unfinished = batch.cards.filter { !$0.state.isTerminal }
-        let displayedReasoning: String? =
-            if !unfinished.isEmpty,
-                let reasoning = batch.reasoningTitle,
-                AgentToolPresentation.showsReasoning(forBatchID: batch.id)
-            {
-                reasoning
-            } else {
-                nil
-            }
-        let title: String
+        let fallbackTitle: String
         if unfinished.isEmpty {
-            title = AgentToolPresentation.batchSummary(
+            fallbackTitle = AgentToolPresentation.batchSummary(
                 for: batch.cards,
                 locale: context.configuration.locale
             )
-        } else if let displayedReasoning {
-            title = displayedReasoning
         } else {
-            title = unfinished.map { card in
+            fallbackTitle = unfinished.map { card in
                 AgentToolPresentation.summary(
                     for: card,
                     hostName: card.invocation.targetHostID.flatMap(context.actions.hostName),
@@ -899,16 +888,27 @@ private enum NativeTranscriptFactory {
                 )
             }.joined(separator: "; ")
         }
+        let transientReasoning = unfinished.isEmpty ? nil : batch.reasoning
+        let reasoningDeadline = transientReasoning.flatMap { reasoning in
+            context.measurement
+                ? nil
+                : context.presentation.reasoningTitleDeadline(
+                    for: batch.id,
+                    revision: reasoning.revision
+                )
+        }
         let header = NativeDisclosureHeader(
             symbol: AgentToolPresentation.batchSymbol(for: batch.cards),
-            title: title,
+            title: fallbackTitle,
             iconColor: batchColor(AgentToolPresentation.batchTint(for: batch.cards)),
             titleColor: .secondaryLabelColor,
             expanded: expanded,
             active: !unfinished.isEmpty,
             reduceMotion: context.configuration.reduceMotion,
             measurement: context.measurement,
-            lineLimit: displayedReasoning == nil ? 0 : 1
+            lineLimit: 1,
+            transientMarkdownTitle: transientReasoning?.markdown,
+            transientUntil: reasoningDeadline
         )
         header.toolTip = expanded ? String(localized: "Hide tools") : String(localized: "Show tools")
         header.handler = {
@@ -928,8 +928,13 @@ private enum NativeTranscriptFactory {
 
     private static func plan(_ card: AgentPlanCard, context: NativeTranscriptContext) -> NSView {
         let container = NativeCard(radius: Metrics.Radius.large)
-        container.fillProvider = { NSColor.quaternaryLabelColor.withAlphaComponent(0.2) }
-        container.strokeProvider = { NSColor.quaternaryLabelColor }
+        // Keep the plan as the quiet, paper-like object it was in the SwiftUI
+        // transcript. `controlBackgroundColor` is the system's primary light
+        // surface (and remains appearance-aware in Dark Mode); using a label
+        // hierarchy color as a fill made the AppKit port noticeably grey.
+        container.fillProvider = { .controlBackgroundColor }
+        container.strokeProvider = { .separatorColor }
+        container.layer?.masksToBounds = true
         let stack = NativeStack.vertical(spacing: Metrics.Space.s)
         stack.edgeInsets = .init(
             top: Metrics.Space.l,
@@ -965,7 +970,8 @@ private enum NativeTranscriptFactory {
             reduceMotion: context.configuration.reduceMotion,
             measurement: context.measurement,
             lineLimit: expanded ? 0 : 1,
-            trailingText: outcome
+            trailingText: outcome,
+            titleFont: .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
         )
         header.toolTip = expanded ? String(localized: "Hide the plan") : String(localized: "Show the plan")
         header.handler = {
@@ -977,6 +983,8 @@ private enum NativeTranscriptFactory {
             source: card.plan.body,
             slot: "plan",
             shell: true,
+            horizontalInset: Metrics.Space.l * 2
+                + Metrics.Sidebar.rowIcon + Metrics.Space.s,
             context: context
         )
         let indented = NativeStack.vertical()
@@ -995,7 +1003,7 @@ private enum NativeTranscriptFactory {
         indented.addArrangedSubview(preview)
         stack.addArrangedSubview(indented)
         if card.outcome == .pending {
-            let actions = NativeStack.horizontal()
+            let actions = NativeStack.horizontal(spacing: Metrics.Space.m)
             let discard = NativeButton(title: String(localized: "Discard"))
             discard.contentTintColor = .systemRed
             discard.handler = { context.actions.resolvePlan(card.id, .discarded) }
@@ -1101,6 +1109,7 @@ private enum NativeTranscriptFactory {
         shell: Bool,
         tone: TermindMarkdownView.Tone = .primary,
         fillsWidth: Bool = true,
+        horizontalInset: CGFloat = 0,
         context: NativeTranscriptContext
     ) -> NativeMarkdownView {
         let view = NativeMarkdownView()
@@ -1113,7 +1122,7 @@ private enum NativeTranscriptFactory {
                 tone: tone
             ),
             measurement: context.measurement,
-            proposedWidth: context.contentWidth,
+            proposedWidth: max(1, context.contentWidth - horizontalInset),
             fillsWidth: fillsWidth,
             actions: .init(
                 enabled: context.configuration.showsTerminalActions
@@ -1124,16 +1133,26 @@ private enum NativeTranscriptFactory {
         return view
     }
 
-    private static func labelRow(symbol: String, text: String, color: NSColor) -> NSView {
-        let row = NativeStack.horizontal()
+    private static func labelRow(
+        symbol: String,
+        text: String,
+        color: NSColor,
+        font: NSFont = .systemFont(ofSize: NSFont.systemFontSize),
+        spacing: CGFloat = Metrics.Space.s,
+        symbolPointSize: CGFloat? = nil
+    ) -> NSView {
+        let row = NativeStack.horizontal(spacing: spacing)
         let image = NSImageView(
             image: NSImage(
                 systemSymbolName: symbol,
                 accessibilityDescription: nil
             ) ?? NSImage())
         image.contentTintColor = color
+        if let symbolPointSize {
+            image.symbolConfiguration = .init(pointSize: symbolPointSize, weight: .medium)
+        }
         row.addArrangedSubview(image)
-        row.addArrangedSubview(NativeLabel(text, color: color))
+        row.addArrangedSubview(NativeLabel(text, font: font, color: color))
         return row
     }
 
@@ -1143,11 +1162,18 @@ private enum NativeTranscriptFactory {
     ) -> NSView {
         let assessment = command.risk
         let card = NativeCard(radius: Metrics.Radius.medium)
-        card.fillProvider = { NSColor.quaternaryLabelColor.withAlphaComponent(0.2) }
+        card.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCard")
+        // Match the hierarchical SwiftUI fills from the original command card.
+        // `quaternaryLabelColor` already carries an alpha component, so replacing
+        // it with 0.2/0.4 made the AppKit port roughly ten times darker.
+        card.fillProvider = {
+            nativeHierarchicalColor(.quaternaryLabelColor, opacity: 0.2)
+        }
         if assessment.risk == .destructive {
             card.strokeProvider = { NSColor.systemRed.withAlphaComponent(0.4) }
         }
-        let stack = NativeStack.vertical()
+        let stack = NativeStack.vertical(spacing: Metrics.Space.m)
+        stack.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardContent")
         stack.edgeInsets = .init(
             top: Metrics.Space.l,
             left: Metrics.Space.l,
@@ -1155,28 +1181,41 @@ private enum NativeTranscriptFactory {
             right: Metrics.Space.l
         )
         card.setContent(stack)
-        let header = NativeStack.horizontal(spacing: Metrics.Space.xs)
+        let header = NativeStack.horizontal(spacing: Metrics.Space.m)
+        header.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardHeader")
         header.addArrangedSubview(
             labelRow(
                 symbol: "sparkles",
                 text: String(localized: "Suggested Command"),
-                color: .secondaryLabelColor
+                color: .secondaryLabelColor,
+                font: .systemFont(
+                    ofSize: NSFont.smallSystemFontSize,
+                    weight: .medium
+                ),
+                spacing: Metrics.Space.xs,
+                symbolPointSize: NSFont.smallSystemFontSize
             ))
         header.addArrangedSubview(NativeFlexibleSpacer())
         header.addArrangedSubview(NativeRiskBadge(assessment: assessment))
         stack.addArrangedSubview(header)
 
         let commandBackground = NativeCard(radius: Metrics.Radius.small)
+        commandBackground.identifier = NSUserInterfaceItemIdentifier(
+            "Transcript.CommandCardCommandBackground"
+        )
         commandBackground.fillProvider = {
-            NSColor.quaternaryLabelColor.withAlphaComponent(0.4)
+            nativeHierarchicalColor(.quaternaryLabelColor, opacity: 0.4)
         }
         let commandLabel = NativeLabel(
             command.command,
             font: .monospacedSystemFont(
-                ofSize: NSFont.systemFontSize,
+                ofSize: NSFont.systemFontSize - 1,
                 weight: .regular
             ),
             selectable: true
+        )
+        commandLabel.identifier = NSUserInterfaceItemIdentifier(
+            "Transcript.CommandCardCommand"
         )
         let commandInsets = NativeStack.vertical()
         commandInsets.edgeInsets = .init(
@@ -1189,23 +1228,34 @@ private enum NativeTranscriptFactory {
         commandBackground.setContent(commandInsets)
         stack.addArrangedSubview(commandBackground)
         if !command.explanation.isEmpty {
-            stack.addArrangedSubview(
-                NativeLabel(
-                    command.explanation,
-                    color: .secondaryLabelColor
-                ))
+            let explanation = NativeLabel(
+                command.explanation,
+                font: .systemFont(ofSize: NSFont.smallSystemFontSize),
+                color: .secondaryLabelColor
+            )
+            explanation.identifier = NSUserInterfaceItemIdentifier(
+                "Transcript.CommandCardExplanation"
+            )
+            stack.addArrangedSubview(explanation)
         }
-        for reason in assessment.reasons {
-            stack.addArrangedSubview(
-                NativeLabel(
-                    "• \(reason)",
-                    font: .systemFont(ofSize: NSFont.smallSystemFontSize),
-                    color: riskColor(assessment.risk)
-                ))
+        if !assessment.reasons.isEmpty {
+            let reasons = NativeStack.vertical(spacing: Metrics.Space.xxs)
+            reasons.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardReasons")
+            for reason in assessment.reasons {
+                reasons.addArrangedSubview(
+                    NativeLabel(
+                        "• \(reason)",
+                        font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
+                        color: riskColor(assessment.risk)
+                    ))
+            }
+            stack.addArrangedSubview(reasons)
         }
-        let actions = NativeStack.horizontal()
+        let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
+        actions.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardActions")
         if context.configuration.showsTerminalActions {
-            let insert = NativeButton(title: String(localized: "Insert"))
+            let insert = NativeButton(title: String(localized: "Insert"), bordered: true)
+            insert.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardInsert")
             insert.isEnabled = context.actions.canDeliverCommand()
             insert.handler = { context.actions.deliverCommand(command.command, false) }
             let run = NativeButton(
@@ -1213,6 +1263,7 @@ private enum NativeTranscriptFactory {
                 bordered: true,
                 prominent: true
             )
+            run.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardRun")
             run.isEnabled = context.actions.canDeliverCommand()
             run.bezelColor = assessment.risk == .destructive ? .systemRed : .controlAccentColor
             run.handler = { [weak run] in
@@ -1589,28 +1640,12 @@ private final class NativeMarkdownView: NSView {
             layer?.mask = nil
             return
         }
-        wantsLayer = true
-        let gradient = CAGradientLayer()
-        gradient.colors = [
-            NSColor.white.cgColor,
-            NSColor.white.withAlphaComponent(0.18).cgColor,
-            NSColor.white.cgColor,
-        ]
-        gradient.locations = [0, 0.5, 1]
-        gradient.startPoint = CGPoint(x: 0, y: 0.5)
-        gradient.endPoint = CGPoint(x: 1, y: 0.5)
-        layer?.mask = gradient
-        let animation = CABasicAnimation(keyPath: "transform.translation.x")
-        animation.fromValue = -96
-        animation.toValue = 192
-        animation.duration = 1.55
-        animation.repeatCount = .infinity
-        gradient.add(animation, forKey: "scan")
+        installNativeScanningMask(on: self)
     }
 
     override func layout() {
         super.layout()
-        layer?.mask?.frame = bounds.insetBy(dx: -48, dy: 0)
+        layoutNativeScanningMask(on: self)
     }
 
     override var intrinsicContentSize: NSSize {
@@ -1876,6 +1911,7 @@ private final class NativeDisclosureHeader: NSControl {
     private var titleLabel: NativeLabel!
     private var timer: Timer?
     private var titleProvider: (() -> String)?
+    private var fallbackTitle: String?
 
     init(
         symbol: String?,
@@ -1889,7 +1925,10 @@ private final class NativeDisclosureHeader: NSControl {
         measurement: Bool = false,
         lineLimit: Int = 1,
         titleProvider: (() -> String)? = nil,
-        trailingText: String? = nil
+        trailingText: String? = nil,
+        transientMarkdownTitle: String? = nil,
+        transientUntil: Date? = nil,
+        titleFont: NSFont = .systemFont(ofSize: NSFont.systemFontSize)
     ) {
         super.init(frame: .zero)
         if let symbol {
@@ -1909,7 +1948,22 @@ private final class NativeDisclosureHeader: NSControl {
                 measurement: measurement
             )
         } else {
-            titleLabel = NativeLabel(title, color: titleColor)
+            titleLabel = NativeLabel(title, font: titleFont, color: titleColor)
+        }
+        if active {
+            titleLabel.identifier = NSUserInterfaceItemIdentifier(
+                "Transcript.ScanningTitle"
+            )
+        }
+        let showsTransientTitle = transientMarkdownTitle != nil
+            && transientUntil.map { $0 > .now } == true
+        if showsTransientTitle, let transientMarkdownTitle {
+            titleLabel.attributedStringValue = TermindMarkdownParser.singleLineAttributedText(
+                transientMarkdownTitle,
+                font: .systemFont(ofSize: NSFont.systemFontSize),
+                color: titleColor
+            )
+            titleLabel.allowsEditingTextAttributes = true
         }
         titleLabel.maximumNumberOfLines = lineLimit
         titleLabel.lineBreakMode = .byTruncatingTail
@@ -1953,7 +2007,10 @@ private final class NativeDisclosureHeader: NSControl {
             row.topAnchor.constraint(equalTo: topAnchor),
             row.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
-        setAccessibilityLabel(title)
+        let accessibleTitle = showsTransientTitle
+            ? transientMarkdownTitle.map(TermindMarkdownParser.plainText) ?? title
+            : title
+        setAccessibilityLabel(accessibleTitle)
         if let titleProvider, !measurement {
             self.titleProvider = titleProvider
             timer = Timer.scheduledTimer(
@@ -1963,6 +2020,18 @@ private final class NativeDisclosureHeader: NSControl {
                 userInfo: nil,
                 repeats: true
             )
+        } else if showsTransientTitle, let transientUntil, !measurement {
+            fallbackTitle = title
+            let timer = Timer(
+                fireAt: transientUntil,
+                interval: 0,
+                target: self,
+                selector: #selector(showFallbackTitle),
+                userInfo: nil,
+                repeats: false
+            )
+            self.timer = timer
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
 
@@ -1977,6 +2046,15 @@ private final class NativeDisclosureHeader: NSControl {
     @objc private func refreshTitle() {
         guard let titleProvider else { return }
         titleLabel.stringValue = titleProvider()
+    }
+
+    @objc private func showFallbackTitle() {
+        guard let fallbackTitle else { return }
+        titleLabel.stringValue = fallbackTitle
+        titleLabel.allowsEditingTextAttributes = false
+        setAccessibilityLabel(fallbackTitle)
+        self.fallbackTitle = nil
+        timer = nil
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -2116,10 +2194,14 @@ private final class NativeRiskBadge: NSView {
         self.assessment = assessment
         label = NativeLabel(
             assessment.risk.label,
-            font: .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium),
+            font: .systemFont(
+                ofSize: NSFont.smallSystemFontSize - 1,
+                weight: .medium
+            ),
             color: Self.color(assessment.risk)
         )
         super.init(frame: .zero)
+        identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardRiskBadge")
         wantsLayer = true
         layer?.cornerRadius = 10
         toolTip = assessment.reasons.first ?? assessment.risk.label
@@ -2131,6 +2213,10 @@ private final class NativeRiskBadge: NSView {
             ) ?? NSImage()
         )
         image.contentTintColor = Self.color(assessment.risk)
+        image.symbolConfiguration = .init(
+            pointSize: NSFont.smallSystemFontSize - 1,
+            weight: .medium
+        )
         row.addArrangedSubview(image)
         row.addArrangedSubview(label)
         row.edgeInsets = .init(top: 2, left: Metrics.Space.s, bottom: 2, right: Metrics.Space.s)
@@ -2422,15 +2508,17 @@ private final class NativeActivityLabel: NativeLabel {
     ) {
         self.alternatives = alternatives
         super.init(text, color: color)
-        guard !measurement, !reduceMotion, alternatives.count > 1 else { return }
-        timer = Timer.scheduledTimer(
-            timeInterval: 2.8,
-            target: self,
-            selector: #selector(advanceText),
-            userInfo: nil,
-            repeats: true
-        )
-        installScanAnimation()
+        guard !measurement, !reduceMotion else { return }
+        if alternatives.count > 1 {
+            timer = Timer.scheduledTimer(
+                timeInterval: 2.8,
+                target: self,
+                selector: #selector(advanceText),
+                userInfo: nil,
+                repeats: true
+            )
+        }
+        installNativeScanningMask(on: self)
     }
 
     @available(*, unavailable)
@@ -2446,30 +2534,87 @@ private final class NativeActivityLabel: NativeLabel {
         stringValue = alternatives[index]
     }
 
-    private func installScanAnimation() {
-        wantsLayer = true
-        let gradient = CAGradientLayer()
-        gradient.colors = [
-            NSColor.white.cgColor,
-            NSColor.white.withAlphaComponent(0.18).cgColor,
-            NSColor.white.cgColor,
-        ]
-        gradient.locations = [0, 0.5, 1]
-        gradient.startPoint = CGPoint(x: 0, y: 0.5)
-        gradient.endPoint = CGPoint(x: 1, y: 0.5)
-        layer?.mask = gradient
-        let animation = CABasicAnimation(keyPath: "transform.translation.x")
-        animation.fromValue = -80
-        animation.toValue = 120
-        animation.duration = 1.55
-        animation.repeatCount = .infinity
-        gradient.add(animation, forKey: "scan")
-    }
-
     override func layout() {
         super.layout()
-        layer?.mask?.frame = bounds.insetBy(dx: -40, dy: 0)
+        layoutNativeScanningMask(on: self)
     }
+}
+
+/// AppKit equivalent of the historical SwiftUI `ScanningTextMask`: the mask is
+/// opaque everywhere, then a soft destination-out band travels across it. A
+/// narrow gradient used directly as the mask makes everything outside that
+/// gradient disappear, which is the inverse of the intended treatment.
+private nonisolated final class NativeScanningMaskLayer: CALayer {
+    @NSManaged var progress: CGFloat
+
+    override init() {
+        super.init()
+        progress = 0
+        contentsScale = 2
+    }
+
+    override init(layer: Any) {
+        super.init(layer: layer)
+        progress = (layer as? NativeScanningMaskLayer)?.progress ?? 0
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override class func needsDisplay(forKey key: String) -> Bool {
+        key == #keyPath(progress) || super.needsDisplay(forKey: key)
+    }
+
+    override func draw(in context: CGContext) {
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(bounds)
+
+        let bandWidth = min(max(bounds.width * 0.32, 40), 96)
+        let origin = -bandWidth + (bounds.width + bandWidth) * progress
+        let alphas: [CGFloat] = [0, 0.34, 0.82, 1, 0.82, 0.34, 0]
+        guard let gradient = CGGradient(
+            colorsSpace: CGColorSpaceCreateDeviceRGB(),
+            colors: alphas.map { CGColor(gray: 1, alpha: $0) } as CFArray,
+            locations: [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1]
+        ) else { return }
+
+        context.saveGState()
+        context.setBlendMode(.destinationOut)
+        context.drawLinearGradient(
+            gradient,
+            start: CGPoint(x: origin, y: bounds.midY),
+            end: CGPoint(x: origin + bandWidth, y: bounds.midY),
+            options: [.drawsBeforeStartLocation, .drawsAfterEndLocation]
+        )
+        context.restoreGState()
+    }
+}
+
+@MainActor
+private func installNativeScanningMask(on view: NSView) {
+    view.wantsLayer = true
+    let mask = NativeScanningMaskLayer()
+    mask.frame = view.bounds
+    mask.progress = 1
+    view.layer?.mask = mask
+
+    let animation = CABasicAnimation(keyPath: #keyPath(NativeScanningMaskLayer.progress))
+    animation.fromValue = 0
+    animation.toValue = 1
+    animation.duration = 1.55
+    animation.repeatCount = .infinity
+    animation.timingFunction = CAMediaTimingFunction(name: .linear)
+    mask.add(animation, forKey: "scan")
+}
+
+@MainActor
+private func layoutNativeScanningMask(on view: NSView) {
+    guard let mask = view.layer?.mask as? NativeScanningMaskLayer else { return }
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    mask.frame = view.bounds
+    mask.setNeedsDisplay()
+    CATransaction.commit()
 }
 
 @MainActor
@@ -2523,14 +2668,20 @@ private final class NativeStack: NSStackView {
         super.addArrangedSubview(view)
         guard orientation == .vertical else { return }
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.widthAnchor.constraint(equalTo: widthAnchor).isActive = true
+        view.widthAnchor.constraint(
+            equalTo: widthAnchor,
+            constant: -(edgeInsets.left + edgeInsets.right)
+        ).isActive = true
     }
 
     override func insertArrangedSubview(_ view: NSView, at index: Int) {
         super.insertArrangedSubview(view, at: index)
         guard orientation == .vertical else { return }
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.widthAnchor.constraint(equalTo: widthAnchor).isActive = true
+        view.widthAnchor.constraint(
+            equalTo: widthAnchor,
+            constant: -(edgeInsets.left + edgeInsets.right)
+        ).isActive = true
     }
 
     func removeAllArrangedSubviews() {
@@ -2610,11 +2761,18 @@ private class NativeButton: NSButton {
         self.title = title
         bezelStyle = bordered ? .rounded : .inline
         isBordered = bordered
+        controlSize = .small
         if prominent {
             bezelColor = .controlAccentColor
             contentTintColor = .white
+            attributedTitle = NSAttributedString(
+                string: title,
+                attributes: [
+                    .font: font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize),
+                    .foregroundColor: NSColor.white,
+                ]
+            )
         }
-        controlSize = .small
         target = self
         action = #selector(run)
         setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)

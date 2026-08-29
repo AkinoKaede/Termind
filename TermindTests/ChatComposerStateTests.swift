@@ -379,6 +379,180 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func workingPlaceholderDisappearsAsSoonAsAToolIsVisible() throws {
+        let (conversation, runID, assistant) = beginStreamingConversation()
+        let before = try #require(conversation.workGroups.first)
+        #expect(before.items.contains { if case .message = $0 { true } else { false } })
+
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            id: assistant.id,
+            role: .assistant,
+            toolCalls: [AgentToolCall(
+                id: "call-1", name: "lookup", arguments: .object([:])
+            )],
+            createdAt: assistant.createdAt
+        )))
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(id: "call-1", name: "lookup", arguments: .object([:])),
+            sourceMessageID: assistant.id
+        )
+
+        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )))
+
+        let after = try #require(conversation.workGroups.first)
+        #expect(!after.items.contains { if case .message = $0 { true } else { false } })
+        guard case .tools(let batch) = try #require(after.items.first) else {
+            Issue.record("Expected the visible tool to replace Working")
+            return
+        }
+        #expect(batch.cards.map(\.id) == [invocation.id])
+    }
+
+    @Test
+    func existingWorkOutputSuppressesLaterWorkingButStillAcceptsReasoning() throws {
+        let conversation = ConversationModel()
+        let runID = UUID()
+        let first = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: [AgentToolCall(
+                id: "call-1", name: "lookup", arguments: .object([:])
+            )]
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: first.createdAt
+        )))
+        conversation.handle(.messageStarted(first))
+        conversation.handle(.messageFinished(first))
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: first.toolCalls[0],
+            sourceMessageID: first.id
+        )
+        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )))
+
+        let next = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.turnStarted(index: 1))
+        conversation.handle(.messageStarted(next))
+
+        let group = try #require(conversation.workGroups.first)
+        #expect(!group.items.contains { item in
+            guard case .message(let message) = item else { return false }
+            return message.id == next.id
+        })
+        #expect(group.items.contains { if case .tools = $0 { true } else { false } })
+
+        conversation.handle(.reasoningDelta(
+            messageID: next.id,
+            text: "Evaluate the first result."
+        ))
+        let updated = try #require(conversation.workGroups.first)
+        #expect(!updated.items.contains { item in
+            guard case .message(let message) = item else { return false }
+            return message.id == next.id
+        })
+        guard case .tools(let batch) = try #require(
+            updated.items.first(where: { if case .tools = $0 { true } else { false } })
+        ) else {
+            Issue.record("Expected reasoning to move into the tool title")
+            return
+        }
+        #expect(batch.reasoning?.sourceMessageID == next.id)
+        #expect(batch.reasoning?.markdown == "Evaluate the first result.")
+    }
+
+    @Test
+    func reasoningAloneDoesNotSuppressTheNextWorkingPlaceholder() throws {
+        let conversation = ConversationModel()
+        let runID = UUID()
+        let first = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: first.createdAt
+        )))
+        conversation.handle(.messageStarted(first))
+        conversation.handle(.reasoningDelta(
+            messageID: first.id,
+            text: "First reasoning block."
+        ))
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            id: first.id,
+            role: .assistant,
+            reasoning: [AgentReasoningBlock(text: "First reasoning block.")],
+            createdAt: first.createdAt
+        )))
+        conversation.handle(.turnFinished(index: 0, stopReason: .completed))
+
+        let next = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.turnStarted(index: 1))
+        conversation.handle(.messageStarted(next))
+
+        let group = try #require(conversation.workGroups.first)
+        #expect(group.items.contains { item in
+            guard case .message(let message) = item else { return false }
+            return message.id == next.id && message.text.isEmpty
+        })
+    }
+
+    @Test
+    func newReasoningRemainsVisibleAfterTheExistingToolBatchIsTerminal() throws {
+        let conversation = ConversationModel()
+        let runID = UUID()
+        let source = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: [AgentToolCall(
+                id: "call-1", name: "lookup", arguments: .object([:])
+            )]
+        )
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: source.createdAt
+        )))
+        conversation.handle(.messageFinished(source))
+        let invocation = AgentToolInvocation(
+            runID: runID, call: source.toolCalls[0], sourceMessageID: source.id
+        )
+        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
+            name: "lookup", summary: "lookup", inputSchema: .object([:]),
+            target: .local, safety: .locallyReadOnly
+        )))
+        conversation.handle(.toolFinished(
+            invocation,
+            AgentToolResult(callID: invocation.call.id, content: "ok")
+        ))
+
+        let next = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.turnStarted(index: 1))
+        conversation.handle(.messageStarted(next))
+        let waiting = try #require(conversation.workGroups.first)
+        #expect(!waiting.items.contains {
+            if case .message = $0 { true } else { false }
+        })
+
+        conversation.handle(.reasoningDelta(
+            messageID: next.id,
+            text: "Reason about the completed result."
+        ))
+
+        let group = try #require(conversation.workGroups.first)
+        #expect(group.items.contains { item in
+            guard case .reasoning(let block) = item else { return false }
+            return block.text == "Reason about the completed result."
+        })
+        guard case .tools(let batch) = try #require(
+            group.items.first(where: { if case .tools = $0 { true } else { false } })
+        ) else {
+            Issue.record("Expected the completed tool batch to remain")
+            return
+        }
+        #expect(batch.reasoning == nil)
+    }
+
+    @Test
     func terminalRunEventSettlesAnUnfinishedMessage() {
         let (conversation, runID, assistant) = beginStreamingConversation()
 
@@ -723,7 +897,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func twoAdjacentToolsStayBatchedAcrossLiveFailureAndCompletionStates() throws {
+    func toolBatchPublishesAtomicallyAndStaysStableAcrossCompletion() throws {
         let conversation = ConversationModel()
         conversation.appendUserTurn("run both")
         let runID = UUID()
@@ -735,26 +909,33 @@ struct ChatComposerStateTests {
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
             target: .local, safety: .locallyReadOnly
         )
-        let sourceMessageID = UUID()
+        let source = AgentTranscriptMessage(
+            role: .assistant,
+            toolCalls: [
+                AgentToolCall(id: "first", name: "lookup", arguments: .object([:])),
+                AgentToolCall(id: "second", name: "lookup", arguments: .object([:])),
+            ],
+            createdAt: start.addingTimeInterval(0.5)
+        )
+        conversation.handle(.messageFinished(source))
         let first = AgentToolInvocation(
             runID: runID,
             call: AgentToolCall(id: "first", name: "lookup", arguments: .object([:])),
-            sourceMessageID: sourceMessageID,
+            sourceMessageID: source.id,
             createdAt: start.addingTimeInterval(1)
         )
         let second = AgentToolInvocation(
             runID: runID,
             call: AgentToolCall(id: "second", name: "lookup", arguments: .object([:])),
-            sourceMessageID: sourceMessageID,
+            sourceMessageID: source.id,
             createdAt: start.addingTimeInterval(2)
         )
         conversation.handle(.toolProposed(first, descriptor))
-        guard case .tool(let single) = try #require(conversation.workGroups.first?.items.first)
-        else {
-            Issue.record("One tool should remain a direct row")
-            return
-        }
-        #expect(single.id == first.id)
+        #expect(conversation.workGroups.isEmpty)
+        conversation.handle(.toolFinished(first, AgentToolResult(
+            callID: first.call.id, content: "failed", isError: true
+        )))
+        #expect(conversation.workGroups.isEmpty)
 
         conversation.handle(.toolProposed(second, descriptor))
         guard case .tools(let live) = try #require(conversation.workGroups.first?.items.first)
@@ -763,10 +944,8 @@ struct ChatComposerStateTests {
             return
         }
         #expect(live.cards.map(\.id) == [first.id, second.id])
+        #expect(live.cards.map(\.state) == [.failed, .proposed])
 
-        conversation.handle(.toolFinished(first, AgentToolResult(
-            callID: first.call.id, content: "failed", isError: true
-        )))
         conversation.handle(.toolFinished(second, AgentToolResult(
             callID: second.call.id, content: "ok"
         )))
@@ -777,6 +956,51 @@ struct ChatComposerStateTests {
             return
         }
         #expect(terminal.cards.map(\.state) == [.failed, .completed])
+    }
+
+    @Test
+    func providerNativeToolsPublishAtomicallyWhenTheirTurnFinishes() throws {
+        let conversation = ConversationModel()
+        let runID = UUID()
+        let source = AgentTranscriptMessage(role: .assistant)
+        conversation.handle(.runStarted(AgentRunSummary(
+            id: runID, state: .running, startedAt: source.createdAt
+        )))
+        conversation.handle(.messageStarted(source))
+        let descriptor = AgentToolDescriptor(
+            name: "web_search", summary: "search", inputSchema: .object([:]),
+            target: .network, safety: .locallyReadOnly
+        )
+        let invocations = ["first", "second"].map { id in
+            AgentToolInvocation(
+                runID: runID,
+                call: AgentToolCall(
+                    id: id, name: "web_search",
+                    arguments: .object(["query": .string(id)])
+                ),
+                sourceMessageID: source.id
+            )
+        }
+        for invocation in invocations {
+            conversation.handle(.toolProposed(invocation, descriptor))
+            conversation.handle(.toolFinished(invocation, AgentToolResult(
+                callID: invocation.call.id,
+                content: "[]",
+                metadata: [AgentToolResult.providerNativeKey: .bool(true)]
+            )))
+            #expect(conversation.toolCards.isEmpty)
+        }
+
+        conversation.handle(.messageFinished(source))
+
+        #expect(conversation.toolCards.map(\.id) == invocations.map(\.id))
+        guard case .tools(let batch) = try #require(
+            conversation.workGroups.first?.items.first
+        ) else {
+            Issue.record("Expected one provider-native batch")
+            return
+        }
+        #expect(batch.cards.map(\.state) == [.completed, .completed])
     }
 
     @Test
@@ -822,8 +1046,9 @@ struct ChatComposerStateTests {
             Issue.record("Expected a live tool batch")
             return
         }
-        #expect(live.sourceMessageID == source.id)
-        #expect(live.reasoningTitle == "Compare both hosts. Then verify them.")
+        #expect(live.runID == runID)
+        #expect(live.reasoning?.sourceMessageID == source.id)
+        #expect(live.reasoning?.markdown == "**Compare** both hosts.\nThen verify them.")
 
         for invocation in invocations {
             conversation.handle(.toolFinished(invocation, AgentToolResult(
@@ -836,11 +1061,11 @@ struct ChatComposerStateTests {
             Issue.record("Expected the completed tools to remain batched")
             return
         }
-        #expect(terminal.reasoningTitle == nil)
+        #expect(terminal.reasoning == nil)
     }
 
     @Test
-    func liveToolBatchDoesNotDuplicateCurrentlyVisibleReasoning() throws {
+    func liveToolBatchOwnsCurrentlyStreamingReasoningWithoutADuplicateRow() throws {
         let conversation = ConversationModel()
         conversation.appendUserTurn("inspect both")
         let runID = UUID()
@@ -874,7 +1099,7 @@ struct ChatComposerStateTests {
         }
 
         let overlappingGroup = try #require(conversation.workGroups.first)
-        #expect(overlappingGroup.items.contains { item in
+        #expect(!overlappingGroup.items.contains { item in
             guard case .reasoning = item else { return false }
             return true
         })
@@ -887,7 +1112,7 @@ struct ChatComposerStateTests {
             Issue.record("Expected a live tool batch")
             return
         }
-        #expect(overlappingBatch.reasoningTitle == nil)
+        #expect(overlappingBatch.reasoning?.markdown == reasoning.text)
 
         conversation.handle(.turnFinished(index: 0, stopReason: .toolCalls))
         let settledGroup = try #require(conversation.workGroups.first)
@@ -904,7 +1129,7 @@ struct ChatComposerStateTests {
             Issue.record("Expected the live tool batch to remain")
             return
         }
-        #expect(settledBatch.reasoningTitle == reasoning.text)
+        #expect(settledBatch.reasoning?.markdown == reasoning.text)
     }
 
     @Test
@@ -1033,7 +1258,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func finishedReasoningDisappearsWithoutMergingToolsAcrossProviderTurns() async throws {
+    func finishedReasoningDisappearsWhileToolsMergeAcrossProviderTurns() async throws {
         let conversation = ConversationModel()
         conversation.appendUserTurn("inspect both")
         conversation.start(
@@ -1090,10 +1315,7 @@ struct ChatComposerStateTests {
                 return "tools:\(batch.cards.map(\.invocation.call.id).joined(separator: ","))"
             }
         }
-        #expect(kinds == [
-            "tools:call-1,call-2",
-            "tool:call-3",
-        ])
+        #expect(kinds == ["tools:call-1,call-2,call-3"])
         #expect(conversation.timeline.compactMap { item in
             if case .work = item { return "work" }
             return nil
@@ -1101,7 +1323,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func providerTurnsWithoutReasoningStillSeparateToolBatches() async throws {
+    func providerTurnsWithoutReasoningShareOneRunScopedToolBatch() async throws {
         let conversation = ConversationModel()
         conversation.appendUserTurn("inspect four")
         conversation.start(
@@ -1150,7 +1372,7 @@ struct ChatComposerStateTests {
             case .reasoning, .message: []
             }
         }.filter { !$0.isEmpty }
-        #expect(batches == [["call-1", "call-2"], ["call-3", "call-4"]])
+        #expect(batches == [["call-1", "call-2", "call-3", "call-4"]])
     }
 
 
@@ -1163,6 +1385,17 @@ struct ChatComposerStateTests {
         let startedAt = Date()
         conversation.handle(.runStarted(AgentRunSummary(
             id: runID, state: .running, startedAt: startedAt
+        )))
+        let calls = [
+            "lookup", "lookup", "terminal_suggest", "lookup", "lookup",
+        ].enumerated().map { offset, name in
+            AgentToolCall(id: "call-\(offset)", name: name, arguments: .object([:]))
+        }
+        conversation.handle(.messageFinished(AgentTranscriptMessage(
+            id: sourceMessageID,
+            role: .assistant,
+            toolCalls: calls,
+            createdAt: startedAt
         )))
         let lookup = AgentToolDescriptor(
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
@@ -1194,7 +1427,7 @@ struct ChatComposerStateTests {
             }
         }.filter { !$0.isEmpty }
         #expect(groups == [
-            ["lookup", "lookup"], ["terminal_suggest"], ["lookup", "lookup"],
+            ["lookup", "lookup", "lookup", "lookup"], ["terminal_suggest"],
         ])
     }
 

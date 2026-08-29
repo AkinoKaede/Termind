@@ -125,7 +125,7 @@ struct TerminalPlaceholderView: View {
     @ViewBuilder
     private var connectionJourney: some View {
         if isVisible, sshSession.connectionJourney.isPresented {
-            SSHConnectionJourneyView(
+            ConnectionJourneyView(
                 journey: sshSession.connectionJourney,
                 authenticationPrompt: sshSession.pendingAuthentication,
                 hostKey: sshSession.pendingHostKey,

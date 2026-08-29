@@ -122,8 +122,8 @@ extension View {
     }
 }
 
-struct SSHConnectionJourneyView: View {
-    let journey: SSHConnectionJourney
+struct ConnectionJourneyView: View {
+    let journey: ConnectionJourney
     var authenticationPrompt: SSHAuthenticationPrompt?
     var hostKey: SSHHostKeyPrompt?
     var submitAuthentication: (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void
@@ -170,7 +170,7 @@ struct SSHConnectionJourneyView: View {
             Spacer(minLength: 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { SSHConnectionJourneyBackground() }
+        .background { ConnectionJourneyBackground() }
         .transition(.opacity)
         .accessibilityElement(children: .contain)
     }
@@ -432,7 +432,7 @@ nonisolated private struct ConnectionLogListItem: Identifiable, Hashable, Sendab
 }
 
 /// The system window surface shared by a connection journey and its pane header.
-struct SSHConnectionJourneyBackground: View {
+struct ConnectionJourneyBackground: View {
     var body: some View {
         Color(nsColor: .windowBackgroundColor)
     }
@@ -614,11 +614,11 @@ private enum JourneyVisualState {
 }
 
 private struct JourneyEndpointView: View {
-    let endpoint: SSHConnectionEndpoint
-    let purpose: SSHConnectionPurpose
+    let endpoint: ConnectionEndpoint
+    let purpose: ConnectionPurpose
     let state: JourneyVisualState
     let showsActivity: Bool
-    let localRequirement: SSHConnectionJourney.LocalRequirement?
+    let localRequirement: ConnectionJourney.LocalRequirement?
     let reduceMotion: Bool
 
     var body: some View {
@@ -682,7 +682,7 @@ private struct JourneyEndpointView: View {
 
 private struct JourneySegmentView: View {
     let state: JourneyVisualState
-    let checkpoint: SSHConnectionJourney.CheckpointKind?
+    let checkpoint: ConnectionJourney.CheckpointKind?
     let checkpointIsWaiting: Bool
     let reduceMotion: Bool
 

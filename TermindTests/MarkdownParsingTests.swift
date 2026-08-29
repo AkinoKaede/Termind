@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import MarkdownParser
 import Testing
@@ -201,6 +202,29 @@ struct MarkdownParsingTests {
             - Verify `sshd`
             """)
         #expect(title == "Checked both hosts. Compare the logs Verify sshd")
+    }
+
+    @MainActor
+    @Test
+    func transientToolTitleFlattensBlocksAndPreservesSafeInlineMarkdown() throws {
+        let title = TermindMarkdownParser.singleLineAttributedText("""
+            **Checked** *both* hosts and [`sshd`](https://example.com).
+
+            - ~~old result~~
+            - final result
+            """)
+
+        #expect(title.string == "Checked both hosts and sshd. old result final result")
+        let checked = (title.string as NSString).range(of: "Checked")
+        let both = (title.string as NSString).range(of: "both")
+        let sshd = (title.string as NSString).range(of: "sshd")
+        let old = (title.string as NSString).range(of: "old result")
+        let checkedFont = try #require(title.attribute(.font, at: checked.location, effectiveRange: nil) as? NSFont)
+        let bothFont = try #require(title.attribute(.font, at: both.location, effectiveRange: nil) as? NSFont)
+        #expect(checkedFont.fontDescriptor.symbolicTraits.contains(.bold))
+        #expect(bothFont.fontDescriptor.symbolicTraits.contains(.italic))
+        #expect(title.attribute(.link, at: sshd.location, effectiveRange: nil) as? URL == URL(string: "https://example.com"))
+        #expect(title.attribute(.strikethroughStyle, at: old.location, effectiveRange: nil) != nil)
     }
 
     @Test

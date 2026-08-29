@@ -46,18 +46,6 @@ nonisolated enum AgentToolPresentation {
         return .warning
     }
 
-    /// A stable 30% sample for a batch. Invocation identifiers are random UUIDs,
-    /// so using their first 32 bits gives the desired distribution without
-    /// making a SwiftUI row redraw or scroll reuse roll the dice again.
-    static func showsReasoning(forBatchID id: UUID) -> Bool {
-        let sample = withUnsafeBytes(of: id.uuid) { bytes in
-            bytes.prefix(4).reduce(UInt32.zero) { value, byte in
-                (value << 8) | UInt32(byte)
-            }
-        }
-        return sample < (UInt32.max / 10) * 3
-    }
-
     /// Converts provider-authored Markdown into the one-line prose a tool
     /// batch header can accommodate. Structure and emphasis remain available
     /// in the live reasoning row; here only the visible words are reused.

@@ -33,7 +33,7 @@ final class SerialSessionModel: Identifiable {
     private var connection: (any SerialPortConnection)?
     private var connectionTask: Task<Void, Never>?
     let connectionController = RemoteSessionConnectionController()
-    var connectionJourney: SSHConnectionJourney { connectionController.journey }
+    var connectionJourney: ConnectionJourney { connectionController.journey }
 
     var title: String {
         if let name = configuration.deviceName, !name.isEmpty { return name }
@@ -250,7 +250,7 @@ struct SerialTerminalView: View {
     @ViewBuilder
     private var connectionJourney: some View {
         if isVisible, session.connectionJourney.isPresented {
-            SSHConnectionJourneyView(
+            ConnectionJourneyView(
                 journey: session.connectionJourney,
                 submitAuthentication: { _, _, _, _, _, _ in },
                 continueHostKey: { _ in },

@@ -610,7 +610,7 @@ private struct PaneView: View {
     private var header: some View {
         if presentsConnectionJourney {
             headerContent.background {
-                SSHConnectionJourneyBackground()
+                ConnectionJourneyBackground()
             }
         } else if pane.kind == .sshSession || pane.kind == .serialSession {
             headerContent.background(terminalAppearance.background)

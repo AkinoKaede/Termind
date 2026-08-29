@@ -460,10 +460,8 @@ private struct AgentToolBatchView: View {
     }
 
     private var displayedReasoning: String? {
-        guard !unfinished.isEmpty, let reasoning = batch.reasoningTitle,
-            AgentToolPresentation.showsReasoning(forBatchID: batch.id)
-        else { return nil }
-        return reasoning
+        guard !unfinished.isEmpty, let reasoning = batch.reasoning else { return nil }
+        return AgentToolPresentation.reasoningTitle(from: reasoning.markdown)
     }
 
     private var title: String {

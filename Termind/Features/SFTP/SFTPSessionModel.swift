@@ -230,7 +230,7 @@ final class SFTPSessionModel: Identifiable {
     private var pendingHostKeyHostID: Host.ID?
     var pendingAuthentication: SSHAuthenticationPrompt?
     let connection = RemoteSessionConnectionController()
-    var connectionJourney: SSHConnectionJourney { connection.journey }
+    var connectionJourney: ConnectionJourney { connection.journey }
     var pendingBatch: PreparedBatch?
     var pendingRemoteCopyBatch: PreparedRemoteCopyBatch?
     var operationError: String?

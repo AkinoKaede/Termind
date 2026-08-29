@@ -334,22 +334,34 @@ nonisolated enum TimelineItem: Identifiable, Hashable, Sendable {
 nonisolated struct AgentToolBatch: Identifiable, Hashable, Sendable {
     var id: UUID { cards.first?.id ?? Self.emptyID }
     var cards: [AgentToolCard]
-    /// The assistant response that requested every tool in this batch.
-    var sourceMessageID: UUID
-    /// A single-line projection of that response's display-safe reasoning.
-    /// Kept only while at least one member is unfinished.
-    var reasoningTitle: String?
+    /// Batches are run-scoped rather than provider-turn-scoped. A reasoning
+    /// message or another model round trip must not split one visual activity
+    /// into a succession of structurally different rows.
+    var runID: UUID
+    /// The latest provider-authored reasoning that can temporarily occupy the
+    /// batch title. The renderer keeps the Markdown and derives plain text only
+    /// for accessibility.
+    var reasoning: AgentToolReasoning?
 
     private static let emptyID = UUID(
         uuidString: "00000000-0000-0000-0000-000000000000"
     )!
 }
 
+nonisolated struct AgentToolReasoning: Hashable, Sendable {
+    var sourceMessageID: UUID
+    var markdown: String
+
+    /// Content is part of the revision: every streamed reasoning update earns
+    /// its own complete display window, while recycling the same row does not.
+    var revision: String { sourceMessageID.uuidString + "\u{0}" + markdown }
+}
+
 nonisolated enum AgentWorkItem: Identifiable, Hashable, Sendable {
     case reasoning(AgentReasoningBlock)
     case message(ChatMessage)
     case tool(AgentToolCard)
-    /// Two or more contiguous tool calls, regardless of their current result.
+    /// One or more run-scoped tool calls, regardless of their current result.
     /// The view shows activity until every member is terminal, then summarizes.
     case tools(AgentToolBatch)
 
@@ -543,6 +555,13 @@ final class ConversationModel: Identifiable {
     /// is taken into account.
     private var runtimeState: AgentRunState = .idle
     var toolCards: [AgentToolCard] = []
+    /// Tool proposals are durable individual events, but publishing each one to
+    /// the transcript would briefly draw a single row and then replace it with
+    /// a batch. Hold the UI projection until every call from the source message
+    /// is known; state/result events update the staged card in place.
+    private var stagedToolCards: [UUID: AgentToolCard] = [:]
+    private var stagedToolOrder: [UUID] = []
+    private var activeTurnMessageID: UUID?
     private(set) var runSummaries: [UUID: AgentRunSummary] = [:]
     private(set) var messageRunIDs: [UUID: UUID] = [:]
     private var activeRunID: UUID?
@@ -1084,18 +1103,53 @@ final class ConversationModel: Identifiable {
                 guard owner == runID else { return nil }
                 return visibleByID[messageID]
             }
+            let workHasNonReasoningOutput = !cards.isEmpty
+                || processMessages.contains { !$0.text.isEmpty }
+            let hasVisibleReasoning = processMessages.contains { message in
+                message.id == activeReasoningMessageID && !message.reasoning.isEmpty
+            }
             let visibleProcess = processMessages.filter { message in
                 let livePlaceholder = message.isStreaming && message.text.isEmpty
                     && message.reasoning.isEmpty
                 let toolProcess = toolProcessMessageIDs.contains(message.id)
                     && (!message.text.isEmpty
                         || (message.isStreaming && message.reasoning.isEmpty))
-                return livePlaceholder || toolProcess
+                // Working belongs to the Work as a whole. Reasoning does not
+                // consume this slot: a later empty turn may still be replaced
+                // by its next reasoning block. Any non-reasoning output does.
+                return (livePlaceholder
+                    && !hasVisibleReasoning
+                    && !workHasNonReasoningOutput)
+                    || toolProcess
             }
-            let reasoningItems = processMessages.flatMap { message -> [AgentWorkItem] in
-                guard message.id == activeReasoningMessageID else { return [] }
-                return message.reasoning.map(AgentWorkItem.reasoning)
+            let groupableCards = cards.filter {
+                $0.descriptor.presentation?.groupsWithAdjacentTools != false
             }
+            let hasUnfinishedGroupableTool = groupableCards.contains {
+                !$0.state.isTerminal
+            }
+            let latestToolReasoning = processMessages
+                .sorted { $0.createdAt < $1.createdAt }
+                .reversed()
+                .compactMap { message -> AgentToolReasoning? in
+                    guard let markdown = message.reasoning.last?.text,
+                        !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    else { return nil }
+                    return AgentToolReasoning(
+                        sourceMessageID: message.id,
+                        markdown: markdown
+                    )
+                }
+                .first
+            // Once there is a tool surface to carry it, reasoning becomes a
+            // transient title instead of a separate structural row. Before the
+            // atomic batch is published it remains visible on its own.
+            let reasoningItems = !hasUnfinishedGroupableTool
+                ? processMessages.flatMap { message -> [AgentWorkItem] in
+                    guard message.id == activeReasoningMessageID else { return [] }
+                    return message.reasoning.map(AgentWorkItem.reasoning)
+                }
+                : []
             let activeReasoningBlockID = processMessages.first(where: {
                 $0.id == activeReasoningMessageID && $0.isStreaming && $0.text.isEmpty
             })?.reasoning.last?.id
@@ -1111,22 +1165,10 @@ final class ConversationModel: Identifiable {
                 default: return $0.id.uuidString < $1.id.uuidString
                 }
             }
-            let sourceMessageIDs = Dictionary(uniqueKeysWithValues: cards.compactMap { card in
-                card.invocation.sourceMessageID.map { (card.id, $0) }
-            })
-            let reasoningTitles = Dictionary(uniqueKeysWithValues: processMessages.compactMap {
-                message -> (UUID, String)? in
-                // The live reasoning row owns this text until its provider
-                // turn ends. A tool batch from the same response may reuse it
-                // afterwards, but must never render a duplicate alongside it.
-                guard message.id != activeReasoningMessageID else { return nil }
-                let reasoning = message.reasoning.map(\.text).joined(separator: "\n\n")
-                let title = AgentToolPresentation.reasoningTitle(from: reasoning)
-                return title.isEmpty ? nil : (message.id, title)
-            })
-            items = Self.groupAdjacentTools(
-                in: items, sourceMessageIDs: sourceMessageIDs,
-                reasoningTitles: reasoningTitles
+            items = Self.groupRunTools(
+                in: items,
+                runID: runID,
+                reasoning: hasUnfinishedGroupableTool ? latestToolReasoning : nil
             )
             let stored = runSummaries[runID]
             // A user stop is useful transcript state even when it interrupted a
@@ -1164,53 +1206,41 @@ final class ConversationModel: Identifiable {
         }.sorted { $0.orderedAt < $1.orderedAt }
     }
 
-    private static func groupAdjacentTools(
-        in items: [AgentWorkItem], sourceMessageIDs: [AgentToolCard.ID: UUID],
-        reasoningTitles: [UUID: String]
+    /// Produces one stable batch for every grouping-enabled tool in the run.
+    /// Reasoning, provider-turn boundaries and ordinary process messages remain
+    /// in chronological order but no longer flush the tool collection. Tools
+    /// that explicitly opt out keep their direct row.
+    private static func groupRunTools(
+        in items: [AgentWorkItem],
+        runID: UUID,
+        reasoning: AgentToolReasoning?
     ) -> [AgentWorkItem] {
-        var grouped: [AgentWorkItem] = []
-        var adjacent: [AgentToolCard] = []
-        var adjacentSourceMessageID: UUID?
-        func flush() {
-            guard !adjacent.isEmpty else { return }
-            if adjacent.count == 1 {
-                grouped.append(.tool(adjacent[0]))
-            } else if let sourceMessageID = adjacentSourceMessageID {
-                let hasUnfinished = adjacent.contains { !$0.state.isTerminal }
-                grouped.append(.tools(AgentToolBatch(
-                    cards: adjacent,
-                    sourceMessageID: sourceMessageID,
-                    reasoningTitle: hasUnfinished ? reasoningTitles[sourceMessageID] : nil
-                )))
-            }
-            adjacent.removeAll(keepingCapacity: true)
-            adjacentSourceMessageID = nil
+        let batched = items.compactMap { item -> AgentToolCard? in
+            guard case .tool(let card) = item,
+                card.descriptor.presentation?.groupsWithAdjacentTools != false
+            else { return nil }
+            return card
         }
+        guard !batched.isEmpty else { return items }
+
+        var grouped: [AgentWorkItem] = []
+        var insertedBatch = false
         for item in items {
             if case .tool(let card) = item {
                 if card.descriptor.presentation?.groupsWithAdjacentTools == false {
-                    flush()
                     grouped.append(.tool(card))
-                    continue
+                } else if !insertedBatch {
+                    grouped.append(.tools(AgentToolBatch(
+                        cards: batched,
+                        runID: runID,
+                        reasoning: reasoning
+                    )))
+                    insertedBatch = true
                 }
-                guard let sourceMessageID = sourceMessageIDs[card.id] else {
-                    flush()
-                    grouped.append(.tool(card))
-                    continue
-                }
-                if let adjacentSourceMessageID,
-                    adjacentSourceMessageID != sourceMessageID
-                {
-                    flush()
-                }
-                adjacentSourceMessageID = sourceMessageID
-                adjacent.append(card)
             } else {
-                flush()
                 grouped.append(item)
             }
         }
-        flush()
         return grouped
     }
 
@@ -1531,6 +1561,7 @@ final class ConversationModel: Identifiable {
 
     func stop() {
         settleStreamingPresentation(for: activeRunID)
+        publishAllStagedTools()
         for index in toolCards.indices where toolCards[index].state == .running {
             toolCards[index].state = .interrupted
         }
@@ -2043,6 +2074,7 @@ final class ConversationModel: Identifiable {
     func handle(_ event: AgentEvent) {
         switch event {
         case .runState(let state):
+            if state.isTerminal { publishAllStagedTools() }
             runtimeState = state
             if state.isTerminal { settleStreamingPresentation(for: activeRunID) }
             refreshRunState()
@@ -2063,6 +2095,7 @@ final class ConversationModel: Identifiable {
                 messageRunIDs[prompt.id] = run.id
             }
         case .runFinished(let run):
+            publishAllStagedTools()
             settleStreamingPresentation(for: run.id)
             runSummaries[run.id] = run
             if activeRunID == run.id { activeRunID = nil }
@@ -2070,8 +2103,10 @@ final class ConversationModel: Identifiable {
             activeReasoningMessageID = nil
         case .turnFinished:
             activeReasoningMessageID = nil
+            activeTurnMessageID = nil
         case .messageStarted(let started):
             activeReasoningMessageID = nil
+            activeTurnMessageID = started.id
             if let activeRunID { messageRunIDs[started.id] = activeRunID }
             if let index = messages.firstIndex(where: { $0.id == started.id }) {
                 messages[index].isStreaming = true
@@ -2144,30 +2179,32 @@ final class ConversationModel: Identifiable {
             }
             contextEstimateTracker.upsert(message)
             publishContextEstimateImmediately()
+            publishStagedTools(
+                for: message.id,
+                force: message.toolCalls.isEmpty
+            )
             updatedAt = .now
         case .toolProposed(let invocation, let descriptor):
-            toolCards.append(AgentToolCard(invocation: invocation, descriptor: descriptor))
+            stageTool(invocation, descriptor: descriptor)
         case .toolStarted(let invocation): setToolState(invocation.id, .running)
         // The card only, and the card's state is left alone: this is a call
         // still running, showing its work. Nothing here reaches `transcript` —
         // the model is owed one result per call, and it gets that from
         // `toolFinished`.
         case .toolProgress(let invocation, let partial):
-            if let index = toolCards.firstIndex(where: { $0.id == invocation.id }) {
-                toolCards[index].result = partial
-            }
+            updateToolCard(invocation.id) { $0.result = partial }
         case .toolFinished(let invocation, let result):
-            if let index = toolCards.firstIndex(where: { $0.id == invocation.id }) {
-                toolCards[index].result = result
+            updateToolCard(invocation.id) { card in
+                card.result = result
                 // A denied call did not fail — someone said no. The denial is
                 // an error to the *model*, which is what makes the turn
                 // replayable, but the card kept being relabelled `Failed` the
                 // instant it was refused, so `denied` never reached the screen.
-                if toolCards[index].state != .denied {
+                if card.state != .denied {
                     if result.isInterrupted {
-                        toolCards[index].state = .interrupted
+                        card.state = .interrupted
                     } else {
-                        toolCards[index].state = result.isError ? .failed : .completed
+                        card.state = result.isError ? .failed : .completed
                     }
                 }
             }
@@ -2194,9 +2231,7 @@ final class ConversationModel: Identifiable {
             refreshRunState()
         case .reviewFinished(let request, let decision):
             reviewing.remove(request.invocation.id)
-            if let index = toolCards.firstIndex(where: { $0.id == request.invocation.id }) {
-                toolCards[index].review = decision
-            }
+            updateToolCard(request.invocation.id) { $0.review = decision }
             refreshRunState()
         case .reviewFailed(let request, _, _):
             reviewing.remove(request.invocation.id)
@@ -2222,9 +2257,90 @@ final class ConversationModel: Identifiable {
         }
     }
 
+    private func stageTool(
+        _ invocation: AgentToolInvocation,
+        descriptor: AgentToolDescriptor
+    ) {
+        let card = AgentToolCard(invocation: invocation, descriptor: descriptor)
+        guard let sourceMessageID = invocation.sourceMessageID else {
+            toolCards.append(card)
+            return
+        }
+        if stagedToolCards[invocation.id] == nil {
+            stagedToolOrder.append(invocation.id)
+        }
+        stagedToolCards[invocation.id] = card
+
+        guard let source = transcript.first(where: { $0.id == sourceMessageID }) else {
+            // Provider-native activities arrive while the assistant message is
+            // still streaming. Keep all of them staged until messageFinished
+            // seals that turn, then publish the complete set in one mutation.
+            if activeTurnMessageID == sourceMessageID { return }
+            // Restored/legacy/manual event streams may not carry the source
+            // assistant message. There is no authoritative call set to await,
+            // so prefer a visible stable batch over hiding the card forever.
+            publishStagedTools(for: sourceMessageID, force: true)
+            return
+        }
+        publishStagedTools(
+            for: sourceMessageID,
+            force: source.toolCalls.isEmpty
+        )
+    }
+
+    /// Publishes every card for a provider response in one observable mutation.
+    /// `force` is used for provider-native activities, whose synthetic calls do
+    /// not occur in the assistant message's model-facing `toolCalls` array.
+    private func publishStagedTools(for sourceMessageID: UUID, force: Bool = false) {
+        let stagedIDs = stagedToolOrder.filter {
+            stagedToolCards[$0]?.invocation.sourceMessageID == sourceMessageID
+        }
+        guard !stagedIDs.isEmpty else { return }
+
+        if !force {
+            guard let source = transcript.first(where: { $0.id == sourceMessageID }),
+                !source.toolCalls.isEmpty
+            else { return }
+            let stagedCallIDs = Set(stagedIDs.compactMap {
+                stagedToolCards[$0]?.invocation.call.id
+            })
+            guard source.toolCalls.allSatisfy({ stagedCallIDs.contains($0.id) }) else {
+                return
+            }
+        }
+
+        let cards = stagedIDs.compactMap { stagedToolCards.removeValue(forKey: $0) }
+        let published = Set(stagedIDs)
+        stagedToolOrder.removeAll { published.contains($0) }
+        toolCards.append(contentsOf: cards)
+    }
+
+    private func publishAllStagedTools() {
+        guard !stagedToolOrder.isEmpty else { return }
+        let cards = stagedToolOrder.compactMap { stagedToolCards.removeValue(forKey: $0) }
+        stagedToolOrder.removeAll(keepingCapacity: true)
+        toolCards.append(contentsOf: cards)
+    }
+
+    @discardableResult
+    private func updateToolCard(
+        _ id: UUID,
+        _ update: (inout AgentToolCard) -> Void
+    ) -> Bool {
+        if var staged = stagedToolCards[id] {
+            update(&staged)
+            stagedToolCards[id] = staged
+            return true
+        }
+        guard let index = toolCards.firstIndex(where: { $0.id == id }) else {
+            return false
+        }
+        update(&toolCards[index])
+        return true
+    }
+
     private func setToolState(_ id: UUID, _ state: AgentToolCard.State) {
-        guard let index = toolCards.firstIndex(where: { $0.id == id }) else { return }
-        toolCards[index].state = state
+        updateToolCard(id) { $0.state = state }
     }
 
     /// Adds a final speech-recognition result without disturbing text the user

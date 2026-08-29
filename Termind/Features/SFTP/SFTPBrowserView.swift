@@ -301,7 +301,7 @@ struct SFTPBrowserView: View {
             }
 
             if sftpSession.connectionJourney.isPresented {
-                SSHConnectionJourneyView(
+                ConnectionJourneyView(
                     journey: sftpSession.connectionJourney,
                     authenticationPrompt: sftpSession.pendingAuthentication,
                     hostKey: sftpSession.pendingHostKey,

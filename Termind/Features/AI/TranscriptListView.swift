@@ -107,10 +107,16 @@ nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
 @MainActor
 @Observable
 final class TranscriptPresentationState {
+    static let reasoningTitleDuration: TimeInterval = 3
+
     private struct DisclosureState {
         var isExpanded: Bool
         var readerDidToggle: Bool
         var revision: UInt64
+    }
+    private struct ReasoningTitleState {
+        var revision: String
+        var expiresAt: Date
     }
     private struct MessageEditState {
         var isEditing = false
@@ -120,6 +126,8 @@ final class TranscriptPresentationState {
     }
 
     private var disclosureStates: [UUID: DisclosureState] = [:]
+    private var pendingAutoCollapseIDs: Set<UUID> = []
+    private var reasoningTitles: [UUID: ReasoningTitleState] = [:]
     private var messageEdits: [UUID: MessageEditState] = [:]
     private var nextRevision: UInt64 = 1
 
@@ -128,6 +136,7 @@ final class TranscriptPresentationState {
     }
     func readerDidToggle(_ id: UUID) -> Bool { disclosureStates[id]?.readerDidToggle == true }
     func toggleDisclosure(_ id: UUID, default value: Bool = false) {
+        pendingAutoCollapseIDs.remove(id)
         disclosureStates[id] = .init(
             isExpanded: !(disclosureStates[id]?.isExpanded ?? value),
             readerDidToggle: true,
@@ -136,15 +145,56 @@ final class TranscriptPresentationState {
     }
     func followDefault(_ expanded: Bool, for id: UUID) {
         guard disclosureStates[id]?.readerDidToggle != true else { return }
+        pendingAutoCollapseIDs.remove(id)
         disclosureStates[id] = .init(
             isExpanded: expanded, readerDidToggle: false, revision: takeRevision()
         )
     }
+    func deferAutoCollapse(_ id: UUID) {
+        guard disclosureStates[id]?.readerDidToggle != true else { return }
+        pendingAutoCollapseIDs.insert(id)
+        disclosureStates[id] = .init(
+            isExpanded: true, readerDidToggle: false, revision: takeRevision()
+        )
+    }
+    func hasPendingAutoCollapse(_ id: UUID) -> Bool {
+        pendingAutoCollapseIDs.contains(id)
+    }
+    @discardableResult
+    func completeAutoCollapse(_ id: UUID) -> Bool {
+        guard pendingAutoCollapseIDs.remove(id) != nil,
+            disclosureStates[id]?.readerDidToggle != true
+        else { return false }
+        disclosureStates[id] = .init(
+            isExpanded: false, readerDidToggle: false, revision: takeRevision()
+        )
+        return true
+    }
+
+    /// Returns an absolute deadline so remounting or measuring a row cannot
+    /// restart its transient reasoning title. A changed Markdown revision does
+    /// deliberately receive a fresh three-second window.
+    func reasoningTitleDeadline(
+        for id: UUID,
+        revision: String,
+        now: Date = .now
+    ) -> Date {
+        if let state = reasoningTitles[id], state.revision == revision {
+            return state.expiresAt
+        }
+        let deadline = now.addingTimeInterval(Self.reasoningTitleDuration)
+        reasoningTitles[id] = .init(revision: revision, expiresAt: deadline)
+        return deadline
+    }
     func prune(validTimelineIDs: Set<UUID>) {
         let staleDisclosures = disclosureStates.keys.filter { !validTimelineIDs.contains($0) }
+        let staleReasoningTitles = reasoningTitles.keys.filter { !validTimelineIDs.contains($0) }
         let staleEdits = messageEdits.keys.filter { !validTimelineIDs.contains($0) }
-        guard !staleDisclosures.isEmpty || !staleEdits.isEmpty else { return }
+        guard !staleDisclosures.isEmpty || !staleReasoningTitles.isEmpty || !staleEdits.isEmpty
+        else { return }
         for id in staleDisclosures { disclosureStates[id] = nil }
+        pendingAutoCollapseIDs.formIntersection(validTimelineIDs)
+        for id in staleReasoningTitles { reasoningTitles[id] = nil }
         for id in staleEdits { messageEdits[id] = nil }
     }
 
@@ -254,7 +304,7 @@ struct TranscriptListView: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator {
+    final class Coordinator: NSObject {
         private var content: [TranscriptEntry] = []
         private var latestUserMessageID: UUID?
         private var configuration: TranscriptListConfiguration?
@@ -266,6 +316,11 @@ struct TranscriptListView: NSViewRepresentable {
         private var invalidations: Set<UUID> = []
         private var invalidationScheduled = false
         private var invalidationMayFollow = false
+        private var autoCollapseCheckScheduled = false
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
 
         func makeListView() -> NSViewType {
             let view = NSViewType()
@@ -274,6 +329,13 @@ struct TranscriptListView: NSViewRepresentable {
             view.topInset = Metrics.Space.xl
             view.bottomInset = Metrics.Space.xl
             view.rowAnimator = nil
+            view.postsBoundsChangedNotifications = true
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(viewportDidChange),
+                name: NSView.boundsDidChangeNotification,
+                object: view
+            )
             view.rows {
                 ListRow(TranscriptEmptyRow.self)
                     .when { $0.kind == .empty }
@@ -421,6 +483,12 @@ struct TranscriptListView: NSViewRepresentable {
                 sizingPool.removeAll()
                 listView.reloadData()
             }
+            prepareWorkCompletionTransitions(
+                from: content,
+                to: entries,
+                in: listView,
+                presentation: presentation
+            )
             let plan = TranscriptListUpdatePlan.make(old: content, new: entries)
             if plan.replacesAll {
                 if !content.isEmpty { sizingPool.removeAll() }
@@ -435,6 +503,72 @@ struct TranscriptListView: NSViewRepresentable {
             content = entries
             self.latestUserMessageID = latestUserMessageID
             followBottom(listView, if: follow)
+            schedulePendingAutoCollapseCheck()
+        }
+
+        /// A successful run is allowed to adopt its collapsed default only
+        /// after the row is wholly outside the reader's viewport. Partial
+        /// visibility is still visibility: collapsing then would remove words
+        /// from under the reader and change the height they are looking at.
+        private func prepareWorkCompletionTransitions(
+            from old: [TranscriptEntry],
+            to new: [TranscriptEntry],
+            in view: NSViewType,
+            presentation: TranscriptPresentationState
+        ) {
+            let previous = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
+            for entry in new {
+                guard case .work(let group) = entry.content,
+                    group.run.state == .completed,
+                    !group.appearsAfterAnswer,
+                    case .work(let oldGroup)? = previous[entry.id]?.content,
+                    oldGroup.run.state != .completed,
+                    !presentation.readerDidToggle(entry.id)
+                else { continue }
+
+                if rowIntersectsViewport(entry.id, in: view) {
+                    presentation.deferAutoCollapse(entry.id)
+                } else {
+                    presentation.followDefault(false, for: entry.id)
+                }
+            }
+        }
+
+        @objc private func viewportDidChange() {
+            schedulePendingAutoCollapseCheck()
+        }
+
+        private func schedulePendingAutoCollapseCheck() {
+            guard !autoCollapseCheckScheduled else { return }
+            autoCollapseCheckScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                autoCollapseCheckScheduled = false
+                collapsePendingWorkOutsideViewport()
+            }
+        }
+
+        private func collapsePendingWorkOutsideViewport() {
+            guard let view = listView, let presentation else { return }
+            var collapsed: [UUID] = []
+            for entry in content where presentation.hasPendingAutoCollapse(entry.id) {
+                guard !rowIntersectsViewport(entry.id, in: view),
+                    presentation.completeAutoCollapse(entry.id)
+                else { continue }
+                collapsed.append(entry.id)
+            }
+            guard !collapsed.isEmpty else { return }
+            for id in collapsed { refreshDisplayedRow(id, in: view) }
+            view.layoutSubtreeIfNeeded()
+        }
+
+        private func rowIntersectsViewport(_ id: UUID, in view: NSViewType) -> Bool {
+            let row = view.rectForRow(with: id)
+            guard !row.isEmpty, view.bounds.width > 0, view.bounds.height > 0 else {
+                return false
+            }
+            let viewport = CGRect(origin: view.contentOffset, size: view.bounds.size)
+            return row.intersects(viewport)
         }
 
         private func height(for entry: TranscriptEntry, width: CGFloat) -> CGFloat {

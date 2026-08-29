@@ -87,7 +87,7 @@ struct SerialFeatureTests {
     @MainActor
     @Test
     func serialConnectionUsesTheSharedConnectionJourney() {
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
         journey.beginSerial(name: "USB UART", address: "/dev/cu.usbserial-01")
 
         #expect(journey.purpose == .serialSession)

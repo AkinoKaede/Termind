@@ -123,6 +123,41 @@ struct TranscriptPresentationStateTests {
     }
 
     @Test
+    func deferredAutoCollapseWaitsForTheCoordinatorAndRespectsReaderOverride() {
+        let id = UUID()
+        let state = TranscriptPresentationState()
+
+        state.deferAutoCollapse(id)
+        #expect(state.isExpanded(id))
+        #expect(state.hasPendingAutoCollapse(id))
+        #expect(state.completeAutoCollapse(id))
+        #expect(!state.isExpanded(id))
+
+        state.deferAutoCollapse(id)
+        state.toggleDisclosure(id, default: true)
+        #expect(!state.hasPendingAutoCollapse(id))
+        #expect(!state.completeAutoCollapse(id))
+    }
+
+    @Test
+    func reasoningDeadlineIsAbsoluteAndNewMarkdownResetsIt() {
+        let id = UUID()
+        let state = TranscriptPresentationState()
+        let start = Date(timeIntervalSince1970: 1_000)
+
+        let first = state.reasoningTitleDeadline(
+            for: id, revision: "first", now: start
+        )
+        #expect(first == start.addingTimeInterval(3))
+        #expect(state.reasoningTitleDeadline(
+            for: id, revision: "first", now: start.addingTimeInterval(2)
+        ) == first)
+        #expect(state.reasoningTitleDeadline(
+            for: id, revision: "second", now: start.addingTimeInterval(2)
+        ) == start.addingTimeInterval(5))
+    }
+
+    @Test
     func messageDraftSurvivesRowRecyclingAndCanBePruned() {
         let id = UUID()
         let state = TranscriptPresentationState()
@@ -148,6 +183,52 @@ struct TranscriptListViewBridgeTests {
     func richTranscriptDoesNotInstallAPerFrameRowAnimator() {
         let listView = TranscriptListView.Coordinator().makeListView()
         #expect(listView.rowAnimator == nil)
+    }
+
+    @Test
+    func visibleCompletedWorkDefersCollapseUntilItLeavesTheViewport() async {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let presentation = TranscriptPresentationState()
+        let id = UUID()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 180)
+        let tail = (0..<12).map { _ in TranscriptEntry(id: UUID(), content: .empty) }
+
+        update(
+            coordinator, listView,
+            entries: [work(id: id, state: .running)] + tail,
+            presentation: presentation
+        )
+        listView.layoutSubtreeIfNeeded()
+        listView.setContentOffset(.zero, animated: false)
+        listView.layoutSubtreeIfNeeded()
+        update(
+            coordinator, listView,
+            entries: [work(id: id, state: .completed)] + tail,
+            presentation: presentation
+        )
+
+        #expect(presentation.isExpanded(id))
+        #expect(presentation.hasPendingAutoCollapse(id))
+
+        let expandedFrame = listView.rectForRow(with: id)
+        listView.setContentOffset(
+            CGPoint(x: 0, y: expandedFrame.maxY - 1),
+            animated: false
+        )
+        listView.layoutSubtreeIfNeeded()
+        await Task.yield()
+        #expect(presentation.isExpanded(id), "one visible point must defer collapse")
+
+        listView.setContentOffset(
+            CGPoint(x: 0, y: listView.maximumContentOffset.y),
+            animated: false
+        )
+        listView.layoutSubtreeIfNeeded()
+        await Task.yield()
+
+        #expect(!presentation.isExpanded(id))
+        #expect(!presentation.hasPendingAutoCollapse(id))
     }
 
     @Test
@@ -343,6 +424,75 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
+    func terminalSuggestionMatchesTheOriginalCommandCardHierarchy() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        listView.appearance = NSAppearance(named: .aqua)
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+        let id = UUID()
+        let message = ChatMessage(
+            id: id,
+            role: .assistant,
+            text: "",
+            commands: [
+                SuggestedCommand(
+                    command: "rm -rf /tmp/termind-preview",
+                    explanation: "Remove the generated preview."
+                )
+            ]
+        )
+        let entry = TranscriptEntry(
+            id: id,
+            content: .assistant(message, canFork: false)
+        )
+
+        update(
+            coordinator,
+            listView,
+            entries: [entry],
+            showsTerminalActions: true,
+            actions: .init(canDeliverCommand: { true })
+        )
+        listView.layoutSubtreeIfNeeded()
+
+        let row = try #require(listView.rowView(for: id))
+        let card = try #require(descendant(in: row, identifier: "Transcript.CommandCard"))
+        let content = try #require(
+            descendant(in: card, identifier: "Transcript.CommandCardContent") as? NSStackView
+        )
+        let commandBackground = try #require(
+            descendant(in: card, identifier: "Transcript.CommandCardCommandBackground")
+        )
+        let command = try #require(
+            descendant(in: card, identifier: "Transcript.CommandCardCommand") as? NSTextField
+        )
+        let explanation = try #require(
+            descendant(in: card, identifier: "Transcript.CommandCardExplanation") as? NSTextField
+        )
+        let insert = try #require(
+            descendant(in: card, identifier: "Transcript.CommandCardInsert") as? NSButton
+        )
+        let run = try #require(
+            descendant(in: card, identifier: "Transcript.CommandCardRun") as? NSButton
+        )
+
+        card.updateLayer()
+        commandBackground.updateLayer()
+        let cardColor = try #require(card.layer?.backgroundColor.flatMap(NSColor.init(cgColor:)))
+        let commandColor = try #require(
+            commandBackground.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
+        )
+        #expect(abs(cardColor.alphaComponent - 0.020) < 0.004)
+        #expect(abs(commandColor.alphaComponent - 0.039) < 0.004)
+        #expect(content.spacing == Metrics.Space.m)
+        #expect(command.font?.fontDescriptor.symbolicTraits.contains(.monoSpace) == true)
+        #expect(command.font?.pointSize == NSFont.systemFontSize - 1)
+        #expect(explanation.font?.pointSize == NSFont.smallSystemFontSize)
+        #expect(insert.isBordered)
+        #expect(run.isBordered)
+    }
+
+    @Test
     func userImagesAndChipsSitOutsideAndAboveTheTextBubble() throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
@@ -533,10 +683,90 @@ struct TranscriptListViewBridgeTests {
         #expect(abs(markdownFrame.maxY - row.bounds.maxY) <= 1)
         #expect(descendant(in: row, identifier: "Transcript.WorkingActivity") == nil)
 
-        update(coordinator, listView, entries: [streamingAssistant(id: id, text: "")])
+        update(
+            coordinator,
+            listView,
+            entries: [streamingAssistant(id: id, text: "")]
+        )
         listView.layoutSubtreeIfNeeded()
 
         #expect(descendant(in: row, identifier: "Transcript.WorkingActivity") != nil)
+    }
+
+    @Test
+    func workingActivityUsesAFullBoundsMovingNotchMask() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let id = UUID()
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+        update(
+            coordinator,
+            listView,
+            entries: [streamingAssistant(id: id, text: "")],
+            reduceMotion: false
+        )
+        listView.layoutSubtreeIfNeeded()
+
+        let row = try #require(listView.rowView(for: id))
+        let activity = try #require(
+            descendant(in: row, identifier: "Transcript.WorkingActivity")
+        )
+        activity.layoutSubtreeIfNeeded()
+        let mask = try #require(activity.layer?.mask)
+        #expect(mask.frame == activity.bounds)
+        #expect(mask.animation(forKey: "scan") != nil)
+    }
+
+    @Test
+    func singleRunningToolTitleStillInstallsTheScanningMask() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let runID = UUID()
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(
+                id: "call", name: "lookup", arguments: .object([:])
+            )
+        )
+        var card = AgentToolCard(
+            invocation: invocation,
+            descriptor: AgentToolDescriptor(
+                name: "lookup", summary: "lookup", inputSchema: .object([:]),
+                target: .local, safety: .locallyReadOnly
+            )
+        )
+        card.state = .running
+        let entry = TranscriptEntry(
+            id: runID,
+            content: .work(AgentWorkGroup(
+                run: AgentRunSummary(
+                    id: runID, state: .running, startedAt: .now
+                ),
+                items: [.tools(AgentToolBatch(
+                    cards: [card], runID: runID, reasoning: nil
+                ))],
+                orderedAt: .now,
+                anchorMessageID: nil,
+                appearsAfterAnswer: false,
+                activeReasoningBlockID: nil
+            ))
+        )
+        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+        update(
+            coordinator,
+            listView,
+            entries: [entry],
+            reduceMotion: false
+        )
+        listView.layoutSubtreeIfNeeded()
+
+        let row = try #require(listView.rowView(for: runID))
+        let title = try #require(
+            descendant(in: row, identifier: "Transcript.ScanningTitle")
+        )
+        #expect(title.layer?.mask?.animation(forKey: "scan") != nil)
     }
 
     @Test
@@ -554,8 +784,8 @@ struct TranscriptListViewBridgeTests {
             presentation: presentation
         )
         let row = try #require(listView.rowView(for: id) as? TranscriptAssistantRow)
-        let pointerEvent = try #require(pointerEvent())
-        row.mouseEntered(with: pointerEvent)
+        let event = try #require(pointerEvent())
+        row.mouseEntered(with: event)
 
         update(
             coordinator,
@@ -570,9 +800,9 @@ struct TranscriptListViewBridgeTests {
         )
         #expect(actions.alphaValue == 1)
 
-        row.mouseExited(with: pointerEvent)
+        row.mouseExited(with: event)
         #expect(actions.alphaValue == 0)
-        row.mouseEntered(with: pointerEvent)
+        row.mouseEntered(with: event)
         #expect(actions.alphaValue == 1)
     }
 
@@ -750,7 +980,10 @@ struct TranscriptListViewBridgeTests {
         _ listView: TranscriptListView.NSViewType,
         entries: [TranscriptEntry],
         presentation: TranscriptPresentationState = TranscriptPresentationState(),
-        isCompact: Bool = true
+        isCompact: Bool = true,
+        showsTerminalActions: Bool = false,
+        actions: TranscriptListActions = .init(),
+        reduceMotion: Bool = true
     ) {
         coordinator.update(
             listView: listView,
@@ -758,12 +991,12 @@ struct TranscriptListViewBridgeTests {
             latestUserMessageID: nil,
             configuration: .init(
                 isCompact: isCompact,
-                showsTerminalActions: false,
+                showsTerminalActions: showsTerminalActions,
                 isConversationStreaming: false,
                 locale: Locale(identifier: "en"),
-                reduceMotion: true
+                reduceMotion: reduceMotion
             ),
-            actions: .init(),
+            actions: actions,
             presentation: presentation
         )
     }
@@ -820,5 +1053,28 @@ struct TranscriptListViewBridgeTests {
             queue.append(contentsOf: view.subviews)
         }
         return nil
+    }
+
+    private func work(id: UUID, state: AgentRunState) -> TranscriptEntry {
+        let start = Date(timeIntervalSince1970: 1_000)
+        return TranscriptEntry(
+            id: id,
+            content: .work(AgentWorkGroup(
+                run: AgentRunSummary(
+                    id: id,
+                    state: state,
+                    startedAt: start,
+                    finishedAt: state == .completed ? start.addingTimeInterval(2) : nil
+                ),
+                items: [.message(ChatMessage(
+                    role: .assistant,
+                    text: String(repeating: "Visible work detail. ", count: 20)
+                ))],
+                orderedAt: start,
+                anchorMessageID: nil,
+                appearsAfterAnswer: false,
+                activeReasoningBlockID: nil
+            ))
+        )
     }
 }

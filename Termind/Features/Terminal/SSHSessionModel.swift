@@ -208,7 +208,7 @@ final class SSHSessionModel: Identifiable {
     /// either Continue or Continue and Save.
     var pendingAuthentication: SSHAuthenticationPrompt?
     let connection = RemoteSessionConnectionController()
-    var connectionJourney: SSHConnectionJourney { connection.journey }
+    var connectionJourney: ConnectionJourney { connection.journey }
 
     let terminalState: TerminalViewState
     #if canImport(AppKit)

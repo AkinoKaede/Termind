@@ -5,13 +5,13 @@ import Testing
 
 @Suite
 @MainActor
-struct SSHConnectionJourneyTests {
+struct ConnectionJourneyTests {
     @Test
     func routeStartsAtBlueLocalEndpointAndKeepsHostsPending() {
         let jump = Host(name: "Bastion", host: "jump.example")
         var destination = Host(name: "Production", host: "prod.example")
         destination.jumpHostID = jump.id
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
 
         journey.begin(
             host: destination, route: [jump, destination],
@@ -30,7 +30,7 @@ struct SSHConnectionJourneyTests {
     @Test
     func reconnectUsesTheSameJourneyInReconnectMode() {
         let destination = Host(name: "Production", host: "prod.example")
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
 
         journey.begin(
             host: destination, route: [destination],
@@ -46,7 +46,7 @@ struct SSHConnectionJourneyTests {
     @Test
     func authenticationCheckpointAppearsOnlyWhenRequested() {
         let destination = Host(name: "Server", host: "server.example")
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
         journey.begin(
             host: destination, route: [destination],
             purpose: .sftpSession, username: nil
@@ -71,7 +71,7 @@ struct SSHConnectionJourneyTests {
     func missingLocalIdentityKeepsEntireRemoteRoutePending() {
         let jump = Host(name: "Bastion", host: "jump.example")
         let destination = Host(name: "Server", host: "server.example")
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
         journey.begin(
             host: destination, route: [jump, destination],
             purpose: .sshSession, username: nil
@@ -93,7 +93,7 @@ struct SSHConnectionJourneyTests {
     @Test
     func localRequirementTransitionsBetweenIdentityAndPassphraseSteps() {
         let destination = Host(name: "Server", host: "server.example")
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
         journey.begin(
             host: destination, route: [destination],
             purpose: .sshSession, username: "deploy"
@@ -136,7 +136,7 @@ struct SSHConnectionJourneyTests {
     func routeProgressIsMonotonicAcrossReconnectProbes() {
         let first = Host(name: "Jump", host: "jump.example")
         let destination = Host(name: "Server", host: "server.example")
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
         journey.begin(
             host: destination, route: [first, destination],
             purpose: .sshSession, username: "root"
@@ -157,7 +157,7 @@ struct SSHConnectionJourneyTests {
     func failureKeepsFutureRoutePendingAndRecordsSanitizedLog() {
         let first = Host(name: "Jump", host: "jump.example")
         let destination = Host(name: "Server", host: "server.example")
-        let journey = SSHConnectionJourney()
+        let journey = ConnectionJourney()
         journey.begin(
             host: destination, route: [first, destination],
             purpose: .sshSession, username: "deploy"

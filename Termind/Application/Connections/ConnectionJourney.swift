@@ -1,12 +1,12 @@
 import Foundation
 
-nonisolated enum SSHConnectionPurpose: String, Hashable, Sendable {
+nonisolated enum ConnectionPurpose: String, Hashable, Sendable {
     case sshSession
     case sftpSession
     case serialSession
 }
 
-nonisolated struct SSHConnectionEndpoint: Identifiable, Hashable, Sendable {
+nonisolated struct ConnectionEndpoint: Identifiable, Hashable, Sendable {
     nonisolated enum Role: Hashable, Sendable {
         case local
         case jump
@@ -44,11 +44,11 @@ nonisolated struct SSHAuthenticationSubmission: Hashable, Sendable {
     var identityID: Identity.ID? = nil
 }
 
-/// UI-facing state for one SSH attempt. The transport emits facts; this model
+/// UI-facing state for one connection attempt. The transport emits facts; this model
 /// turns them into a monotonic route so reconnect probes cannot visually move
 /// a completed path backwards.
 @Observable
-final class SSHConnectionJourney {
+final class ConnectionJourney {
     enum Mode: Equatable {
         case connection
         case reconnection
@@ -84,9 +84,9 @@ final class SSHConnectionJourney {
         var message: String
     }
 
-    private(set) var purpose: SSHConnectionPurpose = .sshSession
+    private(set) var purpose: ConnectionPurpose = .sshSession
     private(set) var mode: Mode = .connection
-    private(set) var endpoints: [SSHConnectionEndpoint] = []
+    private(set) var endpoints: [ConnectionEndpoint] = []
     private(set) var phase: Phase = .hidden
     private(set) var activeEndpointIndex = 0
     private(set) var completedEndpointIndex = 0
@@ -99,24 +99,24 @@ final class SSHConnectionJourney {
     private var completionTask: Task<Void, Never>?
 
     var isPresented: Bool { phase != .hidden }
-    var destination: SSHConnectionEndpoint? { endpoints.last }
+    var destination: ConnectionEndpoint? { endpoints.last }
     var waitsForLocalIdentity: Bool { localRequirement == .identity }
     var waitsForLocalPassphrase: Bool { localRequirement == .passphrase }
 
     func begin(
-        host: Host, route: [Host], purpose: SSHConnectionPurpose,
+        host: Host, route: [Host], purpose: ConnectionPurpose,
         username: String?, mode: Mode = .connection
     ) {
         completionTask?.cancel()
         let nextEndpoints =
             [
-                SSHConnectionEndpoint(
+                ConnectionEndpoint(
                     id: .local, hostID: nil,
                     name: String(localized: "This Mac"), address: "localhost", role: .local
                 )
             ]
             + route.enumerated().map { index, node in
-                SSHConnectionEndpoint(
+                ConnectionEndpoint(
                     id: .host(node.id), hostID: node.id, name: node.name,
                     address: index == route.count - 1 && username?.isEmpty == false
                         ? "\(username!)@\(node.displayAddress)" : node.displayAddress,
@@ -157,11 +157,11 @@ final class SSHConnectionJourney {
         purpose = .serialSession
         self.mode = mode
         endpoints = [
-            SSHConnectionEndpoint(
+            ConnectionEndpoint(
                 id: .local, hostID: nil,
                 name: String(localized: "This Mac"), address: "localhost", role: .local
             ),
-            SSHConnectionEndpoint(
+            ConnectionEndpoint(
                 id: .serial(address), hostID: nil,
                 name: name, address: address, role: .destination
             ),
@@ -331,7 +331,7 @@ final class SSHConnectionJourney {
     }
 }
 
-private extension SSHConnectionPurpose {
+private extension ConnectionPurpose {
     var logName: String {
         switch self {
         case .sshSession: "SSH session"
