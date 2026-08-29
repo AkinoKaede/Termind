@@ -373,9 +373,7 @@ final class AppModel {
             event: channel.emit
         )
 
-        // Built-ins first, so a remote MCP name can never shadow one — the
-        // registry resolves providers in precedence order.
-        var providers: [any AgentToolProviding] = []
+        var registry = AgentToolRegistry([AnyAgentTool]())
         if chat.model.abilities.contains(.toolCall) {
             // One workspace per conversation, not per run: a file staged before the
             // user interrupted, or before they typed a follow-up, is still there for
@@ -387,38 +385,28 @@ final class AppModel {
             // and `scratch_fetch` read the same web the same way and differ only in
             // where the page ends up.
             let web = ScrubberWebClient()
-            providers.append(
-                AgentStaticToolProvider(
-                    AgentBuiltInTools.make(
-                        hosts: agentHosts, connections: agentConnections,
-                        authentication: agentAuthentication,
-                        background: agentBackgroundCommands, web: web,
-                        search: searchPlan.local,
-                        includesTerminalSuggestion: includesTerminalSuggestion
-                    )))
-            providers.append(
-                AgentStaticToolProvider(
-                    AgentScratchTools.make(
-                        workspace: scratch, connections: agentConnections,
-                        authentication: agentAuthentication, web: web
-                    )))
             // Both write through the one ordered channel the rest of the run
             // uses, rather than reaching into the conversation directly: a tool
             // that touched `@Observable` state from a task group would be
             // mutating the UI from off the main actor.
-            providers.append(
-                AgentStaticToolProvider(
-                    AgentPlanTools.make(
-                        workspace: scratch,
-                        tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
-                        plans: AgentPlanRecorder { channel.emit(.planPresented($0)) }
-                    )))
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
             }
-            providers.append(AgentStaticToolProvider(AgentMCPTools.make(servers: servers)))
+            // Local definitions are registered once in the static catalog;
+            // discovered MCP definitions join the same resolved registry after
+            // them, so a remote name can never shadow a built-in.
+            registry = AgentToolCatalog.registry(environment: AgentToolEnvironment(
+                hosts: agentHosts, connections: agentConnections,
+                authentication: agentAuthentication,
+                background: agentBackgroundCommands, web: web,
+                search: searchPlan.local,
+                includesTerminalSuggestion: includesTerminalSuggestion,
+                workspace: scratch,
+                tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
+                plans: AgentPlanRecorder { channel.emit(.planPresented($0)) },
+                mcpServers: servers
+            ))
         }
-        let registry = AgentToolRegistry(providers)
         // The one place the resolved tool set exists. Recorded on the
         // conversation so the context gauge can account for the schemas without
         // rebuilding a registry on every keystroke.

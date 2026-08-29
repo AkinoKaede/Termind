@@ -1,43 +1,29 @@
 import Foundation
 
-nonisolated enum AgentMCPTools {
-    static func make(
-        servers: [(server: MCPServer, bearerToken: String?)],
-        client: MCPClient = MCPClient()
-    ) -> [AnyAgentTool] {
-        return servers.flatMap { entry -> [AnyAgentTool] in
-            guard !entry.server.effectiveNamespaceID.isEmpty else { return [] }
-            let names = MCPToolNaming.functionNames(for: entry.server.tools)
-            return entry.server.enabledTools.map { tool in
-                make(
-                    server: entry.server, tool: tool,
-                    name: names[tool.id] ?? MCPToolNaming.functionName(from: tool.id),
-                    bearerToken: entry.bearerToken, client: client
-                )
-            }
-        }
-    }
+/// One dynamically discovered MCP definition. Remote metadata may describe the
+/// call but can never contribute an executable detail presenter.
+nonisolated struct MCPAgentTool: AgentTool {
+    private let server: MCPServer
+    private let tool: MCPTool
+    private let bearerToken: String?
+    private let client: MCPClient
+    let descriptor: AgentToolDescriptor
 
-    private static func make(
+    init(
         server: MCPServer, tool: MCPTool, name: String,
         bearerToken: String?, client: MCPClient
-    ) -> AnyAgentTool {
-        let descriptor = AgentToolDescriptor(
+    ) {
+        self.server = server
+        self.tool = tool
+        self.bearerToken = bearerToken
+        self.client = client
+        descriptor = AgentToolDescriptor(
             name: name,
             namespace: server.effectiveNamespaceID,
             summary: "\(server.name): \(tool.summary)",
-            inputSchema: normalizedSchema(tool.inputSchema), target: .mcp,
-            // A server's readOnlyHint is not proof. Every MCP call stays inside
-            // the action approval boundary unless Full access is selected.
+            inputSchema: AgentMCPTools.normalizedSchema(tool.inputSchema), target: .mcp,
+            // Remote read-only annotations are hints, never local proof.
             safety: .requiresAuthorization,
-            // Parallel by default, following Pi, because an MCP call is a
-            // network round trip and that is where concurrency pays. Note which
-            // direction the remote metadata is allowed to push: a hint can only
-            // make this *stricter*. Nothing a server asserts can grant
-            // parallelism, so the rule that remote annotations are risk hints
-            // rather than proof of safety still holds — and a tool the server
-            // marks destructive, or is configured to ask every time, takes its
-            // whole turn serial.
             concurrency: tool.annotations.destructiveHint == true
                 || tool.accessPolicy == .alwaysAsk
                 ? .sequential : .parallel,
@@ -51,39 +37,59 @@ nonisolated enum AgentMCPTools {
                 actionKind: .run
             )
         )
-        return AnyAgentTool(
-            descriptor: descriptor,
-            preflight: { invocation in
-                var reasons = ["MCP tool metadata is supplied by an untrusted remote server."]
-                if tool.annotations.destructiveHint == true {
-                    reasons.append("The MCP server marks this operation destructive.")
-                }
-                if tool.annotations.openWorldHint == true {
-                    reasons.append("The MCP server says this operation interacts with external entities.")
-                }
-                return AgentToolPreflight(
-                    invocation: invocation, safety: .requiresAuthorization, reasons: reasons
-                )
-            },
-            execute: { invocation, _ in
-                let called = try await client.call(
-                    server, tool: tool.id, arguments: invocation.call.arguments,
-                    bearerToken: bearerToken
-                )
-                return AgentToolResult(
-                    callID: invocation.call.id,
-                    content: "<untrusted-data>\n\(called.value.encodedString)\n</untrusted-data>",
-                    isError: called.isError,
-                    metadata: [
-                        "untrusted": .bool(true), "mcp_server_id": .string(server.id.uuidString),
-                        "mcp_tool": .string(tool.id),
-                    ]
-                )
-            }
+    }
+
+    func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {
+        var reasons = ["MCP tool metadata is supplied by an untrusted remote server."]
+        if tool.annotations.destructiveHint == true {
+            reasons.append("The MCP server marks this operation destructive.")
+        }
+        if tool.annotations.openWorldHint == true {
+            reasons.append("The MCP server says this operation interacts with external entities.")
+        }
+        return AgentToolPreflight(
+            invocation: invocation, safety: .requiresAuthorization, reasons: reasons
         )
     }
 
-    private static func normalizedSchema(_ schema: AgentJSONValue) -> AgentJSONValue {
+    func execute(
+        _ invocation: AgentToolInvocation, context: AgentToolExecutionContext
+    ) async throws -> AgentToolResult {
+        let called = try await client.call(
+            server, tool: tool.id, arguments: invocation.call.arguments,
+            bearerToken: bearerToken
+        )
+        return AgentToolResult(
+            callID: invocation.call.id,
+            content: "<untrusted-data>\n\(called.value.encodedString)\n</untrusted-data>",
+            isError: called.isError,
+            metadata: [
+                "untrusted": .bool(true), "mcp_server_id": .string(server.id.uuidString),
+                "mcp_tool": .string(tool.id),
+            ]
+        )
+    }
+}
+
+nonisolated enum AgentMCPTools {
+    static func make(
+        servers: [(server: MCPServer, bearerToken: String?)],
+        client: MCPClient = MCPClient()
+    ) -> [AnyAgentTool] {
+        return servers.flatMap { entry -> [AnyAgentTool] in
+            guard !entry.server.effectiveNamespaceID.isEmpty else { return [] }
+            let names = MCPToolNaming.functionNames(for: entry.server.tools)
+            return entry.server.enabledTools.map { tool in
+                AnyAgentTool(MCPAgentTool(
+                    server: entry.server, tool: tool,
+                    name: names[tool.id] ?? MCPToolNaming.functionName(from: tool.id),
+                    bearerToken: entry.bearerToken, client: client
+                ))
+            }
+        }
+    }
+
+    fileprivate static func normalizedSchema(_ schema: AgentJSONValue) -> AgentJSONValue {
         guard var object = schema.objectValue else {
             return .object([
                 "type": .string("object"), "properties": .object([:]),

@@ -274,16 +274,7 @@ struct AgentBackgroundCommandTests {
 
     @Test @MainActor
     func waitIsRegisteredAndReadOnly() {
-        let tools = AgentBuiltInTools.make(
-            hosts: AgentHostResolver(store: HostLibraryModel()),
-            connections: AgentConnectionPool(
-                configuration: { _ in throw AgentToolError.invalidHost },
-                routeFingerprint: { _ in "" },
-                openExec: { _ in throw AgentToolError.invalidHost },
-                openSFTP: { _ in throw AgentToolError.invalidHost },
-                sweepInterval: nil
-            )
-        )
+        let tools = [AnyAgentTool(SSHWaitTool(background: AgentBackgroundCommands()))]
         let wait = tools.first { $0.descriptor.name == "ssh_wait" }
         #expect(wait != nil)
         // It reads a buffer and a task. Nothing it does reaches the host, so

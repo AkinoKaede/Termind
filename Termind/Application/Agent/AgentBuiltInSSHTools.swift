@@ -1,42 +1,138 @@
 import Foundation
 
-nonisolated extension AgentBuiltInTools {
-    static func listHosts(_ hosts: AgentHostResolver) -> AnyAgentTool {
-        AnyAgentTool(descriptor: descriptor(
-            "list_hosts", "List Vault and temporary Termind SSH targets without credentials.",
-            properties: [:], required: [], target: .host, safety: .locallyReadOnly,
-            concurrency: .parallel,
-            presentation: .init(
-                symbol: "server.rack", activity: .semanticLabel(.hosts), output: .json,
-                detailPresenterID: "builtin.list_hosts",
-                actionKind: .list
-            )
-        )) { invocation, _ in
-            let listing = await hosts.listing()
-            let rows = listing.hosts.map { target in
-                AgentJSONValue.object([
-                    "id": .string(target.id.uuidString), "display_name": .string(target.displayName),
-                    "address": .string(target.address), "tags": .array(target.tags.map(AgentJSONValue.string)),
-                    "connection_state": .string(target.connectionState),
-                    "temporary": .bool(target.isTemporary),
-                    "group_id": target.groupID.map { .string($0.uuidString) } ?? .null,
-                    "group_path": target.groupPath.map(AgentJSONValue.string) ?? .null,
-                ])
-            }
-            func groupJSON(_ group: AgentHostGroupTarget) -> AgentJSONValue {
-                .object([
-                    "id": .string(group.id.uuidString), "name": .string(group.name),
-                    "path": .string(group.path),
-                    "children": .array(group.children.map(groupJSON)),
-                ])
-            }
-            return result(invocation, .object([
-                "groups": .array(listing.groups.map(groupJSON)),
-                "hosts": .array(rows),
-            ]))
-        }
-    }
+nonisolated struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(
+        id: "builtin.list_hosts", present: present
+    )
+    let hosts: AgentHostResolver
 
+    var descriptor: AgentToolDescriptor { Self.descriptor(
+        "list_hosts", "List Vault and temporary Termind SSH targets without credentials.",
+        properties: [:], required: [], target: .host, safety: .locallyReadOnly,
+        concurrency: .parallel,
+        presentation: .init(
+            symbol: "server.rack", activity: .semanticLabel(.hosts), output: .json,
+            actionKind: .list
+        )
+    ) }
+
+    func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
+        -> AgentToolResult {
+        let listing = await hosts.listing()
+        let rows = listing.hosts.map { target in AgentJSONValue.object([
+            "id": .string(target.id.uuidString), "display_name": .string(target.displayName),
+            "address": .string(target.address), "tags": .array(target.tags.map(AgentJSONValue.string)),
+            "connection_state": .string(target.connectionState), "temporary": .bool(target.isTemporary),
+            "group_id": target.groupID.map { .string($0.uuidString) } ?? .null,
+            "group_path": target.groupPath.map(AgentJSONValue.string) ?? .null,
+        ]) }
+        func groupJSON(_ group: AgentHostGroupTarget) -> AgentJSONValue { .object([
+            "id": .string(group.id.uuidString), "name": .string(group.name),
+            "path": .string(group.path), "children": .array(group.children.map(groupJSON)),
+        ]) }
+        return Self.result(invocation, .object([
+            "groups": .array(listing.groups.map(groupJSON)), "hosts": .array(rows),
+        ]))
+    }
+}
+
+nonisolated struct SSHWaitTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(
+        id: "builtin.ssh_wait", present: present
+    )
+    let background: AgentBackgroundCommands
+
+    var descriptor: AgentToolDescriptor { Self.descriptor(
+        "ssh_wait", "Wait for a command ssh_exec reported as still running, and return its output.",
+        properties: ["handle": Self.string(max: 64),
+                     "timeout_seconds": Self.integer(min: 1, max: 900)],
+        required: ["handle"], target: .host, safety: .locallyReadOnly,
+        concurrency: .parallel,
+        presentation: .init(
+            symbol: "clock.arrow.circlepath", activity: .semanticLabel(.remoteCommand),
+            output: .streams, actionKind: .wait
+        )
+    ) }
+
+    func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
+        -> AgentToolResult {
+        let arguments = try Arguments(invocation)
+        guard let handle = UUID(uuidString: try arguments.string("handle")) else {
+            throw AgentToolError.invalidArguments("handle is not a valid handle.")
+        }
+        let outcome = try await background.wait(
+            handle, timeout: .seconds(arguments.optionalInt("timeout_seconds") ?? 60),
+            reporting: AgentBuiltInTools.reporting(invocation, context.report),
+            orWhen: context.whenUserInterjects
+        )
+        guard let exitCode = outcome.exitCode else { return Self.result(invocation, .object([
+            "status": .string("running"), "handle": .string(handle.uuidString),
+            "stdout": .string(outcome.standardOut), "stderr": .string(outcome.standardError),
+        ])) }
+        return Self.result(invocation, .object([
+            "status": .string("exited"), "stdout": .string(outcome.standardOut),
+            "stderr": .string(outcome.standardError), "exit_code": .number(Double(exitCode)),
+            "signal": outcome.signal.map(AgentJSONValue.string) ?? .null,
+        ]))
+    }
+}
+
+nonisolated struct TerminalSuggestTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(
+        id: "builtin.terminal_suggest", present: present
+    )
+    var descriptor: AgentToolDescriptor { Self.descriptor(
+        "terminal_suggest", "Create a command card. Only the user can insert or run it in a PTY.",
+        properties: ["command": Self.string(max: 32_768),
+                     "explanation": Self.string(max: 4_096)],
+        required: ["command"], target: .user, safety: .locallyReadOnly,
+        concurrency: .parallel,
+        presentation: .init(
+            symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command),
+            groupsWithAdjacentTools: false, actionKind: .suggest
+        )
+    ) }
+    func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
+        -> AgentToolResult {
+        let arguments = try Arguments(invocation)
+        let command = try arguments.string("command")
+        guard !command.contains("\n"), !command.contains("\r"), !command.contains("\0") else {
+            throw AgentToolError.invalidArguments("A terminal suggestion must be one command line.")
+        }
+        return Self.result(invocation, .object([
+            "command": .string(command),
+            "explanation": .string(arguments.optionalString("explanation") ?? ""),
+            "risk": .string(CommandRiskClassifier.assess(command).risk.label),
+            "requires_user_action": .bool(true),
+        ]))
+    }
+}
+
+nonisolated extension SSHWaitTool {
+    static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
+        SSHCommandPresentation.present(input)
+    }
+}
+
+nonisolated extension TerminalSuggestTool {
+    static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        let object = input.result.objectValue ?? [:]
+        let command = input.arguments["command"]?.stringValue
+            ?? object["command"]?.stringValue ?? ""
+        var items: [AgentToolDetail.Item] = [F.text("Command", command, locale: input.locale)]
+        if let explanation = F.nonempty(
+            input.arguments["explanation"]?.stringValue ?? object["explanation"]?.stringValue
+        ) { items.append(.message(explanation, .secondary)) }
+        let assessment = CommandRiskClassifier.assess(command)
+        items.append(F.field("Risk", assessment.risk.label, locale: input.locale))
+        items.append(contentsOf: assessment.reasons.map { .message($0, .warning) })
+        items.append(.message(F.localized("Requires user action", locale: input.locale), .warning))
+        return items
+    }
+}
+
+nonisolated extension AgentBuiltInTools {
     /// How long `ssh_exec` waits before telling the model what it has.
     ///
     /// Short, and safe to be short only because expiry stopped being
@@ -46,14 +142,14 @@ nonisolated extension AgentBuiltInTools {
     /// happened. Now it hands back the output and a handle, which makes a short
     /// deadline pure gain: turns end in seconds, and anything the user typed
     /// while waiting is delivered at the boundary that follows.
-    private static let defaultReportingDeadline = 15
+    fileprivate static let defaultReportingDeadline = 15
 
     /// The ceiling on how long a command may run at all, deadline or no. Matches
     /// the clamp the session's own pump applies.
-    private static let maximumCommandLifetime: TimeInterval = 15 * 60
+    fileprivate static let maximumCommandLifetime: TimeInterval = 15 * 60
 
     /// The sink that turns captured output into progress on this call's card.
-    private static func reporting(
+    fileprivate static func reporting(
         _ invocation: AgentToolInvocation,
         _ report: @escaping @Sendable (AgentToolResult) -> Void
     ) -> @Sendable (String, String) -> Void {
@@ -67,7 +163,7 @@ nonisolated extension AgentBuiltInTools {
         }
     }
 
-    private static func exitedResult(
+    fileprivate static func exitedResult(
         _ invocation: AgentToolInvocation, _ output: SSHExecResult
     ) -> AgentToolResult {
         result(invocation, .object([
@@ -86,74 +182,27 @@ nonisolated extension AgentBuiltInTools {
     /// host not at all. While it waits, the command's output is redirected to
     /// *this* call's card — output belongs under whichever call is currently
     /// answering for it, never two at once and never none.
-    static func sshWait(_ background: AgentBackgroundCommands) -> AnyAgentTool {
-        AnyAgentTool(
-            descriptor: descriptor(
-                "ssh_wait",
-                "Wait for a command ssh_exec reported as still running, and return its output.",
-                properties: [
-                    "handle": string(max: 64),
-                    "timeout_seconds": integer(min: 1, max: 900),
-                ],
-                required: ["handle"], target: .host, safety: .locallyReadOnly,
-                concurrency: .parallel,
-                presentation: .init(
-                    symbol: "clock.arrow.circlepath",
-                    activity: .semanticLabel(.remoteCommand), output: .streams,
-                    detailPresenterID: "builtin.ssh_wait",
-                    actionKind: .wait
-                )
-            ),
-            execute: { invocation, context in
-                let arguments = try Arguments(invocation)
-                guard let handle = UUID(uuidString: try arguments.string("handle")) else {
-                    throw AgentToolError.invalidArguments("handle is not a valid handle.")
-                }
-                let outcome = try await background.wait(
-                    handle,
-                    timeout: .seconds(arguments.optionalInt("timeout_seconds") ?? 60),
-                    reporting: reporting(invocation, context.report),
-                    // Waiting is all this call does, so there is nothing to lose
-                    // by stopping: the command runs on, its session stays, and
-                    // the handle is still good. That is what makes a long
-                    // `timeout_seconds` safe to ask for.
-                    orWhen: context.whenUserInterjects
-                )
-                guard let exitCode = outcome.exitCode else {
-                    return result(invocation, .object([
-                        "status": .string("running"),
-                        "handle": .string(handle.uuidString),
-                        "stdout": .string(outcome.standardOut),
-                        "stderr": .string(outcome.standardError),
-                    ]))
-                }
-                return result(invocation, .object([
-                    "status": .string("exited"),
-                    "stdout": .string(outcome.standardOut),
-                    "stderr": .string(outcome.standardError),
-                    "exit_code": .number(Double(exitCode)),
-                    "signal": outcome.signal.map(AgentJSONValue.string) ?? .null,
-                ]))
-            }
-        )
-    }
+}
 
-    static func sshExec(
-        _ authentication: AgentSSHAuthenticationRegistry, _ pool: AgentConnectionPool,
-        _ background: AgentBackgroundCommands
-    ) -> AnyAgentTool {
-        let tool = descriptor(
+nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(id: "builtin.ssh_exec", present: present)
+    let authentication: AgentSSHAuthenticationRegistry
+    let pool: AgentConnectionPool
+    let background: AgentBackgroundCommands
+
+    var descriptor: AgentToolDescriptor { Self.descriptor(
             "ssh_exec", "Execute one command over a dedicated non-PTY SSH exec channel.",
             properties: [
-                "host_id": string(), "command": string(max: 32_768), "cwd": string(max: 4_096),
-                "timeout_seconds": integer(min: 1, max: 900), "stdin": string(max: 131_072),
-                "secret_handle": string(), "stdin_purpose": string(max: 256),
+                "host_id": Self.string(), "command": Self.string(max: 32_768),
+                "cwd": Self.string(max: 4_096),
+                "timeout_seconds": Self.integer(min: 1, max: 900),
+                "stdin": Self.string(max: 131_072), "secret_handle": Self.string(),
+                "stdin_purpose": Self.string(max: 256),
             ], required: ["host_id", "command"], target: .host, safety: .requiresAuthorization,
             presentation: .init(
                 symbol: "terminal",
                 activity: .semanticArgument(key: "command", fallback: .sshCommand),
                 output: .streams,
-                detailPresenterID: "builtin.ssh_exec",
                 actionKind: .run,
                 phaseKinds: [
                     "proposed": .sshPreparingCommand,
@@ -178,10 +227,9 @@ nonisolated extension AgentBuiltInTools {
                     "interrupted": "Stopped waiting for “{activity}” on {target}",
                 ]
             )
-        )
-        return AnyAgentTool(
-            descriptor: tool,
-            preflight: { invocation in
+        ) }
+
+    func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {
                 var checked = invocation
                 let arguments = try Arguments(invocation)
                 checked.targetHostID = try arguments.uuid("host_id")
@@ -210,8 +258,11 @@ nonisolated extension AgentBuiltInTools {
                     // `web_search`, and MCP.
                     concurrency: safe ? .parallel : .sequential
                 )
-            },
-            execute: { invocation, context in
+    }
+
+    func execute(
+        _ invocation: AgentToolInvocation, context: AgentToolExecutionContext
+    ) async throws -> AgentToolResult {
                 let arguments = try Arguments(invocation)
                 let hostID = try arguments.uuid("host_id")
                 let command = try arguments.string("command")
@@ -251,14 +302,15 @@ nonisolated extension AgentBuiltInTools {
                 // filling in rather than a spinner. Reported, never returned:
                 // the model is owed one result per call and gets it below.
                 let stream = AgentCommandOutputStream(
-                    report: reporting(invocation, context.report)
+                    report: AgentBuiltInTools.reporting(invocation, context.report)
                 )
                 let cwd = arguments.optionalString("cwd")
                 // A `let` copy, because the task below outlives this call and a
                 // captured `var` would be shared mutable state across it.
                 let stdin = input
                 let deadline = Duration.seconds(
-                    arguments.optionalInt("timeout_seconds") ?? defaultReportingDeadline
+                    arguments.optionalInt("timeout_seconds")
+                        ?? AgentBuiltInTools.defaultReportingDeadline
                 )
                 // Connecting is inside the deadline too. A hang is a hang
                 // whether it is DNS, a jump host or a handshake, and a turn that
@@ -286,7 +338,7 @@ nonisolated extension AgentBuiltInTools {
                         do {
                             return try await session.execute(
                                 command, workingDirectory: cwd, stdin: stdin,
-                                timeout: maximumCommandLifetime,
+                                timeout: AgentBuiltInTools.maximumCommandLifetime,
                                 outputLimit: 256 * 1_024,
                                 onOutput: stream.handler
                             )
@@ -317,7 +369,7 @@ nonisolated extension AgentBuiltInTools {
                         // no session, no output, no handle worth giving. The
                         // connection is left to finish into the pool rather than
                         // torn down, so the retry this invites is the fast one.
-                        return result(invocation, .object([
+                        return Self.result(invocation, .object([
                             "status": .string("connecting"),
                             "note": .string(String(
                                 localized: """
@@ -339,7 +391,7 @@ nonisolated extension AgentBuiltInTools {
                         task: running, session: session
                     )
                     let captured = stream.captured
-                    return result(invocation, .object([
+                    return Self.result(invocation, .object([
                         "status": .string("running"),
                         "handle": .string(handle.uuidString),
                         "stdout": .string(captured.standardOut),
@@ -353,63 +405,57 @@ nonisolated extension AgentBuiltInTools {
                         )),
                     ]))
                 }
-                return exitedResult(invocation, try await running.value)
-            }
-        )
+                return AgentBuiltInTools.exitedResult(invocation, try await running.value)
     }
+}
 
-    static func terminalSuggest() -> AnyAgentTool {
-        AnyAgentTool(descriptor: descriptor(
-            "terminal_suggest", "Create a command card. Only the user can insert or run it in a PTY.",
-            properties: ["command": string(max: 32_768), "explanation": string(max: 4_096)],
-            required: ["command"], target: .user, safety: .locallyReadOnly,
-            // It writes a card and touches nothing else. Whatever the command
-            // would do if the user ran it is the user's action, later.
-            concurrency: .parallel,
-            presentation: .init(
-                symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command),
-                detailPresenterID: "builtin.terminal_suggest",
-                groupsWithAdjacentTools: false,
-                actionKind: .suggest
-            )
-        )) { invocation, _ in
-            let arguments = try Arguments(invocation)
-            let command = try arguments.string("command")
-            guard !command.contains("\n"), !command.contains("\r"), !command.contains("\0") else {
-                throw AgentToolError.invalidArguments("A terminal suggestion must be one command line.")
-            }
-            return result(invocation, .object([
-                "command": .string(command),
-                "explanation": .string(arguments.optionalString("explanation") ?? ""),
-                "risk": .string(CommandRiskClassifier.assess(command).risk.label),
-                "requires_user_action": .bool(true),
-            ]))
+nonisolated extension SSHExecTool {
+    static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
+        SSHCommandPresentation.present(input)
+    }
+}
+
+nonisolated enum SSHCommandPresentation {
+    static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        guard let object = input.result.objectValue else {
+            return F.genericItems(input.result, locale: input.locale)
         }
+        var items: [AgentToolDetail.Item] = []
+        if let status = object["status"]?.stringValue {
+            items.append(F.field(
+                "Status", F.statusLabel(status, locale: input.locale), locale: input.locale
+            ))
+        }
+        if let code = object["exit_code"]?.integerValue {
+            items.append(F.field("Exit code", String(code), locale: input.locale, monospaced: true))
+        }
+        F.appendField(&items, "Signal", object["signal"]?.stringValue,
+                      locale: input.locale, monospaced: true)
+        let stdout = object["stdout"]?.stringValue ?? ""
+        let stderr = object["stderr"]?.stringValue ?? ""
+        if !stdout.isEmpty { items.append(F.text("Standard output", stdout, locale: input.locale)) }
+        if !stderr.isEmpty { items.append(F.text("Standard error", stderr, locale: input.locale)) }
+        if stdout.isEmpty, stderr.isEmpty, object["note"] == nil {
+            items.append(.message(F.localized("No output", locale: input.locale), .secondary))
+        }
+        if let note = F.nonempty(object["note"]?.stringValue) {
+            items.append(.message(note, .warning))
+        }
+        return items
     }
 }
 
 // MARK: - Tool-owned transcript details
 
-nonisolated extension AgentBuiltInTools {
-    static let listHostsDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.list_hosts", present: presentHostListing
-    )
-    static let sshExecDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.ssh_exec", present: presentCommandResult
-    )
-    static let sshWaitDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.ssh_wait", present: presentCommandResult
-    )
-    static let terminalSuggestDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.terminal_suggest", present: presentTerminalSuggestion
-    )
+nonisolated extension ListHostsTool {
 
     private struct HostGroupDetailProjection {
         let id: String
         let title: String
     }
 
-    private static func presentHostListing(
+    static func present(
         _ input: AgentToolDetailInput
     ) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
@@ -525,56 +571,4 @@ nonisolated extension AgentBuiltInTools {
         }
     }
 
-    private static func presentCommandResult(
-        _ input: AgentToolDetailInput
-    ) -> [AgentToolDetail.Item] {
-        typealias F = AgentToolDetailFormatting
-        guard let object = input.result.objectValue else {
-            return F.genericItems(input.result, locale: input.locale)
-        }
-        var items: [AgentToolDetail.Item] = []
-        if let status = object["status"]?.stringValue {
-            items.append(F.field(
-                "Status", F.statusLabel(status, locale: input.locale), locale: input.locale
-            ))
-        }
-        if let code = object["exit_code"]?.integerValue {
-            items.append(F.field("Exit code", String(code), locale: input.locale, monospaced: true))
-        }
-        F.appendField(
-            &items, "Signal", object["signal"]?.stringValue,
-            locale: input.locale, monospaced: true
-        )
-        let stdout = object["stdout"]?.stringValue ?? ""
-        let stderr = object["stderr"]?.stringValue ?? ""
-        if !stdout.isEmpty { items.append(F.text("Standard output", stdout, locale: input.locale)) }
-        if !stderr.isEmpty { items.append(F.text("Standard error", stderr, locale: input.locale)) }
-        if stdout.isEmpty, stderr.isEmpty, object["note"] == nil {
-            items.append(.message(F.localized("No output", locale: input.locale), .secondary))
-        }
-        if let note = F.nonempty(object["note"]?.stringValue) {
-            items.append(.message(note, .warning))
-        }
-        return items
-    }
-
-    private static func presentTerminalSuggestion(
-        _ input: AgentToolDetailInput
-    ) -> [AgentToolDetail.Item] {
-        typealias F = AgentToolDetailFormatting
-        let object = input.result.objectValue ?? [:]
-        let command = input.arguments["command"]?.stringValue
-            ?? object["command"]?.stringValue ?? ""
-        var items: [AgentToolDetail.Item] = [F.text("Command", command, locale: input.locale)]
-        if let explanation = F.nonempty(
-            input.arguments["explanation"]?.stringValue ?? object["explanation"]?.stringValue
-        ) {
-            items.append(.message(explanation, .secondary))
-        }
-        let assessment = CommandRiskClassifier.assess(command)
-        items.append(F.field("Risk", assessment.risk.label, locale: input.locale))
-        items.append(contentsOf: assessment.reasons.map { .message($0, .warning) })
-        items.append(.message(F.localized("Requires user action", locale: input.locale), .warning))
-        return items
-    }
 }

@@ -85,14 +85,12 @@ final class MCPServerTools {
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands, disabledTools: Set<String>
     ) -> AgentToolRegistry {
-        let tools = AgentBuiltInTools.make(
+        AgentToolCatalog.registry(environment: AgentToolEnvironment(
             hosts: hosts, connections: connections, authentication: authentication,
-            background: background, search: nil
-        ).filter {
-            exportedNames.contains($0.descriptor.name)
-                && !disabledTools.contains($0.descriptor.name)
+            background: background
+        )).filtering {
+            exportedNames.contains($0.name) && !disabledTools.contains($0.name)
         }
-        return AgentToolRegistry(tools)
     }
 }
 

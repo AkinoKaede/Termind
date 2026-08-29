@@ -26,7 +26,7 @@ struct ScrubberWebClientTests {
     @Test
     func fetchDefaultsToMarkdownAndCanReturnOriginalHTML() async throws {
         let client = fixtureClient()
-        let tool = AgentBuiltInTools.fetch(client)
+        let tool = FetchTool(web: client)
 
         let markdown = try await tool.execute(
             invocation("fetch", ["url": .string("http://router.local/")]),
@@ -58,7 +58,7 @@ struct ScrubberWebClientTests {
             },
             search: { _, _ in [] }
         )
-        let result = try await AgentBuiltInTools.fetch(client).execute(
+        let result = try await FetchTool(web: client).execute(
             invocation("fetch", ["url": .string("https://example.com")]),
             context: context()
         )
@@ -81,7 +81,7 @@ struct ScrubberWebClientTests {
                 )]
             }
         )
-        let result = try await AgentBuiltInTools.webSearch(client).execute(
+        let result = try await WebSearchTool(web: client).execute(
             invocation("web_search", ["query": .string("swift concurrency")]),
             context: context()
         )
@@ -96,7 +96,7 @@ struct ScrubberWebClientTests {
         let invocation = invocation("fetch", [
             "url": .string("http://192.168.1.1/admin")
         ])
-        let preflight = try await AgentBuiltInTools.fetch(fixtureClient()).preflight(invocation)
+        let preflight = try await FetchTool(web: fixtureClient()).preflight(invocation)
         #expect(preflight.safety == .locallyReadOnly)
         #expect(preflight.reasons.isEmpty)
     }

@@ -17,16 +17,15 @@ struct AgentBuiltInToolAvailabilityTests {
             sweepInterval: nil
         )
 
-        let mainAssistant = AgentBuiltInTools.make(
+        let mainAssistant = AgentToolCatalog.registry(environment: .init(
             hosts: hosts, connections: connections
-        )
-        let workspaceSidebar = AgentBuiltInTools.make(
-            hosts: hosts, connections: connections,
-            includesTerminalSuggestion: true
-        )
+        )).descriptors
+        let workspaceSidebar = AgentToolCatalog.registry(environment: .init(
+            hosts: hosts, connections: connections, includesTerminalSuggestion: true
+        )).descriptors
 
-        #expect(!mainAssistant.contains { $0.descriptor.name == "terminal_suggest" })
-        #expect(workspaceSidebar.contains { $0.descriptor.name == "terminal_suggest" })
+        #expect(!mainAssistant.contains { $0.name == "terminal_suggest" })
+        #expect(workspaceSidebar.contains { $0.name == "terminal_suggest" })
     }
 
     @Test
@@ -39,34 +38,24 @@ struct AgentBuiltInToolAvailabilityTests {
             openSFTP: { _ in throw AgentToolError.invalidHost },
             sweepInterval: nil
         )
-        let builtIns = AgentBuiltInTools.make(
-            hosts: hosts, connections: connections,
-            search: ScrubberWebClient(
-                document: { _ in throw ScrubberWebError.emptyDocument },
-                search: { _, _ in [] }
-            ),
-            includesTerminalSuggestion: true
-        )
         let workspace = AgentScratchWorkspace(
             conversationID: UUID(), base: FileManager.default.temporaryDirectory
         )
-        let scratch = AgentScratchTools.make(
-            workspace: workspace,
-            web: ScrubberWebClient(
+        let web = ScrubberWebClient(
                 document: { _ in throw ScrubberWebError.emptyDocument },
                 search: { _, _ in [] }
-            )
         )
-        let planning = AgentPlanTools.make(
-            workspace: workspace, tasks: AgentTaskList { _ in },
-            plans: AgentPlanRecorder { _ in }
-        )
+        let descriptors = AgentToolCatalog.registry(environment: .init(
+            hosts: hosts, connections: connections, web: web, search: web,
+            includesTerminalSuggestion: true, workspace: workspace,
+            tasks: AgentTaskList { _ in }, plans: AgentPlanRecorder { _ in }
+        )).descriptors
 
-        for tool in builtIns + scratch + planning {
-            let id = tool.descriptor.presentation?.detailPresenterID
-            #expect(id != nil)
+        for descriptor in descriptors where descriptor.target != .mcp {
+            let id = descriptor.presentation?.presenterID
+            #expect(id != nil, "Missing presenter for \(descriptor.name)")
             if let id {
-                #expect(AgentBuiltInToolDetailPresenters.presenter(id: id) != nil)
+                #expect(AgentToolCatalog.presenter(id: id) != nil)
             }
         }
     }

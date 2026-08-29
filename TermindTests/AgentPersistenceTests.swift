@@ -32,7 +32,7 @@ struct AgentPersistenceTests {
         let presentation = AgentToolDescriptor.Presentation(
             symbol: "magnifyingglass",
             activity: .semanticArgument(key: "query", fallback: .web), output: .json,
-            detailPresenterID: "builtin.web_search", actionKind: .search
+            presenterID: "builtin.web_search", actionKind: .search
         )
         let descriptor = AgentToolDescriptor(
             name: call.name, summary: "Search", inputSchema: .object([:]),
@@ -65,7 +65,7 @@ struct AgentPersistenceTests {
             AgentToolPresentation.detail(for: restored, locale: locale)
                 == AgentToolPresentation.detail(for: live, locale: locale)
         )
-        #expect(restored.descriptor.presentation?.detailPresenterID == "builtin.web_search")
+        #expect(restored.descriptor.presentation?.presenterID == "builtin.web_search")
     }
 
     @Test

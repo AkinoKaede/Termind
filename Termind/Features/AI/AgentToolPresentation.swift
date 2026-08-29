@@ -212,10 +212,10 @@ nonisolated enum AgentToolPresentation {
         }
 
         let presenter: AgentToolDetailPresenter?
-        if let id = card.descriptor.presentation?.detailPresenterID {
-            presenter = AgentBuiltInToolDetailPresenters.presenter(id: id)
+        if let id = card.descriptor.presentation?.presenterID {
+            presenter = AgentToolCatalog.presenter(id: id)
         } else {
-            presenter = AgentBuiltInToolDetailPresenters.legacyPresenter(
+            presenter = AgentToolCatalog.legacyPresenter(
                 forToolNamed: card.descriptor.name
             )
         }

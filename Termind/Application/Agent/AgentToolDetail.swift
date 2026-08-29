@@ -89,68 +89,6 @@ nonisolated struct AgentToolDetailPresenter: Sendable {
     }
 }
 
-/// The only executable detail presenters the app trusts.
-nonisolated enum AgentBuiltInToolDetailPresenters {
-    static let all: [AgentToolDetailPresenter] = [
-        AgentBuiltInTools.listHostsDetailPresenter,
-        AgentBuiltInTools.sshExecDetailPresenter,
-        AgentBuiltInTools.sshWaitDetailPresenter,
-        AgentBuiltInTools.terminalSuggestDetailPresenter,
-        AgentBuiltInTools.sftpListDetailPresenter,
-        AgentBuiltInTools.sftpStatDetailPresenter,
-        AgentBuiltInTools.sftpReadDetailPresenter,
-        AgentBuiltInTools.sftpWriteDetailPresenter,
-        AgentBuiltInTools.sftpMkdirDetailPresenter,
-        AgentBuiltInTools.sftpMoveDetailPresenter,
-        AgentBuiltInTools.sftpChmodDetailPresenter,
-        AgentBuiltInTools.sftpDeleteDetailPresenter,
-        AgentBuiltInTools.fetchDetailPresenter,
-        AgentBuiltInTools.webSearchDetailPresenter,
-        AgentBuiltInTools.requestUserInputDetailPresenter,
-        AgentBuiltInTools.requestUserSecretDetailPresenter,
-        AgentScratchTools.listDetailPresenter,
-        AgentScratchTools.readDetailPresenter,
-        AgentScratchTools.searchDetailPresenter,
-        AgentScratchTools.writeDetailPresenter,
-        AgentScratchTools.editDetailPresenter,
-        AgentScratchTools.diffDetailPresenter,
-        AgentScratchTools.deleteDetailPresenter,
-        AgentScratchTools.pullDetailPresenter,
-        AgentScratchTools.pushDetailPresenter,
-        AgentScratchTools.fetchDetailPresenter,
-        AgentPlanTools.presentPlanDetailPresenter,
-        AgentPlanTools.manageTasksDetailPresenter,
-    ]
-
-    private static let byID: [String: AgentToolDetailPresenter] = {
-        var result: [String: AgentToolDetailPresenter] = [:]
-        for presenter in all {
-            precondition(result[presenter.id] == nil, "Duplicate detail presenter ID: \(presenter.id)")
-            result[presenter.id] = presenter
-        }
-        return result
-    }()
-
-    /// Names understood by releases that predate persisted presenter IDs.
-    private static let legacyToolNames: Set<String> = [
-        "list_hosts", "ssh_exec", "ssh_wait", "terminal_suggest",
-        "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
-        "sftp_move", "sftp_chmod", "sftp_delete", "fetch", "web_search",
-        "request_user_input", "request_user_secret", "scratch_list", "scratch_read",
-        "scratch_write", "scratch_edit", "scratch_diff", "scratch_delete",
-        "scratch_pull", "scratch_push", "present_plan", "manage_tasks",
-    ]
-
-    static var ids: [String] { all.map(\.id) }
-
-    static func presenter(id: String) -> AgentToolDetailPresenter? { byID[id] }
-
-    static func legacyPresenter(forToolNamed name: String) -> AgentToolDetailPresenter? {
-        guard legacyToolNames.contains(name) else { return nil }
-        return byID["builtin.\(name)"]
-    }
-}
-
 /// Shared vocabulary for tool-owned projections. It owns generic formatting,
 /// not knowledge of any particular result schema.
 nonisolated enum AgentToolDetailFormatting {

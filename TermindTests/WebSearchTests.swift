@@ -7,7 +7,7 @@ import Testing
 struct WebSearchTests {
     @Test
     func scrubberSearchToolIsLocallyReadOnlyAndRequiresAQuery() async throws {
-        let tool = AgentBuiltInTools.webSearch(stubClient())
+        let tool = WebSearchTool(web: stubClient())
         #expect(tool.descriptor.name == "web_search")
         #expect(tool.descriptor.target == .network)
         #expect(tool.descriptor.safety == .locallyReadOnly)
@@ -31,12 +31,14 @@ struct WebSearchTests {
             openSFTP: { _ in throw AgentToolError.invalidHost },
             sweepInterval: nil
         )
-        let without = AgentBuiltInTools.make(hosts: hosts, connections: pool)
-        let with = AgentBuiltInTools.make(
+        let without = AgentToolCatalog.registry(environment: .init(
+            hosts: hosts, connections: pool
+        )).descriptors
+        let with = AgentToolCatalog.registry(environment: .init(
             hosts: hosts, connections: pool, search: stubClient()
-        )
-        #expect(!without.contains { $0.descriptor.name == "web_search" })
-        #expect(with.contains { $0.descriptor.name == "web_search" })
+        )).descriptors
+        #expect(!without.contains { $0.name == "web_search" })
+        #expect(with.contains { $0.name == "web_search" })
     }
 
     @Test

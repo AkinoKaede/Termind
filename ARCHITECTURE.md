@@ -105,7 +105,7 @@ Approvals and agent questions are queued and presented one at a time. Run state
 is derived from what is outstanding rather than asserted by whichever call moved
 last.
 
-Extension points, all additive: `AgentToolProviding` for tool sources,
+Extension points, all additive: `AgentToolCatalog` registrations for tool definitions,
 `AgentLoopHook` for `willExecute` / `didExecute` / `shouldStop`,
 `AgentContextTransforming` for the model boundary, `AgentModelStreaming` for
 providers. Authorization is deliberately not among them — `AgentApprovalHandling`

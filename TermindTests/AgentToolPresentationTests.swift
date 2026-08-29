@@ -213,7 +213,7 @@ struct AgentToolPresentationTests {
         var ssh = makeCard(
             name: "ssh_exec", target: .host,
             arguments: ["command": .string("printf 'hello world'")],
-            presentation: AgentBuiltInTools.terminalSuggest().descriptor.presentation
+            presentation: AnyAgentTool(TerminalSuggestTool()).descriptor.presentation
         )
         ssh.state = .completed
         #expect(
@@ -282,7 +282,7 @@ struct AgentToolPresentationTests {
 
     @Test
     func userInputSummaryCountsQuestionsAndUsesAskGrammar() {
-        let descriptor = AgentBuiltInTools.requestUserInput().descriptor
+        let descriptor = RequestUserInputTool().descriptor
         #expect(descriptor.presentation?.symbol == "questionmark.circle")
 
         for count in 1...3 {
@@ -339,7 +339,7 @@ struct AgentToolPresentationTests {
         ]
         var card = makeCard(
             name: "request_user_input", target: .user, arguments: arguments,
-            presentation: AgentBuiltInTools.requestUserInput().descriptor.presentation
+            presentation: RequestUserInputTool().descriptor.presentation
         )
         card.state = .completed
         card.result = AgentToolResult(
@@ -492,7 +492,7 @@ struct AgentToolPresentationTests {
             name: "fetch", target: .network,
             presentation: .init(
                 symbol: "globe", activity: .label("URL"), output: .json,
-                detailPresenterID: "remote.fetch"
+                presenterID: "remote.fetch"
             )
         )
         card.result = AgentToolResult(
@@ -641,7 +641,7 @@ struct AgentToolPresentationTests {
             presentation: .init(
                 symbol: "globe.badge.chevron.backward",
                 activity: .semanticArgument(key: "url", fallback: .url),
-                output: .json, detailPresenterID: "builtin.scratch_fetch",
+                output: .json, presenterID: "builtin.scratch_fetch",
                 actionKind: .fetch
             )
         )
@@ -671,7 +671,7 @@ struct AgentToolPresentationTests {
             presentation: .init(
                 symbol: "magnifyingglass",
                 activity: .semanticArgument(key: "query", fallback: .scratchWorkspace),
-                output: .json, detailPresenterID: "builtin.scratch_search",
+                output: .json, presenterID: "builtin.scratch_search",
                 actionKind: .search
             )
         )
@@ -701,7 +701,7 @@ struct AgentToolPresentationTests {
 
     @Test
     func finishedBatchSummaryCountsRepeatedActivitiesAndPreservesFailures() {
-        let questionPresentation = AgentBuiltInTools.requestUserInput().descriptor.presentation
+        let questionPresentation = RequestUserInputTool().descriptor.presentation
         var firstQuestion = makeCard(
             name: "request_user_input", target: .user,
             arguments: ["questions": .array([.object([:])])],
@@ -761,7 +761,7 @@ struct AgentToolPresentationTests {
 
         var question = makeCard(
             name: "request_user_input", target: .user,
-            presentation: AgentBuiltInTools.requestUserInput().descriptor.presentation
+            presentation: RequestUserInputTool().descriptor.presentation
         )
         question.state = .completed
         #expect(
@@ -924,7 +924,7 @@ struct AgentToolPresentationTests {
             symbol: "terminal",
             activity: .argument(key: "command", fallback: "the SSH command"),
             output: .streams,
-            detailPresenterID: "builtin.ssh_exec",
+            presenterID: "builtin.ssh_exec",
             groupsWithAdjacentTools: false,
             messages: ["running": "Connecting to {target}"]
         )
@@ -937,11 +937,11 @@ struct AgentToolPresentationTests {
 
     @Test
     func builtInDetailPresenterCatalogHasUniqueStableIDs() {
-        let ids = AgentBuiltInToolDetailPresenters.ids
+        let ids = AgentToolCatalog.presenterIDs
         #expect(Set(ids).count == ids.count)
         #expect(ids.allSatisfy { $0.hasPrefix("builtin.") })
         for id in ids {
-            #expect(AgentBuiltInToolDetailPresenters.presenter(id: id) != nil)
+            #expect(AgentToolCatalog.presenter(id: id) != nil)
         }
     }
 
@@ -953,12 +953,12 @@ struct AgentToolPresentationTests {
                 "snippet": .string("A result"), "published_at": .null,
             ])
         ])
-        let livePresentation = AgentBuiltInTools.webSearchDetailPresenter.id
+        let livePresentation = WebSearchTool.presenter.id
         var persisted = AgentToolResult(callID: "call", content: payload.encodedString)
         persisted.toolPresentation = .init(
             symbol: "magnifyingglass",
             activity: .semanticArgument(key: "query", fallback: .web), output: .json,
-            detailPresenterID: livePresentation, actionKind: .search
+            presenterID: livePresentation, actionKind: .search
         )
 
         var restored = makeCard(
@@ -986,7 +986,7 @@ struct AgentToolPresentationTests {
         let semantic = AgentToolDescriptor.Presentation(
             symbol: "magnifyingglass",
             activity: .semanticArgument(key: "query", fallback: .web),
-            output: .json, detailPresenterID: "builtin.web_search",
+            output: .json, presenterID: "builtin.web_search",
             groupsWithAdjacentTools: false, actionKind: .search,
             phaseKinds: ["running": .sshConnecting]
         )
@@ -1005,7 +1005,8 @@ struct AgentToolPresentationTests {
         object["groupsWithAdjacentTools"] = nil
         object["actionKind"] = nil
         object["phaseKinds"] = nil
-        object["detailPresenterID"] = nil
+        object["presenterID"] = nil
+        object["detailPresenterID"] = "builtin.web_search"
         let decoded = try JSONDecoder().decode(
             AgentToolDescriptor.Presentation.self,
             from: JSONSerialization.data(withJSONObject: object)
@@ -1013,7 +1014,7 @@ struct AgentToolPresentationTests {
         #expect(decoded.groupsWithAdjacentTools)
         #expect(decoded.actionKind == nil)
         #expect(decoded.phaseKinds.isEmpty)
-        #expect(decoded.detailPresenterID == nil)
+        #expect(decoded.presenterID == "builtin.web_search")
     }
 
     @Test

@@ -1,8 +1,11 @@
 import Foundation
 
-nonisolated extension AgentBuiltInTools {
-    static func requestUserInput() -> AnyAgentTool {
-        AnyAgentTool(descriptor: descriptor(
+nonisolated struct RequestUserInputTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(
+        id: "builtin.request_user_input", present: present
+    )
+
+    var descriptor: AgentToolDescriptor { Self.descriptor(
             "request_user_input",
             """
             Ask the user to decide things you cannot decide yourself, and wait for the answers. \
@@ -24,33 +27,33 @@ nonisolated extension AgentBuiltInTools {
             a reason to ask again — decide it yourself and say which assumption you used.
             """,
             properties: [
-                "questions": array(
-                    items: object(
+                "questions": Self.array(
+                    items: Self.object(
                         properties: [
-                            "id": string(max: 64),
-                            "header": string(max: 24),
-                            "prompt": string(max: 4_096),
-                            "options": array(
-                                items: object(
+                            "id": Self.string(max: 64),
+                            "header": Self.string(max: 24),
+                            "prompt": Self.string(max: 4_096),
+                            "options": Self.array(
+                                items: Self.object(
                                     properties: [
-                                        "id": string(max: 64),
-                                        "label": string(max: 120),
-                                        "description": string(max: 400),
-                                        "recommended": boolean(),
+                                        "id": Self.string(max: 64),
+                                        "label": Self.string(max: 120),
+                                        "description": Self.string(max: 400),
+                                        "recommended": Self.boolean(),
                                     ],
                                     required: ["id", "label"]
                                 ),
                                 max: 4
                             ),
-                            "multi_select": boolean(),
-                            "allow_custom": boolean(),
-                            "custom_placeholder": string(max: 120),
+                            "multi_select": Self.boolean(),
+                            "allow_custom": Self.boolean(),
+                            "custom_placeholder": Self.string(max: 120),
                         ],
                         required: ["id", "prompt"]
                     ),
                     max: AgentUserInputLimits.maxQuestions
                 ),
-                "timeout_seconds": integer(
+                "timeout_seconds": Self.integer(
                     min: AgentUserInputLimits.minimumTimeoutSeconds,
                     max: AgentUserInputLimits.maximumTimeoutSeconds
                 ),
@@ -60,10 +63,13 @@ nonisolated extension AgentBuiltInTools {
                 activity: .semanticArrayCount(
                     key: "questions", unit: .question, fallback: .question
                 ),
-                detailPresenterID: "builtin.request_user_input",
                 actionKind: .ask
             )
-        )) { invocation, context in
+        ) }
+
+    func execute(
+        _ invocation: AgentToolInvocation, context: AgentToolExecutionContext
+    ) async throws -> AgentToolResult {
             let arguments = try Arguments(invocation)
             let questions = try arguments.userQuestions()
             let timeoutSeconds = arguments.optionalInt("timeout_seconds")
@@ -75,13 +81,12 @@ nonisolated extension AgentBuiltInTools {
             )
             switch response {
             case .answered(let answers):
-                return result(invocation, .object([
-                    "answers": .array(reported(questions, answers))
+                return Self.result(invocation, .object([
+                    "answers": .array(Self.reported(questions, answers))
                 ]))
             case .cancelled: throw AgentToolError.cancelled
             case .timedOut: throw AgentToolError.userInputTimedOut(timeoutSeconds)
             }
-        }
     }
 
     /// Every question, answered or not, in the order it was asked.
@@ -135,13 +140,19 @@ nonisolated extension AgentBuiltInTools {
         ])
     }
 
-    static func requestUserSecret() -> AnyAgentTool {
-        AnyAgentTool(descriptor: descriptor(
+}
+
+nonisolated struct RequestUserSecretTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(
+        id: "builtin.request_user_secret", present: present
+    )
+
+    var descriptor: AgentToolDescriptor { Self.descriptor(
             "request_user_secret", "Collect a secret in SecureField and return a one-shot bound handle.",
             properties: [
-                "prompt": string(max: 4_096), "host_id": string(),
-                "consumer_tool": enumeration(["ssh_exec"]), "purpose": string(max: 256),
-                "timeout_seconds": integer(
+                "prompt": Self.string(max: 4_096), "host_id": Self.string(),
+                "consumer_tool": Self.enumeration(["ssh_exec"]), "purpose": Self.string(max: 256),
+                "timeout_seconds": Self.integer(
                     min: AgentUserInputLimits.minimumTimeoutSeconds,
                     max: AgentUserInputLimits.maximumTimeoutSeconds
                 ),
@@ -153,10 +164,13 @@ nonisolated extension AgentBuiltInTools {
             target: .user, safety: .locallyReadOnly,
             presentation: .init(
                 symbol: "key", activity: .semanticArgument(key: "prompt", fallback: .secret),
-                detailPresenterID: "builtin.request_user_secret",
                 actionKind: .request
             )
-        )) { invocation, context in
+        ) }
+
+    func execute(
+        _ invocation: AgentToolInvocation, context: AgentToolExecutionContext
+    ) async throws -> AgentToolResult {
             let arguments = try Arguments(invocation)
             let hostID = try arguments.uuid("host_id")
             let toolName = try arguments.string("consumer_tool")
@@ -191,27 +205,19 @@ nonisolated extension AgentBuiltInTools {
                         runID: context.runID, toolName: toolName, hostID: hostID, purpose: purpose
                     )
                 )
-                return result(invocation, .object([
+                return Self.result(invocation, .object([
                     "secret_handle": .string(handle.id.uuidString), "single_use": .bool(true),
                 ]))
             case .cancelled: throw AgentToolError.cancelled
             case .timedOut: throw AgentToolError.userInputTimedOut(timeoutSeconds)
             }
-        }
     }
 }
 
 // MARK: - Tool-owned transcript details
 
-nonisolated extension AgentBuiltInTools {
-    static let requestUserInputDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.request_user_input", present: presentUserInputDetail
-    )
-    static let requestUserSecretDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.request_user_secret", present: presentUserSecretDetail
-    )
-
-    private static func presentUserInputDetail(
+nonisolated extension RequestUserInputTool {
+    static func present(
         _ input: AgentToolDetailInput
     ) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
@@ -265,7 +271,10 @@ nonisolated extension AgentBuiltInTools {
         return items.isEmpty ? F.genericItems(input.result, locale: input.locale) : items
     }
 
-    private static func presentUserSecretDetail(
+}
+
+nonisolated extension RequestUserSecretTool {
+    static func present(
         _ input: AgentToolDetailInput
     ) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting

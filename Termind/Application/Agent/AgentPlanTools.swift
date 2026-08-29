@@ -1,5 +1,117 @@
 import Foundation
 
+nonisolated struct PresentPlanTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(
+        id: "builtin.present_plan", present: present
+    )
+    static let maximumPlanBytes = 64 * 1_024
+    let workspace: AgentScratchWorkspace
+    let plans: AgentPlanRecorder
+
+    var descriptor: AgentToolDescriptor { Self.descriptor(
+        AgentPlanModeHook.presentPlanToolName,
+        """
+        Put a finished plan to the user and end the turn. Pass the scratch path you drafted it \
+        at, not the text: write it with scratch_write and revise it with scratch_edit. Call this \
+        on its own and last. Do not call it to think out loud; use request_user_input for that.
+        """,
+        properties: ["title": Self.string(max: 120),
+                     "scratch_path": Self.string(max: AgentScratchWorkspace.Limits.pathBytes)],
+        required: ["title", "scratch_path"], target: .user, safety: .locallyReadOnly,
+        presentation: .init(
+            symbol: "lightbulb.max", activity: .semanticArgument(key: "title", fallback: .plan),
+            output: .field("plan"), actionKind: .present
+        )
+    ) }
+
+    func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
+        -> AgentToolResult {
+        let arguments = try Arguments(invocation)
+        let path = try arguments.string("scratch_path")
+        let file = try await workspace.data(at: path)
+        guard file.bytes <= Self.maximumPlanBytes else {
+            throw AgentToolError.invalidArguments(
+                "\(path) is \(file.bytes) bytes, past the \(Self.maximumPlanBytes)-byte limit for a plan. Shorten it to what the user has to decide."
+            )
+        }
+        guard let body = String(data: file.data, encoding: .utf8),
+              !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AgentToolError.invalidArguments("\(path) is not readable text.")
+        }
+        plans.record(AgentPlan(
+            title: try arguments.string("title"), body: body, scratchPath: path
+        ))
+        return Self.result(invocation, .object([
+            "presented": .bool(true), "scratch_path": .string(path), "plan": .string(body),
+        ]))
+    }
+}
+
+nonisolated struct ManageTasksTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    static let presenter = AgentToolDetailPresenter(
+        id: "builtin.manage_tasks", present: present
+    )
+    let tasks: AgentTaskList
+
+    var descriptor: AgentToolDescriptor {
+        let task = Self.object(
+            properties: [
+                "id": Self.string(max: 64), "title": Self.string(max: 200),
+                "status": Self.enumeration(AgentTask.Status.allCases.map(\.rawValue)),
+            ], required: ["id", "title", "status"]
+        )
+        return Self.descriptor(
+            "manage_tasks",
+            """
+            Replace the visible task list with the complete list as it now stands. Keep exactly \
+            one item in_progress, and update it in the same turn the work happens. Do not create \
+            a list for work that only has one or two steps.
+            """,
+            properties: ["tasks": Self.array(items: task, max: AgentTaskList.maximumTasks)],
+            required: ["tasks"], target: .user, safety: .locallyReadOnly,
+            presentation: .init(
+                symbol: "checklist", activity: .semanticLabel(.taskList), output: .json,
+                actionKind: .update
+            )
+        )
+    }
+
+    func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
+        -> AgentToolResult {
+        let updated = try Arguments(invocation).agentTasks()
+        tasks.replace(updated)
+        return Self.result(invocation, .object([
+            "tasks": .number(Double(updated.count)),
+            "completed": .number(Double(updated.filter { $0.status == .completed }.count)),
+        ]))
+    }
+}
+
+nonisolated extension PresentPlanTool {
+    static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
+        guard let path = input.result.objectValue?["scratch_path"]?.stringValue else {
+            return AgentToolDetailFormatting.genericItems(input.result, locale: input.locale)
+        }
+        return [.message(
+            String(localized: "Plan presented from \(path)", locale: input.locale), .success
+        )]
+    }
+}
+
+nonisolated extension ManageTasksTool {
+    static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
+        guard let object = input.result.objectValue,
+              let total = object["tasks"]?.integerValue,
+              let completed = object["completed"]?.integerValue else {
+            return AgentToolDetailFormatting.genericItems(input.result, locale: input.locale)
+        }
+        return [.message(
+            String(localized: "\(total) tasks · \(completed) completed", locale: input.locale),
+            .secondary
+        )]
+    }
+}
+
 /// Where `manage_tasks` writes, and nothing else.
 ///
 /// A narrow port rather than handing the tool the whole `AgentEventChannel`: a
@@ -39,147 +151,6 @@ nonisolated struct AgentPlanRecorder: Sendable {
 /// the strip above the composer where the current one is always the only one.
 /// The hook that runs planning blocks `manage_tasks` for exactly this reason.
 nonisolated enum AgentPlanTools: AgentToolSchemaBuilding {
-    static func make(
-        workspace: AgentScratchWorkspace,
-        tasks: AgentTaskList,
-        plans: AgentPlanRecorder
-    ) -> [AnyAgentTool] {
-        [presentPlan(workspace, plans), manageTasks(tasks)]
-    }
-
-    /// The maximum plan we will read out of the workspace and put on screen.
-    ///
-    /// A plan is meant to be read by a person before they agree to it. Past this
-    /// it is not a plan, and the honest failure is to say so rather than to
-    /// silently truncate the part they would have based the decision on.
-    static let maximumPlanBytes = 64 * 1_024
-
-    // MARK: - present_plan
-
-    private static func presentPlan(
-        _ workspace: AgentScratchWorkspace, _ plans: AgentPlanRecorder
-    ) -> AnyAgentTool {
-        AnyAgentTool(descriptor: descriptor(
-            AgentPlanModeHook.presentPlanToolName,
-            """
-            Put a finished plan to the user and end the turn. Pass the scratch path you \
-            drafted it at, not the text: write it with scratch_write and revise it with \
-            scratch_edit, so a revision costs a diff rather than another copy of the \
-            document. Call this on its own and last — the run stops here, and the user \
-            decides whether to implement it. Do not call it to think out loud or to check \
-            direction; ask with request_user_input for that.
-            """,
-            properties: [
-                "title": string(max: 120),
-                "scratch_path": string(max: AgentScratchWorkspace.Limits.pathBytes),
-            ],
-            required: ["title", "scratch_path"], target: .user, safety: .locallyReadOnly,
-            presentation: .init(
-                symbol: "lightbulb.max",
-                activity: .semanticArgument(key: "title", fallback: .plan), output: .field("plan"),
-                detailPresenterID: "builtin.present_plan",
-                actionKind: .present
-            )
-        )) { invocation, _ in
-            let arguments = try Arguments(invocation)
-            let path = try arguments.string("scratch_path")
-            let file = try await workspace.data(at: path)
-            guard file.bytes <= maximumPlanBytes else {
-                throw AgentToolError.invalidArguments(
-                    """
-                    \(path) is \(file.bytes) bytes, past the \(maximumPlanBytes)-byte limit for \
-                    a plan. Shorten it to what the user has to decide.
-                    """
-                )
-            }
-            guard let body = String(data: file.data, encoding: .utf8),
-                !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            else {
-                throw AgentToolError.invalidArguments("\(path) is not readable text.")
-            }
-
-            let plan = AgentPlan(
-                title: try arguments.string("title"), body: body, scratchPath: path
-            )
-            plans.record(plan)
-            // The plan goes back to the model as well as to the screen. It has
-            // to survive into the next run's history: implementing it starts a
-            // fresh run whose only memory of the plan is this transcript.
-            return result(invocation, .object([
-                "presented": .bool(true), "scratch_path": .string(path),
-                "plan": .string(body),
-            ]))
-        }
-    }
-
-    // MARK: - manage_tasks
-
-    private static func manageTasks(_ tasks: AgentTaskList) -> AnyAgentTool {
-        let task = object(
-            properties: [
-                "id": string(max: 64),
-                "title": string(max: 200),
-                "status": enumeration(AgentTask.Status.allCases.map(\.rawValue)),
-            ],
-            required: ["id", "title", "status"]
-        )
-        return AnyAgentTool(descriptor: descriptor(
-            "manage_tasks",
-            """
-            Replace the visible task list with the whole list as it now stands, including the \
-            items that have not changed. Send the complete list every time — this is not a \
-            patch, and an item you leave out disappears. Keep exactly one item in_progress, \
-            and update the list in the same turn the work happens rather than as a separate \
-            bookkeeping step. Do not create a list for a job that is one or two steps: a \
-            checklist longer than the work is noise the user has to read past.
-            """,
-            properties: ["tasks": array(items: task, max: AgentTaskList.maximumTasks)],
-            required: ["tasks"], target: .user, safety: .locallyReadOnly,
-            presentation: .init(
-                symbol: "checklist", activity: .semanticLabel(.taskList),
-                output: .json,
-                detailPresenterID: "builtin.manage_tasks",
-                actionKind: .update
-            )
-        )) { invocation, _ in
-            let updated = try Arguments(invocation).agentTasks()
-            tasks.replace(updated)
-            return result(invocation, .object([
-                "tasks": .number(Double(updated.count)),
-                "completed": .number(Double(updated.filter { $0.status == .completed }.count)),
-            ]))
-        }
-    }
-}
-
-// MARK: - Tool-owned transcript details
-
-nonisolated extension AgentPlanTools {
-    static let presentPlanDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.present_plan"
-    ) { input in
-        guard let path = input.result.objectValue?["scratch_path"]?.stringValue else {
-            return AgentToolDetailFormatting.genericItems(input.result, locale: input.locale)
-        }
-        return [.message(
-            String(localized: "Plan presented from \(path)", locale: input.locale), .success
-        )]
-    }
-
-    static let manageTasksDetailPresenter = AgentToolDetailPresenter(
-        id: "builtin.manage_tasks"
-    ) { input in
-        guard let object = input.result.objectValue,
-            let total = object["tasks"]?.integerValue,
-            let completed = object["completed"]?.integerValue
-        else {
-            return AgentToolDetailFormatting.genericItems(input.result, locale: input.locale)
-        }
-        return [.message(
-            String(localized: "\(total) tasks · \(completed) completed", locale: input.locale),
-            .secondary
-        )]
-    }
 }
 
 nonisolated extension Arguments {

@@ -522,7 +522,7 @@ struct AgentScratchTests {
     @Test
     func theToolSetIsRegisteredWithoutShadowingABuiltIn() async throws {
         let workspace = Fixture.workspace()
-        let local = AgentScratchTools.make(workspace: workspace)
+        let local = Fixture.scratchTools(workspace: workspace)
         #expect(local.map(\.descriptor.name).sorted() == [
             "scratch_delete", "scratch_diff", "scratch_edit",
             "scratch_list", "scratch_read", "scratch_search", "scratch_write",
@@ -546,7 +546,7 @@ struct AgentScratchTests {
 
         // Transfer is absent until a connection pool is supplied, on the same terms
         // as `web_search`: a tool that cannot work is not offered.
-        let withHosts = AgentScratchTools.make(
+        let withHosts = Fixture.scratchTools(
             workspace: workspace, connections: Fixture.pool(StubTransferSFTPClient()),
             authentication: Fixture.authentication()
         )
@@ -575,7 +575,7 @@ struct AgentScratchTests {
         // Same terms again for the web: absent without a client, and when present a
         // network read landing in contained storage — no approval, may overlap.
         #expect(!local.contains { $0.descriptor.name == "scratch_fetch" })
-        let withWeb = AgentScratchTools.make(workspace: workspace, web: Fixture.web())
+        let withWeb = Fixture.scratchTools(workspace: workspace, web: Fixture.web())
         let fetch = try #require(withWeb.first { $0.descriptor.name == "scratch_fetch" })
         #expect(fetch.descriptor.target == .network)
         #expect(fetch.descriptor.safety == .locallyContained)
@@ -586,7 +586,7 @@ struct AgentScratchTests {
     /// `theSFTPToolsAreUnchanged` makes about `sftp_read` / `sftp_write`.
     @Test @MainActor
     func theFetchToolIsUnchanged() {
-        let tools = AgentBuiltInTools.make(
+        let tools = Fixture.builtInTools(
             hosts: AgentHostResolver(store: HostLibraryModel()),
             connections: Fixture.pool(StubTransferSFTPClient())
         )
@@ -602,7 +602,7 @@ struct AgentScratchTests {
     /// `scratch_push` are separate tools, not new modes of existing ones.
     @Test @MainActor
     func theSFTPToolsAreUnchanged() {
-        let tools = AgentBuiltInTools.make(
+        let tools = Fixture.builtInTools(
             hosts: AgentHostResolver(store: HostLibraryModel()),
             connections: Fixture.pool(StubTransferSFTPClient())
         )
@@ -628,7 +628,7 @@ struct AgentScratchTests {
         let body = Array(repeating: line, count: 100).joined(separator: "\n")
         _ = try await workspace.write("large.txt", data: Data(body.utf8))
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace)
+            Fixture.scratchTools(workspace: workspace)
                 .first { $0.descriptor.name == "scratch_search" }
         )
         let result = try await tool.execute(
@@ -655,7 +655,7 @@ struct AgentScratchTests {
         let body = (1...50).map { "line \($0)" }.joined(separator: "\n") + "\n"
         let client = StubTransferSFTPClient(files: ["/etc/app.conf": Data(body.utf8)])
         let tool = try #require(
-            AgentScratchTools.make(
+            Fixture.scratchTools(
                 workspace: workspace, connections: Fixture.pool(client),
                 authentication: Fixture.authentication()
             )
@@ -680,7 +680,7 @@ struct AgentScratchTests {
     func pullValidatesBothPathsBeforeTouchingTheHost() async throws {
         let client = StubTransferSFTPClient(files: ["/etc/app.conf": Data("x".utf8)])
         let tool = try #require(
-            AgentScratchTools.make(
+            Fixture.scratchTools(
                 workspace: Fixture.workspace(), connections: Fixture.pool(client),
                 authentication: Fixture.authentication()
             ).first { $0.descriptor.name == "scratch_pull" }
@@ -706,7 +706,7 @@ struct AgentScratchTests {
         _ = try await workspace.write("app.conf", data: Data(body.utf8))
         let client = StubTransferSFTPClient()
         let tool = try #require(
-            AgentScratchTools.make(
+            Fixture.scratchTools(
                 workspace: workspace, connections: Fixture.pool(client),
                 authentication: Fixture.authentication()
             )
@@ -743,7 +743,7 @@ struct AgentScratchTests {
         _ = try await workspace.write("app.conf", data: Data("approved\n".utf8))
         let client = StubTransferSFTPClient()
         let tool = try #require(
-            AgentScratchTools.make(
+            Fixture.scratchTools(
                 workspace: workspace, connections: Fixture.pool(client),
                 authentication: Fixture.authentication()
             )
@@ -775,7 +775,7 @@ struct AgentScratchTests {
         let workspace = Fixture.workspace()
         let binary = Data((0...255).map { UInt8($0) })
         let client = StubTransferSFTPClient(files: ["/opt/blob.bin": binary])
-        let tools = AgentScratchTools.make(
+        let tools = Fixture.scratchTools(
             workspace: workspace, connections: Fixture.pool(client),
             authentication: Fixture.authentication()
         )
@@ -807,7 +807,7 @@ struct AgentScratchTests {
         let workspace = Fixture.workspace()
         let page = (1...40).map { "line \($0)" }.joined(separator: "\n") + "\n"
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace, web: Fixture.web(markdown: page))
+            Fixture.scratchTools(workspace: workspace, web: Fixture.web(markdown: page))
                 .first { $0.descriptor.name == "scratch_fetch" }
         )
 
@@ -836,7 +836,7 @@ struct AgentScratchTests {
         let workspace = Fixture.workspace()
         let oversized = String(repeating: "x", count: 256 * 1_024 + 100)
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace, web: Fixture.web(markdown: oversized))
+            Fixture.scratchTools(workspace: workspace, web: Fixture.web(markdown: oversized))
                 .first { $0.descriptor.name == "scratch_fetch" }
         )
 
@@ -856,7 +856,7 @@ struct AgentScratchTests {
     func fetchWritesTheOriginalHTMLWhenAsked() async throws {
         let workspace = Fixture.workspace()
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace, web: Fixture.web())
+            Fixture.scratchTools(workspace: workspace, web: Fixture.web())
                 .first { $0.descriptor.name == "scratch_fetch" }
         )
 
@@ -887,7 +887,7 @@ struct AgentScratchTests {
             search: { _, _ in [] }
         )
         let tool = try #require(
-            AgentScratchTools.make(workspace: Fixture.workspace(), web: web)
+            Fixture.scratchTools(workspace: Fixture.workspace(), web: web)
                 .first { $0.descriptor.name == "scratch_fetch" }
         )
 
@@ -911,7 +911,7 @@ struct AgentScratchTests {
     func fetchRefusesToStageAnEmptyExtraction() async throws {
         let workspace = Fixture.workspace()
         let tool = try #require(
-            AgentScratchTools.make(workspace: workspace, web: Fixture.web(markdown: ""))
+            Fixture.scratchTools(workspace: workspace, web: Fixture.web(markdown: ""))
                 .first { $0.descriptor.name == "scratch_fetch" }
         )
 
@@ -937,6 +937,44 @@ private actor Counter {
 // MARK: - Fixtures
 
 private enum Fixture {
+    static func scratchTools(
+        workspace: AgentScratchWorkspace,
+        connections: AgentConnectionPool? = nil,
+        authentication: AgentSSHAuthenticationRegistry? = nil,
+        web: ScrubberWebClient? = nil
+    ) -> [AnyAgentTool] {
+        var tools = [
+            AnyAgentTool(ScratchListTool(workspace: workspace)),
+            AnyAgentTool(ScratchReadTool(workspace: workspace)),
+            AnyAgentTool(ScratchSearchTool(workspace: workspace)),
+            AnyAgentTool(ScratchWriteTool(workspace: workspace)),
+            AnyAgentTool(ScratchEditTool(workspace: workspace)),
+            AnyAgentTool(ScratchDiffTool(workspace: workspace)),
+            AnyAgentTool(ScratchDeleteTool(workspace: workspace)),
+        ]
+        if let connections, let authentication {
+            tools += [
+                AnyAgentTool(ScratchPullTool(
+                    workspace: workspace, pool: connections, authentication: authentication
+                )),
+                AnyAgentTool(ScratchPushTool(
+                    workspace: workspace, pool: connections, authentication: authentication
+                )),
+            ]
+        }
+        if let web { tools.append(AnyAgentTool(ScratchFetchTool(workspace: workspace, web: web))) }
+        return tools
+    }
+
+    @MainActor
+    static func builtInTools(
+        hosts: AgentHostResolver, connections: AgentConnectionPool
+    ) -> [AnyAgentTool] {
+        AgentToolCatalog.registry(environment: .init(
+            hosts: hosts, connections: connections
+        )).registeredTools
+    }
+
     static let hostID = UUID(uuidString: "F0000000-0000-0000-0000-00000000000F")!
 
     static func base() -> URL {

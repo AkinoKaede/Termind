@@ -3,8 +3,7 @@ import Foundation
 /// Smooths a burst of streamed text into a bounded number of ordered updates.
 ///
 /// Adapted from `BalancedEmitter` in LanguageModelChatUI by Lakr233. The
-/// original project is distributed under the MIT License; see
-/// `Resources/LanguageModelChatUI.LICENSE.txt`.
+/// original project is distributed under the MIT License.
 actor BalancedEmitter {
     nonisolated struct Configuration: Equatable, Sendable {
         var duration: Duration

@@ -38,6 +38,32 @@ nonisolated protocol AgentTool: Sendable {
     ) async throws -> AgentToolResult
 }
 
+/// A locally owned tool definition.
+///
+/// The executable behavior and its trusted transcript projection travel as one
+/// value. `AgentToolCatalog` type-erases definitions only after registration,
+/// so adding a tool cannot require a second presenter-only registration.
+nonisolated protocol AgentToolDefinition: AgentTool {
+    static var presenter: AgentToolDetailPresenter { get }
+}
+
+nonisolated extension AgentToolDefinition {
+    /// Binds the executable definition to its presenter without asking every
+    /// descriptor declaration to repeat a string ID.
+    var registeredDescriptor: AgentToolDescriptor {
+        var registered = descriptor
+        guard var presentation = registered.presentation else {
+            precondition(
+                false, "A registered local tool must declare presentation metadata"
+            )
+            return registered
+        }
+        presentation.presenterID = Self.presenter.id
+        registered.presentation = presentation
+        return registered
+    }
+}
+
 nonisolated extension AgentTool {
     func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {
         AgentToolPreflight(invocation: invocation, safety: descriptor.safety)
@@ -49,6 +75,12 @@ nonisolated struct AnyAgentTool: AgentTool, Sendable {
     private let executeClosure:
         @Sendable (AgentToolInvocation, AgentToolExecutionContext) async throws -> AgentToolResult
     private let preflightClosure: @Sendable (AgentToolInvocation) async throws -> AgentToolPreflight
+
+    init<T: AgentToolDefinition>(_ tool: T) {
+        descriptor = tool.registeredDescriptor
+        preflightClosure = tool.preflight
+        executeClosure = tool.execute
+    }
 
     init<T: AgentTool>(_ tool: T) {
         descriptor = tool.descriptor

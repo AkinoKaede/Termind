@@ -1093,7 +1093,7 @@ struct ChatComposerStateTests {
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
             target: .local, safety: .locallyReadOnly
         )
-        let suggestion = AgentBuiltInTools.terminalSuggest().descriptor
+        let suggestion = AnyAgentTool(TerminalSuggestTool()).descriptor
         #expect(suggestion.presentation?.groupsWithAdjacentTools == false)
         for (offset, name) in [
             "lookup", "lookup", "terminal_suggest", "lookup", "lookup",

@@ -284,11 +284,9 @@ struct AgentHostAuthenticationTests {
                 username: "deploy", password: "secret", save: false
             ))
         }
-        let tool = try #require(
-            AgentBuiltInTools.make(
-                hosts: resolver, connections: pool, authentication: authentication
-            ).first { $0.descriptor.name == "sftp_list" }
-        )
+        let tool = AnyAgentTool(SFTPListTool(
+            authentication: authentication, connections: pool
+        ))
         let invocation = AgentToolInvocation(
             runID: UUID(),
             call: AgentToolCall(
@@ -473,12 +471,9 @@ struct AgentHostAuthenticationTests {
                 username: "deploy", password: "secret-\(requestCount)", save: false
             ))
         }
-        let tool = try #require(
-            AgentBuiltInTools.make(
-                hosts: setup.resolver, connections: setup.pool,
-                authentication: setup.registry
-            ).first { $0.descriptor.name == "sftp_list" }
-        )
+        let tool = AnyAgentTool(SFTPListTool(
+            authentication: setup.registry, connections: setup.pool
+        ))
         func invocation(_ id: String) -> AgentToolInvocation {
             AgentToolInvocation(
                 runID: UUID(),
@@ -807,12 +802,12 @@ struct AgentHostAuthenticationTests {
         let base = FileManager.default.temporaryDirectory
             .appending(path: "termind-agent-auth-scratch/\(UUID().uuidString)")
         let workspace = AgentScratchWorkspace(conversationID: UUID(), base: base)
-        let tools = AgentScratchTools.make(
-            workspace: workspace, connections: setup.pool,
-            authentication: setup.registry
+        let pull = ScratchPullTool(
+            workspace: workspace, pool: setup.pool, authentication: setup.registry
         )
-        let pull = try #require(tools.first { $0.descriptor.name == "scratch_pull" })
-        let push = try #require(tools.first { $0.descriptor.name == "scratch_push" })
+        let push = ScratchPushTool(
+            workspace: workspace, pool: setup.pool, authentication: setup.registry
+        )
         var requestCount = 0
         let interaction = AuthenticationResponder { _ in
             requestCount += 1

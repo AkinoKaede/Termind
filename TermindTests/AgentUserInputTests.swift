@@ -11,7 +11,9 @@ struct AgentUserInputTests {
 
     @Test
     func userInputToolsExposeOptionalBoundedTimeouts() throws {
-        for tool in [AgentBuiltInTools.requestUserInput(), AgentBuiltInTools.requestUserSecret()] {
+        for tool in [
+            AnyAgentTool(RequestUserInputTool()), AnyAgentTool(RequestUserSecretTool()),
+        ] {
             let schema = tool.descriptor.inputSchema
             let properties = try #require(schema.objectValue?["properties"]?.objectValue)
             let timeout = try #require(properties["timeout_seconds"]?.objectValue)
@@ -53,7 +55,7 @@ struct AgentUserInputTests {
     @Test
     func requestUserInputAppliesDefaultAndExplicitTimeoutsToThePresentedRequest() async {
         let interaction = TimeoutRecordingUserInteraction()
-        let tool = AgentBuiltInTools.requestUserInput()
+        let tool = RequestUserInputTool()
 
         for expectedSeconds in [300, 17] {
             var object: [String: AgentJSONValue] = [
@@ -657,7 +659,7 @@ struct AgentUserInputTests {
     @Test
     func everyQuestionIsReportedWhetherAnsweredOrNot() {
         let questions = threeQuestions().questions
-        let rows = AgentBuiltInTools.reported(
+        let rows = RequestUserInputTool.reported(
             questions,
             [
                 AgentUserInputAnswer(
@@ -688,7 +690,7 @@ struct AgentUserInputTests {
     /// a model that reads one field should read something a human wrote.
     @Test
     func selectedLabelsBecomeTheCanonicalAnswer() {
-        let rows = AgentBuiltInTools.reported(
+        let rows = RequestUserInputTool.reported(
             [storage(multiple: true)],
             [
                 AgentUserInputAnswer(
@@ -705,7 +707,7 @@ struct AgentUserInputTests {
     /// question — but if one ever arrives, the plaintext must not be echoed.
     @Test
     func aSecretIsNeverReportedBackToTheModel() {
-        let rows = AgentBuiltInTools.reported(
+        let rows = RequestUserInputTool.reported(
             [AgentUserQuestion(id: "secret", prompt: "Password?", kind: .secret)],
             [AgentUserInputAnswer(questionID: "secret", value: .secret("hunter2"))]
         )
