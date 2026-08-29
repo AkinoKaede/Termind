@@ -50,15 +50,16 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         // still leaves the original shell-only bootstrap path usable.
         startCommand = Data(
             (
-                " command sh -c 'f=; did=; dver=; "
+                " command sh -c 'f=; did=; dlike=; dver=; "
                     + "[ -r /etc/os-release ] && f=/etc/os-release; "
                     + "[ -z \"$f\" ] && [ -r /usr/lib/os-release ] && f=/usr/lib/os-release; "
                     + "if [ -n \"$f\" ]; then while IFS= read -r line; do case \"$line\" in "
-                    + "ID=*) did=${line#ID=} ;; VERSION_ID=*) dver=${line#VERSION_ID=} ;; esac; "
+                    + "ID=*) did=${line#ID=} ;; ID_LIKE=*) dlike=${line#ID_LIKE=} ;; "
+                    + "VERSION_ID=*) dver=${line#VERSION_ID=} ;; esac; "
                     + "done < \"$f\"; fi; kn=$(uname -s 2>/dev/null); "
                     + "kr=$(uname -r 2>/dev/null); ka=$(uname -m 2>/dev/null); "
-                    + "printf \"\\n__TRMD_%s_SYSTEM__%s|%s|%s|%s|%s__\\n\" "
-                    + "\"$1\" \"$did\" \"$dver\" \"$kn\" \"$kr\" \"$ka\"' sh '\(token)'; "
+                    + "printf \"\\n__TRMD_%s_SYSTEM__%s|%s|%s|%s|%s|%s__\\n\" "
+                    + "\"$1\" \"$did\" \"$dlike\" \"$dver\" \"$kn\" \"$kr\" \"$ka\"' sh '\(token)'; "
                     + "printf '\\n__TRMD_%s_SHELL__%s__\\n' '\(token)' \"$SHELL\"\n"
             ).utf8
         )
@@ -144,8 +145,10 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         else { return Update() }
 
         if !isLate {
-            preservedOutput = outputBeforeCommand(
-                in: Data(buffer[..<prefixRange.lowerBound])
+            preservedOutput = removingSystemInfoMarker(
+                from: outputBeforeCommand(
+                    in: Data(buffer[..<prefixRange.lowerBound])
+                )
             )
         }
         let shellPath = String(
@@ -161,7 +164,10 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             var visible = preservedOutput
             visible.append(suffix)
             finish()
-            return Update(visibleOutput: visible, isComplete: true)
+            return Update(
+                visibleOutput: visible, isComplete: true, shell: detectedShell,
+                systemInfo: detectedSystemInfo
+            )
         }
         phase = .installing
         installationStartedLate = isLate
@@ -217,6 +223,16 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         else { return nil }
         payload.removeLast(2)
         return RemoteSystemInfo(probeFields: String(decoding: payload, as: UTF8.self))
+    }
+
+    private func removingSystemInfoMarker(from data: Data) -> Data {
+        let prefix = Data("__TRMD_\(token)_SYSTEM__".utf8)
+        guard let prefixRange = data.range(of: prefix),
+            let lineEnd = data[prefixRange.upperBound...].firstIndex(of: 0x0A)
+        else { return data }
+        var result = Data(data[..<prefixRange.lowerBound])
+        result.append(Data(data[data.index(after: lineEnd)...]))
+        return result
     }
 
     private mutating func scanForLateProbe(now: UInt64) -> Update {
@@ -453,6 +469,7 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
 
 nonisolated enum SSHShellIntegrationEvent: Sendable {
     case available(shell: String, systemInfo: RemoteSystemInfo?, homeDirectory: String?)
+    case systemInfo(RemoteSystemInfo)
     case homeResolutionUnavailable
     case promptReady
     case commandStarted(String)
@@ -1105,8 +1122,13 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 shell: update.shell ?? "unknown", systemInfo: update.systemInfo,
                 homeDirectory: update.homeDirectory
             ))
-        } else if update.homeResolutionUnavailable || update.isComplete {
+        } else {
+            if let systemInfo = update.systemInfo {
+                shellIntegrationHandler(.systemInfo(systemInfo))
+            }
+            if update.homeResolutionUnavailable || update.isComplete {
             shellIntegrationHandler(.homeResolutionUnavailable)
+            }
         }
         if let visibleOutput = update.visibleOutput, !visibleOutput.isEmpty {
             deliverIntegratedOutput(visibleOutput)

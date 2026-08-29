@@ -615,7 +615,9 @@ final class HostLibraryModel {
             return
         }
         if let index = hosts.firstIndex(where: { $0.id == host.id }) {
-            hosts[index] = host
+            var updated = host
+            updated.detectedDistribution = hosts[index].detectedDistribution
+            hosts[index] = updated
         } else {
             var new = host
             new.sortIndex = nextSortIndex(in: host.groupID)
@@ -698,7 +700,9 @@ final class HostLibraryModel {
         if !rulesToStop.isEmpty { willDeletePortForwardings?(Array(rulesToStop)) }
 
         if let index = hosts.firstIndex(where: { $0.id == host.id }) {
-            hosts[index] = host
+            var updated = host
+            updated.detectedDistribution = hosts[index].detectedDistribution
+            hosts[index] = updated
         } else {
             var new = host
             new.sortIndex = nextSortIndex(in: host.groupID)
@@ -780,6 +784,31 @@ final class HostLibraryModel {
         _ status: ConnectionStatus, sshSessionID: UUID, hostID: Host.ID
     ) {
         setConnectionStatus(status, connectionID: sshSessionID, hostID: hostID)
+    }
+
+    /// Persists only a meaningful, validated distribution transition. The
+    /// current Host projection is mutated in place so a shell result cannot
+    /// overwrite editor changes made while the connection was starting.
+    func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID) {
+        guard let index = hosts.firstIndex(where: { $0.id == hostID }),
+            let systemInfo, let kernelName = systemInfo.kernelName
+        else { return }
+
+        let next: DetectedDistribution?
+        if kernelName.caseInsensitiveCompare("Linux") == .orderedSame {
+            guard let id = systemInfo.distributionID,
+                let detected = DetectedDistribution(
+                    id: id, likeIDs: systemInfo.distributionLikeIDs
+                )
+            else { return }
+            next = detected
+        } else {
+            next = nil
+        }
+
+        guard hosts[index].detectedDistribution != next else { return }
+        hosts[index].detectedDistribution = next
+        persistCore()
     }
 
     private func refreshStatus(for hostID: Host.ID) {

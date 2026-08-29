@@ -75,6 +75,9 @@ nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     var groupID: HostGroup.ID?
     var tags: [String] = []
     var colorTag: TagColor = .none
+    /// Last distribution reported by Shell Integration for this saved Host.
+    /// System-owned: editor saves preserve it and only a validated probe updates it.
+    var detectedDistribution: DetectedDistribution?
     /// Fractional index so reordering never has to renumber siblings — CloudKit
     /// has no ordered relationships, so order has to be an ordinary attribute.
     var sortIndex: Double = 0

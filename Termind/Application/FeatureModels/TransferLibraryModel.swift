@@ -60,6 +60,9 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     ) {
         library.setSSHSessionStatus(status, sshSessionID: sshSessionID, hostID: hostID)
     }
+    func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID) {
+        library.recordRemoteSystemInfo(systemInfo, for: hostID)
+    }
     func trust(_ entry: KnownHostEntry) { library.trust(entry) }
     func markKnownHostMismatched(hostname: String, port: Int) {
         library.markKnownHostMismatched(hostname: hostname, port: port)

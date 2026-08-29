@@ -1336,10 +1336,14 @@ final class SSHSessionModel: Identifiable {
             }
             integratedShell = shell
             remoteSystemInfo = systemInfo
+            statusStore?.recordRemoteSystemInfo(systemInfo, for: hostID)
             isShellPromptReady = false
             shellIntegrationAvailable = true
             invalidateCommandGeneration()
             inputRouter?.sshSession(self, didChangeWorkingDirectory: workingDirectory)
+        case .systemInfo(let systemInfo):
+            remoteSystemInfo = systemInfo
+            statusStore?.recordRemoteSystemInfo(systemInfo, for: hostID)
         case .homeResolutionUnavailable:
             homeResolution = .unavailable
             inputRouter?.sshSession(self, didChangeWorkingDirectory: workingDirectory)

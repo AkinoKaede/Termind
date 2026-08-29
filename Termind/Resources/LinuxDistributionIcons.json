@@ -1,0 +1,315 @@
+{
+  "entries": [
+    {
+      "asset": "LinuxDistro-almalinux",
+      "hex": "000000",
+      "ids": [
+        "almalinux",
+        "alma"
+      ],
+      "license": null,
+      "slug": "almalinux",
+      "sourceURL": "https://almalinux.org",
+      "title": "AlmaLinux"
+    },
+    {
+      "asset": "LinuxDistro-alpinelinux",
+      "hex": "0D597F",
+      "ids": [
+        "alpine"
+      ],
+      "license": null,
+      "slug": "alpinelinux",
+      "sourceURL": "https://alpinelinux.org",
+      "title": "Alpine Linux"
+    },
+    {
+      "asset": "LinuxDistro-archlinux",
+      "hex": "1793D1",
+      "ids": [
+        "arch"
+      ],
+      "license": null,
+      "slug": "archlinux",
+      "sourceURL": "https://www.archlinux.org/art",
+      "title": "Arch Linux"
+    },
+    {
+      "asset": "LinuxDistro-centos",
+      "hex": "262577",
+      "ids": [
+        "centos"
+      ],
+      "license": null,
+      "slug": "centos",
+      "sourceURL": "https://wiki.centos.org/ArtWork/Brand/Logo",
+      "title": "CentOS"
+    },
+    {
+      "asset": "LinuxDistro-debian",
+      "hex": "A81D33",
+      "ids": [
+        "debian"
+      ],
+      "license": "CC-BY-SA-3.0",
+      "slug": "debian",
+      "sourceURL": "https://www.debian.org/logos",
+      "title": "Debian"
+    },
+    {
+      "asset": "LinuxDistro-deepin",
+      "hex": "007CFF",
+      "ids": [
+        "deepin"
+      ],
+      "license": null,
+      "slug": "deepin",
+      "sourceURL": "https://commons.wikimedia.org/wiki/File:Deepin_logo.svg",
+      "title": "deepin"
+    },
+    {
+      "asset": "LinuxDistro-elementary",
+      "hex": "64BAFF",
+      "ids": [
+        "elementary"
+      ],
+      "license": null,
+      "slug": "elementary",
+      "sourceURL": "https://elementary.io/brand",
+      "title": "elementary"
+    },
+    {
+      "asset": "LinuxDistro-endeavouros",
+      "hex": "7F7FFF",
+      "ids": [
+        "endeavouros"
+      ],
+      "license": null,
+      "slug": "endeavouros",
+      "sourceURL": "https://github.com/endeavouros-team/endeavouros-theming/blob/135f642c980ed8d8fc212783eb478f96226f6c72/endeavouros-logo-text.svg",
+      "title": "EndeavourOS"
+    },
+    {
+      "asset": "LinuxDistro-fedora",
+      "hex": "51A2DA",
+      "ids": [
+        "fedora"
+      ],
+      "license": "custom",
+      "slug": "fedora",
+      "sourceURL": "https://docs.fedoraproject.org/en-US/project/brand/",
+      "title": "Fedora"
+    },
+    {
+      "asset": "LinuxDistro-gentoo",
+      "hex": "54487A",
+      "ids": [
+        "gentoo"
+      ],
+      "license": "CC-BY-SA-2.5",
+      "slug": "gentoo",
+      "sourceURL": "https://wiki.gentoo.org/wiki/Project:Artwork/Artwork#Variations_of_the_.22g.22_logo",
+      "title": "Gentoo"
+    },
+    {
+      "asset": "LinuxDistro-kalilinux",
+      "hex": "557C94",
+      "ids": [
+        "kali"
+      ],
+      "license": null,
+      "slug": "kalilinux",
+      "sourceURL": "https://www.kali.org/docs/policy/trademark/",
+      "title": "Kali Linux"
+    },
+    {
+      "asset": "LinuxDistro-kubuntu",
+      "hex": "0079C1",
+      "ids": [
+        "kubuntu"
+      ],
+      "license": null,
+      "slug": "kubuntu",
+      "sourceURL": "https://kubuntu.org",
+      "title": "Kubuntu"
+    },
+    {
+      "asset": "LinuxDistro-linuxmint",
+      "hex": "86BE43",
+      "ids": [
+        "linuxmint"
+      ],
+      "license": null,
+      "slug": "linuxmint",
+      "sourceURL": "https://github.com/linuxmint/brand-logo/blob/540ac3b08e987866d77a340f557f994c988ac2ae/ring-mono-green.svg",
+      "title": "Linux Mint"
+    },
+    {
+      "asset": "LinuxDistro-lubuntu",
+      "hex": "0068C8",
+      "ids": [
+        "lubuntu"
+      ],
+      "license": null,
+      "slug": "lubuntu",
+      "sourceURL": "https://lubuntu.net",
+      "title": "Lubuntu"
+    },
+    {
+      "asset": "LinuxDistro-manjaro",
+      "hex": "35BFA4",
+      "ids": [
+        "manjaro"
+      ],
+      "license": null,
+      "slug": "manjaro",
+      "sourceURL": "https://manjaro.org",
+      "title": "Manjaro"
+    },
+    {
+      "asset": "LinuxDistro-nixos",
+      "hex": "5277C3",
+      "ids": [
+        "nixos"
+      ],
+      "license": "CC-BY-4.0",
+      "slug": "nixos",
+      "sourceURL": "https://brand.nixos.org/logos/nixos-logomark-black-flat-minimal.svg",
+      "title": "NixOS"
+    },
+    {
+      "asset": "LinuxDistro-opensuse",
+      "hex": "73BA25",
+      "ids": [
+        "opensuse",
+        "opensuse-leap",
+        "opensuse-tumbleweed",
+        "opensuse-microos"
+      ],
+      "license": null,
+      "slug": "opensuse",
+      "sourceURL": "https://github.com/openSUSE/artwork/blob/33e94aa76837c09f03d1712705949b71a246a53b/logos/buttons/button-colour.svg",
+      "title": "openSUSE"
+    },
+    {
+      "asset": "LinuxDistro-popos",
+      "hex": "48B9C7",
+      "ids": [
+        "pop",
+        "popos"
+      ],
+      "license": null,
+      "slug": "popos",
+      "sourceURL": "https://github.com/system76/brand/blob/7a31740b54f929b62a165baa61dfb0b5164261e8/Pop_OS%20branding/Pop_icon.svg",
+      "title": "Pop!_OS"
+    },
+    {
+      "asset": "LinuxDistro-raspberrypi",
+      "hex": "A22846",
+      "ids": [
+        "raspbian",
+        "raspberrypios"
+      ],
+      "license": null,
+      "slug": "raspberrypi",
+      "sourceURL": "https://www.raspberrypi.org/trademark-rules",
+      "title": "Raspberry Pi"
+    },
+    {
+      "asset": "LinuxDistro-redhat",
+      "hex": "EE0000",
+      "ids": [
+        "rhel",
+        "redhat"
+      ],
+      "license": null,
+      "slug": "redhat",
+      "sourceURL": "https://www.redhat.com/en/about/brand/new-brand/details",
+      "title": "Red Hat"
+    },
+    {
+      "asset": "LinuxDistro-rockylinux",
+      "hex": "10B981",
+      "ids": [
+        "rocky"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "slug": "rockylinux",
+      "sourceURL": "https://github.com/rocky-linux/branding/blob/94e97dd30b87d909cc4f6a6838a2926f77f9ac47/logo/src/icon-black.svg",
+      "title": "Rocky Linux"
+    },
+    {
+      "asset": "LinuxDistro-solus",
+      "hex": "5294E2",
+      "ids": [
+        "solus"
+      ],
+      "license": null,
+      "slug": "solus",
+      "sourceURL": "https://getsol.us/branding/",
+      "title": "Solus"
+    },
+    {
+      "asset": "LinuxDistro-suse",
+      "hex": "0C322C",
+      "ids": [
+        "suse",
+        "sles",
+        "sled"
+      ],
+      "license": null,
+      "slug": "suse",
+      "sourceURL": "https://brand.suse.com",
+      "title": "SUSE"
+    },
+    {
+      "asset": "LinuxDistro-ubuntu",
+      "hex": "E95420",
+      "ids": [
+        "ubuntu"
+      ],
+      "license": null,
+      "slug": "ubuntu",
+      "sourceURL": "https://design.ubuntu.com/resources",
+      "title": "Ubuntu"
+    },
+    {
+      "asset": "LinuxDistro-ubuntumate",
+      "hex": "84A454",
+      "ids": [
+        "ubuntu-mate",
+        "ubuntu-mate-desktop"
+      ],
+      "license": null,
+      "slug": "ubuntumate",
+      "sourceURL": "https://ubuntu-mate.org",
+      "title": "Ubuntu MATE"
+    },
+    {
+      "asset": "LinuxDistro-voidlinux",
+      "hex": "478061",
+      "ids": [
+        "void"
+      ],
+      "license": null,
+      "slug": "voidlinux",
+      "sourceURL": "https://alpha.de.repo.voidlinux.org/logos/void-dark2.svg",
+      "title": "Void Linux"
+    },
+    {
+      "asset": "LinuxDistro-xubuntu",
+      "hex": "0044AA",
+      "ids": [
+        "xubuntu"
+      ],
+      "license": null,
+      "slug": "xubuntu",
+      "sourceURL": "https://commons.wikimedia.org/wiki/File:Xubuntu_Icon.svg",
+      "title": "Xubuntu"
+    }
+  ],
+  "integrity": "sha512-4H94f5ZgcCcgJroc902TFlFdgPu2IU2eD7+WebN2Z14xKYrKHeJ4UQcZwzgSuH4Rgzw+jp7sbHl40NefuIEYsg==",
+  "package": "simple-icons",
+  "source": "https://github.com/simple-icons/simple-icons",
+  "version": "16.29.0"
+}

@@ -1,0 +1,33 @@
+[
+  { "title": "AlmaLinux", "slug": "almalinux", "ids": ["almalinux", "alma"] },
+  { "title": "Alpine Linux", "slug": "alpinelinux", "ids": ["alpine"] },
+  { "title": "Arch Linux", "slug": "archlinux", "ids": ["arch"] },
+  { "title": "CentOS", "slug": "centos", "ids": ["centos"] },
+  { "title": "Debian", "slug": "debian", "ids": ["debian"] },
+  { "title": "deepin", "slug": "deepin", "ids": ["deepin"] },
+  { "title": "elementary", "slug": "elementary", "ids": ["elementary"] },
+  { "title": "EndeavourOS", "slug": "endeavouros", "ids": ["endeavouros"] },
+  { "title": "Fedora", "slug": "fedora", "ids": ["fedora"] },
+  { "title": "Gentoo", "slug": "gentoo", "ids": ["gentoo"] },
+  { "title": "Kali Linux", "slug": "kalilinux", "ids": ["kali"] },
+  { "title": "Kubuntu", "slug": "kubuntu", "ids": ["kubuntu"] },
+  { "title": "Linux Mint", "slug": "linuxmint", "ids": ["linuxmint"] },
+  { "title": "Lubuntu", "slug": "lubuntu", "ids": ["lubuntu"] },
+  { "title": "Manjaro", "slug": "manjaro", "ids": ["manjaro"] },
+  { "title": "NixOS", "slug": "nixos", "ids": ["nixos"] },
+  {
+    "title": "openSUSE",
+    "slug": "opensuse",
+    "ids": ["opensuse", "opensuse-leap", "opensuse-tumbleweed", "opensuse-microos"]
+  },
+  { "title": "Pop!_OS", "slug": "popos", "ids": ["pop", "popos"] },
+  { "title": "Raspberry Pi", "slug": "raspberrypi", "ids": ["raspbian", "raspberrypios"] },
+  { "title": "Red Hat", "slug": "redhat", "ids": ["rhel", "redhat"] },
+  { "title": "Rocky Linux", "slug": "rockylinux", "ids": ["rocky"] },
+  { "title": "Solus", "slug": "solus", "ids": ["solus"] },
+  { "title": "SUSE", "slug": "suse", "ids": ["suse", "sles", "sled"] },
+  { "title": "Ubuntu", "slug": "ubuntu", "ids": ["ubuntu"] },
+  { "title": "Ubuntu MATE", "slug": "ubuntumate", "ids": ["ubuntu-mate", "ubuntu-mate-desktop"] },
+  { "title": "Void Linux", "slug": "voidlinux", "ids": ["void"] },
+  { "title": "Xubuntu", "slug": "xubuntu", "ids": ["xubuntu"] }
+]

@@ -26,7 +26,9 @@ struct ConnectionHistoryTests {
                 )
             ]
         )
-        let legacyHost = PersistentHost(Host(name: "Existing", host: "existing.example"))
+        let legacyHost = TermindSchemaV7HostModels.PersistentHost(
+            Host(name: "Existing", host: "existing.example")
+        )
         legacyHost.lastUsedAt = Date(timeIntervalSince1970: 123)
         legacyContainer?.mainContext.insert(legacyHost)
         try legacyContainer?.mainContext.save()

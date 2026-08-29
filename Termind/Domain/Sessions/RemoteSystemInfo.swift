@@ -7,6 +7,7 @@ import Foundation
 /// grammar. Human-readable os-release fields are intentionally excluded.
 nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
     var distributionID: String?
+    var distributionLikeIDs: [String]
     var distributionVersion: String?
     var kernelName: String?
     var kernelRelease: String?
@@ -14,12 +15,14 @@ nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
 
     init(
         distributionID: String? = nil,
+        distributionLikeIDs: [String] = [],
         distributionVersion: String? = nil,
         kernelName: String? = nil,
         kernelRelease: String? = nil,
         architecture: String? = nil
     ) {
-        self.distributionID = Self.sanitized(distributionID)
+        self.distributionID = RemoteSystemIdentifier.sanitized(distributionID)
+        self.distributionLikeIDs = RemoteSystemIdentifier.normalizedList(distributionLikeIDs)
         self.distributionVersion = Self.sanitized(distributionVersion)
         self.kernelName = Self.sanitized(kernelName)
         self.kernelRelease = Self.sanitized(kernelRelease)
@@ -27,13 +30,17 @@ nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case distributionID, distributionVersion, kernelName, kernelRelease, architecture
+        case distributionID, distributionLikeIDs, distributionVersion
+        case kernelName, kernelRelease, architecture
     }
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             distributionID: try container.decodeIfPresent(String.self, forKey: .distributionID),
+            distributionLikeIDs: try container.decodeIfPresent(
+                [String].self, forKey: .distributionLikeIDs
+            ) ?? [],
             distributionVersion: try container.decodeIfPresent(
                 String.self, forKey: .distributionVersion
             ),
@@ -46,34 +53,43 @@ nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(distributionID, forKey: .distributionID)
+        if !distributionLikeIDs.isEmpty {
+            try container.encode(distributionLikeIDs, forKey: .distributionLikeIDs)
+        }
         try container.encodeIfPresent(distributionVersion, forKey: .distributionVersion)
         try container.encodeIfPresent(kernelName, forKey: .kernelName)
         try container.encodeIfPresent(kernelRelease, forKey: .kernelRelease)
         try container.encodeIfPresent(architecture, forKey: .architecture)
     }
 
-    /// Reads the `id|version|kernel_name|kernel_release|arch` line that both
-    /// probes print — the PTY bootstrap's token-delimited one and the Agent's
-    /// dedicated exec channel. Returns nil when the line is malformed or when
-    /// every field was rejected by `sanitized`.
+    /// Reads either the legacy `id|version|kernel_name|kernel_release|arch`
+    /// line or the current `id|id_like|version|kernel_name|kernel_release|arch`
+    /// line printed by the PTY bootstrap.
     ///
     /// Empty fields are meaningful (a BSD has no os-release), so the split keeps
     /// them rather than collapsing the run of separators.
     init?(probeFields line: some StringProtocol) {
-        let fields = line.split(
-            separator: "|", maxSplits: 4, omittingEmptySubsequences: false
-        )
-        guard fields.count == 5 else { return nil }
+        let fields = line.split(separator: "|", omittingEmptySubsequences: false)
+        guard fields.count == 5 || fields.count == 6 else { return nil }
         let values = fields.map { Self.unquoted(String($0)) }
-        self.init(
-            distributionID: values[0], distributionVersion: values[1],
-            kernelName: values[2], kernelRelease: values[3], architecture: values[4]
-        )
+        if values.count == 6 {
+            self.init(
+                distributionID: values[0],
+                distributionLikeIDs: values[1].split(whereSeparator: \.isWhitespace).map(String.init),
+                distributionVersion: values[2], kernelName: values[3],
+                kernelRelease: values[4], architecture: values[5]
+            )
+        } else {
+            self.init(
+                distributionID: values[0], distributionVersion: values[1],
+                kernelName: values[2], kernelRelease: values[3], architecture: values[4]
+            )
+        }
         if isEmpty { return nil }
     }
 
     var isEmpty: Bool {
-        distributionID == nil && distributionVersion == nil
+        distributionID == nil && distributionLikeIDs.isEmpty && distributionVersion == nil
             && kernelName == nil && kernelRelease == nil && architecture == nil
     }
 
@@ -86,6 +102,9 @@ nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
     var factLines: [String] {
         var lines: [String] = []
         if let distributionID { lines.append("distribution_id: \(distributionID)") }
+        if !distributionLikeIDs.isEmpty {
+            lines.append("distribution_like_ids: \(distributionLikeIDs.joined(separator: " "))")
+        }
         if let distributionVersion {
             lines.append("distribution_version: \(distributionVersion)")
         }
@@ -107,17 +126,6 @@ nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
     }
 
     private static func sanitized(_ proposed: String?) -> String? {
-        guard let proposed else { return nil }
-        let value = proposed.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty, value.utf8.count <= 64,
-            value.unicodeScalars.allSatisfy({ scalar in
-                switch scalar.value {
-                case 0x30...0x39, 0x41...0x5A, 0x61...0x7A: true
-                case 0x2B, 0x2D, 0x2E, 0x5F: true  // + - . _
-                default: false
-                }
-            })
-        else { return nil }
-        return value
+        RemoteSystemIdentifier.sanitized(proposed)
     }
 }

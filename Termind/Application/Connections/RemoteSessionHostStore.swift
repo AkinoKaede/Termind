@@ -28,6 +28,7 @@ protocol RemoteSessionHostStore: AnyObject, Sendable {
     func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential?
     func setConnectionStatus(_ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID)
     func setSSHSessionStatus(_ status: ConnectionStatus, sshSessionID: UUID, hostID: Host.ID)
+    func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID)
     func trust(_ entry: KnownHostEntry)
     func markKnownHostMismatched(hostname: String, port: Int)
     @discardableResult func upsert(_ identity: Identity) -> Bool

@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+enum TermindSchemaV7HostModels {
 @Model
 final class PersistentHost {
     @Attribute(.unique) var id: UUID = UUID()
@@ -65,6 +66,81 @@ final class PersistentHost {
         return host
     }
 }
+}
+
+enum TermindSchemaV8Models {
+@Model
+final class PersistentHost {
+    @Attribute(.unique) var id: UUID = UUID()
+    var name = ""
+    var address = ""
+    var port = 22
+    var identityID: UUID?
+    var jumpHostID: UUID?
+    var proxyProtocol: String?
+    var proxyHostname = ""
+    var proxyPort = 0
+    var proxyUsername = ""
+    var proxyIdentityID: UUID?
+    var sftpSessionInitialPath = ""
+    var groupID: UUID?
+    var tags: [String] = []
+    var colorTag = TagColor.none.rawValue
+    var detectedDistributionID: String?
+    var detectedDistributionLikeIDs: [String] = []
+    /// Legacy storage retained for the existing V5–V6 migration contract.
+    var lastUsedAt: Date?
+    var sortIndex = 0.0
+
+    init(_ value: Host) {
+        id = value.id
+        apply(value)
+    }
+
+    func apply(_ value: Host) {
+        name = value.name
+        address = value.host
+        port = value.port
+        identityID = value.identityID
+        jumpHostID = value.jumpHostID
+        proxyProtocol = value.proxy?.kind.rawValue
+        proxyHostname = value.proxy?.hostname ?? ""
+        proxyPort = value.proxy?.port ?? 0
+        proxyUsername = value.proxy?.username ?? ""
+        proxyIdentityID = value.proxy?.identityID
+        sftpSessionInitialPath = value.sftpSessionInitialPath
+        groupID = value.groupID
+        tags = value.tags
+        colorTag = value.colorTag.rawValue
+        detectedDistributionID = value.detectedDistribution?.id
+        detectedDistributionLikeIDs = value.detectedDistribution?.likeIDs ?? []
+        sortIndex = value.sortIndex
+    }
+
+    var value: Host {
+        var host = Host(
+            id: id, name: name, host: address, port: port,
+            identityID: identityID, groupID: groupID, tags: tags,
+            colorTag: TagColor(rawValue: colorTag) ?? .none,
+            detectedDistribution: detectedDistributionID.flatMap {
+                DetectedDistribution(id: $0, likeIDs: detectedDistributionLikeIDs)
+            },
+            sortIndex: sortIndex
+        )
+        host.jumpHostID = jumpHostID
+        host.sftpSessionInitialPath = sftpSessionInitialPath
+        if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
+            host.proxy = HostProxy(
+                kind: kind, hostname: proxyHostname, port: proxyPort,
+                username: proxyUsername, identityID: proxyIdentityID
+            )
+        }
+        return host
+    }
+}
+}
+
+typealias PersistentHost = TermindSchemaV8Models.PersistentHost
 
 @Model
 final class PersistentHostGroup {
@@ -383,7 +459,7 @@ enum TermindSchemaV1: VersionedSchema {
 
     static var models: [any PersistentModel.Type] {
         [
-            PersistentHost.self,
+            TermindSchemaV7HostModels.PersistentHost.self,
             PersistentHostGroup.self,
             TermindSchemaV6Models.PersistentIdentity.self,
             TermindSchemaV6Models.PersistentSSHKey.self,
@@ -464,12 +540,22 @@ enum TermindSchemaV7: VersionedSchema {
     }
 }
 
+enum TermindSchemaV8: VersionedSchema {
+    static let versionIdentifier = Schema.Version(8, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV7.models.filter {
+            $0 != TermindSchemaV7HostModels.PersistentHost.self
+        } + [PersistentHost.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self,
             TermindSchemaV4.self, TermindSchemaV5.self, TermindSchemaV6.self,
-            TermindSchemaV7.self,
+            TermindSchemaV7.self, TermindSchemaV8.self,
         ]
     }
 
@@ -491,7 +577,9 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV5.self, toVersion: TermindSchemaV6.self,
                 willMigrate: nil,
                 didMigrate: { context in
-                    for host in try context.fetch(FetchDescriptor<PersistentHost>()) {
+                    for host in try context.fetch(
+                        FetchDescriptor<TermindSchemaV7HostModels.PersistentHost>()
+                    ) {
                         host.lastUsedAt = nil
                     }
                     try context.save()
@@ -500,13 +588,16 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(
                 fromVersion: TermindSchemaV6.self, toVersion: TermindSchemaV7.self
             ),
+            MigrationStage.lightweight(
+                fromVersion: TermindSchemaV7.self, toVersion: TermindSchemaV8.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV7.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV8.self)
 
     let context: ModelContext
 
@@ -583,7 +674,8 @@ final class HostPersistence {
     private func persist(_ snapshot: VaultSnapshot) throws {
         try reconcile(
             try context.fetch(FetchDescriptor<PersistentHost>()), with: snapshot.hosts,
-            rowID: \.id, valueID: \.id, make: PersistentHost.init, apply: { $0.apply($1) }
+            rowID: \.id, valueID: \.id,
+            make: PersistentHost.init, apply: { $0.apply($1) }
         )
         try reconcile(
             try context.fetch(FetchDescriptor<PersistentHostGroup>()), with: snapshot.groups,

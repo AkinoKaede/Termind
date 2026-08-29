@@ -616,17 +616,38 @@ private struct CardTapModifier: ViewModifier {
 /// The tinted rounded square a card leads with. Gives every page the same
 /// left-hand rhythm whatever it is listing.
 struct CardIcon: View {
-    let symbol: String
+    private let symbol: String?
+    private let asset: String?
     var tint: Color = .accentColor
+
+    init(symbol: String, tint: Color = .accentColor) {
+        self.symbol = symbol
+        asset = nil
+        self.tint = tint
+    }
+
+    init(asset: String, tint: Color = .accentColor) {
+        symbol = nil
+        self.asset = asset
+        self.tint = tint
+    }
 
     var body: some View {
         RoundedRectangle(cornerRadius: Metrics.Radius.medium)
             .fill(tint.opacity(0.16))
             .frame(width: Metrics.Card.icon, height: Metrics.Card.icon)
             .overlay {
-                Image(systemName: symbol)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(tint)
+                if let asset {
+                    Image(asset)
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(tint)
+                        .padding(7)
+                } else if let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(tint)
+                }
             }
     }
 }
