@@ -604,7 +604,7 @@ private struct PaneView: View {
     private var header: some View {
         if presentsConnectionJourney {
             headerContent.background {
-                SSHConnectionJourneyBackground(center: .bottomLeading)
+                SSHConnectionJourneyBackground()
             }
         } else if pane.kind == .sshSession {
             headerContent.background(terminalAppearance.background)

@@ -53,7 +53,7 @@ nonisolated struct TerminalTheme: Identifiable, Hashable, Sendable {
     static let termindDark = TerminalTheme(
         name: SettingsKey.defaultTerminalThemeDark,
         isDark: true,
-        background: RGB(0x11141A),
+        background: RGB(0x1E1E1E),
         foreground: RGB(0xD3D8E0),
         cursor: RGB(0x4B8BF5),
         selection: RGB(0x2A3550),
@@ -68,7 +68,7 @@ nonisolated struct TerminalTheme: Identifiable, Hashable, Sendable {
     static let termindLight = TerminalTheme(
         name: SettingsKey.defaultTerminalThemeLight,
         isDark: false,
-        background: RGB(0xFBFBFD),
+        background: RGB(0xFFFFFF),
         foreground: RGB(0x2B303B),
         cursor: RGB(0x2C6BD8),
         selection: RGB(0xCFDDF7),

@@ -414,20 +414,10 @@ nonisolated private struct ConnectionLogListItem: Identifiable, Hashable, Sendab
     let message: String
 }
 
-/// The continuous surface shared by a connection journey and its pane header.
-/// The two instances anchor their glow to the adjoining edge, so they meet
-/// without a color seam while retaining the Journey's subtle accent wash.
+/// The system window surface shared by a connection journey and its pane header.
 struct SSHConnectionJourneyBackground: View {
-    var center: UnitPoint = .topLeading
-
     var body: some View {
-        ZStack {
-            Color(nsColor: .windowBackgroundColor)
-            RadialGradient(
-                colors: [Color.accentColor.opacity(0.055), .clear],
-                center: center, startRadius: 20, endRadius: 520
-            )
-        }
+        Color(nsColor: .windowBackgroundColor)
     }
 }
 
@@ -503,6 +493,7 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
             guard let renderer else { return nil }
             return AnyView(
                 renderer(item)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .environment(\.locale, locale)
                     .environment(\.colorScheme, colorScheme)

@@ -291,7 +291,12 @@ struct SFTPBrowserView: View {
         @Bindable var sftpSession = sftpSession
         return ZStack {
             VStack(spacing: 0) {
-                pathBar(layout: layout)
+                VStack(spacing: 0) {
+                    pathBar(layout: layout)
+                    columnHeader(layout: layout)
+                }
+                .background(.background)
+
                 browserContent(layout: layout)
             }
 
@@ -466,7 +471,6 @@ struct SFTPBrowserView: View {
             .frame(height: 48)
         }
         .buttonStyle(.plain)
-        .background(.background)
         .onChange(of: pathFocused) { wasFocused, isFocused in
             guard wasFocused, !isFocused, editsPath else { return }
             cancelPathEditing()
@@ -678,41 +682,37 @@ struct SFTPBrowserView: View {
     }
 
     private func fileList(layout: Layout) -> some View {
-        VStack(spacing: 0) {
-            columnHeader(layout: layout)
-
-            SFTPFileNativeList(
-                items: fileListItems(layout: layout),
-                scrollRequest: fileScrollRequest,
-                onBackgroundClick: clearFileSelection
-            ) { item in
-                fileRow(item.row, layout: layout)
-            }
-                .focusable(!window.isToolbarFindFocused)
-                .focusEffectDisabled()
-                .focused($listFocused)
-                .onKeyPress(.upArrow) {
-                    moveSelection(
-                        by: -1, extending: NSEvent.modifierFlags.contains(.shift)
-                    )
-                }
-                .onKeyPress(.downArrow) {
-                    moveSelection(
-                        by: 1, extending: NSEvent.modifierFlags.contains(.shift)
-                    )
-                }
-                .onKeyPress(.return) {
-                    guard let file = keyboardTarget else { return .ignored }
-                    primaryAction(file)
-                    return .handled
-                }
-                .onKeyPress("a", phases: .down) { press in
-                    guard press.modifiers.contains(.command) else { return .ignored }
-                    sftpSession.selection = Set(sftpSession.filteredFiles.map(\.id))
-                    selectionAnchor = sftpSession.filteredFiles.first?.id
-                    selectionCursor = sftpSession.filteredFiles.last?.id
-                    return .handled
-                }
+        SFTPFileNativeList(
+            items: fileListItems(layout: layout),
+            scrollRequest: fileScrollRequest,
+            onBackgroundClick: clearFileSelection
+        ) { item in
+            fileRow(item.row, layout: layout)
+        }
+        .focusable(!window.isToolbarFindFocused)
+        .focusEffectDisabled()
+        .focused($listFocused)
+        .onKeyPress(.upArrow) {
+            moveSelection(
+                by: -1, extending: NSEvent.modifierFlags.contains(.shift)
+            )
+        }
+        .onKeyPress(.downArrow) {
+            moveSelection(
+                by: 1, extending: NSEvent.modifierFlags.contains(.shift)
+            )
+        }
+        .onKeyPress(.return) {
+            guard let file = keyboardTarget else { return .ignored }
+            primaryAction(file)
+            return .handled
+        }
+        .onKeyPress("a", phases: .down) { press in
+            guard press.modifiers.contains(.command) else { return .ignored }
+            sftpSession.selection = Set(sftpSession.filteredFiles.map(\.id))
+            selectionAnchor = sftpSession.filteredFiles.first?.id
+            selectionCursor = sftpSession.filteredFiles.last?.id
+            return .handled
         }
         .background(.background)
     }
@@ -776,19 +776,19 @@ struct SFTPBrowserView: View {
         .padding(.leading, Metrics.Space.xxl)
         .padding(.trailing, Metrics.Space.xl)
         .frame(height: 40)
-        .termindGlassBar()
         .overlay(alignment: .bottom) { Divider().opacity(0.7) }
     }
 
     private func sortHeader(
         _ title: LocalizedStringKey, field: SFTPFileSortField, separated: Bool = false
     ) -> some View {
-        Button {
+        let isSorted = sftpSession.sortField == field
+        return Button {
             sftpSession.sort(by: field)
         } label: {
             HStack(spacing: Metrics.Space.s) {
-                Text(title).font(.body.weight(.semibold))
-                if sftpSession.sortField == field {
+                Text(title).font(.body.weight(isSorted ? .semibold : .regular))
+                if isSorted {
                     Image(
                         systemName: sftpSession.sortDirection == .ascending
                             ? "chevron.up" : "chevron.down"

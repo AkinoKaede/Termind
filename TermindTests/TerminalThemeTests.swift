@@ -4,6 +4,12 @@ import Testing
 
 struct TerminalThemeTests {
     @Test
+    func defaultThemeBackgroundsMatchMacOSWindowBackgrounds() {
+        #expect(TerminalTheme.termindLight.background.hex == "FFFFFF")
+        #expect(TerminalTheme.termindDark.background.hex == "1E1E1E")
+    }
+
+    @Test
     func unavailableThemesFallBackForBothAppearances() {
         let light = TermindTerminalThemeCatalog.background(
             themeName: "Missing Light Theme",
