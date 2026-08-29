@@ -12,25 +12,33 @@ import SwiftUI
 struct HostContextMenu: View {
     let hosts: [Host]
     let showsDuplicate: Bool
+    let requestClearAllHistory: ([Host.ID]) -> Void
     var selectionDeleted: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    init(host: Host, showsDuplicate: Bool = true) {
+    init(
+        host: Host,
+        showsDuplicate: Bool = true,
+        requestClearAllHistory: @escaping ([Host.ID]) -> Void
+    ) {
         hosts = [host]
         self.showsDuplicate = showsDuplicate
+        self.requestClearAllHistory = requestClearAllHistory
         selectionDeleted = nil
     }
 
     init(
         hosts: [Host],
         showsDuplicate: Bool = true,
-        selectionDeleted: (() -> Void)? = nil
+        selectionDeleted: (() -> Void)? = nil,
+        requestClearAllHistory: @escaping ([Host.ID]) -> Void
     ) {
         self.hosts = hosts
         self.showsDuplicate = showsDuplicate
         self.selectionDeleted = selectionDeleted
+        self.requestClearAllHistory = requestClearAllHistory
     }
 
     var body: some View {
@@ -77,28 +85,15 @@ struct HostContextMenu: View {
             Divider()
         }
 
-        DestructiveMenuButton("Clear All History", action: confirmClearAllHistory)
-            .disabled(!hasHistory)
+        DestructiveMenuButton("Clear All History") {
+            requestClearAllHistory(hosts.map(\.id))
+        }
+        .disabled(!hasHistory)
         DestructiveMenuButton("Delete") {
             for host in hosts { app.requestHostDeletion(host.id) }
             selectionDeleted?()
         }
         .disabled(hosts.isEmpty)
-    }
-
-    private func confirmClearAllHistory() {
-        #if canImport(AppKit)
-            let alert = NSAlert()
-            alert.alertStyle = .warning
-            alert.messageText = String(localized: "Clear all history for the selected Hosts?")
-            alert.informativeText = String(
-                localized: "This permanently removes connection, command, and File History without deleting the Hosts."
-            )
-            alert.addButton(withTitle: String(localized: "Clear All History"))
-            alert.addButton(withTitle: String(localized: "Cancel"))
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
-        #endif
-        app.clearAllHistory(for: hosts.map(\.id))
     }
 
     private var hasHistory: Bool {
@@ -107,6 +102,40 @@ struct HostContextMenu: View {
                 || !app.commandHistory.entries(for: host.id).isEmpty
                 || !app.sftpHistory.entries(for: host.id).isEmpty
         }
+    }
+}
+
+private struct ClearAllHostHistoryConfirmation: ViewModifier {
+    @Binding var hostIDs: [Host.ID]?
+
+    @Environment(AppModel.self) private var app
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Clear all history for the selected Hosts?",
+            isPresented: Binding(
+                get: { hostIDs != nil },
+                set: { if !$0 { hostIDs = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Clear All History", role: .destructive) {
+                guard let hostIDs else { return }
+                app.clearAllHistory(for: hostIDs)
+                self.hostIDs = nil
+            }
+            Button("Cancel", role: .cancel) { hostIDs = nil }
+        } message: {
+            Text(
+                "This permanently removes connection, command, and File History without deleting the Hosts."
+            )
+        }
+    }
+}
+
+extension View {
+    func clearAllHostHistoryConfirmation(hostIDs: Binding<[Host.ID]?>) -> some View {
+        modifier(ClearAllHostHistoryConfirmation(hostIDs: hostIDs))
     }
 }
 

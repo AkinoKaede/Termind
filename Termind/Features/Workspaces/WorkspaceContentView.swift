@@ -944,6 +944,8 @@ struct WelcomeView: View {
 /// A host offered on the Welcome page. Click connects — the page exists to get
 /// you onto a machine, and anything else is a right-click away.
 private struct WelcomeHostRow: View {
+    @State private var clearHistoryHostIDs: [Host.ID]?
+
     let host: Host
 
     @Environment(AppModel.self) private var app
@@ -974,8 +976,12 @@ private struct WelcomeHostRow: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            HostContextMenu(host: host)
+            HostContextMenu(
+                host: host,
+                requestClearAllHistory: { clearHistoryHostIDs = $0 }
+            )
         }
+        .clearAllHostHistoryConfirmation(hostIDs: $clearHistoryHostIDs)
     }
 
     @ViewBuilder

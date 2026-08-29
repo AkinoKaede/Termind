@@ -453,6 +453,8 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
 
 private struct HostCard: View {
     @Environment(\.locale) private var locale
+    @State private var clearHistoryHostIDs: [Host.ID]?
+
     let host: Host
     let isSelected: Bool
     let select: () -> Void
@@ -472,7 +474,9 @@ private struct HostCard: View {
         app.hostLibrary.knownHosts(for: host).contains(where: \.isMismatched)
     }
 
-    var body: some View { card }
+    var body: some View {
+        card.clearAllHostHistoryConfirmation(hostIDs: $clearHistoryHostIDs)
+    }
 
     private var card: some View {
         CardTile(
@@ -489,7 +493,11 @@ private struct HostCard: View {
             }
         }
         .contextMenu {
-            HostContextMenu(hosts: actionHosts, selectionDeleted: selectionDeleted)
+            HostContextMenu(
+                hosts: actionHosts,
+                selectionDeleted: selectionDeleted,
+                requestClearAllHistory: { clearHistoryHostIDs = $0 }
+            )
         }
         .help(Text("\(app.hostLibrary.loginAddress(for: host)) — \(status.label)"))
         .accessibilityLabel(host.name)
