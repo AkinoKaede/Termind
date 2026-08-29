@@ -134,11 +134,11 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
             .padding(.vertical, Metrics.Space.m)
             .termindGlassBar()
 
-            Divider().opacity(0.7)
+            Divider().opacity(0.25)
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(.background)
-            Divider().opacity(0.7)
+            Divider().opacity(0.25)
             footer
                 .termindGlassBar()
         }
