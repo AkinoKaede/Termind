@@ -161,6 +161,24 @@ struct WindowStateTests {
     }
 
     @Test
+    func archivingTheOpenConversationReturnsMainAndSidebarSurfacesToNewChat() {
+        let conversation = ConversationModel()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(assistantLibrary: library)
+        window.selectAssistant(conversation.id)
+        window.openAssistantInSidebar(conversation.id)
+
+        window.setAssistantArchived(conversation.id, archived: true)
+
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.assistantLibrary.selectedConversation == nil)
+        #expect(window.sidebar.assistantConversationID == nil)
+        #expect(!window.sidebar.isAssistantArchivePresented)
+    }
+
+    @Test
     func archiveIsASeparateWindowDestinationAndConversationNavigationLeavesIt() {
         let conversation = ConversationModel()
         conversation.archivedAt = .now

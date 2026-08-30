@@ -529,6 +529,20 @@ final class WindowModel {
         {
             conversation.archivedAt = archived ? .now : nil
             if archived { conversation.isPinned = false }
+            if archived { assistantConversationWasArchived(id) }
+        }
+    }
+
+    /// An archived conversation leaves every live-chat surface that was showing
+    /// it. Keeping its id selected would strand the window on a read-only chat
+    /// that has just disappeared from the ordinary navigator.
+    func assistantConversationWasArchived(_ id: ConversationModel.ID) {
+        if assistantLibrary.selectedConversationID == id {
+            assistantLibrary.selectNewConversation()
+        }
+        if sidebar.assistantConversationID == id {
+            sidebar.assistantConversationID = nil
+            sidebar.isAssistantArchivePresented = false
         }
     }
     func forkAssistantConversation(

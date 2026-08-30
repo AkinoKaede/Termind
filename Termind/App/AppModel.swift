@@ -778,16 +778,26 @@ final class AppModel {
         var metadata = conversation.metadata
         metadata.archivedAt = archived ? .now : nil
         if archived { metadata.isPinned = false }
-        Task { [weak conversation, weak window, agentRunRepository] in
+        Task { [weak self, weak conversation, weak window, agentRunRepository] in
             do {
                 try await agentRunRepository.setConversationMetadata(
                     metadata, conversationID: id
                 )
                 conversation?.archivedAt = metadata.archivedAt
                 conversation?.isPinned = metadata.isPinned
+                if archived {
+                    self?.moveOpenConversationSurfacesToNewChat(id)
+                }
             } catch {
                 window?.assistantOperationError = error.localizedDescription
             }
+        }
+    }
+
+    private func moveOpenConversationSurfacesToNewChat(_ id: UUID) {
+        windows = windows.filter { $0.value.value != nil }
+        for window in windows.values.compactMap(\.value) {
+            window.assistantConversationWasArchived(id)
         }
     }
 
