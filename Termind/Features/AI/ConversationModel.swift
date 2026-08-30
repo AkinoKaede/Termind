@@ -2478,7 +2478,16 @@ extension ConversationModel {
                 state: .completed
             )
         }
-        let conversation = ConversationModel(messages: [user, answer])
+        let conversation = ConversationModel(
+            messages: [user, answer],
+            runs: [
+                AgentRunSummary(
+                    id: runID, state: .completed,
+                    startedAt: now.addingTimeInterval(-15),
+                    finishedAt: now.addingTimeInterval(-3)
+                )
+            ]
+        )
         conversation.customTitle = text("Diagnose 502 responses", "诊断 502 响应")
         conversation.messages = [
             user, answer,

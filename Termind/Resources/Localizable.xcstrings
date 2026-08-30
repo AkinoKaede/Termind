@@ -8181,6 +8181,7 @@
       }
     },
     "Permission denied" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -10846,7 +10847,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SSH、SFTP，助手随时相伴。"
+            "value" : "SSH、SFTP，助手随行。"
           }
         }
       }
@@ -14270,7 +14271,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "工作了%@"
+            "value" : "已工作%@"
           }
         }
       }
@@ -14501,7 +14502,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的终端，也有判断力。"
+            "value" : "你的终端，自有判断。"
           }
         }
       }

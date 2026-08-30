@@ -397,6 +397,14 @@ private struct PaneView: View {
     @FocusState private var titleFieldFocused: Bool
 
     private var isFocused: Bool { workspace.focusedPaneID == pane.id }
+    private var showsHoverControls: Bool {
+        #if DEBUG
+            if ScreenshotDemoConfiguration.active?.scene == .workspace, isFocused {
+                return true
+            }
+        #endif
+        return isHovering
+    }
 
     /// A pane accepts a drop when it is something a Workspace may hold, or an
     /// unfilled slot waiting to be filled. A chat, a form, or a manager page
@@ -658,7 +666,7 @@ private struct PaneView: View {
             // The close button appears only under the pointer, the same rule the
             // workspace bar follows: identity is what you want while scanning, the
             // close button only once you are aiming at something.
-            if isHovering {
+            if showsHoverControls {
                 Button {
                     window.closePane(pane.id)
                 } label: {
@@ -694,7 +702,7 @@ private struct PaneView: View {
     private var broadcastToggle: some View {
         if pane.kind == .sshSession, workspace.canBroadcast {
             let isOn = workspace.broadcastsInput
-            if isHovering {
+            if showsHoverControls {
                 Button {
                     withAnimation(Motion.workspaceSwitch) {
                         window.toggleBroadcastInput(in: workspace)
