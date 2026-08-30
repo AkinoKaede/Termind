@@ -336,7 +336,67 @@ struct KeychainImportDetail: View {
     }
 }
 
+nonisolated struct SoftwareKeyFileImportResult: Equatable, Sendable {
+    var privateKey: String?
+    var certificate: String?
+    var inferredName: String?
+}
+
+nonisolated enum SoftwareKeyFileImporter {
+    static func shouldInferName(from currentName: String) -> Bool {
+        currentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    static func read(
+        urls: [URL], infersName: Bool
+    ) throws -> SoftwareKeyFileImportResult {
+        guard !urls.isEmpty else { return SoftwareKeyFileImportResult() }
+        var result = SoftwareKeyFileImportResult()
+        for url in urls {
+            let text = try readText(at: url)
+            if text.contains("PRIVATE KEY") {
+                result.privateKey = text
+                if infersName { result.inferredName = url.lastPathComponent }
+            } else if text.contains("-cert-v01@openssh.com") {
+                result.certificate = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                throw CocoaError(
+                    .fileReadCorruptFile,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: String(
+                            localized: "Choose a private key or OpenSSH user certificate file."
+                        )
+                    ]
+                )
+            }
+        }
+        return result
+    }
+
+    static func unexpectedFileError() -> CocoaError {
+        CocoaError(
+            .fileReadCorruptFile,
+            userInfo: [
+                NSLocalizedDescriptionKey: String(
+                    localized: "Choose a private key or OpenSSH user certificate file."
+                )
+            ]
+        )
+    }
+
+    private static func readText(at url: URL) throws -> String {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        return try String(contentsOf: url, encoding: .utf8)
+    }
+}
+
 private struct SoftwareKeyEditor: View {
+    private enum FileChoice {
+        case privateKey
+        case certificate
+    }
+
     let existing: SSHKeyRef?
     let title: String
     let symbol: String
@@ -358,8 +418,12 @@ private struct SoftwareKeyEditor: View {
     @State private var material: SSHKeyMaterial?
     @State private var isLoading: Bool
     @State private var isChoosingFile = false
+    @State private var fileChoice: FileChoice = .privateKey
     @State private var isWorking = false
     @State private var errorMessage: String?
+    @State private var nativeDropKind: NativeDropKind?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
         existing: SSHKeyRef? = nil, title: String,
@@ -397,7 +461,7 @@ private struct SoftwareKeyEditor: View {
                     }
 
                     Section("Key") {
-                        TextField("Name", text: $name, prompt: Text("Defaults to key type"))
+                        TextField("Name", text: $name)
                         LabeledContent("Color") {
                             ColorTagPicker(selection: $colorTag)
                         }
@@ -411,13 +475,23 @@ private struct SoftwareKeyEditor: View {
                         HStack {
                             Text("Private Key")
                             Spacer()
-                            Button("Choose File…") { isChoosingFile = true }
+                            Button("Choose") { chooseFile(for: .privateKey) }
                                 .controlSize(.small)
                         }
                         TextEditor(text: $privateKey)
                             .font(.caption.monospaced())
                             .frame(minHeight: 150)
                             .accessibilityLabel("Private Key")
+                        if let existing, let material,
+                            material.publicKey != existing.publicKey
+                        {
+                            Label(
+                                "Replacing this private key changes its public key. Hosts using the old key may reject the next connection.",
+                                systemImage: "arrow.triangle.2.circlepath"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        }
                         SecureField("Passphrase", text: $passphrase, prompt: Text("Optional"))
                     }
 
@@ -429,6 +503,12 @@ private struct SoftwareKeyEditor: View {
                     }
 
                     Section("Certificate") {
+                        HStack {
+                            Text("Certificate")
+                            Spacer()
+                            Button("Choose") { chooseFile(for: .certificate) }
+                                .controlSize(.small)
+                        }
                         TextEditor(text: $certificate)
                             .font(.caption.monospaced())
                             .frame(minHeight: 110)
@@ -445,16 +525,6 @@ private struct SoftwareKeyEditor: View {
                             Label(warning, systemImage: "exclamationmark.triangle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.orange)
-                        }
-                        if let existing, let material,
-                            material.publicKey != existing.publicKey
-                        {
-                            Label(
-                                "Replacing this private key changes its public key. Hosts using the old key may reject the next connection.",
-                                systemImage: "arrow.triangle.2.circlepath"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.orange)
                         }
                     }
                 }
@@ -475,11 +545,25 @@ private struct SoftwareKeyEditor: View {
         }
         .fileImporter(
             isPresented: $isChoosingFile, allowedContentTypes: [.data, .plainText],
-            allowsMultipleSelection: true, onCompletion: receiveFiles
+            allowsMultipleSelection: false, onCompletion: receiveFiles
         )
-        .dropDestination(for: URL.self) { urls, _ in
-            receive(urls: urls)
+        .overlay {
+            if nativeDropKind != nil {
+                DropTargetOverlay(presentation: dropPresentation)
+            }
         }
+        .overlay {
+            NativeDropTarget(
+                targetedKind: $nativeDropKind,
+                acceptedKinds: [.files],
+                isEnabled: !isLoading && !isWorking,
+                receive: { payload in receive(urls: payload.fileURLs) }
+            )
+        }
+        .animation(
+            Motion.dropTarget(reduceMotion: reduceMotion),
+            value: nativeDropKind
+        )
         .task { load() }
         .task(id: validationToken) { await derivePublicMaterial() }
     }
@@ -524,6 +608,16 @@ private struct SoftwareKeyEditor: View {
     }
 
     private var validationToken: String { privateKey + "\u{0}" + passphrase }
+
+    private var dropPresentation: DropTargetPresentation {
+        DropTargetPresentation(
+            title: existing == nil
+                ? String(localized: "Import Private Key")
+                : String(localized: "Replace Private Key"),
+            detail: String(localized: "Private key or certificate"),
+            systemImage: "key.fill"
+        )
+    }
 
     private var publicKeyDisplay: String {
         material?.publicKey ?? existing?.publicKey ?? String(localized: "Derived from the private key")
@@ -575,37 +669,49 @@ private struct SoftwareKeyEditor: View {
 
     private func receiveFiles(_ result: Result<[URL], any Error>) {
         do {
-            _ = receive(urls: try result.get())
+            guard let url = try result.get().first else { return }
+            let imported = try SoftwareKeyFileImporter.read(
+                urls: [url],
+                infersName: fileChoice == .privateKey
+                    && SoftwareKeyFileImporter.shouldInferName(from: name)
+            )
+            switch fileChoice {
+            case .privateKey:
+                guard let importedPrivateKey = imported.privateKey else {
+                    throw SoftwareKeyFileImporter.unexpectedFileError()
+                }
+                privateKey = importedPrivateKey
+                if let inferredName = imported.inferredName { name = inferredName }
+            case .certificate:
+                guard let importedCertificate = imported.certificate else {
+                    throw SoftwareKeyFileImporter.unexpectedFileError()
+                }
+                certificate = importedCertificate
+            }
+            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func chooseFile(for choice: FileChoice) {
+        fileChoice = choice
+        isChoosingFile = true
     }
 
     @discardableResult
     private func receive(urls: [URL]) -> Bool {
         do {
             guard !urls.isEmpty else { return false }
-            var found = false
-            for url in urls {
-                let scoped = url.startAccessingSecurityScopedResource()
-                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-                let text = try String(contentsOf: url, encoding: .utf8)
-                if text.contains("PRIVATE KEY") {
-                    privateKey = text
-                    if name.isEmpty { name = url.deletingPathExtension().lastPathComponent }
-                    found = true
-                } else if text.contains("-cert-v01@openssh.com") {
-                    certificate = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    found = true
-                } else {
-                    throw CocoaError(
-                        .fileReadCorruptFile,
-                        userInfo: [NSLocalizedDescriptionKey: String(localized: "Choose a private key or OpenSSH user certificate file.")]
-                    )
-                }
-            }
+            let result = try SoftwareKeyFileImporter.read(
+                urls: urls,
+                infersName: SoftwareKeyFileImporter.shouldInferName(from: name)
+            )
+            if let importedPrivateKey = result.privateKey { privateKey = importedPrivateKey }
+            if let importedCertificate = result.certificate { certificate = importedCertificate }
+            if let inferredName = result.inferredName { name = inferredName }
             errorMessage = nil
-            return found
+            return result.privateKey != nil || result.certificate != nil
         } catch {
             errorMessage = error.localizedDescription
             return false
