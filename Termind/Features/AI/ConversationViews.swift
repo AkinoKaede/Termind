@@ -1706,6 +1706,7 @@ struct ComposerView: View {
                 Text(name)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Metrics.Space.m)
             case .model(let provider, let model, let selected):
                 Button {
