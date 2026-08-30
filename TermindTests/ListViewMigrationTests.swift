@@ -129,15 +129,6 @@ struct ListViewMigrationTests {
     }
 
     @Test
-    func settingsSelectionChangesContentWithoutChangingIdentity() {
-        let normal = SettingsNavigationItem.section(.sftp, selected: false)
-        let selected = SettingsNavigationItem.section(.sftp, selected: true)
-
-        #expect(normal.id == selected.id)
-        #expect(normal != selected)
-    }
-
-    @Test
     func sidebarHistoryKeepsIdentityWhileInlineEditingChanges() {
         let entry = CommandHistoryEntry(hostID: UUID(), command: "pwd")
         let normal = SidebarListItem.history(entry, isNaming: false)

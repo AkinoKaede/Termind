@@ -132,16 +132,6 @@ struct TermindApp: App {
         .windowResizability(.contentMinSize)
         .commands { TermindCommands(app: app) }
 
-        Settings {
-            SettingsPageView()
-                .overlay { ExternalAuthWindowPresenter() }
-                .environment(app)
-                .environment(\.locale, launchLanguage.locale)
-                .modelContainer(modelContainer)
-                .proPaywallPresenter(app: app)
-                .frame(minWidth: 920, minHeight: 640)
-        }
-
         Window("Authentication Request", id: ExternalAuthWindowPresenter.sceneID) {
             ExternalAuthWindow()
                 .environment(app)

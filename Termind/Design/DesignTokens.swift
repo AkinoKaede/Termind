@@ -137,14 +137,6 @@ nonisolated enum Metrics {
         static let iconSize: CGFloat = 28
     }
 
-    /// Settings is a page in the window rather than its own panel, so it needs a
-    /// reading width of its own — a `Form` stretched across a 1600pt display puts
-    /// the label and its control at opposite ends of the desk.
-    enum SettingsPage {
-        static let sidebarWidth: CGFloat = 208
-        static let contentWidth: CGFloat = 720
-    }
-
     enum StatusBar {
         /// Taller than the docked strip it replaces: a floating capsule needs
         /// enough body to read as an object rather than as a seam.

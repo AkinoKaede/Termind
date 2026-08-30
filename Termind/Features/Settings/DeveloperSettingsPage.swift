@@ -6,23 +6,7 @@ struct DeveloperSettingsPage: View {
     @State private var resetResult: ResetResult?
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-                Text(verbatim: "Developer")
-                    .font(.title2.weight(.semibold))
-                Text(verbatim: "Debug-only feature simulation and maintenance.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: Metrics.SettingsPage.contentWidth, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Metrics.Space.xxl)
-            .padding(.vertical, Metrics.Space.xl)
-            .termindGlassBar()
-
-            Divider()
-
-            Form {
+        Form {
                 Section {
                     Picker(selection: developmentPreset) {
                         ForEach(DebugProAccessPreset.allCases) { preset in
@@ -108,11 +92,9 @@ struct DeveloperSettingsPage: View {
                 } header: {
                     Text(verbatim: "Onboarding")
                 }
-            }
-            .formStyle(.grouped)
-            .frame(maxWidth: Metrics.SettingsPage.contentWidth)
-            .frame(maxWidth: .infinity)
         }
+        .formStyle(.grouped)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func onboardingRow(_ step: OnboardingStep) -> some View {

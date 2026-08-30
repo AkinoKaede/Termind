@@ -55,7 +55,6 @@ struct QuickOpenView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-    @Environment(\.openSettings) private var openSettings
 
     @State private var query = ""
     @State private var selectedID: AppCommandDescriptor.ID?
@@ -262,10 +261,7 @@ struct QuickOpenView: View {
     }
 
     private func perform(_ command: AppCommandDescriptor) {
-        app.commands.perform(
-            command.target, app: app, window: window,
-            openSettings: { openSettings() }
-        )
+        app.commands.perform(command.target, app: app, window: window)
         dismiss()
     }
 }

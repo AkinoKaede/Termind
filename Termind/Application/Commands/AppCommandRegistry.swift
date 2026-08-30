@@ -63,10 +63,7 @@ final class AppCommandRegistry {
             + actionCommands(canShowAssistant: window.selectedWorkspace != nil)
     }
 
-    func perform(
-        _ target: AppCommandTarget, app: AppModel, window: WindowModel,
-        openSettings: () -> Void = {}
-    ) {
+    func perform(_ target: AppCommandTarget, app: AppModel, window: WindowModel) {
         switch target {
         case .vaultPage(let page):
             window.openPage(page)
@@ -75,7 +72,7 @@ final class AppCommandRegistry {
         case .assistant:
             window.selectAssistant()
         case .settings:
-            openSettings()
+            window.openSettings()
         case .assistantConversation(let id):
             window.openAssistantFullScreen(id)
         case .workspace(let id):
@@ -108,7 +105,7 @@ final class AppCommandRegistry {
             ),
             AppCommandDescriptor(
                 id: "fixed.settings", title: String(localized: "Settings"),
-                subtitle: String(localized: "Window"), symbol: "gearshape",
+                subtitle: String(localized: "Navigator"), symbol: "gearshape",
                 section: .navigation,
                 keywords: ["preferences"], target: .settings
             ),

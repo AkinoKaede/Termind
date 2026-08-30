@@ -18,7 +18,7 @@ final class WindowModel {
         get { workspaceDeck.workspaces }
         set { workspaceDeck.workspaces = newValue }
     }
-    /// The top-level shell has two pinned entries followed by dynamic SSH/SFTP
+    /// The top-level shell has Vault, Assistant, Settings, and dynamic SSH/SFTP
     /// Workspaces. This is the single source of truth for workspace selection.
     var selectedDestination: WindowDestination = .vault {
         didSet {
@@ -31,6 +31,10 @@ final class WindowModel {
     /// detail surface. Assistant has no row inside the Navigator that could
     /// retain the previous selection for us.
     private var assistantReturnDestination: WindowDestination = .vault
+    /// Settings is a reversible trip from the content in front. Its own route is
+    /// window-scoped so two windows can configure shared preferences independently.
+    private var settingsReturnDestination: WindowDestination = .vault
+    var settingsRoute: SettingsRoute = .index
     var vaultDestination: VaultDestination = .welcome
     var vaultWorkRoute: VaultWorkRoute?
     let assistantLibrary: AssistantLibraryModel
@@ -207,6 +211,8 @@ final class WindowModel {
             // Defensive only: the remembered destination is updated exclusively
             // from non-Assistant routes.
             selectVault()
+        case .settings:
+            selectedDestination = .settings
         }
     }
 
@@ -249,6 +255,7 @@ final class WindowModel {
         selectedDestination = workspaces.first.map { .workspace($0.id) } ?? .vault
         // Property observers do not run while an instance is being initialized.
         assistantReturnDestination = selectedDestination
+        settingsReturnDestination = selectedDestination
         for workspace in workspaces {
             workspace.lifecycleRouter = self
         }
@@ -335,6 +342,8 @@ final class WindowModel {
         switch selectedDestination {
         case .assistant:
             return .assistant
+        case .settings:
+            return nil
         case .workspace:
             if focusedSSHSession != nil || focusedSerialSession != nil { return .terminal }
             if focusedSFTPSession != nil { return .sftp }
@@ -488,6 +497,42 @@ final class WindowModel {
         isAssistantArchivePresented = false
         assistantLibrary.select(id)
         selectedDestination = .assistant
+    }
+
+    func openSettings(route: SettingsRoute = .index) {
+        if selectedDestination != .settings {
+            settingsReturnDestination = selectedDestination
+        }
+        settingsRoute = route
+        selectedDestination = .settings
+    }
+
+    func closeSettings() {
+        let destination = settingsReturnDestination
+        settingsRoute = .index
+        switch destination {
+        case .workspace(let id):
+            if workspaces.contains(where: { $0.id == id }) {
+                select(id)
+            } else {
+                selectVault()
+            }
+        case .vault:
+            selectVault()
+        case .assistant:
+            selectAssistant()
+        case .settings:
+            selectVault()
+        }
+    }
+
+    func navigateBackInSettings() {
+        guard selectedDestination == .settings else { return }
+        if let parent = settingsRoute.parent {
+            settingsRoute = parent
+        } else {
+            closeSettings()
+        }
     }
 
     /// Promotes a compact Sidebar preview into the main Assistant surface while

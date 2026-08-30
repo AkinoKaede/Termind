@@ -40,23 +40,88 @@ struct SettingsNavigationTests {
     }
 
     @Test
-    func detailRoutesKeepTheirSidebarSelection() {
+    func detailRoutesExposeTheirParentRoute() {
         let providerID = UUID()
         let serverID = UUID()
 
-        #expect(SettingsRoute.modelProvider(providerID, isNew: false).section == .providers)
-        #expect(SettingsRoute.providerModels(providerID, isNew: true).section == .providers)
-        #expect(SettingsRoute.mcpServer(serverID, isNew: false).section == .mcp)
-        #expect(SettingsRoute.terminalConfiguration(.dark).section == .terminalAppearance)
+        #expect(SettingsRoute.index.parent == nil)
+        #expect(SettingsRoute.category(.terminal).parent == .index)
+        #expect(SettingsRoute.modelProvider(providerID).parent == .category(.ai))
+        #expect(
+            SettingsRoute.providerModels(providerID).parent
+                == .modelProvider(providerID)
+        )
+        #expect(SettingsRoute.mcpServer(serverID, isNew: false).parent == .category(.ai))
+        #expect(SettingsRoute.localMCPServer.parent == .category(.ai))
+        #expect(SettingsRoute.terminalConfiguration(.dark).parent == .category(.terminal))
     }
 
-    #if DEBUG
-        @Test
-        func developmentSettingsAreTheLastNavigationGroup() {
-            #expect(SettingsNavigationGroup.allCases.last == .development)
-            #expect(SettingsNavigationGroup.development.sections == [.developer])
-        }
-    #endif
+    @Test
+    func settingsCategoriesKeepTheirProductOrder() {
+        var expected: [SettingsCategory] = [.pro, .app, .terminal, .sftp, .ai, .sync]
+        #if DEBUG
+            expected.append(.developer)
+        #endif
+        #expect(SettingsCategory.allCases == expected)
+    }
+
+    @Test @MainActor
+    func settingsRestoresTheDestinationItReplaced() {
+        let workspace = Workspace(pane: Pane(.empty))
+        let window = WindowModel(workspaces: [workspace])
+
+        window.openSettings(route: .category(.terminal))
+        #expect(window.selectedDestination == .settings)
+        #expect(window.settingsRoute == .category(.terminal))
+
+        window.closeSettings()
+        #expect(window.selectedDestination == .workspace(workspace.id))
+        #expect(window.settingsRoute == .index)
+    }
+
+    @Test @MainActor
+    func settingsFallsBackToVaultWhenItsWorkspaceDisappears() {
+        let workspace = Workspace(pane: Pane(.empty))
+        let window = WindowModel(workspaces: [workspace])
+
+        window.openSettings()
+        window.workspaces.removeAll()
+        window.closeSettings()
+
+        #expect(window.selectedDestination == .vault)
+    }
+
+    @Test @MainActor
+    func settingsToolbarBackWalksTheRouteThenRestoresContent() {
+        let window = WindowModel()
+        window.openSettings(route: .terminalConfiguration(.dark))
+
+        window.navigateBackInSettings()
+        #expect(window.settingsRoute == .category(.terminal))
+        #expect(window.selectedDestination == .settings)
+
+        window.navigateBackInSettings()
+        #expect(window.settingsRoute == .index)
+        #expect(window.selectedDestination == .settings)
+
+        window.navigateBackInSettings()
+        #expect(window.selectedDestination == .vault)
+    }
+
+    @Test @MainActor
+    func navigatorAndAssistantRoundTripThroughSettings() {
+        let window = WindowModel()
+        window.openSettings(route: .category(.app))
+
+        window.activateSidebarMode(.assistant)
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.sidebarMode == .assistant)
+
+        window.activateSidebarMode(.navigation)
+        #expect(window.selectedDestination == .settings)
+        #expect(window.settingsRoute == .category(.app))
+        #expect(window.sidebarMode == .navigation)
+    }
 
     @Test
     func emptyProviderDraftIsDiscarded() {

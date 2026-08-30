@@ -24,7 +24,6 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
 
 struct TerminalCustomConfigurationEditorPage: View {
     let scheme: TerminalCustomConfigurationScheme
-    let back: () -> Void
 
     @State private var content = ""
     @State private var isImporting = false
@@ -33,18 +32,6 @@ struct TerminalCustomConfigurationEditorPage: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SettingsDetailHeader(
-                backLabel: "Appearance",
-                title: scheme.title,
-                subtitle: String(localized: "Changes save automatically"),
-                back: {
-                    saveNow()
-                    back()
-                },
-                trailing: AnyView(Button("Import from File") { isImporting = true })
-            )
-            Divider()
-
             if let importError {
                 HStack(spacing: Metrics.Space.m) {
                     Label(importError, systemImage: "exclamationmark.triangle.fill")
@@ -62,6 +49,14 @@ struct TerminalCustomConfigurationEditorPage: View {
                 .background(Color.orange.opacity(0.08))
                 Divider()
             }
+
+            HStack {
+                Spacer()
+                Button("Import from File") { isImporting = true }
+            }
+            .padding(.horizontal, Metrics.Space.l)
+            .padding(.vertical, Metrics.Space.s)
+            Divider()
 
             TextEditor(text: $content)
                 .font(.system(.body, design: .monospaced))

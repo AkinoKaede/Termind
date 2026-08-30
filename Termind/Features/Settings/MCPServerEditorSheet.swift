@@ -37,8 +37,6 @@ final class MCPServerEditorSession {
 struct MCPServerEditorPage: View {
     @Environment(\.locale) private var locale
     let serverID: MCPServer.ID
-    let isNew: Bool
-    let back: () -> Void
     let deleted: () -> Void
 
     @Environment(AppModel.self) private var app
@@ -59,16 +57,8 @@ struct MCPServerEditorPage: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        Group {
             if let server {
-                SettingsDetailHeader(
-                    backLabel: "MCP",
-                    title: server.name.isEmpty ? String(localized: "Server") : server.name,
-                    subtitle: server.negotiatedVersion.isEmpty ? server.url : "MCP \(server.negotiatedVersion)",
-                    back: back,
-                    trailing: AnyView(StatusDot(status: app.aiConfiguration.mcpStatus(of: serverID)))
-                )
-                Divider()
                 Form {
                     connectionSection(server)
                     credentialSection
@@ -82,7 +72,6 @@ struct MCPServerEditorPage: View {
                     }
                 }
                 .formStyle(.grouped)
-                .frame(maxWidth: Metrics.SettingsPage.contentWidth)
                 .frame(maxWidth: .infinity)
             } else {
                 ContentUnavailableView("Server Deleted", systemImage: "trash")

@@ -1,13 +1,8 @@
 import GhosttyTheme
-import AppKit
-import ListViewKit
 import SwiftUI
 
-nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
-    case pro, app, startup, sidebar
-    case terminalAppearance, sftp
-    case providers, modelRoles, assistant, webSearch, mcp, mcpServer
-    case sync
+nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable {
+    case pro, app, terminal, sftp, ai, sync
     #if DEBUG
         case developer
     #endif
@@ -18,19 +13,26 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .pro: "Termind Pro"
         case .app: "App"
-        case .startup: "Startup"
-        case .sidebar: "Sidebar"
-        case .terminalAppearance: "Appearance"
+        case .terminal: "Terminal"
         case .sftp: "SFTP"
-        case .providers: "Providers"
-        case .modelRoles: "Model Roles"
-        case .assistant: "Assistant"
-        case .webSearch: "Web Search"
-        case .mcp: "MCP"
-        case .mcpServer: "MCP Server"
-        case .sync: "iCloud"
+        case .ai: "AI"
+        case .sync: "Sync"
         #if DEBUG
             case .developer: "Developer"
+        #endif
+        }
+    }
+
+    func title(locale: Locale = .current) -> String {
+        switch self {
+        case .pro: AppLocalization.string("Termind Pro", locale: locale)
+        case .app: AppLocalization.string("App", locale: locale)
+        case .terminal: AppLocalization.string("Terminal", locale: locale)
+        case .sftp: AppLocalization.string("SFTP", locale: locale)
+        case .ai: AppLocalization.string("AI", locale: locale)
+        case .sync: AppLocalization.string("Sync", locale: locale)
+        #if DEBUG
+            case .developer: AppLocalization.string("Developer", locale: locale)
         #endif
         }
     }
@@ -39,16 +41,9 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .pro: "sparkles.rectangle.stack"
         case .app: "app.badge"
-        case .startup: "arrow.clockwise"
-        case .sidebar: "sidebar.left"
-        case .terminalAppearance: "terminal"
+        case .terminal: "terminal"
         case .sftp: "arrow.up.arrow.down"
-        case .providers: "network"
-        case .modelRoles: "person.2.badge.gearshape"
-        case .assistant: "brain"
-        case .webSearch: "magnifyingglass"
-        case .mcp: "wrench.and.screwdriver"
-        case .mcpServer: "server.rack"
+        case .ai: "brain"
         case .sync: "icloud"
         #if DEBUG
             case .developer: "hammer"
@@ -58,150 +53,120 @@ nonisolated enum SettingsSection: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum SettingsRoute: Hashable {
-    case section(SettingsSection)
-    case modelProvider(ModelProvider.ID, isNew: Bool)
-    case providerModels(ModelProvider.ID, isNew: Bool)
+    case index
+    case category(SettingsCategory)
+    case modelProvider(ModelProvider.ID)
+    case providerModels(ModelProvider.ID)
     case mcpServer(MCPServer.ID, isNew: Bool)
+    case localMCPServer
     case terminalConfiguration(TerminalCustomConfigurationScheme)
 
-    var section: SettingsSection {
+    var parent: SettingsRoute? {
         switch self {
-        case .section(let section): section
-        case .modelProvider, .providerModels: .providers
-        case .mcpServer: .mcp
-        case .terminalConfiguration: .terminalAppearance
+        case .index:
+            nil
+        case .category:
+            .index
+        case .modelProvider:
+            .category(.ai)
+        case .providerModels(let id):
+            .modelProvider(id)
+        case .mcpServer:
+            .category(.ai)
+        case .localMCPServer:
+            .category(.ai)
+        case .terminalConfiguration:
+            .category(.terminal)
         }
     }
 }
 
 struct SettingsPageView: View {
     @Environment(AppModel.self) private var app
-    @State private var route: SettingsRoute = .section(.app)
+    @Environment(WindowModel.self) private var window
 
     var body: some View {
-        HStack(spacing: 0) {
-            SettingsSidebar(selection: route.section) { section in
-                route = .section(section)
-            }
-            .frame(width: Metrics.SettingsPage.sidebarWidth)
-
-            Divider()
-
-            detail.frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
+        detail.frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(TermindColor.windowSurface)
-        .onChange(of: route) { oldRoute, newRoute in
+        .onChange(of: window.settingsRoute) { oldRoute, newRoute in
             cleanUpDraft(from: oldRoute, movingTo: newRoute)
         }
         .onDisappear {
-            cleanUpDraft(from: route, movingTo: .section(route.section))
+            cleanUpDraft(from: window.settingsRoute, movingTo: .index)
         }
     }
 
     @ViewBuilder
     private var detail: some View {
-        switch route {
-        case .section(let section):
-            sectionPage(section)
-        case .modelProvider(let id, let isNew):
+        switch window.settingsRoute {
+        case .index:
+            SettingsIndexPage(
+                categories: SettingsCategory.allCases,
+                select: { navigate(to: .category($0)) }
+            )
+        case .category(let category):
+            categoryPage(category)
+        case .modelProvider(let id):
             ModelProviderEditorPage(
                 modelProviderID: id,
-                back: { route = .section(.providers) },
-                showModels: { route = .providerModels(id, isNew: isNew) },
-                deleted: { route = .section(.providers) }
+                showModels: { navigate(to: .providerModels(id)) },
+                deleted: { navigate(to: .category(.ai)) }
             )
-        case .providerModels(let id, let isNew):
-            ModelListEditor(
-                modelProviderID: id,
-                back: { route = .modelProvider(id, isNew: isNew) }
-            )
-        case .mcpServer(let id, let isNew):
+        case .providerModels(let id):
+            ModelListEditor(modelProviderID: id)
+        case .mcpServer(let id, _):
             if app.proAccess.canUse(.remoteMCP) {
                 MCPServerEditorPage(
-                    serverID: id, isNew: isNew,
-                    back: { route = .section(.mcp) },
-                    deleted: { route = .section(.mcp) }
+                    serverID: id,
+                    deleted: { navigate(to: .category(.ai)) }
                 )
             } else {
-                ProLockedSettingsPage(
-                    title: "MCP", feature: .remoteMCP,
-                    back: { route = .section(.mcp) }
-                )
+                ProLockedSettingsPage(title: "MCP", feature: .remoteMCP)
             }
+        case .localMCPServer:
+            SettingsFormPage { MCPServerSettings() }
         case .terminalConfiguration(let scheme):
-            TerminalCustomConfigurationEditorPage(
-                scheme: scheme,
-                back: { route = .section(.terminalAppearance) }
-            )
+            TerminalCustomConfigurationEditorPage(scheme: scheme)
         }
     }
 
     @ViewBuilder
-    private func sectionPage(_ section: SettingsSection) -> some View {
-        switch section {
+    private func categoryPage(_ category: SettingsCategory) -> some View {
+        switch category {
         case .pro:
-            SettingsFormPage(
-                title: "Termind Pro",
-                subtitle: "Your permanent unlock and seven-day free trial."
-            ) { ProSettings() }
+            SettingsFormPage { ProSettings() }
         case .app:
-            SettingsFormPage(title: "App", subtitle: "About this application.") { AppSettings() }
-        case .startup:
-            SettingsFormPage(title: "Startup", subtitle: "Choose what Termind restores when it opens.") {
+            SettingsFormPage {
+                AppSettings()
                 StartupSettings()
-            }
-        case .sidebar:
-            SettingsFormPage(title: "Sidebar", subtitle: "Tune the density and content of the workspace sidebar.") {
                 SidebarSettings()
+                AppInfoSettings()
             }
-        case .terminalAppearance:
-            SettingsFormPage(title: "Appearance", subtitle: "Themes, custom configuration, and terminal typography.") {
+        case .terminal:
+            SettingsFormPage {
                 TerminalSettings(
-                    editConfiguration: { route = .terminalConfiguration($0) },
+                    editConfiguration: { navigate(to: .terminalConfiguration($0)) },
                     shellIntegrationChanged: {
                         app.shellIntegrationPreferenceDidChange(isEnabled: $0)
                     }
                 )
             }
         case .sftp:
-            SettingsFormPage(title: "SFTP", subtitle: "Control transfer concurrency across sessions.") {
-                SFTPSettings()
-            }
-        case .providers:
-            SettingsFormPage(title: "Providers", subtitle: "Endpoints and credentials used by the assistant.") {
-                ModelProviderSettings { id, isNew in
-                    route = .modelProvider(id, isNew: isNew)
+            SettingsFormPage { SFTPSettings() }
+        case .ai:
+            SettingsFormPage {
+                ModelProviderSettings { id, _ in
+                    navigate(to: .modelProvider(id))
                 }
-            }
-        case .modelRoles:
-            SettingsFormPage(title: "Model Roles", subtitle: "Choose which model handles each assistant task.") {
                 ModelRoleSettings()
-            }
-        case .assistant:
-            SettingsFormPage(
-                title: "Assistant",
-                subtitle: "What happens as a conversation approaches the model's limit."
-            ) {
-                AssistantSettings()
-            }
-        case .webSearch:
-            SettingsFormPage(
-                title: "Web Search",
-                subtitle: "Choose between provider-native search and local Web Search on this Mac."
-            ) {
                 WebSearchSettings()
+                MCPSettings(
+                    edit: { id, isNew in navigate(to: .mcpServer(id, isNew: isNew)) },
+                    openServer: { navigate(to: .localMCPServer) }
+                )
             }
-        case .mcp:
-            SettingsFormPage(title: "MCP", subtitle: "Remote MCP servers available to the assistant.") {
-                MCPSettings { id, isNew in route = .mcpServer(id, isNew: isNew) }
-            }
-        case .mcpServer:
-            SettingsFormPage(
-                title: "MCP Server",
-                subtitle: "Expose Termind's SSH and SFTP tools to local MCP clients."
-            ) { MCPServerSettings() }
         case .sync:
-            SettingsFormPage(title: "iCloud", subtitle: "Sync status and data protection.") { SyncSettings() }
+            SettingsFormPage { SyncSettings() }
         #if DEBUG
             case .developer:
                 DeveloperSettingsPage()
@@ -209,14 +174,18 @@ struct SettingsPageView: View {
         }
     }
 
+    private func navigate(to route: SettingsRoute) {
+        window.settingsRoute = route
+    }
+
     private func cleanUpDraft(from route: SettingsRoute, movingTo newRoute: SettingsRoute) {
         switch route {
-        case .modelProvider(let id, isNew: true):
-            if case .providerModels(id, _) = newRoute { return }
+        case .modelProvider(let id):
+            if case .providerModels(id) = newRoute { return }
             guard let provider = app.aiConfiguration.modelProvider(id) else { return }
             if SettingsDraftPolicy.shouldDiscard(provider) { app.aiConfiguration.delete(modelProviderID: id) }
-        case .providerModels(let id, isNew: true):
-            if case .modelProvider(id, _) = newRoute { return }
+        case .providerModels(let id):
+            if case .modelProvider(id) = newRoute { return }
             guard let provider = app.aiConfiguration.modelProvider(id) else { return }
             if SettingsDraftPolicy.shouldDiscard(provider) { app.aiConfiguration.delete(modelProviderID: id) }
         case .mcpServer(let id, isNew: true):
@@ -229,6 +198,74 @@ struct SettingsPageView: View {
         default:
             break
         }
+    }
+}
+
+private struct SettingsIndexPage: View {
+    let categories: [SettingsCategory]
+    let select: (SettingsCategory) -> Void
+
+    var body: some View {
+        Form {
+            Section {
+                categoryButton(.pro)
+            }
+
+            Section {
+                ForEach(regularCategories) { category in
+                    categoryButton(category)
+                }
+            }
+
+            #if DEBUG
+                if categories.contains(.developer) {
+                    Section { categoryButton(.developer) }
+                }
+            #endif
+        }
+        .formStyle(.grouped)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var regularCategories: [SettingsCategory] {
+        categories.filter { category in
+            switch category {
+            case .pro:
+                false
+            #if DEBUG
+                case .developer:
+                    false
+            #endif
+            default:
+                true
+            }
+        }
+    }
+
+    private func categoryButton(_ category: SettingsCategory) -> some View {
+        Button { select(category) } label: {
+            SettingsCategoryRow(category: category)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsCategoryRow: View {
+    let category: SettingsCategory
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.m) {
+            Label(category.title, systemImage: category.symbol)
+
+            Spacer(minLength: Metrics.Space.m)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
     }
 }
 
@@ -252,17 +289,13 @@ private struct ProLockedSettingsPage: View {
     @Environment(AppModel.self) private var app
     let title: LocalizedStringKey
     let feature: ProFeature
-    let back: () -> Void
 
     var body: some View {
         VStack(spacing: Metrics.Space.l) {
-            HStack {
-                Button(action: back) { Label("Back", systemImage: "chevron.left") }
-                Spacer()
-            }
-            .padding()
             Spacer()
-            Image(systemName: "lock.fill").font(.system(size: 34)).foregroundStyle(.tint)
+            Image(systemName: "lock.fill")
+                .font(.system(size: 34))
+                .foregroundStyle(.tint)
             Text(title).font(.title2.bold())
             Text("This configuration is available with Termind Pro.")
                 .foregroundStyle(.secondary)
@@ -270,222 +303,17 @@ private struct ProLockedSettingsPage: View {
                 .buttonStyle(.borderedProminent)
             Spacer()
         }
-    }
-}
-
-private struct SettingsSidebar: View {
-    let selection: SettingsSection
-    let select: (SettingsSection) -> Void
-
-    var body: some View {
-        SettingsNavigationNativeList(items: items) { item in
-            switch item.content {
-            case .group(let group):
-                Text(group.title)
-                    .textCase(.uppercase)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .tracking(0.7)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Metrics.Space.m)
-            case .section(let section, _):
-                sectionRow(section)
-            }
-        }
-        .padding(.horizontal, Metrics.Space.m)
-        .padding(.vertical, Metrics.Space.xl)
-        .termindGlassBar()
-    }
-
-    private var items: [SettingsNavigationItem] {
-        SettingsNavigationGroup.allCases.flatMap { group in
-            [.group(group)] + group.sections.map {
-                .section($0, selected: selection == $0)
-            }
-        }
-    }
-
-    private func sectionRow(_ section: SettingsSection) -> some View {
-        SidebarNavigatorRow(
-            title: section.title,
-            symbol: section.symbol,
-            isSelected: selection == section
-        ) {
-            select(section)
-        }
-    }
-}
-
-nonisolated enum SettingsNavigationGroup: CaseIterable, Hashable, Sendable {
-    case general, terminal, ai, sync
-    #if DEBUG
-        case development
-    #endif
-
-    var title: LocalizedStringKey {
-        switch self {
-        case .general: "General"
-        case .terminal: "Terminal"
-        case .ai: "AI"
-        case .sync: "Sync"
-        #if DEBUG
-            case .development: "Development"
-        #endif
-        }
-    }
-
-    var sections: [SettingsSection] {
-        switch self {
-        case .general: [.pro, .app, .startup, .sidebar]
-        case .terminal: [.terminalAppearance, .sftp]
-        case .ai: [.providers, .modelRoles, .webSearch, .mcp, .mcpServer]
-        case .sync: [.sync]
-        #if DEBUG
-            case .development: [.developer]
-        #endif
-        }
-    }
-}
-
-nonisolated struct SettingsNavigationItem: Identifiable, Hashable, Sendable {
-    nonisolated enum ID: Hashable, Sendable {
-        case group(SettingsNavigationGroup)
-        case section(SettingsSection)
-    }
-    nonisolated enum Content: Hashable, Sendable {
-        case group(SettingsNavigationGroup)
-        case section(SettingsSection, selected: Bool)
-    }
-    let id: ID
-    let content: Content
-
-    static func group(_ group: SettingsNavigationGroup) -> Self {
-        .init(id: .group(group), content: .group(group))
-    }
-    static func section(_ section: SettingsSection, selected: Bool) -> Self {
-        .init(id: .section(section), content: .section(section, selected: selected))
-    }
-    var height: CGFloat {
-        switch content {
-        case .group: 32
-        case .section: 36
-        }
-    }
-}
-
-private struct SettingsNavigationNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<SettingsNavigationItem>
-    typealias Renderer = @MainActor (SettingsNavigationItem) -> AnyView
-    let items: [SettingsNavigationItem]
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [SettingsNavigationItem],
-        @ViewBuilder renderer: @escaping @MainActor (SettingsNavigationItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<SettingsNavigationItem>()
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { item, _ in item.height }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-        func update(
-            listView: NSViewType, items: [SettingsNavigationItem], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: true
-            )
-        }
-        private func configure(_ row: HostingListRow, item: SettingsNavigationItem) {
-            content.configure(row, item: item)
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 struct SettingsFormPage<Content: View>: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(spacing: 0) {
-            SettingsPageHeader(title: title, subtitle: subtitle)
-            Divider()
-            Form { content }
-                .formStyle(.grouped)
-                .frame(maxWidth: Metrics.SettingsPage.contentWidth)
-                .frame(maxWidth: .infinity)
-        }
-    }
-}
-
-struct SettingsPageHeader: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            Text(title).font(.title2.weight(.semibold))
-            Text(subtitle).font(.callout).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: Metrics.SettingsPage.contentWidth, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Metrics.Space.xxl)
-        .padding(.vertical, Metrics.Space.xl)
-        .termindGlassBar()
-    }
-}
-
-struct SettingsDetailHeader: View {
-    let backLabel: LocalizedStringKey
-    let title: String
-    var subtitle: String?
-    let back: () -> Void
-    var trailing: AnyView?
-
-    var body: some View {
-        HStack(spacing: Metrics.Space.l) {
-            Button(action: back) { Label(backLabel, systemImage: "chevron.left") }
-                .buttonStyle(.borderless)
-                .keyboardShortcut(.cancelAction)
-
-            Divider().frame(height: 24)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.headline).lineLimit(1)
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-            }
-            Spacer()
-            if let trailing { trailing }
-        }
-        .padding(.horizontal, Metrics.Space.xl)
-        .padding(.vertical, Metrics.Space.m)
-        .termindGlassBar()
+        Form { content }
+            .formStyle(.grouped)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -519,7 +347,11 @@ private struct AppSettings: View {
             if language.rawValue != languageID { languageID = language.rawValue }
             AppLanguage.store(language)
         }
+    }
+}
 
+private struct AppInfoSettings: View {
+    var body: some View {
         Section("Version") {
             LabeledContent {
                 Text(Bundle.termindDisplayVersion).foregroundStyle(.secondary).textSelection(.enabled)
@@ -728,18 +560,28 @@ private struct TerminalSettings: View {
                     }
                 }
             }
-            Section("Terminal") {
-                Toggle("Shell Integration", isOn: $shellIntegration)
-                Text(
-                    "Keeps the remote working directory current, records confirmed commands, and provides detected distribution, kernel, and architecture details to AI features."
-                )
-                    .font(.caption).foregroundStyle(.secondary)
+            Section("Integration") {
+                Toggle(isOn: $shellIntegration) {
+                    VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                        Text("Shell Integration")
+                        Text(
+                            "Keeps the remote working directory current, records confirmed commands, and provides detected distribution, kernel, and architecture details to AI features."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
 
-                Toggle("Show Terminal Title in Menu Bar", isOn: $remoteWindowTitleInMenuBar)
-                Text(
-                    "Shows the focused SSH terminal's reported title after Help in the macOS menu bar."
-                )
-                    .font(.caption).foregroundStyle(.secondary)
+                Toggle(isOn: $remoteWindowTitleInMenuBar) {
+                    VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                        Text("Show Terminal Title in Menu Bar")
+                        Text(
+                            "Shows the focused SSH terminal's reported title after Help in the macOS menu bar."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .onAppear {

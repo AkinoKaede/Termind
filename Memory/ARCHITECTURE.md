@@ -31,8 +31,8 @@ framework and concrete-client restrictions that directory layout alone cannot.
 
 - Repository snapshots are application-wide and shared by every window.
 - A window owns one top-level shell, quick-open, and context-panel state.
-- The shell always starts with two pinned routes: `Vault`, then `Assistant`. Dynamic
-  dynamic destinations after them are SSH/SFTP Workspaces only.
+- The shell always starts with `Vault` and `Assistant`; Settings is the final Navigator
+  page after the dynamic SSH/SFTP Workspaces.
 - Vault owns its navigation column, including quick-connect Recents, and routes
   for Hosts, Keychain, Snippets, Welcome, and Host Editor. These routes never
   enter the Workspace deck.
@@ -44,7 +44,9 @@ framework and concrete-client restrictions that directory layout alone cannot.
 - A workspace owns SSH/SFTP/serial panes plus its session-scoped assistant
   conversation. Workspace content is full width and has no left sidebar.
 - Session models own live SSH/SFTP/serial resources and terminal/file-browser state.
-- Settings is a native singleton macOS `Settings` scene, outside window routing.
+- Settings uses app-wide preference storage but window-scoped navigation. It opens as a
+  top-level window destination, remembers the content it replaced, and restores that
+  destination when its index page goes back.
 
 Repository data is persistent truth. Runtime connection state is kept in a
 connection registry and is never persisted onto domain records.

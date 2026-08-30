@@ -413,7 +413,7 @@ struct ComposerView: View {
     var onSend: (() -> Void)?
 
     @Environment(AppModel.self) private var app
-    @Environment(\.openSettings) private var openSettings
+    @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
     @State private var draftBeforeTranscription = ""
@@ -1551,7 +1551,7 @@ struct ComposerView: View {
 
             Button {
                 isModelPickerPresented = false
-                openSettings()
+                window.openSettings(route: .category(.ai))
             } label: {
                 Label("Configure Model Providers", systemImage: "slider.horizontal.3")
                     .font(.callout)

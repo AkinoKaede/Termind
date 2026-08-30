@@ -522,7 +522,6 @@ final class AppModel {
     /// recognising four providers' distinct context-length errors, which is its
     /// own piece of work — this is what keeps a conversation from getting there.
     private func compactIfNeeded(_ conversation: ConversationModel) async {
-        guard SettingsKey.isAutoCompactEnabled else { return }
         guard let usage = conversation.usage else { return }
         let window = ai.resolve(conversation: conversation.model)?.model.contextLength
         guard
@@ -553,11 +552,11 @@ final class AppModel {
     }
 
     private var keepRecentTokens: Int {
-        SettingsKey.compactionKeepRecent
+        AgentCompaction.defaultKeepRecentTokens
     }
 
     private var reserveTokens: Int {
-        SettingsKey.compactionReserve
+        AgentCompaction.defaultReserveTokens
     }
 
     /// Exactly one path is ever live. Offering both would put two tools in

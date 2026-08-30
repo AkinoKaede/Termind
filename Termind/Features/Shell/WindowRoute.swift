@@ -79,10 +79,11 @@ nonisolated enum VaultWorkRoute: Hashable, Sendable {
     case snippetExecutionTargets(SnippetHostChooserRequest)
 }
 
-/// The top-level workspace selection for one window. Vault and Assistant are pinned and
-/// therefore have no close lifecycle; only Workspace entries are dynamic.
+/// The top-level workspace selection for one window. Vault, Assistant, and Settings
+/// have no close lifecycle; only Workspace entries are dynamic.
 nonisolated enum WindowDestination: Hashable, Sendable {
     case vault
     case assistant
+    case settings
     case workspace(Workspace.ID)
 }

@@ -27,6 +27,8 @@ struct WindowSidebarTests {
         #expect(window.availableSidebarModes == expected)
         window.selectAssistant()
         #expect(window.availableSidebarModes == expected)
+        window.openSettings()
+        #expect(window.availableSidebarModes == expected)
     }
 
     @Test

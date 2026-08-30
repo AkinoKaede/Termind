@@ -351,6 +351,11 @@ struct RootView: View {
                     .background(TermindColor.windowSurface)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                     .zIndex(2)
+            case .settings:
+                SettingsPageView()
+                    .background(TermindColor.windowSurface)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .zIndex(2)
             case .workspace:
                 if window.workspaces.isEmpty {
                     VaultView(pages: window.vaultPages)

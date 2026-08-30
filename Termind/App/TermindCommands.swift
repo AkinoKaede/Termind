@@ -17,6 +17,12 @@ struct TermindCommands: Commands {
     @FocusedValue(\.window) private var window
 
     var body: some Commands {
+        CommandGroup(replacing: .appSettings) {
+            Button("Settings") { window?.openSettings() }
+                .termindShortcut(",")
+                .disabled(window == nil)
+        }
+
         CommandGroup(replacing: .newItem) {
             // Keep Quick Open inside the replacement group. Placing it in a
             // separate group after `.newItem` makes SwiftUI discard it when

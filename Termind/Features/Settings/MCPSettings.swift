@@ -9,6 +9,7 @@ import SwiftUI
 struct MCPSettings: View {
     @Environment(AppModel.self) private var app
     let edit: (MCPServer.ID, Bool) -> Void
+    let openServer: () -> Void
 
     var body: some View {
         Section {
@@ -36,6 +37,8 @@ struct MCPSettings: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            FormNavigationAction(title: "Server", action: openServer)
         } header: {
             Text("MCP")
         }

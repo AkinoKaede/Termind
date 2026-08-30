@@ -23,40 +23,66 @@ struct WorkspaceNavigatorView: View {
     nonisolated private static let coordinateSpace = "termind.workspaceNavigator"
 
     var body: some View {
-        List {
-            // Applied once here rather than on each row: the rows are shared
-            // with the ListViewKit-backed modes, which have no list of their
-            // own to inset, and the one rendered edge everything lines up on is
-            // `Metrics.Sidebar.rowHorizontalMargin` inside the row itself.
-            Group {
-                welcomeRow
-                vaultSection
-                workspaceSection
+        VStack(spacing: 0) {
+            List {
+                // Applied once here rather than on each row: the rows are shared
+                // with the ListViewKit-backed modes, which have no list of their
+                // own to inset, and the one rendered edge everything lines up on is
+                // `Metrics.Sidebar.rowHorizontalMargin` inside the row itself.
+                Group {
+                    welcomeRow
+                    vaultSection
+                    workspaceSection
+                    settingsSection
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listStyle(.plain)
+            .contentMargins(.horizontal, 0, for: .scrollContent)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 0)
+            .coordinateSpace(.named(Self.coordinateSpace))
+            .overlay { workspaceLayoutDropTarget }
+
         }
-        .listStyle(.plain)
-        .contentMargins(.horizontal, 0, for: .scrollContent)
-        .scrollContentBackground(.hidden)
-        .environment(\.defaultMinListRowHeight, 0)
-        .coordinateSpace(.named(Self.coordinateSpace))
         // `List` is backed by AppKit. A destination attached to the SwiftUI
         // ancestor sits behind its native rows and only wins sporadically as a
         // pane crosses from Ghostty into the sidebar. Put one receiver above the
         // complete Workspace section while an internal layout drag is active.
-        .overlay { workspaceLayoutDropTarget }
         .onChange(of: window.selectedDestination) {
             switch window.selectedDestination {
             case .vault: vaultExpanded = true
-            case .assistant: break
+            case .assistant, .settings: break
             case .workspace: workspaceExpanded = true
             }
         }
         .onChange(of: window.vaultDestination) { vaultExpanded = true }
         .onChange(of: window.dragging) {
             if window.dragging?.isLayoutPayload != true { workspaceDropTarget = nil }
+        }
+    }
+
+    private var settingsSection: some View {
+        Group {
+            Text("Settings")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 32)
+                .padding(
+                    .horizontal,
+                    Metrics.Sidebar.navigationRowInset + Metrics.Sidebar.rowHorizontalMargin
+                )
+                .termindSidebarSectionLabel()
+
+            SidebarNavigatorRow(
+                title: "Settings",
+                symbol: "gearshape",
+                isSelected: window.selectedDestination == .settings
+            ) {
+                window.dragging = nil
+                window.openSettings()
+            }
         }
     }
 

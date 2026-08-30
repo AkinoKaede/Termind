@@ -515,7 +515,14 @@ struct WindowToolbarLeadingActions: View {
     var body: some View {
         let actions = window.creationActions
 
-        if actions.count == 1, let only = actions.first {
+        if window.selectedDestination == .settings {
+            Button(action: window.navigateBackInSettings) {
+                Label("Back", systemImage: "chevron.backward")
+                    .labelStyle(.iconOnly)
+            }
+            .keyboardShortcut(.cancelAction)
+            .help(Text("Back"))
+        } else if actions.count == 1, let only = actions.first {
             Button(action: only.perform) {
                 Label(
                     only.localizedTitle(locale: locale),
@@ -575,6 +582,8 @@ extension WindowModel {
                 }
             ]
         case .workspace:
+            return []
+        case .settings:
             return []
         case .vault:
             return vaultDestination.page.map(creationActions(for:)) ?? []

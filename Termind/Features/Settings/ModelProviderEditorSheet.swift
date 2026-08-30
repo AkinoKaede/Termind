@@ -25,7 +25,6 @@ final class ModelProviderEditorSession {
 struct ModelProviderEditorPage: View {
     @Environment(\.locale) private var locale
     let modelProviderID: ModelProvider.ID
-    let back: () -> Void
     let showModels: () -> Void
     let deleted: () -> Void
 
@@ -40,15 +39,8 @@ struct ModelProviderEditorPage: View {
     private var provider: ModelProvider? { app.aiConfiguration.modelProvider(modelProviderID) }
 
     var body: some View {
-        VStack(spacing: 0) {
+        Group {
             if let provider {
-                SettingsDetailHeader(
-                    backLabel: "Providers",
-                    title: provider.name.isEmpty ? String(localized: "Model Provider") : provider.name,
-                    subtitle: provider.resolvedBaseURL,
-                    back: back
-                )
-                Divider()
                 settings(provider)
             } else {
                 ContentUnavailableView("Provider Deleted", systemImage: "trash")
@@ -86,7 +78,7 @@ struct ModelProviderEditorPage: View {
                 vertexSection(provider)
             } else {
                 endpointSection(provider)
-                credentialSection(provider)
+                credentialSection
             }
 
             if provider.kind == .google {
@@ -133,7 +125,6 @@ struct ModelProviderEditorPage: View {
             }
         }
         .formStyle(.grouped)
-        .frame(maxWidth: Metrics.SettingsPage.contentWidth)
         .frame(maxWidth: .infinity)
     }
 
@@ -185,7 +176,7 @@ struct ModelProviderEditorPage: View {
     }
 
     @ViewBuilder
-    private func credentialSection(_ provider: ModelProvider) -> some View {
+    private var credentialSection: some View {
         Section {
             SecureField(
                 "API Key",

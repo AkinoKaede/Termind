@@ -92,32 +92,4 @@ nonisolated enum SettingsKey {
         UserDefaults.standard.object(forKey: webSearchBuiltIn) as? Bool
             ?? defaultWebSearchBuiltIn
     }
-    /// Summarize older turns automatically as a conversation approaches the
-    /// model's context window.
-    ///
-    /// On by default, and it can be because there is nothing to configure for it
-    /// to work: it uses the Chat model the conversation is already using, on the
-    /// key already in play. Off is for someone who would rather be told the
-    /// window is full and decide themselves — `/compact` still works.
-    static let autoCompactEnabled = "assistant.autoCompact"
-    static let defaultAutoCompactEnabled = true
-    static var isAutoCompactEnabled: Bool {
-        UserDefaults.standard.object(forKey: autoCompactEnabled) as? Bool
-            ?? defaultAutoCompactEnabled
-    }
-
-    /// Headroom held back for the reply when deciding whether to compact.
-    /// Pi's default.
-    static let compactionReserveTokens = "assistant.compaction.reserveTokens"
-    static var compactionReserve: Int {
-        let stored = UserDefaults.standard.integer(forKey: compactionReserveTokens)
-        return stored > 0 ? stored : AgentCompaction.defaultReserveTokens
-    }
-
-    /// Recent history never summarized. Pi's default.
-    static let compactionKeepRecentTokens = "assistant.compaction.keepRecentTokens"
-    static var compactionKeepRecent: Int {
-        let stored = UserDefaults.standard.integer(forKey: compactionKeepRecentTokens)
-        return stored > 0 ? stored : AgentCompaction.defaultKeepRecentTokens
-    }
 }

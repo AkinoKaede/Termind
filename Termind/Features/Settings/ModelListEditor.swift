@@ -34,7 +34,6 @@ struct ModelListEditor: View {
     }
 
     let modelProviderID: ModelProvider.ID
-    let back: () -> Void
 
     @Environment(AppModel.self) private var app
 
@@ -51,16 +50,7 @@ struct ModelListEditor: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            SettingsDetailHeader(
-                backLabel: state.isChoosing ? "Models" : "Provider",
-                title: state.isChoosing ? String(localized: "Add Models") : String(localized: "Models"),
-                subtitle: provider?.name,
-                back: {
-                    if state.isChoosing { state.isChoosing = false } else { back() }
-                }
-            )
-            Divider()
+        Group {
             if state.isChoosing {
                 candidatePicker
             } else {
@@ -71,7 +61,6 @@ struct ModelListEditor: View {
                     Divider()
                     detail
                 }
-                .frame(maxWidth: Metrics.SettingsPage.contentWidth)
                 .frame(maxWidth: .infinity)
             }
         }
@@ -809,7 +798,6 @@ private struct CandidatePicker: View {
             Divider()
             footer
         }
-        .frame(maxWidth: Metrics.SettingsPage.contentWidth)
         .frame(maxWidth: .infinity)
         .onChange(of: chooser.query) {
             chooser.queryDidChange(

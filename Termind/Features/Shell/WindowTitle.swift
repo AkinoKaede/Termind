@@ -42,8 +42,31 @@ struct WindowTitleCatalog {
         Self([
             AnyWindowTitleProvider(VaultWindowTitleProvider()),
             AnyWindowTitleProvider(AssistantWindowTitleProvider()),
+            AnyWindowTitleProvider(SettingsWindowTitleProvider()),
             AnyWindowTitleProvider(WorkspaceWindowTitleProvider(hosts: hosts)),
         ])
+    }
+}
+
+struct SettingsWindowTitleProvider: WindowTitleProviding {
+    func title(in window: WindowModel, locale: Locale) -> String? {
+        guard window.selectedDestination == .settings else { return nil }
+        switch window.settingsRoute {
+        case .index:
+            return AppLocalization.string("Settings", locale: locale)
+        case .category(let category):
+            return category.title(locale: locale)
+        case .modelProvider:
+            return AppLocalization.string("Model Provider", locale: locale)
+        case .providerModels:
+            return AppLocalization.string("Models", locale: locale)
+        case .mcpServer:
+            return AppLocalization.string("MCP", locale: locale)
+        case .localMCPServer:
+            return AppLocalization.string("MCP Server", locale: locale)
+        case .terminalConfiguration(let scheme):
+            return scheme.title
+        }
     }
 }
 
