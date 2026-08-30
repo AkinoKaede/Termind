@@ -215,12 +215,7 @@ final class VaultSyncJournal {
                 version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
                 payload: payload
             )
-            if let row { row.apply(envelope, needsUpload: true) }
-            else {
-                let inserted = try PersistentVaultSyncEntry(envelope: envelope, needsUpload: true)
-                context.insert(inserted)
-                entries[key.recordName] = inserted
-            }
+            try store(envelope, needsUpload: true, in: &entries)
             changed.insert(key)
         }
 
@@ -231,12 +226,7 @@ final class VaultSyncJournal {
                 version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
                 isDeleted: true
             )
-            if let row { row.apply(envelope, needsUpload: true) }
-            else {
-                let inserted = try PersistentVaultSyncEntry(envelope: envelope, needsUpload: true)
-                context.insert(inserted)
-                entries[key.recordName] = inserted
-            }
+            try store(envelope, needsUpload: true, in: &entries)
             changed.insert(key)
         }
         return VaultMutationSet(keys: changed)
@@ -293,13 +283,7 @@ final class VaultSyncJournal {
     func acceptRemote(_ envelopes: [VaultEnvelope]) throws {
         var entries = try entriesByName()
         for envelope in envelopes {
-            if let row = entries[envelope.key.recordName] {
-                row.apply(envelope, needsUpload: false)
-            } else {
-                let row = try PersistentVaultSyncEntry(envelope: envelope, needsUpload: false)
-                context.insert(row)
-                entries[envelope.key.recordName] = row
-            }
+            try store(envelope, needsUpload: false, in: &entries)
         }
     }
 
@@ -368,12 +352,7 @@ final class VaultSyncJournal {
                 version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
                 payload: payload
             )
-            if let row { row.apply(envelope, needsUpload: true) }
-            else {
-                let inserted = try PersistentVaultSyncEntry(envelope: envelope, needsUpload: true)
-                context.insert(inserted)
-                entries[key.recordName] = inserted
-            }
+            try store(envelope, needsUpload: true, in: &entries)
             changed.insert(key)
         }
 
@@ -429,6 +408,21 @@ final class VaultSyncJournal {
         )
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
+    }
+
+    private func store(
+        _ envelope: VaultEnvelope, needsUpload: Bool,
+        in entries: inout [String: PersistentVaultSyncEntry]
+    ) throws {
+        if let row = entries[envelope.key.recordName] {
+            row.apply(envelope, needsUpload: needsUpload)
+        } else {
+            let row = try PersistentVaultSyncEntry(
+                envelope: envelope, needsUpload: needsUpload
+            )
+            context.insert(row)
+            entries[envelope.key.recordName] = row
+        }
     }
 
     private func entriesByName() throws -> [String: PersistentVaultSyncEntry] {

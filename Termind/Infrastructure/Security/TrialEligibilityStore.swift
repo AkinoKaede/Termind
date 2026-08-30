@@ -218,21 +218,6 @@ actor TrialEligibilityStore {
             }
         }
 
-        func expireForTesting(now: Date = .now) throws -> Bool {
-            guard let key = try keychain.installKey() else { return false }
-            let envelopes = [defaults.data(forKey: Self.defaultsKey), try keychain.proof()]
-            let proofs = envelopes.compactMap { data -> TrialProof? in
-                guard let data else { return nil }
-                return try? TrialProofCodec.verify(data, key: key)
-            }
-            guard var proof = proofs.min(by: { $0.startedAt < $1.startedAt }) else {
-                return false
-            }
-            proof.startedAt = now.addingTimeInterval(-Self.duration - 60)
-            proof.lastTrustedAt = now
-            try persist(proof, key: key)
-            return true
-        }
     #endif
 
     private func makeProof(startedAt: Date, now: Date) -> TrialProof {

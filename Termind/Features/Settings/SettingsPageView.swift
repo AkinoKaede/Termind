@@ -168,7 +168,7 @@ struct SettingsPageView: View {
                 SFTPSettings()
             }
         case .providers:
-            SettingsCollectionPage(title: "Providers", subtitle: "Endpoints and credentials used by the assistant.") {
+            SettingsFormPage(title: "Providers", subtitle: "Endpoints and credentials used by the assistant.") {
                 ModelProviderSettings { id, isNew in
                     route = .modelProvider(id, isNew: isNew)
                 }
@@ -192,7 +192,7 @@ struct SettingsPageView: View {
                 WebSearchSettings()
             }
         case .mcp:
-            SettingsCollectionPage(title: "MCP", subtitle: "Remote MCP servers available to the assistant.") {
+            SettingsFormPage(title: "MCP", subtitle: "Remote MCP servers available to the assistant.") {
                 MCPSettings { id, isNew in route = .mcpServer(id, isNew: isNew) }
             }
         case .mcpServer:
@@ -427,23 +427,6 @@ private struct SettingsNavigationNativeList: NSViewRepresentable {
 }
 
 struct SettingsFormPage<Content: View>: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(spacing: 0) {
-            SettingsPageHeader(title: title, subtitle: subtitle)
-            Divider()
-            Form { content }
-                .formStyle(.grouped)
-                .frame(maxWidth: Metrics.SettingsPage.contentWidth)
-                .frame(maxWidth: .infinity)
-        }
-    }
-}
-
-struct SettingsCollectionPage<Content: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
     @ViewBuilder let content: Content

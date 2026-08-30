@@ -1271,7 +1271,7 @@ private enum NativeTranscriptFactory {
                     NativeLabel(
                         "• \(reason)",
                         font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
-                        color: riskColor(assessment.risk)
+                        color: nativeRiskColor(assessment.risk)
                     ))
             }
             stack.addArrangedSubview(reasons)
@@ -1294,7 +1294,7 @@ private enum NativeTranscriptFactory {
             run.handler = { [weak run] in
                 let deliver = { context.actions.deliverCommand(command.command, true) }
                 if assessment.requiresSecondConfirmation {
-                    confirmDestructiveCommand(
+                    presentDestructiveCommandConfirmation(
                         command.command,
                         reasons: assessment.reasons,
                         from: run,
@@ -1507,34 +1507,6 @@ private enum NativeTranscriptFactory {
         }
     }
 
-    private static func riskColor(_ risk: CommandRisk) -> NSColor {
-        switch risk {
-        case .safe: .systemGreen
-        case .caution: .systemOrange
-        case .destructive: .systemRed
-        }
-    }
-
-    private static func confirmDestructiveCommand(
-        _ command: String,
-        reasons: [String],
-        from view: NSView?,
-        action: @escaping () -> Void
-    ) {
-        let alert = NSAlert()
-        alert.alertStyle = .critical
-        alert.messageText = String(localized: "Run a destructive command?")
-        alert.informativeText = reasons.joined(separator: "\n")
-        alert.addButton(withTitle: String(localized: "Run \(command)"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        if let window = view?.window {
-            alert.beginSheetModal(for: window) { response in
-                if response == .alertFirstButtonReturn { action() }
-            }
-        } else if alert.runModal() == .alertFirstButtonReturn {
-            action()
-        }
-    }
 }
 
 @MainActor

@@ -654,41 +654,13 @@ actor AgentSSHAuthenticationRegistry {
         hostID: Host.ID, authentication: AgentSSHConfigurationSession,
         pool: AgentConnectionPool
     ) async throws -> any SSHExecSessionProtocol {
-        var override: AgentSSHConfigurationSession.Attempt?
-        while true {
-            let attemptedGeneration: UInt64
-            if let override {
-                attemptedGeneration = override.generation
-            } else {
-                attemptedGeneration = await authentication.currentGeneration
+        try await openAuthenticated(
+            hostID: hostID, authentication: authentication, pool: pool, kind: .exec
+        ) { attempt in
+            if let attempt {
+                return try await pool.exec(hostID: hostID) { _ in attempt.configuration }
             }
-            do {
-                if let override {
-                    return try await pool.exec(hostID: hostID) { _ in
-                        override.configuration
-                    }
-                }
-                return try await pool.exec(hostID: hostID)
-            } catch let error as TermindSSHError where error.shouldRequestAuthentication {
-                await pool.disconnect(hostID: hostID, kind: .exec)
-                await authentication.retry(after: error, generation: attemptedGeneration)
-                override = try await authentication.configurationAttempt()
-            } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
-                override = try await authentication.configurationAttempt()
-            } catch TermindSSHError.untrustedHost {
-                await authentication.retryHostKey(
-                    after: .untrustedHost, generation: attemptedGeneration
-                )
-                override = try await authentication.configurationAttempt()
-            } catch let error as TermindSSHError
-                where error.isHostKeyChanged || error.shouldRequestHostKey
-            {
-                await pool.disconnect(hostID: hostID, kind: .exec)
-                await authentication.retryHostKey(
-                    after: error, generation: attemptedGeneration
-                )
-                override = try await authentication.configurationAttempt()
-            }
+            return try await pool.exec(hostID: hostID)
         }
     }
 
@@ -699,43 +671,51 @@ actor AgentSSHAuthenticationRegistry {
         try await withSession(
             hostID: hostID, invocationID: invocationID, interaction: interaction
         ) { authentication in
-            var override: AgentSSHConfigurationSession.Attempt?
-            while true {
-                let attemptedGeneration: UInt64
-                if let override {
-                    attemptedGeneration = override.generation
-                } else {
-                    attemptedGeneration = await authentication.currentGeneration
+            try await self.openAuthenticated(
+                hostID: hostID, authentication: authentication, pool: pool, kind: .sftp
+            ) { attempt in
+                if let attempt {
+                    return try await pool.sftp(hostID: hostID) { _ in attempt.configuration }
                 }
-                do {
-                    if let override {
-                        return try await pool.sftp(hostID: hostID) { _ in
-                            override.configuration
-                        }
-                    }
-                    return try await pool.sftp(hostID: hostID)
-                } catch let error as TermindSSHError where error.shouldRequestAuthentication {
-                    await pool.disconnect(hostID: hostID, kind: .sftp)
-                    await authentication.retry(
-                        after: error, generation: attemptedGeneration
-                    )
-                    override = try await authentication.configurationAttempt()
-                } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
-                    override = try await authentication.configurationAttempt()
-                } catch TermindSSHError.untrustedHost {
-                    await authentication.retryHostKey(
-                        after: .untrustedHost, generation: attemptedGeneration
-                    )
-                    override = try await authentication.configurationAttempt()
-                } catch let error as TermindSSHError
-                    where error.isHostKeyChanged || error.shouldRequestHostKey
-                {
-                    await pool.disconnect(hostID: hostID, kind: .sftp)
-                    await authentication.retryHostKey(
-                        after: error, generation: attemptedGeneration
-                    )
-                    override = try await authentication.configurationAttempt()
-                }
+                return try await pool.sftp(hostID: hostID)
+            }
+        }
+    }
+
+    private func openAuthenticated<Client: Sendable>(
+        hostID: Host.ID, authentication: AgentSSHConfigurationSession,
+        pool: AgentConnectionPool, kind: AgentConnectionPool.Kind,
+        open: @Sendable (AgentSSHConfigurationSession.Attempt?) async throws -> Client
+    ) async throws -> Client {
+        var attempt: AgentSSHConfigurationSession.Attempt?
+        while true {
+            let attemptedGeneration: UInt64
+            if let attempt {
+                attemptedGeneration = attempt.generation
+            } else {
+                attemptedGeneration = await authentication.currentGeneration
+            }
+            do {
+                return try await open(attempt)
+            } catch let error as TermindSSHError where error.shouldRequestAuthentication {
+                await pool.disconnect(hostID: hostID, kind: kind)
+                await authentication.retry(after: error, generation: attemptedGeneration)
+                attempt = try await authentication.configurationAttempt()
+            } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
+                attempt = try await authentication.configurationAttempt()
+            } catch TermindSSHError.untrustedHost {
+                await authentication.retryHostKey(
+                    after: .untrustedHost, generation: attemptedGeneration
+                )
+                attempt = try await authentication.configurationAttempt()
+            } catch let error as TermindSSHError
+                where error.isHostKeyChanged || error.shouldRequestHostKey
+            {
+                await pool.disconnect(hostID: hostID, kind: kind)
+                await authentication.retryHostKey(
+                    after: error, generation: attemptedGeneration
+                )
+                attempt = try await authentication.configurationAttempt()
             }
         }
     }

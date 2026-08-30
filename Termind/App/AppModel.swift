@@ -341,10 +341,7 @@ final class AppModel {
                 ))
             return
         }
-        let credentialRef =
-            chat.provider.usesVertex && chat.provider.kind == .google
-            ? chat.provider.vertex.credentialRef : chat.provider.credentialRef
-        guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else {
+        guard let secret = ai.secret(for: chat.provider.effectiveCredentialRef), !secret.isEmpty else {
             conversation.messages.append(
                 ChatMessage(
                     role: .assistant, text: String(localized: "The Chat model has no available credential.")
@@ -361,10 +358,9 @@ final class AppModel {
         )
         let reviewer: (any SecurityReviewing)? = {
             guard mode == .approveForMe, let review = ai.resolve(.securityReview) else { return nil }
-            let ref =
-                review.provider.usesVertex && review.provider.kind == .google
-                ? review.provider.vertex.credentialRef : review.provider.credentialRef
-            guard let reviewSecret = ai.secret(for: ref), !reviewSecret.isEmpty else { return nil }
+            guard let reviewSecret = ai.secret(for: review.provider.effectiveCredentialRef),
+                !reviewSecret.isEmpty
+            else { return nil }
             let reasoning = SecurityReviewClient.preferredReasoning(
                 model: review.model, provider: review.provider
             )
@@ -545,10 +541,8 @@ final class AppModel {
     /// expensive.
     private func compactionModel() -> (any AgentModelCompleting)? {
         guard let resolved = ai.resolve(.chat) else { return nil }
-        let credentialRef =
-            resolved.provider.usesVertex && resolved.provider.kind == .google
-            ? resolved.provider.vertex.credentialRef : resolved.provider.credentialRef
-        guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else { return nil }
+        guard let secret = ai.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty
+        else { return nil }
         let reasoning = ModelCapabilityResolver.reasoning(
             model: resolved.model, provider: resolved.provider
         ).clamp(.off)

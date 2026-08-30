@@ -82,7 +82,7 @@ struct ModelProviderEditorPage: View {
                 }
             }
 
-            if provider.usesVertex && provider.kind == .google {
+            if provider.usesVertexEndpoint {
                 vertexSection(provider)
             } else {
                 endpointSection(provider)

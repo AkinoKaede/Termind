@@ -135,6 +135,12 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
 
     // MARK: - Resolution
 
+    var usesVertexEndpoint: Bool { usesVertex && kind == .google }
+
+    var effectiveCredentialRef: String {
+        usesVertexEndpoint ? vertex.credentialRef : credentialRef
+    }
+
     var resolvedBaseURL: String {
         let typed = baseURL.trimmingCharacters(in: .whitespaces)
         let value = typed.isEmpty ? kind.defaultBaseURL : typed
@@ -161,7 +167,7 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
     func resolvedRequestURL(model: String? = nil) -> String {
         let modelID = model ?? Self.modelToken
 
-        if usesVertex, kind == .google {
+        if usesVertexEndpoint {
             return "https://\(vertex.host)/v1/projects/\(vertex.projectID)"
                 + "/locations/\(vertex.location)/publishers/google/models/\(modelID):generateContent"
         }
@@ -172,14 +178,14 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
 
     /// Where `Fetch Models` goes. `nil` for Vertex — see `canFetchModels`.
     var resolvedModelsURL: String? {
-        guard !(usesVertex && kind == .google) else { return nil }
+        guard !usesVertexEndpoint else { return nil }
         return resolvedBaseURL + kind.modelsPath
     }
 
     // MARK: - State
 
     var hasCredential: Bool {
-        usesVertex && kind == .google ? vertex.isComplete : !credentialRef.isEmpty
+        usesVertexEndpoint ? vertex.isComplete : !credentialRef.isEmpty
     }
 
     /// Vertex is excluded deliberately, not for lack of an endpoint: its
@@ -188,7 +194,7 @@ nonisolated struct ModelProvider: Identifiable, Hashable, Sendable {
     /// call, so a fetch would fill the list with things that do not work.
     var canFetchModels: Bool {
         guard hasCredential else { return false }
-        return !(usesVertex && kind == .google)
+        return !usesVertexEndpoint
     }
 
     /// Whether this wire protocol has anywhere to *put* a server-side search

@@ -173,6 +173,13 @@ final class SFTPSessionModel: Identifiable {
         var conflictCount: Int
     }
 
+    private struct RemoteConflictPreflight {
+        var directories: [String]
+        var directoryConflicts: Set<String>
+        var targetKinds: [Bool?]
+        var conflictCount: Int
+    }
+
     let id = UUID()
     let hostID: Host.ID
     let initialPath: String
@@ -859,8 +866,6 @@ final class SFTPSessionModel: Identifiable {
         guard let client else { return }
         var jobs: [PreparedJob] = []
         var directories: [String] = []
-        var directoryConflicts: Set<String> = []
-        var conflicts = 0
         do {
             for root in urls {
                 let scoped = root.startAccessingSecurityScopedResource()
@@ -900,33 +905,20 @@ final class SFTPSessionModel: Identifiable {
                         ))
                 }
             }
-            let orderedDirectories = directories.sorted { $0.count < $1.count }
-            for directory in orderedDirectories {
-                if directoryConflicts.contains(where: { directory.hasPrefix($0 + "/") }) {
-                    continue
-                }
-                if let existing = try await client.attributes(at: directory), !existing.isDirectory {
-                    directoryConflicts.insert(directory)
-                    conflicts += 1
-                }
-            }
-            for index in jobs.indices where jobs[index].direction == .upload {
-                if directoryConflicts.contains(where: {
-                    jobs[index].remotePath.hasPrefix($0 + "/")
-                }) {
-                    continue
-                }
-                if let existing = try await client.attributes(at: jobs[index].remotePath) {
-                    jobs[index].hasConflict = true
-                    jobs[index].conflictingTargetIsDirectory = existing.isDirectory
-                    conflicts += 1
-                }
+            let preflight = try await remoteConflictPreflight(
+                directories: directories, targets: jobs.map(\.remotePath), client: client
+            )
+            for (index, kind) in zip(jobs.indices, preflight.targetKinds) {
+                guard let kind else { continue }
+                jobs[index].hasConflict = true
+                jobs[index].conflictingTargetIsDirectory = kind
             }
             pendingRemoteCopyBatch = nil
             pendingBatch = PreparedBatch(
-                jobs: jobs, remoteDirectories: orderedDirectories,
-                remoteDirectoryConflicts: directoryConflicts,
-                localDirectories: [], localDirectoryConflicts: [], conflictCount: conflicts
+                jobs: jobs, remoteDirectories: preflight.directories,
+                remoteDirectoryConflicts: preflight.directoryConflicts,
+                localDirectories: [], localDirectoryConflicts: [],
+                conflictCount: preflight.conflictCount
             )
         } catch { operationError = error.localizedDescription }
     }
@@ -987,9 +979,6 @@ final class SFTPSessionModel: Identifiable {
             let manifest = try await coordinator.remoteManifest(for: payload)
             var jobs: [PreparedRemoteCopyJob] = []
             var directories: [String] = []
-            var directoryConflicts: Set<String> = []
-            var conflicts = 0
-
             for entry in manifest.entries {
                 let destination = RemotePath.join(path, entry.relativePath)
                 if entry.isDirectory {
@@ -1006,39 +995,56 @@ final class SFTPSessionModel: Identifiable {
                 }
             }
 
-            let orderedDirectories = directories.sorted { $0.count < $1.count }
-            for directory in orderedDirectories {
-                if directoryConflicts.contains(where: { directory.hasPrefix($0 + "/") }) {
-                    continue
-                }
-                if let existing = try await client.attributes(at: directory), !existing.isDirectory {
-                    directoryConflicts.insert(directory)
-                    conflicts += 1
-                }
-            }
-            for index in jobs.indices {
-                if directoryConflicts.contains(where: {
-                    jobs[index].destinationPath.hasPrefix($0 + "/")
-                }) {
-                    continue
-                }
-                if let existing = try await client.attributes(at: jobs[index].destinationPath) {
-                    jobs[index].hasConflict = true
-                    jobs[index].conflictingTargetIsDirectory = existing.isDirectory
-                    conflicts += 1
-                }
+            let preflight = try await remoteConflictPreflight(
+                directories: directories, targets: jobs.map(\.destinationPath), client: client
+            )
+            for (index, kind) in zip(jobs.indices, preflight.targetKinds) {
+                guard let kind else { continue }
+                jobs[index].hasConflict = true
+                jobs[index].conflictingTargetIsDirectory = kind
             }
 
             pendingBatch = nil
             pendingRemoteCopyBatch = PreparedRemoteCopyBatch(
                 source: manifest.source, jobs: jobs,
-                remoteDirectories: orderedDirectories,
-                remoteDirectoryConflicts: directoryConflicts,
-                conflictCount: conflicts
+                remoteDirectories: preflight.directories,
+                remoteDirectoryConflicts: preflight.directoryConflicts,
+                conflictCount: preflight.conflictCount
             )
         } catch {
             operationError = error.localizedDescription
         }
+    }
+
+    private func remoteConflictPreflight(
+        directories: [String], targets: [String], client: any SFTPClientProtocol
+    ) async throws -> RemoteConflictPreflight {
+        let directories = directories.sorted { $0.count < $1.count }
+        var directoryConflicts: Set<String> = []
+        var targetKinds: [Bool?] = []
+        var conflictCount = 0
+
+        for directory in directories {
+            guard !directoryConflicts.contains(where: { directory.hasPrefix($0 + "/") })
+            else { continue }
+            if let existing = try await client.attributes(at: directory), !existing.isDirectory {
+                directoryConflicts.insert(directory)
+                conflictCount += 1
+            }
+        }
+        for target in targets {
+            guard !directoryConflicts.contains(where: { target.hasPrefix($0 + "/") }) else {
+                targetKinds.append(nil)
+                continue
+            }
+            let kind = try await client.attributes(at: target)?.isDirectory
+            targetKinds.append(kind)
+            if kind != nil { conflictCount += 1 }
+        }
+        return RemoteConflictPreflight(
+            directories: directories, directoryConflicts: directoryConflicts,
+            targetKinds: targetKinds, conflictCount: conflictCount
+        )
     }
 
     func open(

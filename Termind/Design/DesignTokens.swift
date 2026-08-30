@@ -334,7 +334,6 @@ enum TermindColor {
 
     static var primaryForeground: Color { Color(nsColor: .labelColor) }
     static var secondaryForeground: Color { Color(nsColor: .secondaryLabelColor) }
-    static var disabledForeground: Color { Color(nsColor: .disabledControlTextColor) }
     static var selectedForeground: Color {
         Color(nsColor: .alternateSelectedControlTextColor)
     }
@@ -349,9 +348,6 @@ enum TermindColor {
     static var danger: Color { Color(nsColor: .systemRed) }
 
     static var nativeAccent: NSColor { .controlAccentColor }
-    static var nativeSuccess: NSColor { .systemGreen }
-    static var nativeWarning: NSColor { .systemOrange }
-    static var nativeDanger: NSColor { .systemRed }
     static var nativeSelectedForeground: NSColor { .alternateSelectedControlTextColor }
 
     /// CALayer stores a concrete `CGColor`; assigning a named dynamic NSColor
@@ -391,8 +387,8 @@ enum Highlight {
 /// still macOS 15, where a native material is the honest fallback: it preserves
 /// translucency and accessibility settings without trying to paint a fake
 /// highlight gradient that can never respond like system glass.
-private struct TermindGlassSurface: ViewModifier {
-    let cornerRadius: CGFloat
+private struct TermindGlassShape<Shape: InsettableShape>: ViewModifier {
+    let shape: Shape
     let tint: Color?
     let isInteractive: Bool
 
@@ -401,72 +397,18 @@ private struct TermindGlassSurface: ViewModifier {
         if #available(macOS 26.0, *) {
             content.glassEffect(
                 .regular.tint(tint).interactive(isInteractive),
-                in: .rect(cornerRadius: cornerRadius)
+                in: shape
             )
         } else {
             content
                 .background {
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(.regularMaterial)
+                    shape.fill(.regularMaterial)
                     if let tint {
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(tint)
+                        shape.fill(tint)
                     }
                 }
                 .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
-                        .allowsHitTesting(false)
-                }
-        }
-    }
-}
-
-private struct TermindGlassCapsule: ViewModifier {
-    let tint: Color?
-    let isInteractive: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content.glassEffect(
-                .regular.tint(tint).interactive(isInteractive),
-                in: .capsule
-            )
-        } else {
-            content
-                .background {
-                    Capsule().fill(.regularMaterial)
-                    if let tint { Capsule().fill(tint) }
-                }
-                .overlay {
-                    Capsule()
-                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
-                        .allowsHitTesting(false)
-                }
-        }
-    }
-}
-
-private struct TermindGlassCircle: ViewModifier {
-    let tint: Color?
-    let isInteractive: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content.glassEffect(
-                .regular.tint(tint).interactive(isInteractive),
-                in: .circle
-            )
-        } else {
-            content
-                .background {
-                    Circle().fill(.regularMaterial)
-                    if let tint { Circle().fill(tint) }
-                }
-                .overlay {
-                    Circle()
+                    shape
                         .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
                         .allowsHitTesting(false)
                 }
@@ -629,8 +571,8 @@ extension View {
         tint: Color? = nil,
         isInteractive: Bool = false
     ) -> some View {
-        modifier(TermindGlassSurface(
-            cornerRadius: cornerRadius,
+        modifier(TermindGlassShape(
+            shape: RoundedRectangle(cornerRadius: cornerRadius),
             tint: tint,
             isInteractive: isInteractive
         ))
@@ -640,14 +582,18 @@ extension View {
         tint: Color? = nil,
         isInteractive: Bool = false
     ) -> some View {
-        modifier(TermindGlassCapsule(tint: tint, isInteractive: isInteractive))
+        modifier(TermindGlassShape(
+            shape: Capsule(), tint: tint, isInteractive: isInteractive
+        ))
     }
 
     func termindGlassCircle(
         tint: Color? = nil,
         isInteractive: Bool = false
     ) -> some View {
-        modifier(TermindGlassCircle(tint: tint, isInteractive: isInteractive))
+        modifier(TermindGlassShape(
+            shape: Circle(), tint: tint, isInteractive: isInteractive
+        ))
     }
 
     func termindGlassBar() -> some View {

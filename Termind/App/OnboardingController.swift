@@ -143,10 +143,6 @@ final class OnboardingController {
         }
     }
 
-    func isPresenting(_ step: OnboardingStep, in window: WindowModel) -> Bool {
-        presentation?.step == step && presentation?.windowID == ObjectIdentifier(window)
-    }
-
     func complete(_ step: OnboardingStep) {
         if presentation?.step == step, presentation?.mode == .preview {
             finishPreview()

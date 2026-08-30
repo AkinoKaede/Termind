@@ -899,72 +899,14 @@ private struct SnippetTargetPickerSheet: View {
     }
 }
 
-nonisolated private struct SnippetTargetListItem: Identifiable, Hashable, Sendable {
+nonisolated private struct SnippetTargetListItem: CursorHostingListItem, Sendable {
     let host: Host
     let isCursor: Bool
     let isChecked: Bool
     var id: Host.ID { host.id }
 }
 
-private struct SnippetTargetNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<SnippetTargetListItem>
-    typealias Renderer = @MainActor (SnippetTargetListItem) -> AnyView
-    let items: [SnippetTargetListItem]
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [SnippetTargetListItem],
-        @ViewBuilder renderer: @escaping @MainActor (SnippetTargetListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<SnippetTargetListItem>()
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.estimatedRowHeight = 52
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { _, _ in 52 }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [SnippetTargetListItem], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: true
-            )
-            if let cursor = items.first(where: \.isCursor) {
-                listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
-            }
-        }
-
-        private func configure(_ row: HostingListRow, item: SnippetTargetListItem) {
-            content.configure(row, item: item)
-        }
-    }
-}
+private typealias SnippetTargetNativeList = CursorHostingList<SnippetTargetListItem>
 
 struct SnippetPackageSheet: View {
     let existing: SnippetPackage?

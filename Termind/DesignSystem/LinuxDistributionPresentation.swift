@@ -4,19 +4,12 @@ import SwiftUI
 
 nonisolated struct LinuxDistributionIconEntry: Codable, Hashable, Sendable {
     var title: String
-    var slug: String
     var asset: String
     var ids: [String]
     var hex: String
-    var sourceURL: String
-    var license: String?
 }
 
 nonisolated struct LinuxDistributionIconCatalog: Codable, Sendable {
-    var source: String
-    var package: String
-    var version: String
-    var integrity: String
     var entries: [LinuxDistributionIconEntry]
 
     private static let bundled: Self? = {

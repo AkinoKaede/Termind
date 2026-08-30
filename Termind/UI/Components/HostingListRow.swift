@@ -78,3 +78,69 @@ final class HostingListContent<Item> where
             .environment(\.colorScheme, colorScheme))
     }
 }
+
+protocol CursorHostingListItem: Identifiable, Hashable {
+    var isCursor: Bool { get }
+}
+
+/// Fixed-height hosting list shared by keyboard-driven chooser sheets.
+struct CursorHostingList<Item>: NSViewRepresentable where
+    Item: CursorHostingListItem & SendableMetatype, Item.ID: Hashable
+{
+    typealias NSViewType = ListView<Item>
+    typealias Renderer = @MainActor (Item) -> AnyView
+
+    let items: [Item]
+    let renderer: Renderer
+    @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        items: [Item],
+        @ViewBuilder renderer: @escaping @MainActor (Item) -> some View
+    ) {
+        self.items = items
+        self.renderer = { AnyView(renderer($0)) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
+    func updateNSView(_ listView: NSViewType, context: Context) {
+        context.coordinator.update(
+            listView, items: items, renderer: renderer,
+            locale: locale, colorScheme: colorScheme
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private let content = HostingListContent<Item>()
+
+        func makeListView() -> NSViewType {
+            let listView = NSViewType()
+            listView.rowAnimator = ListBouncyAnimator(style: .regular)
+            listView.estimatedRowHeight = 52
+            listView.rows {
+                ListRow(HostingListRow.self)
+                    .height { _, _ in 52 }
+                    .configure { [weak self] row, item, _ in
+                        self?.content.configure(row, item: item)
+                    }
+            }
+            return listView
+        }
+
+        func update(
+            _ listView: NSViewType, items: [Item], renderer: @escaping Renderer,
+            locale: Locale, colorScheme: ColorScheme
+        ) {
+            content.update(
+                listView, items: items, renderer: renderer, locale: locale,
+                colorScheme: colorScheme, animated: true
+            )
+            if let cursor = items.first(where: \.isCursor) {
+                listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
+            }
+        }
+    }
+}

@@ -215,7 +215,7 @@ struct ModelListEditor: View {
     /// is the one people will otherwise read as a bug.
     private var fetchHelp: Text {
         guard let provider else { return Text("") }
-        if provider.usesVertex && provider.kind == .google {
+        if provider.usesVertexEndpoint {
             return Text(ModelCatalogError.unsupportedForVertex.localizedDescription)
         }
         if !provider.hasCredential {
@@ -304,7 +304,7 @@ struct ModelListEditor: View {
 
     private var emptyHint: LocalizedStringKey {
         guard let provider else { return "" }
-        if provider.usesVertex && provider.kind == .google {
+        if provider.usesVertexEndpoint {
             return "Add Vertex models manually"
         }
         return provider.hasCredential ? "Press Fetch" : "Add a key, then press Fetch"
@@ -657,9 +657,7 @@ struct ModelListEditor: View {
         guard let provider, provider.hasCredential, !state.isTesting, !targets.isEmpty else {
             return
         }
-        let secret = app.aiConfiguration.secret(for: provider.credentialRef) ?? ""
-        let vertexSecret = app.aiConfiguration.secret(for: provider.vertex.credentialRef) ?? ""
-        let credential = provider.usesVertex && provider.kind == .google ? vertexSecret : secret
+        let credential = app.aiConfiguration.secret(for: provider.effectiveCredentialRef) ?? ""
 
         state.isTesting = true
         for model in targets {

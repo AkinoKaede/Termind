@@ -363,3 +363,148 @@ Reference scanning confirmed that the following declarations had no callers:
 - The targeted verification batch passed: `ConnectionJourneyTests`, `SFTPFeatureTests`, `SFTPSessionTests`, `QuickOpenTests`, `WindowSidebarTests`, `RepositoryOutboxTests`, `SnippetFeatureTests`, and `PortForwardingFeatureTests`. Earlier targeted batches for tool presentation, histories, idle sweeping, provider networking, compaction, and Transcript/Composer behavior also passed.
 - Compiling the test target exposed two stale Swift 6 issues in `ExternalRequestTests`: missing required `startedAt` arguments and mutation of an actor-isolated captured Boolean from a Sendable observation callback. Fixed timestamps and a nonisolated reference flag now keep those serialized tests deterministic and compilable.
 - Items 1–25 are implemented at their documented safe boundaries. Future entries should be appended for newly discovered duplication instead of broadening completed items into callback-heavy abstractions.
+
+## Deep Scan III — 2026-08-30
+
+This pass rescanned all 252 production Swift files after Items 1–25 were completed. It compared exact and identifier-normalized code fragments, checked low-reference declarations against both `Termind` and `TermindTests`, and then read each candidate in context. The findings below are new work; none requires reviving an abstraction rejected by an earlier item.
+
+### 26. Delete the byte-identical `SettingsCollectionPage` wrapper — Highest priority
+
+**Status:** Completed on 2026-08-30; build and focused Settings tests passed.
+
+**Evidence:**
+
+- `SettingsFormPage` and `SettingsCollectionPage` in `Termind/Features/Settings/SettingsPageView.swift` have identical stored properties and identical bodies: header, divider, grouped form, content-width constraint, and outer expansion.
+- The only distinction is the type name. Provider and MCP routes construct `SettingsCollectionPage`; every other route constructs `SettingsFormPage`. There is no behavior or styling attached to the distinction.
+
+**Recommended action:** Replace the two `SettingsCollectionPage` construction sites with `SettingsFormPage`, then delete `SettingsCollectionPage`. Do not introduce a renamed third wrapper.
+
+**Estimated net reduction:** Approximately 15–17 lines with no new code.
+
+### 27. Merge the three fixed-height cursor-scrolling hosting lists — High priority; follow-up to Item 2
+
+**Status:** Completed on 2026-08-30; build and focused ListView/Chooser tests passed.
+
+**Evidence:**
+
+- `SnippetTargetNativeList`, `HostChooserNativeList`, and `ExportHostNativeList` are still nearly byte-identical after the general ListView migration.
+- All three use a 52-point `HostingListRow`, `ListBouncyAnimator`, `HostingListContent`, animated updates, and `items.first(where: \.isCursor)` followed by the same non-animated nearest-row scroll.
+- Their item types all satisfy the same real contract: `Identifiable & Hashable & SendableMetatype` plus a Boolean cursor property. Only the item and renderer types differ.
+
+**Recommended action:** Add one narrowly named fixed-height cursor hosting adapter in `UI/Components`, backed by a tiny item protocol exposing `isCursor`. Replace only these three adapters. Keep dynamically sized lists, drag/drop lists, Assistant conversation rows, and Transcript rows out of it.
+
+**Estimated net reduction:** Approximately 80–110 lines after the shared adapter is counted.
+
+### 28. Share the Agent Exec/SFTP authentication retry loop — High priority
+
+**Status:** Completed on 2026-08-30; build and all 21 Agent Host Authentication tests passed.
+
+**Evidence:**
+
+- `AgentSSHAuthenticationRegistry.openExec` and the loop inside `sftp` in `Termind/Application/Agent/AgentConnections.swift` repeat the same attempt-generation selection and four error branches.
+- Both retry authentication, obtain a new configuration attempt, retry untrusted/changed host keys, and disconnect the matching pooled connection before retrying remote authentication or host-key failures.
+- The meaningful differences are only the pool kind and the operation used to open the connection.
+
+**Recommended action:** Extract a private generic `openAuthenticated` loop that receives the connection kind and one async open closure. Keep Exec and SFTP return types explicit at their public entry points. Do not move pool implementation or authentication-session state into the helper.
+
+**Estimated net reduction:** Approximately 35–50 lines.
+
+### 29. Remove the second Native Transcript risk-color and destructive-confirmation implementation — High priority
+
+**Status:** Completed on 2026-08-30; build passed.
+
+**Evidence:**
+
+- `TranscriptNativeRows.swift` defines both `CommandNativeRow.riskColor` and file-private `nativeRiskColor`; their switches are identical.
+- The same file defines both `CommandNativeRow.confirmDestructiveCommand` and `presentDestructiveCommandConfirmation`; the complete `NSAlert` construction and sheet/modal fallback are byte-identical.
+- Each pair exists only because two native row implementations call different names. No type-specific state is used by either helper.
+
+**Recommended action:** Keep one file-private risk-color function and one file-private confirmation function and route both row types through them. Prefer the file-private location because neither operation belongs to one row class.
+
+**Estimated net reduction:** Approximately 25–35 lines.
+
+### 30. Replace three copied Glass shape modifiers with one shape-parameterized modifier — Medium-high priority
+
+**Status:** Completed on 2026-08-30; build passed.
+
+**Evidence:**
+
+- `TermindGlassSurface`, `TermindGlassCapsule`, and `TermindGlassCircle` in `Termind/Design/DesignTokens.swift` repeat the macOS 26 availability branch, regular Glass configuration, material fallback, optional tint fill, border, and hit-testing behavior.
+- Their only semantic difference is the shape: rounded rectangle, capsule, or circle. The public `termindGlassSurface`, `termindGlassCapsule`, and `termindGlassCircle` methods can remain unchanged.
+
+**Recommended action:** Use one private generic modifier parameterized by an insettable shape and have the three public view extensions construct it with the appropriate shape. Preserve the existing API and macOS 15 fallback exactly; do not type-erase the whole view tree.
+
+**Estimated net reduction:** Approximately 35–45 lines.
+
+### 31. Consolidate local Vault envelope insertion/update — Medium priority
+
+**Status:** Completed on 2026-08-30; build and all focused Vault Sync tests passed.
+
+**Evidence:**
+
+- `VaultSyncPersistence.recordLocalChanges` repeats the same `if let row { apply } else { create, insert, cache }` block for payload changes and tombstones.
+- `recordCurrentSnapshot` repeats that block again for current payloads, while `acceptRemote` contains the same insertion/update shape with `needsUpload: false`.
+- Envelope construction and the rules deciding which records changed are meaningful and different; only persistence of an already-constructed envelope is duplicated.
+
+**Recommended action:** Add a private helper that stores one `VaultEnvelope`, accepts `needsUpload`, and updates the in-memory `entries` index. Leave version creation, tombstone detection, `changed` tracking, and remote merge policy in their current callers.
+
+**Estimated net reduction:** Approximately 20–30 lines.
+
+### 32. Share remaining SFTP remote-conflict preflight — Medium-high priority; distinct from Item 17
+
+**Status:** Completed on 2026-08-30; build and focused SFTP Feature/Session tests passed.
+
+**Evidence:**
+
+- `SFTPSessionModel.prepareUpload` and `prepareRemoteCopy` still independently sort remote directories by path length, skip descendants of an already-conflicting directory, query remote attributes, count conflicts, and then query every remaining destination path.
+- Item 17 unified conflict-policy resolution after a batch exists. This duplication occurs earlier, while the two batch types are being prepared, so it was not removed by that work.
+- `PreparedJob` and `PreparedRemoteCopyJob` should remain separate; the reusable result is only the set of conflicting directories and the attributes found for destination paths.
+
+**Recommended action:** Extract a private async preflight that accepts remote directories and destination paths and returns ordered directories, conflicting directory paths, and conflicting target kinds. Each caller should map that result back onto its own job type. Do not create a universal transfer job with optional local/source fields.
+
+**Estimated net reduction:** Approximately 25–40 lines.
+
+### 33. Centralize the effective Vertex mode and credential reference on `ModelProvider` — Medium priority
+
+**Status:** Completed on 2026-08-30; build and focused Provider tests passed.
+
+**Evidence:**
+
+- The expression `usesVertex && kind == .google` is repeated across `ModelProvider`, `ModelCatalogClient`, `ModelListEditor`, `ModelProviderEditorSheet`, `CommandGeneratorService`, `ConversationTitleService`, and `AppModel`.
+- Six model-construction paths independently select `vertex.credentialRef` versus `credentialRef` with the same ternary expression.
+- `ModelProvider` already owns related derived behavior such as `hasCredential`, `resolvedRequestURL`, and `resolvedModelsURL`; callers should not re-derive which authentication mode is active.
+
+**Recommended action:** Add concise derived properties such as `usesVertexEndpoint` and `effectiveCredentialRef` to `ModelProvider`, then replace external branch copies. Keep `hasCredential` stricter than a nonempty reference because Vertex also requires project configuration.
+
+**Estimated net reduction:** Approximately 15–25 lines while removing a repeated provider rule.
+
+### 34. Delete newly confirmed uncalled declarations and unused decoded metadata — High priority; small batch
+
+**Status:** Completed on 2026-08-30; build passed.
+
+Reference scanning across production and test Swift found no caller for:
+
+- `OnboardingController.isPresenting`.
+- `AgentBuiltInTools.hostPreflight` in `AgentBuiltInSFTPTools.swift`.
+- `TermindColor.disabledForeground`, `nativeSuccess`, `nativeWarning`, and `nativeDanger`.
+- `TrialEligibilityStore.expireForTesting`; the Debug controller exposes only `resetForTesting`.
+- Runtime reads of `LinuxDistributionIconEntry.slug`, `sourceURL`, and `license`, and of `LinuxDistributionIconCatalog.source`, `package`, `version`, and `integrity`. The icon lookup uses only `title`, `asset`, `ids`, and `hex`.
+
+**Recommended action:** Delete the declarations after one final `rg` check. Remove the unused Linux metadata fields only from the runtime Codable structs; keep the metadata in the generated JSON and update script as supply-chain/license provenance. Swift's decoder ignores those extra JSON keys.
+
+**Estimated net reduction:** Approximately 35–45 lines with no replacement abstraction.
+
+## Deep Scan III — Items Deliberately Not Added
+
+- The duplicated V7/V8 SwiftData Host models in `HostPersistence.swift` are migration schemas, not ordinary runtime duplication. Merging them would invalidate stored-model contracts.
+- The dedicated Assistant conversation hosting row remains intentionally separate from `HostingListRow`: it clears itself when detached from the hierarchy and carries drag/drop identity state.
+- SSH and SFTP session models still share visible authentication shapes, but their credential persistence, transient-host handling, transport startup, and failure recovery differ. No further whole-session abstraction is recommended beyond the small connection-controller boundary already completed in Item 7.
+- The in-memory Command, Connection, and SFTP history repositories are structurally similar, but a generic repository would introduce type-erased predicates or policy closures for little net reduction. Their shared SwiftData transaction mechanics were already consolidated in Item 10.
+
+## Deep Scan III Implementation Verification — 2026-08-30
+
+- Items 26–34 add 235 and delete 508 production Swift lines: **net −273 lines**. Documentation changes are excluded from this count.
+- One Debug macOS build completed successfully after all nine items were implemented.
+- The focused batch ran 114 tests across Vault Sync, SFTP Feature/Session, Agent Connection Pool, ListView migration, Managed Chooser, AI Provider persistence, Settings navigation, and the color system. 113 passed. The sole failure is an unrelated pre-existing static-scan false positive: `ColorSystemTests.featureUIHasNoLiteralDisplayColorsOrDecorativeBlue` interprets the domain value `colorTag: .blue` in unchanged `HostLibraryModel+Demo.swift` as a display color.
+- A separate final run of all 21 `AgentHostAuthenticationTests` passed, covering shared prompts, rejected credentials, stale generations, host-key retries, Exec/SFTP separation, and scratch SFTP reuse through the consolidated retry loop.
+- `git diff --check` passed, and final reference scans found no remaining use of the deleted declarations or duplicate wrapper/helper names.

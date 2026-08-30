@@ -30,7 +30,7 @@ nonisolated struct ModelCatalogClient: Sendable {
     /// Paginates where the vendor paginates, and stops at `pageLimit` pages so
     /// a server that always says "there's more" cannot spin forever.
     func models(for provider: ModelProvider, secret: String) async throws -> [AIModel] {
-        guard !(provider.usesVertex && provider.kind == .google) else {
+        guard !provider.usesVertexEndpoint else {
             throw ModelCatalogError.unsupportedForVertex
         }
         let base = provider.resolvedModelsURL ?? ""

@@ -89,18 +89,14 @@ final class CommandGeneratorController: CommandGenerating {
     /// it only resolves the configured role and its already local credential.
     var isLocallyAvailable: Bool {
         guard let resolved = ai.resolve(.commandGenerator) else { return false }
-        let credentialRef = resolved.provider.usesVertex && resolved.provider.kind == .google
-            ? resolved.provider.vertex.credentialRef : resolved.provider.credentialRef
-        return ai.secret(for: credentialRef)?.isEmpty == false
+        return ai.secret(for: resolved.provider.effectiveCredentialRef)?.isEmpty == false
     }
 
     func generate(_ context: CommandGeneratorContext) async throws -> String {
         guard let resolved = ai.resolve(.commandGenerator) else {
             throw CommandGeneratorError.missingModel
         }
-        let credentialRef = resolved.provider.usesVertex && resolved.provider.kind == .google
-            ? resolved.provider.vertex.credentialRef : resolved.provider.credentialRef
-        guard let secret = ai.secret(for: credentialRef), !secret.isEmpty else {
+        guard let secret = ai.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty else {
             throw CommandGeneratorError.missingCredential
         }
         let reasoning = ModelCapabilityResolver.reasoning(

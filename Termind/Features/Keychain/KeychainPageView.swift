@@ -1317,7 +1317,7 @@ struct ExportKeyToHostsSheet: View {
     }
 }
 
-nonisolated private struct ExportHostListItem: Identifiable, Hashable, Sendable {
+nonisolated private struct ExportHostListItem: CursorHostingListItem, Sendable {
     let host: Host
     let isCursor: Bool
     let isSelected: Bool
@@ -1327,65 +1327,7 @@ nonisolated private struct ExportHostListItem: Identifiable, Hashable, Sendable 
     var id: Host.ID { host.id }
 }
 
-private struct ExportHostNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<ExportHostListItem>
-    typealias Renderer = @MainActor (ExportHostListItem) -> AnyView
-    let items: [ExportHostListItem]
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [ExportHostListItem],
-        @ViewBuilder renderer: @escaping @MainActor (ExportHostListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<ExportHostListItem>()
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.estimatedRowHeight = 52
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { _, _ in 52 }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [ExportHostListItem], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: true
-            )
-            if let cursor = items.first(where: \.isCursor) {
-                listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
-            }
-        }
-
-        private func configure(_ row: HostingListRow, item: ExportHostListItem) {
-            content.configure(row, item: item)
-        }
-    }
-}
+private typealias ExportHostNativeList = CursorHostingList<ExportHostListItem>
 
 // MARK: - Key card
 

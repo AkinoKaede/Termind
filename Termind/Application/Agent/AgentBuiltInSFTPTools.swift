@@ -438,18 +438,6 @@ nonisolated extension AgentBuiltInTools {
         }
     }
 
-    /// Resolves `host_id` before approval so the tool card names the host the
-    /// action is aimed at rather than an opaque argument blob.
-    private static func hostPreflight(
-        safety: AgentToolDescriptor.Safety
-    ) -> @Sendable (AgentToolInvocation) async throws -> AgentToolPreflight {
-        { invocation in
-            var checked = invocation
-            checked.targetHostID = try Arguments(invocation).uuid("host_id")
-            return AgentToolPreflight(invocation: checked, safety: safety)
-        }
-    }
-
     /// Internal rather than private because `scratch_pull` and `scratch_push` aim at
     /// the same remote paths the SFTP tools do, and two implementations of "what is
     /// a valid remote path" would be one too many.

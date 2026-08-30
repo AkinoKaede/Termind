@@ -604,72 +604,14 @@ struct HostChooserView: View {
 ///
 /// `isChecked` is nil outside batch mode, and then nothing is drawn — a single
 /// pick has one visual channel and does not need two.
-nonisolated struct HostChooserListItem: Identifiable, Hashable, Sendable {
+nonisolated struct HostChooserListItem: CursorHostingListItem, Sendable {
     let host: Host
     let isCursor: Bool
     let isChecked: Bool?
     var id: Host.ID { host.id }
 }
 
-private struct HostChooserNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<HostChooserListItem>
-    typealias Renderer = @MainActor (HostChooserListItem) -> AnyView
-    let items: [HostChooserListItem]
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [HostChooserListItem],
-        @ViewBuilder renderer: @escaping @MainActor (HostChooserListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<HostChooserListItem>()
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.estimatedRowHeight = 52
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { _, _ in 52 }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [HostChooserListItem], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: true
-            )
-            if let cursor = items.first(where: \.isCursor) {
-                listView.scrollToRow(with: cursor.id, at: .nearest, animated: false)
-            }
-        }
-
-        private func configure(_ row: HostingListRow, item: HostChooserListItem) {
-            content.configure(row, item: item)
-        }
-    }
-}
+private typealias HostChooserNativeList = CursorHostingList<HostChooserListItem>
 
 struct HostChooserRow: View {
     let host: Host
