@@ -264,6 +264,7 @@ private struct AssistantConversationList: View {
     typealias Scope = AssistantLibraryModel.SearchScope
 
     @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
     @AppStorage(SettingsKey.pinnedChatsSectionExpanded) private var pinnedExpanded = true
     @AppStorage(SettingsKey.chatsSectionExpanded) private var chatsExpanded = true
     @State private var deleteTarget: ConversationModel?
@@ -334,6 +335,7 @@ private struct AssistantConversationList: View {
         // object of type WindowModel found". The list is handed the same
         // reference so it can put it back into each row's hosting view.
         let window = window
+        let locale = locale
 
         return AssistantConversationNativeList(
             items: activeItems,
@@ -351,7 +353,7 @@ private struct AssistantConversationList: View {
                 )
                 window.dragging = nil
             },
-            blankAreaMenu: { Self.blankAreaMenu(in: window) }
+            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) }
         ) { item in
             renderedItem(item, window: window)
         }
@@ -360,13 +362,14 @@ private struct AssistantConversationList: View {
 
     private var archivedList: some View {
         let window = window
+        let locale = locale
 
         return AssistantConversationNativeList(
             items: archivedItems,
             window: window,
             topInset: Metrics.Space.m,
             bottomInset: Metrics.Space.m,
-            blankAreaMenu: { Self.blankAreaMenu(in: window) }
+            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) }
         ) { item in
             renderedItem(item, window: window)
                 .frame(maxWidth: archiveMaxWidth ?? .infinity)
@@ -382,13 +385,17 @@ private struct AssistantConversationList: View {
     ///
     /// Static, and given the window rather than reading it: AppKit asks for this
     /// when the pointer is already down, long after the body that built the list.
-    private static func blankAreaMenu(in window: WindowModel) -> [NativeMenuEntry] {
+    private static func blankAreaMenu(
+        in window: WindowModel, locale: Locale
+    ) -> [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: String(localized: "New Chat")) {
+            NativeMenuEntry(
+                title: AppLocalization.string("New Chat", locale: locale)
+            ) {
                 window.openNewAssistantChat()
             },
             NativeMenuEntry(
-                title: String(localized: "Show Archive"),
+                title: AppLocalization.string("Show Archive", locale: locale),
                 isOn: window.isAssistantArchivePresented
             ) { window.showAssistantArchive() },
         ]
@@ -1131,6 +1138,7 @@ struct AssistantConversationRow: View {
 
     @Environment(WindowModel.self) private var window
     @Environment(\.controlActiveState) private var controlActiveState
+    @Environment(\.locale) private var locale
     @State private var hovering = false
     @FocusState private var titleFocused: Bool
 
@@ -1182,7 +1190,7 @@ struct AssistantConversationRow: View {
     private var contextMenu: [NativeMenuEntry] {
         let managementDisabled = conversation.isStreaming || conversation.isCompacting
         var entries: [NativeMenuEntry] = [
-            NativeMenuEntry(title: String(localized: "Open Full Screen")) {
+            NativeMenuEntry(title: localized("Open Full Screen")) {
                 window.openAssistantFullScreen(conversation.id)
             },
             .separator,
@@ -1191,18 +1199,18 @@ struct AssistantConversationRow: View {
             entries.append(
                 NativeMenuEntry(
                     title: conversation.isPinned
-                        ? String(localized: "Unpin") : String(localized: "Pin"),
+                        ? localized("Unpin") : localized("Pin"),
                     isEnabled: !managementDisabled
                 ) { window.toggleAssistantPin(conversation.id) }
             )
         }
         entries.append(
-            NativeMenuEntry(title: String(localized: "Rename"), action: onBeginRename)
+            NativeMenuEntry(title: localized("Rename"), action: onBeginRename)
         )
         entries.append(
             NativeMenuEntry(
                 title: conversation.isArchived
-                    ? String(localized: "Unarchive") : String(localized: "Archive"),
+                    ? localized("Unarchive") : localized("Archive"),
                 isEnabled: conversation.isArchived || !managementDisabled
             ) {
                 window.setAssistantArchived(
@@ -1212,7 +1220,7 @@ struct AssistantConversationRow: View {
         )
         entries.append(.separator)
         entries.append(
-            NativeMenuEntry(title: String(localized: "Delete"), isDestructive: true) {
+            NativeMenuEntry(title: localized("Delete"), isDestructive: true) {
                 onDelete()
             }
         )
@@ -1262,10 +1270,14 @@ struct AssistantConversationRow: View {
                 .buttonStyle(.plain)
                 .help(Text(
                     conversation.isArchived
-                        ? String(localized: "Unarchive") : String(localized: "Archive")
+                        ? localized("Unarchive") : localized("Archive")
                 ))
             }
         }
+    }
+
+    private func localized(_ key: String.LocalizationValue) -> String {
+        AppLocalization.string(key, locale: locale)
     }
 }
 

@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 struct WorkspaceNavigatorView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
 
     @AppStorage(SettingsKey.vaultSectionExpanded) private var vaultExpanded = true
     @AppStorage(SettingsKey.workspaceSectionExpanded) private var workspaceExpanded = true
@@ -88,7 +89,7 @@ struct WorkspaceNavigatorView: View {
                             && window.vaultDestination.page == page,
                         // The page's own New verbs, so adding a host does not
                         // require visiting Hosts first.
-                        menu: { window.creationMenu(for: page) }
+                        menu: { window.creationMenu(for: page, locale: locale) }
                     ) {
                         window.dragging = nil
                         vaultExpanded = true
@@ -279,7 +280,7 @@ struct WorkspaceNavigatorView: View {
     private func beginWorkspaceRename(_ workspace: Workspace) {
         guard workspace.isRenameable else { return }
         renamingWorkspaceID = workspace.id
-        workspaceRenameTitle = workspace.title(in: app.hostLibrary)
+        workspaceRenameTitle = workspace.title(in: app.hostLibrary, locale: locale)
     }
 
     private func commitWorkspaceRename(_ workspace: Workspace) {
@@ -334,6 +335,7 @@ private struct WorkspaceNavigatorRow: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.controlActiveState) private var controlActiveState
+    @Environment(\.locale) private var locale
     @State private var hovering = false
     @FocusState private var titleFocused: Bool
 
@@ -355,7 +357,7 @@ private struct WorkspaceNavigatorRow: View {
                     .onExitCommand(perform: onCancelRename)
             } else {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(workspace.title(in: app.hostLibrary))
+                    Text(workspace.title(in: app.hostLibrary, locale: locale))
                         .fontWeight(isSelected ? .semibold : .regular)
                         .lineLimit(1)
                     if let subtitle = workspace.subtitle(in: app.hostLibrary) {
@@ -387,9 +389,11 @@ private struct WorkspaceNavigatorRow: View {
             window.dragging = .workspace(workspace.id)
             return NSItemProvider(object: workspace.id.uuidString as NSString)
         }
-        .help(Text(workspace.title(in: app.hostLibrary)))
+        .help(Text(workspace.title(in: app.hostLibrary, locale: locale)))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(workspace.title(in: app.hostLibrary)))
+        .accessibilityLabel(
+            Text(workspace.title(in: app.hostLibrary, locale: locale))
+        )
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
         .onChange(of: isRenaming, initial: true) {
             if isRenaming { DispatchQueue.main.async { titleFocused = true } }
@@ -424,11 +428,11 @@ private struct WorkspaceNavigatorRow: View {
         var entries: [NativeMenuEntry] = []
         if workspace.isRenameable {
             entries.append(
-                NativeMenuEntry(title: String(localized: "Rename"), action: onBeginRename)
+                NativeMenuEntry(title: localized("Rename"), action: onBeginRename)
             )
             if namedTitle != nil {
                 entries.append(
-                    NativeMenuEntry(title: String(localized: "Reset Name")) {
+                    NativeMenuEntry(title: localized("Reset Name")) {
                         window.rename(workspace.id, to: "")
                     }
                 )
@@ -441,7 +445,7 @@ private struct WorkspaceNavigatorRow: View {
         // detach from.
         if workspace.isSplit {
             entries.append(
-                NativeMenuEntry(title: String(localized: "Separate Panes")) {
+                NativeMenuEntry(title: localized("Separate Panes")) {
                     window.separatePanes(in: workspace.id)
                 }
             )
@@ -450,19 +454,19 @@ private struct WorkspaceNavigatorRow: View {
         if workspace.isCombinable {
             if workspace.isSplit {
                 entries.append(
-                    NativeMenuEntry(title: String(localized: "Duplicate in New Workspace")) {
+                    NativeMenuEntry(title: localized("Duplicate in New Workspace")) {
                         act { window.duplicateSelectedInNewWorkspace() }
                     }
                 )
             } else {
                 entries.append(
                     NativeMenuEntry(
-                        title: String(localized: "Duplicate"),
+                        title: localized("Duplicate"),
                         children: [
-                            NativeMenuEntry(title: String(localized: "In Current Workspace")) {
+                            NativeMenuEntry(title: localized("In Current Workspace")) {
                                 act { window.duplicateSelected(axis: .horizontal) }
                             },
-                            NativeMenuEntry(title: String(localized: "In New Workspace")) {
+                            NativeMenuEntry(title: localized("In New Workspace")) {
                                 act { window.duplicateSelectedInNewWorkspace() }
                             },
                         ]
@@ -471,29 +475,29 @@ private struct WorkspaceNavigatorRow: View {
             }
             entries.append(.separator)
             entries.append(
-                NativeMenuEntry(title: String(localized: "Split Right")) {
+                NativeMenuEntry(title: localized("Split Right")) {
                     act { window.splitSelected(axis: .horizontal) }
                 }
             )
             entries.append(
-                NativeMenuEntry(title: String(localized: "Split Down")) {
+                NativeMenuEntry(title: localized("Split Down")) {
                     act { window.splitSelected(axis: .vertical) }
                 }
             )
             entries.append(.separator)
         }
         entries.append(
-            NativeMenuEntry(title: String(localized: "Close Workspace")) {
+            NativeMenuEntry(title: localized("Close Workspace")) {
                 window.close(workspace.id)
             }
         )
         entries.append(
-            NativeMenuEntry(title: String(localized: "Close Other Workspaces")) {
+            NativeMenuEntry(title: localized("Close Other Workspaces")) {
                 window.closeOthers(than: workspace.id)
             }
         )
         entries.append(
-            NativeMenuEntry(title: String(localized: "Close All Workspaces")) {
+            NativeMenuEntry(title: localized("Close All Workspaces")) {
                 window.closeAll()
             }
         )
@@ -502,6 +506,10 @@ private struct WorkspaceNavigatorRow: View {
 
     private var namedTitle: String? {
         workspace.isSplit ? workspace.customTitle : workspace.focusedPane.customTitle
+    }
+
+    private func localized(_ key: String.LocalizationValue) -> String {
+        AppLocalization.string(key, locale: locale)
     }
 
     private func act(_ action: () -> Void) {

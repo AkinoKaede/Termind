@@ -127,9 +127,11 @@ final class Workspace: Identifiable {
     /// (see `WindowModel.rename`), and one thing has one name. It also means a
     /// renamed workspace reads "Workspace" the moment it is split, since the name it
     /// was given went to the pane rather than to the group.
-    func title(in store: HostLibraryModel) -> String {
-        if isSplit { return customTitle ?? String(localized: "Workspace") }
-        return focusedPane.title(in: store)
+    func title(in store: HostLibraryModel, locale: Locale = .current) -> String {
+        if isSplit {
+            return customTitle ?? AppLocalization.string("Workspace", locale: locale)
+        }
+        return focusedPane.title(in: store, locale: locale)
     }
 
     func subtitle(in store: HostLibraryModel) -> String? {

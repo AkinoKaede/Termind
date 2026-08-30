@@ -143,6 +143,16 @@ struct WindowToolbarFindTests {
         #expect(window.creationActions.map(\.id) == ["snippet", "package"])
     }
 
+    @Test
+    func creationActionsResolveUsingThePresentedLocale() throws {
+        let window = WindowModel()
+        window.openPage(.hosts)
+
+        let host = try #require(window.creationActions.first { $0.id == "host" })
+        #expect(host.localizedTitle(locale: Locale(identifier: "en")) == "New Host")
+        #expect(host.localizedTitle(locale: Locale(identifier: "zh-Hans-CN")) == "新建主机")
+    }
+
     /// Each Vault page keeps its own query, and keeps it across a page switch —
     /// the field lives in the titlebar and outlives the page under it.
     @Test
@@ -165,19 +175,22 @@ struct WindowToolbarFindTests {
     func titlebarNamesTheContentInFront() {
         let window = WindowModel()
         let title = VaultWindowTitleProvider()
+        let english = Locale(identifier: "en")
+        let chinese = Locale(identifier: "zh-Hans-CN")
 
         // Welcome is the app's front door, so it is named after the app.
         window.openPage(.welcome)
-        #expect(title.title(in: window) == ApplicationIdentity.displayName)
+        #expect(title.title(in: window, locale: chinese) == ApplicationIdentity.displayName)
 
         window.openPage(.hosts)
-        #expect(title.title(in: window) == VaultPage.hosts.title)
+        #expect(title.title(in: window, locale: english) == "Hosts")
+        #expect(title.title(in: window, locale: chinese) == "主机")
 
         window.openPage(.keychain)
-        #expect(title.title(in: window) == VaultPage.keychain.title)
+        #expect(title.title(in: window, locale: chinese) == "钥匙串")
 
         window.openPage(.snippets)
-        #expect(title.title(in: window) == VaultPage.snippets.title)
+        #expect(title.title(in: window, locale: chinese) == "片段")
     }
 
     /// Each provider answers only for its own destination, so the catalog can
@@ -187,8 +200,9 @@ struct WindowToolbarFindTests {
         let window = WindowModel()
         window.selectAssistant()
 
-        #expect(VaultWindowTitleProvider().title(in: window) == nil)
-        #expect(AssistantWindowTitleProvider().title(in: window) != nil)
+        let locale = Locale(identifier: "zh-Hans-CN")
+        #expect(VaultWindowTitleProvider().title(in: window, locale: locale) == nil)
+        #expect(AssistantWindowTitleProvider().title(in: window, locale: locale) != nil)
     }
 
     /// The Assistant names the conversation, not the destination.
@@ -200,15 +214,35 @@ struct WindowToolbarFindTests {
         store.insert(conversation)
         let window = WindowModel(assistantLibrary: AssistantLibraryModel(store: store))
         let title = AssistantWindowTitleProvider()
+        let locale = Locale(identifier: "zh-Hans-CN")
 
         window.selectAssistant()
-        #expect(title.title(in: window) == String(localized: "New Chat"))
+        #expect(title.title(in: window, locale: locale) == "新建对话")
 
         window.selectAssistant(conversation.id)
-        #expect(title.title(in: window) == "Nginx rollout")
+        #expect(title.title(in: window, locale: locale) == "Nginx rollout")
 
         window.showAssistantArchive()
-        #expect(title.title(in: window) == String(localized: "Archived"))
+        #expect(title.title(in: window, locale: locale) == "已归档")
+    }
+
+    @Test
+    func workspaceTitleLocalizesOnlyBuiltInFallbacks() {
+        let store = HostLibraryModel()
+        let locale = Locale(identifier: "zh-Hans-CN")
+        let first = Pane(.empty)
+        let second = Pane(.empty)
+        let workspace = Workspace(pane: first)
+        workspace.layout = .split(
+            .init(
+                axis: .horizontal, fraction: 0.5,
+                first: .leaf(first), second: .leaf(second)
+            )
+        )
+
+        #expect(workspace.title(in: store, locale: locale) == "工作区")
+        workspace.customTitle = "Production"
+        #expect(workspace.title(in: store, locale: locale) == "Production")
     }
 
     /// A tag stops existing when its last host loses it, so a filter pinned to

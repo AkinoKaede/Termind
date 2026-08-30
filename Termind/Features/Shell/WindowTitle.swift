@@ -10,17 +10,19 @@ import Foundation
 /// window only asks, and gains nothing to update when a new destination is added.
 protocol WindowTitleProviding {
     /// nil when the destination in front is not this provider's to name.
-    func title(in window: WindowModel) -> String?
+    func title(in window: WindowModel, locale: Locale) -> String?
 }
 
 struct AnyWindowTitleProvider: WindowTitleProviding {
-    private let resolve: (WindowModel) -> String?
+    private let resolve: (WindowModel, Locale) -> String?
 
     init<P: WindowTitleProviding>(_ provider: P) {
-        resolve = provider.title(in:)
+        resolve = provider.title(in:locale:)
     }
 
-    func title(in window: WindowModel) -> String? { resolve(window) }
+    func title(in window: WindowModel, locale: Locale) -> String? {
+        resolve(window, locale)
+    }
 }
 
 struct WindowTitleCatalog {
@@ -32,8 +34,8 @@ struct WindowTitleCatalog {
 
     /// The first provider that claims the destination. Empty when none does,
     /// which AppKit renders as no title at all rather than as a blank slot.
-    func title(in window: WindowModel) -> String {
-        providers.lazy.compactMap { $0.title(in: window) }.first ?? ""
+    func title(in window: WindowModel, locale: Locale) -> String {
+        providers.lazy.compactMap { $0.title(in: window, locale: locale) }.first ?? ""
     }
 
     static func standard(hosts: HostLibraryModel) -> Self {
@@ -48,11 +50,12 @@ struct WindowTitleCatalog {
 /// Vault pages are named after themselves — except Welcome, which is the app's
 /// front door and so is named after the app.
 struct VaultWindowTitleProvider: WindowTitleProviding {
-    func title(in window: WindowModel) -> String? {
+    func title(in window: WindowModel, locale: Locale) -> String? {
         guard window.selectedDestination == .vault,
             let page = window.vaultDestination.page
         else { return nil }
-        return page == .welcome ? ApplicationIdentity.displayName : page.title
+        return page == .welcome
+            ? ApplicationIdentity.displayName : page.title(locale: locale)
     }
 }
 
@@ -60,11 +63,13 @@ struct VaultWindowTitleProvider: WindowTitleProviding {
 /// where you are; which chat you are in is the part worth reading from across
 /// the desk.
 struct AssistantWindowTitleProvider: WindowTitleProviding {
-    func title(in window: WindowModel) -> String? {
+    func title(in window: WindowModel, locale: Locale) -> String? {
         guard window.selectedDestination == .assistant else { return nil }
-        if window.isAssistantArchivePresented { return String(localized: "Archived") }
+        if window.isAssistantArchivePresented {
+            return AppLocalization.string("Archived", locale: locale)
+        }
         return window.assistantLibrary.selectedConversation?.derivedTitle
-            ?? String(localized: "New Chat")
+            ?? AppLocalization.string("New Chat", locale: locale)
     }
 }
 
@@ -72,8 +77,8 @@ struct AssistantWindowTitleProvider: WindowTitleProviding {
 struct WorkspaceWindowTitleProvider: WindowTitleProviding {
     let hosts: HostLibraryModel
 
-    func title(in window: WindowModel) -> String? {
+    func title(in window: WindowModel, locale: Locale) -> String? {
         guard let workspace = window.selectedWorkspace else { return nil }
-        return workspace.title(in: hosts)
+        return workspace.title(in: hosts, locale: locale)
     }
 }

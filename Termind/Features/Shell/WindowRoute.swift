@@ -19,12 +19,12 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         }
     }
 
-    var title: String {
+    func title(locale: Locale = .current) -> String {
         switch self {
-        case .welcome: String(localized: "Welcome")
-        case .hosts: String(localized: "Hosts")
-        case .keychain: String(localized: "Keychain")
-        case .snippets: String(localized: "Snippets")
+        case .welcome: AppLocalization.string("Welcome", locale: locale)
+        case .hosts: AppLocalization.string("Hosts", locale: locale)
+        case .keychain: AppLocalization.string("Keychain", locale: locale)
+        case .snippets: AppLocalization.string("Snippets", locale: locale)
         }
     }
 

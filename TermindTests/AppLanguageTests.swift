@@ -103,6 +103,9 @@ struct AppLanguageTests {
             "Version": "版本",
             "Welcome": "欢迎",
             "Snippets": "片段",
+            "Pin": "置顶",
+            "Pinned": "置顶",
+            "Unpin": "取消置顶",
             "Approve for me": "帮我批准",
             "Full access": "完全访问权限",
         ]

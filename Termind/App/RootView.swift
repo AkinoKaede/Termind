@@ -10,6 +10,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.locale) private var locale
     @State private var window: WindowModel
     @State private var layoutWidth = Metrics.Window.defaultWidth
     @State private var automaticQuickOpenReady = false
@@ -74,7 +75,10 @@ struct RootView: View {
         .background { FullHeightWindowContent() }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { layoutWidth = $0 }
         .toolbarBackground(.hidden, for: .windowToolbar)
-        .navigationTitle(WindowTitleCatalog.standard(hosts: app.hostLibrary).title(in: window))
+        .navigationTitle(
+            WindowTitleCatalog.standard(hosts: app.hostLibrary)
+                .title(in: window, locale: locale)
+        )
         // The window's only toolbar. Creation on the left, one Find on the
         // right, both following the content in front rather than the sidebar —
         // see `WindowToolbarLeadingActions` and `WindowModel.findKind`.

@@ -638,7 +638,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld选中"
+            "value" : "已选择%lld项"
           }
         }
       }
@@ -8225,7 +8225,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "固定"
+            "value" : "置顶"
           }
         }
       }
@@ -8245,7 +8245,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "绑定"
+            "value" : "置顶"
           }
         }
       }
@@ -13652,7 +13652,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "撤销"
+            "value" : "取消置顶"
           }
         }
       }

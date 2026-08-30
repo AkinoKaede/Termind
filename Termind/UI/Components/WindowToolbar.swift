@@ -464,6 +464,7 @@ struct WindowToolbarSearchSlot: View {
 /// Welcome and on a workspace that has no searchable pane in front.
 struct WindowToolbarFindField: View {
     @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
     @State private var searchFieldOwner = NativeSearchFieldOwner()
 
     var body: some View {
@@ -471,7 +472,7 @@ struct WindowToolbarFindField: View {
             if let context = window.findContext() {
                 NativeSearchField(
                     text: context.query,
-                    placeholder: String(localized: "Search"),
+                    placeholder: AppLocalization.string("Search", locale: locale),
                     owner: searchFieldOwner,
                     focusRequest: context.focusRequest,
                     maintainsKeyboardFocus: window.isToolbarFindFocused,
@@ -481,8 +482,10 @@ struct WindowToolbarFindField: View {
                     onFocusChange: { window.isToolbarFindFocused = $0 }
                 )
                 .frame(width: Metrics.Toolbar.searchFieldWidth)
-                .help(Text(String(localized: "Search")))
-                .accessibilityLabel(Text(String(localized: "Search")))
+                .help(Text(AppLocalization.string("Search", locale: locale)))
+                .accessibilityLabel(
+                    Text(AppLocalization.string("Search", locale: locale))
+                )
             } else {
                 // Zero width, full height. A toolbar with nothing in it is
                 // shorter than one holding a search field, and the titlebar
@@ -507,19 +510,26 @@ struct WindowToolbarFindField: View {
 /// something the page in front cannot show.
 struct WindowToolbarLeadingActions: View {
     @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
 
     var body: some View {
         let actions = window.creationActions
 
         if actions.count == 1, let only = actions.first {
             Button(action: only.perform) {
-                Label(only.title, systemImage: "square.and.pencil")
+                Label(
+                    only.localizedTitle(locale: locale),
+                    systemImage: "square.and.pencil"
+                )
             }
-            .help(Text(only.title))
+            .help(Text(only.localizedTitle(locale: locale)))
         } else if !actions.isEmpty {
             Menu {
                 ForEach(actions) { action in
-                    Button(action.title, action: action.perform)
+                    Button(
+                        action.localizedTitle(locale: locale),
+                        action: action.perform
+                    )
                 }
             } label: {
                 Label("New", systemImage: "square.and.pencil")
@@ -535,16 +545,20 @@ struct WindowToolbarLeadingActions: View {
 /// One thing the titlebar's New control can make.
 struct WindowToolbarCreationAction: Identifiable {
     let id: String
-    let title: LocalizedStringKey
-    /// The same string for AppKit, which takes a `String` rather than a key.
-    let localizedTitle: String
+    private let titleKey: String.LocalizationValue
     let perform: () -> Void
 
-    init(id: String, title: String, perform: @escaping () -> Void) {
+    init(
+        id: String, title: String.LocalizationValue,
+        perform: @escaping () -> Void
+    ) {
         self.id = id
-        self.title = LocalizedStringKey(title)
-        self.localizedTitle = title
+        titleKey = title
         self.perform = perform
+    }
+
+    func localizedTitle(locale: Locale) -> String {
+        AppLocalization.string(titleKey, locale: locale)
     }
 }
 
@@ -614,9 +628,11 @@ extension WindowModel {
     }
 
     /// Those verbs as native menu entries, for the Navigator's own rows.
-    func creationMenu(for page: VaultPage) -> [NativeMenuEntry] {
+    func creationMenu(for page: VaultPage, locale: Locale) -> [NativeMenuEntry] {
         creationActions(for: page).map { action in
-            NativeMenuEntry(title: action.localizedTitle, action: action.perform)
+            NativeMenuEntry(
+                title: action.localizedTitle(locale: locale), action: action.perform
+            )
         }
     }
 

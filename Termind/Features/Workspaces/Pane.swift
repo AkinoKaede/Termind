@@ -287,9 +287,9 @@ final class Pane: Identifiable {
 
     /// Resolved against the store so a renamed host renames its workspaces — unless
     /// the user named this pane, in which case their word wins everywhere.
-    func title(in store: HostLibraryModel) -> String {
+    func title(in store: HostLibraryModel, locale: Locale = .current) -> String {
         if let customTitle { return customTitle }
-        return numbered(derivedTitle(in: store))
+        return numbered(derivedTitle(in: store, locale: locale))
     }
 
     /// The number only ever decorates a *derived* name. A name the user typed is
@@ -299,16 +299,17 @@ final class Pane: Identifiable {
         duplicateIndex > 0 ? "\(base) (\(duplicateIndex))" : base
     }
 
-    private func derivedTitle(in store: HostLibraryModel) -> String {
+    private func derivedTitle(in store: HostLibraryModel, locale: Locale) -> String {
         switch content {
         case .sshSession(let sshSession):
             sshSession.title
         case .sftpSession(let sftpSession):
-            store.host(sftpSession.hostID)?.name ?? String(localized: "SFTP")
+            store.host(sftpSession.hostID)?.name
+                ?? AppLocalization.string("SFTP", locale: locale)
         case .serialSession(let serialSession):
             serialSession.title
         case .empty:
-            String(localized: "Empty")
+            AppLocalization.string("Empty", locale: locale)
         }
     }
 
@@ -316,14 +317,14 @@ final class Pane: Identifiable {
     ///
     /// SFTP and SSH panes share Sessions, with their symbols distinguishing the
     /// protocol. The row therefore keeps the host name concise and unprefixed.
-    func sidebarTitle(in store: HostLibraryModel) -> String {
+    func sidebarTitle(in store: HostLibraryModel, locale: Locale = .current) -> String {
         if let customTitle { return customTitle }
         if case .sftpSession(let sftpSession) = content,
             let host = store.host(sftpSession.hostID)
         {
             return numbered(host.name)
         }
-        return numbered(derivedTitle(in: store))
+        return numbered(derivedTitle(in: store, locale: locale))
     }
 
     func subtitle(in store: HostLibraryModel) -> String? {

@@ -31,11 +31,11 @@ nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sen
 
     nonisolated var id: Self { self }
 
-    var displayName: String {
+    func displayName(locale: Locale = .current) -> String {
         switch self {
-        case .ssh: String(localized: "SSH")
-        case .sftp: String(localized: "SFTP")
-        case .serial: String(localized: "Serial")
+        case .ssh: AppLocalization.string("SSH", locale: locale)
+        case .sftp: AppLocalization.string("SFTP", locale: locale)
+        case .serial: AppLocalization.string("Serial", locale: locale)
         }
     }
 
@@ -159,6 +159,7 @@ struct HostChooserView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @State private var chooser: ManagedChooserState<Host.ID>
     @State private var connectionProtocol = HostConnectionProtocol.ssh
     @State private var serialConfiguration = SerialConnectionConfiguration()
@@ -260,7 +261,7 @@ struct HostChooserView: View {
     private var connectionProtocolPicker: some View {
         Picker("Connection Protocol", selection: $connectionProtocol) {
             ForEach(availableConnectionProtocols) { connectionProtocol in
-                Text(connectionProtocol.displayName).tag(connectionProtocol)
+                Text(connectionProtocol.displayName(locale: locale)).tag(connectionProtocol)
             }
         }
         .pickerStyle(.segmented)
@@ -390,12 +391,16 @@ struct HostChooserView: View {
     private var footer: some View {
         HStack {
             if purpose.allowsMultiple, connectionProtocol != .serial {
-                Text("\(chooser.selected.count) selected")
+                Text(
+                    AppLocalization.string(
+                        "\(chooser.selected.count) selected", locale: locale
+                    )
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
 
-                Button(allResultsChecked ? "Deselect All" : "Select All") {
+                Button(selectAllLabel) {
                     toggleAllResults()
                 }
                 .disabled(results.isEmpty)
@@ -463,11 +468,15 @@ struct HostChooserView: View {
         let path = serialConfiguration.normalizedDevicePath
         var info = stat()
         guard lstat(path, &info) == 0 else {
-            serialError = String(localized: "The device path does not exist.")
+            serialError = AppLocalization.string(
+                "The device path does not exist.", locale: locale
+            )
             return
         }
         guard (info.st_mode & S_IFMT) == S_IFCHR else {
-            serialError = String(localized: "The device path is not a character device.")
+            serialError = AppLocalization.string(
+                "The device path is not a character device.", locale: locale
+            )
             return
         }
         serialConfiguration.devicePath = path
@@ -546,10 +555,26 @@ struct HostChooserView: View {
 
     private var workspaceHelp: Text {
         if chooser.selected.count < 2 {
-            Text("Select at least two hosts. A Workspace can contain one or more hosts.")
+            Text(
+                AppLocalization.string(
+                    "Select at least two hosts. A Workspace can contain one or more hosts.",
+                    locale: locale
+                )
+            )
         } else {
-            Text("Open \(chooser.selected.count) hosts as panes in one workspace.")
+            Text(
+                AppLocalization.string(
+                    "Open \(chooser.selected.count) hosts as panes in one workspace.",
+                    locale: locale
+                )
+            )
         }
+    }
+
+    private var selectAllLabel: String {
+        AppLocalization.string(
+            allResultsChecked ? "Deselect All" : "Select All", locale: locale
+        )
     }
 
     private func move(_ delta: Int) -> KeyPress.Result {

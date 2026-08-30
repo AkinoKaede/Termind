@@ -119,7 +119,7 @@ final class AppCommandRegistry {
         VaultPage.allCases.map { page in
             AppCommandDescriptor(
                 id: "vault.\(page.rawValue)",
-                title: page.title,
+                title: page.title(),
                 subtitle: String(localized: "Vault"),
                 symbol: page.symbol,
                 section: .navigation,
