@@ -20,7 +20,17 @@ final class WindowModel {
     }
     /// The top-level shell has two pinned entries followed by dynamic SSH/SFTP
     /// Workspaces. This is the single source of truth for workspace selection.
-    var selectedDestination: WindowDestination = .vault
+    var selectedDestination: WindowDestination = .vault {
+        didSet {
+            if selectedDestination != .assistant {
+                assistantReturnDestination = selectedDestination
+            }
+        }
+    }
+    /// Where Navigator returns after the Assistant temporarily replaces the
+    /// detail surface. Assistant has no row inside the Navigator that could
+    /// retain the previous selection for us.
+    private var assistantReturnDestination: WindowDestination = .vault
     var vaultDestination: VaultDestination = .welcome
     var vaultWorkRoute: VaultWorkRoute?
     let assistantLibrary: AssistantLibraryModel
@@ -158,6 +168,48 @@ final class WindowModel {
         sidebar.reconcileMode()
     }
 
+    /// Applies a Sidebar mode chosen by the user, including the two mode-rail
+    /// buttons that also act as top-level navigation affordances.
+    ///
+    /// Direct `sidebarMode` assignment deliberately remains presentation-only
+    /// for restoration, screenshots, and other programmatic configuration.
+    func activateSidebarMode(_ mode: SidebarMode) {
+        guard sidebar.isModeEnabled(mode) else { return }
+        sidebarMode = mode
+
+        switch mode {
+        case .assistant:
+            // Inside a Workspace this is its compact, context-aware Assistant.
+            // Everywhere else the same control opens the full Assistant route.
+            if selectedWorkspace == nil {
+                selectAssistant()
+            }
+        case .navigation:
+            if selectedDestination == .assistant {
+                restoreAssistantReturnDestination()
+            }
+        case .snippets, .history:
+            break
+        }
+    }
+
+    private func restoreAssistantReturnDestination() {
+        switch assistantReturnDestination {
+        case .workspace(let id):
+            if workspaces.contains(where: { $0.id == id }) {
+                select(id)
+            } else {
+                selectVault()
+            }
+        case .vault:
+            selectVault()
+        case .assistant:
+            // Defensive only: the remembered destination is updated exclusively
+            // from non-Assistant routes.
+            selectVault()
+        }
+    }
+
     /// Opens the shared column and selects the current Workspace's assistant.
     /// Repeating the command is intentionally idempotent; hiding the column is
     /// the native Toggle Sidebar command's job.
@@ -195,6 +247,8 @@ final class WindowModel {
         self.vaultDestination = vaultDestination
         self.assistantLibrary = assistantLibrary
         selectedDestination = workspaces.first.map { .workspace($0.id) } ?? .vault
+        // Property observers do not run while an instance is being initialized.
+        assistantReturnDestination = selectedDestination
         for workspace in workspaces {
             workspace.lifecycleRouter = self
         }

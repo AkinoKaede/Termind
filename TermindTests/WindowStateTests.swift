@@ -321,11 +321,86 @@ struct WindowStateTests {
     func selectingAssistantDoesNotCreateAConversation() {
         let window = WindowModel()
 
-        window.selectAssistant()
+        window.activateSidebarMode(.assistant)
 
         #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.conversations.isEmpty)
         #expect(window.assistantLibrary.selectedConversation == nil)
+    }
+
+    @Test
+    func assistantAndNavigatorModeRailRoundTripsToThePreviousVaultRoute() {
+        let conversation = ConversationModel()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(
+            conversations: [conversation]
+        ))
+        let window = WindowModel(assistantLibrary: library)
+        window.selectAssistant(conversation.id)
+        window.openVaultWork(.hostEditor(nil), on: .hosts)
+
+        // The Assistant mode can already be selected after navigation elsewhere;
+        // pressing its selected button must still activate the Assistant route.
+        window.sidebarMode = .assistant
+        window.activateSidebarMode(.assistant)
+
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+
+        window.activateSidebarMode(.navigation)
+
+        #expect(window.selectedDestination == .vault)
+        #expect(window.vaultDestination == .hosts)
+        #expect(window.vaultWorkRoute == .hostEditor(nil))
+    }
+
+    @Test
+    func assistantModeRailStaysCompactInWorkspaceAndNavigatorReturnsThereFromFullScreen() {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "Server", host: "server.example")
+        )
+        let window = WindowModel(workspaces: [workspace])
+
+        window.activateSidebarMode(.assistant)
+
+        #expect(window.sidebarMode == .assistant)
+        #expect(window.selectedDestination == .workspace(workspace.id))
+
+        let conversation = window.assistantLibrary.createConversation()
+        window.openAssistantFullScreen(conversation.id)
+        window.activateSidebarMode(.navigation)
+
+        #expect(window.sidebarMode == .navigation)
+        #expect(window.selectedDestination == .workspace(workspace.id))
+    }
+
+    @Test
+    func navigatorFallsBackToVaultWhenTheAssistantReturnWorkspaceWasClosed() {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "Server", host: "server.example")
+        )
+        let window = WindowModel(workspaces: [workspace])
+        window.openAssistantFullScreen()
+
+        window.close(workspace.id)
+        window.activateSidebarMode(.navigation)
+
+        #expect(window.workspaces.isEmpty)
+        #expect(window.selectedDestination == .vault)
+    }
+
+    @Test
+    func nonNavigationToolModesAndDirectModeAssignmentDoNotNavigate() {
+        let window = WindowModel()
+        window.openPage(.hosts)
+
+        window.sidebarMode = .assistant
+        #expect(window.selectedDestination == .vault)
+
+        window.activateSidebarMode(.snippets)
+        #expect(window.selectedDestination == .vault)
+
+        window.activateSidebarMode(.history)
+        #expect(window.selectedDestination == .vault)
     }
 
     @Test
@@ -338,7 +413,7 @@ struct WindowStateTests {
 
         window.selectAssistant(conversation.id)
         window.selectVault()
-        window.selectAssistant()
+        window.activateSidebarMode(.assistant)
 
         #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.selectedConversation === conversation)
@@ -348,7 +423,7 @@ struct WindowStateTests {
         #expect(draft === window.assistantLibrary.draftConversation)
 
         window.selectVault()
-        window.selectAssistant()
+        window.activateSidebarMode(.assistant)
         #expect(window.assistantLibrary.selectedConversation == nil)
         #expect(draft === window.assistantLibrary.draftConversation)
     }
@@ -364,7 +439,7 @@ struct WindowStateTests {
         window.selectAssistant(conversation.id)
         window.showAssistantArchive()
         window.selectVault()
-        window.selectAssistant()
+        window.activateSidebarMode(.assistant)
 
         #expect(window.isAssistantArchivePresented)
         #expect(window.assistantLibrary.selectedConversation === conversation)

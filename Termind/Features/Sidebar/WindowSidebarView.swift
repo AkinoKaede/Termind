@@ -70,8 +70,8 @@ struct WindowSidebarView: View {
         let isEnabled = window.isSidebarModeEnabled(mode)
 
         return Button {
-            guard mode == .navigation || isEnabled else { return }
-            window.sidebarMode = mode
+            guard isEnabled else { return }
+            window.activateSidebarMode(mode)
         } label: {
             Group {
                 if #available(macOS 26.0, *), usesSystemGlass, isSelected {
