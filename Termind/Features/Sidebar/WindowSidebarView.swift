@@ -265,8 +265,10 @@ nonisolated enum SnippetSidebarListBuilder {
         return items
     }
 
-    static func searchItems(_ snippets: [Snippet]) -> [SidebarListItem] {
-        [.section(.results, title: "Results", count: snippets.count)]
+    static func searchItems(
+        _ snippets: [Snippet], title: String
+    ) -> [SidebarListItem] {
+        [.section(.results, title: title, count: snippets.count)]
             + snippets.map(SidebarListItem.snippet)
     }
 }
@@ -454,6 +456,7 @@ final class SidebarListContainer: NSView {
 private struct SnippetsSidebarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
 
     @State private var query = ""
     @State private var destructiveSnippet: Snippet?
@@ -491,7 +494,10 @@ private struct SnippetsSidebarView: View {
                 }
             }
 
-            SidebarSearchFooter(text: $query, placeholder: String(localized: "Search Snippets"))
+            SidebarSearchFooter(
+                text: $query,
+                placeholder: localized("Search Snippets")
+            )
         }
         .confirmationDialog(
             "Execute a destructive script?",
@@ -512,7 +518,9 @@ private struct SnippetsSidebarView: View {
 
     private var snippetListItems: [SidebarListItem] {
         if !query.isEmpty {
-            return SnippetSidebarListBuilder.searchItems(displayedSnippets)
+            return SnippetSidebarListBuilder.searchItems(
+                displayedSnippets, title: localized("Results")
+            )
         }
         var groups = packageSections.map {
             SnippetSidebarGroup(
@@ -521,7 +529,9 @@ private struct SnippetsSidebarView: View {
         }
         if !ungrouped.isEmpty {
             groups.append(
-                SnippetSidebarGroup(id: .ungrouped, title: "Ungrouped", snippets: ungrouped)
+                SnippetSidebarGroup(
+                    id: .ungrouped, title: localized("Ungrouped"), snippets: ungrouped
+                )
             )
         }
         return SnippetSidebarListBuilder.groupedItems(
@@ -536,8 +546,8 @@ private struct SnippetsSidebarView: View {
     /// way wherever it lands.
     private var blankAreaMenu: [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: String(localized: "Copy"), isEnabled: false),
-            NativeMenuEntry(title: String(localized: "Execute"), isEnabled: false),
+            NativeMenuEntry(title: localized("Copy"), isEnabled: false),
+            NativeMenuEntry(title: localized("Execute"), isEnabled: false),
         ]
     }
 
@@ -547,10 +557,10 @@ private struct SnippetsSidebarView: View {
         )
             .termindSidebarRow(isSelected: selectedSnippetID == snippet.id) {
                 [
-                    NativeMenuEntry(title: String(localized: "Copy")) {
+                    NativeMenuEntry(title: localized("Copy")) {
                         copyToPasteboard(snippet.body)
                     },
-                    NativeMenuEntry(title: String(localized: "Execute")) {
+                    NativeMenuEntry(title: localized("Execute")) {
                         requestExecution(snippet)
                     },
                 ]
@@ -564,6 +574,10 @@ private struct SnippetsSidebarView: View {
     }
 
     private var ungrouped: [Snippet] { app.hostLibrary.snippets(in: nil) }
+
+    private func localized(_ key: String.LocalizationValue) -> String {
+        AppLocalization.string(key, locale: locale)
+    }
 
     private var packageSections: [(package: SnippetPackage, path: String, snippets: [Snippet])] {
         flattenPackages(app.hostLibrary.rootSnippetPackages)

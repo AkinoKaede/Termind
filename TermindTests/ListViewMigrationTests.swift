@@ -255,7 +255,9 @@ struct ListViewMigrationTests {
             ]
         )
 
-        let search = SnippetSidebarListBuilder.searchItems([firstSnippet, secondSnippet])
+        let search = SnippetSidebarListBuilder.searchItems(
+            [firstSnippet, secondSnippet], title: "Results"
+        )
         #expect(
             search.map(\.id) == [
                 .section(.results),

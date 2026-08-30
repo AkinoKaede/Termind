@@ -594,13 +594,24 @@ private struct ProSettings: View {
         }
 
         Section("Included") {
-            Label("Permanent unlock", systemImage: "infinity")
-            Label("Apple Family Sharing", systemImage: "person.3")
-            Label("No subscription or automatic renewal", systemImage: "checkmark.seal")
+            includedFeature("Permanent unlock", systemImage: "infinity")
+            includedFeature("Apple Family Sharing", systemImage: "person.3")
+            includedFeature("No subscription or automatic renewal", systemImage: "checkmark.seal")
             Text("AI provider usage and charges are separate from Termind Pro.")
                 .font(.caption).foregroundStyle(.secondary)
         }
 
+    }
+
+    private func includedFeature(
+        _ title: LocalizedStringKey,
+        systemImage: String
+    ) -> some View {
+        HStack(spacing: Metrics.Space.s) {
+            Image(systemName: systemImage)
+                .frame(width: 20, alignment: .center)
+            Text(title)
+        }
     }
 
     @ViewBuilder

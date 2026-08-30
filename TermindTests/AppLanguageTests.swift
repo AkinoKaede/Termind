@@ -103,6 +103,7 @@ struct AppLanguageTests {
             "Version": "版本",
             "Welcome": "欢迎",
             "Snippets": "片段",
+            "Ungrouped": "未分组",
             "Pin": "置顶",
             "Pinned": "置顶",
             "Unpin": "取消置顶",
