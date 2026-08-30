@@ -277,6 +277,36 @@ struct WindowStateTests {
         #expect(window.assistantOperationError == "Storage unavailable")
     }
 
+    @Test
+    func failedCompactionSaveDoesNotChangeTheInMemoryContext() async throws {
+        let repository = FailingConversationOperationRepository()
+        let hosts = HostLibraryModel()
+        let app = AppModel(
+            hosts: hosts,
+            dependencies: AppDependencies(
+                hostRepository: InMemoryHostRepository(), outboxRunner: nil,
+                agentRunRepository: repository
+            )
+        )
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("old " + String(repeating: "x", count: 4_000))
+        conversation.appendUserTurn("recent")
+        let span = try #require(conversation.compactionSpan(keepRecentTokens: 2))
+        let record = try #require(conversation.prepareCompaction(
+            summary: "summary", cut: span.cut
+        ))
+        let transcript = conversation.transcript
+        let estimate = conversation.contextEstimate
+
+        await #expect(throws: (any Error).self) {
+            try await app.persistAndApplyCompaction(record, to: conversation, cut: span.cut)
+        }
+
+        #expect(conversation.transcript == transcript)
+        #expect(conversation.contextEstimate == estimate)
+        #expect(conversation.compactions.isEmpty)
+    }
+
     /// Each window used to build its own `ConversationModel` for the same
     /// conversation id, so a reply streaming in one window was invisible in the
     /// other and both could start a run against the same stored history.
@@ -1165,6 +1195,11 @@ private actor FailingConversationOperationRepository: AgentRunPersisting {
 
     func save(_ snapshot: AgentRunSnapshot) {}
     func record(_ event: AgentEvent, runID: UUID) {}
+    func persistCompaction(
+        _ record: AgentCompactionRecord, conversationID: UUID
+    ) throws {
+        throw StorageFailure()
+    }
     func loadConversations() -> [StoredAgentConversation] { [] }
     func deleteConversation(_ id: UUID) {}
     func setTitle(_ title: String, conversationID: UUID) {}

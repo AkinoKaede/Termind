@@ -290,6 +290,44 @@ struct AgentCompactionTests {
     }
 
     @Test
+    func preparingACompactionDoesNotMutateTheConversation() throws {
+        let conversation = ConversationModel()
+        for index in 0..<4 {
+            conversation.appendUserTurn("turn \(index) " + filler(tokens: 300))
+        }
+        let span = try #require(conversation.compactionSpan(keepRecentTokens: 300))
+        let transcript = conversation.transcript
+        let estimate = conversation.contextEstimate
+
+        let record = try #require(conversation.prepareCompaction(
+            summary: "summary", cut: span.cut
+        ))
+
+        #expect(conversation.transcript == transcript)
+        #expect(conversation.contextEstimate == estimate)
+        #expect(conversation.compactions.isEmpty)
+        #expect(record.compactedThroughMessageID == transcript[span.cut - 1].id)
+    }
+
+    @Test
+    func aRepeatedCompactionInheritsTheRawBoundaryWhenItOnlyFoldsTheOldSummary() throws {
+        let conversation = ConversationModel()
+        conversation.appendUserTurn("old " + filler(tokens: 600))
+        conversation.appendUserTurn("recent " + filler(tokens: 20))
+        let firstSpan = try #require(conversation.compactionSpan(keepRecentTokens: 20))
+        let first = try #require(conversation.applyCompaction(
+            summary: "first summary", cut: firstSpan.cut
+        ))
+
+        let second = try #require(conversation.prepareCompaction(
+            summary: "second summary", cut: 1
+        ))
+
+        #expect(second.compactedThroughMessageID == first.compactedThroughMessageID)
+        #expect(second.sequence == first.sequence + 1)
+    }
+
+    @Test
     func compactionActivityIsEphemeralAndNeverBecomesAMessage() throws {
         let conversation = ConversationModel()
         conversation.appendUserTurn("old " + filler(tokens: 800))
@@ -358,27 +396,58 @@ struct AgentCompactionTests {
     /// it whole — undoing the compaction at the point it was most needed.
     @Test
     func restoreDoesNotResurrectCompactedHistory() {
-        let restored = SwiftDataAgentRunRepository.compacted([
-            user("very old"),
-            assistant("older reply"),
-            AgentTranscriptMessage(role: .user, text: "## Goal\nfirst", isCompaction: true),
-            user("recent"),
-            AgentTranscriptMessage(role: .user, text: "## Goal\nsecond", isCompaction: true),
-            user("newest"),
-        ])
+        let at: (TimeInterval) -> Date = { Date(timeIntervalSinceReferenceDate: $0) }
+        let restored = AgentCompactionProjection.restore(messages: [
+            AgentTranscriptMessage(role: .user, text: "very old", createdAt: at(1)),
+            AgentTranscriptMessage(role: .assistant, text: "older reply", createdAt: at(2)),
+            AgentTranscriptMessage(
+                role: .user, text: "## Goal\nfirst", isCompaction: true, createdAt: at(2)
+            ),
+            AgentTranscriptMessage(role: .user, text: "recent", createdAt: at(3)),
+            AgentTranscriptMessage(
+                role: .user, text: "## Goal\nsecond", isCompaction: true, createdAt: at(3)
+            ),
+            AgentTranscriptMessage(role: .user, text: "newest", createdAt: at(4)),
+        ], records: [])
 
         // The last marker, not the first: a conversation compacted twice has
         // two, and the older summary was folded into the newer one.
-        #expect(restored.count == 2)
-        #expect(restored.first?.text.contains("second") == true)
-        #expect(restored.last?.text == "newest")
+        #expect(restored.modelTranscript.count == 2)
+        #expect(restored.modelTranscript.first?.text.contains("second") == true)
+        #expect(restored.modelTranscript.last?.text == "newest")
+        #expect(restored.messages.count == 4)
     }
 
     @Test
     func restoreLeavesAnUncompactedConversationAlone() {
         let messages = [user("a"), assistant("b")]
 
-        #expect(SwiftDataAgentRunRepository.compacted(messages).count == 2)
+        let restored = AgentCompactionProjection.restore(messages: messages, records: [])
+        #expect(restored.modelTranscript == messages)
+    }
+
+    @Test
+    func legacyInlineMarkerIsHiddenFromDisplayAndKeptForTheModel() {
+        let old = AgentTranscriptMessage(
+            role: .user, text: "old", createdAt: Date(timeIntervalSinceReferenceDate: 1)
+        )
+        let marker = AgentTranscriptMessage(
+            role: .user, text: "legacy summary", isCompaction: true,
+            createdAt: Date(timeIntervalSinceReferenceDate: 1)
+        )
+        let recent = AgentTranscriptMessage(
+            role: .assistant, text: "recent",
+            createdAt: Date(timeIntervalSinceReferenceDate: 2)
+        )
+
+        let restored = AgentCompactionProjection.restore(
+            messages: [old, marker, recent], records: []
+        )
+
+        #expect(restored.messages.map(\.id) == [old.id, recent.id])
+        #expect(restored.modelTranscript.map(\.id) == [marker.id, recent.id])
+        #expect(restored.records.count == 1)
+        #expect(restored.records.first?.summaryMessageID == marker.id)
     }
 
     // MARK: - The summarizer's prompt

@@ -507,13 +507,29 @@ final class AppModel {
             let summary = try await agentCompaction.summarize(
                 span.summarize, instructions: instructions, model: model
             )
-            conversation.applyCompaction(summary: summary, cut: span.cut)
+            guard let record = conversation.prepareCompaction(
+                summary: summary, cut: span.cut
+            ) else {
+                throw AgentCompactionError.nothingToCompact
+            }
+            try await persistAndApplyCompaction(record, to: conversation, cut: span.cut)
             conversation.endCompaction()
             return true
         } catch {
             conversation.failCompaction(error.localizedDescription)
             return false
         }
+    }
+
+    /// The atomicity boundary for compaction: persistence happens first, and
+    /// the observable model changes only after that succeeds.
+    func persistAndApplyCompaction(
+        _ record: AgentCompactionRecord, to conversation: ConversationModel, cut: Int
+    ) async throws {
+        try await agentRunRepository.persistCompaction(
+            record, conversationID: conversation.id
+        )
+        conversation.applyCompaction(record, cut: cut)
     }
 
     /// Compacts before a run when the conversation is close to the window.
@@ -807,6 +823,8 @@ final class AppModel {
         else { return }
         let stored = StoredAgentConversation(
             id: fork.id, messages: fork.transcript,
+            modelTranscript: fork.transcript,
+            compactions: fork.compactionRecords,
             messageRunIDs: fork.messageRunIDs,
             runs: Array(fork.runSummaries.values),
             toolCards: fork.toolCards.map {

@@ -113,6 +113,46 @@ final class PersistentAgentMessage {
     }
 }
 
+/// A compaction is conversation state, not output produced by an agent run.
+/// Keeping it in its own table preserves the complete run/message graph for the
+/// transcript reader while giving restore an exact model-context boundary.
+@Model
+final class PersistentAgentCompaction {
+    @Attribute(.unique) var id: UUID = UUID()
+    var conversationID: UUID = UUID()
+    var summaryMessageID: UUID = UUID()
+    var compactedThroughMessageID: UUID?
+    var sequence = 0
+    var summary = ""
+    var summarizedTokens = 0
+    var keptTokens = 0
+    var displayAnchor: Date = Date()
+    var compactedAt: Date = Date()
+
+    init(_ record: AgentCompactionRecord, conversationID: UUID) {
+        id = record.id
+        self.conversationID = conversationID
+        summaryMessageID = record.summaryMessageID
+        compactedThroughMessageID = record.compactedThroughMessageID
+        sequence = record.sequence
+        summary = AgentPersistenceRedactor.visibleText(record.summary)
+        summarizedTokens = record.summarizedTokens
+        keptTokens = record.keptTokens
+        displayAnchor = record.displayAnchor
+        compactedAt = record.compactedAt
+    }
+
+    var value: AgentCompactionRecord {
+        AgentCompactionRecord(
+            id: id, summaryMessageID: summaryMessageID,
+            compactedThroughMessageID: compactedThroughMessageID,
+            sequence: sequence, summary: summary,
+            summarizedTokens: summarizedTokens, keptTokens: keptTokens,
+            displayAnchor: displayAnchor, compactedAt: compactedAt
+        )
+    }
+}
+
 /// V3 storage for original context snapshots. A separate model keeps the V2
 /// message schema frozen and makes the migration an additive lightweight one.
 @Model
@@ -258,13 +298,14 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         // turns are replayed into every later run, so filtering by `runID` made
         // each save re-insert the whole history — colliding with the unique
         // constraint and rewriting rows that were already correct.
-        let ids = Set(snapshot.messages.map(\.id))
+        let durableMessages = snapshot.messages.filter { !$0.isCompaction }
+        let ids = Set(durableMessages.map(\.id))
         let stored = try context.fetch(FetchDescriptor<PersistentAgentMessage>(
             predicate: #Predicate { ids.contains($0.id) }
         ))
         let storedIDs = Set(stored.map(\.id))
         var inserted = false
-        for (sequence, message) in snapshot.messages.enumerated()
+        for (sequence, message) in durableMessages.enumerated()
             where !storedIDs.contains(message.id)
         {
             context.insert(PersistentAgentMessage(
@@ -275,6 +316,43 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         }
         guard inserted || context.hasChanges else { return }
         try context.save()
+    }
+
+    @MainActor
+    func persistCompaction(
+        _ record: AgentCompactionRecord, conversationID: UUID
+    ) async throws {
+        guard !deletedConversationIDs.contains(conversationID) else {
+            throw AgentConversationPersistenceError.conversationNotFound
+        }
+        let conversations = try context.fetch(FetchDescriptor<PersistentAgentConversation>(
+            predicate: #Predicate { $0.id == conversationID }
+        ))
+        guard conversations.first != nil else {
+            throw AgentConversationPersistenceError.conversationNotFound
+        }
+        if let boundary = record.compactedThroughMessageID {
+            let runIDs = Set(try context.fetch(FetchDescriptor<PersistentAgentRun>())
+                .filter { $0.conversationID == conversationID }.map(\.id))
+            let rows = try context.fetch(FetchDescriptor<PersistentAgentMessage>(
+                predicate: #Predicate { $0.id == boundary }
+            ))
+            guard rows.contains(where: { runIDs.contains($0.runID) }) else {
+                throw AgentConversationPersistenceError.messageNotFound
+            }
+        }
+        let recordID = record.id
+        let existing = try context.fetch(FetchDescriptor<PersistentAgentCompaction>(
+            predicate: #Predicate { $0.id == recordID }
+        ))
+        guard existing.isEmpty else { return }
+        context.insert(PersistentAgentCompaction(record, conversationID: conversationID))
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
     }
 
     @MainActor
@@ -321,6 +399,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         )
         let runs = try context.fetch(FetchDescriptor<PersistentAgentRun>())
         let messages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
+        let compactionRows = try context.fetch(FetchDescriptor<PersistentAgentCompaction>())
         let attachmentRows = try context.fetch(
             FetchDescriptor<PersistentAgentContextAttachments>()
         )
@@ -392,13 +471,20 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             let cards = invocations.filter { runIDs.contains($0.runID) }
                 .sorted { $0.createdAt < $1.createdAt }
                 .compactMap { storedToolCard($0, results: results, reviews: reviews) }
-            return StoredAgentConversation(
-                id: conversation.id,
-                messages: Self.compacted(Self.recovering(
+            let projection = AgentCompactionProjection.restore(
+                messages: Self.recovering(
                     transcript,
                     results: results.filter { runIDs.contains($0.runID) },
                     invocations: invocations.filter { runIDs.contains($0.runID) }
-                )),
+                ),
+                records: compactionRows.filter { $0.conversationID == conversation.id }
+                    .map(\.value)
+            )
+            return StoredAgentConversation(
+                id: conversation.id,
+                messages: projection.messages,
+                modelTranscript: projection.modelTranscript,
+                compactions: projection.records,
                 messageRunIDs: messageRunIDs,
                 runs: matchingRuns.compactMap { run in
                     guard let state = AgentRunState(rawValue: run.state) else { return nil }
@@ -519,6 +605,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
         let removedRuns = Array(runs[targetIndex...])
         let removedRunIDs = Set(removedRuns.map(\.id))
+        let removedMessageIDs = Set(allMessages.filter { removedRunIDs.contains($0.runID) }.map(\.id))
         deletedRunIDs.formUnion(removedRunIDs)
         let earlierRunIDs = Set(runs[..<targetIndex].map(\.id))
         let removesOpeningTurn = !allMessages.contains {
@@ -527,6 +614,12 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         }
         do {
             try deleteGraph(runIDs: removedRunIDs, runs: removedRuns)
+            for row in try context.fetch(FetchDescriptor<PersistentAgentCompaction>())
+                where row.conversationID == id
+                    && row.compactedThroughMessageID.map(removedMessageIDs.contains) == true
+            {
+                context.delete(row)
+            }
 
             let replacementRun = AgentRunSnapshot(
                 conversationID: id, state: .completed,
@@ -599,6 +692,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             let validRunIDs = Set(summaries.map(\.id))
             let fallbackRunID = summaries[0].id
             for (sequence, message) in value.messages.enumerated() {
+                guard !message.isCompaction else { continue }
                 context.insert(PersistentAgentMessage(
                     message,
                     runID: value.messageRunIDs[message.id].flatMap {
@@ -607,6 +701,9 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     sequence: sequence
                 ))
                 insertContextAttachments(for: message)
+            }
+            for record in value.compactions {
+                context.insert(PersistentAgentCompaction(record, conversationID: value.id))
             }
             for card in value.toolCards {
                 var invocation = card.invocation
@@ -644,6 +741,8 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         for row in conversations where row.id == id { context.delete(row) }
         let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>())
         for row in orderRows where row.conversationID == id { context.delete(row) }
+        for row in try context.fetch(FetchDescriptor<PersistentAgentCompaction>())
+            where row.conversationID == id { context.delete(row) }
         try context.save()
     }
 
@@ -684,23 +783,6 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
     /// gap, and does for anything still missing after this. Doing it here first
     /// is what gives the model the output the tool actually produced instead of
     /// being told the outcome is unknown when it is sitting in the database.
-    /// Re-applies a compaction that was recorded before the process ended.
-    ///
-    /// History is rebuilt from every stored message of every run, so a
-    /// conversation that was compacted would come back whole and be sent whole —
-    /// the compaction silently undone at exactly the point the window was
-    /// already tight. The synthetic summary turn carries `isCompaction`, and
-    /// everything before the newest one is dropped.
-    ///
-    /// The **last** marker, not the first: a conversation compacted twice has
-    /// two, and the older summary was itself folded into the newer one.
-    static func compacted(
-        _ messages: [AgentTranscriptMessage]
-    ) -> [AgentTranscriptMessage] {
-        guard let cut = messages.lastIndex(where: \.isCompaction) else { return messages }
-        return Array(messages[cut...])
-    }
-
     static func recovering(
         _ transcript: [AgentTranscriptMessage],
         results: [PersistentAgentToolResult],

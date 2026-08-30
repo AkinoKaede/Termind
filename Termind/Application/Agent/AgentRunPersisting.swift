@@ -20,6 +20,9 @@ nonisolated enum AgentConversationPersistenceError: LocalizedError, Sendable {
 nonisolated protocol AgentRunPersisting: Sendable {
     func save(_ snapshot: AgentRunSnapshot) async throws
     func record(_ event: AgentEvent, runID: UUID) async throws
+    func persistCompaction(
+        _ record: AgentCompactionRecord, conversationID: UUID
+    ) async throws
     func loadConversations() async throws -> [StoredAgentConversation]
     func deleteConversation(_ id: UUID) async throws
     /// Records the generated summary. Separate from `save` because it arrives
@@ -46,6 +49,10 @@ nonisolated protocol AgentRunPersisting: Sendable {
 nonisolated struct StoredAgentConversation: Sendable {
     var id: UUID
     var messages: [AgentTranscriptMessage]
+    /// The independently restored model-facing projection. `nil` preserves the
+    /// old memberwise-initializer behavior for callers that have no compaction.
+    var modelTranscript: [AgentTranscriptMessage]? = nil
+    var compactions: [AgentCompactionRecord] = []
     /// UI-only ownership restored from message rows. Keeping it outside the
     /// transcript prevents run identifiers leaking into provider requests.
     var messageRunIDs: [UUID: UUID] = [:]
@@ -55,6 +62,80 @@ nonisolated struct StoredAgentConversation: Sendable {
     /// The generated summary, or empty for a conversation that never got one.
     var title: String = ""
     var metadata = StoredAgentConversationMetadata()
+}
+
+nonisolated enum AgentCompactionProjection {
+    struct Restored: Sendable {
+        var messages: [AgentTranscriptMessage]
+        var modelTranscript: [AgentTranscriptMessage]
+        var records: [AgentCompactionRecord]
+    }
+
+    /// Separates legacy inline markers from raw display history, merges them
+    /// with dedicated records, and applies the newest valid boundary to the
+    /// model-facing transcript.
+    static func restore(
+        messages: [AgentTranscriptMessage], records stored: [AgentCompactionRecord]
+    ) -> Restored {
+        let raw = messages.filter { !$0.isCompaction }
+        let inline = messages.filter(\.isCompaction)
+        var legacy: [AgentCompactionRecord] = []
+        // Dedicated records are always newer than inline markers from the old
+        // format. Negative ordinals preserve that relationship without
+        // trusting wall-clock time across launches.
+        var nextSequence = -inline.count
+
+        for message in inline {
+            // Legacy markers may have been assigned to the next run, so their
+            // array position is not a trustworthy boundary. Their timestamp was
+            // deliberately copied from the last summarized message.
+            let boundaryIndex = raw.lastIndex { $0.createdAt <= message.createdAt }
+            let summarized = boundaryIndex.map { raw[...$0] } ?? raw[...]
+            let summarizedTokens = summarized.reduce(0) {
+                $0 + AgentContextEstimator.tokens(
+                    inCharacters: AgentContextEstimator.characterUnits(in: $1.text)
+                )
+            }
+            legacy.append(AgentCompactionRecord(
+                summaryMessageID: message.id,
+                compactedThroughMessageID: boundaryIndex.map { raw[$0].id },
+                sequence: nextSequence,
+                summary: message.text,
+                summarizedTokens: summarizedTokens,
+                keptTokens: AgentContextEstimator.tokens(
+                    inCharacters: AgentContextEstimator.characterUnits(in: message.text)
+                ),
+                displayAnchor: message.createdAt,
+                compactedAt: message.createdAt
+            ))
+            nextSequence += 1
+        }
+
+        let records = (stored + legacy).sorted {
+            $0.sequence == $1.sequence
+                ? $0.compactedAt < $1.compactedAt : $0.sequence < $1.sequence
+        }
+        return Restored(
+            messages: raw,
+            modelTranscript: modelTranscript(messages: raw, records: records),
+            records: records
+        )
+    }
+
+    static func modelTranscript(
+        messages: [AgentTranscriptMessage], records: [AgentCompactionRecord]
+    ) -> [AgentTranscriptMessage] {
+        for record in records.reversed() {
+            guard let boundary = record.compactedThroughMessageID else {
+                return [record.summaryMessage] + messages
+            }
+            guard let index = messages.firstIndex(where: { $0.id == boundary }) else {
+                continue
+            }
+            return [record.summaryMessage] + messages[messages.index(after: index)...]
+        }
+        return messages
+    }
 }
 
 nonisolated struct StoredAgentConversationMetadata: Hashable, Sendable {
@@ -88,16 +169,38 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
     private var storedToolCards: [UUID: [StoredAgentToolCard]] = [:]
     private var deletedConversationIDs = Set<UUID>()
     private var metadata: [UUID: StoredAgentConversationMetadata] = [:]
+    private var compactions: [UUID: [AgentCompactionRecord]] = [:]
     func save(_ snapshot: AgentRunSnapshot) {
         guard !deletedConversationIDs.contains(snapshot.conversationID) else { return }
-        snapshots[snapshot.id] = snapshot
+        var stored = snapshot
+        stored.messages.removeAll(where: \.isCompaction)
+        snapshots[stored.id] = stored
     }
     func record(_ event: AgentEvent, runID: UUID) {}
+    func persistCompaction(
+        _ record: AgentCompactionRecord, conversationID: UUID
+    ) throws {
+        guard !deletedConversationIDs.contains(conversationID),
+            snapshots.values.contains(where: { $0.conversationID == conversationID })
+        else { throw AgentConversationPersistenceError.conversationNotFound }
+        if let boundary = record.compactedThroughMessageID {
+            guard snapshots.values.contains(where: { snapshot in
+                snapshot.conversationID == conversationID
+                    && snapshot.messages.contains(where: { $0.id == boundary })
+            }) else { throw AgentConversationPersistenceError.messageNotFound }
+        }
+        guard compactions[conversationID]?.contains(where: { $0.id == record.id }) != true
+        else { return }
+        compactions[conversationID, default: []].append(record)
+    }
     func loadConversations() -> [StoredAgentConversation] {
         Dictionary(grouping: snapshots.values, by: \.conversationID).map { id, runs in
             let ordered = runs.sorted { $0.startedAt < $1.startedAt }
             var seen = Set<UUID>()
-            let messages = ordered.flatMap(\.messages).filter { seen.insert($0.id).inserted }
+            let storedMessages = ordered.flatMap(\.messages).filter { seen.insert($0.id).inserted }
+            let projection = AgentCompactionProjection.restore(
+                messages: storedMessages, records: compactions[id] ?? []
+            )
             var messageRunIDs: [UUID: UUID] = [:]
             for run in ordered {
                 for message in run.messages where messageRunIDs[message.id] == nil {
@@ -105,7 +208,10 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
                 }
             }
             return StoredAgentConversation(
-                id: id, messages: messages, messageRunIDs: messageRunIDs,
+                id: id, messages: projection.messages,
+                modelTranscript: projection.modelTranscript,
+                compactions: projection.records,
+                messageRunIDs: messageRunIDs,
                 runs: ordered.map {
                     AgentRunSummary(
                         id: $0.id, state: $0.state, startedAt: $0.startedAt,
@@ -158,8 +264,13 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
         }) else { throw AgentConversationPersistenceError.messageNotFound }
         let targetStart = target.startedAt
         let removedRunIDs = Set(ordered.filter { $0.startedAt >= targetStart }.map(\.id))
+        let removedMessageIDs = Set(ordered.filter { removedRunIDs.contains($0.id) }
+            .flatMap(\.messages).map(\.id))
         snapshots = snapshots.filter {
             $0.value.conversationID != id || $0.value.startedAt < targetStart
+        }
+        compactions[id]?.removeAll {
+            $0.compactedThroughMessageID.map(removedMessageIDs.contains) == true
         }
         storedToolCards[id]?.removeAll { removedRunIDs.contains($0.invocation.runID) }
         let replacement = AgentRunSnapshot(
@@ -186,12 +297,14 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
                 id: run.id, conversationID: conversation.id, state: run.state,
                 permissionMode: .askForApproval,
                 messages: conversation.messages.filter {
-                    (conversation.messageRunIDs[$0.id] ?? fallbackRunID) == run.id
+                    !$0.isCompaction
+                        && (conversation.messageRunIDs[$0.id] ?? fallbackRunID) == run.id
                 },
                 startedAt: run.startedAt, finishedAt: run.finishedAt
             )
         }
         storedToolCards[conversation.id] = conversation.toolCards
+        compactions[conversation.id] = conversation.compactions
         titles[conversation.id] = conversation.title
         metadata[conversation.id] = conversation.metadata
     }
@@ -199,6 +312,7 @@ actor InMemoryAgentRunRepository: AgentRunPersisting {
         deletedConversationIDs.insert(id)
         titles.removeValue(forKey: id)
         metadata.removeValue(forKey: id)
+        compactions.removeValue(forKey: id)
         storedToolCards.removeValue(forKey: id)
         snapshots = snapshots.filter { $0.value.conversationID != id }
     }

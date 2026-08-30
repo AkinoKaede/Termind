@@ -921,6 +921,9 @@ private actor RecordingRunRepository: AgentRunPersisting {
     var recorded: [AgentEvent] = []
     func save(_ snapshot: AgentRunSnapshot) {}
     func record(_ event: AgentEvent, runID: UUID) { recorded.append(event) }
+    func persistCompaction(
+        _ record: AgentCompactionRecord, conversationID: UUID
+    ) {}
     func loadConversations() -> [StoredAgentConversation] { [] }
     func deleteConversation(_ id: UUID) {}
     func setTitle(_ title: String, conversationID: UUID) {}

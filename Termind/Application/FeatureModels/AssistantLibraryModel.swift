@@ -71,7 +71,8 @@ final class AssistantConversationStore {
             let conversation = ConversationModel(
                 id: value.id,
                 messages: value.messages.compactMap { message in
-                    switch message.role {
+                    guard !message.isCompaction else { return nil }
+                    return switch message.role {
                     case .user:
                         ChatMessage(
                             id: message.id, role: .user,
@@ -94,10 +95,11 @@ final class AssistantConversationStore {
                 },
                 // Tool rows are dropped from the visible list because they are
                 // drawn as cards, but the model still needs them next turn.
-                transcript: value.messages,
+                transcript: value.modelTranscript ?? value.messages,
                 runState: value.lastRunState,
                 messageRunIDs: value.messageRunIDs,
                 runs: value.runs,
+                compactionRecords: value.compactions,
                 createdAt: value.metadata.createdAt,
                 updatedAt: value.metadata.updatedAt,
                 sortIndex: value.metadata.sortIndex

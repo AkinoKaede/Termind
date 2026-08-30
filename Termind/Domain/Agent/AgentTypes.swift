@@ -605,6 +605,31 @@ nonisolated struct AgentTranscriptMessage: Identifiable, Hashable, Sendable, Cod
     var createdAt: Date = .now
 }
 
+/// A durable replacement for the model-facing prefix of one conversation.
+///
+/// The original messages stay in run storage for the reader. This record says
+/// which raw message the summary replaces through, so persistence can rebuild a
+/// compact model transcript without deleting the display history or assigning
+/// the synthetic summary to a run that never produced it.
+nonisolated struct AgentCompactionRecord: Identifiable, Hashable, Sendable, Codable {
+    var id: UUID = UUID()
+    var summaryMessageID: UUID = UUID()
+    var compactedThroughMessageID: UUID?
+    var sequence: Int
+    var summary: String
+    var summarizedTokens: Int
+    var keptTokens: Int
+    var displayAnchor: Date
+    var compactedAt: Date = .now
+
+    var summaryMessage: AgentTranscriptMessage {
+        AgentTranscriptMessage(
+            id: summaryMessageID, role: .user, text: summary,
+            isCompaction: true, createdAt: displayAnchor
+        )
+    }
+}
+
 nonisolated struct AgentRunSnapshot: Identifiable, Hashable, Sendable, Codable {
     var id: UUID = UUID()
     var conversationID: UUID

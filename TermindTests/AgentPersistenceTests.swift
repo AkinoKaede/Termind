@@ -174,6 +174,48 @@ struct AgentPersistenceTests {
     }
 
     @Test
+    func schemaV8MigratesToV9WithEmptyCompactionBacking() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TermindAgentV9Migration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appendingPathComponent("Termind.store")
+        let legacySchema = Schema(versionedSchema: TermindSchemaV8.self)
+        let conversationID = UUID()
+
+        var legacyContainer: ModelContainer? = try ModelContainer(
+            for: legacySchema,
+            configurations: [
+                localModelConfiguration("Migration", schema: legacySchema, url: storeURL)
+            ]
+        )
+        legacyContainer?.mainContext.insert(PersistentAgentConversation(
+            id: conversationID, title: "Existing"
+        ))
+        try legacyContainer?.mainContext.save()
+        legacyContainer = nil
+
+        let migrated = try ModelContainer(
+            for: HostPersistence.schema,
+            migrationPlan: TermindMigrationPlan.self,
+            configurations: [
+                localModelConfiguration(
+                    "Migration", schema: HostPersistence.schema, url: storeURL
+                )
+            ]
+        )
+
+        #expect(try migrated.mainContext.fetch(
+            FetchDescriptor<PersistentAgentConversation>()
+        ).map(\.id) == [conversationID])
+        #expect(try migrated.mainContext.fetch(
+            FetchDescriptor<PersistentAgentCompaction>()
+        ).isEmpty)
+    }
+
+    @Test
     func displayReasoningRoundTripsRedactedWithoutProviderState() async throws {
         let configuration = localModelConfiguration(
             "AgentReasoningPersistenceTests", schema: HostPersistence.schema,
@@ -786,6 +828,10 @@ struct AgentPersistenceTests {
         let forkID = UUID()
         let originalMessageID = UUID()
         let forkMessageID = UUID()
+        let forkCompaction = AgentCompactionRecord(
+            compactedThroughMessageID: nil, sequence: 0, summary: "Fork base",
+            summarizedTokens: 10, keptTokens: 2, displayAnchor: .now
+        )
         try await repository.save(AgentRunSnapshot(
             conversationID: originalID, state: .completed,
             permissionMode: .askForApproval,
@@ -797,16 +843,204 @@ struct AgentPersistenceTests {
             id: forkID,
             messages: [AgentTranscriptMessage(
                 id: forkMessageID, role: .user, text: "Original", authoredText: "Original"
-            )], lastRunState: .completed,
+            )], compactions: [forkCompaction], lastRunState: .completed,
             metadata: StoredAgentConversationMetadata(customTitle: "Original (1)")
         ))
 
         let restored = try await repository.loadConversations()
         #expect(Set(restored.map(\.id)) == Set([originalID, forkID]))
         #expect(restored.first { $0.id == forkID }?.messages.first?.id == forkMessageID)
+        #expect(restored.first { $0.id == forkID }?.modelTranscript?.first?.id
+            == forkCompaction.summaryMessageID)
         #expect(restored.first { $0.id == forkID }?.metadata.customTitle == "Original (1)")
 
         try await repository.deleteConversation(originalID)
         #expect(try await repository.loadConversations().map(\.id) == [forkID])
+        try await repository.deleteConversation(forkID)
+        #expect(try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentCompaction>()
+        ).isEmpty)
+    }
+
+    @Test
+    func compactionPersistsImmediatelyWithoutReplacingDisplayHistory() async throws {
+        let configuration = localModelConfiguration(
+            "AgentCompactionPersistenceTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let conversationID = UUID()
+        let old = AgentTranscriptMessage(
+            role: .user, text: "Old question " + String(repeating: "x", count: 4_000)
+        )
+        let answer = AgentTranscriptMessage(
+            role: .assistant, text: "Old answer " + String(repeating: "y", count: 4_000)
+        )
+        let recent = AgentTranscriptMessage(role: .user, text: "Recent question")
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        try await repository.save(AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval, messages: [old, answer, recent]
+        ))
+        let record = AgentCompactionRecord(
+            compactedThroughMessageID: answer.id, sequence: 0,
+            summary: "## Goal\nKeep the recent work",
+            summarizedTokens: 20, keptTokens: 8,
+            displayAnchor: answer.createdAt
+        )
+
+        try await repository.persistCompaction(record, conversationID: conversationID)
+
+        let reopened = SwiftDataAgentRunRepository(context: container.mainContext)
+        let restored = try #require(try await reopened.loadConversations().first)
+        #expect(restored.messages.map(\.id) == [old.id, answer.id, recent.id])
+        #expect(restored.modelTranscript?.map(\.id) == [record.summaryMessageID, recent.id])
+        #expect(restored.modelTranscript?.first?.isCompaction == true)
+        #expect(restored.compactions == [record])
+        let store = AssistantConversationStore()
+        store.restore([restored])
+        let live = try #require(store.conversation(id: conversationID))
+        #expect(live.messages.map(\.id) == [old.id, answer.id, recent.id])
+        #expect(live.transcript.map(\.id) == [record.summaryMessageID, recent.id])
+        #expect(live.compactions.map(\.id) == [record.id])
+        let fullContext = ConversationModel(transcript: restored.messages).contextEstimate.total
+        #expect(live.contextEstimate.total < fullContext)
+        #expect(try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentCompaction>()
+        ).count == 1)
+    }
+
+    @Test
+    func aRunAfterCompactionDoesNotPersistTheSyntheticSummaryAsAMessage() async throws {
+        let configuration = localModelConfiguration(
+            "AgentCompactionNextRunTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let conversationID = UUID()
+        let old = AgentTranscriptMessage(role: .user, text: "Old")
+        let recent = AgentTranscriptMessage(role: .assistant, text: "Recent")
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        try await repository.save(AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval, messages: [old, recent]
+        ))
+        let record = AgentCompactionRecord(
+            compactedThroughMessageID: old.id, sequence: 0, summary: "Summary",
+            summarizedTokens: 10, keptTokens: 2, displayAnchor: old.createdAt
+        )
+        try await repository.persistCompaction(record, conversationID: conversationID)
+        let followUp = AgentTranscriptMessage(role: .user, text: "Continue")
+        try await repository.save(AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval,
+            messages: [record.summaryMessage, recent, followUp]
+        ))
+
+        let messageRows = try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessage>()
+        )
+        let compactionMessageCount = messageRows.filter { $0.isCompaction }.count
+        #expect(compactionMessageCount == 0)
+        #expect(!messageRows.contains { $0.id == record.summaryMessageID })
+        let restored = try #require(try await repository.loadConversations().first)
+        #expect(restored.messages.map(\.id) == [old.id, recent.id, followUp.id])
+        #expect(restored.modelTranscript?.map(\.id) == [
+            record.summaryMessageID, recent.id, followUp.id,
+        ])
+    }
+
+    @Test
+    func newestOfTwoCompactionsWinsAfterRestore() async throws {
+        let configuration = localModelConfiguration(
+            "AgentRepeatedCompactionTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let conversationID = UUID()
+        let messages = [
+            AgentTranscriptMessage(role: .user, text: "One"),
+            AgentTranscriptMessage(role: .assistant, text: "Two"),
+            AgentTranscriptMessage(role: .user, text: "Three"),
+            AgentTranscriptMessage(role: .assistant, text: "Four"),
+        ]
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        try await repository.save(AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval, messages: messages
+        ))
+        let first = AgentCompactionRecord(
+            compactedThroughMessageID: messages[1].id, sequence: 0, summary: "First",
+            summarizedTokens: 10, keptTokens: 2, displayAnchor: messages[1].createdAt,
+            compactedAt: Date(timeIntervalSinceReferenceDate: 1)
+        )
+        let second = AgentCompactionRecord(
+            compactedThroughMessageID: messages[2].id, sequence: 1, summary: "Second",
+            summarizedTokens: 12, keptTokens: 2, displayAnchor: messages[2].createdAt,
+            compactedAt: Date(timeIntervalSinceReferenceDate: 2)
+        )
+        try await repository.persistCompaction(first, conversationID: conversationID)
+        try await repository.persistCompaction(second, conversationID: conversationID)
+
+        let restored = try #require(try await repository.loadConversations().first)
+        #expect(restored.messages.map(\.id) == messages.map(\.id))
+        #expect(restored.modelTranscript?.map(\.id) == [second.summaryMessageID, messages[3].id])
+        #expect(restored.compactions == [first, second])
+    }
+
+    @Test
+    func truncationDeletesOnlyCompactionsWhoseBoundaryWasRemoved() async throws {
+        let configuration = localModelConfiguration(
+            "AgentCompactionTruncationTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let conversationID = UUID()
+        let firstUser = AgentTranscriptMessage(role: .user, text: "One")
+        let firstAnswer = AgentTranscriptMessage(role: .assistant, text: "Answer one")
+        let secondUser = AgentTranscriptMessage(role: .user, text: "Two")
+        var firstRun = AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval, messages: [firstUser, firstAnswer],
+            startedAt: Date(timeIntervalSinceReferenceDate: 1)
+        )
+        firstRun.finishedAt = Date(timeIntervalSinceReferenceDate: 2)
+        var secondRun = AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval,
+            messages: [firstUser, firstAnswer, secondUser],
+            startedAt: Date(timeIntervalSinceReferenceDate: 3)
+        )
+        secondRun.finishedAt = Date(timeIntervalSinceReferenceDate: 4)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        try await repository.save(firstRun)
+        try await repository.save(secondRun)
+        let kept = AgentCompactionRecord(
+            compactedThroughMessageID: firstAnswer.id, sequence: 0, summary: "Kept",
+            summarizedTokens: 8, keptTokens: 2, displayAnchor: firstAnswer.createdAt
+        )
+        let removed = AgentCompactionRecord(
+            compactedThroughMessageID: secondUser.id, sequence: 1, summary: "Removed",
+            summarizedTokens: 10, keptTokens: 2, displayAnchor: secondUser.createdAt
+        )
+        try await repository.persistCompaction(kept, conversationID: conversationID)
+        try await repository.persistCompaction(removed, conversationID: conversationID)
+
+        try await repository.truncateConversation(
+            conversationID, fromUserMessageID: secondUser.id,
+            replacingWith: AgentTranscriptMessage(role: .user, text: "Edited")
+        )
+
+        let restored = try #require(try await repository.loadConversations().first)
+        #expect(restored.compactions == [kept])
+        #expect(restored.modelTranscript?.first?.id == kept.summaryMessageID)
     }
 }

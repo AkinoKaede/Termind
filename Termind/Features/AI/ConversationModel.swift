@@ -490,6 +490,23 @@ nonisolated struct AgentCompactionMark: Identifiable, Hashable, Sendable {
     var summarizedTokens: Int
     var keptTokens: Int
     var createdAt: Date = .now
+
+    init(
+        id: UUID = UUID(), summarizedTokens: Int, keptTokens: Int,
+        createdAt: Date = .now
+    ) {
+        self.id = id
+        self.summarizedTokens = summarizedTokens
+        self.keptTokens = keptTokens
+        self.createdAt = createdAt
+    }
+
+    init(_ record: AgentCompactionRecord) {
+        self.init(
+            id: record.id, summarizedTokens: record.summarizedTokens,
+            keptTokens: record.keptTokens, createdAt: record.displayAnchor
+        )
+    }
 }
 
 /// A presented plan and what became of it.
@@ -667,10 +684,11 @@ final class ConversationModel: Identifiable {
     /// Plans presented in this conversation, oldest first.
     private(set) var plans: [AgentPlanCard] = []
 
-    /// Where history stopped being sent, oldest first. Display only — the
-    /// authoritative record of a compaction is the `isCompaction` turn in
-    /// `transcript`, which is what survives a relaunch.
+    /// Where history stopped being sent, oldest first. Display only — durable
+    /// `compactionRecords` are authoritative across relaunches; their synthetic
+    /// transcript turns exist only in the model-facing projection.
     private(set) var compactions: [AgentCompactionMark] = []
+    private(set) var compactionRecords: [AgentCompactionRecord] = []
 
     /// Ephemeral UI state. Successful compactions become boundary marks; a
     /// failed attempt stays readable for this process without entering the
@@ -803,6 +821,7 @@ final class ConversationModel: Identifiable {
         runState: AgentRunState = .idle,
         messageRunIDs: [UUID: UUID] = [:],
         runs: [AgentRunSummary] = [],
+        compactionRecords: [AgentCompactionRecord] = [],
         createdAt: Date = .now, updatedAt: Date = .now,
         sortIndex: Double? = nil,
         contextEstimatePublishInterval: Duration = .milliseconds(250)
@@ -821,6 +840,8 @@ final class ConversationModel: Identifiable {
         self.messages = messages
         self.transcript = transcript
         self.messageRunIDs = messageRunIDs
+        self.compactionRecords = compactionRecords
+        compactions = compactionRecords.map(AgentCompactionMark.init)
         runSummaries = Dictionary(uniqueKeysWithValues: runs.map { ($0.id, $0) })
         self.runState = runState
         runtimeState = runState
@@ -1028,9 +1049,20 @@ final class ConversationModel: Identifiable {
             run.id = newID
             return run
         }
+        let clonedCompactions = compactionRecords.compactMap { record -> AgentCompactionRecord? in
+            guard let summaryMessageID = messageIDMap[record.summaryMessageID] else { return nil }
+            var copy = record
+            copy.id = UUID()
+            copy.summaryMessageID = summaryMessageID
+            // The fork stores only its compact model history, so its summary is
+            // the base context rather than a boundary into raw source rows.
+            copy.compactedThroughMessageID = nil
+            return copy
+        }
         let fork = ConversationModel(
             messages: visibleMessages, transcript: cloned, runState: .completed,
             messageRunIDs: clonedMessageRunIDs, runs: clonedRuns,
+            compactionRecords: clonedCompactions,
             createdAt: .now, updatedAt: .now
         )
         let resolvedTitle = forkTitle ?? Self.numberedForkTitle(base: derivedTitle, index: 1)
@@ -1333,15 +1365,11 @@ final class ConversationModel: Identifiable {
         }
     }
 
-    /// Replaces everything before `cut` with one synthetic turn carrying the
-    /// summary.
-    ///
-    /// `transcript` — what the model is sent — is rewritten. `messages` — what
-    /// the reader sees — is not: a marker is added instead, so the conversation
-    /// stays scrollable and nothing the user wrote disappears. That is the same
-    /// rule `AgentContextPipeline` states for every other transform.
-    func applyCompaction(summary: String, cut: Int) {
-        guard cut > 0, cut <= transcript.count else { return }
+    /// Builds the durable record without changing the conversation. AppModel
+    /// persists this value before applying it, so a failed save cannot leave
+    /// memory and disk describing different contexts.
+    func prepareCompaction(summary: String, cut: Int) -> AgentCompactionRecord? {
+        guard cut > 0, cut <= transcript.count else { return nil }
         let summarized = transcript[..<cut]
         let summarizedTokens = summarized.reduce(0) {
             $0
@@ -1349,34 +1377,49 @@ final class ConversationModel: Identifiable {
                     inCharacters: AgentContextEstimator.characterUnits(in: $1.text)
                 )
         }
-        // Anchored to the *last summarized* message rather than the first kept
-        // one. `appendUserTurn` writes the visible `ChatMessage` a moment before
-        // the `AgentTranscriptMessage` beside it, so anchoring forward and
-        // subtracting an epsilon is a coin flip between the two lists whenever
-        // turns land close together. Anchoring backward is exact: everything
-        // summarized was stamped at or before this, and everything kept after.
-        let stamp = transcript[cut - 1].createdAt
-        let replacement = AgentTranscriptMessage(
-            role: .user, text: summary, isCompaction: true, createdAt: stamp
+        let boundary = summarized.reversed().first(where: { !$0.isCompaction })?.id
+            ?? compactionRecords.last?.compactedThroughMessageID
+        return AgentCompactionRecord(
+            compactedThroughMessageID: boundary,
+            sequence: (compactionRecords.map(\.sequence).max() ?? -1) + 1,
+            summary: summary,
+            summarizedTokens: summarizedTokens,
+            keptTokens: AgentContextEstimator.tokens(
+                inCharacters: AgentContextEstimator.characterUnits(in: summary)
+            ),
+            displayAnchor: transcript[cut - 1].createdAt
         )
+    }
+
+    /// Replaces everything before `cut` with the already-persisted summary.
+    ///
+    /// `transcript` — what the model is sent — is rewritten. `messages` — what
+    /// the reader sees — is not: a marker is added instead, so the conversation
+    /// stays scrollable and nothing the user wrote disappears. That is the same
+    /// rule `AgentContextPipeline` states for every other transform.
+    func applyCompaction(_ record: AgentCompactionRecord, cut: Int) {
+        precondition(cut > 0 && cut <= transcript.count)
+        let replacement = record.summaryMessage
         let removedIDs = transcript[..<cut].map(\.id)
         transcript.replaceSubrange(..<cut, with: [replacement])
         contextEstimateTracker.remove(removedIDs)
         contextEstimateTracker.upsert(replacement)
-        compactions.append(
-            AgentCompactionMark(
-                summarizedTokens: summarizedTokens,
-                keptTokens: AgentContextEstimator.tokens(
-                    inCharacters: AgentContextEstimator.characterUnits(in: summary)
-                ),
-                createdAt: stamp
-            ))
+        compactionRecords.append(record)
+        compactions.append(AgentCompactionMark(record))
         // The gauge is measuring a context that no longer exists. Dropping it
         // rather than scaling it means the next turn reports a real number and
         // until then the estimate is shown as an estimate.
         usage = nil
         contextEstimateTracker.setMeasured(nil)
         publishContextEstimateImmediately()
+    }
+
+    /// Convenience for focused model tests that do not exercise persistence.
+    @discardableResult
+    func applyCompaction(summary: String, cut: Int) -> AgentCompactionRecord? {
+        guard let record = prepareCompaction(summary: summary, cut: cut) else { return nil }
+        applyCompaction(record, cut: cut)
+        return record
     }
 
     /// Records what the user decided about a plan.
