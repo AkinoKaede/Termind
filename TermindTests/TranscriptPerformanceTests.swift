@@ -116,7 +116,7 @@ struct TranscriptPerformanceTests {
 
     private func update(
         _ coordinator: TranscriptListView.Coordinator,
-        _ listView: TranscriptListView.NSViewType,
+        _ listView: TranscriptListView.NativeListView,
         items: [TranscriptEntry]
     ) {
         coordinator.update(

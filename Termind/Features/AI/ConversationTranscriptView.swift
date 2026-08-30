@@ -28,8 +28,6 @@ struct ConversationView: View {
     var onSend: (() -> Void)?
 
     @Environment(WindowModel.self) private var window
-    @State private var transcriptPresentation = TranscriptPresentationState()
-
     var body: some View {
         switch region {
         case .all:
@@ -174,8 +172,7 @@ struct ConversationView: View {
             conversation: conversation,
             isCompact: isCompact,
             sessionContext: sessionContext,
-            showsTerminalActions: showsTerminalActions,
-            presentation: transcriptPresentation
+            showsTerminalActions: showsTerminalActions
         )
     }
 
@@ -192,7 +189,6 @@ private struct ConversationTranscriptSurface: View {
     let isCompact: Bool
     let sessionContext: SessionContext
     let showsTerminalActions: Bool
-    let presentation: TranscriptPresentationState
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
@@ -208,7 +204,14 @@ private struct ConversationTranscriptSurface: View {
             canEdit: conversation.canEditUserMessage,
             canFork: conversation.canForkAssistantMessage
         )
+        let owner = window.transcriptCache.owner(
+            for: .init(
+                conversationID: conversation.id,
+                surface: isCompact ? .sidebar : .fullScreen
+            )
+        )
         return TranscriptListView(
+            owner: owner,
             entries: entries,
             latestUserMessageID: conversation.messages.last(where: { $0.role == .user })?.id,
             configuration: .init(
@@ -261,8 +264,12 @@ private struct ConversationTranscriptSurface: View {
                     else { return }
                     workspace.deliver(command, from: origin, submit: submit)
                 }
-            ), presentation: presentation
+            )
         )
+        // A representable coordinator is retained at one structural position.
+        // Conversation or surface changes must therefore replace the mount
+        // bridge instead of letting an old owner receive the new transcript.
+        .id(owner.key)
     }
 }
 

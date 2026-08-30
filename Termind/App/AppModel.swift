@@ -682,6 +682,7 @@ final class AppModel {
         titledConversationIDs.remove(id)
         windows = windows.filter { $0.value.value != nil }
         for window in windows.values.compactMap(\.value) {
+            window.transcriptCache.removeConversation(id)
             let wasSelected = window.assistantLibrary.selectedConversationID == id
             window.assistantLibrary.delete(id)
             if wasArchived, wasSelected {

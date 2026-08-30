@@ -179,6 +179,178 @@ struct TranscriptPresentationStateTests {
 
 @MainActor
 @Suite
+struct TranscriptListCacheTests {
+    @Test
+    func fullScreenAndSidebarUseIndependentNativeLists() {
+        let cache = TranscriptListCache()
+        let conversationID = UUID()
+        let fullScreen = cache.owner(
+            for: .init(
+                conversationID: conversationID, surface: .fullScreen
+            )
+        )
+        let sidebar = cache.owner(
+            for: .init(
+                conversationID: conversationID, surface: .sidebar
+            )
+        )
+
+        #expect(fullScreen !== sidebar)
+        #expect(fullScreen.listView !== sidebar.listView)
+        #expect(cache.count == 2)
+    }
+
+    @Test
+    func leastRecentlyUsedUnmountedListIsEvictedAtTheLimit() {
+        let cache = TranscriptListCache(limit: 8)
+        let keys = (0..<9).map { index in
+            TranscriptCacheKey(
+                conversationID: UUID(),
+                surface: index.isMultiple(of: 2) ? .fullScreen : .sidebar
+            )
+        }
+        for key in keys.prefix(8) { _ = cache.owner(for: key) }
+
+        _ = cache.owner(for: keys[0])
+        _ = cache.owner(for: keys[8])
+
+        #expect(cache.count == 8)
+        #expect(cache.cachedOwner(for: keys[0]) != nil)
+        #expect(cache.cachedOwner(for: keys[1]) == nil)
+        #expect(cache.cachedOwner(for: keys[8]) != nil)
+    }
+
+    @Test
+    func mountedListDefersEvictionUntilItUnmounts() {
+        let cache = TranscriptListCache(limit: 1)
+        let firstKey = TranscriptCacheKey(
+            conversationID: UUID(), surface: .fullScreen
+        )
+        let secondKey = TranscriptCacheKey(
+            conversationID: UUID(), surface: .fullScreen
+        )
+        let first = cache.owner(for: firstKey)
+        let container = TranscriptMountView()
+        first.mount(in: container)
+
+        _ = cache.owner(for: secondKey)
+        #expect(cache.count == 2)
+        #expect(cache.cachedOwner(for: firstKey) === first)
+
+        first.unmount(from: container)
+        #expect(cache.count == 1)
+        #expect(cache.cachedOwner(for: firstKey) == nil)
+        #expect(cache.cachedOwner(for: secondKey) != nil)
+    }
+
+    @Test
+    func remountKeepsNativeIdentityAndReaderOffset() {
+        let owner = PersistentTranscriptListOwner(
+            key: .init(
+                conversationID: UUID(), surface: .fullScreen
+            )
+        )
+        let firstContainer = TranscriptMountView(
+            frame: CGRect(x: 0, y: 0, width: 320, height: 180)
+        )
+        owner.mount(in: firstContainer)
+        firstContainer.layoutSubtreeIfNeeded()
+        let entries = (0..<12).map { _ in TranscriptEntry(id: UUID(), content: .empty) }
+        update(owner, entries: entries)
+        owner.listView.setContentOffset(CGPoint(x: 0, y: 72), animated: false)
+        let offset = owner.listView.contentOffset
+        let nativeList = owner.listView
+
+        owner.unmount(from: firstContainer)
+        let secondContainer = TranscriptMountView(frame: firstContainer.frame)
+        owner.mount(in: secondContainer)
+        secondContainer.layoutSubtreeIfNeeded()
+
+        #expect(owner.listView === nativeList)
+        #expect(owner.listView.superview === secondContainer)
+        #expect(owner.listView.contentOffset == offset)
+    }
+
+    @Test
+    func detachedBottomFollowerCatchesUpButHistoryReaderStaysPut() {
+        let owner = PersistentTranscriptListOwner(
+            key: .init(
+                conversationID: UUID(), surface: .fullScreen
+            )
+        )
+        let firstContainer = TranscriptMountView(
+            frame: CGRect(x: 0, y: 0, width: 320, height: 180)
+        )
+        owner.mount(in: firstContainer)
+        firstContainer.layoutSubtreeIfNeeded()
+        var entries = (0..<12).map { _ in TranscriptEntry(id: UUID(), content: .empty) }
+        update(owner, entries: entries)
+        owner.listView.scrollToBottom(animated: false)
+        owner.unmount(from: firstContainer)
+
+        entries.append(TranscriptEntry(id: UUID(), content: .empty))
+        let secondContainer = TranscriptMountView(frame: firstContainer.frame)
+        owner.mount(in: secondContainer)
+        secondContainer.layoutSubtreeIfNeeded()
+        update(owner, entries: entries)
+        #expect(owner.listView.contentOffset.y == owner.listView.maximumContentOffset.y)
+
+        owner.listView.setContentOffset(CGPoint(x: 0, y: 40), animated: false)
+        let readerOffset = owner.listView.contentOffset
+        owner.unmount(from: secondContainer)
+        entries.append(TranscriptEntry(id: UUID(), content: .empty))
+        let thirdContainer = TranscriptMountView(frame: firstContainer.frame)
+        owner.mount(in: thirdContainer)
+        thirdContainer.layoutSubtreeIfNeeded()
+        update(owner, entries: entries)
+
+        #expect(owner.listView.contentOffset == readerOffset)
+        #expect(!owner.listView.isScrolledToBottom(tolerance: Metrics.Space.l))
+    }
+
+    @Test
+    func deletingClearsBothSurfacesWhileArchivingKeepsThem() {
+        let window = WindowModel()
+        let conversation = window.assistantLibrary.createConversation()
+        let fullKey = TranscriptCacheKey(
+            conversationID: conversation.id, surface: .fullScreen
+        )
+        let sidebarKey = TranscriptCacheKey(
+            conversationID: conversation.id, surface: .sidebar
+        )
+        _ = window.transcriptCache.owner(for: fullKey)
+        _ = window.transcriptCache.owner(for: sidebarKey)
+
+        window.setAssistantArchived(conversation.id, archived: true)
+        #expect(window.transcriptCache.count == 2)
+
+        window.deleteAssistantConversation(conversation.id)
+        #expect(window.transcriptCache.count == 0)
+    }
+
+    private func update(
+        _ owner: PersistentTranscriptListOwner,
+        entries: [TranscriptEntry]
+    ) {
+        owner.update(
+            entries: entries,
+            latestUserMessageID: nil,
+            configuration: .init(
+                isCompact: false,
+                showsTerminalActions: false,
+                isConversationStreaming: false,
+                locale: Locale(identifier: "en"),
+                reduceMotion: true,
+                colorScheme: .light
+            ),
+            actions: .init()
+        )
+        owner.listView.layoutSubtreeIfNeeded()
+    }
+}
+
+@MainActor
+@Suite
 struct TranscriptListViewBridgeTests {
     @Test
     func richTranscriptDoesNotInstallAPerFrameRowAnimator() {
@@ -1028,7 +1200,7 @@ struct TranscriptListViewBridgeTests {
 
     private func update(
         _ coordinator: TranscriptListView.Coordinator,
-        _ listView: TranscriptListView.NSViewType,
+        _ listView: TranscriptListView.NativeListView,
         entries: [TranscriptEntry],
         presentation: TranscriptPresentationState = TranscriptPresentationState(),
         isCompact: Bool = true,

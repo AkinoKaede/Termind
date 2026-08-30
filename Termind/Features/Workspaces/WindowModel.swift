@@ -24,6 +24,9 @@ final class WindowModel {
     var vaultDestination: VaultDestination = .welcome
     var vaultWorkRoute: VaultWorkRoute?
     let assistantLibrary: AssistantLibraryModel
+    /// Native transcript views survive destination and conversation switches,
+    /// while remaining window-local and bounded in memory.
+    let transcriptCache = TranscriptListCache()
     let sidebar = WindowSidebarState()
     let presentations = WindowPresentationState()
     let dragState = WorkspaceDragState()
@@ -478,6 +481,7 @@ final class WindowModel {
             assistantCommands.delete(id)
             return
         }
+        transcriptCache.removeConversation(id)
         let wasArchived = assistantLibrary.conversation(id: id)?.isArchived == true
         let wasSelected = assistantLibrary.selectedConversationID == id
         assistantLibrary.delete(id)

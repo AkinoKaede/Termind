@@ -116,6 +116,10 @@ struct CursorHostingList<Item>: NSViewRepresentable where
     final class Coordinator {
         private let content = HostingListContent<Item>()
 
+        // Work around Swift 6.3.3 crashing in EarlyPerfInliner for the
+        // synthesized deinit of this generic nested coordinator.
+        @_optimize(none) deinit {}
+
         func makeListView() -> NSViewType {
             let listView = NSViewType()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)

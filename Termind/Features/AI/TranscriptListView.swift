@@ -272,19 +272,104 @@ struct TranscriptListActions {
     var deliverCommand: (String, Bool) -> Void = { _, _ in }
 }
 
-struct TranscriptListView: NSViewRepresentable {
-    typealias NSViewType = ListView<TranscriptEntry>
-    let entries: [TranscriptEntry]
-    let latestUserMessageID: UUID?
-    let configuration: TranscriptListConfiguration
-    let actions: TranscriptListActions
-    let presentation: TranscriptPresentationState
+/// The two places that may render one conversation at the same time.
+///
+/// AppKit views have one superview, so full-screen Assistant and the Workspace
+/// sidebar must never share a cached list even when they show the same chat.
+nonisolated enum TranscriptSurface: Hashable, Sendable {
+    case fullScreen
+    case sidebar
+}
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ view: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: view,
+nonisolated struct TranscriptCacheKey: Hashable, Sendable {
+    let conversationID: UUID
+    let surface: TranscriptSurface
+}
+
+/// One long-lived native transcript and the presentation state measured with it.
+///
+/// SwiftUI owns only the short-lived mount container. The owner lives in the
+/// window cache, so removing Assistant from the destination tree preserves the
+/// list's content offset, measured row heights, and Markdown cache without
+/// asking a hidden page to keep participating in layout.
+@MainActor
+final class PersistentTranscriptListOwner {
+    let key: TranscriptCacheKey
+    let coordinator = TranscriptListView.Coordinator()
+    let presentation = TranscriptPresentationState()
+    let listView: ListView<TranscriptEntry>
+
+    private weak var container: TranscriptMountView?
+    private var mountConstraints: [NSLayoutConstraint] = []
+    private var nextMountOrdinal: UInt64 = 0
+    private let didAccess: () -> Void
+    private let didUnmount: () -> Void
+
+    private var ownerIdentifier: ObjectIdentifier { ObjectIdentifier(self) }
+    var isMounted: Bool { container != nil && listView.superview === container }
+
+    init(
+        key: TranscriptCacheKey,
+        didAccess: @escaping () -> Void = {},
+        didUnmount: @escaping () -> Void = {}
+    ) {
+        self.key = key
+        self.didAccess = didAccess
+        self.didUnmount = didUnmount
+        listView = coordinator.makeListView()
+        listView.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    func mount(in newContainer: TranscriptMountView) {
+        assignOrdinalIfNeeded(to: newContainer)
+        if let currentOrdinal = container?.mountOrdinals[ownerIdentifier],
+            let proposedOrdinal = newContainer.mountOrdinals[ownerIdentifier],
+            proposedOrdinal < currentOrdinal
+        {
+            return
+        }
+
+        didAccess()
+        guard container !== newContainer || listView.superview !== newContainer else { return }
+        if let displacedOwner = newContainer.owner, displacedOwner !== self {
+            displacedOwner.unmount(from: newContainer)
+        }
+        NSLayoutConstraint.deactivate(mountConstraints)
+        mountConstraints.removeAll(keepingCapacity: true)
+        listView.removeFromSuperview()
+        container?.owner = nil
+
+        newContainer.owner = self
+        newContainer.addSubview(listView)
+        mountConstraints = [
+            listView.leadingAnchor.constraint(equalTo: newContainer.leadingAnchor),
+            listView.trailingAnchor.constraint(equalTo: newContainer.trailingAnchor),
+            listView.topAnchor.constraint(equalTo: newContainer.topAnchor),
+            listView.bottomAnchor.constraint(equalTo: newContainer.bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(mountConstraints)
+        container = newContainer
+    }
+
+    func unmount(from oldContainer: TranscriptMountView) {
+        guard container === oldContainer, listView.superview === oldContainer else { return }
+        NSLayoutConstraint.deactivate(mountConstraints)
+        mountConstraints.removeAll(keepingCapacity: true)
+        listView.removeFromSuperview()
+        oldContainer.owner = nil
+        container = nil
+        coordinator.suspend()
+        didUnmount()
+    }
+
+    func update(
+        entries: [TranscriptEntry],
+        latestUserMessageID: UUID?,
+        configuration: TranscriptListConfiguration,
+        actions: TranscriptListActions
+    ) {
+        coordinator.update(
+            listView: listView,
             entries: entries,
             latestUserMessageID: latestUserMessageID,
             configuration: configuration,
@@ -293,14 +378,123 @@ struct TranscriptListView: NSViewRepresentable {
         )
     }
 
+    private func assignOrdinalIfNeeded(to container: TranscriptMountView) {
+        guard container.mountOrdinals[ownerIdentifier] == nil else { return }
+        nextMountOrdinal &+= 1
+        container.mountOrdinals[ownerIdentifier] = nextMountOrdinal
+    }
+}
+
+@MainActor
+final class TranscriptMountView: NSView {
+    weak var owner: PersistentTranscriptListOwner?
+    fileprivate var mountOrdinals: [ObjectIdentifier: UInt64] = [:]
+}
+
+/// Window-local LRU of native transcript views.
+///
+/// FlowDown keeps one list per conversation. Vela additionally distinguishes
+/// full-screen and sidebar surfaces and caps the combined cache, because each
+/// transcript carries Markdown and row-sizing caches of its own.
+@MainActor
+final class TranscriptListCache {
+    static let defaultLimit = 8
+
+    private let limit: Int
+    private var owners: [TranscriptCacheKey: PersistentTranscriptListOwner] = [:]
+    private var order: [TranscriptCacheKey] = []
+
+    init(limit: Int = defaultLimit) {
+        self.limit = max(1, limit)
+    }
+
+    func owner(for key: TranscriptCacheKey) -> PersistentTranscriptListOwner {
+        if let owner = owners[key] {
+            touch(key)
+            return owner
+        }
+        let owner = PersistentTranscriptListOwner(
+            key: key,
+            didAccess: { [weak self] in self?.touch(key) },
+            didUnmount: { [weak self] in self?.trimIfNeeded() }
+        )
+        owners[key] = owner
+        touch(key)
+        trimIfNeeded(protecting: key)
+        return owner
+    }
+
+    func removeConversation(_ id: UUID) {
+        let keys = owners.keys.filter { $0.conversationID == id }
+        guard !keys.isEmpty else { return }
+        let removed = Set(keys)
+        for key in keys { owners[key] = nil }
+        order.removeAll { removed.contains($0) }
+    }
+
+    func cachedOwner(for key: TranscriptCacheKey) -> PersistentTranscriptListOwner? {
+        owners[key]
+    }
+
+    var count: Int { owners.count }
+
+    private func touch(_ key: TranscriptCacheKey) {
+        guard owners[key] != nil else { return }
+        order.removeAll { $0 == key }
+        order.append(key)
+    }
+
+    private func trimIfNeeded(protecting protectedKey: TranscriptCacheKey? = nil) {
+        while owners.count > limit {
+            guard
+                let victim = order.first(where: { key in
+                    key != protectedKey && owners[key]?.isMounted == false
+                })
+            else { return }
+            owners[victim] = nil
+            order.removeAll { $0 == victim }
+        }
+    }
+}
+
+struct TranscriptListView: NSViewRepresentable {
+    typealias NSViewType = TranscriptMountView
+    typealias NativeListView = ListView<TranscriptEntry>
+    let owner: PersistentTranscriptListOwner
+    let entries: [TranscriptEntry]
+    let latestUserMessageID: UUID?
+    let configuration: TranscriptListConfiguration
+    let actions: TranscriptListActions
+
+    func makeCoordinator() -> Coordinator { Coordinator(mountOwner: owner) }
+    func makeNSView(context: Context) -> NSViewType {
+        let container = TranscriptMountView()
+        context.coordinator.mountOwner?.mount(in: container)
+        return container
+    }
+    func updateNSView(_ view: NSViewType, context: Context) {
+        context.coordinator.mountOwner?.mount(in: view)
+        context.coordinator.mountOwner?.update(
+            entries: entries,
+            latestUserMessageID: latestUserMessageID,
+            configuration: configuration,
+            actions: actions
+        )
+    }
+
+    static func dismantleNSView(_ view: NSViewType, coordinator: Coordinator) {
+        coordinator.mountOwner?.unmount(from: view)
+    }
+
     @MainActor
     final class Coordinator: NSObject {
+        fileprivate let mountOwner: PersistentTranscriptListOwner?
         private var content: [TranscriptEntry] = []
         private var latestUserMessageID: UUID?
         private var configuration: TranscriptListConfiguration?
         private var actions = TranscriptListActions()
         private weak var presentation: TranscriptPresentationState?
-        private weak var listView: NSViewType?
+        private weak var listView: NativeListView?
         let markdownCache = TranscriptMarkdownCache(limit: 48)
         let sizingPool = TranscriptRowSizingPool(limit: 12)
         private var invalidations: Set<UUID> = []
@@ -308,12 +502,17 @@ struct TranscriptListView: NSViewRepresentable {
         private var invalidationMayFollow = false
         private var autoCollapseCheckScheduled = false
 
+        init(mountOwner: PersistentTranscriptListOwner? = nil) {
+            self.mountOwner = mountOwner
+            super.init()
+        }
+
         deinit {
             NotificationCenter.default.removeObserver(self)
         }
 
-        func makeListView() -> NSViewType {
-            let view = NSViewType()
+        func makeListView() -> NativeListView {
+            let view = NativeListView()
             listView = view
             view.estimatedRowHeight = 96
             view.topInset = Metrics.Space.xl
@@ -427,7 +626,7 @@ struct TranscriptListView: NSViewRepresentable {
         }
 
         func update(
-            listView: NSViewType,
+            listView: NativeListView,
             entries: [TranscriptEntry],
             latestUserMessageID: UUID?,
             configuration: TranscriptListConfiguration,
@@ -444,8 +643,14 @@ struct TranscriptListView: NSViewRepresentable {
             )
         }
 
+        /// Cached transcripts keep their data and measurements while detached,
+        /// but surface-owned actions must not retain a window or conversation.
+        func suspend() {
+            actions = .init()
+        }
+
         private func applyUpdate(
-            listView: NSViewType,
+            listView: NativeListView,
             entries: [TranscriptEntry],
             latestUserMessageID: UUID?,
             configuration: TranscriptListConfiguration,
@@ -512,7 +717,7 @@ struct TranscriptListView: NSViewRepresentable {
         private func prepareWorkCompletionTransitions(
             from old: [TranscriptEntry],
             to new: [TranscriptEntry],
-            in view: NSViewType,
+            in view: NativeListView,
             presentation: TranscriptPresentationState
         ) {
             let previous = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
@@ -561,7 +766,7 @@ struct TranscriptListView: NSViewRepresentable {
             view.layoutSubtreeIfNeeded()
         }
 
-        private func rowIntersectsViewport(_ id: UUID, in view: NSViewType) -> Bool {
+        private func rowIntersectsViewport(_ id: UUID, in view: NativeListView) -> Bool {
             let row = view.rectForRow(with: id)
             guard !row.isEmpty, view.bounds.width > 0, view.bounds.height > 0 else {
                 return false
@@ -626,7 +831,7 @@ struct TranscriptListView: NSViewRepresentable {
             }
         }
 
-        func refreshDisplayedRow(_ id: UUID, in view: NSViewType) {
+        func refreshDisplayedRow(_ id: UUID, in view: NativeListView) {
             sizingPool.invalidate(id)
             if let index = content.firstIndex(where: { $0.id == id }),
                 let row = view.rowView(for: id) as? TranscriptNativeRow
@@ -641,7 +846,7 @@ struct TranscriptListView: NSViewRepresentable {
             view.invalidateLayout(forRowWith: id)
         }
 
-        private func followBottom(_ view: NSViewType, if shouldFollow: Bool) {
+        private func followBottom(_ view: NativeListView, if shouldFollow: Bool) {
             guard shouldFollow, !view.isUserInteractingWithScroll else { return }
             view.layoutSubtreeIfNeeded()
             guard !view.isUserInteractingWithScroll else { return }
