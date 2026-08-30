@@ -428,8 +428,6 @@ struct ComposerView: View {
     @State private var isPermissionPickerPresented = false
     @State private var isModelPickerPresented = false
     @State private var expandedModelPickerSection: ModelPickerSection?
-    @State private var isDropTargeted = false
-    @State private var attachmentTasks: [PendingContextAttachment.ID: Task<Void, Never>] = [:]
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
         app.aiConfiguration.resolve(conversation: conversation.model)
@@ -506,19 +504,7 @@ struct ComposerView: View {
         }
         .composerBlock(
             style: surfaceStyle,
-            isEmphasized: isFocused || isDropTargeted
-        )
-        .overlay {
-            if isDropTargeted {
-                RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                    .stroke(.tint, lineWidth: 2)
-                    .allowsHitTesting(false)
-            }
-        }
-        .onDrop(
-            of: [UTType.fileURL.identifier, UTType.image.identifier],
-            isTargeted: $isDropTargeted,
-            perform: receiveDroppedContext
+            isEmphasized: isFocused
         )
         // Anchored to the whole surface rather than the TextEditor. The editor
         // begins inside the surface padding (and can have Context chips above
@@ -1295,82 +1281,7 @@ struct ComposerView: View {
         panel.canChooseFiles = true
         panel.allowedContentTypes = ContextAttachmentImporter.supportedContentTypes
         guard panel.runModal() == .OK else { return }
-        importFiles(panel.urls)
-    }
-
-    private func importFiles(_ urls: [URL]) {
-        for url in urls.prefix(ContextAttachmentImporter.maximumAttachments) {
-            guard let pending = conversation.beginAttachmentImport(label: url.lastPathComponent)
-            else { break }
-            let task = Task {
-                do {
-                    let chip = try await ContextAttachmentImporter.importFile(at: url)
-                    conversation.finishAttachmentImport(pending.id, with: chip)
-                } catch is CancellationError {
-                    conversation.cancelAttachmentImport(pending.id)
-                } catch {
-                    conversation.failAttachmentImport(
-                        pending.id,
-                        message: "\(url.lastPathComponent): \(error.localizedDescription)"
-                    )
-                }
-                attachmentTasks[pending.id] = nil
-            }
-            attachmentTasks[pending.id] = task
-        }
-    }
-
-    private func importImages(_ images: [Data]) {
-        for data in images.prefix(ContextAttachmentImporter.maximumAttachments) {
-            guard let pending = conversation.beginAttachmentImport(
-                label: String(localized: "Dropped image")
-            ) else { break }
-            let task = Task {
-                do {
-                    let chip = try await ContextAttachmentImporter.importImage(
-                        data: data, label: String(localized: "Dropped image")
-                    )
-                    conversation.finishAttachmentImport(pending.id, with: chip)
-                } catch {
-                    conversation.failAttachmentImport(
-                        pending.id, message: error.localizedDescription
-                    )
-                }
-                attachmentTasks[pending.id] = nil
-            }
-            attachmentTasks[pending.id] = task
-        }
-    }
-
-    private func receiveDroppedContext(_ providers: [NSItemProvider]) -> Bool {
-        var accepted = false
-        for provider in providers.prefix(ContextAttachmentImporter.maximumAttachments) {
-            // An image dragged from Finder advertises both file-url and image.
-            // Prefer the URL so its real filename survives into the Context Chip.
-            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                accepted = true
-                provider.loadDataRepresentation(
-                    forTypeIdentifier: UTType.fileURL.identifier
-                ) { data, _ in
-                    guard let data,
-                        let url = URL(dataRepresentation: data, relativeTo: nil),
-                        url.isFileURL
-                    else { return }
-                    Task { @MainActor in importFiles([url]) }
-                }
-                continue
-            }
-
-            guard let typeIdentifier = provider.registeredTypeIdentifiers.first(where: {
-                UTType($0)?.conforms(to: .image) == true
-            }) else { continue }
-            accepted = true
-            provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
-                guard let data else { return }
-                Task { @MainActor in importImages([data]) }
-            }
-        }
-        return accepted
+        conversation.importAttachmentFiles(panel.urls)
     }
 
     private func handleContextPaste() -> Bool {
@@ -1379,25 +1290,13 @@ struct ComposerView: View {
             forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
         ) as? [URL] ?? []
         if !urls.isEmpty {
-            importFiles(urls)
+            conversation.importAttachmentFiles(urls)
             return true
         }
         if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
-            guard let pending = conversation.beginAttachmentImport(
-                label: String(localized: "Pasted image")
-            ) else { return true }
-            let task = Task {
-                do {
-                    let chip = try await ContextAttachmentImporter.importImage(data: data)
-                    conversation.finishAttachmentImport(pending.id, with: chip)
-                } catch {
-                    conversation.failAttachmentImport(
-                        pending.id, message: error.localizedDescription
-                    )
-                }
-                attachmentTasks[pending.id] = nil
-            }
-            attachmentTasks[pending.id] = task
+            conversation.importAttachmentImages(
+                [data], label: String(localized: "Pasted image")
+            )
             return true
         }
         guard let text = pasteboard.string(forType: .string),
@@ -1416,8 +1315,6 @@ struct ComposerView: View {
     }
 
     private func cancelAttachmentImport(_ id: PendingContextAttachment.ID) {
-        attachmentTasks[id]?.cancel()
-        attachmentTasks[id] = nil
         conversation.cancelAttachmentImport(id)
     }
 

@@ -550,6 +550,7 @@ final class ConversationModel: Identifiable {
     var archivedAt: Date?
     var messages: [ChatMessage] = []
     let composer = ConversationComposerState()
+    private var attachmentImportTasks: [PendingContextAttachment.ID: Task<Void, Never>] = [:]
     private(set) var isStreaming: Bool = false
     /// What the transcript shows. Derived — see `refreshRunState`.
     private(set) var runState: AgentRunState = .idle
@@ -1435,6 +1436,49 @@ final class ConversationModel: Identifiable {
         return pending
     }
 
+    func importAttachmentFiles(_ urls: [URL]) {
+        for url in urls.prefix(ContextAttachmentImporter.maximumAttachments) {
+            guard let pending = beginAttachmentImport(label: url.lastPathComponent) else { break }
+            let task = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    let chip = try await ContextAttachmentImporter.importFile(at: url)
+                    finishAttachmentImport(pending.id, with: chip)
+                } catch is CancellationError {
+                    cancelAttachmentImport(pending.id)
+                } catch {
+                    failAttachmentImport(
+                        pending.id,
+                        message: "\(url.lastPathComponent): \(error.localizedDescription)"
+                    )
+                }
+                attachmentImportTasks[pending.id] = nil
+            }
+            attachmentImportTasks[pending.id] = task
+        }
+    }
+
+    func importAttachmentImages(_ images: [Data], label: String) {
+        for data in images.prefix(ContextAttachmentImporter.maximumAttachments) {
+            guard let pending = beginAttachmentImport(label: label) else { break }
+            let task = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    let chip = try await ContextAttachmentImporter.importImage(
+                        data: data, label: label
+                    )
+                    finishAttachmentImport(pending.id, with: chip)
+                } catch is CancellationError {
+                    cancelAttachmentImport(pending.id)
+                } catch {
+                    failAttachmentImport(pending.id, message: error.localizedDescription)
+                }
+                attachmentImportTasks[pending.id] = nil
+            }
+            attachmentImportTasks[pending.id] = task
+        }
+    }
+
     func finishAttachmentImport(_ id: PendingContextAttachment.ID, with chip: ContextChip) {
         guard composer.pendingAttachments.contains(where: { $0.id == id }) else { return }
         composer.pendingAttachments.removeAll { $0.id == id }
@@ -1449,6 +1493,8 @@ final class ConversationModel: Identifiable {
     }
 
     func cancelAttachmentImport(_ id: PendingContextAttachment.ID) {
+        attachmentImportTasks[id]?.cancel()
+        attachmentImportTasks[id] = nil
         composer.pendingAttachments.removeAll { $0.id == id }
     }
 

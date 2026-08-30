@@ -1,11 +1,84 @@
 import SwiftUI
 
+private struct ConversationAttachmentDropModifier: ViewModifier {
+    let conversation: ConversationModel
+    let isEnabled: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var targetedKind: NativeDropKind?
+
+    private var acceptsAttachments: Bool {
+        isEnabled
+            && !conversation.isArchived
+            && conversation.pendingUserInteraction == nil
+            && conversation.pendingApproval == nil
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .overlay { decoration }
+            .overlay {
+                NativeDropTarget(
+                    targetedKind: $targetedKind,
+                    acceptedKinds: [.files, .images],
+                    isEnabled: acceptsAttachments,
+                    receive: receive
+                )
+            }
+            .animation(
+                Motion.dropTarget(reduceMotion: reduceMotion),
+                value: targetedKind
+            )
+    }
+
+    @ViewBuilder
+    private var decoration: some View {
+        if targetedKind != nil {
+            DropTargetOverlay(presentation: DropTargetPresentation(
+                title: String(localized: "Attach to Chat"),
+                detail: String(localized: "Files and images"),
+                systemImage: targetedKind == .images
+                    ? "photo.badge.plus" : "paperclip"
+            ))
+        }
+    }
+
+    private func receive(_ payload: NativeDropPayload) -> Bool {
+        var accepted = false
+        if !payload.fileURLs.isEmpty {
+            conversation.importAttachmentFiles(payload.fileURLs)
+            accepted = true
+        }
+        if !payload.images.isEmpty {
+            conversation.importAttachmentImages(
+                payload.images, label: String(localized: "Dropped image")
+            )
+            accepted = true
+        }
+        return accepted
+    }
+}
+
+extension View {
+    func conversationAttachmentDropTarget(
+        conversation: ConversationModel,
+        isEnabled: Bool = true
+    ) -> some View {
+        modifier(
+            ConversationAttachmentDropModifier(
+                conversation: conversation,
+                isEnabled: isEnabled
+            )
+        )
+    }
+}
+
 /// A conversation rendered as chips + transcript + composer.
 ///
 /// Shared by the session Assistant sidebar and full Assistant destination so the two can never drift; only
 /// the padding and the provider header differ.
 struct ConversationView: View {
-    enum Region {
+    enum Region: Equatable {
         case all
         case transcript
         case interaction
@@ -28,18 +101,25 @@ struct ConversationView: View {
     var onSend: (() -> Void)?
 
     @Environment(WindowModel.self) private var window
+
     var body: some View {
-        switch region {
-        case .all:
-            VStack(spacing: 0) {
+        Group {
+            switch region {
+            case .all:
+                VStack(spacing: 0) {
+                    transcript
+                    interactionSurface
+                }
+            case .transcript:
                 transcript
+            case .interaction:
                 interactionSurface
             }
-        case .transcript:
-            transcript
-        case .interaction:
-            interactionSurface
         }
+        .conversationAttachmentDropTarget(
+            conversation: conversation,
+            isEnabled: region == .all
+        )
     }
 
     @ViewBuilder

@@ -129,6 +129,8 @@ struct AssistantPanelView: View {
 
     private var workspaceAssistantSurface: some View {
         let exitsAsWhole = window.sidebarAssistantConversation != nil
+        let dropConversation = window.sidebarAssistantConversation
+            ?? window.sidebar.assistantDraft
 
         return VStack(spacing: 0) {
             Group {
@@ -160,6 +162,10 @@ struct AssistantPanelView: View {
         }
         .offset(x: !isFocusedOnWorkspace && exitsAsWhole ? Metrics.Space.xxl : 0)
         .opacity(isFocusedOnWorkspace || !exitsAsWhole ? 1 : 0)
+        .conversationAttachmentDropTarget(
+            conversation: dropConversation,
+            isEnabled: isFocusedOnWorkspace
+        )
         .onKeyPress(.escape, phases: .down) { _ in
             guard window.sidebar.assistantConversationID != nil else { return .ignored }
             window.closeAssistantInSidebar()

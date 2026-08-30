@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 #if canImport(AppKit)
     import AppKit
@@ -9,7 +10,70 @@ nonisolated struct LocalFileDropRequest: Identifiable, Sendable {
     let urls: [URL]
 }
 
+nonisolated struct SFTPRemoteDropRequest: Identifiable, Sendable {
+    let id = UUID()
+    let data: Data
+}
+
+nonisolated enum NativeDropKind: Hashable, Sendable {
+    case files
+    case images
+    case sftpItems
+}
+
+nonisolated struct NativeDropPayload: Sendable {
+    var fileURLs: [URL] = []
+    var images: [Data] = []
+    var sftpItems: Data?
+
+    var preferredKind: NativeDropKind? {
+        if sftpItems != nil { return .sftpItems }
+        if !fileURLs.isEmpty { return .files }
+        if !images.isEmpty { return .images }
+        return nil
+    }
+
+    func restricted(to acceptedKinds: Set<NativeDropKind>) -> NativeDropPayload {
+        NativeDropPayload(
+            fileURLs: acceptedKinds.contains(.files) ? fileURLs : [],
+            images: acceptedKinds.contains(.images) ? images : [],
+            sftpItems: acceptedKinds.contains(.sftpItems) ? sftpItems : nil
+        )
+    }
+}
+
 #if canImport(AppKit)
+    /// A native receiver that stays above AppKit-backed terminal, table, and
+    /// transcript views without stealing their ordinary pointer interaction.
+    struct NativeDropTarget: NSViewRepresentable {
+        @Binding var targetedKind: NativeDropKind?
+        let acceptedKinds: Set<NativeDropKind>
+        let isEnabled: Bool
+        let receive: (NativeDropPayload) -> Bool
+
+        func makeNSView(context _: Context) -> FileURLDropNSView {
+            FileURLDropNSView(
+                acceptedKinds: acceptedKinds,
+                isEnabled: isEnabled,
+                targetedKind: setTargeted,
+                receivePayload: receive
+            )
+        }
+
+        func updateNSView(_ view: FileURLDropNSView, context _: Context) {
+            view.acceptedKinds = acceptedKinds
+            view.targetedKind = setTargeted
+            view.isEnabled = isEnabled
+            view.receivePayload = receive
+        }
+
+        private func setTargeted(_ kind: NativeDropKind?) {
+            targetedKind = kind
+        }
+    }
+
+    /// Kept as a narrow convenience for call sites that only accept Finder
+    /// URLs. New full-surface destinations use `NativeDropTarget` directly.
     struct NativeFileURLDropTarget: NSViewRepresentable {
         @Binding var isTargeted: Bool
         let isEnabled: Bool
@@ -17,14 +81,17 @@ nonisolated struct LocalFileDropRequest: Identifiable, Sendable {
 
         func makeNSView(context _: Context) -> FileURLDropNSView {
             FileURLDropNSView(
-                isEnabled: isEnabled, isTargeted: setTargeted, receive: receive
+                isEnabled: isEnabled,
+                isTargeted: setTargeted,
+                receive: receive
             )
         }
 
         func updateNSView(_ view: FileURLDropNSView, context _: Context) {
-            view.isTargeted = setTargeted
+            view.acceptedKinds = [.files]
+            view.targetedKind = { setTargeted($0 != nil) }
             view.isEnabled = isEnabled
-            view.receive = receive
+            view.receivePayload = { receive($0.fileURLs) }
         }
 
         private func setTargeted(_ targeted: Bool) {
@@ -33,20 +100,36 @@ nonisolated struct LocalFileDropRequest: Identifiable, Sendable {
     }
 
     final class FileURLDropNSView: NSView {
+        var acceptedKinds: Set<NativeDropKind>
         var isEnabled: Bool
-        var isTargeted: (Bool) -> Void
-        var receive: ([URL]) -> Bool
+        var targetedKind: (NativeDropKind?) -> Void
+        var receivePayload: (NativeDropPayload) -> Bool
 
         init(
+            acceptedKinds: Set<NativeDropKind>,
+            isEnabled: Bool = true,
+            targetedKind: @escaping (NativeDropKind?) -> Void,
+            receivePayload: @escaping (NativeDropPayload) -> Bool
+        ) {
+            self.acceptedKinds = acceptedKinds
+            self.isEnabled = isEnabled
+            self.targetedKind = targetedKind
+            self.receivePayload = receivePayload
+            super.init(frame: .zero)
+            registerForDraggedTypes(Self.registeredTypes)
+        }
+
+        convenience init(
             isEnabled: Bool = true,
             isTargeted: @escaping (Bool) -> Void,
             receive: @escaping ([URL]) -> Bool
         ) {
-            self.isEnabled = isEnabled
-            self.isTargeted = isTargeted
-            self.receive = receive
-            super.init(frame: .zero)
-            registerForDraggedTypes([.fileURL])
+            self.init(
+                acceptedKinds: [.files],
+                isEnabled: isEnabled,
+                targetedKind: { isTargeted($0 != nil) },
+                receivePayload: { receive($0.fileURLs) }
+            )
         }
 
         @available(*, unavailable)
@@ -55,24 +138,22 @@ nonisolated struct LocalFileDropRequest: Identifiable, Sendable {
         override var isOpaque: Bool { false }
 
         /// Finder drags do not arrive as `NSApp.currentEvent ==
-        /// .leftMouseDragged`; that test only describes a drag originating in
-        /// this process. Inspecting the drag pasteboard makes the view present
-        /// only for external file drags and transparent to ordinary controls.
+        /// .leftMouseDragged`; inspect the drag pasteboard, but explicitly let
+        /// every ordinary control event pass through this full-surface view.
         override func hitTest(_ point: NSPoint) -> NSView? {
             guard
                 isEnabled,
                 bounds.contains(point),
                 !Self.isOrdinaryPointerEvent(NSApp.currentEvent?.type),
-                Self.hasSupportedDragPasteboard
+                supportedPayload(from: NSPasteboard(name: .drag)) != nil
             else {
                 return nil
             }
             return self
         }
 
-        /// `.drag` is a named pasteboard, not an "is dragging" flag. Finder can
-        /// leave its last file URL there after a drop, so pasteboard contents
-        /// alone must never make this full-composer view win normal hit tests.
+        /// `.drag` retains its last contents, so a stale file or bitmap must
+        /// never make this transparent receiver capture normal interaction.
         static func isOrdinaryPointerEvent(_ type: NSEvent.EventType?) -> Bool {
             switch type {
             case .leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp,
@@ -85,41 +166,76 @@ nonisolated struct LocalFileDropRequest: Identifiable, Sendable {
         }
 
         override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
-            guard !fileURLs(from: sender).isEmpty else { return [] }
-            isTargeted(true)
+            guard let payload = supportedPayload(from: sender.draggingPasteboard) else {
+                targetedKind(nil)
+                return []
+            }
+            targetedKind(payload.preferredKind)
             return .copy
         }
 
         override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
-            fileURLs(from: sender).isEmpty ? [] : .copy
+            guard let payload = supportedPayload(from: sender.draggingPasteboard) else {
+                targetedKind(nil)
+                return []
+            }
+            targetedKind(payload.preferredKind)
+            return .copy
         }
 
         override func draggingExited(_: (any NSDraggingInfo)?) {
-            isTargeted(false)
+            targetedKind(nil)
         }
 
         override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-            isTargeted(false)
-            let urls = fileURLs(from: sender)
-            return !urls.isEmpty && receive(urls)
+            defer { targetedKind(nil) }
+            guard let payload = supportedPayload(from: sender.draggingPasteboard) else {
+                return false
+            }
+            return receivePayload(payload)
         }
 
         override func concludeDragOperation(_ sender: (any NSDraggingInfo)?) {
-            isTargeted(false)
+            targetedKind(nil)
             super.concludeDragOperation(sender)
         }
 
-        private static var hasSupportedDragPasteboard: Bool {
-            NSPasteboard(name: .drag).availableType(from: [.fileURL]) != nil
+        func supportedPayload(from pasteboard: NSPasteboard) -> NativeDropPayload? {
+            let payload = Self.payload(from: pasteboard).restricted(to: acceptedKinds)
+            return payload.preferredKind == nil ? nil : payload
         }
 
-        private func fileURLs(from sender: any NSDraggingInfo) -> [URL] {
-            sender.draggingPasteboard.pasteboardItems?.compactMap { item in
-                guard let value = item.string(forType: .fileURL),
+        static func payload(from pasteboard: NSPasteboard) -> NativeDropPayload {
+            let sftpType = NSPasteboard.PasteboardType(UTType.termindSFTPItems.identifier)
+            var payload = NativeDropPayload(sftpItems: pasteboard.data(forType: sftpType))
+
+            for item in pasteboard.pasteboardItems ?? [] {
+                if let value = item.string(forType: .fileURL),
                     let url = URL(string: value), url.isFileURL
-                else { return nil }
-                return url
-            } ?? []
+                {
+                    // Finder images also advertise bitmap representations. The
+                    // URL preserves the real filename and must win per item.
+                    payload.fileURLs.append(url)
+                    continue
+                }
+
+                guard let type = item.types.first(where: { type in
+                    UTType(type.rawValue)?.conforms(to: .image) == true
+                }), let data = item.data(forType: type)
+                else { continue }
+                payload.images.append(data)
+            }
+            return payload
         }
+
+        private static let registeredTypes: [NSPasteboard.PasteboardType] = [
+            .fileURL,
+            NSPasteboard.PasteboardType(UTType.image.identifier),
+            NSPasteboard.PasteboardType(UTType.png.identifier),
+            NSPasteboard.PasteboardType(UTType.jpeg.identifier),
+            NSPasteboard.PasteboardType(UTType.tiff.identifier),
+            NSPasteboard.PasteboardType(UTType.heic.identifier),
+            NSPasteboard.PasteboardType(UTType.termindSFTPItems.identifier),
+        ]
     }
 #endif

@@ -56,6 +56,39 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func conversationOwnedFileImportFinishesAndKeepsFilename() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("txt")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data("attached through page drop".utf8).write(to: url)
+        let conversation = ConversationModel()
+
+        conversation.importAttachmentFiles([url])
+        for _ in 0..<100 where !conversation.composer.pendingAttachments.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(conversation.composer.pendingAttachments.isEmpty)
+        #expect(conversation.composer.attachments.map(\.label) == [url.lastPathComponent])
+        #expect(conversation.composer.attachments.first?.content == "attached through page drop")
+    }
+
+    @Test
+    func conversationOwnedImportHonorsAttachmentLimitBeforeStartingTasks() {
+        let conversation = ConversationModel()
+        for index in 0..<ContextAttachmentImporter.maximumAttachments {
+            conversation.attach(ContextChip(kind: .output, label: "item \(index)", content: "x"))
+        }
+
+        conversation.importAttachmentFiles([URL(fileURLWithPath: "/tmp/extra.txt")])
+
+        #expect(conversation.composer.pendingAttachments.isEmpty)
+        #expect(conversation.composer.attachments.count == ContextAttachmentImporter.maximumAttachments)
+        #expect(conversation.composer.attachmentImportError != nil)
+    }
+
+    @Test
     func imageAttachmentIsConsumedIntoVisibleAndModelFacingTurn() throws {
         let image = AgentImageAttachment(
             label: "graph.png", mimeType: "image/png", data: Data([9, 8, 7]),

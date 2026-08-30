@@ -170,7 +170,7 @@ struct SFTPBrowserView: View {
     let isPaneFocused: Bool
     let focusPane: () -> Void
     let externalFileDrop: LocalFileDropRequest?
-    let isExternalFileDropTargeted: Bool
+    let externalRemoteDrop: SFTPRemoteDropRequest?
     let closePane: () -> Void
 
     @Environment(AppModel.self) private var app
@@ -183,7 +183,6 @@ struct SFTPBrowserView: View {
     @State private var permissionTarget: RemoteFile?
     @State private var deleteTargets: [RemoteFile] = []
     @State private var conflictPresented = false
-    @State private var isRemoteDropTargeted = false
     @State private var selectionAnchor: RemoteFile.ID?
     @State private var selectionCursor: RemoteFile.ID?
     @State private var hoveredFileID: RemoteFile.ID?
@@ -584,44 +583,17 @@ struct SFTPBrowserView: View {
                     .background(TermindColor.windowSurface)
             }
         }
-        .onDrop(
-            of: [.termindSFTPItems], isTargeted: $isRemoteDropTargeted,
-            perform: receiveRemoteItemProviders
-        )
         .onCopyCommand { remoteCopyProviders(for: sftpSession.selectedFiles) }
         .onPasteCommand(of: [.termindSFTPItems]) { providers in
             _ = receiveRemoteItemProviders(providers)
         }
-        .overlay {
-            if isRemoteDropTargeted || isExternalFileDropTargeted {
-                ZStack {
-                    Color.accentColor.opacity(0.06)
-                    RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                        .padding(Metrics.Space.m)
-                    Label(
-                        isRemoteDropTargeted
-                            ? "Copy to \(sftpSession.displayPath(sftpSession.path))"
-                            : "Upload to \(sftpSession.displayPath(sftpSession.path))",
-                        systemImage: isRemoteDropTargeted
-                            ? "doc.on.doc.fill" : "arrow.up.doc.fill"
-                    )
-                    .font(.headline)
-                    .padding(.horizontal, Metrics.Space.xl)
-                    .padding(.vertical, Metrics.Space.l)
-                    .termindGlassSurface(cornerRadius: Metrics.Radius.medium)
-                }
-                .allowsHitTesting(false)
-                .transition(.opacity)
-            }
-        }
-        .animation(
-            Motion.workspaceSwitch,
-            value: isRemoteDropTargeted || isExternalFileDropTargeted
-        )
         .onChange(of: externalFileDrop?.id) {
             guard let externalFileDrop else { return }
             _ = receiveDroppedURLs(externalFileDrop.urls)
+        }
+        .onChange(of: externalRemoteDrop?.id) {
+            guard let externalRemoteDrop else { return }
+            receiveRemoteDrop(externalRemoteDrop.data)
         }
     }
 
@@ -1203,6 +1175,16 @@ struct SFTPBrowserView: View {
             }
         }
         return true
+    }
+
+    private func receiveRemoteDrop(_ data: Data) {
+        guard sftpSession.status == .connected else { return }
+        guard let payload = try? JSONDecoder().decode(SFTPRemoteItemsPayload.self, from: data)
+        else {
+            sftpSession.operationError = "The copied SFTP items are invalid."
+            return
+        }
+        prepareRemoteItems(payload)
     }
 
     private func prepareRemoteItems(_ payload: SFTPRemoteItemsPayload) {

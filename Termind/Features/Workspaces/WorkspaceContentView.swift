@@ -386,6 +386,7 @@ private struct PaneView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @TerminalAppearanceSettings private var terminalAppearance
 
     @State private var dropZone: PaneDropZone?
@@ -393,7 +394,8 @@ private struct PaneView: View {
     @State private var isRenaming = false
     @State private var draftTitle = ""
     @State private var localFileDropRequest: LocalFileDropRequest?
-    @State private var isLocalFileDropTargeted = false
+    @State private var sftpRemoteDropRequest: SFTPRemoteDropRequest?
+    @State private var nativeDropKind: NativeDropKind?
     @FocusState private var titleFieldFocused: Bool
 
     private var isFocused: Bool { workspace.focusedPaneID == pane.id }
@@ -461,11 +463,16 @@ private struct PaneView: View {
         // SwiftUI receiver above the pane and only let it participate in hit
         // testing while one of our own layout payloads is in flight.
         .overlay { layoutDropTarget }
+        .overlay { paneFileDropDecoration }
         // This must be the outermost pane overlay. Both Ghostty and SwiftUI's
         // macOS Table install native AppKit views above their own SwiftUI
         // modifiers, so a child-level upload target never enters the drag
         // responder chain.
-        .overlay { localFileDropTarget }
+        .overlay { paneFileDropTarget }
+        .animation(
+            Motion.dropTarget(reduceMotion: reduceMotion),
+            value: nativeDropKind
+        )
         .contentShape(.rect)
         .onHover { isHovering = $0 }
         .onTapGesture {
@@ -498,21 +505,85 @@ private struct PaneView: View {
     }
 
     @ViewBuilder
-    private var localFileDropTarget: some View {
+    private var paneFileDropTarget: some View {
         switch pane.content {
-        case .sshSession, .sftpSession:
-            NativeFileURLDropTarget(
-                isTargeted: $isLocalFileDropTargeted,
+        case .sshSession:
+            NativeDropTarget(
+                targetedKind: $nativeDropKind,
+                acceptedKinds: [.files],
                 isEnabled: isActive && window.dragging == nil,
-                receive: { urls in
-                    guard !urls.isEmpty else { return false }
-                    localFileDropRequest = LocalFileDropRequest(urls: urls)
-                    return true
-                }
+                receive: receivePaneDrop
+            )
+        case .sftpSession:
+            NativeDropTarget(
+                targetedKind: $nativeDropKind,
+                acceptedKinds: [.files, .sftpItems],
+                isEnabled: isActive && window.dragging == nil,
+                receive: receivePaneDrop
             )
         case .serialSession, .empty:
             EmptyView()
         }
+    }
+
+    @ViewBuilder
+    private var paneFileDropDecoration: some View {
+        if nativeDropKind != nil, let presentation = paneDropPresentation {
+            DropTargetOverlay(presentation: presentation)
+        }
+    }
+
+    private var paneDropPresentation: DropTargetPresentation? {
+        switch pane.content {
+        case .sshSession(let sshSession):
+            if let problem = TerminalUploadTarget.problem(for: sshSession) {
+                return DropTargetPresentation(
+                    title: String(localized: "Can't Upload Here"),
+                    detail: problem,
+                    systemImage: "exclamationmark.triangle.fill",
+                    tone: .unavailable
+                )
+            }
+            let hostName = app.hostLibrary.host(sshSession.hostID)?.name ?? sshSession.title
+            return DropTargetPresentation(
+                title: String(localized: "Upload to \(hostName)"),
+                detail: sshSession.displayPath(
+                    RemotePath.normalized(sshSession.workingDirectory ?? "/")
+                ),
+                systemImage: "arrow.up.doc.fill"
+            )
+        case .sftpSession(let sftpSession):
+            guard sftpSession.status == .connected else {
+                return DropTargetPresentation(
+                    title: String(localized: "Can't Upload Here"),
+                    detail: String(localized: "The SFTP session is not connected."),
+                    systemImage: "exclamationmark.triangle.fill",
+                    tone: .unavailable
+                )
+            }
+            let hostName = app.hostLibrary.host(sftpSession.hostID)?.name
+                ?? String(localized: "SFTP")
+            return DropTargetPresentation(
+                title: nativeDropKind == .sftpItems
+                    ? String(localized: "Copy to \(hostName)")
+                    : String(localized: "Upload to \(hostName)"),
+                detail: sftpSession.displayPath(sftpSession.path),
+                systemImage: nativeDropKind == .sftpItems
+                    ? "doc.on.doc.fill" : "arrow.up.doc.fill"
+            )
+        case .serialSession, .empty:
+            return nil
+        }
+    }
+
+    private func receivePaneDrop(_ payload: NativeDropPayload) -> Bool {
+        if let data = payload.sftpItems, case .sftpSession = pane.content {
+            sftpRemoteDropRequest = SFTPRemoteDropRequest(data: data)
+            return true
+        }
+        guard !payload.fileURLs.isEmpty else { return false }
+        localFileDropRequest = LocalFileDropRequest(urls: payload.fileURLs)
+        return true
     }
 
     /// The preview is the *shape of the result* — the rectangle the dragged panes
@@ -577,7 +648,6 @@ private struct PaneView: View {
                 isVisible: isActive,
                 requestsFocus: isActive && isFocused && !window.isToolbarFindFocused,
                 externalFileDrop: localFileDropRequest,
-                isExternalFileDropTargeted: isLocalFileDropTargeted,
                 closePane: { window.closePane(pane.id) }
             )
         case .sftpSession(let sftpSession):
@@ -586,7 +656,7 @@ private struct PaneView: View {
                 isPaneFocused: isActive && isFocused,
                 focusPane: { workspace.focus(pane.id) },
                 externalFileDrop: localFileDropRequest,
-                isExternalFileDropTargeted: isLocalFileDropTargeted,
+                externalRemoteDrop: sftpRemoteDropRequest,
                 closePane: { window.closePane(pane.id) }
             )
         case .serialSession(let serialSession):

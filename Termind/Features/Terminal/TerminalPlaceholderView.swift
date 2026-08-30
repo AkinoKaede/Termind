@@ -13,7 +13,6 @@ struct TerminalPlaceholderView: View {
     /// focus. A split can keep several surfaces visible at once.
     let requestsFocus: Bool
     let externalFileDrop: LocalFileDropRequest?
-    let isExternalFileDropTargeted: Bool
     /// Connection cancellation removes the pane instead of revealing the
     /// retained pre-journey terminal surface underneath it.
     let closePane: () -> Void
@@ -45,10 +44,6 @@ struct TerminalPlaceholderView: View {
         terminalSurface
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
-        .animation(
-            Motion.workspaceSwitch,
-            value: isExternalFileDropTargeted
-        )
         .animation(Motion.panel, value: uploadNotice)
         .background(terminalAppearance.background)
         .onAppear {
@@ -111,10 +106,7 @@ struct TerminalPlaceholderView: View {
 
     @ViewBuilder
     private var uploadDecoration: some View {
-        if isExternalFileDropTargeted {
-            uploadTargetOverlay
-                .transition(.opacity)
-        } else if let uploadNotice {
+        if let uploadNotice {
             TerminalUploadOverlay(notice: uploadNotice)
                 // Above the floating status capsule, not on top of it.
                 .padding(.bottom, Metrics.StatusBar.overlayClearance)
@@ -161,20 +153,7 @@ struct TerminalPlaceholderView: View {
     }
 
     private var uploadTargetProblem: String? {
-        guard sshSession.status == .connected,
-            sshSession.transferConfiguration != nil
-        else {
-            return String(localized: "The SSH session is not ready for file transfer.")
-        }
-        guard !sshSession.homeResolution.isPending else {
-            return String(localized: "Wait for the shell prompt to report its current directory.")
-        }
-        guard let directory = sshSession.workingDirectory, !directory.isEmpty else {
-            return String(
-                localized: "Wait for the shell prompt to report its current directory."
-            )
-        }
-        return nil
+        TerminalUploadTarget.problem(for: sshSession)
     }
 
     private var uploadConflictTitle: String {
@@ -182,31 +161,6 @@ struct TerminalPlaceholderView: View {
         return count == 1
             ? String(localized: "1 item already exists")
             : String(localized: "\(count) items already exist")
-    }
-
-    @ViewBuilder
-    private var uploadTargetOverlay: some View {
-        if let problem = uploadTargetProblem {
-            TerminalUploadTargetOverlay(
-                title: String(localized: "Can't Upload Here"),
-                detail: problem,
-                systemImage: "exclamationmark.triangle.fill",
-                tint: .orange
-            )
-        } else {
-            TerminalUploadTargetOverlay(
-                title: String(localized: "Upload to \(uploadHostName)"),
-                detail: sshSession.displayPath(
-                    RemotePath.normalized(sshSession.workingDirectory ?? "/")
-                ),
-                systemImage: "arrow.up.doc.fill",
-                tint: .accentColor
-            )
-        }
-    }
-
-    private var uploadHostName: String {
-        app.hostLibrary.host(sshSession.hostID)?.name ?? sshSession.title
     }
 
     private func receiveDroppedURLs(_ urls: [URL]) -> Bool {
@@ -371,51 +325,29 @@ struct TerminalPlaceholderView: View {
     }
 }
 
+enum TerminalUploadTarget {
+    static func problem(for sshSession: SSHSessionModel) -> String? {
+        guard sshSession.status == .connected,
+            sshSession.transferConfiguration != nil
+        else {
+            return String(localized: "The SSH session is not ready for file transfer.")
+        }
+        guard !sshSession.homeResolution.isPending else {
+            return String(localized: "Wait for the shell prompt to report its current directory.")
+        }
+        guard let directory = sshSession.workingDirectory, !directory.isEmpty else {
+            return String(
+                localized: "Wait for the shell prompt to report its current directory."
+            )
+        }
+        return nil
+    }
+}
+
 private enum TerminalUploadNotice: Equatable {
     case preparing(String)
     case queued(Int, String)
     case rejected(String)
-}
-
-private struct TerminalUploadTargetOverlay: View {
-    let title: String
-    let detail: String
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        ZStack {
-            tint.opacity(0.08)
-            RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                .stroke(
-                    tint,
-                    style: StrokeStyle(lineWidth: 2, dash: [7, 5])
-                )
-                .padding(Metrics.Space.m)
-
-            VStack(spacing: Metrics.Space.s) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(tint)
-                Text(title).font(.headline)
-                Text(detail)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .truncationMode(.middle)
-            }
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, Metrics.Space.xl)
-            .padding(.vertical, Metrics.Space.l)
-            .termindGlassSurface(cornerRadius: Metrics.Radius.large)
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                    .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
-            }
-            .shadow(color: TermindColor.shadow.opacity(0.16), radius: 12, y: 5)
-        }
-        .allowsHitTesting(false)
-    }
 }
 
 private struct TerminalUploadOverlay: View {

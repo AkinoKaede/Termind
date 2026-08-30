@@ -1,6 +1,7 @@
 #if canImport(AppKit)
     import AppKit
     import Testing
+    import UniformTypeIdentifiers
     @testable import Termind
 
     @MainActor
@@ -38,6 +39,47 @@
             pasteboard.setData(Data([1, 2, 3]), forType: .tiff)
 
             #expect(target.hitTest(point) == nil)
+        }
+
+        @Test
+        func generalizedTargetRecognizesBitmapAndSFTPItemsSeparately() throws {
+            let pasteboard = NSPasteboard(name: .drag)
+            pasteboard.clearContents()
+            defer { pasteboard.clearContents() }
+
+            let target = FileURLDropNSView(
+                acceptedKinds: [.images, .sftpItems],
+                targetedKind: { _ in },
+                receivePayload: { _ in true }
+            )
+
+            pasteboard.setData(Data([1, 2, 3]), forType: .tiff)
+            #expect(target.supportedPayload(from: pasteboard)?.preferredKind == .images)
+
+            let remote = try JSONEncoder().encode(SFTPRemoteItemsPayload(token: UUID()))
+            pasteboard.setData(
+                remote,
+                forType: NSPasteboard.PasteboardType(UTType.termindSFTPItems.identifier)
+            )
+            #expect(target.supportedPayload(from: pasteboard)?.preferredKind == .sftpItems)
+        }
+
+        @Test
+        func finderImagePrefersItsFileURLAndFilename() throws {
+            let pasteboard = NSPasteboard(name: .drag)
+            pasteboard.clearContents()
+            defer { pasteboard.clearContents() }
+            let item = NSPasteboardItem()
+            let url = URL(fileURLWithPath: "/tmp/screenshot.png")
+            item.setString(url.absoluteString, forType: .fileURL)
+            item.setData(Data([1, 2, 3]), forType: .tiff)
+            pasteboard.writeObjects([item])
+
+            let payload = FileURLDropNSView.payload(from: pasteboard)
+
+            #expect(payload.fileURLs == [url])
+            #expect(payload.images.isEmpty)
+            #expect(payload.preferredKind == .files)
         }
 
         @Test
