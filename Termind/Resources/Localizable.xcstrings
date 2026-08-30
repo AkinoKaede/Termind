@@ -2759,7 +2759,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "插入命令——按返回运行"
+            "value" : "命令已插入——按回车键运行"
           }
         }
       }
