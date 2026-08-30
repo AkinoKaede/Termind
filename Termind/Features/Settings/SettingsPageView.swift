@@ -583,8 +583,8 @@ private struct ProSettings: View {
         Section("Termind Pro") {
             Text("Unlock multiple-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and private iCloud Vault sync with one permanent purchase.")
                 .foregroundStyle(.secondary)
-            if !app.proAccess.hasProAccess {
-                Button("View Termind Pro") { app.proAccess.presentPaywall() }
+            if app.proAccess.status.canPurchase {
+                Button(purchaseEntryTitle) { app.proAccess.presentPaywall() }
                     .buttonStyle(.borderedProminent)
             }
             Button("Restore Purchase") { Task { await app.proAccess.restorePurchases() } }
@@ -601,6 +601,11 @@ private struct ProSettings: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
 
+    }
+
+    private var purchaseEntryTitle: LocalizedStringKey {
+        if case .trialActive = app.proAccess.status { return "Buy Termind Pro" }
+        return "View Termind Pro"
     }
 
     private func includedFeature(

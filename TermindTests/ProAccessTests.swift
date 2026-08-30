@@ -38,6 +38,14 @@ struct ProAccessTests {
     }
 
     @Test
+    func activeTrialCanStillPurchasePermanentAccess() {
+        #expect(EntitlementStatus.trialActive(expiresAt: .distantFuture).canPurchase)
+        #expect(!EntitlementStatus.purchased(.purchased).canPurchase)
+        #expect(!EntitlementStatus.purchased(.familyShared).canPurchase)
+        #expect(!EntitlementStatus.unrestrictedForTesting.canPurchase)
+    }
+
+    @Test
     func installKeyServicesCannotOverlapUserCredentialServices() {
         let reserved = [
             TrialKeychainStore.installKeyService,

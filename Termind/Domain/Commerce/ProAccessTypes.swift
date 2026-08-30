@@ -30,6 +30,13 @@ nonisolated enum EntitlementStatus: Equatable, Sendable {
         default: false
         }
     }
+
+    var canPurchase: Bool {
+        switch self {
+        case .purchased, .unrestrictedForTesting: false
+        default: true
+        }
+    }
 }
 
 nonisolated enum TrialAssessment: Equatable, Sendable {
