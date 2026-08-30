@@ -121,6 +121,14 @@ struct ListViewMigrationTests {
     }
 
     @Test
+    func transferCenterListHeightGrowsAndStopsAtItsScrollCap() {
+        #expect(Metrics.TransferCenter.listHeight(itemCount: 1) == 92)
+        #expect(Metrics.TransferCenter.listHeight(itemCount: 3) == 276)
+        #expect(Metrics.TransferCenter.listHeight(itemCount: 5) == 420)
+        #expect(Metrics.TransferCenter.listHeight(itemCount: 20) == 420)
+    }
+
+    @Test
     func settingsSelectionChangesContentWithoutChangingIdentity() {
         let normal = SettingsNavigationItem.section(.sftp, selected: false)
         let selected = SettingsNavigationItem.section(.sftp, selected: true)

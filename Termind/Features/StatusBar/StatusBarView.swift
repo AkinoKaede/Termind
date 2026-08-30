@@ -497,7 +497,7 @@ private struct TransferCenterPopover: View {
                     if item.id != transferItems.last?.id { Divider() }
                 }
             }
-            .frame(maxHeight: Metrics.TransferCenter.maxListHeight)
+            .frame(height: Metrics.TransferCenter.listHeight(itemCount: transferItems.count))
         }
         .frame(width: Metrics.TransferCenter.width)
     }
@@ -583,12 +583,13 @@ private struct TransferCenterNativeList: NSViewRepresentable {
         func makeListView() -> NSViewType {
             let listView = NSViewType()
             listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.estimatedRowHeight = 92
+            listView.estimatedRowHeight = Metrics.TransferCenter.estimatedRowHeight
             listView.rows {
                 ListRow(HostingListRow.self)
-                    .estimatedHeight(92)
+                    .estimatedHeight(Metrics.TransferCenter.estimatedRowHeight)
                     .height { [weak self] item, context in
-                        self?.height(for: item, width: context.width) ?? 92
+                        self?.height(for: item, width: context.width)
+                            ?? Metrics.TransferCenter.estimatedRowHeight
                     }
                     .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
             }
@@ -606,7 +607,9 @@ private struct TransferCenterNativeList: NSViewRepresentable {
         }
 
         private func height(for item: TransferCenterListItem, width: CGFloat) -> CGFloat {
-            guard width > 0, let root = content.rootView(for: item) else { return 92 }
+            guard width > 0, let root = content.rootView(for: item) else {
+                return Metrics.TransferCenter.estimatedRowHeight
+            }
             measurement.rootView = root
             return ceil(measurement.sizeThatFits(in: CGSize(
                 width: width, height: .greatestFiniteMagnitude
