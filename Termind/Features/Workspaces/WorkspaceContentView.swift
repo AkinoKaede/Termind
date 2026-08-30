@@ -115,6 +115,8 @@ struct WorkspaceContentView: View {
 private struct CommandGeneratorOverlay: View {
     let state: CommandGeneratorState
 
+    @Environment(\.locale) private var locale
+
     var body: some View {
         VStack(spacing: Metrics.Space.s) {
             symbol
@@ -160,17 +162,22 @@ private struct CommandGeneratorOverlay: View {
     private var title: String {
         switch state {
         case .idle: ""
-        case .readingDraft, .generating: String(localized: "Generating Command")
-        case .inserted: String(localized: "Command Inserted")
-        case .failed: String(localized: "Couldn't generate command")
+        case .readingDraft, .generating:
+            AppLocalization.string("Generating Command", locale: locale)
+        case .inserted:
+            AppLocalization.string("Command Inserted", locale: locale)
+        case .failed:
+            AppLocalization.string("Couldn't generate command", locale: locale)
         }
     }
 
     private var detail: String? {
         switch state {
         case .idle: nil
-        case .readingDraft, .generating: String(localized: "This May Take a Moment")
-        case .inserted: String(localized: "Press Return to Run")
+        case .readingDraft, .generating:
+            AppLocalization.string("This May Take a Moment", locale: locale)
+        case .inserted:
+            AppLocalization.string("Press Return to Run", locale: locale)
         case .failed(let message): message
         }
     }
