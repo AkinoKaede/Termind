@@ -2766,12 +2766,12 @@
         }
       }
     },
-    "Command inserted — press Return to run" : {
+    "Command Inserted" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "命令已插入——按回车键运行"
+            "value" : "命令已插入"
           }
         }
       }
@@ -5294,12 +5294,12 @@
         }
       }
     },
-    "Generating command…" : {
+    "Generating Command" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在生成命令…"
+            "value" : "正在生成命令"
           }
         }
       }
@@ -5920,16 +5920,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "插入"
-          }
-        }
-      }
-    },
-    "Inserted into %lld broadcast terminals." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "插入到%lld广播终端。"
           }
         }
       }
@@ -7692,16 +7682,6 @@
         }
       }
     },
-    "Only the current input, shell, working directory, and available system details are sent." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅发送当前输入、shell、工作目录和可用的系统信息。"
-          }
-        }
-      }
-    },
     "Open" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8465,6 +8445,16 @@
         }
       }
     },
+    "Press Return to Run" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按回车键运行"
+          }
+        }
+      }
+    },
     "Previous Workspace" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8895,26 +8885,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可读页面："
-          }
-        }
-      }
-    },
-    "Reading current input…" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在读取当前输入…"
-          }
-        }
-      }
-    },
-    "Reading the focused shell's edit buffer." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在读取当前shell的编辑缓冲区。"
           }
         }
       }
@@ -9531,16 +9501,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "现在重试"
-          }
-        }
-      }
-    },
-    "Review the command before running it." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "运行前检查命令。"
           }
         }
       }
@@ -13018,6 +12978,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这台Mac登录了不同的iCloud账户。确认合并前，本地保管库不会上传。"
+          }
+        }
+      }
+    },
+    "This May Take a Moment" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可能需要一点时间"
           }
         }
       }

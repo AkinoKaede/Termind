@@ -119,11 +119,13 @@ private struct CommandGeneratorOverlay: View {
         VStack(spacing: Metrics.Space.s) {
             symbol
             Text(title).font(.headline)
-            Text(detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
+            if let detail {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
         }
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.vertical, Metrics.Space.l)
@@ -158,27 +160,17 @@ private struct CommandGeneratorOverlay: View {
     private var title: String {
         switch state {
         case .idle: ""
-        case .readingDraft: String(localized: "Reading current input…")
-        case .generating: String(localized: "Generating command…")
-        case .inserted: String(localized: "Command inserted — press Return to run")
+        case .readingDraft, .generating: String(localized: "Generating Command")
+        case .inserted: String(localized: "Command Inserted")
         case .failed: String(localized: "Couldn't generate command")
         }
     }
 
-    private var detail: String {
+    private var detail: String? {
         switch state {
-        case .idle: ""
-        case .readingDraft:
-            String(localized: "Reading the focused shell's edit buffer.")
-        case .generating:
-            String(
-                localized:
-                    "Only the current input, shell, working directory, and available system details are sent."
-            )
-        case .inserted(let targetCount):
-            targetCount == 1
-                ? String(localized: "Review the command before running it.")
-                : String(localized: "Inserted into \(targetCount) broadcast terminals.")
+        case .idle: nil
+        case .readingDraft, .generating: String(localized: "This May Take a Moment")
+        case .inserted: String(localized: "Press Return to Run")
         case .failed(let message): message
         }
     }
