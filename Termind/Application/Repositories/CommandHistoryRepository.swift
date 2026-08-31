@@ -4,6 +4,7 @@ import Foundation
 protocol CommandHistoryRepository: AnyObject {
     func entries(for hostID: Host.ID) throws -> [CommandHistoryEntry]
     func insert(_ entry: CommandHistoryEntry, limit: Int) throws
+    func update(_ entry: CommandHistoryEntry) throws
     func delete(_ id: CommandHistoryEntry.ID) throws
     func clear(for hostID: Host.ID) throws
 }
@@ -24,6 +25,11 @@ final class InMemoryCommandHistoryRepository: CommandHistoryRepository {
         values.removeAll { $0.hostID == entry.hostID && !retained.contains($0.id) }
     }
 
+    func update(_ entry: CommandHistoryEntry) throws {
+        guard let index = values.firstIndex(where: { $0.id == entry.id }) else { return }
+        values[index] = entry
+    }
+
     func delete(_ id: CommandHistoryEntry.ID) throws {
         values.removeAll { $0.id == id }
     }
@@ -32,4 +38,3 @@ final class InMemoryCommandHistoryRepository: CommandHistoryRepository {
         values.removeAll { $0.hostID == hostID }
     }
 }
-

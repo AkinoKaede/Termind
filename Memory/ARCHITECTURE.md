@@ -51,6 +51,11 @@ framework and concrete-client restrictions that directory layout alone cannot.
 Repository data is persistent truth. Runtime connection state is kept in a
 connection registry and is never persisted onto domain records.
 
+SSH command history is created only after an authenticated shell-integration
+start event. A matching completion event enriches that row with exit status and
+locally measured duration; both remain optional so interrupted commands and
+history migrated from older versions preserve an honest unknown outcome.
+
 Feature views receive aggregate-facing Application Models rather than a generic
 store API: `HostLibraryModel`, `CredentialLibraryModel`, `SnippetLibraryModel`,
 `ForwardingLibraryModel`, `TransferLibraryModel`, `AIConfigurationModel`,

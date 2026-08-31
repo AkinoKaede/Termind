@@ -171,7 +171,7 @@ final class SSHSessionModel: Identifiable {
     private(set) var findQuery = ""
     private(set) var isFindPresented = false
 
-    /// Whether the remote shell accepted OSC 133 integration.
+    /// Whether the remote shell accepted Termind's authenticated OSC integration.
     var shellIntegrationAvailable: Bool = false
     private(set) var integratedShell: String?
     /// The most recent OSC 0/2 title reported by this SSH connection.
@@ -190,6 +190,11 @@ final class SSHSessionModel: Identifiable {
         }
     }
     private(set) var isShellPromptReady = false
+    private struct ActiveShellCommand {
+        var historyID: CommandHistoryEntry.ID?
+        var startedAtNanoseconds: UInt64
+    }
+    private var activeShellCommand: ActiveShellCommand?
     private(set) var commandGeneratorRevision: UInt64 = 0
     private struct PendingDraftRequest {
         var id: UUID
@@ -489,6 +494,7 @@ final class SSHSessionModel: Identifiable {
         remoteSystemInfo = nil
         isShellPromptReady = false
         shellIntegrationAvailable = false
+        activeShellCommand = nil
         if let request = pendingDraftRequest {
             failDraftRequest(id: request.id, with: TerminalDraftError.unavailable)
         }
@@ -1277,7 +1283,12 @@ final class SSHSessionModel: Identifiable {
         case .commandStarted(let command):
             isShellPromptReady = false
             invalidateCommandGeneration()
-            recordExecutedCommand(command)
+            activeShellCommand = ActiveShellCommand(
+                historyID: recordExecutedCommand(command),
+                startedAtNanoseconds: DispatchTime.now().uptimeNanoseconds
+            )
+        case .commandFinished(let status):
+            recordCommandCompletion(exitStatus: status)
         case .draft(let draft):
             completeDraftRequest(with: draft)
         }
@@ -1294,23 +1305,50 @@ final class SSHSessionModel: Identifiable {
         insert(initialCommand.command, submit: true)
     }
 
-    func recordExecutedCommand(_ command: String) {
-        guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+    @discardableResult
+    func recordExecutedCommand(_ command: String) -> CommandHistoryEntry.ID? {
+        guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
         if command == commandExcludedFromHistory {
             commandExcludedFromHistory = nil
-            return
+            return nil
         }
         if statusStore?.host(hostID) != nil {
-            commandHistoryStore?.record(command, for: hostID)
+            return commandHistoryStore?.record(command, for: hostID)?.id
         } else {
-            transientCommandHistory.insert(
-                CommandHistoryEntry(hostID: hostID, command: command), at: 0
-            )
+            let entry = CommandHistoryEntry(hostID: hostID, command: command)
+            transientCommandHistory.insert(entry, at: 0)
             if transientCommandHistory.count > CommandHistoryModel.perHostLimit {
                 transientCommandHistory.removeLast(
                     transientCommandHistory.count - CommandHistoryModel.perHostLimit
                 )
             }
+            return entry.id
+        }
+    }
+
+    private func recordCommandCompletion(exitStatus: Int32) {
+        guard let active = activeShellCommand else { return }
+        activeShellCommand = nil
+        guard let historyID = active.historyID else { return }
+        let now = DispatchTime.now().uptimeNanoseconds
+        let elapsed =
+            if now >= active.startedAtNanoseconds {
+                Double(now - active.startedAtNanoseconds) / 1_000_000_000
+            } else {
+                0.0
+            }
+        if statusStore?.host(hostID) != nil {
+            commandHistoryStore?.recordCompletion(
+                for: historyID, hostID: hostID,
+                exitStatus: exitStatus, duration: elapsed
+            )
+        } else if let index = transientCommandHistory.firstIndex(where: {
+            $0.id == historyID
+        }) {
+            transientCommandHistory[index].exitStatus = exitStatus
+            transientCommandHistory[index].duration = elapsed
         }
     }
 

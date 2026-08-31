@@ -32,6 +32,21 @@ struct CommandHistoryTests {
     }
 
     @Test
+    func completionEnrichesExistingHistoryWithoutCreatingAnotherRow() throws {
+        let hostID = UUID()
+        let store = CommandHistoryModel()
+        let entry = try #require(store.record("false", for: hostID))
+
+        let completed = store.recordCompletion(
+            for: entry.id, hostID: hostID, exitStatus: 1, duration: 0.25
+        )
+
+        #expect(completed?.exitStatus == 1)
+        #expect(completed?.duration == 0.25)
+        #expect(store.entries(for: hostID).count == 1)
+    }
+
+    @Test
     func storeRejectsBlankCommandsAndTrimsPerHost() {
         let hostID = UUID()
         let store = CommandHistoryModel()
@@ -58,6 +73,9 @@ struct CommandHistoryTests {
         do {
             let store = CommandHistoryModel(modelContext: container.mainContext)
             entryID = try #require(store.record("echo 持久化", for: hostID)).id
+            store.recordCompletion(
+                for: entryID, hostID: hostID, exitStatus: 7, duration: 1.5
+            )
             #expect(store.storageError == nil)
             #expect(
                 try container.mainContext.fetch(
@@ -69,7 +87,57 @@ struct CommandHistoryTests {
         let reloaded = CommandHistoryModel(modelContext: container.mainContext)
         #expect(reloaded.entries(for: hostID).map(\.id) == [entryID])
         #expect(reloaded.entries(for: hostID).map(\.command) == ["echo 持久化"])
+        #expect(reloaded.entries(for: hostID).map(\.exitStatus) == [7])
+        #expect(reloaded.entries(for: hostID).map(\.duration) == [1.5])
         #expect(reloaded.storageError == nil)
+    }
+
+    @Test
+    func schemaV9HistoryMigratesWithUnknownCompletion() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TermindCommandHistoryV10Migration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appendingPathComponent("Termind.store")
+        let legacySchema = Schema(versionedSchema: TermindSchemaV9.self)
+        let value = CommandHistoryEntry(
+            hostID: UUID(), command: "uptime",
+            executedAt: Date(timeIntervalSince1970: 123)
+        )
+
+        var legacyContainer: ModelContainer? = try ModelContainer(
+            for: legacySchema,
+            configurations: [
+                localModelConfiguration(
+                    "CommandHistoryMigration", schema: legacySchema, url: storeURL
+                )
+            ]
+        )
+        legacyContainer?.mainContext.insert(
+            TermindSchemaV9Models.PersistentCommandHistoryEntry(value)
+        )
+        try legacyContainer?.mainContext.save()
+        legacyContainer = nil
+
+        let migrated = try ModelContainer(
+            for: HostPersistence.schema,
+            migrationPlan: TermindMigrationPlan.self,
+            configurations: [
+                localModelConfiguration(
+                    "CommandHistoryMigration", schema: HostPersistence.schema,
+                    url: storeURL
+                )
+            ]
+        )
+        let entries = try migrated.mainContext.fetch(
+            FetchDescriptor<PersistentCommandHistoryEntry>()
+        ).map(\.value)
+
+        #expect(entries.map(\.command) == ["uptime"])
+        #expect(entries.first?.exitStatus == nil)
+        #expect(entries.first?.duration == nil)
     }
 
     @Test
@@ -104,6 +172,19 @@ struct CommandHistoryTests {
         session.recordExecutedCommand("uptime")
 
         #expect(session.transientCommandHistory.map(\.command) == ["uptime"])
+    }
+
+    @Test
+    func shellLifecycleCompletesTheMatchingTransientHistoryRow() throws {
+        let session = SSHSessionModel(host: Host(name: "Shell", host: "shell.example"))
+
+        session.receiveShellIntegrationEvent(.commandStarted("false"))
+        session.receiveShellIntegrationEvent(.commandFinished(1))
+
+        let entry = try #require(session.transientCommandHistory.first)
+        #expect(entry.command == "false")
+        #expect(entry.exitStatus == 1)
+        #expect(try #require(entry.duration) >= 0)
     }
 
     private func makeContainer(_ name: String) throws -> ModelContainer {
@@ -185,5 +266,54 @@ struct RemoteCommandEventFilterTests {
 
         #expect(update.drafts == [""])
         #expect(update.visibleOutput.isEmpty)
+    }
+
+    @Test
+    func preservesLifecycleEventOrderWithinOneRead() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let update = filter.receive(
+            Data(
+                ("\u{1B}]777;TermindCommand=TOKEN;first\u{7}"
+                    + "\u{1B}]777;TermindCommandFinished=TOKEN;3\u{7}"
+                    + "\u{1B}]777;TermindPrompt=TOKEN\u{7}"
+                    + "\u{1B}]777;TermindCommand=TOKEN;second\u{7}").utf8
+            )
+        )
+
+        #expect(
+            update.events == [
+                .commandStarted("first"), .commandFinished(3), .promptReady,
+                .commandStarted("second"),
+            ]
+        )
+    }
+
+    @Test
+    func oversizedUnterminatedAuthenticatedFrameIsDroppedAndParsingRecovers() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let malformed =
+            "before\u{1B}]777;TermindCommand=TOKEN;"
+            + String(
+                repeating: "x",
+                count: RemoteCommandEventFilter.maximumPayloadBytes + 1
+            )
+
+        let first = filter.receive(Data(malformed.utf8))
+        let second = filter.receive(Data("after".utf8))
+
+        #expect(first.visibleOutput == Data("before".utf8))
+        #expect(first.events.isEmpty)
+        #expect(second.visibleOutput == Data("after".utf8))
+    }
+
+    @Test
+    func invalidExitStatusIsIgnored() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let update = filter.receive(
+            Data("\u{1B}]777;TermindCommandFinished=TOKEN;999\u{7}".utf8)
+        )
+
+        #expect(update.events.isEmpty)
+        #expect(update.commandExitStatuses.isEmpty)
     }
 }

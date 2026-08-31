@@ -20,9 +20,13 @@ struct ShellIntegrationBootstrapTests {
         let commandText = String(decoding: command, as: UTF8.self)
         #expect(commandText.contains("file://localhost%s"))
         #expect(commandText.contains("TermindCommand=ABC123"))
+        #expect(commandText.contains("TermindCommandFinished=ABC123"))
         #expect(commandText.contains("TermindPrompt=ABC123"))
         #expect(commandText.contains("TermindDraft=ABC123"))
         #expect(commandText.contains("PROMPT_COMMAND"))
+        #expect(commandText.contains("bash_preexec_imported"))
+        #expect(commandText.contains("__termind_get_trap"))
+        #expect(commandText.contains("__termind_integration_token"))
         #expect(commandText.contains("__termind_compose_clear"))
         #expect(commandText.contains("emacs-standard vi-insertion vi-command"))
         #expect(commandText.contains("\\e[777;1~"))
@@ -128,6 +132,7 @@ struct ShellIntegrationBootstrapTests {
         #expect(!text.contains("hostname"))
         #expect(!text.contains("kitty-shell-cwd"))
         #expect(text.contains("TermindCommand=SHELL"))
+        #expect(text.contains("TermindCommandFinished=SHELL"))
         if shell == "zsh" {
             #expect(text.contains("add-zsh-hook preexec"))
             #expect(text.contains("emacs viins vicmd"))
@@ -140,6 +145,47 @@ struct ShellIntegrationBootstrapTests {
         #expect(text.contains("__termind_compose_clear"))
         #expect(text.contains("777;1~"))
         #expect(text.contains("777;2~"))
+    }
+
+    @Test
+    func bashAndZshInstallationCommandsPassShellSyntaxChecks() throws {
+        try assertInstallationSyntax(shell: "bash", executable: "/bin/bash")
+        try assertInstallationSyntax(shell: "zsh", executable: "/bin/zsh")
+    }
+
+    @Test
+    func bashPreservesExistingHooksAndReportsACommandFailure() throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "RUNTIME")
+        let update = bootstrap.receive(
+            Data("__TRMD_RUNTIME_SHELL__/bin/bash__\r\n".utf8)
+        )
+        var script = Data(
+            "PROMPT_COMMAND='__user_prompt=1'\n"
+                .appending("__user_debug_hits=0\n")
+                .appending("trap '__user_debug_hits=$((__user_debug_hits + 1))' DEBUG\n")
+                .utf8
+        )
+        script.append(try #require(update.command))
+        script.append(Data(
+            "__user_debug_hits=0\n:\n"
+                .appending("__hits_after_integration=$__user_debug_hits\n")
+                .appending("builtin trap - DEBUG\n")
+                .appending("(( __hits_after_integration > 0 )) && ")
+                .appending("builtin printf 'DEBUG_PRESERVED\\n'\n")
+                .appending("builtin printf '\\nHOOKS=%s;%s\\n' ")
+                .appending("\"$PROMPT_COMMAND\" \"$__hits_after_integration\"\n")
+                .appending("__termind_report_command 'false'\n")
+                .appending("false\n__termind_report_prompt\nexit 0\n")
+                .utf8
+        ))
+
+        let result = try runShell(executable: "/bin/bash", arguments: [], input: script)
+
+        #expect(result.status == 0, Comment(rawValue: result.errors))
+        #expect(result.output.contains("DEBUG_PRESERVED"))
+        #expect(result.output.contains("HOOKS=__termind_report_prompt; __user_prompt=1;"))
+        #expect(result.output.contains("TermindCommand=RUNTIME;false\u{7}"))
+        #expect(result.output.contains("TermindCommandFinished=RUNTIME;1\u{7}"))
     }
 
     @Test
@@ -336,5 +382,45 @@ struct ShellIntegrationBootstrapTests {
         #expect(visible == "user@host$ ls -")
         #expect(!visible.contains("__TRMD_"))
         #expect(!visible.contains("printf"))
+    }
+
+    private func assertInstallationSyntax(shell: String, executable: String) throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "SYNTAX")
+        let update = bootstrap.receive(
+            Data("__TRMD_SYNTAX_SHELL__/bin/\(shell)__\r\n".utf8)
+        )
+        let command = try #require(update.command)
+        let result = try runShell(executable: executable, arguments: ["-n"], input: command)
+        #expect(result.status == 0, "\(shell): \(result.errors)")
+    }
+
+    private func runShell(
+        executable: String, arguments: [String], input: Data
+    ) throws -> (status: Int32, output: String, errors: String) {
+        let process = Process()
+        let standardInput = Pipe()
+        let standardOutput = Pipe()
+        let standardError = Pipe()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        process.standardInput = standardInput
+        process.standardOutput = standardOutput
+        process.standardError = standardError
+
+        try process.run()
+        standardInput.fileHandleForWriting.write(input)
+        try standardInput.fileHandleForWriting.close()
+        process.waitUntilExit()
+        return (
+            process.terminationStatus,
+            String(
+                decoding: standardOutput.fileHandleForReading.readDataToEndOfFile(),
+                as: UTF8.self
+            ),
+            String(
+                decoding: standardError.fileHandleForReading.readDataToEndOfFile(),
+                as: UTF8.self
+            )
+        )
     }
 }

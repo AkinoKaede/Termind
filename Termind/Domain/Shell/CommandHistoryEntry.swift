@@ -9,4 +9,8 @@ nonisolated struct CommandHistoryEntry: Identifiable, Hashable, Sendable {
     var hostID: Host.ID
     var command: String
     var executedAt: Date = Date()
+    /// `nil` means the shell never reported a completion event, including rows
+    /// written by versions that predate command lifecycle reporting.
+    var exitStatus: Int32?
+    var duration: TimeInterval?
 }

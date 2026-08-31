@@ -342,13 +342,13 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         switch shell {
         case "bash":
             command =
-                " __termind_encode() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; __termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; __termind_report_prompt() { builtin local status=$?; __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; return $status; }; __termind_report_command() { builtin local current=$HISTCMD cmd; [[ -n \"${__termind_busy:-}\" ]] && return; if (( current > ${__termind_last_histcmd:-0} )); then __termind_busy=1; cmd=\"$(builtin fc -ln -0)\"; cmd=\"${cmd#\"${cmd%%[![:space:]]*}\"}\"; __termind_last_histcmd=$current; [[ -n \"$cmd\" ]] && builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$cmd\")\"; unset __termind_busy; fi; }; __termind_compose_draft() { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$READLINE_LINE\")\"; }; __termind_compose_clear() { READLINE_LINE=; READLINE_POINT=0; }; for __termind_map in emacs-standard vi-insertion vi-command; do builtin bind -m \"$__termind_map\" -x '\"\\e[777;1~\":__termind_compose_draft'; builtin bind -m \"$__termind_map\" -x '\"\\e[777;2~\":__termind_compose_clear'; done; builtin unset __termind_map; __termind_last_histcmd=$HISTCMD; trap '__termind_report_command' DEBUG; if [[ $(builtin declare -p PROMPT_COMMAND 2>/dev/null) == \"declare -a \"* ]]; then PROMPT_COMMAND=(__termind_report_prompt \"${PROMPT_COMMAND[@]}\"); else PROMPT_COMMAND=\"__termind_report_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}\"; fi; \(marker); __termind_report_prompt\n"
+                " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then __termind_integration_token=\"\(token)\"; __termind_encode() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; __termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; __termind_report_prompt() { builtin local status=$?; if [[ -n \"${__termind_command_active:-}\" ]]; then builtin printf '\\e]777;TermindCommandFinished=\(token);%s\\a' \"$status\"; builtin unset __termind_command_active; fi; __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; return \"$status\"; }; __termind_report_command() { builtin local status=$? current=$HISTCMD cmd=\"${1:-}\"; [[ -n \"${__termind_busy:-}\" ]] && return \"$status\"; __termind_busy=1; if [[ -z \"$cmd\" ]]; then if (( current <= ${__termind_last_histcmd:-0} )); then builtin unset __termind_busy; return \"$status\"; fi; cmd=\"$(builtin fc -ln -0)\"; cmd=\"${cmd#\"${cmd%%[![:space:]]*}\"}\"; fi; __termind_last_histcmd=$current; if [[ -n \"$cmd\" ]]; then builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$cmd\")\"; __termind_command_active=1; fi; builtin unset __termind_busy; return \"$status\"; }; __termind_get_trap() { builtin local -a terms; builtin eval \"terms=( $(builtin trap -p \"${1:-DEBUG}\") )\"; builtin printf %s \"${terms[2]:-}\"; }; __termind_compose_draft() { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$READLINE_LINE\")\"; }; __termind_compose_clear() { READLINE_LINE=; READLINE_POINT=0; }; for __termind_map in emacs-standard vi-insertion vi-command; do builtin bind -m \"$__termind_map\" -x '\"\\e[777;1~\":__termind_compose_draft'; builtin bind -m \"$__termind_map\" -x '\"\\e[777;2~\":__termind_compose_clear'; done; builtin unset __termind_map; __termind_last_histcmd=$HISTCMD; if [[ -n \"${bash_preexec_imported:-}\" ]]; then [[ \" ${preexec_functions[*]} \" == *\" __termind_report_command \"* ]] || preexec_functions+=(__termind_report_command); [[ \" ${precmd_functions[*]} \" == *\" __termind_report_prompt \"* ]] || precmd_functions=(__termind_report_prompt \"${precmd_functions[@]}\"); else __termind_debug_trap=\"$(__termind_get_trap DEBUG)\"; if [[ \"$__termind_debug_trap\" != *\"__termind_report_command\"* ]]; then if [[ -n \"$__termind_debug_trap\" ]]; then builtin trap \"$__termind_debug_trap\"$'\\n''__termind_report_command' DEBUG; else builtin trap '__termind_report_command' DEBUG; fi; fi; if [[ $(builtin declare -p PROMPT_COMMAND 2>/dev/null) == \"declare -a \"* ]]; then [[ \" ${PROMPT_COMMAND[*]} \" == *\" __termind_report_prompt \"* ]] || PROMPT_COMMAND=(__termind_report_prompt \"${PROMPT_COMMAND[@]}\"); elif [[ \"${PROMPT_COMMAND:-}\" != __termind_report_prompt* ]]; then PROMPT_COMMAND=\"__termind_report_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}\"; fi; fi; fi; \(marker); __termind_report_prompt\n"
         case "zsh":
             command =
-                " function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_prompt { __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; }; function __termind_compose_draft { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$BUFFER\")\"; zle redisplay; }; function __termind_compose_clear { BUFFER=; CURSOR=0; zle redisplay; }; zle -N __termind_compose_draft; zle -N __termind_compose_clear; for __termind_map in emacs viins vicmd; do bindkey -M $__termind_map '\\e[777;1~' __termind_compose_draft 2>/dev/null; bindkey -M $__termind_map '\\e[777;2~' __termind_compose_clear 2>/dev/null; done; unset __termind_map; autoload -Uz add-zsh-hook; add-zsh-hook preexec __termind_report_command; add-zsh-hook precmd __termind_report_prompt; add-zsh-hook chpwd __termind_report_cwd; \(marker); __termind_report_prompt\n"
+                " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then typeset -g __termind_integration_token=\"\(token)\"; function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_prompt { builtin local status=$?; if [[ -n \"${__termind_command_active:-}\" ]]; then builtin printf '\\e]777;TermindCommandFinished=\(token);%s\\a' \"$status\"; unset __termind_command_active; fi; __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; return \"$status\"; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; typeset -g __termind_command_active=1; }; function __termind_compose_draft { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$BUFFER\")\"; zle redisplay; }; function __termind_compose_clear { BUFFER=; CURSOR=0; zle redisplay; }; zle -N __termind_compose_draft; zle -N __termind_compose_clear; for __termind_map in emacs viins vicmd; do bindkey -M $__termind_map '\\e[777;1~' __termind_compose_draft 2>/dev/null; bindkey -M $__termind_map '\\e[777;2~' __termind_compose_clear 2>/dev/null; done; unset __termind_map; autoload -Uz add-zsh-hook; (( ${preexec_functions[(Ie)__termind_report_command]} )) || add-zsh-hook preexec __termind_report_command; precmd_functions=(__termind_report_prompt ${precmd_functions:#__termind_report_prompt}); (( ${chpwd_functions[(Ie)__termind_report_cwd]} )) || add-zsh-hook chpwd __termind_report_cwd; fi; \(marker); __termind_report_prompt\n"
         case "fish":
             command =
-                " function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token)\\a'; end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\"; end; function __termind_compose_clear; commandline -r ''; commandline -C 0; end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' (string escape --style=url $HOME); printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_prompt\n"
+                " if not set -q __termind_integration_token; or test \"$__termind_integration_token\" != \"\(token)\"; set -g __termind_integration_token \"\(token)\"; function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token)\\a'; end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); set -g __termind_command_active 1; end; function __termind_report_finished --on-event fish_postexec; set -l command_status $status; if set -q __termind_command_active; printf '\\e]777;TermindCommandFinished=\(token);%s\\a' $command_status; set -e __termind_command_active; end; end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\"; end; function __termind_compose_clear; commandline -r ''; commandline -C 0; end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; end; printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' (string escape --style=url $HOME); printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_prompt\n"
         default:
             return nil
         }
@@ -360,20 +360,33 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 /// Ghostty and emits their decoded payloads separately. The session token makes
 /// ordinary OSC output in a remote program ineligible to forge local history.
 nonisolated struct RemoteCommandEventFilter: Sendable {
+    static let maximumPayloadBytes = 64 * 1024
+
+    nonisolated enum Event: Sendable, Equatable {
+        case commandStarted(String)
+        case commandFinished(Int32)
+        case promptReady
+        case draft(String)
+    }
+
     nonisolated struct Update: Sendable {
         var visibleOutput = Data()
+        var events: [Event] = []
         var commands: [String] = []
+        var commandExitStatuses: [Int32] = []
         var promptReady = false
         var drafts: [String] = []
     }
 
     private let commandPrefix: Data
+    private let commandFinishedPrefix: Data
     private let promptPrefix: Data
     private let draftPrefix: Data
     private var buffer = Data()
 
     init(token: String) {
         commandPrefix = Data("\u{1B}]777;TermindCommand=\(token);".utf8)
+        commandFinishedPrefix = Data("\u{1B}]777;TermindCommandFinished=\(token);".utf8)
         promptPrefix = Data("\u{1B}]777;TermindPrompt=\(token)".utf8)
         draftPrefix = Data("\u{1B}]777;TermindDraft=\(token);".utf8)
     }
@@ -387,21 +400,44 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
                 update.visibleOutput.append(buffer[..<marker.lowerBound])
             }
             guard let end = buffer[marker.upperBound...].firstIndex(of: 0x07) else {
-                buffer = Data(buffer[marker.lowerBound...])
+                if buffer.distance(from: marker.upperBound, to: buffer.endIndex)
+                    > Self.maximumPayloadBytes
+                {
+                    // A forged or truncated authenticated marker must not retain
+                    // the terminal stream forever. Drop the malformed frame and
+                    // resume with the next received bytes.
+                    buffer.removeAll(keepingCapacity: false)
+                } else {
+                    buffer = Data(buffer[marker.lowerBound...])
+                }
                 return update
             }
             let payload = Data(buffer[marker.upperBound..<end])
+            guard payload.count <= Self.maximumPayloadBytes else {
+                buffer = Data(buffer[buffer.index(after: end)...])
+                continue
+            }
             switch match.kind {
             case .command:
                 if let command = Self.decodePercentEncoded(payload), !command.isEmpty {
                     update.commands.append(command)
+                    update.events.append(.commandStarted(command))
+                }
+            case .commandFinished:
+                if let text = String(data: payload, encoding: .utf8),
+                    let status = Int32(text), (0...255).contains(status)
+                {
+                    update.commandExitStatuses.append(status)
+                    update.events.append(.commandFinished(status))
                 }
             case .prompt:
                 guard payload.isEmpty else { break }
                 update.promptReady = true
+                update.events.append(.promptReady)
             case .draft:
                 if let draft = Self.decodePercentEncoded(payload) {
                     update.drafts.append(draft)
+                    update.events.append(.draft(draft))
                 }
             }
             buffer = Data(buffer[buffer.index(after: end)...])
@@ -415,23 +451,26 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
     }
 
     private func longestSuffixMatchingPrefix() -> Int {
-        let prefixes = [commandPrefix, promptPrefix, draftPrefix]
+        let prefixes = [commandPrefix, commandFinishedPrefix, promptPrefix, draftPrefix]
         guard !buffer.isEmpty else { return 0 }
         let maximum = prefixes.map(\.count).max() ?? 0
         guard maximum > 1 else { return 0 }
         for count in stride(from: min(buffer.count, maximum - 1), through: 1, by: -1) {
             if prefixes.contains(where: {
                 $0.count >= count && buffer.suffix(count).elementsEqual($0.prefix(count))
-            }) { return count }
+            }) {
+                return count
+            }
         }
         return 0
     }
 
-    private enum MarkerKind { case command, prompt, draft }
+    private enum MarkerKind { case command, commandFinished, prompt, draft }
 
     private func earliestMarker() -> (range: Range<Data.Index>, kind: MarkerKind)? {
         let candidates: [(Range<Data.Index>, MarkerKind)] = [
             buffer.range(of: commandPrefix).map { ($0, .command) },
+            buffer.range(of: commandFinishedPrefix).map { ($0, .commandFinished) },
             buffer.range(of: promptPrefix).map { ($0, .prompt) },
             buffer.range(of: draftPrefix).map { ($0, .draft) },
         ].compactMap { $0 }
@@ -473,6 +512,7 @@ nonisolated enum SSHShellIntegrationEvent: Sendable {
     case homeResolutionUnavailable
     case promptReady
     case commandStarted(String)
+    case commandFinished(Int32)
     case draft(String)
 }
 
@@ -1118,16 +1158,18 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
             pendingWrites.append(command)
         }
         if update.integrationInstalled {
-            shellIntegrationHandler(.available(
-                shell: update.shell ?? "unknown", systemInfo: update.systemInfo,
-                homeDirectory: update.homeDirectory
-            ))
+            shellIntegrationHandler(
+                .available(
+                    shell: update.shell ?? "unknown", systemInfo: update.systemInfo,
+                    homeDirectory: update.homeDirectory
+                )
+            )
         } else {
             if let systemInfo = update.systemInfo {
                 shellIntegrationHandler(.systemInfo(systemInfo))
             }
             if update.homeResolutionUnavailable || update.isComplete {
-            shellIntegrationHandler(.homeResolutionUnavailable)
+                shellIntegrationHandler(.homeResolutionUnavailable)
             }
         }
         if let visibleOutput = update.visibleOutput, !visibleOutput.isEmpty {
@@ -1143,14 +1185,17 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         let update = commandEventFilter.receive(data)
         self.commandEventFilter = commandEventFilter
         if !update.visibleOutput.isEmpty { output(update.visibleOutput) }
-        for command in update.commands {
-            shellIntegrationHandler(.commandStarted(command))
-        }
-        if update.promptReady {
-            shellIntegrationHandler(.promptReady)
-        }
-        for draft in update.drafts {
-            shellIntegrationHandler(.draft(draft))
+        for event in update.events {
+            switch event {
+            case .commandStarted(let command):
+                shellIntegrationHandler(.commandStarted(command))
+            case .commandFinished(let status):
+                shellIntegrationHandler(.commandFinished(status))
+            case .promptReady:
+                shellIntegrationHandler(.promptReady)
+            case .draft(let draft):
+                shellIntegrationHandler(.draft(draft))
+            }
         }
     }
 
