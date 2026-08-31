@@ -151,7 +151,7 @@ struct WorkspaceNavigatorView: View {
                 ForEach(Array(window.workspaces.enumerated()), id: \.element.id) { index, workspace in
                     WorkspaceNavigatorRow(
                         workspace: workspace,
-                        isSelected: window.selectedWorkspaceID == workspace.id,
+                        isSelected: window.displayedWorkspace?.id == workspace.id,
                         isRenaming: renamingWorkspaceID == workspace.id,
                         renameTitle: $workspaceRenameTitle,
                         onBeginRename: { beginWorkspaceRename(workspace) },

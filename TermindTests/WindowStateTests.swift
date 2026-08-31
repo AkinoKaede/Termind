@@ -773,6 +773,47 @@ struct WindowStateTests {
     }
 
     @Test
+    func endingSelectedWorkspaceDragRestoresDisplayedSelection() {
+        let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
+        let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
+        let window = WindowModel(workspaces: [first, second])
+        window.select(first.id)
+
+        window.dragging = .workspace(first.id)
+        #expect(window.displayedWorkspace?.id == second.id)
+
+        window.dragging = nil
+
+        #expect(window.displayedWorkspace?.id == first.id)
+        #expect(window.selectedWorkspaceID == first.id)
+    }
+
+    @Test
+    func draggingUnselectedWorkspaceDoesNotChangeDisplayedSelection() {
+        let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
+        let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
+        let window = WindowModel(workspaces: [first, second])
+        window.select(first.id)
+
+        window.dragging = .workspace(second.id)
+
+        #expect(window.displayedWorkspace?.id == first.id)
+        #expect(window.selectedWorkspaceID == first.id)
+    }
+
+    @Test
+    func draggingSelectedWorkspaceWithoutMergeNeighbourKeepsItsSelectionDisplayed() {
+        let workspace = Workspace.sshSession(host: Host(name: "Only", host: "only.example"))
+        let window = WindowModel(workspaces: [workspace])
+        window.select(workspace.id)
+
+        window.dragging = .workspace(workspace.id)
+
+        #expect(window.displayedWorkspace?.id == workspace.id)
+        #expect(window.selectedWorkspaceID == workspace.id)
+    }
+
+    @Test
     func droppingNestedPaneOnNavigatorDetachesItIntoSelectedWorkspace() throws {
         let workspace = Workspace.sshSession(
             host: Host(name: "First", host: "first.example")
