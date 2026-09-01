@@ -19,7 +19,7 @@ final class ProAccessController {
 
     private(set) var status: EntitlementStatus
     private(set) var product: Product?
-    private(set) var message: String?
+    private(set) var error: ProAccessControllerError?
     private(set) var workspaceCompositionGrantedForLaunch: Bool
     private(set) var isReviewDemoModeEnabled: Bool
     var isPaywallPresented = false
@@ -27,6 +27,7 @@ final class ProAccessController {
 
     var displayPrice: String? { product?.displayPrice }
     var hasProAccess: Bool { status.hasProAccess }
+    var message: String? { error?.localizedDescription }
 
     static func live() -> ProAccessController {
         ProAccessController(trialStore: TrialEligibilityStore(), reviewDefaults: .standard)
@@ -105,7 +106,7 @@ final class ProAccessController {
         reviewDefaults?.set(true, forKey: Self.reviewDemoDefaultsKey)
         workspaceCompositionGrantedForLaunch = false
         requestedFeature = nil
-        message = nil
+        error = nil
         apply(.trialExpired)
         return true
     }
@@ -119,7 +120,7 @@ final class ProAccessController {
         if status == .unrestrictedForTesting { return }
         refreshGeneration &+= 1
         let generation = refreshGeneration
-        message = nil
+        error = nil
 
         async let ownership = currentOwnership()
         Task { [weak self] in await self?.loadProductMetadata(generation: generation) }
@@ -158,28 +159,29 @@ final class ProAccessController {
     func startTrial() async {
         guard let trialStore else { return }
         refreshGeneration &+= 1
+        error = nil
         do {
             apply(Self.status(for: try await trialStore.start()))
             if !status.hasProAccess {
-                message = String(localized: "This Apple account or Mac has already used the free trial.")
+                error = .trialAlreadyUsed
             } else {
                 isPaywallPresented = false
             }
-        } catch {
-            message = error.localizedDescription
+        } catch let startError {
+            error = .trialStartFailed(startError.localizedDescription)
         }
     }
 
     func purchase() async {
         refreshGeneration &+= 1
-        message = nil
+        error = nil
         do {
             let product = try await loadProduct()
             switch try await product.purchase() {
             case .success(let verification):
                 guard case .verified(let transaction) = verification else {
                     if !status.hasProAccess { apply(.verificationFailed) }
-                    message = String(localized: "The App Store could not verify this purchase.")
+                    error = .purchaseVerificationFailed
                     return
                 }
                 await transaction.finish()
@@ -188,36 +190,39 @@ final class ProAccessController {
                 isPaywallPresented = false
             case .pending:
                 if !status.hasProAccess { apply(.purchasePending) }
-                message = String(localized: "The purchase is waiting for App Store approval.")
+                error = .purchasePending
             case .userCancelled:
                 break
             @unknown default:
                 break
             }
-        } catch {
-            message = error.localizedDescription
+        } catch let purchaseError {
+            error = Self.proAccessError(
+                purchaseError,
+                fallback: .purchaseFailed(purchaseError.localizedDescription)
+            )
         }
     }
 
     func restorePurchases() async {
-        message = nil
+        error = nil
         do {
             try await AppStore.sync()
             await refresh()
             if !status.hasProAccess {
-                message = String(localized: "No Termind Pro purchase was found for this Apple account.")
+                error = .purchaseNotFound
             } else {
                 isPaywallPresented = false
             }
-        } catch {
-            message = error.localizedDescription
+        } catch let restoreError {
+            error = .restoreFailed(restoreError.localizedDescription)
         }
     }
 
     private func loadProduct() async throws -> Product {
         if let product { return product }
         guard let loaded = try await Product.products(for: [Self.productID]).first else {
-            throw ProPurchaseError.productUnavailable
+            throw ProAccessControllerError.productUnavailable
         }
         product = loaded
         return loaded
@@ -230,9 +235,7 @@ final class ProAccessController {
             product = loaded
         } catch {
             guard generation == refreshGeneration else { return }
-            message = String(
-                localized: "The App Store is temporarily unavailable. You can keep using already unlocked features."
-            )
+            self.error = .productMetadataUnavailable
         }
     }
 
@@ -277,12 +280,46 @@ final class ProAccessController {
         case .expired, .recoveryRequired: .trialExpired
         }
     }
+
+    private static func proAccessError(
+        _ error: any Error,
+        fallback: @autoclosure () -> ProAccessControllerError
+    ) -> ProAccessControllerError {
+        error as? ProAccessControllerError ?? fallback()
+    }
 }
 
-private enum ProPurchaseError: LocalizedError {
+nonisolated enum ProAccessControllerError: LocalizedError, Equatable, Sendable {
     case productUnavailable
+    case productMetadataUnavailable
+    case trialAlreadyUsed
+    case trialStartFailed(String)
+    case purchaseVerificationFailed
+    case purchasePending
+    case purchaseFailed(String)
+    case purchaseNotFound
+    case restoreFailed(String)
 
     var errorDescription: String? {
-        String(localized: "Termind Pro is not available from the App Store right now.")
+        switch self {
+        case .productUnavailable:
+            String(localized: "Termind Pro is not available from the App Store right now.")
+        case .productMetadataUnavailable:
+            String(
+                localized: "The App Store is temporarily unavailable. You can keep using already unlocked features."
+            )
+        case .trialAlreadyUsed:
+            String(localized: "This Apple account or Mac has already used the free trial.")
+        case .trialStartFailed(let description),
+            .purchaseFailed(let description),
+            .restoreFailed(let description):
+            description
+        case .purchaseVerificationFailed:
+            String(localized: "The App Store could not verify this purchase.")
+        case .purchasePending:
+            String(localized: "The purchase is waiting for App Store approval.")
+        case .purchaseNotFound:
+            String(localized: "No Termind Pro purchase was found for this Apple account.")
+        }
     }
 }
