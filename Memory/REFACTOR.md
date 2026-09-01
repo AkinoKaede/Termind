@@ -508,3 +508,33 @@ Reference scanning across production and test Swift found no caller for:
 - The focused batch ran 114 tests across Vault Sync, SFTP Feature/Session, Agent Connection Pool, ListView migration, Managed Chooser, AI Provider persistence, Settings navigation, and the color system. 113 passed. The sole failure is an unrelated pre-existing static-scan false positive: `ColorSystemTests.featureUIHasNoLiteralDisplayColorsOrDecorativeBlue` interprets the domain value `colorTag: .blue` in unchanged `HostLibraryModel+Demo.swift` as a display color.
 - A separate final run of all 21 `AgentHostAuthenticationTests` passed, covering shared prompts, rejected credentials, stale generations, host-key retries, Exec/SFTP separation, and scratch SFTP reuse through the consolidated retry loop.
 - `git diff --check` passed, and final reference scans found no remaining use of the deleted declarations or duplicate wrapper/helper names.
+
+## Focused State Ownership Pass — 2026-09-01
+
+### 35. Derive Conversation run presentation from one reported state — High priority
+
+**Status:** Completed on 2026-09-01; build and all state-focused tests passed.
+
+**Evidence:**
+
+- `ConversationModel` stores the runtime's `AgentRunState` in `runtimeState`, copies a ranked projection into
+  `runState`, and copies that projection again into `isStreaming` as a Boolean.
+- Eighteen `refreshRunState()` calls manually synchronize those three properties after runtime events and pending
+  approval, review, question, SSH authentication, and host-key queue changes.
+- `Memory/ARCHITECTURE.md` already defines the intended invariant: run state is derived from what is outstanding
+  rather than asserted by the last call to move. The public state and streaming flag therefore do not need their own
+  storage.
+
+**Recommended action:** Rename the private source to `reportedRunState`, make public `runState` rank that source
+against the outstanding queues, and derive `isStreaming` from `runState`. Derive an active work group's presentation
+state at read time while retaining only final states in its durable summary. Delete `refreshRunState()` and all manual
+synchronization calls. Do not move approval or input queues into a new state container.
+
+**Estimated net reduction:** Approximately 8–15 lines while deleting two independently mutable representations of
+the same effective state.
+
+**Verification:** Production Swift changed by +29/−64 lines, and production plus the new Observation regression test
+remains net −8 Swift lines. All five `AgentApprovalQueueTests` passed, including derived-state invalidation. The eight
+directly relevant Chat Composer stop, terminal-state, and streaming tests also passed during the focused run. The
+complete Chat Composer suite still has two unrelated failures in its attachment-limit fixture and an existing Chinese
+duration-string expectation. The localization check and `git diff --check` passed.

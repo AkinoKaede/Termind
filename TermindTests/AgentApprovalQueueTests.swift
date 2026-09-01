@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Testing
 
 @testable import Termind
@@ -191,6 +192,32 @@ struct AgentApprovalQueueTests {
 
         conversation.cancelUserInput()
         #expect(conversation.runState == .running)
+    }
+
+    @MainActor
+    @Test
+    func derivedRunPresentationRemainsObservable() async {
+        let conversation = ConversationModel()
+        conversation.handle(.runState(.running))
+
+        await confirmation("derived run presentation changed") { changed in
+            withObservationTracking {
+                _ = conversation.runState
+                _ = conversation.isStreaming
+            } onChange: {
+                changed()
+            }
+            conversation.present(
+                AgentUserInputRequest(
+                    questions: [
+                        AgentUserQuestion(id: "host", prompt: "which host?", kind: .text)
+                    ]
+                )
+            )
+        }
+
+        #expect(conversation.runState == .waitingForUser)
+        #expect(conversation.isStreaming)
     }
 
     /// Cancelling mid-batch must still answer every call. An assistant turn

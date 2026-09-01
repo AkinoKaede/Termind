@@ -568,12 +568,29 @@ final class ConversationModel: Identifiable {
     var messages: [ChatMessage] = []
     let composer = ConversationComposerState()
     private var attachmentImportTasks: [PendingContextAttachment.ID: Task<Void, Never>] = [:]
-    private(set) var isStreaming: Bool = false
-    /// What the transcript shows. Derived — see `refreshRunState`.
-    private(set) var runState: AgentRunState = .idle
-    /// The last state the *run* reported, before anything outstanding in the UI
+    /// The last state the run reported, before anything outstanding in the UI
     /// is taken into account.
-    private var runtimeState: AgentRunState = .idle
+    private var reportedRunState: AgentRunState = .idle
+
+    /// What the transcript shows, ranked from the reported state and actual
+    /// outstanding work. There is deliberately no second stored run state.
+    var runState: AgentRunState {
+        if reportedRunState.isTerminal || reportedRunState == .idle {
+            reportedRunState
+        } else if !pendingUserInputs.isEmpty || !pendingSSHAuthentications.isEmpty
+            || !pendingSSHHostKeys.isEmpty
+        {
+            .waitingForUser
+        } else if !pendingApprovals.isEmpty {
+            .waitingForApproval
+        } else if !reviewing.isEmpty {
+            .reviewing
+        } else {
+            reportedRunState
+        }
+    }
+
+    var isStreaming: Bool { runState != .idle && !runState.isTerminal }
     var toolCards: [AgentToolCard] = []
     /// Tool proposals are durable individual events, but publishing each one to
     /// the transcript would briefly draw a single row and then replace it with
@@ -843,8 +860,7 @@ final class ConversationModel: Identifiable {
         self.compactionRecords = compactionRecords
         compactions = compactionRecords.map(AgentCompactionMark.init)
         runSummaries = Dictionary(uniqueKeysWithValues: runs.map { ($0.id, $0) })
-        self.runState = runState
-        runtimeState = runState
+        reportedRunState = runState
         self.contextEstimatePublishInterval = contextEstimatePublishInterval
         self.contextEstimateTracker = contextEstimateTracker
         contextEstimate = contextEstimateTracker.snapshot()
@@ -954,8 +970,7 @@ final class ConversationModel: Identifiable {
         usage = nil
         contextEstimateTracker.setMeasured(nil)
         publishContextEstimateImmediately()
-        runtimeState = .idle
-        refreshRunState()
+        reportedRunState = .idle
         updatedAt = replacement.createdAt
         if !transcript[..<target].contains(where: { $0.role == .user && !$0.isCompaction }) {
             title = nil
@@ -1232,11 +1247,12 @@ final class ConversationModel: Identifiable {
             let fallbackState: AgentRunState = cards.allSatisfy {
                 $0.state == .completed
             } ? .completed : .interrupted
-            let run = stored ?? AgentRunSummary(
+            var run = stored ?? AgentRunSummary(
                 id: runID, state: fallbackState,
                 startedAt: items.first?.orderedAt ?? orderedAt,
                 finishedAt: items.last?.orderedAt
             )
+            if activeRunID == runID { run.state = runState }
             return AgentWorkGroup(
                 run: run, items: items, orderedAt: orderedAt,
                 anchorMessageID: anchorID, appearsAfterAnswer: answerAt != nil,
@@ -1679,8 +1695,8 @@ final class ConversationModel: Identifiable {
         // nobody listening.
         if let runtime { Task { await runtime.cancel() } }
         runtime = nil
-        if !runtimeState.isTerminal {
-            runtimeState = .cancelled
+        if !reportedRunState.isTerminal {
+            reportedRunState = .cancelled
             // The event consumer was just cancelled, so it cannot receive the
             // runtime's eventual finish event. Freeze the visible elapsed time
             // here instead of letting a stopped run keep counting forever.
@@ -1692,7 +1708,6 @@ final class ConversationModel: Identifiable {
             }
         }
         returnAllSteeringToDraft()
-        refreshRunState()
     }
 
     /// Queues the draft for the running agent instead of starting a second run.
@@ -1768,7 +1783,6 @@ final class ConversationModel: Identifiable {
         }
         pendingApprovals.insert(request, at: index ?? pendingApprovals.endIndex)
         setToolState(request.invocation.id, .waitingForApproval)
-        refreshRunState()
         return await withCheckedContinuation { approvalWaiters[request.id] = $0 }
     }
 
@@ -1779,7 +1793,6 @@ final class ConversationModel: Identifiable {
             allow
             ? .allow : .deny(String(localized: "The user denied this action."))
         if !allow { setToolState(request.invocation.id, .denied) }
-        refreshRunState()
         approvalWaiters.removeValue(forKey: request.id)?.resume(returning: decision)
     }
 
@@ -1809,7 +1822,6 @@ final class ConversationModel: Identifiable {
                     request, at: index ?? pendingSSHAuthentications.endIndex
                 )
                 setToolState(request.invocationID, .waitingForUser)
-                refreshRunState()
             }
         } onCancel: {
             Task { @MainActor [weak self] in self?.cancelSSHAuthentication(request.id) }
@@ -1820,7 +1832,6 @@ final class ConversationModel: Identifiable {
         guard !pendingSSHAuthentications.isEmpty else { return }
         let request = pendingSSHAuthentications.removeFirst()
         setToolState(request.invocationID, .running)
-        refreshRunState()
         sshAuthenticationWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
@@ -1837,7 +1848,6 @@ final class ConversationModel: Identifiable {
                     request, at: index ?? pendingSSHHostKeys.endIndex
                 )
                 setToolState(request.invocationID, .waitingForUser)
-                refreshRunState()
             }
         } onCancel: {
             Task { @MainActor [weak self] in self?.cancelSSHHostKey(request.id) }
@@ -1848,7 +1858,6 @@ final class ConversationModel: Identifiable {
         guard !pendingSSHHostKeys.isEmpty else { return }
         let request = pendingSSHHostKeys.removeFirst()
         setToolState(request.invocationID, .running)
-        refreshRunState()
         sshHostKeyWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
@@ -1856,14 +1865,12 @@ final class ConversationModel: Identifiable {
         guard let index = pendingSSHAuthentications.firstIndex(where: { $0.id == id })
         else { return }
         pendingSSHAuthentications.remove(at: index)
-        refreshRunState()
         sshAuthenticationWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
     }
 
     private func cancelSSHHostKey(_ id: UUID) {
         guard let index = pendingSSHHostKeys.firstIndex(where: { $0.id == id }) else { return }
         pendingSSHHostKeys.remove(at: index)
-        refreshRunState()
         sshHostKeyWaiters.removeValue(forKey: id)?.resume(returning: .deny)
     }
 
@@ -1879,7 +1886,6 @@ final class ConversationModel: Identifiable {
             clearUserInputDrafts()
             scheduleUserInputTimeout()
         }
-        refreshRunState()
     }
 
     func userInputDraft(for questionID: String) -> AgentUserInputDraft {
@@ -2045,7 +2051,6 @@ final class ConversationModel: Identifiable {
         if !pendingUserInputs.isEmpty { pendingUserInputs.removeFirst() }
         clearUserInputDrafts()
         scheduleUserInputTimeout()
-        refreshRunState()
     }
 
     /// Removes one request by identity. Cancellation may target a queued call,
@@ -2060,7 +2065,6 @@ final class ConversationModel: Identifiable {
             userInputTimeoutTask = nil
             clearUserInputDrafts()
             scheduleUserInputTimeout()
-            refreshRunState()
         }
         inputWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
     }
@@ -2125,40 +2129,6 @@ final class ConversationModel: Identifiable {
         if !messages[index].isStreaming { messages[index].isStreaming = true }
     }
 
-    /// What the transcript shows, from what is actually outstanding.
-    ///
-    /// Assigning run state at each event only worked while one thing happened
-    /// at a time. With a batch in flight, the tool whose review just finished
-    /// would announce `running` while another was still waiting on the user, so
-    /// the composer unlocked over an unanswered question. Ranked instead: a
-    /// person being waited on outranks a review, which outranks the run's own
-    /// idea of itself, and a terminal state outranks everything.
-    private func refreshRunState() {
-        let nextState: AgentRunState
-        if runtimeState.isTerminal || runtimeState == .idle {
-            nextState = runtimeState
-        } else if !pendingUserInputs.isEmpty || !pendingSSHAuthentications.isEmpty
-            || !pendingSSHHostKeys.isEmpty
-        {
-            nextState = .waitingForUser
-        } else if !pendingApprovals.isEmpty {
-            nextState = .waitingForApproval
-        } else if !reviewing.isEmpty {
-            nextState = .reviewing
-        } else {
-            nextState = runtimeState
-        }
-        if runState != nextState { runState = nextState }
-        if let activeRunID, var summary = runSummaries[activeRunID] {
-            if summary.state != nextState {
-                summary.state = nextState
-                runSummaries[activeRunID] = summary
-            }
-        }
-        let nextIsStreaming = nextState != .idle && !nextState.isTerminal
-        if isStreaming != nextIsStreaming { isStreaming = nextIsStreaming }
-    }
-
     /// Ends presentation that only makes sense while a provider stream is
     /// live. A cancelled turn never emits `messageFinished`, so without this
     /// explicit cleanup its empty placeholder keeps drawing Working forever
@@ -2183,9 +2153,8 @@ final class ConversationModel: Identifiable {
         switch event {
         case .runState(let state):
             if state.isTerminal { publishAllStagedTools() }
-            runtimeState = state
+            reportedRunState = state
             if state.isTerminal { settleStreamingPresentation(for: activeRunID) }
-            refreshRunState()
             if state.isTerminal {
                 returnAllSteeringToDraft()
                 runDidFinish?()
@@ -2226,7 +2195,6 @@ final class ConversationModel: Identifiable {
                         createdAt: started.createdAt
                     ))
             }
-            refreshRunState()
         case .messageDelta(let id, let text):
             if let activeRunID, messageRunIDs[id] != activeRunID {
                 messageRunIDs[id] = activeRunID
@@ -2336,15 +2304,12 @@ final class ConversationModel: Identifiable {
         case .reviewStarted(let request):
             reviewing.insert(request.invocation.id)
             setToolState(request.invocation.id, .reviewing)
-            refreshRunState()
         case .reviewFinished(let request, let decision):
             reviewing.remove(request.invocation.id)
             updateToolCard(request.invocation.id) { $0.review = decision }
-            refreshRunState()
         case .reviewFailed(let request, _, _):
             reviewing.remove(request.invocation.id)
             setToolState(request.invocation.id, .failed)
-            refreshRunState()
         // Also card-only. `request(_:)` enqueues, for the same reason.
         case .userInputRequested:
             break

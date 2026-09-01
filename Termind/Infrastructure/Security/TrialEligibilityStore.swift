@@ -21,9 +21,11 @@ nonisolated struct SignedTrialProof: Codable, Equatable, Sendable {
 nonisolated enum TrialProofCodec {
     static func sign(_ proof: TrialProof, key: Data) throws -> Data {
         let payload = try canonicalData(proof)
-        let code = Data(HMAC<SHA256>.authenticationCode(
-            for: payload, using: SymmetricKey(data: key)
-        ))
+        let code = Data(
+            HMAC<SHA256>.authenticationCode(
+                for: payload, using: SymmetricKey(data: key)
+            )
+        )
         return try JSONEncoder().encode(
             SignedTrialProof(proof: proof, authenticationCode: code)
         )
@@ -33,11 +35,13 @@ nonisolated enum TrialProofCodec {
         let envelope = try JSONDecoder().decode(SignedTrialProof.self, from: data)
         guard envelope.proof.version == TrialProof.formatVersion else { return nil }
         let payload = try canonicalData(envelope.proof)
-        guard HMAC<SHA256>.isValidAuthenticationCode(
-            envelope.authenticationCode,
-            authenticating: payload,
-            using: SymmetricKey(data: key)
-        ) else { return nil }
+        guard
+            HMAC<SHA256>.isValidAuthenticationCode(
+                envelope.authenticationCode,
+                authenticating: payload,
+                using: SymmetricKey(data: key)
+            )
+        else { return nil }
         return envelope.proof
     }
 
@@ -71,13 +75,6 @@ nonisolated struct TrialKeychainStore: Sendable {
         try set(value, service: Self.proofService)
     }
 
-    #if DEBUG
-        func removeTrialItems() throws {
-            try remove(service: Self.proofService)
-            try remove(service: Self.installKeyService)
-        }
-    #endif
-
     private func data(service: String) throws -> Data? {
         var query = baseQuery(service: service)
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -100,16 +97,11 @@ nonisolated struct TrialKeychainStore: Sendable {
         if update == errSecSuccess { return }
         guard update == errSecItemNotFound else { throw KeychainSecretError.status(update) }
         var add = match
-        attributes.forEach { add[$0.key] = $0.value }
+        for (key, value) in attributes {
+            add[key] = value
+        }
         let status = SecItemAdd(add as CFDictionary, nil)
         guard status == errSecSuccess else { throw KeychainSecretError.status(status) }
-    }
-
-    private func remove(service: String) throws {
-        let status = SecItemDelete(baseQuery(service: service) as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainSecretError.status(status)
-        }
     }
 
     private func baseQuery(service: String) -> [String: Any] {
@@ -204,21 +196,6 @@ actor TrialEligibilityStore {
         }
         return .active(expiresAt: proof.startedAt.addingTimeInterval(Self.duration))
     }
-
-    #if DEBUG
-        func resetForTesting() async throws {
-            defaults.removeObject(forKey: Self.defaultsKey)
-            try keychain.removeTrialItems()
-            guard let database else { return }
-            do {
-                _ = try await database.deleteRecord(withID: recordID)
-            } catch {
-                // Local Debug testing must still be reset when Development
-                // CloudKit is offline or its zone/record does not exist.
-            }
-        }
-
-    #endif
 
     private func makeProof(startedAt: Date, now: Date) -> TrialProof {
         TrialProof(

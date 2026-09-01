@@ -24,8 +24,8 @@ struct TermindApp: App {
             launchLanguage = AppLanguage.stored()
         #endif
         do {
-            let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"]
-                != nil
+            let isRunningTests =
+                ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
             #if DEBUG
                 let usesInMemoryStore = isRunningTests || screenshotDemo != nil
             #else
@@ -64,22 +64,18 @@ struct TermindApp: App {
             let repository = SwiftDataHostRepository(context: container.mainContext)
             let outboxStore = SwiftDataOutboxStore(context: container.mainContext)
             let outboxRunner = OutboxRunner(store: outboxStore)
-            let vaultSync: VaultSyncCoordinator? = isRunningTests
+            let vaultSync: VaultSyncCoordinator? =
+                isRunningTests
                 ? nil
                 : VaultSyncCoordinator(context: container.mainContext)
             let externalToolCalls = ToolAuditModel(
                 modelContext: container.mainContext,
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }
             )
-            #if DEBUG
-                let proAccess: ProAccessController = isRunningTests
-                    ? .unrestrictedForTesting()
-                    : .developmentDefault()
-            #else
-                let proAccess: ProAccessController = isRunningTests
-                    ? .unrestrictedForTesting()
-                    : .live()
-            #endif
+            let proAccess: ProAccessController =
+                isRunningTests
+                ? .unrestrictedForTesting()
+                : .live()
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,

@@ -5,8 +5,12 @@ import StoreKit
 @Observable
 final class ProAccessController {
     static let productID = "com.akinokaede.termind.pro"
+    static let reviewDemoCode = "TERMIND-REVIEW-2026"
+
+    private static let reviewDemoDefaultsKey = "commerce.pro.review-demo-expired.v1"
 
     private let trialStore: TrialEligibilityStore?
+    private let reviewDefaults: UserDefaults?
     private var transactionUpdates: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var trialExpirationTask: Task<Void, Never>?
@@ -17,6 +21,7 @@ final class ProAccessController {
     private(set) var product: Product?
     private(set) var message: String?
     private(set) var workspaceCompositionGrantedForLaunch: Bool
+    private(set) var isReviewDemoModeEnabled: Bool
     var isPaywallPresented = false
     var requestedFeature: ProFeature?
 
@@ -24,22 +29,35 @@ final class ProAccessController {
     var hasProAccess: Bool { status.hasProAccess }
 
     static func live() -> ProAccessController {
-        ProAccessController(trialStore: TrialEligibilityStore())
+        ProAccessController(trialStore: TrialEligibilityStore(), reviewDefaults: .standard)
     }
 
     static func unrestrictedForTesting() -> ProAccessController {
-        ProAccessController(trialStore: nil, unrestricted: true)
+        ProAccessController(trialStore: nil, reviewDefaults: nil, unrestricted: true)
     }
 
-    static func testing(status: EntitlementStatus) -> ProAccessController {
-        let controller = ProAccessController(trialStore: nil, unrestricted: true)
+    static func testing(
+        status: EntitlementStatus,
+        reviewDefaults: UserDefaults? = nil
+    ) -> ProAccessController {
+        let controller = ProAccessController(
+            trialStore: nil,
+            reviewDefaults: reviewDefaults,
+            unrestricted: true
+        )
         controller.status = status
         controller.workspaceCompositionGrantedForLaunch = status.hasProAccess
         return controller
     }
 
-    private init(trialStore: TrialEligibilityStore?, unrestricted: Bool = false) {
+    private init(
+        trialStore: TrialEligibilityStore?,
+        reviewDefaults: UserDefaults?,
+        unrestricted: Bool = false
+    ) {
         self.trialStore = trialStore
+        self.reviewDefaults = reviewDefaults
+        isReviewDemoModeEnabled = reviewDefaults?.bool(forKey: Self.reviewDemoDefaultsKey) ?? false
         status = unrestricted ? .unrestrictedForTesting : .loading
         workspaceCompositionGrantedForLaunch = unrestricted
         guard !unrestricted else { return }
@@ -75,6 +93,28 @@ final class ProAccessController {
         isPaywallPresented = true
     }
 
+    @discardableResult
+    func activateReviewDemo(using code: String) -> Bool {
+        guard
+            code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                == Self.reviewDemoCode
+        else { return false }
+
+        refreshGeneration &+= 1
+        isReviewDemoModeEnabled = true
+        reviewDefaults?.set(true, forKey: Self.reviewDemoDefaultsKey)
+        workspaceCompositionGrantedForLaunch = false
+        requestedFeature = nil
+        message = nil
+        apply(.trialExpired)
+        return true
+    }
+
+    func deactivateReviewDemo() async {
+        disableReviewDemo()
+        await refresh()
+    }
+
     func refresh() async {
         if status == .unrestrictedForTesting { return }
         refreshGeneration &+= 1
@@ -90,7 +130,9 @@ final class ProAccessController {
         // another device. StoreKit's current entitlements are local-first too,
         // but should not hold the entire app behind a launch overlay.
         if !hasResolvedLocalState {
-            if let trialStore {
+            if isReviewDemoModeEnabled {
+                apply(.trialExpired)
+            } else if let trialStore {
                 apply(Self.status(for: await trialStore.assessment(includeCloud: false)))
             } else {
                 apply(.free(trialAvailable: false))
@@ -101,7 +143,10 @@ final class ProAccessController {
         let resolvedOwnership = await ownership
         guard generation == refreshGeneration else { return }
         if let resolvedOwnership {
+            disableReviewDemo()
             apply(.purchased(resolvedOwnership))
+        } else if isReviewDemoModeEnabled {
+            apply(.trialExpired)
         } else if let trialStore {
             apply(Self.status(for: await trialStore.assessment()))
         } else {
@@ -138,6 +183,7 @@ final class ProAccessController {
                     return
                 }
                 await transaction.finish()
+                disableReviewDemo()
                 apply(.purchased(Self.ownership(of: transaction)))
                 isPaywallPresented = false
             case .pending:
@@ -168,23 +214,6 @@ final class ProAccessController {
         }
     }
 
-    #if DEBUG
-        /// The only shared seam used by the Debug-only entitlement simulator.
-        /// Release compilation removes this method before type checking and SIL emission.
-        func applyDevelopmentEntitlement(_ next: EntitlementStatus) {
-            refreshGeneration &+= 1
-            refreshTask?.cancel()
-            transactionUpdates?.cancel()
-            trialExpirationTask?.cancel()
-            hasResolvedLocalState = true
-            status = next
-            workspaceCompositionGrantedForLaunch = next.hasProAccess
-            requestedFeature = nil
-            isPaywallPresented = false
-            message = nil
-        }
-    #endif
-
     private func loadProduct() async throws -> Product {
         if let product { return product }
         guard let loaded = try await Product.products(for: [Self.productID]).first else {
@@ -201,7 +230,9 @@ final class ProAccessController {
             product = loaded
         } catch {
             guard generation == refreshGeneration else { return }
-            message = String(localized: "The App Store is temporarily unavailable. You can keep using already unlocked features.")
+            message = String(
+                localized: "The App Store is temporarily unavailable. You can keep using already unlocked features."
+            )
         }
     }
 
@@ -228,6 +259,11 @@ final class ProAccessController {
                 await self?.refresh()
             }
         }
+    }
+
+    private func disableReviewDemo() {
+        isReviewDemoModeEnabled = false
+        reviewDefaults?.removeObject(forKey: Self.reviewDemoDefaultsKey)
     }
 
     private static func ownership(of transaction: Transaction) -> ProOwnership {

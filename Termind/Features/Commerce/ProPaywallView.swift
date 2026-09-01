@@ -3,6 +3,10 @@ import SwiftUI
 struct ProPaywallView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @State private var isReviewDemoExpanded = false
+    @State private var isReviewDemoUnlocked = false
+    @State private var reviewCode = ""
+    @State private var reviewCodeIsInvalid = false
 
     private var pro: ProAccessController { app.proAccess }
 
@@ -13,7 +17,12 @@ struct ProPaywallView: View {
                     .font(.system(size: 44, weight: .medium))
                     .foregroundStyle(.tint)
                 VStack(spacing: Metrics.Space.s) {
-                    Text("Termind Pro").font(.largeTitle.bold())
+                    Text("Termind Pro")
+                        .font(.largeTitle.bold())
+                        .onTapGesture(count: 7) {
+                            isReviewDemoUnlocked = true
+                            isReviewDemoExpanded = true
+                        }
                     Text("One purchase. Your advanced workspace, AI, MCP, and iCloud tools—forever.")
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -58,6 +67,34 @@ struct ProPaywallView: View {
                 }
                 Button("Restore Purchase") { Task { await pro.restorePurchases() } }
                     .buttonStyle(.link)
+                if isReviewDemoUnlocked || pro.isReviewDemoModeEnabled {
+                    DisclosureGroup("App Review Demo", isExpanded: $isReviewDemoExpanded) {
+                        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+                            Text("For App Review only.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if pro.isReviewDemoModeEnabled {
+                                Label("Trial Ended", systemImage: "clock.badge.xmark")
+                                Button("Exit Demo Mode") {
+                                    Task { await pro.deactivateReviewDemo() }
+                                }
+                            } else {
+                                TextField("Review Code", text: $reviewCode)
+                                    .textFieldStyle(.roundedBorder)
+                                    .onSubmit(activateReviewDemo)
+                                Button("Show Expired Trial", action: activateReviewDemo)
+                                    .disabled(reviewCode.isEmpty)
+                                if reviewCodeIsInvalid {
+                                    Text("The review code is invalid.")
+                                        .font(.caption)
+                                        .foregroundStyle(.red)
+                                }
+                            }
+                        }
+                        .padding(.top, Metrics.Space.s)
+                    }
+                    .frame(maxWidth: 360)
+                }
                 Text("Permanent unlock · Supports Apple Family Sharing · AI provider charges are separate")
                     .font(.caption2).foregroundStyle(.tertiary)
             }
@@ -80,6 +117,11 @@ struct ProPaywallView: View {
     private var purchaseTitle: String {
         guard let price = pro.displayPrice else { return String(localized: "Buy Termind Pro") }
         return String(localized: "Buy Termind Pro — \(price)")
+    }
+
+    private func activateReviewDemo() {
+        reviewCodeIsInvalid = !pro.activateReviewDemo(using: reviewCode)
+        if !reviewCodeIsInvalid { reviewCode = "" }
     }
 
     private func feature(_ title: LocalizedStringKey, _ symbol: String) -> some View {
