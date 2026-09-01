@@ -53,8 +53,10 @@ connection registry and is never persisted onto domain records.
 
 SSH command history is created only after an authenticated shell-integration
 start event. A matching completion event enriches that row with exit status and
-locally measured duration; both remain optional so interrupted commands and
-history migrated from older versions preserve an honest unknown outcome.
+the duration measured by the remote shell; both remain optional so interrupted
+commands, old protocol events, and history migrated from older versions preserve
+an honest unknown outcome. Duration is never inferred from client receive time,
+because SSH buffering can deliver start and completion events together.
 
 Feature views receive aggregate-facing Application Models rather than a generic
 store API: `HostLibraryModel`, `CredentialLibraryModel`, `SnippetLibraryModel`,

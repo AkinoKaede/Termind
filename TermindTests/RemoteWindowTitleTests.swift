@@ -35,6 +35,60 @@ struct RemoteWindowTitleTests {
     }
 
     @Test
+    func titleSinkFollowsWorkspaceSelectionAndFocusedSessionOSC() {
+        let first = Workspace.sshSession(
+            host: Host(name: "First", host: "first.example")
+        )
+        let second = Workspace.sshSession(
+            host: Host(name: "Second", host: "second.example")
+        )
+        let window = WindowModel(workspaces: [first, second])
+        let firstSession = first.focusedPane.sshSession!
+        let secondSession = second.focusedPane.sshSession!
+        firstSession.status = .connected
+        secondSession.status = .connected
+
+        let sink = RemoteTitleSinkProbe()
+        window.remoteWindowTitleSink = sink
+        firstSession.terminalState.terminalDidChangeTitle("first:/srv")
+        #expect(sink.titles == ["first:/srv"])
+
+        secondSession.terminalState.terminalDidChangeTitle("second:/tmp")
+        #expect(sink.titles == ["first:/srv"])
+
+        window.select(second.id)
+        #expect(sink.titles == ["first:/srv", "second:/tmp"])
+        #expect(window.focusedSSHSession === secondSession)
+        #expect(window.focusedSSHSession?.remoteWindowTitle == "second:/tmp")
+    }
+
+    @Test
+    func titleSinkFollowsFocusedPaneWithinAWorkspace() {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "First", host: "first.example")
+        )
+        let firstPane = workspace.focusedPane
+        let secondPane = Pane.sshSession(
+            host: Host(name: "Second", host: "second.example")
+        )
+        workspace.splitFocusedPane(axis: .horizontal, with: secondPane)
+        let window = WindowModel(workspaces: [workspace])
+        let firstSession = firstPane.sshSession!
+        let secondSession = secondPane.sshSession!
+        firstSession.status = .connected
+        secondSession.status = .connected
+        firstSession.terminalState.terminalDidChangeTitle("pane-first:/srv")
+        secondSession.terminalState.terminalDidChangeTitle("pane-second:/tmp")
+        let sink = RemoteTitleSinkProbe()
+        window.remoteWindowTitleSink = sink
+
+        workspace.focus(firstPane.id)
+        workspace.focus(secondPane.id)
+
+        #expect(sink.titles == ["pane-first:/srv", "pane-second:/tmp"])
+    }
+
+    @Test
     func menuFollowsOnlyTheKeyWindowAndUsesKittyTitleFormat() throws {
         let mainMenu = NSMenu()
         let help = NSMenuItem(title: "Help", action: nil, keyEquivalent: "")
@@ -114,6 +168,15 @@ struct RemoteWindowTitleTests {
             }
             try await Task.sleep(for: .milliseconds(10))
         }
+    }
+}
+
+@MainActor
+private final class RemoteTitleSinkProbe: WindowRemoteTitleSink {
+    var titles: [String?] = []
+
+    func windowRemoteTitleDidChange(_ title: String?) {
+        titles.append(title)
     }
 }
 

@@ -179,12 +179,12 @@ struct CommandHistoryTests {
         let session = SSHSessionModel(host: Host(name: "Shell", host: "shell.example"))
 
         session.receiveShellIntegrationEvent(.commandStarted("false"))
-        session.receiveShellIntegrationEvent(.commandFinished(1))
+        session.receiveShellIntegrationEvent(.commandFinished(1, duration: 5))
 
         let entry = try #require(session.transientCommandHistory.first)
         #expect(entry.command == "false")
         #expect(entry.exitStatus == 1)
-        #expect(try #require(entry.duration) >= 0)
+        #expect(entry.duration == 5)
     }
 
     private func makeContainer(_ name: String) throws -> ModelContainer {
@@ -209,9 +209,7 @@ struct RemoteCommandEventFilterTests {
         let update = filter.receive(data)
 
         #expect(update.visibleOutput == data)
-        #expect(update.commands.isEmpty)
-        #expect(!update.promptReady)
-        #expect(update.drafts.isEmpty)
+        #expect(update.events.isEmpty)
     }
 
     @Test
@@ -219,12 +217,12 @@ struct RemoteCommandEventFilterTests {
         var filter = RemoteCommandEventFilter(token: "TOKEN")
         let first = filter.receive(Data("before\u{1B}]777;TermindCom".utf8))
         #expect(String(decoding: first.visibleOutput, as: UTF8.self) == "before")
-        #expect(first.commands.isEmpty)
+        #expect(first.events.isEmpty)
 
         let second = filter.receive(
             Data("mand=TOKEN;echo%20%E4%BD%A0%E5%A5%BD%0Asecond\u{7}after".utf8)
         )
-        #expect(second.commands == ["echo 你好\nsecond"])
+        #expect(second.events == [.commandStarted("echo 你好\nsecond")])
         #expect(String(decoding: second.visibleOutput, as: UTF8.self) == "after")
     }
 
@@ -234,7 +232,7 @@ struct RemoteCommandEventFilterTests {
         let data = Data("x\u{1B}]777;TermindCommand=WRONG;rm%20-rf%20/%07y".utf8)
         let update = filter.receive(data)
 
-        #expect(update.commands.isEmpty)
+        #expect(update.events.isEmpty)
         #expect(update.visibleOutput == data)
     }
 
@@ -243,17 +241,16 @@ struct RemoteCommandEventFilterTests {
         var filter = RemoteCommandEventFilter(token: "TOKEN")
         let first = filter.receive(Data("before\u{1B}]777;TermindPrompt=TO".utf8))
         #expect(first.visibleOutput == Data("before".utf8))
-        #expect(!first.promptReady)
+        #expect(first.events.isEmpty)
 
         let second = filter.receive(
             Data("KEN\u{7}\u{1B}]777;TermindDraft=TOKEN;echo%20%E4%BD%A0".utf8)
         )
         #expect(second.visibleOutput.isEmpty)
-        #expect(second.promptReady)
-        #expect(second.drafts.isEmpty)
+        #expect(second.events == [.promptReady])
 
         let third = filter.receive(Data("%E5%A5%BD\u{7}after".utf8))
-        #expect(third.drafts == ["echo 你好"])
+        #expect(third.events == [.draft("echo 你好")])
         #expect(third.visibleOutput == Data("after".utf8))
     }
 
@@ -264,7 +261,7 @@ struct RemoteCommandEventFilterTests {
             Data("\u{1B}]777;TermindDraft=TOKEN;\u{7}".utf8)
         )
 
-        #expect(update.drafts == [""])
+        #expect(update.events == [.draft("")])
         #expect(update.visibleOutput.isEmpty)
     }
 
@@ -274,7 +271,7 @@ struct RemoteCommandEventFilterTests {
         let update = filter.receive(
             Data(
                 ("\u{1B}]777;TermindCommand=TOKEN;first\u{7}"
-                    + "\u{1B}]777;TermindCommandFinished=TOKEN;3\u{7}"
+                    + "\u{1B}]777;TermindCommandFinished=TOKEN;3;5000\u{7}"
                     + "\u{1B}]777;TermindPrompt=TOKEN\u{7}"
                     + "\u{1B}]777;TermindCommand=TOKEN;second\u{7}").utf8
             )
@@ -282,7 +279,8 @@ struct RemoteCommandEventFilterTests {
 
         #expect(
             update.events == [
-                .commandStarted("first"), .commandFinished(3), .promptReady,
+                .commandStarted("first"), .commandFinished(3, duration: 5),
+                .promptReady,
                 .commandStarted("second"),
             ]
         )
@@ -314,6 +312,5 @@ struct RemoteCommandEventFilterTests {
         )
 
         #expect(update.events.isEmpty)
-        #expect(update.commandExitStatuses.isEmpty)
     }
 }

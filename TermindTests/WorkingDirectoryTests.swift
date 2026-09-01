@@ -37,6 +37,33 @@ struct WorkingDirectoryTests {
     }
 
     @Test
+    func workspaceSubtitleTracksSSHDirectoryEvenWhenRenamed() async throws {
+        let host = Host(name: "Host", host: "host.example")
+        let store = HostLibraryModel(hosts: [host])
+        let workspace = Workspace.sshSession(host: host)
+        let window = WindowModel(workspaces: [workspace])
+        let sshSession = try #require(workspace.focusedPane.sshSession)
+        sshSession.status = .connected
+        sshSession.receiveShellIntegrationEvent(
+            .available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/deploy")
+        )
+        sshSession.terminalState.terminalDidChangeWorkingDirectory("/home/deploy/project")
+        await Task.yield()
+
+        #expect(workspace.subtitle(in: store) == "~/project")
+        window.rename(workspace.id, to: "Production")
+        #expect(workspace.title(in: store) == "Production")
+        #expect(workspace.subtitle(in: store) == "~/project")
+
+        sshSession.terminalState.terminalDidChangeWorkingDirectory("/var/log")
+        await Task.yield()
+        #expect(workspace.subtitle(in: store) == "/var/log")
+
+        sshSession.status = .disconnected
+        #expect(workspace.subtitle(in: store) == nil)
+    }
+
+    @Test
     func disconnectAndReconnectClearStaleDirectory() async {
         let host = Host(name: "Host", host: "host.example")
         let workspace = Workspace.sshSession(host: host)

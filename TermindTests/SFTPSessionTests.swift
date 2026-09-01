@@ -11,13 +11,16 @@ struct SFTPSessionTests {
         let host = Host(name: "Files", host: "files.example")
         let store = HostLibraryModel(hosts: [host])
         let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
+        let window = WindowModel(workspaces: [workspace])
         let session = try #require(workspace.focusedPane.sftpSession)
         try await session.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
 
         #expect(workspace.subtitle(in: store) == "/srv")
+        window.rename(workspace.id, to: "Logs")
+        #expect(workspace.title(in: store) == "Logs")
+        #expect(workspace.subtitle(in: store) == "/srv")
+
         session.navigate(to: "/var/log")
-        #expect(workspace.subtitle(in: store) == "/var/log")
-        workspace.focusedPane.customTitle = "Logs"
         #expect(workspace.subtitle(in: store) == "/var/log")
     }
 

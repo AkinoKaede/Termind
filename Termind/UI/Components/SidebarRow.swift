@@ -1,4 +1,212 @@
+import AppKit
 import SwiftUI
+
+/// A transparent native field for inline renaming inside emphasized sidebar
+/// rows. Return commits, Escape cancels, and a pointer exit commits only after
+/// the original click reaches its destination.
+struct SidebarInlineRenameField: NSViewRepresentable {
+    @Binding var text: String
+    let prompt: String
+    let isSelected: Bool
+    let controlActiveState: ControlActiveState
+    let onSubmit: () -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit, onCancel: onCancel)
+    }
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField()
+        field.delegate = context.coordinator
+        field.target = context.coordinator
+        field.action = #selector(Coordinator.submit)
+        field.stringValue = text
+        field.isBezeled = false
+        field.isBordered = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.lineBreakMode = .byTruncatingTail
+        field.cell?.usesSingleLineMode = true
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        configure(field)
+        context.coordinator.requestFocus(for: field)
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context _: Context) {
+        if field.stringValue != text {
+            field.stringValue = text
+        }
+        configure(field)
+    }
+
+    static func dismantleNSView(_: NSTextField, coordinator: Coordinator) {
+        coordinator.stopObservingPointerExit()
+    }
+
+    private func configure(_ field: NSTextField) {
+        let font = NSFont.systemFont(
+            ofSize: NSFont.systemFontSize,
+            weight: isSelected ? .semibold : .regular
+        )
+        field.font = font
+        field.textColor = textColor
+        field.placeholderAttributedString = NSAttributedString(
+            string: prompt,
+            attributes: [.font: font, .foregroundColor: placeholderColor]
+        )
+        field.currentEditor()?.textColor = textColor
+        field.currentEditor()?.drawsBackground = false
+    }
+
+    private var textColor: NSColor {
+        guard isSelected else { return .labelColor }
+        return controlActiveState == .key
+            ? .alternateSelectedControlTextColor
+            : .controlAccentColor
+    }
+
+    private var placeholderColor: NSColor {
+        guard isSelected else { return .secondaryLabelColor }
+        return textColor.withAlphaComponent(0.72)
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        private var text: Binding<String>
+        private let onSubmit: () -> Void
+        private let onCancel: () -> Void
+        private var didFinish = false
+        private var pointerMonitor: Any?
+        private var windowResignObserver: (any NSObjectProtocol)?
+        private var commitsAfterMouseUp = false
+
+        init(
+            text: Binding<String>,
+            onSubmit: @escaping () -> Void,
+            onCancel: @escaping () -> Void
+        ) {
+            self.text = text
+            self.onSubmit = onSubmit
+            self.onCancel = onCancel
+        }
+
+        func requestFocus(for field: NSTextField) {
+            DispatchQueue.main.async {
+                guard !self.didFinish, let window = field.window else { return }
+                window.makeFirstResponder(field)
+                field.currentEditor()?.drawsBackground = false
+                field.currentEditor()?.selectAll(nil)
+                self.observePointerExit(from: field)
+            }
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField else { return }
+            text.wrappedValue = field.stringValue
+        }
+
+        func controlTextDidEndEditing(_: Notification) {
+            guard !didFinish, !commitsAfterMouseUp else { return }
+            switch NSApp.currentEvent?.type {
+            case .leftMouseDown, .leftMouseUp,
+                .rightMouseDown, .rightMouseUp,
+                .otherMouseDown, .otherMouseUp:
+                break
+            default:
+                finish(with: onSubmit)
+            }
+        }
+
+        func control(
+            _ control: NSControl,
+            textView: NSTextView,
+            doCommandBy commandSelector: Selector
+        ) -> Bool {
+            switch commandSelector {
+            case #selector(NSResponder.insertNewline(_:)):
+                finish(with: onSubmit)
+                return true
+            case #selector(NSResponder.cancelOperation(_:)):
+                finish(with: onCancel)
+                return true
+            default:
+                return false
+            }
+        }
+
+        @objc func submit() {
+            finish(with: onSubmit)
+        }
+
+        private func finish(with action: () -> Void) {
+            guard !didFinish else { return }
+            didFinish = true
+            stopObservingPointerExit()
+            action()
+        }
+
+        private func observePointerExit(from field: NSTextField) {
+            guard pointerMonitor == nil else { return }
+            pointerMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: [
+                    .leftMouseDown, .leftMouseUp,
+                    .rightMouseDown, .rightMouseUp,
+                    .otherMouseDown, .otherMouseUp,
+                ]
+            ) { [weak self, weak field] event in
+                guard let self, let field else { return event }
+                switch event.type {
+                case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+                    guard event.window === field.window else {
+                        self.commitsAfterMouseUp = true
+                        return event
+                    }
+                    let point = field.convert(event.locationInWindow, from: nil)
+                    self.commitsAfterMouseUp = !field.bounds.contains(point)
+                case .leftMouseUp, .rightMouseUp, .otherMouseUp:
+                    guard self.commitsAfterMouseUp else { return event }
+                    self.commitsAfterMouseUp = false
+                    self.finishAfterCurrentEvent(with: self.onSubmit)
+                default:
+                    break
+                }
+                return event
+            }
+            guard let window = field.window else { return }
+            windowResignObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.finish(with: self.onSubmit)
+                }
+            }
+        }
+
+        func stopObservingPointerExit() {
+            if let pointerMonitor {
+                NSEvent.removeMonitor(pointerMonitor)
+                self.pointerMonitor = nil
+            }
+            if let windowResignObserver {
+                NotificationCenter.default.removeObserver(windowResignObserver)
+                self.windowResignObserver = nil
+            }
+            commitsAfterMouseUp = false
+        }
+
+        private func finishAfterCurrentEvent(with action: @escaping () -> Void) {
+            guard !didFinish else { return }
+            didFinish = true
+            stopObservingPointerExit()
+            DispatchQueue.main.async { action() }
+        }
+    }
+}
 
 /// One row in the left column: fixed glyph column, title, optional trailing
 /// accessory, and the app's one selection highlight.

@@ -498,10 +498,11 @@ private struct AssistantConversationList: View {
     }
 
     private func commitRename(_ conversation: ConversationModel) {
+        guard renamingID == conversation.id else { return }
         let value = renameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        cancelRename()
         guard !value.isEmpty else { return }
         window.renameAssistantConversation(conversation.id, to: value)
-        cancelRename()
     }
 
     private func cancelRename() {
@@ -1146,7 +1147,6 @@ struct AssistantConversationRow: View {
     @Environment(\.controlActiveState) private var controlActiveState
     @Environment(\.locale) private var locale
     @State private var hovering = false
-    @FocusState private var titleFocused: Bool
 
     @ViewBuilder
     var body: some View {
@@ -1186,11 +1186,6 @@ struct AssistantConversationRow: View {
             .focusable(false)
             .focusEffectDisabled()
             .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .onChange(of: isRenaming, initial: true) {
-                if isRenaming {
-                    DispatchQueue.main.async { titleFocused = true }
-                }
-            }
     }
 
     private var contextMenu: [NativeMenuEntry] {
@@ -1247,11 +1242,15 @@ struct AssistantConversationRow: View {
                     unselected: AnyShapeStyle(.secondary)
                 ))
             if isRenaming {
-                TextField("Conversation Name", text: $renameTitle)
-                    .textFieldStyle(.plain)
-                    .focused($titleFocused)
-                    .onSubmit(onCommitRename)
-                    .onExitCommand(perform: onCancelRename)
+                SidebarInlineRenameField(
+                    text: $renameTitle,
+                    prompt: String(localized: "Conversation Name"),
+                    isSelected: isSelected,
+                    controlActiveState: controlActiveState,
+                    onSubmit: onCommitRename,
+                    onCancel: onCancelRename
+                )
+                .frame(height: 18)
             } else {
                 Text(conversation.derivedTitle).lineLimit(1)
             }

@@ -310,8 +310,10 @@ struct WorkspaceNavigatorView: View {
     }
 
     private func commitWorkspaceRename(_ workspace: Workspace) {
-        window.rename(workspace.id, to: workspaceRenameTitle)
+        guard renamingWorkspaceID == workspace.id else { return }
+        let title = workspaceRenameTitle
         cancelWorkspaceRename()
+        window.rename(workspace.id, to: title)
     }
 
     private func cancelWorkspaceRename() {
@@ -363,9 +365,20 @@ private struct WorkspaceNavigatorRow: View {
     @Environment(\.controlActiveState) private var controlActiveState
     @Environment(\.locale) private var locale
     @State private var hovering = false
-    @FocusState private var titleFocused: Bool
 
+    @ViewBuilder
     var body: some View {
+        if isRenaming {
+            row
+        } else {
+            row.onDrag {
+                window.dragging = .workspace(workspace.id)
+                return NSItemProvider(object: workspace.id.uuidString as NSString)
+            }
+        }
+    }
+
+    private var row: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: workspace.symbol)
                 .foregroundStyle(SidebarSelectionStyle.foreground(
@@ -376,11 +389,15 @@ private struct WorkspaceNavigatorRow: View {
                 .frame(width: Metrics.Sidebar.rowIcon)
 
             if isRenaming {
-                TextField("Workspace Name", text: $renameTitle)
-                    .textFieldStyle(.plain)
-                    .focused($titleFocused)
-                    .onSubmit(onCommitRename)
-                    .onExitCommand(perform: onCancelRename)
+                SidebarInlineRenameField(
+                    text: $renameTitle,
+                    prompt: String(localized: "Workspace Name"),
+                    isSelected: isSelected,
+                    controlActiveState: controlActiveState,
+                    onSubmit: onCommitRename,
+                    onCancel: onCancelRename
+                )
+                .frame(height: 18)
             } else {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(workspace.title(in: app.hostLibrary, locale: locale))
@@ -405,25 +422,21 @@ private struct WorkspaceNavigatorRow: View {
         .contentShape(.rect)
         .termindSidebarRow(isSelected: isSelected) { contextMenu }
         .onTapGesture {
-            guard !isRenaming else { return }
             window.dragging = nil
             window.select(workspace.id)
         }
         .simultaneousGesture(TapGesture(count: 2).onEnded(onBeginRename))
         .onHover { hovering = $0 }
-        .onDrag {
-            window.dragging = .workspace(workspace.id)
-            return NSItemProvider(object: workspace.id.uuidString as NSString)
-        }
+        // Match Assistant's inline rename treatment: the row itself must not
+        // draw a second keyboard-focus rectangle around the plain field.
+        .focusable(false)
+        .focusEffectDisabled()
         .help(Text(workspace.title(in: app.hostLibrary, locale: locale)))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             Text(workspace.title(in: app.hostLibrary, locale: locale))
         )
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-        .onChange(of: isRenaming, initial: true) {
-            if isRenaming { DispatchQueue.main.async { titleFocused = true } }
-        }
     }
 
     @ViewBuilder

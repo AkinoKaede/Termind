@@ -1,5 +1,4 @@
 import AppKit
-import SwiftUI
 
 /// A terminal title is authored by the remote host. Keep it on one printable
 /// line before allowing it into AppKit's global menu structure.
@@ -148,58 +147,5 @@ final class RemoteWindowTitleMenuCoordinator {
         guard let item = titleMenuItem else { return }
         item.menu?.removeItem(item)
         titleMenuItem = nil
-    }
-}
-
-/// A dedicated observation boundary for the nested SSH session. Reading the
-/// session title here makes Observation invalidate this small reporter whenever
-/// Ghostty publishes another OSC 0/2 value, without rebuilding `RootView`.
-struct ActiveRemoteWindowTitleReporter: View {
-    let sshSession: SSHSessionModel?
-    @AppStorage(SettingsKey.remoteWindowTitleInMenuBar) private var isEnabled =
-        SettingsKey.defaultRemoteWindowTitleInMenuBarEnabled
-
-    var body: some View {
-        RemoteWindowTitleMenuBridge(
-            title: isEnabled ? sshSession?.menuBarWindowTitle : nil
-        )
-        .frame(width: 0, height: 0)
-        .accessibilityHidden(true)
-    }
-}
-
-private struct RemoteWindowTitleMenuBridge: NSViewRepresentable {
-    let title: String?
-
-    @MainActor
-    final class ReportingView: NSView {
-        let token = UUID()
-        var reportedTitle: String?
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            report()
-        }
-
-        func report() {
-            RemoteWindowTitleMenuCoordinator.shared.report(
-                title: reportedTitle, for: window, token: token
-            )
-        }
-    }
-
-    func makeNSView(context _: Context) -> ReportingView {
-        let view = ReportingView(frame: .zero)
-        view.reportedTitle = title
-        return view
-    }
-
-    func updateNSView(_ view: ReportingView, context _: Context) {
-        view.reportedTitle = title
-        view.report()
-    }
-
-    static func dismantleNSView(_ view: ReportingView, coordinator _: ()) {
-        RemoteWindowTitleMenuCoordinator.shared.withdraw(token: view.token)
     }
 }

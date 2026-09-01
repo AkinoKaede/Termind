@@ -15,6 +15,8 @@ struct RootView: View {
     @State private var layoutWidth = Metrics.Window.defaultWidth
     @State private var automaticQuickOpenReady = false
     @AppStorage(SettingsKey.statusBarExpanded) private var isStatusBarExpanded = true
+    @AppStorage(SettingsKey.remoteWindowTitleInMenuBar) private var showsRemoteWindowTitle =
+        SettingsKey.defaultRemoteWindowTitleInMenuBarEnabled
 
     init(window: WindowModel = WindowModel()) {
         _window = State(initialValue: window)
@@ -54,13 +56,12 @@ struct RootView: View {
             )
         }
         .navigationSplitViewStyle(.balanced)
-        // Kitty-style macOS menu-bar title. This tiny child observes only the
-        // focused SSH session, so OSC 0/2 changes do not invalidate the full
-        // window hierarchy.
         .background {
-            ActiveRemoteWindowTitleReporter(sshSession: window.focusedSSHSession)
             WindowToolbarSearchHost()
-            WindowActivityReader {
+            WindowActivityReader(
+                windowModel: window,
+                showsRemoteTitle: showsRemoteWindowTitle
+            ) {
                 app.onboarding.windowBecameActive(window)
                 considerOnboarding()
             }
@@ -386,41 +387,77 @@ private struct FullHeightWindowContent: NSViewRepresentable {
     }
 }
 
-/// Reports which SwiftUI scene owns AppKit's key window so app-wide onboarding
-/// previews and automatic steps never appear in two windows at once.
+/// Owns window-scoped AppKit integration: key-window onboarding and the remote
+/// title report. Keeping both on this persistent bridge avoids routing title
+/// changes through whichever Workspace or pane SwiftUI currently renders.
 private struct WindowActivityReader: NSViewRepresentable {
+    let windowModel: WindowModel
+    let showsRemoteTitle: Bool
     let becameKey: () -> Void
 
     func makeNSView(context _: Context) -> WindowActivityBridgeView {
-        WindowActivityBridgeView(becameKey: becameKey)
+        WindowActivityBridgeView(
+            windowModel: windowModel, showsRemoteTitle: showsRemoteTitle,
+            becameKey: becameKey
+        )
     }
 
     func updateNSView(_ view: WindowActivityBridgeView, context _: Context) {
+        view.windowModel = windowModel
+        view.showsRemoteTitle = showsRemoteTitle
         view.becameKey = becameKey
         view.observeWindow()
+        view.reportCurrentRemoteTitle()
+    }
+
+    static func dismantleNSView(_ view: WindowActivityBridgeView, coordinator _: ()) {
+        if view.windowModel?.remoteWindowTitleSink === view {
+            view.windowModel?.remoteWindowTitleSink = nil
+        }
+        RemoteWindowTitleMenuCoordinator.shared.withdraw(token: view.titleReportToken)
     }
 }
 
-private final class WindowActivityBridgeView: NSView {
+private final class WindowActivityBridgeView: NSView, WindowRemoteTitleSink {
+    let titleReportToken = UUID()
+    weak var windowModel: WindowModel? {
+        didSet {
+            guard windowModel !== oldValue else { return }
+            if oldValue?.remoteWindowTitleSink === self {
+                oldValue?.remoteWindowTitleSink = nil
+            }
+            windowModel?.remoteWindowTitleSink = self
+        }
+    }
+    var showsRemoteTitle: Bool
     var becameKey: () -> Void
     private var observer: (any NSObjectProtocol)?
     private weak var observedWindow: NSWindow?
+    private var pendingRemoteTitleReport: Task<Void, Never>?
 
-    init(becameKey: @escaping () -> Void) {
+    init(
+        windowModel: WindowModel, showsRemoteTitle: Bool,
+        becameKey: @escaping () -> Void
+    ) {
+        self.windowModel = windowModel
+        self.showsRemoteTitle = showsRemoteTitle
         self.becameKey = becameKey
         super.init(frame: .zero)
+        windowModel.remoteWindowTitleSink = self
     }
 
     @available(*, unavailable)
     required init?(coder _: NSCoder) { nil }
 
     deinit {
+        pendingRemoteTitleReport?.cancel()
         if let observer { NotificationCenter.default.removeObserver(observer) }
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         observeWindow()
+        reportCurrentRemoteTitle()
     }
 
     func observeWindow() {
@@ -436,9 +473,34 @@ private final class WindowActivityBridgeView: NSView {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.becameKey() }
+            MainActor.assumeIsolated {
+                self?.becameKey()
+                self?.reportCurrentRemoteTitle()
+            }
         }
         if window.isKeyWindow { becameKey() }
+    }
+
+    private func reportRemoteTitle(_ title: String?) {
+        guard let observedWindow else { return }
+        RemoteWindowTitleMenuCoordinator.shared.report(
+            title: title, for: observedWindow, token: titleReportToken
+        )
+    }
+
+    func reportCurrentRemoteTitle() {
+        reportRemoteTitle(
+            showsRemoteTitle ? windowModel?.focusedSSHSession?.menuBarWindowTitle : nil
+        )
+    }
+
+    func windowRemoteTitleDidChange(_ title: String?) {
+        pendingRemoteTitleReport?.cancel()
+        pendingRemoteTitleReport = Task { @MainActor [weak self] in
+            await Task.yield()
+            guard !Task.isCancelled, let self else { return }
+            self.reportRemoteTitle(self.showsRemoteTitle ? title : nil)
+        }
     }
 }
 

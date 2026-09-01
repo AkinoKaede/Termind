@@ -56,13 +56,13 @@ final class CommandHistoryModel {
     @discardableResult
     func recordCompletion(
         for id: CommandHistoryEntry.ID, hostID: Host.ID,
-        exitStatus: Int32, duration: TimeInterval
+        exitStatus: Int32, duration: TimeInterval?
     ) -> CommandHistoryEntry? {
         do {
             guard var entry = try repository.entries(for: hostID).first(where: { $0.id == id })
             else { return nil }
             entry.exitStatus = exitStatus
-            entry.duration = max(0, duration)
+            entry.duration = duration.map { max(0, $0) }
             try repository.update(entry)
             storageError = nil
             revision &+= 1

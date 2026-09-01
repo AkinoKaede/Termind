@@ -77,6 +77,7 @@ protocol SSHSessionInputRouting: AnyObject {
         didChangeWorkingDirectory workingDirectory: String?
     )
     func sshSessionDidChangeRemoteSystemInfo(_ sshSession: SSHSessionModel)
+    func sshSessionDidChangeRemoteWindowTitle(_ sshSession: SSHSessionModel)
     func closeSSHSessionPane(afterExit sshSession: SSHSessionModel)
 }
 
@@ -131,6 +132,9 @@ final class SSHSessionModel: Identifiable {
     var status: ConnectionStatus = .disconnected {
         didSet {
             statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
+            if status.isLive != oldValue.isLive {
+                inputRouter?.sshSessionDidChangeRemoteWindowTitle(self)
+            }
         }
     }
     var workingDirectory: String? {
@@ -179,7 +183,12 @@ final class SSHSessionModel: Identifiable {
     /// Ghostty owns parsing and publishes the value through `TerminalViewState`.
     /// Keep a session-scoped copy here so reconnecting can discard a title from
     /// the old remote shell even though the long-lived terminal surface survives.
-    private(set) var remoteWindowTitle: String?
+    private(set) var remoteWindowTitle: String? {
+        didSet {
+            guard remoteWindowTitle != oldValue else { return }
+            inputRouter?.sshSessionDidChangeRemoteWindowTitle(self)
+        }
+    }
     var menuBarWindowTitle: String? {
         status.isLive ? remoteWindowTitle : nil
     }
@@ -192,7 +201,6 @@ final class SSHSessionModel: Identifiable {
     private(set) var isShellPromptReady = false
     private struct ActiveShellCommand {
         var historyID: CommandHistoryEntry.ID?
-        var startedAtNanoseconds: UInt64
     }
     private var activeShellCommand: ActiveShellCommand?
     private(set) var commandGeneratorRevision: UInt64 = 0
@@ -1284,11 +1292,10 @@ final class SSHSessionModel: Identifiable {
             isShellPromptReady = false
             invalidateCommandGeneration()
             activeShellCommand = ActiveShellCommand(
-                historyID: recordExecutedCommand(command),
-                startedAtNanoseconds: DispatchTime.now().uptimeNanoseconds
+                historyID: recordExecutedCommand(command)
             )
-        case .commandFinished(let status):
-            recordCommandCompletion(exitStatus: status)
+        case .commandFinished(let status, let duration):
+            recordCommandCompletion(exitStatus: status, reportedDuration: duration)
         case .draft(let draft):
             completeDraftRequest(with: draft)
         }
@@ -1328,27 +1335,22 @@ final class SSHSessionModel: Identifiable {
         }
     }
 
-    private func recordCommandCompletion(exitStatus: Int32) {
+    private func recordCommandCompletion(
+        exitStatus: Int32, reportedDuration: TimeInterval?
+    ) {
         guard let active = activeShellCommand else { return }
         activeShellCommand = nil
         guard let historyID = active.historyID else { return }
-        let now = DispatchTime.now().uptimeNanoseconds
-        let elapsed =
-            if now >= active.startedAtNanoseconds {
-                Double(now - active.startedAtNanoseconds) / 1_000_000_000
-            } else {
-                0.0
-            }
         if statusStore?.host(hostID) != nil {
             commandHistoryStore?.recordCompletion(
                 for: historyID, hostID: hostID,
-                exitStatus: exitStatus, duration: elapsed
+                exitStatus: exitStatus, duration: reportedDuration
             )
         } else if let index = transientCommandHistory.firstIndex(where: {
             $0.id == historyID
         }) {
             transientCommandHistory[index].exitStatus = exitStatus
-            transientCommandHistory[index].duration = elapsed
+            transientCommandHistory[index].duration = reportedDuration
         }
     }
 

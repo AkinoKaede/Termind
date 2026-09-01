@@ -5,6 +5,10 @@ enum SessionOpenPlacement: Equatable {
     case currentWorkspace
 }
 
+protocol WindowRemoteTitleSink: AnyObject {
+    func windowRemoteTitleDidChange(_ title: String?)
+}
+
 /// The state of one window: its workspaces, selection, and shared left sidebar.
 ///
 /// One of these per window rather than one per app, so two windows can hold
@@ -22,11 +26,15 @@ final class WindowModel {
     /// Workspaces. This is the single source of truth for workspace selection.
     var selectedDestination: WindowDestination = .vault {
         didSet {
+            if selectedDestination != oldValue {
+                publishRemoteWindowTitle()
+            }
             if selectedDestination != .assistant {
                 assistantReturnDestination = selectedDestination
             }
         }
     }
+    @ObservationIgnored weak var remoteWindowTitleSink: (any WindowRemoteTitleSink)?
     /// Where Navigator returns after the Assistant temporarily replaces the
     /// detail surface. Assistant has no row inside the Navigator that could
     /// retain the previous selection for us.
@@ -1364,6 +1372,17 @@ extension WindowModel: WorkspaceLifecycleRouting {
     func workspaceContextDidChange(_ workspace: Workspace) {
         guard selectedWorkspace === workspace else { return }
         refreshSessionContext()
+    }
+
+    func workspaceRemoteWindowTitleDidChange(_ workspace: Workspace) {
+        guard selectedWorkspace === workspace else { return }
+        publishRemoteWindowTitle()
+    }
+
+    private func publishRemoteWindowTitle() {
+        remoteWindowTitleSink?.windowRemoteTitleDidChange(
+            focusedSSHSession?.menuBarWindowTitle
+        )
     }
 }
 

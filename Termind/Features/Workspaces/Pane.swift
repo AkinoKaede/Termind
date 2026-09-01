@@ -333,13 +333,9 @@ final class Pane: Identifiable {
             sftpSession.displayedPath
         case .serialSession(let serialSession):
             serialSession.subtitle
-        case _ where customTitle != nil:
-            // A renamed pane shows its name and nothing under it: the subtitle
-            // is the derived detail, and pairing it with a name the user chose
-            // reads as a correction. SFTP is the exception above: its live
-            // path is navigation state, not an alternate name.
-            nil
         case .sshSession(let sshSession):
+            // Like SFTP navigation, the shell's live directory remains useful
+            // context after the user gives the pane a stable name.
             sshSession.status.isLive ? sshSession.displayedWorkingDirectory : nil
         default:
             nil

@@ -174,6 +174,7 @@ struct ShellIntegrationBootstrapTests {
                 .appending("builtin printf 'DEBUG_PRESERVED\\n'\n")
                 .appending("builtin printf '\\nHOOKS=%s;%s\\n' ")
                 .appending("\"$PROMPT_COMMAND\" \"$__hits_after_integration\"\n")
+                .appending("__termind_report_prompt\n")
                 .appending("__termind_report_command 'false'\n")
                 .appending("false\n__termind_report_prompt\nexit 0\n")
                 .utf8
@@ -185,7 +186,7 @@ struct ShellIntegrationBootstrapTests {
         #expect(result.output.contains("DEBUG_PRESERVED"))
         #expect(result.output.contains("HOOKS=__termind_report_prompt; __user_prompt=1;"))
         #expect(result.output.contains("TermindCommand=RUNTIME;false\u{7}"))
-        #expect(result.output.contains("TermindCommandFinished=RUNTIME;1\u{7}"))
+        #expect(result.output.contains("TermindCommandFinished=RUNTIME;1;0\u{7}"))
     }
 
     @Test
