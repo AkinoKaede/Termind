@@ -924,6 +924,7 @@ nonisolated enum AgentToolPresentation {
         case .scratchFiles: localized("scratch files", locale: locale)
         case .scratchWorkspace: localized("the scratch workspace", locale: locale)
         case .secret: localized("a secret", locale: locale)
+        case .skill: localized("a skill", locale: locale)
         case .sshCommand: localized("the SSH command", locale: locale)
         case .taskList: localized("the task list", locale: locale)
         case .url: localized("a URL", locale: locale)

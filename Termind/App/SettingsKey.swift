@@ -61,6 +61,10 @@ nonisolated enum SettingsKey {
     static let restoreWorkspaces = "window.restoreTabs"
     /// The last approval posture selected in the Assistant composer.
     static let agentPermissionMode = "assistant.permissionMode"
+    /// How far through `AgentSkillLibrary` the starter skills have been copied
+    /// into the user's library. A mark rather than a flag, so a later release
+    /// can add one without resurrecting the ones they deleted.
+    static let seededSkillGeneration = "assistant.skills.seededGeneration"
     static let sftpGlobalTransferLimit = "sftp.transfers.globalLimit"
     static let sftpPerHostTransferLimit = "sftp.transfers.perHostLimit"
     static let defaultSFTPGlobalTransferLimit = 3

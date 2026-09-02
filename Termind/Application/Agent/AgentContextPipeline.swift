@@ -43,10 +43,15 @@ nonisolated struct AgentContextPipeline: Sendable {
     /// runs after all three so it measures the results that will actually be
     /// sent; injection runs last because everything before it reasons about
     /// tool results sitting directly behind their assistant turn.
+    ///
+    /// The three injections all insert *at* the prompt, so a later one lands
+    /// closer to it. Read in the order the model sees them, that is: here is
+    /// where you are, here is what you know, here is what you may do this turn.
     static func chat(
         sessionContext: AgentTranscriptMessage?,
         before promptID: AgentTranscriptMessage.ID?,
-        isPlanning: Bool = false
+        isPlanning: Bool = false,
+        skills: AgentSkillCatalog = AgentSkillCatalog()
     ) -> AgentContextPipeline {
         AgentContextPipeline([
             AgentUnansweredToolCallRepair(),
@@ -54,9 +59,7 @@ nonisolated struct AgentContextPipeline: Sendable {
             AgentOrphanedToolResultRepair(),
             AgentToolResultTrimming(),
             AgentSessionContextInjection(message: sessionContext, before: promptID),
-            // After the session context and before nothing: both ride the tail
-            // in front of this run's prompt, and the contract reads better
-            // second — "here is where you are" then "here is what you may do".
+            AgentSkillCatalogInjection(catalog: skills, before: promptID),
             AgentPlanContractInjection(isPlanning: isPlanning, before: promptID),
         ])
     }
@@ -239,6 +242,14 @@ nonisolated struct AgentUnansweredToolCallRepair: AgentContextTransforming {
 /// Only `tool` messages are touched. What the user wrote and what the assistant
 /// concluded stay whole at any age — the conclusion is frequently the compact
 /// form of the output being trimmed underneath it.
+///
+/// `load_skill` is exempt, and it is the one exemption. What this bounds is
+/// replayed *output*: a log the model has already drawn its conclusion from,
+/// where the head and the tail carry what mattered. A skill is not output. It is
+/// the procedure the model is still working through, so half of it is worse than
+/// none — and it is bounded at the source by `AgentSkill.maximumBodyBytes`,
+/// which is why exempting it cannot become the pathological case this exists to
+/// prevent.
 nonisolated struct AgentToolResultTrimming: AgentContextTransforming {
     /// Generous on purpose. This is a ceiling on pathological replay, not a
     /// context budget: a result that fits is never altered.
@@ -253,6 +264,7 @@ nonisolated struct AgentToolResultTrimming: AgentContextTransforming {
         }
         for index in result.messages.indices {
             guard result.messages[index].role == .tool else { continue }
+            guard result.messages[index].toolName != LoadSkillTool.name else { continue }
             if let recent, index > recent { continue }
             result.messages[index].text = Self.trimmed(result.messages[index].text, limit: limit)
         }

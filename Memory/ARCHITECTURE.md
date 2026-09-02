@@ -61,7 +61,7 @@ because SSH buffering can deliver start and completion events together.
 Feature views receive aggregate-facing Application Models rather than a generic
 store API: `HostLibraryModel`, `CredentialLibraryModel`, `SnippetLibraryModel`,
 `ForwardingLibraryModel`, `TransferLibraryModel`, `AIConfigurationModel`,
-`CommandHistoryModel`, and `ToolAuditModel`. Aggregates that share one persisted
+`SkillLibraryModel`, `CommandHistoryModel`, and `ToolAuditModel`. Aggregates that share one persisted
 vault snapshot still expose separate intent surfaces, so a feature cannot gain
 unrelated write operations merely because its records are saved together.
 
@@ -124,6 +124,29 @@ Extension points, all additive: `AgentToolCatalog` registrations for tool defini
 providers. Authorization is deliberately not among them — `AgentApprovalHandling`
 is a structural stage of the executor that no configuration can remove, and
 hooks run on either side of it.
+
+Skills are the one exception to "tool output is data". A skill is a Markdown
+procedure the user installed through Settings; only `SkillLibraryModel` writes
+one, so no tool, MCP server or fetched page can add, edit or enable a skill.
+That provenance is what lets `load_skill` return a body outside the
+`<untrusted-data>` framing every other built-in result carries, and the system
+prompt states the boundary: the instructions may be followed, whatever they then
+cause to be read comes back through the ordinary tools and is untrusted as usual.
+A skill authorizes nothing — imported `allowed-tools` is recorded and never
+honoured, on the same footing as an MCP annotation. The catalog the model sees is
+names and descriptions only, injected at the model boundary by
+`AgentSkillCatalogInjection` rather than into the system prompt, for the
+prefix-cache reason `AgentSessionContextInjection` states; bodies arrive only
+through `load_skill`, which is `.locallyReadOnly` and therefore allowed in every
+permission mode and while planning. The enabled set is snapshotted when the run
+starts, like `isPlanning`, and is empty for a model without tool capability, so
+the catalog never names a tool the run was not given. A loaded skill is exempt
+from `AgentToolResultTrimming` — it is the procedure still being followed rather
+than output already reasoned about — and bounded instead by
+`AgentSkill.maximumBodyBytes`. `AgentSkillLibrary` ships starter skills that are
+copied in once, tracked by a generation mark so a deleted one never returns; the
+only way back is `resetToBuiltInSkills`, which replaces the library wholesale and
+is confirmed before it runs.
 
 Tools never receive a reference to the interactive PTY. Server commands use a
 dedicated SSH exec channel and file operations use run-scoped SFTP clients.

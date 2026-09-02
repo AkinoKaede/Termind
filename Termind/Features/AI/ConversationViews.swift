@@ -391,6 +391,46 @@ private struct PlanModeChip: View {
     static let glyphWidth: CGFloat = 13
 }
 
+/// The skill `/skill` named for the message being written.
+///
+/// It carries the skill's name rather than a generic word, because which one is
+/// the entire content of the decision — and it is dismissed the same way plan
+/// mode is, by clicking the chip. Unlike that one it survives a single message:
+/// the next turn is composed without it, since a loaded skill is already in the
+/// transcript by then and saying so twice would only spend context.
+private struct SkillChip: View {
+    let name: String
+    let compact: Bool
+    let onRemove: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: onRemove) {
+            HStack(spacing: Metrics.Space.xs) {
+                Image(systemName: isHovering ? "xmark" : Self.symbol)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: PlanModeChip.glyphWidth)
+                if !compact {
+                    Text(name).lineLimit(1)
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .help(Text("\(name) will be loaded for this message — click to remove"))
+        .accessibilityLabel(Text("Skill \(name) armed, remove"))
+    }
+
+    /// A closed book: a procedure that exists and has not been opened yet, which
+    /// is exactly the state a named-but-unloaded skill is in. The same glyph
+    /// carries it through the `/skill` row and the `load_skill` card.
+    static let symbol = "book.closed"
+}
+
 struct ComposerView: View {
     private enum ModelPickerSection {
         case model
@@ -983,6 +1023,18 @@ struct ComposerView: View {
                     argumentHint: String(localized: "server")
                 ))
         }
+        // Only where there is something to name. A model normally reaches for a
+        // skill on its own from the catalog it is shown; this is for the times
+        // it does not, so it has nothing to offer when nothing is installed.
+        if !app.skills.enabledSkills.isEmpty {
+            commands.append(
+                ChatSlashCommand(
+                    id: "skill", displayName: String(localized: "Skill"),
+                    summary: String(localized: "Use an installed procedure"),
+                    icon: .symbol(SkillChip.symbol),
+                    argumentHint: String(localized: "skill")
+                ))
+        }
         // Only the first page is alphabetical. A command's second page keeps
         // its semantic order — especially Reasoning's effort scale and the
         // configured order of providers and MCP servers.
@@ -1008,6 +1060,12 @@ struct ComposerView: View {
                 return app.aiConfiguration.mcpServers.map { server in
                     ChatSlashCommand.Option(
                         id: server.id.uuidString.lowercased(), label: server.name
+                    )
+                }
+            case "skill":
+                return app.skills.enabledSkills.map { skill in
+                    ChatSlashCommand.Option(
+                        id: skill.effectiveName, label: skill.displayTitle
                     )
                 }
             default:
@@ -1123,6 +1181,10 @@ struct ComposerView: View {
             else { return nil }
             return server.isEnabled
                 ? String(localized: "Enabled") : String(localized: "Disabled")
+        case .option(let command, let option) where command.id == "skill":
+            // The model-facing name. Two skills can carry the same title, and
+            // this is the one the argument actually is.
+            return option.id
         default:
             return nil
         }
@@ -1211,6 +1273,23 @@ struct ComposerView: View {
                 let server = app.aiConfiguration.mcpServer(id)
             else { return false }
             app.aiConfiguration.setServerEnabled(!server.isEnabled, for: id)
+        case "skill":
+            // `/skill <name>` arms it and leaves a chip; `/skill <name> <text>`
+            // arms it and asks in the same keystroke — the shape `/plan` already
+            // has. An unknown name changes nothing and leaves the draft alone,
+            // as `/model` does, because the alternative is silently sending a
+            // command as a message.
+            guard let selection = input.selection,
+                app.skills.enabledSkills.contains(where: { $0.effectiveName == selection.name })
+            else { return false }
+            clearSlashDraft()
+            conversation.composer.armedSkillName = selection.name
+            guard selection.remainder.isEmpty else {
+                conversation.composer.draft = selection.remainder
+                sendDraft()
+                return true
+            }
+            return true
         default:
             return false
         }
@@ -1256,10 +1335,20 @@ struct ComposerView: View {
                 PlanModeChip(compact: compact) { conversation.isPlanning = false }
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
+            if let armed = conversation.composer.armedSkillName {
+                SkillChip(name: armed, compact: compact) {
+                    conversation.composer.armedSkillName = nil
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
             Spacer(minLength: Metrics.Space.s)
             modelAndThinkingMenu(compact: compact, contextEstimate: contextEstimate)
         }
         .animation(Motion.panel(reduceMotion: reduceMotion), value: conversation.isPlanning)
+        .animation(
+            Motion.panel(reduceMotion: reduceMotion),
+            value: conversation.composer.armedSkillName
+        )
     }
 
     private var addContextButton: some View {

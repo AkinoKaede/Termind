@@ -59,6 +59,7 @@ enum SettingsRoute: Hashable {
     case providerModels(ModelProvider.ID)
     case mcpServer(MCPServer.ID, isNew: Bool)
     case localMCPServer
+    case skill(AgentSkill.ID, isNew: Bool)
     case terminalConfiguration(TerminalCustomConfigurationScheme)
 
     var parent: SettingsRoute? {
@@ -74,6 +75,8 @@ enum SettingsRoute: Hashable {
         case .mcpServer:
             .category(.ai)
         case .localMCPServer:
+            .category(.ai)
+        case .skill:
             .category(.ai)
         case .terminalConfiguration:
             .category(.terminal)
@@ -125,6 +128,8 @@ struct SettingsPageView: View {
             }
         case .localMCPServer:
             SettingsFormPage { MCPServerSettings() }
+        case .skill(let id, _):
+            SkillEditorPage(skillID: id, deleted: { navigate(to: .category(.ai)) })
         case .terminalConfiguration(let scheme):
             TerminalCustomConfigurationEditorPage(scheme: scheme)
         }
@@ -160,6 +165,9 @@ struct SettingsPageView: View {
                 }
                 ModelRoleSettings()
                 WebSearchSettings()
+                SkillSettings(
+                    edit: { id, isNew in navigate(to: .skill(id, isNew: isNew)) }
+                )
                 MCPSettings(
                     edit: { id, isNew in navigate(to: .mcpServer(id, isNew: isNew)) },
                     openServer: { navigate(to: .localMCPServer) }
@@ -194,6 +202,18 @@ struct SettingsPageView: View {
                 || !app.aiConfiguration.lockMCPNamespace(for: id)
             {
                 app.aiConfiguration.delete(serverID: id)
+            }
+        case .skill(let id, isNew: true):
+            guard let skill = app.skills.skill(id) else { return }
+            // Unlike an MCP server, a skill that cannot be named yet is kept.
+            // It is inert either way — an unnamed skill is never listed to a
+            // model — and someone who wrote the procedure before the title has
+            // done the expensive part of the work. It shows as a draft in the
+            // list until they finish it.
+            if SettingsDraftPolicy.shouldDiscard(skill) {
+                app.skills.delete(id: id)
+            } else {
+                app.skills.lockName(for: id)
             }
         default:
             break
@@ -282,6 +302,15 @@ enum SettingsDraftPolicy {
     static func shouldDiscard(_ server: MCPServer) -> Bool {
         server.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || server.effectiveNamespaceID.isEmpty
+    }
+
+    /// A skill nobody typed anything into. Judged on all three fields rather
+    /// than on the name alone: someone who wrote the instructions first and
+    /// walked away has a draft worth keeping, not an accident to clean up.
+    static func shouldDiscard(_ skill: AgentSkill) -> Bool {
+        skill.effectiveName.isEmpty
+            && skill.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && skill.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

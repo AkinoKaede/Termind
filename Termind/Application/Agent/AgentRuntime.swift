@@ -15,9 +15,14 @@ nonisolated struct AgentLoopConfiguration: Sendable {
     /// context block, the id of the turn it belongs in front of, and whether the
     /// run is planning, it returns the chain applied to every request this run
     /// makes.
+    /// Written out rather than referencing `AgentContextPipeline.chat` directly:
+    /// that one takes the run's skill catalog too, and a caller with skills to
+    /// offer replaces this whole closure. The default is the run that has none.
     var contextPipeline:
         @Sendable (AgentTranscriptMessage?, AgentTranscriptMessage.ID?, Bool)
-            -> AgentContextPipeline = AgentContextPipeline.chat
+            -> AgentContextPipeline = {
+                AgentContextPipeline.chat(sessionContext: $0, before: $1, isPlanning: $2)
+            }
 
     init() {}
 }

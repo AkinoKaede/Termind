@@ -216,4 +216,29 @@ struct ChatSlashCommandTests {
             #expect(ReasoningEffort(rawValue: effort.rawValue) == effort)
         }
     }
+
+    // MARK: - Named arguments
+
+    /// `/skill <name>` arms it, `/skill <name> <text>` arms it and asks in the
+    /// same keystroke, and the two have to be told apart from one draft.
+    @Test
+    func aNamedArgumentSplitsTheNameFromWhatFollowsIt() {
+        let armed = ChatSlashCommandInput.parse("/skill disk-triage")
+        #expect(armed?.selection?.name == "disk-triage")
+        #expect(armed?.selection?.remainder == "")
+
+        let asked = ChatSlashCommandInput.parse("/skill disk-triage why is root full?")
+        #expect(asked?.selection?.name == "disk-triage")
+        #expect(asked?.selection?.remainder == "why is root full?")
+
+        let padded = ChatSlashCommandInput.parse("/skill   disk-triage    check staging  ")
+        #expect(padded?.selection?.name == "disk-triage")
+        #expect(padded?.selection?.remainder == "check staging")
+    }
+
+    @Test
+    func aCommandWithNothingAfterItNamesNothing() {
+        #expect(ChatSlashCommandInput.parse("/skill")?.selection == nil)
+        #expect(ChatSlashCommandInput.parse("/skill   ")?.selection == nil)
+    }
 }

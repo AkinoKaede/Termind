@@ -106,6 +106,36 @@ struct ChatComposerStateTests {
         #expect(conversation.composer.attachments.isEmpty)
     }
 
+    /// `/skill` has to reach the model without reaching the bubble: the user
+    /// typed a question, not a directive, and that is what message editing
+    /// reopens and what the title generator reads.
+    @Test
+    func anArmedSkillIsSentToTheModelButNotShownAsTypedText() throws {
+        let conversation = ConversationModel()
+        conversation.composer.armedSkillName = "disk-triage"
+
+        let sent = conversation.appendUserTurnContent("root is at 99%")
+
+        #expect(sent.authoredText == "root is at 99%")
+        #expect(sent.text.contains("<use_skill name=\"disk-triage\">"))
+        #expect(sent.text.contains("load_skill"))
+        #expect(conversation.messages.last?.text == "root is at 99%")
+        #expect(conversation.transcript.last?.authoredText == "root is at 99%")
+        #expect(try #require(conversation.transcript.last).text.contains("disk-triage"))
+        // Consumed with the attachments, so the chip going away is how the user
+        // sees it went.
+        #expect(conversation.composer.armedSkillName == nil)
+    }
+
+    @Test
+    func anUnarmedComposerAddsNothingToTheModelFacingTurn() {
+        let conversation = ConversationModel()
+        let sent = conversation.appendUserTurnContent("root is at 99%")
+
+        #expect(sent.text == "root is at 99%")
+        #expect(sent.text == sent.authoredText)
+    }
+
     @Test
     func aManualAttachmentMakesAnEmptyDraftSendable() {
         let conversation = ConversationModel()

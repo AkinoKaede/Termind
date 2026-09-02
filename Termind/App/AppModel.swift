@@ -76,6 +76,10 @@ final class AppModel {
     /// See `AIConfigurationModel`.
     private let ai: AIConfigurationModel
     var aiConfiguration: AIConfigurationModel { ai }
+    /// The procedures the user installed for the agent to follow. Its own store
+    /// rather than more fields on `ai`: that one is about endpoints you spend a
+    /// key at, this is a library of documents. See `SkillLibraryModel`.
+    let skills: SkillLibraryModel
     let commandGenerator: CommandGeneratorController
     /// Names conversations for the chat list. Held as the protocol, not the
     /// concrete controller, so a test can watch the trigger without a provider.
@@ -104,6 +108,7 @@ final class AppModel {
 
     init(
         hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
+        skills: SkillLibraryModel = SkillLibraryModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
@@ -155,6 +160,7 @@ final class AppModel {
             clientFactory: { connectionCoordinator.makeSFTPClient() }
         )
         self.ai = ai
+        self.skills = skills
         commandGenerator = CommandGeneratorController(ai: ai)
         conversationTitles = ConversationTitleController(ai: ai)
         self.speechTranscription =
@@ -393,6 +399,14 @@ final class AppModel {
             event: channel.emit
         )
 
+        // Read once, here, for the reason `isPlanning` below is: a run's posture
+        // is fixed when it starts, so enabling a skill while the agent is
+        // thinking must not change what this run was told it had. Empty when the
+        // model cannot call tools, which is what keeps the catalog block from
+        // naming a tool this run was never given.
+        let skillCatalog = chat.model.abilities.contains(.toolCall)
+            ? skills.catalog : AgentSkillCatalog()
+
         var registry = AgentToolRegistry([AnyAgentTool]())
         if chat.model.abilities.contains(.toolCall) {
             // One workspace per conversation, not per run: a file staged before the
@@ -424,6 +438,7 @@ final class AppModel {
                 workspace: scratch,
                 tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
                 plans: AgentPlanRecorder { channel.emit(.planPresented($0)) },
+                skills: skillCatalog,
                 mcpServers: servers
             ))
         }
@@ -434,12 +449,24 @@ final class AppModel {
         // Read once, here: the posture a run enforces is the one it started
         // under, and the user is free to leave plan mode while it is thinking.
         let isPlanning = conversation.isPlanning
+        // The catalog reaches the model boundary through the pipeline rather
+        // than through the system prompt, so the prompt stays byte-identical for
+        // every run and the provider's prefix cache survives a skill being
+        // enabled. See `AgentSkillCatalogInjection`.
+        var configuration = AgentLoopConfiguration()
+        configuration.contextPipeline = { sessionContext, promptID, planning in
+            AgentContextPipeline.chat(
+                sessionContext: sessionContext, before: promptID,
+                isPlanning: planning, skills: skillCatalog
+            )
+        }
         let runtime = AgentRuntime(
             model: model, registry: registry,
             approval: approval,
             repository: agentRunRepository,
             userInteraction: WeakAgentUserInteraction(conversation),
             hooks: [AgentPlanModeHook(isPlanning: isPlanning)],
+            configuration: configuration,
             channel: channel
         )
         // No second Shell Integration gate here. `Pane.remoteSystemInfo` already

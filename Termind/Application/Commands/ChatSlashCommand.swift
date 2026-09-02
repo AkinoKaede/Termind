@@ -76,6 +76,24 @@ nonisolated enum ChatSlashCommandInput: Hashable, Sendable {
         case .argument(let name, _): name
         }
     }
+
+    /// Splits an argument that *names* something and then keeps going —
+    /// `/skill disk-triage why is root full`.
+    ///
+    /// A value here rather than a `split` at the call site for the reason the
+    /// rest of this file exists: what Return does with a draft should be
+    /// testable without a window. `nil` when nothing was named at all.
+    var selection: (name: String, remainder: String)? {
+        guard case .argument(_, let text) = self else { return nil }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = String(trimmed.prefix { !$0.isWhitespace })
+        guard !name.isEmpty else { return nil }
+        return (
+            name,
+            String(trimmed.dropFirst(name.count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
 }
 
 /// The rows a palette draws for one draft.

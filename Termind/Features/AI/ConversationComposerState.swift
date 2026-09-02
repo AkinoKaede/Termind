@@ -9,4 +9,11 @@ final class ConversationComposerState {
     var pendingAttachments: [PendingContextAttachment] = []
     var attachmentImportError: String?
     var draft = ""
+    /// A skill `/skill` named for the next message, by name.
+    ///
+    /// Beside the attachments rather than on the conversation, and consumed the
+    /// same way: it belongs to the message being written, and the chip going
+    /// away is how the user sees it was sent. Unlike plan mode — a posture that
+    /// outlives the turn — this is one instruction for one message.
+    var armedSkillName: String?
 }

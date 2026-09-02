@@ -64,6 +64,8 @@ struct SettingsWindowTitleProvider: WindowTitleProviding {
             return AppLocalization.string("MCP", locale: locale)
         case .localMCPServer:
             return AppLocalization.string("MCP Server", locale: locale)
+        case .skill:
+            return AppLocalization.string("Skill", locale: locale)
         case .terminalConfiguration(let scheme):
             return scheme.title
         }

@@ -14,6 +14,10 @@ nonisolated struct AgentToolEnvironment: Sendable {
     var workspace: AgentScratchWorkspace?
     var tasks: AgentTaskList?
     var plans: AgentPlanRecorder?
+    /// The enabled skills, snapshotted for this run. Empty removes `load_skill`
+    /// from the registry entirely rather than offering a tool with nothing to
+    /// read — the same shape as `search` and the scratch tools.
+    var skills: AgentSkillCatalog
     var mcpServers: [(server: MCPServer, bearerToken: String?)]
     var mcpClient: MCPClient
 
@@ -28,6 +32,7 @@ nonisolated struct AgentToolEnvironment: Sendable {
         workspace: AgentScratchWorkspace? = nil,
         tasks: AgentTaskList? = nil,
         plans: AgentPlanRecorder? = nil,
+        skills: AgentSkillCatalog = AgentSkillCatalog(),
         mcpServers: [(server: MCPServer, bearerToken: String?)] = [],
         mcpClient: MCPClient = MCPClient()
     ) {
@@ -42,6 +47,7 @@ nonisolated struct AgentToolEnvironment: Sendable {
         self.workspace = workspace
         self.tasks = tasks
         self.plans = plans
+        self.skills = skills
         self.mcpServers = mcpServers
         self.mcpClient = mcpClient
     }
@@ -172,6 +178,9 @@ nonisolated enum AgentToolCatalog {
         },
         .init(ManageTasksTool.self) { environment in
             environment.tasks.map(ManageTasksTool.init(tasks:))
+        },
+        .init(LoadSkillTool.self) { environment in
+            environment.skills.isEmpty ? nil : LoadSkillTool(skills: environment.skills)
         },
     ]
 

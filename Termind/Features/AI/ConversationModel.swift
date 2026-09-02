@@ -1600,6 +1600,7 @@ final class ConversationModel: Identifiable {
             )
         }
         composer.attachments.removeAll()
+        composer.armedSkillName = nil
         refreshAttachedContextEstimate()
         messages.append(
             ChatMessage(
@@ -1630,7 +1631,15 @@ final class ConversationModel: Identifiable {
     /// and pasted text can be hundreds of thousands of characters and do not
     /// belong in a Markdown bubble.
     private func composed(_ text: String) -> ComposedUserTurn {
-        guard !composer.attachments.isEmpty else {
+        let skillDirective = composer.armedSkillName.map { name in
+            """
+            <use_skill name="\(name)">
+            The user asked for this skill by name. Load it with load_skill before answering, and \
+            follow it.
+            </use_skill>
+            """
+        }
+        guard !composer.attachments.isEmpty || skillDirective != nil else {
             return ComposedUserTurn(
                 id: UUID(), text: text, authoredText: text, images: [],
                 contextAttachments: []
@@ -1647,8 +1656,14 @@ final class ConversationModel: Identifiable {
                 </\(chip.kind.blockName)>
                 """
         }
+        // The directive rides `text` and not `authoredText`, exactly as the
+        // attachment blocks do. What the user typed is what the bubble shows,
+        // what message editing reopens, and what the title generator reads; the
+        // model gets the instruction as well.
         return ComposedUserTurn(
-            id: UUID(), text: ([text] + blocks).joined(separator: "\n\n"),
+            id: UUID(),
+            text: ([text] + blocks + [skillDirective].compactMap { $0 })
+                .joined(separator: "\n\n"),
             authoredText: text,
             images: composer.attachments.compactMap(\.image),
             contextAttachments: composer.attachments.compactMap(\.contextAttachment)

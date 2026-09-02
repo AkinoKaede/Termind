@@ -82,6 +82,7 @@ struct TermindApp: App {
                     ai: AIConfigurationModel(
                         modelContext: container.mainContext, secrets: secrets
                     ),
+                    skills: SkillLibraryModel(modelContext: container.mainContext),
                     commandHistory: CommandHistoryModel(modelContext: container.mainContext),
                     sftpHistory: SFTPHistoryModel(modelContext: container.mainContext),
                     connectionHistory: ConnectionHistoryModel(
