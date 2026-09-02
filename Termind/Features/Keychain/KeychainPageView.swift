@@ -1332,11 +1332,7 @@ struct ExportKeyToHostsSheet: View {
         }
     }
 
-    private var allEligibleChecked: Bool {
-        !eligibleHosts.isEmpty && eligibleHosts.allSatisfy {
-            chooser.selected.contains($0.id)
-        }
-    }
+    private var allEligibleChecked: Bool { chooser.allChecked(in: eligibleHosts.map(\.id)) }
 
     private var keySummary: String {
         if keys.count == 1 {
@@ -1359,8 +1355,7 @@ struct ExportKeyToHostsSheet: View {
     /// Select All follows the visible, filtered list, matching the host chooser:
     /// a filter must never cause an invisible machine to be modified.
     private func toggleAllEligible() {
-        let ids = eligibleHosts.map(\.id)
-        chooser.toggleAll(visible: ids, enabled: Set(ids))
+        chooser.toggleAll(in: eligibleHosts.map(\.id))
     }
 
     private func moveCursor(_ delta: Int) -> KeyPress.Result {

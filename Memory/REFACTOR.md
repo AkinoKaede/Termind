@@ -784,3 +784,36 @@ behavior, and would conflict with this backlog's net-reduction and boundary-pres
 Final verification compiled the app and test targets with warnings as errors. All 63 focused tests passed across
 SFTP Feature/Session, Architecture Boundary, and Snippet Feature suites. The Simplified Chinese localization check and
 `git diff --check` also passed.
+
+## Re-verification Pass — 2026-09-02
+
+An independent re-scan (fresh exact-fragment scan, dead-code scan, spot checks of completed items, and inspection of
+every file touched since the Completion Audit) corroborated it: no dead code, no revived duplicates, and the
+search-field-chrome/error-label claims held up on inspection. One item below the prior scan's granularity survived
+independent review.
+
+### 45. Share the "select/deselect all visible" helper pair for `ManagedChooserState` — Low priority
+
+**Status:** Completed on 2026-09-02; build, `git diff --check`, and the Simplified Chinese localization check passed.
+
+**Evidence:** `SnippetsPageView.allResultsChecked`/`toggleAllResults()`, `HostChooserView.allResultsChecked`/
+`toggleAllResults()`, and `KeychainPageView.allEligibleChecked`/`toggleAllEligible()` each independently repeated
+`!items.isEmpty && items.allSatisfy { chooser.selected.contains($0.id) }` and
+`let ids = items.map(\.id); chooser.toggleAll(visible: ids, enabled: Set(ids))` — the common case where every visible
+id is also enabled. The Completion Audit's note that "Host Chooser and Candidate Picker pass different enabled sets"
+addressed a different, genuinely non-reusable case (`ModelListEditor`, which restricts `enabled` to a subset) and did
+not cover this identical-enabled-set trio.
+
+**Recommended action:** Add `ManagedChooserState.allChecked(in:)` and `.toggleAll(in:)` convenience members beside the
+existing general-purpose `toggleAll(visible:enabled:)`, and reuse them from all three call sites. Leave
+`ModelListEditor`'s restricted-`enabled` call untouched.
+
+**Estimated net reduction:** Approximately 6–10 production lines.
+
+**Verification:** Added the two convenience members and reused them from Snippets, Host Chooser, and Keychain.
+Production Swift changed by +15/−17 lines, for a net reduction of 2 lines; the estimate did not account for the
+shared helper's own line cost. The macOS Debug build passed with warnings as errors, and `git diff --check` and the
+Simplified Chinese localization check passed.
+
+No other new exact-duplicate or dead-code candidate meeting this backlog's net-reduction and boundary-preservation
+bar was found in this pass.

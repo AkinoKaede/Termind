@@ -63,6 +63,15 @@ final class ManagedChooserState<ID: Hashable> {
         }
     }
 
+    /// Convenience for the common case where every visible id is also enabled.
+    func allChecked(in ids: [ID]) -> Bool {
+        !ids.isEmpty && ids.allSatisfy(selected.contains)
+    }
+
+    func toggleAll(in ids: [ID]) {
+        toggleAll(visible: ids, enabled: Set(ids))
+    }
+
 }
 
 struct SelectionMark: View {

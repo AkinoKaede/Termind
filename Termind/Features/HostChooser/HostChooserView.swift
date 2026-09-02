@@ -436,13 +436,10 @@ struct HostChooserView: View {
 
     // MARK: - Checking
 
-    private var allResultsChecked: Bool {
-        !results.isEmpty && results.allSatisfy { chooser.selected.contains($0.id) }
-    }
+    private var allResultsChecked: Bool { chooser.allChecked(in: results.map(\.id)) }
 
     private func toggleAllResults() {
-        let ids = results.map(\.id)
-        chooser.toggleAll(visible: ids, enabled: Set(ids))
+        chooser.toggleAll(in: results.map(\.id))
     }
 
     // MARK: - Opening
