@@ -450,7 +450,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -487,7 +487,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -636,14 +636,6 @@
 				minimumVersion = 3.6.2;
 			};
 		};
-		TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AkinoKaede/AgentKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.3.0;
-			};
-		};
 		TRMD00000000000000100024 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
@@ -674,6 +666,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.0.0;
+			};
+		};
+		TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AkinoKaede/AgentKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.3.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -719,6 +719,11 @@
 			package = TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */;
 			productName = ListViewKit;
 		};
+		TRMD0000000000000010001A /* GlyphixTextFx */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */;
+			productName = GlyphixTextFx;
+		};
 		TRMD0000000000000010001B /* AgentKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */;
@@ -728,11 +733,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */;
 			productName = AgentKitScrubber;
-		};
-		TRMD0000000000000010001A /* GlyphixTextFx */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */;
-			productName = GlyphixTextFx;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
