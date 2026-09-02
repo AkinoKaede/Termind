@@ -74,7 +74,34 @@ nonisolated struct NativeDropPayload: Sendable {
 
     final class FileURLDropNSView: NSView {
         var acceptedKinds: Set<NativeDropKind>
-        var isEnabled: Bool
+
+        /// Whether this receiver is the one on screen.
+        ///
+        /// Layers that are mounted but invisible keep their drop targets alive —
+        /// the Assistant panel holds the Workspace layer behind the sidebar chat
+        /// list, and every Workspace stays in the deck at `opacity(0)`. AppKit
+        /// honours neither `allowsHitTesting(false)` nor `opacity(0)` when it
+        /// looks for a drag destination, so a hidden copy used to win the drop
+        /// and file it somewhere nobody could see.
+        ///
+        /// Both halves of the retreat are needed, for the same reasons spelled
+        /// out on `AssistantConversationListContainer.isInteractive`: leaving
+        /// this view in the window's registered destination list hands it drags
+        /// it refused by hit test, and unregistering cannot reach a drag already
+        /// in flight, because AppKit resolved its destinations when the drag
+        /// began. `supportedPayload(from:)` is the second half — every entry
+        /// point passes through it.
+        var isEnabled: Bool {
+            didSet {
+                guard isEnabled != oldValue else { return }
+                if isEnabled {
+                    registerForDraggedTypes(Self.registeredTypes)
+                } else {
+                    unregisterDraggedTypes()
+                }
+            }
+        }
+
         var targetedKind: (NativeDropKind?) -> Void
         var receivePayload: (NativeDropPayload) -> Bool
 
@@ -89,7 +116,9 @@ nonisolated struct NativeDropPayload: Sendable {
             self.targetedKind = targetedKind
             self.receivePayload = receivePayload
             super.init(frame: .zero)
-            registerForDraggedTypes(Self.registeredTypes)
+            // Registered here rather than left to `isEnabled`: a property
+            // assigned in `init` does not run its own `didSet`.
+            if isEnabled { registerForDraggedTypes(Self.registeredTypes) }
         }
 
         convenience init(
@@ -173,7 +202,13 @@ nonisolated struct NativeDropPayload: Sendable {
             super.concludeDragOperation(sender)
         }
 
+        /// The one gate `hitTest` and all three dragging callbacks pass through.
+        /// A disabled receiver answers nil to each, which already means "not
+        /// mine" everywhere: the two `dragging*` methods clear the highlight and
+        /// return no operation, and `performDragOperation` declines. See
+        /// `isEnabled` for why refusing the hit test is not enough on its own.
         func supportedPayload(from pasteboard: NSPasteboard) -> NativeDropPayload? {
+            guard isEnabled else { return nil }
             let payload = Self.payload(from: pasteboard).restricted(to: acceptedKinds)
             return payload.preferredKind == nil ? nil : payload
         }
