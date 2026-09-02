@@ -72,33 +72,6 @@ nonisolated struct NativeDropPayload: Sendable {
         }
     }
 
-    /// Kept as a narrow convenience for call sites that only accept Finder
-    /// URLs. New full-surface destinations use `NativeDropTarget` directly.
-    struct NativeFileURLDropTarget: NSViewRepresentable {
-        @Binding var isTargeted: Bool
-        let isEnabled: Bool
-        let receive: ([URL]) -> Bool
-
-        func makeNSView(context _: Context) -> FileURLDropNSView {
-            FileURLDropNSView(
-                isEnabled: isEnabled,
-                isTargeted: setTargeted,
-                receive: receive
-            )
-        }
-
-        func updateNSView(_ view: FileURLDropNSView, context _: Context) {
-            view.acceptedKinds = [.files]
-            view.targetedKind = { setTargeted($0 != nil) }
-            view.isEnabled = isEnabled
-            view.receivePayload = { receive($0.fileURLs) }
-        }
-
-        private func setTargeted(_ targeted: Bool) {
-            isTargeted = targeted
-        }
-    }
-
     final class FileURLDropNSView: NSView {
         var acceptedKinds: Set<NativeDropKind>
         var isEnabled: Bool

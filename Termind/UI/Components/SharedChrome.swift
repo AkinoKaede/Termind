@@ -1,5 +1,17 @@
 import SwiftUI
 
+extension View {
+    func termindTransientOverlaySurface() -> some View {
+        termindGlassSurface(cornerRadius: Metrics.Radius.large)
+            .overlay {
+                RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                    .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
+            }
+            .shadow(color: TermindColor.shadow.opacity(0.16), radius: 12, y: 5)
+            .allowsHitTesting(false)
+    }
+}
+
 /// A form row that opens a creation or configuration flow.
 ///
 /// The full row is the hit target; the chevron communicates that the action

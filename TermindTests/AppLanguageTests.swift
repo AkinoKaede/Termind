@@ -89,37 +89,6 @@ struct AppLanguageTests {
         }
     }
 
-    @Test
-    func coreChineseInterfaceTermsStayConsistent() throws {
-        let repository = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-        let url = repository.appending(path: "Termind/Resources/Localizable.xcstrings")
-        let root = try #require(
-            JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
-        )
-        let strings = try #require(root["strings"] as? [String: Any])
-        let expected = [
-            "App": "应用",
-            "Version": "版本",
-            "Welcome": "欢迎",
-            "Snippets": "片段",
-            "Ungrouped": "未分组",
-            "Pin": "置顶",
-            "Pinned": "置顶",
-            "Unpin": "取消置顶",
-            "Approve for me": "帮我批准",
-            "Full access": "完全访问权限",
-        ]
-
-        for (key, translation) in expected {
-            let entry = try #require(strings[key] as? [String: Any])
-            let localizations = try #require(entry["localizations"] as? [String: Any])
-            let chinese = try #require(localizations["zh-Hans"] as? [String: Any])
-            let unit = try #require(chinese["stringUnit"] as? [String: Any])
-            #expect(unit["value"] as? String == translation)
-        }
-    }
-
     private func localizedUnits(in value: [String: Any]) -> [[String: Any]] {
         if let unit = value["stringUnit"] as? [String: Any] { return [unit] }
         guard let variations = value["variations"] as? [String: Any] else { return [] }

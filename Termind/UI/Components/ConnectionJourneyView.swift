@@ -120,6 +120,20 @@ extension View {
             .frame(width: 0, height: 0)
         }
     }
+
+    @ViewBuilder
+    fileprivate func connectionFormChrome(isEnabled: Bool) -> some View {
+        if isEnabled {
+            padding(18)
+                .termindGlassSurface(cornerRadius: 14)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(.separator.opacity(0.7))
+                }
+        } else {
+            self
+        }
+    }
 }
 
 struct ConnectionJourneyView: View {
@@ -808,28 +822,17 @@ struct SSHAuthenticationForm: View {
     }
 
     var body: some View {
-        Group {
-            if usesContainerChrome {
-                form
-                    .padding(18)
-                    .termindGlassSurface(cornerRadius: 14)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(.separator.opacity(0.7))
-                    }
-            } else {
-                form
+        form
+            .connectionFormChrome(isEnabled: usesContainerChrome)
+            .activeFormKeyboardActions(
+                isDefaultEnabled: canContinue,
+                onDefault: { commit(save: !needsPassphrase) },
+                onCancel: cancel
+            )
+            .onAppear {
+                if identityID != nil, selectedIdentity == nil { identityID = nil }
+                updateFocusForRequirement()
             }
-        }
-        .activeFormKeyboardActions(
-            isDefaultEnabled: canContinue,
-            onDefault: { commit(save: !needsPassphrase) },
-            onCancel: cancel
-        )
-        .onAppear {
-            if identityID != nil, selectedIdentity == nil { identityID = nil }
-            updateFocusForRequirement()
-        }
     }
 
     private var form: some View {
@@ -1072,24 +1075,13 @@ struct SSHHostKeyConfirmationForm: View {
     }
 
     var body: some View {
-        Group {
-            if usesContainerChrome {
-                form
-                    .padding(18)
-                    .termindGlassSurface(cornerRadius: 14)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(.separator.opacity(0.7))
-                    }
-            } else {
-                form
-            }
-        }
-        .activeFormKeyboardActions(
-            isDefaultEnabled: true,
-            onDefault: { trust?() ?? proceed() },
-            onCancel: deny
-        )
+        form
+            .connectionFormChrome(isEnabled: usesContainerChrome)
+            .activeFormKeyboardActions(
+                isDefaultEnabled: true,
+                onDefault: { trust?() ?? proceed() },
+                onCancel: deny
+            )
     }
 
     private var form: some View {

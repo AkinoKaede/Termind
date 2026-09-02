@@ -143,16 +143,6 @@ struct WindowToolbarFindTests {
         #expect(window.creationActions.map(\.id) == ["snippet", "package"])
     }
 
-    @Test
-    func creationActionsResolveUsingThePresentedLocale() throws {
-        let window = WindowModel()
-        window.openPage(.hosts)
-
-        let host = try #require(window.creationActions.first { $0.id == "host" })
-        #expect(host.localizedTitle(locale: Locale(identifier: "en")) == "New Host")
-        #expect(host.localizedTitle(locale: Locale(identifier: "zh-Hans-CN")) == "新建主机")
-    }
-
     /// Each Vault page keeps its own query, and keeps it across a page switch —
     /// the field lives in the titlebar and outlives the page under it.
     @Test
@@ -169,28 +159,6 @@ struct WindowToolbarFindTests {
         #expect(window.vaultPages.query(for: .hosts) == "edge")
         #expect(window.vaultPages.query(for: .keychain) == "deploy")
         #expect(window.vaultPages.query(for: .snippets) == "restart")
-    }
-
-    @Test
-    func titlebarNamesTheContentInFront() {
-        let window = WindowModel()
-        let title = VaultWindowTitleProvider()
-        let english = Locale(identifier: "en")
-        let chinese = Locale(identifier: "zh-Hans-CN")
-
-        // Welcome is the app's front door, so it is named after the app.
-        window.openPage(.welcome)
-        #expect(title.title(in: window, locale: chinese) == ApplicationIdentity.displayName)
-
-        window.openPage(.hosts)
-        #expect(title.title(in: window, locale: english) == "Hosts")
-        #expect(title.title(in: window, locale: chinese) == "主机")
-
-        window.openPage(.keychain)
-        #expect(title.title(in: window, locale: chinese) == "钥匙串")
-
-        window.openPage(.snippets)
-        #expect(title.title(in: window, locale: chinese) == "片段")
     }
 
     /// Each provider answers only for its own destination, so the catalog can

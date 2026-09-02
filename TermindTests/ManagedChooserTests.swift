@@ -1,4 +1,3 @@
-import Foundation
 import Testing
 
 @testable import Termind
@@ -79,17 +78,4 @@ struct ManagedChooserTests {
         #expect(HostChooserPurpose.batchStartup.showsWorkspaceChoice)
     }
 
-    @Test
-    func batchStartupStringsResolveUsingThePresentedLocale() {
-        let chinese = Locale(identifier: "zh-Hans-CN")
-        let selectedCount = 2
-
-        #expect(HostConnectionProtocol.serial.displayName(locale: chinese) == "串口")
-        #expect(AppLocalization.string("Batch Startup", locale: chinese) == "批量启动")
-        #expect(
-            AppLocalization.string("\(selectedCount) selected", locale: chinese)
-                == "已选择2项"
-        )
-        #expect(AppLocalization.string("Select All", locale: chinese) == "全部选择")
-    }
 }

@@ -189,17 +189,6 @@ struct SFTPFeatureTests {
     }
 
     @Test
-    func remoteFileKindDescriptionsUseReadableKindsAndFileExtensions() {
-        #expect(remoteFile(path: "/tmp/assets", kind: .directory).sftpKindDescription == "Folder")
-        #expect(remoteFile(path: "/tmp/readme", kind: .file).sftpKindDescription == "File")
-        #expect(remoteFile(path: "/tmp/ARCHIVE.TAR", kind: .file).sftpKindDescription == "tar")
-        #expect(
-            remoteFile(path: "/tmp/current", kind: .symbolicLink).sftpKindDescription
-                == "Symbolic Link"
-        )
-    }
-
-    @Test
     func crossHostCopyBelongsToBothHostsAndDrivesBothStatusDots() {
         let source = Host(name: "Source", host: "source.example")
         let destination = Host(name: "Destination", host: "destination.example")

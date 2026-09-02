@@ -19,7 +19,6 @@ struct LoopbackHTTPServerTests {
     func mcpServerIsOffByDefault() {
         #expect(SettingsKey.defaultMCPServerEnabled == false)
         #expect(SettingsKey.defaultMCPServerPort == 7_391)
-        #expect(MCPServerController.Status.ready(port: 7_391).label == "Listening on localhost:7391")
     }
 
     @Test

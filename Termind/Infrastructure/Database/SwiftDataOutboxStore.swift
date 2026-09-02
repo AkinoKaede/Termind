@@ -75,11 +75,6 @@ final class SwiftDataOutboxStore: OutboxStore {
     }
 
     private func save() throws {
-        do {
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
-        }
+        try context.savePendingChanges()
     }
 }

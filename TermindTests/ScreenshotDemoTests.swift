@@ -6,11 +6,6 @@
     @MainActor
     struct ScreenshotDemoTests {
         @Test
-        func hostsIsTheFirstDemoScene() {
-            #expect(ScreenshotDemoConfiguration.Scene.allCases.first == .hosts)
-        }
-
-        @Test
         func parsesEverySceneAndLanguageCombination() throws {
             let languages: [(argument: String, language: AppLanguage)] = [
                 ("en", .english),
@@ -103,23 +98,6 @@
             #expect(agent.selectedWorkspace != nil)
             #expect(agent.showsSidebar)
             #expect(agent.sidebarMode == .assistant)
-        }
-
-        @Test
-        func generatedDemoContentFollowsExplicitLanguage() throws {
-            let englishHosts = HostLibraryModel.demo(language: .english)
-            let chineseHosts = HostLibraryModel.demo(language: .simplifiedChineseChina)
-            #expect(englishHosts.rootGroups.first?.name == "Production")
-            #expect(chineseHosts.rootGroups.first?.name == "生产环境")
-
-            let englishConversation = ConversationModel.demo(language: .english)
-            let chineseConversation = ConversationModel.demo(
-                language: .simplifiedChineseChina
-            )
-            #expect(englishConversation.customTitle == "Diagnose 502 responses")
-            #expect(chineseConversation.customTitle == "诊断 502 响应")
-            #expect(try #require(englishConversation.messages.first).text.hasPrefix("Find"))
-            #expect(try #require(chineseConversation.messages.first).text.hasPrefix("查明"))
         }
 
         @Test

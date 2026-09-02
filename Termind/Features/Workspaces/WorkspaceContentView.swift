@@ -131,13 +131,7 @@ private struct CommandGeneratorOverlay: View {
         }
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.vertical, Metrics.Space.l)
-        .termindGlassSurface(cornerRadius: Metrics.Radius.large)
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                .strokeBorder(.separator.opacity(0.6), lineWidth: 1)
-        }
-        .shadow(color: TermindColor.shadow.opacity(0.16), radius: 12, y: 5)
-        .allowsHitTesting(false)
+        .termindTransientOverlaySurface()
         .accessibilityElement(children: .combine)
     }
 

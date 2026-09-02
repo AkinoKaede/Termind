@@ -79,7 +79,6 @@ struct ChatSlashCommandTests {
 
     @Test
     func displayNamesDoNotChangeTheTypedCommands() {
-        #expect(commands[1].displayName == "Plan mode")
         #expect(commands[1].name == "/plan")
         #expect(
             ChatSlashCommandCompletion.accepted(

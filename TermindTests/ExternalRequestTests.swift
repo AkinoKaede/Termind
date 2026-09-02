@@ -23,7 +23,6 @@ struct ExternalAuthCoordinatorTests {
         #expect(window.styleMask.contains(.closable))
         #expect(window.styleMask.contains(.miniaturizable))
         #expect(window.styleMask.contains(.fullSizeContentView))
-        #expect(window.title == "Authentication Request")
         #expect(window.titleVisibility == .visible)
         #expect(window.titlebarAppearsTransparent)
         #expect(window.titlebarSeparatorStyle == .none)

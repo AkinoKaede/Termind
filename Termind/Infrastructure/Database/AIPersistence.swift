@@ -259,7 +259,7 @@ final class AIPersistence {
     }
 
     func save(_ snapshot: AIConfigurationSnapshot) throws {
-        do {
+        try context.commit {
             try context.delete(model: PersistentAIModel.self)
             try context.delete(model: PersistentModelProvider.self)
             try context.delete(model: PersistentAIRoleAssignment.self)
@@ -282,10 +282,6 @@ final class AIPersistence {
             for (serverIndex, server) in snapshot.mcpServers.enumerated() {
                 context.insert(PersistentMCPServer(server, sortIndex: serverIndex))
             }
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
         }
     }
 }

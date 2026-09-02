@@ -58,21 +58,8 @@ nonisolated struct ChatProbe: Sendable {
         )
 
         let started = Date()
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch let error as URLError {
-            throw ModelCatalogError.transport(error.localizedDescription)
-        }
+        let data = try await ProviderNetworking.data(for: request, using: session)
         let elapsed = Int(Date().timeIntervalSince(started) * 1000)
-
-        guard let http = response as? HTTPURLResponse else {
-            throw ModelCatalogError.transport(String(localized: "The endpoint did not answer with HTTP."))
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw ModelCatalogError(status: http.statusCode, body: data)
-        }
 
         return Result(reply: Self.reply(in: data), milliseconds: elapsed)
     }

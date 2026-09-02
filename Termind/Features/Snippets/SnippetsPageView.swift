@@ -503,35 +503,7 @@ private struct SnippetCard: View {
             extendSelection: extendSelection,
             activate: { execute(actionSnippets) }
         ) {
-            VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                HStack(spacing: Metrics.Space.m) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(snippet.title).font(.headline).lineLimit(1)
-                        Text(targetSummary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: Metrics.Space.xs)
-                    RiskBadge(
-                        assessment: CommandRiskClassifier.assess(snippet.body),
-                        compact: true
-                    )
-                }
-
-                Text(snippet.body)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3, reservesSpace: true)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Metrics.Space.s)
-                    .background(
-                        .quaternary.opacity(0.5),
-                        in: .rect(cornerRadius: Metrics.Radius.small)
-                    )
-
-            }
+            SnippetCardContent(snippet: snippet, allowsTextSelection: true)
         }
         .contextMenu {
             Button("Execute") { execute(actionSnippets) }
@@ -546,18 +518,27 @@ private struct SnippetCard: View {
         }
         .help(Text(snippet.body))
     }
-
-    private var targetSummary: String {
-        switch snippet.targetHostIDs.count {
-        case 0: String(localized: "No targets")
-        case 1: String(localized: "1 target")
-        default: String(localized: "\(snippet.targetHostIDs.count) targets")
-        }
-    }
 }
 
 private struct SnippetGhostCard: View {
     let snippet: Snippet
+
+    var body: some View {
+        SnippetCardContent(snippet: snippet)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Metrics.Space.l)
+            .frame(minHeight: Metrics.Card.minHeight, alignment: .top)
+            .background(.quaternary.opacity(0.25), in: .rect(cornerRadius: Metrics.Radius.large))
+            .overlay {
+                RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                    .strokeBorder(.quaternary, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
+    }
+}
+
+private struct SnippetCardContent: View {
+    let snippet: Snippet
+    var allowsTextSelection = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
@@ -576,25 +557,30 @@ private struct SnippetGhostCard: View {
                 )
             }
 
-            Text(snippet.body)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(3, reservesSpace: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Metrics.Space.s)
-                .background(
-                    .quaternary.opacity(0.5),
-                    in: .rect(cornerRadius: Metrics.Radius.small)
-                )
+            bodyPreview
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Metrics.Space.l)
-        .frame(minHeight: Metrics.Card.minHeight, alignment: .top)
-        .background(.quaternary.opacity(0.25), in: .rect(cornerRadius: Metrics.Radius.large))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                .strokeBorder(.quaternary, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+    }
+
+    @ViewBuilder
+    private var bodyPreview: some View {
+        if allowsTextSelection {
+            styledBodyPreview.textSelection(.enabled)
+        } else {
+            styledBodyPreview
         }
+    }
+
+    private var styledBodyPreview: some View {
+        Text(snippet.body)
+            .font(.caption.monospaced())
+            .foregroundStyle(.secondary)
+            .lineLimit(3, reservesSpace: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Metrics.Space.s)
+            .background(
+                .quaternary.opacity(0.5),
+                in: .rect(cornerRadius: Metrics.Radius.small)
+            )
     }
 
     private var targetSummary: String {

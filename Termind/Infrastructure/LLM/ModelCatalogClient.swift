@@ -197,21 +197,7 @@ nonisolated struct ModelCatalogClient: Sendable {
     // MARK: - Transport
 
     private func get(_ request: URLRequest) async throws -> Data {
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch let error as URLError {
-            throw ModelCatalogError.transport(error.localizedDescription)
-        }
-
-        guard let http = response as? HTTPURLResponse else {
-            throw ModelCatalogError.transport(String(localized: "The endpoint did not answer with HTTP."))
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw ModelCatalogError(status: http.statusCode, body: data)
-        }
-        return data
+        try await ProviderNetworking.data(for: request, using: session)
     }
 }
 

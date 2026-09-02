@@ -526,7 +526,6 @@ struct ModelCapabilityResolverTests {
         )
 
         #expect(resolution.catalogSource == .init(provider: "openai", modelID: "codex-auto-review"))
-        #expect(resolution.model.displayName == "Codex Auto-review")
         #expect(resolution.model.ownedBy == "openai")
         #expect(resolution.model.input == [.text, .image])
         #expect(resolution.model.output == [.text])

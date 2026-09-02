@@ -347,12 +347,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         ))
         guard existing.isEmpty else { return }
         context.insert(PersistentAgentCompaction(record, conversationID: conversationID))
-        do {
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
-        }
+        try context.savePendingChanges()
     }
 
     @MainActor
@@ -540,12 +535,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         row.isPinned = metadata.isPinned
         row.archivedAt = metadata.archivedAt
         row.updatedAt = metadata.updatedAt
-        do {
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
-        }
+        try context.savePendingChanges()
     }
 
     @MainActor
@@ -580,12 +570,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 orderByID[row.id] = order
             }
         }
-        do {
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
-        }
+        try context.savePendingChanges()
     }
 
     @MainActor
@@ -668,7 +653,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         conversation.customTitle = metadata.customTitle
         conversation.isPinned = metadata.isPinned
         conversation.archivedAt = metadata.archivedAt
-        do {
+        try context.commit {
             context.insert(conversation)
             if let sortIndex = metadata.sortIndex {
                 context.insert(PersistentAgentConversationOrder(
@@ -720,10 +705,6 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     ))
                 }
             }
-            try context.save()
-        } catch {
-            context.rollback()
-            throw error
         }
     }
 

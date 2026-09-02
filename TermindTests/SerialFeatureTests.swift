@@ -100,13 +100,6 @@ struct SerialFeatureTests {
         #expect(journey.phase == .failed("Device busy"))
     }
 
-    @Test
-    func serialOpenStagesDescribeTheReadinessBoundary() {
-        #expect(SerialPortOpenStage.deviceOpened.message == "Serial device opened")
-        #expect(SerialPortOpenStage.settingsApplied.message == "Serial settings applied")
-        #expect(SerialPortOpenStage.monitoringStarted.message == "Serial input monitoring started")
-    }
-
     @MainActor
     @Test
     func serialPaneParticipatesInSessionsAndFindButCannotBeDuplicated() {

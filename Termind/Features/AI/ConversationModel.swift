@@ -78,16 +78,10 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
                 isOriginalFile: sourceAttachment.isOriginalFile
             )
         }
-        let filename: String
-        if kind == .file {
-            let stem = (label as NSString).deletingPathExtension
-            filename = "\(stem.isEmpty ? label : stem) extracted.txt"
-        } else {
-            filename = (label as NSString).pathExtension.isEmpty ? "\(label).txt" : label
-        }
         return AgentContextAttachment(
             id: id, kind: attachmentKind, label: label,
-            contentTypeIdentifier: "public.plain-text", suggestedFilename: filename,
+            contentTypeIdentifier: "public.plain-text",
+            suggestedFilename: kind.fallbackFilename(for: label),
             data: Data(content.utf8), isOriginalFile: false
         )
     }
@@ -112,10 +106,7 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
     /// a 200,000-character PDF extraction into Markdown makes opening history
     /// unnecessarily expensive and is not useful conversation UI.
     static func visiblePrompt(in composedText: String) -> String {
-        let boundaries = Kind.allCases.compactMap { kind in
-            composedText.range(of: "\n\n<\(kind.blockName) label=\"")?.lowerBound
-        }
-        guard let boundary = boundaries.min() else { return composedText }
+        guard let boundary = payloadBoundary(in: composedText) else { return composedText }
         return String(composedText[..<boundary])
     }
 
@@ -125,9 +116,7 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
         in composedText: String, images: [AgentImageAttachment] = [],
         contextAttachments: [AgentContextAttachment] = []
     ) -> [ContextChipReference] {
-        let boundary = Kind.allCases.compactMap { kind in
-            composedText.range(of: "\n\n<\(kind.blockName) label=\"")?.lowerBound
-        }.min()
+        let boundary = payloadBoundary(in: composedText)
 
         var matches: [(String.Index, ContextChipReference)] = []
         var unusedAttachments = contextAttachments
@@ -176,6 +165,12 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
         }
         return textReferences + imageReferences
     }
+
+    private static func payloadBoundary(in text: String) -> String.Index? {
+        Kind.allCases.compactMap {
+            text.range(of: "\n\n<\($0.blockName) label=\"")?.lowerBound
+        }.min()
+    }
 }
 
 /// The non-payload part of a Context Chip kept by the display projection.
@@ -209,17 +204,19 @@ private extension ContextChip.Kind {
         var text = content
         if text.hasPrefix("\n") { text.removeFirst() }
         if text.hasSuffix("\n") { text.removeLast() }
-        let filename: String
-        if self == .file {
-            let stem = (label as NSString).deletingPathExtension
-            filename = "\(stem.isEmpty ? label : stem) extracted.txt"
-        } else {
-            filename = (label as NSString).pathExtension.isEmpty ? "\(label).txt" : label
-        }
         return AgentContextAttachment(
             kind: kind, label: label, contentTypeIdentifier: "public.plain-text",
-            suggestedFilename: filename, data: Data(text.utf8), isOriginalFile: false
+            suggestedFilename: fallbackFilename(for: label), data: Data(text.utf8),
+            isOriginalFile: false
         )
+    }
+
+    nonisolated func fallbackFilename(for label: String) -> String {
+        if self == .file {
+            let stem = (label as NSString).deletingPathExtension
+            return "\(stem.isEmpty ? label : stem) extracted.txt"
+        }
+        return (label as NSString).pathExtension.isEmpty ? "\(label).txt" : label
     }
 }
 

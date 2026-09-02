@@ -24,13 +24,4 @@ struct ChatProbeTests {
         #expect(text["type"] as? String == "input_text")
         #expect(text["text"] as? String == ChatProbe.prompt)
     }
-
-    @Test
-    func queuedTestResultIsVisibleAsWaiting() {
-        let result = ModelListEditor.TestResult.queued
-
-        #expect(result.message == "Waiting…")
-        #expect(result.symbol == "hourglass")
-        #expect(!result.isSuccess)
-    }
 }

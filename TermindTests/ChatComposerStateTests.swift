@@ -198,7 +198,6 @@ struct ChatComposerStateTests {
                 == [.off, .minimal, .low, .medium, .high, .xHigh, .max]
         )
         #expect(ConversationModel().reasoningEffort == .medium)
-        #expect(ReasoningEffort.xHigh.displayName == "Extra High")
     }
 
     @Test

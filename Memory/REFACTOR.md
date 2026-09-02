@@ -538,3 +538,249 @@ remains net −8 Swift lines. All five `AgentApprovalQueueTests` passed, includi
 directly relevant Chat Composer stop, terminal-state, and streaming tests also passed during the focused run. The
 complete Chat Composer suite still has two unrelated failures in its attachment-limit fixture and an existing Chinese
 duration-string expectation. The localization check and `git diff --check` passed.
+
+## Focused Test Value Pass — 2026-09-02
+
+### 36. Delete tests that only freeze user-facing copy — High priority
+
+**Status:** Completed on 2026-09-02; the affected test target compiled and focused behavioral tests passed.
+
+**Evidence:**
+
+- The first seven tests in `AgentToolPresentationTests` spend more than 300 lines enumerating exact English and
+  Simplified Chinese sentences, verb forms, punctuation, and icon names. They do not exercise tool execution,
+  authorization, persistence, structured detail safety, or output bounds.
+- `SerialFeatureTests`, `SFTPFeatureTests`, `ManagedChooserTests`, `WindowToolbarFindTests`, `ChatProbeTests`, and
+  `ScreenshotDemoTests` each contain isolated assertions whose only contract is literal UI copy or fixture prose.
+- Exact copy assertions make ordinary wording and translation improvements require test edits while providing no
+  regression signal for product behavior.
+
+**Recommended action:** Delete whole tests whose sole subject is literal copy and remove isolated literal-copy
+assertions from otherwise valuable behavioral tests. Retain localization selection behavior, persisted/wire values,
+protocol payload formatting, state transitions, structured tool-detail redaction, and rendering bounds. Run the
+affected focused suites, the localization script, a Debug build, and `git diff --check`.
+
+**Estimated net reduction:** Approximately 450–550 test lines with no production changes.
+
+**Verification:** Removed 20 complete tests plus isolated copy assertions from six retained behavioral tests. Test
+Swift changed by +1/−531 lines (the added line shortens the name of a retained legacy-decoding test), for a net
+reduction of 530 lines and no production changes. The focused batch compiled and ran 217 tests across the 14 affected
+suites: 213 passed, and the four issues were the already-recorded Chat Composer attachment-limit fixture and Chinese
+duration expectation. The one touched Chat Composer test then passed alone. The localization check and
+`git diff --check` passed. The full suite compiled and ran 1,026 tests: 1,019 passed and seven existing or unrelated
+failures remained in Chat Composer (three), Broadcast Input, Color System, SFTP upload refresh, and Window State. The
+SFTP upload-refresh test passed in the focused batch, confirming its full-suite crash is not caused by deleting the
+adjacent kind-description test. The repository-wide strict format lint remains blocked by pre-existing violations
+across production and test files; the test target compilation is the syntax check for this deletion pass.
+
+## Production Logic Pass — 2026-09-02
+
+This pass excludes `TermindTests` from candidate discovery and focuses on runtime state, persistence, networking, and
+feature orchestration under `Termind`. Migration schemas and the intentionally separate SSH/SFTP session lifecycles
+remain out of scope.
+
+### 37. Share checked HTTP execution for model catalog and connection probes — High priority
+
+**Status:** Completed on 2026-09-02; build and focused Provider/Probe tests passed.
+
+**Evidence:**
+
+- `ModelCatalogClient.get` and `ChatProbe.run` both call the same injected `URLSession`, translate `URLError` into
+  `ModelCatalogError.transport`, reject non-HTTP responses with the same localized error, and turn non-2xx responses
+  into the same status/body error.
+- `ProviderNetworking` already owns the shared provider authorization and ephemeral-session rules, so keeping response
+  validation beside them removes a second transport policy without crossing an architecture boundary.
+- `ChatProbe` still needs to measure elapsed time and parse its provider-specific reply; `ModelCatalogClient` still
+  owns pagination and catalog decoding. Only the identical request execution and validation belong in the helper.
+
+**Recommended action:** Add one checked-data operation to `ProviderNetworking` and route both callers through it.
+Keep request construction, timing, pagination, and payload parsing in their current owners.
+
+**Estimated net reduction:** Approximately 7 production lines.
+
+**Verification:** `ProviderNetworking.data(for:using:)` now owns URLSession transport errors, HTTP response validation,
+and non-2xx status/body errors for both callers. Production Swift changed by +22/−29 lines, for a net reduction of
+7 lines. Strict format lint passed for all three touched production files. The Debug test build succeeded and all 12
+tests in `AIProviderPersistenceTests` and `ChatProbeTests` passed. `git diff --check` passed.
+
+### 38. Delete the uncalled Finder-only native drop wrapper — High priority
+
+**Status:** Completed on 2026-09-02; build and focused File Drop tests passed.
+
+**Evidence:**
+
+- `NativeFileURLDropTarget` has no construction site in production or tests. All four production destinations use the
+  more capable `NativeDropTarget` with explicit accepted kinds.
+- The wrapper only adapts `NativeDropTarget`'s underlying `FileURLDropNSView` back to file URLs and duplicates its
+  make/update/target-binding bridge.
+- The `FileURLDropNSView` convenience initializer remains useful to focused AppKit tests and is independent of the
+  dead SwiftUI wrapper.
+
+**Recommended action:** Delete only `NativeFileURLDropTarget`. Retain `NativeDropTarget`, `FileURLDropNSView`, and the
+test-facing convenience initializer.
+
+**Estimated net reduction:** 27 production lines.
+
+**Verification:** Deleted only `NativeFileURLDropTarget`; the generalized production target and the test-facing
+`FileURLDropNSView` convenience initializer remain. A final reference scan found no remaining wrapper use. All five
+`FileURLDropTargetTests` passed as part of the focused Debug test build.
+
+### 39. Centralize fallback Context Chip boundary and filename rules — Medium priority
+
+**Status:** Completed on 2026-09-02; build and focused attachment recovery tests passed.
+
+**Evidence:**
+
+- `ContextChip.visiblePrompt` and `visibleReferences` independently scan every chip kind for the first model-facing
+  attachment block boundary.
+- `ContextChip.contextAttachment` and `ContextChip.Kind.fallbackAttachment` independently derive the same fallback
+  filename: files become `<stem> extracted.txt`; other extensionless labels gain `.txt`.
+- These are persistence-recovery rules, not presentation choices. Drift would make a restored chip disagree with the
+  attachment created before persistence.
+
+**Recommended action:** Add one private boundary helper and one `ContextChip.Kind` fallback-filename helper, then use
+them from both live attachment creation and restored-reference recovery. Do not introduce a general markup parser.
+
+**Estimated net reduction:** 3 production lines while removing two independently maintained rules.
+
+**Verification:** `ContextChip.payloadBoundary` now serves both visible-text and reference recovery, and
+`ContextChip.Kind.fallbackFilename` serves both live and restored fallback attachments. Production Swift changed by
++20/−23 lines. The directly relevant manual-attachment and legacy-file-reference tests passed. The complete 66-test
+Chat Composer suite retained its two known unrelated failures: the attachment-limit fixture and Chinese duration copy.
+
+### 40. Finish save-or-rollback reuse in SwiftData infrastructure — Medium priority
+
+**Status:** Completed on 2026-09-02; build and focused persistence tests passed.
+
+**Evidence:**
+
+- `AgentPersistence` contains three byte-identical `do { save } catch { rollback; throw }` blocks after mutations;
+  `SwiftDataOutboxStore` contains the same block as a private helper.
+- `AIPersistence.save` and `AgentPersistence.createConversation` wrap larger mutation batches in the same lifecycle.
+- `ModelContext+Commit` already establishes rollback-on-failure as the shared database transaction policy, but it only
+  exposes the closure-taking form, leaving already-staged mutations to repeat the save tail.
+
+**Recommended action:** Add a narrowly named save-pending-changes helper beside `ModelContext.commit`, reuse it for
+the exact save tails, and let `commit` retain responsibility for rolling back operation failures. Do not rewrite the
+two-stage history commits or Vault Sync transactions, whose save boundaries are semantic.
+
+**Estimated net reduction:** 24 production lines.
+
+**Verification:** Added `ModelContext.savePendingChanges`, reused it for the three staged Agent saves and the Outbox
+save helper, and routed the AI snapshot and conversation-creation mutation batches through `ModelContext.commit`.
+Production Swift changed by +10/−34 lines. The focused Debug build passed all 46 selected tests across Agent
+Persistence, Repository Outbox, AI Provider Persistence, and File Drop. The database
+scan no longer finds the four byte-identical save/rollback tails. Vault Sync and two-stage history commits were not
+changed.
+
+## Production Logic Pass Verification — 2026-09-02
+
+- Items 38–40 add 30 and delete 84 production Swift lines: **net −54 lines**.
+- The focused Debug test build passed all 46 selected tests. A separate complete Chat Composer run confirmed both
+  directly affected attachment tests pass; its two previously recorded unrelated failures remain unchanged.
+- The touched production files compiled under Swift 6 with warnings as errors. `Scripts/check-zh-localization.sh` and
+  `git diff --check` passed.
+
+## Production UI Duplication Pass — 2026-09-02
+
+### 41. Share the transient overlay surface treatment — Medium-high priority
+
+**Status:** Completed on 2026-09-02; Debug build passed.
+
+**Evidence:**
+
+- `DropTargetOverlay`, `TerminalUploadOverlay`, and `CommandGeneratorOverlay` repeat the same large-radius glass
+  surface, separator border, shadow, and hit-testing suppression.
+- The three overlays differ in content and transitions, but the copied modifier chain is byte-identical and already
+  depends only on shared design tokens.
+
+**Recommended action:** Add one narrowly named shared `View` helper for the transient overlay surface and replace the
+three copied modifier chains. Keep each overlay's content, accessibility, animation, and transition behavior local.
+
+**Estimated net reduction:** Approximately 10–15 production lines.
+
+**Verification:** Added `termindTransientOverlaySurface` and replaced all three copied modifier chains without moving
+their content, transitions, or accessibility behavior. Production Swift changed by +15/−21 lines, for a net
+reduction of 6 lines. The macOS Debug build and `git diff --check` passed. Strict formatting of the four touched files
+remains blocked by pre-existing indentation violations outside this change.
+
+### 42. Share conditional chrome for SSH authentication forms — Medium-high priority
+
+**Status:** Completed on 2026-09-02; Debug build passed.
+
+**Evidence:** `SSHAuthenticationForm` and `SSHHostKeyConfirmationForm` in `ConnectionJourneyView.swift` contain
+byte-identical `Group` branches that optionally add 18-point padding, a 14-point glass surface, and a separator
+border. Their form content and keyboard actions remain meaningfully different.
+
+**Recommended action:** Add one file-local conditional `View` helper for this established form chrome and replace
+both copied branches. Do not combine the forms or their submission logic.
+
+**Estimated net reduction:** Approximately 12–14 production lines.
+
+**Verification:** Added the file-local `connectionFormChrome` helper and replaced both copied conditional branches.
+The forms keep separate content and keyboard actions. Production Swift changed by +31/−39 lines, including chain
+reindentation, for a net reduction of 8 lines. The new and modified regions pass strict-format checks, the macOS
+Debug build passed with warnings as errors, and `git diff --check` passed.
+
+### 43. Share Snippet card content with its drag ghost — Medium-high priority
+
+**Status:** Completed on 2026-09-02; Debug build passed.
+
+**Evidence:** `SnippetCard` and `SnippetGhostCard` duplicate the title, target-count summary, risk badge, body preview,
+and all related layout and styling. The outer interactive card and dashed drag ghost are intentionally different; the
+only content-level behavior difference is that the normal card enables text selection for the body preview.
+
+**Recommended action:** Extract one file-local `SnippetCardContent` with an explicit text-selection option. Keep
+selection, activation, context menus, help, and ghost chrome in their current outer views.
+
+**Estimated net reduction:** Approximately 25–30 production lines.
+
+**Verification:** Added `SnippetCardContent` with an explicit `allowsTextSelection` option and kept both outer card
+implementations separate. Production Swift changed by +39/−53 lines, for a net reduction of 14 lines; the estimate
+overstated how much of the duplicated body could be removed while preserving body-only text selection. The modified
+region passes strict formatting, the macOS Debug build passed with warnings as errors, and `git diff --check` passed.
+
+### 44. Share the SFTP remote-file read-handle lifecycle — High priority
+
+**Status:** Completed on 2026-09-02; build and focused SFTP tests passed.
+
+**Evidence:** `SFTPWorker.readFile` and both `downloadFile` implementations independently open the same remote path
+with `LIBSSH2_FXF_READ` and `LIBSSH2_SFTP_OPENFILE`, produce the same open error, and close the handle in `defer`.
+Directory listing uses a different open mode and is not part of this duplication.
+
+**Recommended action:** Add a private `withRemoteReadHandle` beside `withAtomicRemoteWrite` and keep each consumer's
+buffering, size limit, progress, local atomic replacement, and socket relay logic inside its own closure.
+
+**Estimated net reduction:** Approximately 8–12 production lines while centralizing resource cleanup.
+
+**Verification:** Added `withRemoteReadHandle` and routed inline reads, local downloads, and socket downloads through
+it while leaving each read loop and destination policy local. Production Swift changed by +91/−95 lines, including
+closure indentation, for a net reduction of 4 lines; the estimate did not account for the extra closure indentation
+needed to preserve all three distinct loops. The macOS Debug build passed with warnings as errors, and all 47 tests in
+`SFTPFeatureTests` and `SFTPSessionTests` passed. `git diff --check` passed.
+
+## Completion Audit — 2026-09-02
+
+- A production-wide declaration scan found no type or private member with only its declaration as a reference. The
+  remaining functions with a single textual occurrence are framework and protocol callbacks for AppKit, SwiftUI
+  `Layout`, CloudKit sync, and callable transforms.
+- Normalized 7-, 10-, and 12-line duplicate-block scans found no further independent production change that both
+  preserves current boundaries and reduces code. Items 41–44 add 176 and delete 208 production Swift lines: **net
+  −32 lines**.
+- The remaining ordinary hosting-list bridge fragments already share `HostingListContent`; their small
+  `NSViewRepresentable` shells are type-specific framework conformance, as recorded by Item 2. The Assistant hosting
+  row retains its distinct detach and drag lifecycle.
+- The remaining SSH/SFTP authentication and reconnect similarities intentionally preserve separate transport startup,
+  credential persistence, and failure recovery, as recorded by Item 7 and Deep Scan III. The serial/SSH terminal-find
+  surfaces also differ because SSH exposes independent navigation while Serial only exposes present-and-navigate.
+- SwiftData V7/V8 models remain immutable migration contracts. Small repeated Settings error labels, search-field
+  chrome, and sheet footers would require as much or more abstraction code than they remove.
+- `ManagedChooserState` already owns the common selection and toggle-all policy. Host Chooser and Candidate Picker pass
+  different enabled sets, so another wrapper would duplicate policy inputs rather than remove policy.
+
+At this point additional consolidation would be driven by visual similarity rather than dead code or exact duplicated
+behavior, and would conflict with this backlog's net-reduction and boundary-preservation rules.
+
+Final verification compiled the app and test targets with warnings as errors. All 63 focused tests passed across
+SFTP Feature/Session, Architecture Boundary, and Snippet Feature suites. The Simplified Chinese localization check and
+`git diff --check` also passed.

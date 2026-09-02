@@ -505,27 +505,21 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     func readFile(at path: String, maximumBytes: Int) async throws -> Data {
         try await queue.perform {
             guard maximumBytes > 0 else { return Data() }
-            let sftp = try self.requireSFTP()
-            guard let handle = path.withCString({
-                libssh2_sftp_open_ex(
-                    sftp, $0, UInt32(path.utf8.count), UInt(LIBSSH2_FXF_READ), 0,
-                    Int32(LIBSSH2_SFTP_OPENFILE)
-                )
-            }) else { throw self.error("Unable to open \(path)") }
-            defer { _ = libssh2_sftp_close_handle(handle) }
-            var data = Data()
-            var buffer = [CChar](repeating: 0, count: min(64 * 1024, maximumBytes + 1))
-            while data.count <= maximumBytes {
-                let wanted = min(buffer.count, maximumBytes + 1 - data.count)
-                let count = libssh2_sftp_read(handle, &buffer, wanted)
-                if count > 0 { data.append(Data(bytes: buffer, count: count)) }
-                else if count == 0 { break }
-                else { throw self.error("Unable to read \(path)") }
+            return try self.withRemoteReadHandle(at: path) { handle in
+                var data = Data()
+                var buffer = [CChar](repeating: 0, count: min(64 * 1024, maximumBytes + 1))
+                while data.count <= maximumBytes {
+                    let wanted = min(buffer.count, maximumBytes + 1 - data.count)
+                    let count = libssh2_sftp_read(handle, &buffer, wanted)
+                    if count > 0 { data.append(Data(bytes: buffer, count: count)) }
+                    else if count == 0 { break }
+                    else { throw self.error("Unable to read \(path)") }
+                }
+                guard data.count <= maximumBytes else {
+                    throw SFTPError.operation("\(path) exceeds the inline read limit of \(maximumBytes) bytes.")
+                }
+                return data
             }
-            guard data.count <= maximumBytes else {
-                throw SFTPError.operation("\(path) exceeds the inline read limit of \(maximumBytes) bytes.")
-            }
-            return data
         }
     }
 
@@ -678,48 +672,40 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
         try await queue.perform {
-            let sftp = try self.requireSFTP()
-            guard let handle = remotePath.withCString({
-                libssh2_sftp_open_ex(
-                    sftp, $0, UInt32(remotePath.utf8.count), UInt(LIBSSH2_FXF_READ), 0,
-                    Int32(LIBSSH2_SFTP_OPENFILE)
-                )
-            }) else {
-                throw self.error("Unable to open \(remotePath)")
+            try self.withRemoteReadHandle(at: remotePath) { handle in
+                let fm = FileManager.default
+                let temporary = localURL.deletingLastPathComponent().appendingPathComponent(".termind-part-\(UUID().uuidString)")
+                guard fm.createFile(atPath: temporary.path, contents: nil) else {
+                    throw SFTPError.localFile("Unable to create \(temporary.path)")
+                }
+                var succeeded = false
+                defer { if !succeeded { try? fm.removeItem(at: temporary) } }
+                let file = try FileHandle(forWritingTo: temporary)
+                defer { try? file.close() }
+                var attrs = LIBSSH2_SFTP_ATTRIBUTES()
+                _ = libssh2_sftp_fstat_ex(handle, &attrs, 0)
+                let total = Int64(attrs.filesize)
+                var meter = SFTPProgressMeter(total: total, report: progress)
+                var buffer = [CChar](repeating: 0, count: 64 * 1024)
+                while true {
+                    if cancellation.isCancelled { throw SFTPError.cancelled }
+                    let count = libssh2_sftp_read(handle, &buffer, buffer.count)
+                    if count > 0 {
+                        try file.write(contentsOf: Data(bytes: buffer, count: count))
+                        meter.add(count)
+                    } else if count == 0 { break }
+                    else { throw self.error("Unable to download \(remotePath)") }
+                }
+                try file.synchronize()
+                meter.finish()
+                if fm.fileExists(atPath: localURL.path) {
+                    guard overwrite else { throw SFTPError.localFile("\(localURL.lastPathComponent) already exists.") }
+                    _ = try fm.replaceItemAt(localURL, withItemAt: temporary)
+                } else {
+                    try fm.moveItem(at: temporary, to: localURL)
+                }
+                succeeded = true
             }
-            defer { _ = libssh2_sftp_close_handle(handle) }
-            let fm = FileManager.default
-            let temporary = localURL.deletingLastPathComponent().appendingPathComponent(".termind-part-\(UUID().uuidString)")
-            guard fm.createFile(atPath: temporary.path, contents: nil) else {
-                throw SFTPError.localFile("Unable to create \(temporary.path)")
-            }
-            var succeeded = false
-            defer { if !succeeded { try? fm.removeItem(at: temporary) } }
-            let file = try FileHandle(forWritingTo: temporary)
-            defer { try? file.close() }
-            var attrs = LIBSSH2_SFTP_ATTRIBUTES()
-            _ = libssh2_sftp_fstat_ex(handle, &attrs, 0)
-            let total = Int64(attrs.filesize)
-            var meter = SFTPProgressMeter(total: total, report: progress)
-            var buffer = [CChar](repeating: 0, count: 64 * 1024)
-            while true {
-                if cancellation.isCancelled { throw SFTPError.cancelled }
-                let count = libssh2_sftp_read(handle, &buffer, buffer.count)
-                if count > 0 {
-                    try file.write(contentsOf: Data(bytes: buffer, count: count))
-                    meter.add(count)
-                } else if count == 0 { break }
-                else { throw self.error("Unable to download \(remotePath)") }
-            }
-            try file.synchronize()
-            meter.finish()
-            if fm.fileExists(atPath: localURL.path) {
-                guard overwrite else { throw SFTPError.localFile("\(localURL.lastPathComponent) already exists.") }
-                _ = try fm.replaceItemAt(localURL, withItemAt: temporary)
-            } else {
-                try fm.moveItem(at: temporary, to: localURL)
-            }
-            succeeded = true
         }
     }
 
@@ -728,42 +714,34 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         cancellation: TransferCancellationToken
     ) async throws {
         try await queue.perform {
-            let sftp = try self.requireSFTP()
-            guard let handle = remotePath.withCString({
-                libssh2_sftp_open_ex(
-                    sftp, $0, UInt32(remotePath.utf8.count), UInt(LIBSSH2_FXF_READ), 0,
-                    Int32(LIBSSH2_SFTP_OPENFILE)
-                )
-            }) else {
-                throw self.error("Unable to open \(remotePath)")
-            }
-            defer { _ = libssh2_sftp_close_handle(handle) }
-            var buffer = [CChar](repeating: 0, count: 64 * 1024)
-            while true {
-                if cancellation.isCancelled { throw SFTPError.cancelled }
-                let count = libssh2_sftp_read(handle, &buffer, buffer.count)
-                if count > 0 {
-                    var offset = 0
-                    while offset < count {
-                        if cancellation.isCancelled { throw SFTPError.cancelled }
-                        let sent = buffer.withUnsafeBytes { bytes in
-                            Darwin.send(
-                                socket, bytes.baseAddress!.advanced(by: offset),
-                                count - offset, 0
-                            )
+            try self.withRemoteReadHandle(at: remotePath) { handle in
+                var buffer = [CChar](repeating: 0, count: 64 * 1024)
+                while true {
+                    if cancellation.isCancelled { throw SFTPError.cancelled }
+                    let count = libssh2_sftp_read(handle, &buffer, buffer.count)
+                    if count > 0 {
+                        var offset = 0
+                        while offset < count {
+                            if cancellation.isCancelled { throw SFTPError.cancelled }
+                            let sent = buffer.withUnsafeBytes { bytes in
+                                Darwin.send(
+                                    socket, bytes.baseAddress!.advanced(by: offset),
+                                    count - offset, 0
+                                )
+                            }
+                            if sent > 0 {
+                                offset += sent
+                            } else if sent < 0, errno == EINTR {
+                                continue
+                            } else {
+                                throw SFTPError.operation("The SFTP copy relay was interrupted.")
+                            }
                         }
-                        if sent > 0 {
-                            offset += sent
-                        } else if sent < 0, errno == EINTR {
-                            continue
-                        } else {
-                            throw SFTPError.operation("The SFTP copy relay was interrupted.")
-                        }
+                    } else if count == 0 {
+                        break
+                    } else {
+                        throw self.error("Unable to read \(remotePath)")
                     }
-                } else if count == 0 {
-                    break
-                } else {
-                    throw self.error("Unable to read \(remotePath)")
                 }
             }
         }
@@ -817,6 +795,24 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 meter.finish()
             }
         }
+    }
+
+    private func withRemoteReadHandle<T>(
+        at path: String, read: (OpaquePointer) throws -> T
+    ) throws -> T {
+        let sftp = try requireSFTP()
+        guard
+            let handle = path.withCString({
+                libssh2_sftp_open_ex(
+                    sftp, $0, UInt32(path.utf8.count), UInt(LIBSSH2_FXF_READ), 0,
+                    Int32(LIBSSH2_SFTP_OPENFILE)
+                )
+            })
+        else {
+            throw error("Unable to open \(path)")
+        }
+        defer { _ = libssh2_sftp_close_handle(handle) }
+        return try read(handle)
     }
 
     private func withAtomicRemoteWrite(
