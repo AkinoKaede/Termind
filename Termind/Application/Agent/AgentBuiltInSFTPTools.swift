@@ -335,9 +335,9 @@ nonisolated extension SFTPMoveTool {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "From", object["source"]?.stringValue,
+            F.appendField(&items, "Source", object["source"]?.stringValue,
                           locale: input.locale, monospaced: true)
-            F.appendField(&items, "To", object["destination"]?.stringValue,
+            F.appendField(&items, "Destination", object["destination"]?.stringValue,
                           locale: input.locale, monospaced: true)
             return items
         }

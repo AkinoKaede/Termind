@@ -612,8 +612,8 @@ private struct SoftwareKeyEditor: View {
     private var dropPresentation: DropTargetPresentation {
         DropTargetPresentation(
             title: existing == nil
-                ? String(localized: "Import Private Key")
-                : String(localized: "Replace Private Key"),
+                ? String(localized: "Drag to Import")
+                : String(localized: "Drag to Replace"),
             detail: String(localized: "Private key or certificate"),
             systemImage: "key.fill"
         )
