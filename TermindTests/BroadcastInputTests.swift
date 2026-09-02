@@ -343,8 +343,9 @@ struct BroadcastInputTests {
             let shortcuts: [AppShortcutRegistration] = [
                 AppShortcutRegistration("t"),
                 AppShortcutRegistration("t", modifiers: [.command, .shift]),
-                AppShortcutRegistration("d", modifiers: [.command, .option, .shift]),
-                AppShortcutRegistration(.tab, modifiers: [.control, .shift]),
+                AppShortcutRegistration("d", modifiers: [.command, .shift]),
+                AppShortcutRegistration(.rightArrow, modifiers: [.command, .option]),
+                AppShortcutRegistration(.downArrow, modifiers: [.command, .option]),
                 AppShortcutRegistration("]", modifiers: [.command, .shift]),
                 AppShortcutRegistration(.f3, modifiers: []),
                 AppShortcutRegistration(.escape, modifiers: .shift),
@@ -539,6 +540,10 @@ struct BroadcastInputTests {
                     ("\u{1B}", 53)
                 case .f3:
                     (String(Character(UnicodeScalar(NSF3FunctionKey)!)), 99)
+                case .rightArrow:
+                    (String(Character(UnicodeScalar(NSRightArrowFunctionKey)!)), 124)
+                case .downArrow:
+                    (String(Character(UnicodeScalar(NSDownArrowFunctionKey)!)), 125)
                 }
             return NSEvent.keyEvent(
                 with: .keyDown,

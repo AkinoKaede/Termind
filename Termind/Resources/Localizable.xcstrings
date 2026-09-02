@@ -9780,26 +9780,6 @@
         }
       }
     },
-    "Show Next Workspace" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示下一个工作区"
-          }
-        }
-      }
-    },
-    "Show Previous Workspace" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示上一个工作区"
-          }
-        }
-      }
-    },
     "Show Recents" : {
       "localizations" : {
         "zh-Hans" : {

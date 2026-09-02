@@ -6,6 +6,8 @@ enum AppShortcutKey: Hashable, Sendable, ExpressibleByExtendedGraphemeClusterLit
     case tab
     case escape
     case f3
+    case rightArrow
+    case downArrow
 
     init(extendedGraphemeClusterLiteral value: Character) { self = .character(value) }
 
@@ -15,6 +17,8 @@ enum AppShortcutKey: Hashable, Sendable, ExpressibleByExtendedGraphemeClusterLit
         case .tab: .tab
         case .escape: .escape
         case .f3: KeyEquivalent(Character(UnicodeScalar(NSF3FunctionKey)!))
+        case .rightArrow: .rightArrow
+        case .downArrow: .downArrow
         }
     }
 
@@ -24,6 +28,8 @@ enum AppShortcutKey: Hashable, Sendable, ExpressibleByExtendedGraphemeClusterLit
         case .tab: "\t"
         case .escape: "\u{1B}"
         case .f3: String(Character(UnicodeScalar(NSF3FunctionKey)!))
+        case .rightArrow: String(Character(UnicodeScalar(NSRightArrowFunctionKey)!))
+        case .downArrow: String(Character(UnicodeScalar(NSDownArrowFunctionKey)!))
         }
     }
 }
@@ -65,6 +71,11 @@ struct AppShortcutRegistration: Hashable, Sendable {
         switch key {
         case .tab: return event.keyCode == 48
         case .escape: return event.keyCode == 53
+        // Key codes, like `.tab` above: the terminal has to recognise an arrow
+        // and yield it before Ghostty encodes it as an escape sequence, and a
+        // layout-independent comparison is the one that cannot miss.
+        case .rightArrow: return event.keyCode == 124
+        case .downArrow: return event.keyCode == 125
         case .f3:
             return event.charactersIgnoringModifiers?.unicodeScalars.first?.value
                 == UInt32(NSF3FunctionKey)

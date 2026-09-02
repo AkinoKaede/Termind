@@ -146,28 +146,28 @@ struct TermindCommands: Commands {
 
             Divider()
 
-            // No modifier duplicates, ⌥ carves an empty slot — the pair that
-            // opens a connection and the pair that only rearranges the window
-            // are one key apart, and the ⌥ ones never touch the network.
+            // ⌥ still marks the pair that only rearranges the window, against
+            // Duplicate's ⌘D, which opens a connection. The keys are the
+            // directions themselves rather than ⌥⌘D: macOS owns that one for
+            // Turn Dock Hiding On/Off, so pressing it here only hid the Dock.
             Button("Split Right") { window?.splitSelected(axis: .horizontal) }
-                .termindShortcut("d", modifiers: [.command, .option])
+                .termindShortcut(.rightArrow, modifiers: [.command, .option])
                 .disabled(!(window?.canSplitSelected ?? false))
             Button("Split Down") { window?.splitSelected(axis: .vertical) }
-                .termindShortcut("d", modifiers: [.command, .option, .shift])
+                .termindShortcut(.downArrow, modifiers: [.command, .option])
                 .disabled(!(window?.canSplitSelected ?? false))
         }
 
         CommandGroup(before: .windowList) {
+            // One pair, not two. There used to be a ⌃⇥ copy of these beside
+            // them, which AppKit's automatic window tabbing already claims for
+            // Show Next Tab — so the app's copy was both shadowed and a second
+            // name for what ⇧⌘] does. ⇧⌘] is what Safari, Terminal and Finder
+            // use, so it is the pair that stays.
             Button("Next Workspace") { window?.selectNext() }
-                .termindShortcut(.tab, modifiers: .control)
-                .disabled(window?.workspaces.isEmpty != false)
-            Button("Previous Workspace") { window?.selectPrevious() }
-                .termindShortcut(.tab, modifiers: [.control, .shift])
-                .disabled(window?.workspaces.isEmpty != false)
-            Button("Show Next Workspace") { window?.selectNext() }
                 .termindShortcut("]", modifiers: [.command, .shift])
                 .disabled(window?.workspaces.isEmpty != false)
-            Button("Show Previous Workspace") { window?.selectPrevious() }
+            Button("Previous Workspace") { window?.selectPrevious() }
                 .termindShortcut("[", modifiers: [.command, .shift])
                 .disabled(window?.workspaces.isEmpty != false)
 

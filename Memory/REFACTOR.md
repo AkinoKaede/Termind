@@ -854,3 +854,39 @@ every lookup outside Xcode returns its key.
 
 No other new exact-duplicate or dead-code candidate meeting this backlog's net-reduction and boundary-preservation
 bar was found in this pass.
+
+### 47. Collapse the duplicated Workspace navigation commands and move the splits off system-owned keys — Structural
+
+**Status:** Completed on 2026-09-02; the macOS Debug build, `swift-format lint --strict`, and the Simplified
+Chinese localization check passed.
+
+**Evidence:** `TermindCommands.body` declared four Window-menu buttons for two actions. `Next Workspace` (⌃⇥) and
+`Show Next Workspace` (⇧⌘]) both invoked `window?.selectNext()`; `Previous Workspace` (⌃⇧⇥) and
+`Show Previous Workspace` (⇧⌘[) both invoked `window?.selectPrevious()`. The bodies were identical, not merely
+similar, so this was exact duplication rather than a deliberate SwiftUI boundary.
+
+Two of the four could not work in any case. The app never sets `NSWindow.allowsAutomaticWindowTabbing = false` —
+the scene in `TermindApp.body` is a plain `WindowGroup` — so AppKit installs its own `Show Next Tab` ⌃⇥ and
+`Show Previous Tab` ⌃⇧⇥ into the same menu, shadowing the app's copies. Separately, `Split Right` held ⌥⌘D, which
+macOS reserves for Turn Dock Hiding On/Off as symbolic hotkey 52; the system consumed it before the menu saw it,
+so the command was unreachable from the keyboard.
+
+**Recommended action:** Delete the ⌃⇥ pair and rename the surviving ⇧⌘] pair to `Next Workspace` /
+`Previous Workspace`, the titles Safari, Terminal and Finder already share. Move `Split Right` / `Split Down` to
+⌥⌘→ / ⌥⌘↓, which keeps ⌥ as the mark of the pair that only rearranges the window while ⌘D stays with Duplicate,
+the one that opens a connection.
+
+**Estimated net reduction:** Approximately 6 production lines and 2 string-catalog entries.
+
+**Verification:** Six button lines and the two now-unused `Show Next Workspace` / `Show Previous Workspace`
+catalog entries were removed; `Next Workspace` and `Previous Workspace` already carried finished `zh-Hans`
+translations, so the change needed none. Production Swift measured +13/−13 for a net of zero rather than the
+estimated −6: `AppShortcutKey` gained `.rightArrow` and `.downArrow` (11 lines across its three switches), and the
+two comments that record why ⌃⇥ and ⌥⌘D must not come back cost as much as the buttons saved. The catalog shrank
+by 20 lines.
+
+The arrow cases match on key code rather than character, as `.tab` and `.escape` do. That is what lets
+`AppShortcutRegistry.routesToApplication` recognise ⌥⌘→ inside
+`PersistentTerminalSurfaceView.TermindTerminalView.performKeyEquivalent` and decline it, so Ghostty writes no
+escape sequence to the shell; `BroadcastInputTests.registeredApplicationShortcutsFallThroughTheTerminal` now
+covers both arrows.

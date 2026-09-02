@@ -1127,7 +1127,7 @@ final class AppModel {
     /// In the workspaces case each `open` selects the workspace it made, which would leave
     /// the *last* host in front — the one furthest from where the eye started.
     /// Landing on the first instead matches the order the list was read and
-    /// ticked in, and the rest are a ⌃⇥ away.
+    /// ticked in, and the rest are a ⇧⌘] away.
     func open(
         _ hosts: [Host],
         as target: HostOpenTarget,
