@@ -23,11 +23,13 @@ final class ToolAuditModel {
         repository: (any ToolAuditRepository)? = nil,
         hostName: @escaping (Host.ID) -> String? = { _ in nil }
     ) {
-        self.repository = repository ?? InMemoryToolAuditRepository(
-            entries: Array(
-                entries.sorted { $0.startedAt > $1.startedAt }.prefix(Self.globalLimit)
+        self.repository =
+            repository
+            ?? InMemoryToolAuditRepository(
+                entries: Array(
+                    entries.sorted { $0.startedAt > $1.startedAt }.prefix(Self.globalLimit)
+                )
             )
-        )
         self.hostName = hostName
         recoverInterruptedCalls()
     }

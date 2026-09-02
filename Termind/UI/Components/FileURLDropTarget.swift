@@ -241,9 +241,10 @@ nonisolated struct NativeDropPayload: Sendable {
                     continue
                 }
 
-                guard let type = item.types.first(where: { type in
-                    UTType(type.rawValue)?.conforms(to: .image) == true
-                }), let data = item.data(forType: type)
+                guard
+                    let type = item.types.first(where: { type in
+                        UTType(type.rawValue)?.conforms(to: .image) == true
+                    }), let data = item.data(forType: type)
                 else { continue }
                 payload.images.append(data)
             }

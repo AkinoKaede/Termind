@@ -32,19 +32,22 @@ final class SwiftDataSFTPHistoryRepository: SFTPHistoryRepository {
     init(context: ModelContext) { self.context = context }
 
     func entries(for hostID: Host.ID) throws -> [SFTPHistoryEntry] {
-        try context.fetch(FetchDescriptor<PersistentSFTPHistoryEntry>(
-            predicate: #Predicate { $0.hostID == hostID },
-            sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
-        )).map(\.value)
+        try context.fetch(
+            FetchDescriptor<PersistentSFTPHistoryEntry>(
+                predicate: #Predicate { $0.hostID == hostID },
+                sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
+            )
+        ).map(\.value)
     }
 
     func upsert(_ entry: SFTPHistoryEntry, limit: Int) throws {
         let hostID = entry.hostID
         try context.commit {
-            let rows = try context.fetch(FetchDescriptor<PersistentSFTPHistoryEntry>(
-                predicate: #Predicate { $0.hostID == hostID },
-                sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
-            ))
+            let rows = try context.fetch(
+                FetchDescriptor<PersistentSFTPHistoryEntry>(
+                    predicate: #Predicate { $0.hostID == hostID },
+                    sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
+                ))
             if let row = rows.first(where: {
                 $0.kind == entry.kind.rawValue && $0.path == entry.path
             }) {

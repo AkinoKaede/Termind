@@ -240,9 +240,7 @@ struct NewIdentitySheet: View {
     }
 
     private func close() {
-        if let requestedBack { requestedBack() }
-        else if let requestedClose { requestedClose() }
-        else { dismiss() }
+        if let requestedBack { requestedBack() } else if let requestedClose { requestedClose() } else { dismiss() }
     }
 
     private var isValid: Bool {

@@ -282,9 +282,10 @@ final class HostLibraryModel {
             return String(localized: "No username")
         }
         let hasAvailablePassword = passwordAvailability(for: identity) == .available
-        let hasUsableKey = identity.keyID.flatMap { key($0) }.map {
-            keyAvailability(for: $0) == .available
-        } == true
+        let hasUsableKey =
+            identity.keyID.flatMap { key($0) }.map {
+                keyAvailability(for: $0) == .available
+            } == true
         guard hasAvailablePassword || hasUsableKey else {
             return String(localized: "No saved credential")
         }
@@ -899,7 +900,10 @@ final class HostLibraryModel {
                 if previousStorage != updated.passwordStorage, !previousReference.isEmpty {
                     guard let oldPassword else {
                         throw TermindSSHError.library(
-                            String(localized: "The saved password is unavailable on this Mac. Enter it again before changing storage.")
+                            String(
+                                localized:
+                                    "The saved password is unavailable on this Mac. Enter it again before changing storage."
+                            )
                         )
                     }
                     try keychain.setString(
@@ -964,7 +968,8 @@ final class HostLibraryModel {
                 // The newly committed destination stays authoritative. Retaining
                 // the source is safer than rolling a successful save backward.
                 storageError = String(
-                    localized: "The password was saved, but its previous Keychain copy could not be removed: \(error.localizedDescription)"
+                    localized:
+                        "The password was saved, but its previous Keychain copy could not be removed: \(error.localizedDescription)"
                 )
             }
         }
@@ -1002,7 +1007,8 @@ final class HostLibraryModel {
         do {
             password =
                 identity.credentialRef.isEmpty
-                ? nil : try keychain.string(
+                ? nil
+                : try keychain.string(
                     for: identity.credentialRef, storage: identity.passwordStorage
                 )
             try keychain.removePassword(
@@ -1053,9 +1059,10 @@ final class HostLibraryModel {
             _ = try SSHUserCertificate.parse(key.certificate, matching: key.publicKey)
         }
         let keySnapshot = keys
-        let changesLocation = previousKey.map {
-            $0.storage != key.storage || $0.credentialRef != key.credentialRef
-        } ?? false
+        let changesLocation =
+            previousKey.map {
+                $0.storage != key.storage || $0.credentialRef != key.credentialRef
+            } ?? false
         if changesLocation,
             previousKey?.storage == .secureEnclave || key.storage == .secureEnclave
         {
@@ -1063,7 +1070,8 @@ final class HostLibraryModel {
                 String(localized: "Secure Enclave keys cannot be moved to another storage location.")
             )
         }
-        let previousCredential = try (credential != nil || changesLocation)
+        let previousCredential =
+            try (credential != nil || changesLocation)
             ? previousKey.flatMap { try keyCredential(for: $0) }
             : nil
         let destinationCredential = credential ?? (changesLocation ? previousCredential : nil)
@@ -1113,7 +1121,8 @@ final class HostLibraryModel {
                 )
             } catch {
                 storageError = String(
-                    localized: "The key was saved, but its previous Keychain copy could not be removed: \(error.localizedDescription)"
+                    localized:
+                        "The key was saved, but its previous Keychain copy could not be removed: \(error.localizedDescription)"
                 )
             }
         }
@@ -1519,11 +1528,12 @@ final class HostLibraryModel {
     @discardableResult
     private func persistCore() -> Bool {
         do {
-            try vault.save(VaultSnapshot(
-                hosts: hosts, groups: groups, identities: identities,
-                keys: keys, knownHosts: knownHosts, snippets: snippets,
-                snippetPackages: snippetPackages, portForwardings: portForwardings
-            ))
+            try vault.save(
+                VaultSnapshot(
+                    hosts: hosts, groups: groups, identities: identities,
+                    keys: keys, knownHosts: knownHosts, snippets: snippets,
+                    snippetPackages: snippetPackages, portForwardings: portForwardings
+                ))
             storageError = nil
             return true
         } catch {

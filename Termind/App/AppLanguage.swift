@@ -21,11 +21,12 @@ nonisolated enum AppLocalization {
     }
 
     private static func bundle(for locale: Locale) -> Bundle {
-        let localization: String? = switch locale.language.languageCode?.identifier {
-        case "zh": "zh-Hans"
-        case "en": "en"
-        default: nil
-        }
+        let localization: String? =
+            switch locale.language.languageCode?.identifier {
+            case "zh": "zh-Hans"
+            case "en": "en"
+            default: nil
+            }
         guard let localization,
             let path = Bundle.main.path(forResource: localization, ofType: "lproj"),
             let bundle = Bundle(path: path)

@@ -97,10 +97,11 @@ final class MCPServerTools {
                 groups: [.userInteraction],
                 secretConsumerTools: [TermindAgentPolicy.sshExecToolName]
             ),
-            additional: TermindAgentTools.tools(in: TermindAgentToolEnvironment(
-                hosts: hosts, connections: connections, authentication: authentication,
-                background: background
-            ))
+            additional: TermindAgentTools.tools(
+                in: TermindAgentToolEnvironment(
+                    hosts: hosts, connections: connections, authentication: authentication,
+                    background: background
+                ))
         ).filtering {
             exportedNames.contains($0.name) && !disabledTools.contains($0.name)
         }

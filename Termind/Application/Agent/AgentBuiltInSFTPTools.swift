@@ -75,8 +75,10 @@ nonisolated struct SFTPListTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
         let files = try await client.listDirectory(at: path)
         return Self.result(invocation, .array(files.map(AgentToolSupport.remoteFileJSON)))
     }
@@ -95,8 +97,10 @@ nonisolated struct SFTPStatTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
         guard let file = try await client.attributes(at: path) else { throw AgentToolError.notFound }
         return Self.result(invocation, AgentToolSupport.remoteFileJSON(file))
     }
@@ -115,15 +119,19 @@ nonisolated struct SFTPReadTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
         let data = try await client.readFile(at: path, maximumBytes: 128 * 1_024)
         guard let text = String(data: data, encoding: .utf8) else {
             throw AgentToolError.invalidArguments("The remote file is not UTF-8 text.")
         }
-        return Self.result(invocation, .object([
-            "path": .string(path), "content": .string(text), "bytes": .number(Double(data.count)),
-        ]))
+        return Self.result(
+            invocation,
+            .object([
+                "path": .string(path), "content": .string(text), "bytes": .number(Double(data.count)),
+            ]))
     }
 }
 
@@ -143,10 +151,13 @@ nonisolated struct SFTPWriteTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
-        try await client.writeFile(Data(try arguments.string("content").utf8), at: path,
-                                   overwrite: arguments.optionalBool("overwrite") ?? false)
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
+        try await client.writeFile(
+            Data(try arguments.string("content").utf8), at: path,
+            overwrite: arguments.optionalBool("overwrite") ?? false)
         return Self.result(invocation, .object(["path": .string(path), "written": .bool(true)]))
     }
 }
@@ -165,8 +176,10 @@ nonisolated struct SFTPMkdirTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
         try await client.createDirectory(at: path)
         return Self.result(invocation, .object(["path": .string(path), "created": .bool(true)]))
     }
@@ -187,14 +200,19 @@ nonisolated struct SFTPMoveTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
         let destination = try AgentToolSupport.normalizeRemotePath(arguments.string("destination"))
-        try await client.rename(from: path, to: destination,
-                                overwrite: arguments.optionalBool("overwrite") ?? false)
-        return Self.result(invocation, .object([
-            "source": .string(path), "destination": .string(destination), "moved": .bool(true),
-        ]))
+        try await client.rename(
+            from: path, to: destination,
+            overwrite: arguments.optionalBool("overwrite") ?? false)
+        return Self.result(
+            invocation,
+            .object([
+                "source": .string(path), "destination": .string(destination), "moved": .bool(true),
+            ]))
     }
 }
 
@@ -213,11 +231,14 @@ nonisolated struct SFTPChmodTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
         let raw = try arguments.string("mode")
         guard (3...4).contains(raw.count), raw.allSatisfy({ ("0"..."7").contains(String($0)) }),
-              let mode = UInt32(raw, radix: 8) else {
+            let mode = UInt32(raw, radix: 8)
+        else {
             throw AgentToolError.invalidArguments("mode must be a 3- or 4-digit octal value.")
         }
         try await client.setPermissions(at: path, to: mode)
@@ -240,10 +261,15 @@ nonisolated struct SFTPDeleteTool: SFTPToolDefinition {
     )
     let authentication: AgentSSHAuthenticationRegistry
     let connections: AgentConnectionPool
-    func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
-                 invocation: AgentToolInvocation) async throws -> AgentToolResult {
-        if try arguments.string("kind") == "directory" { try await client.removeDirectory(at: path) }
-        else { try await client.removeFile(at: path) }
+    func perform(
+        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        invocation: AgentToolInvocation
+    ) async throws -> AgentToolResult {
+        if try arguments.string("kind") == "directory" {
+            try await client.removeDirectory(at: path)
+        } else {
+            try await client.removeFile(at: path)
+        }
         return Self.result(invocation, .object(["path": .string(path), "deleted": .bool(true)]))
     }
 }
@@ -257,10 +283,11 @@ nonisolated extension SFTPListTool {
             }
             return [
                 .message(String(localized: "\(rows.count) items", locale: input.locale), .secondary),
-                .list(.init(
-                    title: nil, rows: rows,
-                    emptyMessage: F.localized("Directory is empty", locale: input.locale)
-                )),
+                .list(
+                    .init(
+                        title: nil, rows: rows,
+                        emptyMessage: F.localized("Directory is empty", locale: input.locale)
+                    )),
             ]
         }
     }
@@ -270,18 +297,23 @@ nonisolated extension SFTPStatTool {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "Path", object["path"]?.stringValue,
-                          locale: input.locale, monospaced: true)
-            F.appendField(&items, "Kind", object["kind"]?.stringValue.map {
-                F.kindLabel($0, locale: input.locale)
-            }, locale: input.locale)
+            F.appendField(
+                &items, "Path", object["path"]?.stringValue,
+                locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Kind",
+                object["kind"]?.stringValue.map {
+                    F.kindLabel($0, locale: input.locale)
+                }, locale: input.locale)
             if let bytes = object["size"]?.integerValue {
                 items.append(F.field("Size", F.byteCount(bytes), locale: input.locale))
             }
-            F.appendField(&items, "Permissions", object["permissions"]?.stringValue,
-                          locale: input.locale, monospaced: true)
-            F.appendField(&items, "Modified", object["modified_at"]?.stringValue.map(F.displayDate),
-                          locale: input.locale)
+            F.appendField(
+                &items, "Permissions", object["permissions"]?.stringValue,
+                locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Modified", object["modified_at"]?.stringValue.map(F.displayDate),
+                locale: input.locale)
             return items
         }
     }
@@ -291,13 +323,17 @@ nonisolated extension SFTPReadTool {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "Path", object["path"]?.stringValue,
-                          locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Path", object["path"]?.stringValue,
+                locale: input.locale, monospaced: true)
             let content = object["content"]?.stringValue ?? ""
-            items.append(content.isEmpty
-                ? .message(F.localized("Empty file", locale: input.locale), .secondary)
-                : .text(.init(title: F.localized("Content", locale: input.locale),
-                              text: content, style: .monospaced)))
+            items.append(
+                content.isEmpty
+                    ? .message(F.localized("Empty file", locale: input.locale), .secondary)
+                    : .text(
+                        .init(
+                            title: F.localized("Content", locale: input.locale),
+                            text: content, style: .monospaced)))
             if let bytes = object["bytes"]?.integerValue {
                 items.append(F.field("Size", F.byteCount(bytes), locale: input.locale))
             }
@@ -310,13 +346,16 @@ nonisolated extension SFTPWriteTool {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "Path", object["path"]?.stringValue,
-                          locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Path", object["path"]?.stringValue,
+                locale: input.locale, monospaced: true)
             if let content = input.arguments["content"]?.stringValue {
                 items.append(F.field("Size", F.byteCount(content.utf8.count), locale: input.locale))
             }
-            items.append(F.field("Result", F.localized("Written", locale: input.locale),
-                                 locale: input.locale))
+            items.append(
+                F.field(
+                    "Result", F.localized("Written", locale: input.locale),
+                    locale: input.locale))
             return items
         }
     }
@@ -324,7 +363,8 @@ nonisolated extension SFTPWriteTool {
 nonisolated extension SFTPMkdirTool {
     static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
         SFTPToolPresentation.pathDetail(
-            input, result: AgentToolDetailFormatting.localized(
+            input,
+            result: AgentToolDetailFormatting.localized(
                 "Directory created", locale: input.locale
             )
         )
@@ -335,10 +375,12 @@ nonisolated extension SFTPMoveTool {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "Source", object["source"]?.stringValue,
-                          locale: input.locale, monospaced: true)
-            F.appendField(&items, "Destination", object["destination"]?.stringValue,
-                          locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Source", object["source"]?.stringValue,
+                locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Destination", object["destination"]?.stringValue,
+                locale: input.locale, monospaced: true)
             return items
         }
     }
@@ -348,10 +390,12 @@ nonisolated extension SFTPChmodTool {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "Path", object["path"]?.stringValue,
-                          locale: input.locale, monospaced: true)
-            F.appendField(&items, "Permissions", object["mode"]?.stringValue,
-                          locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Path", object["path"]?.stringValue,
+                locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Permissions", object["mode"]?.stringValue,
+                locale: input.locale, monospaced: true)
             return items
         }
     }
@@ -361,13 +405,18 @@ nonisolated extension SFTPDeleteTool {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "Path", object["path"]?.stringValue,
-                          locale: input.locale, monospaced: true)
-            F.appendField(&items, "Kind", input.arguments["kind"]?.stringValue.map {
-                F.kindLabel($0, locale: input.locale)
-            }, locale: input.locale)
-            items.append(F.field("Result", F.localized("Deleted", locale: input.locale),
-                                 locale: input.locale))
+            F.appendField(
+                &items, "Path", object["path"]?.stringValue,
+                locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Kind",
+                input.arguments["kind"]?.stringValue.map {
+                    F.kindLabel($0, locale: input.locale)
+                }, locale: input.locale)
+            items.append(
+                F.field(
+                    "Result", F.localized("Deleted", locale: input.locale),
+                    locale: input.locale))
             return items
         }
     }
@@ -380,7 +429,8 @@ nonisolated enum SFTPToolPresentation {
         typealias F = AgentToolDetailFormatting
         guard let object = value.objectValue else { return nil }
         let path = object["path"]?.stringValue ?? ""
-        let name = F.nonempty(object["name"]?.stringValue)
+        let name =
+            F.nonempty(object["name"]?.stringValue)
             ?? F.nonempty(path.split(separator: "/").last.map(String.init))
             ?? F.localized("Unnamed item", locale: locale)
         let kind = object["kind"]?.stringValue ?? ""
@@ -402,8 +452,9 @@ nonisolated enum SFTPToolPresentation {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
-            F.appendField(&items, "Path", object["path"]?.stringValue,
-                          locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Path", object["path"]?.stringValue,
+                locale: input.locale, monospaced: true)
             items.append(F.field("Result", result, locale: input.locale))
             return items
         }
@@ -452,7 +503,9 @@ nonisolated extension AgentToolSupport {
             if component == ".." {
                 guard !components.isEmpty else { throw AgentToolError.invalidPath }
                 components.removeLast()
-            } else { components.append(component) }
+            } else {
+                components.append(component)
+            }
         }
         return "/" + components.joined(separator: "/")
     }

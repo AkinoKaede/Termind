@@ -147,9 +147,11 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
         }
         // Blocking for the two setup calls, non-blocking for the pump below.
         libssh2_session_set_blocking(session, 1)
-        guard let channel = libssh2_channel_open_ex(
-            session, "session", 7, 2 * 1_024 * 1_024, 32 * 1_024, nil, 0
-        ) else {
+        guard
+            let channel = libssh2_channel_open_ex(
+                session, "session", 7, 2 * 1_024 * 1_024, 32 * 1_024, nil, 0
+            )
+        else {
             throw notStarted(session, prefix: "Unable to open SSH exec channel")
         }
         // Only a command that ran to completion leaves a channel worth closing
@@ -212,14 +214,18 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
                         bytes.count - inputOffset
                     )
                 }
-                if written > 0 { inputOffset += written; progressed = true }
-                else if written != LIBSSH2_ERROR_EAGAIN {
+                if written > 0 {
+                    inputOffset += written
+                    progressed = true
+                } else if written != LIBSSH2_ERROR_EAGAIN {
                     throw failed(session, prefix: "Unable to write command input")
                 }
             } else if !sentEOF {
                 let result = libssh2_channel_send_eof(channel)
-                if result == 0 { sentEOF = true; progressed = true }
-                else if result != LIBSSH2_ERROR_EAGAIN {
+                if result == 0 {
+                    sentEOF = true
+                    progressed = true
+                } else if result != LIBSSH2_ERROR_EAGAIN {
                     throw failed(session, prefix: "Unable to finish command input")
                 }
             }
@@ -241,8 +247,11 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
                                 truncated: &errorTruncated
                             )
                         }
-                    } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 { break }
-                    else { throw failed(session, prefix: "Unable to read command output") }
+                    } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 {
+                        break
+                    } else {
+                        throw failed(session, prefix: "Unable to read command output")
+                    }
                 }
             }
             if !progressed {
@@ -297,9 +306,10 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
         )
         let signal: String?
         if signalResult == 0, let exitSignal {
-            signal = String(decoding: UnsafeBufferPointer(
-                start: exitSignal, count: exitSignalLength
-            ).map(UInt8.init(bitPattern:)), as: UTF8.self)
+            signal = String(
+                decoding: UnsafeBufferPointer(
+                    start: exitSignal, count: exitSignalLength
+                ).map(UInt8.init(bitPattern:)), as: UTF8.self)
             libssh2_free(session, exitSignal)
         } else {
             signal = nil

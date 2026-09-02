@@ -48,10 +48,11 @@ struct AgentHostAuthenticationTests {
         )
         let interaction = AuthenticationResponder { request in
             #expect(request.hostID == host.id)
-            return .submit(AgentSSHAuthenticationAnswer(
-                identityName: "Deploy", username: "deploy", password: "secret",
-                save: false
-            ))
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    identityName: "Deploy", username: "deploy", password: "secret",
+                    save: false
+                ))
         }
         let session = AgentSSHConfigurationSession(
             resolver: AgentHostResolver(store: store), hostID: host.id,
@@ -76,10 +77,11 @@ struct AgentHostAuthenticationTests {
             secrets: secrets
         )
         let interaction = AuthenticationResponder { _ in
-            .submit(AgentSSHAuthenticationAnswer(
-                identityName: "Production Deploy", username: "deploy",
-                password: "secret", save: true
-            ))
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    identityName: "Production Deploy", username: "deploy",
+                    password: "secret", save: true
+                ))
         }
         let session = AgentSSHConfigurationSession(
             resolver: AgentHostResolver(store: store), hostID: host.id,
@@ -120,16 +122,18 @@ struct AgentHostAuthenticationTests {
         let interaction = AuthenticationResponder { request in
             switch request.mode {
             case .identity:
-                return .submit(AgentSSHAuthenticationAnswer(
-                    username: "deploy", password: "fallback-password",
-                    keyID: key.id, save: false
-                ))
+                return .submit(
+                    AgentSSHAuthenticationAnswer(
+                        username: "deploy", password: "fallback-password",
+                        keyID: key.id, save: false
+                    ))
             case .passphrase(let keyID):
                 #expect(keyID == key.id)
-                return .submit(AgentSSHAuthenticationAnswer(
-                    username: request.username, passphrase: "one-use",
-                    keyID: key.id, save: false
-                ))
+                return .submit(
+                    AgentSSHAuthenticationAnswer(
+                        username: request.username, passphrase: "one-use",
+                        keyID: key.id, save: false
+                    ))
             }
         }
         let session = AgentSSHConfigurationSession(
@@ -151,9 +155,11 @@ struct AgentHostAuthenticationTests {
             return
         }
         #expect(password == "fallback-password")
-        guard case .software(let stored)? = try keychain.keyCredential(
-            for: reference, storage: .thisDevice
-        ) else {
+        guard
+            case .software(let stored)? = try keychain.keyCredential(
+                for: reference, storage: .thisDevice
+            )
+        else {
             Issue.record("Expected the stored software key")
             return
         }
@@ -209,11 +215,13 @@ struct AgentHostAuthenticationTests {
         #expect(request.username == identity.username)
         #expect(request.selectedKeyID == key.id)
 
-        coordinator.respondSSH(.submit(AgentSSHAuthenticationAnswer(
-            identityID: request.selectedIdentityID,
-            username: request.username, passphrase: "one-use",
-            keyID: request.selectedKeyID, save: false
-        )))
+        coordinator.respondSSH(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    identityID: request.selectedIdentityID,
+                    username: request.username, passphrase: "one-use",
+                    keyID: request.selectedKeyID, save: false
+                )))
 
         let resolved = try await configuration.value
         guard case .privateKey(_, _, let passphrase) = resolved.credentials.first else {
@@ -243,11 +251,12 @@ struct AgentHostAuthenticationTests {
         var requestedHosts: [Termind.Host.ID] = []
         let interaction = AuthenticationResponder { request in
             requestedHosts.append(request.hostID)
-            return .submit(AgentSSHAuthenticationAnswer(
-                username: request.hostID == jump.id ? "jump-user" : "files-user",
-                password: request.hostID == jump.id ? "jump-secret" : "files-secret",
-                save: false
-            ))
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: request.hostID == jump.id ? "jump-user" : "files-user",
+                    password: request.hostID == jump.id ? "jump-secret" : "files-secret",
+                    save: false
+                ))
         }
 
         _ = try await registry.sftp(
@@ -282,13 +291,15 @@ struct AgentHostAuthenticationTests {
         let backend = AuthenticationConnectionBackend()
         let pool = authenticationPool(resolver: resolver, backend: backend)
         let interaction = AuthenticationResponder { _ in
-            .submit(AgentSSHAuthenticationAnswer(
-                username: "deploy", password: "secret", save: false
-            ))
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret", save: false
+                ))
         }
-        let tool = AnyAgentTool(SFTPListTool(
-            authentication: authentication, connections: pool
-        ))
+        let tool = AnyAgentTool(
+            SFTPListTool(
+                authentication: authentication, connections: pool
+            ))
         let invocation = AgentToolInvocation(
             runID: UUID(),
             call: AgentToolCall(
@@ -337,9 +348,11 @@ struct AgentHostAuthenticationTests {
         )
         while await interaction.requestCount == 0 { await Task.yield() }
         #expect(await interaction.requestCount == 1)
-        await interaction.answer(.submit(AgentSSHAuthenticationAnswer(
-            username: "deploy", password: "secret", save: false
-        )))
+        await interaction.answer(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret", save: false
+                )))
 
         _ = try await (first, second)
         #expect(await interaction.requestCount == 1)
@@ -361,9 +374,11 @@ struct AgentHostAuthenticationTests {
         )
         while await interaction.requestCount == 0 { await Task.yield() }
         #expect(await interaction.requestCount == 1)
-        await interaction.answer(.submit(AgentSSHAuthenticationAnswer(
-            username: "deploy", password: "secret", save: false
-        )))
+        await interaction.answer(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret", save: false
+                )))
 
         _ = try await (exec, sftp)
         #expect(await interaction.requestCount == 1)
@@ -405,9 +420,10 @@ struct AgentHostAuthenticationTests {
         let interaction = AuthenticationResponder { request in
             requests.append(request)
             let password = requests.count == 1 ? "old-secret" : "new-secret"
-            return .submit(AgentSSHAuthenticationAnswer(
-                username: "deploy", password: password, save: false
-            ))
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: password, save: false
+                ))
         }
 
         _ = try await setup.registry.sftp(
@@ -440,9 +456,11 @@ struct AgentHostAuthenticationTests {
 
         let firstTask = Task { try await session.configurationAttempt() }
         while await interaction.requestCount == 0 { await Task.yield() }
-        await interaction.answer(.submit(AgentSSHAuthenticationAnswer(
-            username: "deploy", password: "old-secret", save: false
-        )))
+        await interaction.answer(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "old-secret", save: false
+                )))
         let first = try await firstTask.value
         await session.retry(
             after: .authenticationFailed("Rejected old credential"),
@@ -451,9 +469,11 @@ struct AgentHostAuthenticationTests {
 
         let secondTask = Task { try await session.configurationAttempt() }
         while await interaction.requestCount < 2 { await Task.yield() }
-        await interaction.answer(.submit(AgentSSHAuthenticationAnswer(
-            username: "deploy", password: "new-secret", save: false
-        )))
+        await interaction.answer(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "new-secret", save: false
+                )))
         let second = try await secondTask.value
 
         await session.retry(
@@ -472,13 +492,15 @@ struct AgentHostAuthenticationTests {
         var requestCount = 0
         let interaction = AuthenticationResponder { _ in
             requestCount += 1
-            return .submit(AgentSSHAuthenticationAnswer(
-                username: "deploy", password: "secret-\(requestCount)", save: false
-            ))
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret-\(requestCount)", save: false
+                ))
         }
-        let tool = AnyAgentTool(SFTPListTool(
-            authentication: setup.registry, connections: setup.pool
-        ))
+        let tool = AnyAgentTool(
+            SFTPListTool(
+                authentication: setup.registry, connections: setup.pool
+            ))
         func invocation(_ id: String) -> AgentToolInvocation {
             AgentToolInvocation(
                 runID: UUID(),
@@ -531,9 +553,10 @@ struct AgentHostAuthenticationTests {
         var requests: [AgentSSHHostKeyRequest] = []
         let interaction = AuthenticationResponder(
             answer: { _ in
-                .submit(AgentSSHAuthenticationAnswer(
-                    username: "deploy", password: "secret", save: false
-                ))
+                .submit(
+                    AgentSSHAuthenticationAnswer(
+                        username: "deploy", password: "secret", save: false
+                    ))
             },
             hostKeyAnswer: { request in
                 requests.append(request)
@@ -568,9 +591,10 @@ struct AgentHostAuthenticationTests {
         let interaction = AuthenticationResponder(
             answer: { request in
                 events.append("authenticate:\(request.hostID)")
-                return .submit(AgentSSHAuthenticationAnswer(
-                    username: "deploy", password: "secret", save: false
-                ))
+                return .submit(
+                    AgentSSHAuthenticationAnswer(
+                        username: "deploy", password: "secret", save: false
+                    ))
             },
             hostKeyAnswer: { request in
                 events.append("verify:\(request.hostID)")
@@ -593,12 +617,13 @@ struct AgentHostAuthenticationTests {
 
         _ = try await session.configuration()
 
-        #expect(events == [
-            "authenticate:\(jump.id)",
-            "verify:\(jump.id)",
-            "authenticate:\(destination.id)",
-            "verify:\(destination.id)",
-        ])
+        #expect(
+            events == [
+                "authenticate:\(jump.id)",
+                "verify:\(jump.id)",
+                "authenticate:\(destination.id)",
+                "verify:\(destination.id)",
+            ])
     }
 
     @Test
@@ -627,10 +652,11 @@ struct AgentHostAuthenticationTests {
             }
             #expect(keyID == key.id)
             probe.wasRequested = true
-            return .submit(AgentSSHAuthenticationAnswer(
-                identityID: identity.id, username: identity.username,
-                passphrase: "one-use", keyID: key.id, save: false
-            ))
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    identityID: identity.id, username: identity.username,
+                    passphrase: "one-use", keyID: key.id, save: false
+                ))
         }
         let resolver = AgentHostResolver(
             store: store,
@@ -665,9 +691,10 @@ struct AgentHostAuthenticationTests {
         let store = HostLibraryModel(hosts: [host], knownHosts: [old])
         let interaction = AuthenticationResponder(
             answer: { _ in
-                .submit(AgentSSHAuthenticationAnswer(
-                    username: "deploy", password: "secret", save: false
-                ))
+                .submit(
+                    AgentSSHAuthenticationAnswer(
+                        username: "deploy", password: "secret", save: false
+                    ))
             },
             hostKeyAnswer: { request in
                 #expect(request.prompt.kind == .additionalKey(trustedKeyCount: 1))
@@ -705,9 +732,10 @@ struct AgentHostAuthenticationTests {
         )
         let interaction = AuthenticationResponder(
             answer: { _ in
-                .submit(AgentSSHAuthenticationAnswer(
-                    username: "deploy", password: "secret", save: false
-                ))
+                .submit(
+                    AgentSSHAuthenticationAnswer(
+                        username: "deploy", password: "secret", save: false
+                    ))
             },
             hostKeyAnswer: { _ in .deny }
         )
@@ -819,9 +847,10 @@ struct AgentHostAuthenticationTests {
         var requestCount = 0
         let interaction = AuthenticationResponder { _ in
             requestCount += 1
-            return .submit(AgentSSHAuthenticationAnswer(
-                username: "deploy", password: "secret-\(requestCount)", save: false
-            ))
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "secret-\(requestCount)", save: false
+                ))
         }
         func context(
             _ invocation: AgentToolInvocation,
@@ -973,16 +1002,12 @@ private final class PassphraseRequestProbe {
 }
 
 private final class AuthenticationResponder: @unchecked Sendable {
-    private let answer:
-        @MainActor (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse
-    private let hostKeyAnswer:
-        @MainActor (AgentSSHHostKeyRequest) -> AgentSSHHostKeyResponse
+    private let answer: @MainActor (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse
+    private let hostKeyAnswer: @MainActor (AgentSSHHostKeyRequest) -> AgentSSHHostKeyResponse
 
     init(
-        answer: @escaping @MainActor
-            (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse,
-        hostKeyAnswer: @escaping @MainActor
-            (AgentSSHHostKeyRequest) -> AgentSSHHostKeyResponse = { _ in .deny }
+        answer: @escaping @MainActor (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse,
+        hostKeyAnswer: @escaping @MainActor (AgentSSHHostKeyRequest) -> AgentSSHHostKeyResponse = { _ in .deny }
     ) {
         self.answer = answer
         self.hostKeyAnswer = hostKeyAnswer
@@ -998,8 +1023,7 @@ private final class AuthenticationResponder: @unchecked Sendable {
 
 private actor GatedAuthenticationResponder {
     private(set) var requestCount = 0
-    private var waiters:
-        [CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = []
+    private var waiters: [CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = []
 
     nonisolated var sshInteraction: AgentSSHInteraction {
         AgentSSHInteraction(
@@ -1023,8 +1047,7 @@ private actor GatedAuthenticationResponder {
 private actor GatedHostKeyResponder {
     private(set) var authenticationRequestCount = 0
     private(set) var hostKeyRequestCount = 0
-    private var hostKeyWaiters:
-        [CheckedContinuation<AgentSSHHostKeyResponse, Never>] = []
+    private var hostKeyWaiters: [CheckedContinuation<AgentSSHHostKeyResponse, Never>] = []
 
     nonisolated var sshInteraction: AgentSSHInteraction {
         AgentSSHInteraction(
@@ -1035,9 +1058,10 @@ private actor GatedHostKeyResponder {
 
     private func authenticate() -> AgentSSHAuthenticationResponse {
         authenticationRequestCount += 1
-        return .submit(AgentSSHAuthenticationAnswer(
-            username: "deploy", password: "secret", save: false
-        ))
+        return .submit(
+            AgentSSHAuthenticationAnswer(
+                username: "deploy", password: "secret", save: false
+            ))
     }
 
     private func confirmHostKey() async -> AgentSSHHostKeyResponse {

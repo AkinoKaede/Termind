@@ -49,7 +49,9 @@ nonisolated struct SpeechTranscriptionFailure: Error, Equatable, Sendable {
         case .recognizerUnavailable:
             String(localized: "Apple Speech Recognition is not currently available for your system language.")
         case .audioInputUnavailable:
-            String(localized: "Termind could not start an audio input. Check that a microphone is connected and available.")
+            String(
+                localized: "Termind could not start an audio input. Check that a microphone is connected and available."
+            )
         case .noSpeech:
             String(localized: "No recognizable speech was captured. Try speaking closer to the microphone.")
         case .recognitionFailed:

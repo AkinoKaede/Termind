@@ -171,12 +171,13 @@ struct BroadcastInputTests {
         workspace.generateFocusedCommand(using: generator)
         try await waitUntil { workspace.commandGeneratorState == .inserted(targetCount: 1) }
 
-        #expect(generator.contexts == [
-            .init(
-                draft: "show hidden files", shell: "zsh", cwd: "/srv/app",
-                remoteSystemInfo: systemInfo
-            )
-        ])
+        #expect(
+            generator.contexts == [
+                .init(
+                    draft: "show hidden files", shell: "zsh", cwd: "/srv/app",
+                    remoteSystemInfo: systemInfo
+                )
+            ])
         #expect(firstWrites.first == Data("\u{1B}[777;1~".utf8))
         let replacement = try #require(firstWrites.last)
         #expect(replacement == replacementPayload(command: "ls -la"))
@@ -267,16 +268,18 @@ struct BroadcastInputTests {
         try await Task.sleep(for: .milliseconds(20))
 
         #expect(workspace.commandGeneratorState == .idle)
-        #expect(writes == [
-            Data("\u{1B}[777;1~".utf8), Data("new draft".utf8),
-        ])
+        #expect(
+            writes == [
+                Data("\u{1B}[777;1~".utf8), Data("new draft".utf8),
+            ])
     }
 
     #if canImport(AppKit)
-        @Test(.disabled(
-            if: !ghosttyHasActiveDisplay,
-            "Ghostty's Metal surface requires an active display"
-        ))
+        @Test(
+            .disabled(
+                if: !ghosttyHasActiveDisplay,
+                "Ghostty's Metal surface requires an active display"
+            ))
         func nativeGhosttyKeyPathBroadcastsGeneratedBytes() async throws {
             let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
             var firstWrites: [Data] = []
@@ -380,36 +383,38 @@ struct BroadcastInputTests {
             ]
 
             for (character, modifiers, keyCode) in cases {
-                let event = try #require(NSEvent.keyEvent(
-                    with: .keyDown,
-                    location: .zero,
-                    modifierFlags: modifiers,
-                    timestamp: ProcessInfo.processInfo.systemUptime,
-                    windowNumber: 0,
-                    context: nil,
-                    characters: character,
-                    charactersIgnoringModifiers: character,
-                    isARepeat: false,
-                    keyCode: keyCode
-                ))
+                let event = try #require(
+                    NSEvent.keyEvent(
+                        with: .keyDown,
+                        location: .zero,
+                        modifierFlags: modifiers,
+                        timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: 0,
+                        context: nil,
+                        characters: character,
+                        charactersIgnoringModifiers: character,
+                        isARepeat: false,
+                        keyCode: keyCode
+                    ))
                 #expect(!AppShortcutRegistry.shared.routesToApplication(event))
             }
         }
 
         @Test
         func shiftedPunctuationMatchesItsUnshiftedShortcutKey() throws {
-            let event = try #require(NSEvent.keyEvent(
-                with: .keyDown,
-                location: .zero,
-                modifierFlags: [.command, .shift],
-                timestamp: ProcessInfo.processInfo.systemUptime,
-                windowNumber: 0,
-                context: nil,
-                characters: "}",
-                charactersIgnoringModifiers: "}",
-                isARepeat: false,
-                keyCode: 30
-            ))
+            let event = try #require(
+                NSEvent.keyEvent(
+                    with: .keyDown,
+                    location: .zero,
+                    modifierFlags: [.command, .shift],
+                    timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: 0,
+                    context: nil,
+                    characters: "}",
+                    charactersIgnoringModifiers: "}",
+                    isARepeat: false,
+                    keyCode: 30
+                ))
 
             // Matching `⌘⇧}` against a `]` shortcut rests entirely on AppKit
             // re-deriving the unshifted character through the current input
@@ -425,10 +430,11 @@ struct BroadcastInputTests {
             #expect(shortcut.matches(event))
         }
 
-        @Test(.disabled(
-            if: !ghosttyHasActiveDisplay,
-            "Ghostty's Metal surface requires an active display"
-        ))
+        @Test(
+            .disabled(
+                if: !ghosttyHasActiveDisplay,
+                "Ghostty's Metal surface requires an active display"
+            ))
         func commandDigitsFallThroughToAppKitWorkspaceCommands() async throws {
             let host = Host(name: "host", host: "host.example")
             let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
@@ -523,16 +529,17 @@ struct BroadcastInputTests {
         }
 
         private func keyEvent(for shortcut: AppShortcutRegistration) -> NSEvent? {
-            let (characters, keyCode): (String, UInt16) = switch shortcut.key {
-            case .character(let character):
-                (String(character), keyCode(for: character))
-            case .tab:
-                ("\t", 48)
-            case .escape:
-                ("\u{1B}", 53)
-            case .f3:
-                (String(Character(UnicodeScalar(NSF3FunctionKey)!)), 99)
-            }
+            let (characters, keyCode): (String, UInt16) =
+                switch shortcut.key {
+                case .character(let character):
+                    (String(character), keyCode(for: character))
+                case .tab:
+                    ("\t", 48)
+                case .escape:
+                    ("\u{1B}", 53)
+                case .f3:
+                    (String(Character(UnicodeScalar(NSF3FunctionKey)!)), 99)
+                }
             return NSEvent.keyEvent(
                 with: .keyDown,
                 location: .zero,
@@ -590,9 +597,10 @@ struct BroadcastInputTests {
     }
 
     private func focus(_ sshSession: SSHSessionModel, in workspace: Workspace) {
-        workspace.focusedPaneID = workspace.panes.first(where: {
-            $0.sshSession === sshSession
-        })!.id
+        workspace.focusedPaneID =
+            workspace.panes.first(where: {
+                $0.sshSession === sshSession
+            })!.id
     }
 
     private func replacementPayload(command: String) -> Data {

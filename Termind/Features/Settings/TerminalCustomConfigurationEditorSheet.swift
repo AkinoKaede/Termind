@@ -38,7 +38,9 @@ struct TerminalCustomConfigurationEditorPage: View {
                         .font(.caption)
                         .foregroundStyle(.orange)
                     Spacer()
-                    Button { self.importError = nil } label: {
+                    Button {
+                        self.importError = nil
+                    } label: {
                         Image(systemName: "xmark")
                     }
                     .buttonStyle(.plain)

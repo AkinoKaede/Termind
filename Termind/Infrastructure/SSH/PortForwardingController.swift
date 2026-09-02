@@ -14,7 +14,8 @@ nonisolated enum PortForwardingRuntimeState: Hashable, Sendable {
     var isActive: Bool {
         switch self {
         case .preparing, .awaitingTrust, .awaitingAuthentication, .connecting,
-            .starting, .running, .reconnecting: true
+            .starting, .running, .reconnecting:
+            true
         case .stopped, .failed: false
         }
     }
@@ -87,9 +88,9 @@ final class PortForwardingController {
         for id in all { states[id] = .stopped }
         let active = sessions
         sessions.removeAll()
-        connectionTasks.values.forEach { $0.cancel() }
+        for task in connectionTasks.values { task.cancel() }
         connectionTasks.removeAll()
-        reconnectTasks.values.forEach { $0.cancel() }
+        for task in reconnectTasks.values { task.cancel() }
         reconnectTasks.removeAll()
         reconnectAttempts.removeAll()
         connectedAt.removeAll()
@@ -117,8 +118,7 @@ final class PortForwardingController {
                     try await created.connect(configuration)
                 }
                 connectionTasks[host.id] = task
-                do { try await task.value }
-                catch {
+                do { try await task.value } catch {
                     sessions[host.id] = nil
                     connectionTasks[host.id] = nil
                     throw error
@@ -130,7 +130,10 @@ final class PortForwardingController {
             guard desired.contains(rule.id) else { return }
             states[rule.id] = .starting
             try await session.start(rule)
-            guard desired.contains(rule.id) else { await session.stop(rule.id); return }
+            guard desired.contains(rule.id) else {
+                await session.stop(rule.id)
+                return
+            }
             states[rule.id] = .running(activeConnections: 0)
         } catch {
             if desired.contains(rule.id),
@@ -201,8 +204,7 @@ final class PortForwardingController {
             states[id] = .reconnecting(attempt: attempt, nextRetry: nextRetry, message: message)
         }
         reconnectTasks[hostID] = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(delay)) }
-            catch { return }
+            do { try await Task.sleep(for: .seconds(delay)) } catch { return }
             guard let self else { return }
             await self.reconnect(hostID, attempt: attempt)
         }

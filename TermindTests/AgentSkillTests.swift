@@ -93,7 +93,8 @@ struct AgentSkillDocumentTests {
 
     @Test
     func warnsButStillImportsAnIrregularName() throws {
-        let document = try AgentSkillDocument.parse("""
+        let document = try AgentSkillDocument.parse(
+            """
             ---
             name: PDF--Processing
             description: Reads PDFs.
@@ -108,7 +109,8 @@ struct AgentSkillDocumentTests {
     /// it must not become granting it.
     @Test
     func reportsAllowedToolsWithoutActingOnIt() throws {
-        let document = try AgentSkillDocument.parse("""
+        let document = try AgentSkillDocument.parse(
+            """
             ---
             name: risky
             description: Does things.
@@ -231,9 +233,10 @@ struct AgentSkillCatalogInjectionTests {
             sessionContext: AgentTranscriptMessage(role: .user, text: "SESSION"),
             before: prompt.id, isPlanning: true, skills: catalog
         )
-        let result = pipeline(AgentModelContext(
-            systemPrompt: AgentSystemPrompt.default, messages: [prompt], tools: []
-        ))
+        let result = pipeline(
+            AgentModelContext(
+                systemPrompt: AgentSystemPrompt.default, messages: [prompt], tools: []
+            ))
 
         #expect(result.messages.count == 4)
         #expect(result.messages[0].text == "SESSION")
@@ -250,9 +253,10 @@ struct AgentSkillCatalogInjectionTests {
         let prompt = AgentTranscriptMessage(role: .user, text: "hello")
         let result = AgentContextPipeline.chat(
             sessionContext: nil, before: prompt.id, skills: catalog
-        )(AgentModelContext(
-            systemPrompt: AgentSystemPrompt.default, messages: [prompt], tools: []
-        ))
+        )(
+            AgentModelContext(
+                systemPrompt: AgentSystemPrompt.default, messages: [prompt], tools: []
+            ))
         #expect(result.systemPrompt == AgentSystemPrompt.default)
     }
 }
@@ -366,9 +370,10 @@ struct AgentSkillTrimmingTests {
                 role: .tool, text: long, toolCallID: "c", toolName: "ssh_exec"
             ),
         ]
-        let result = AgentToolResultTrimming().transform(AgentModelContext(
-            systemPrompt: "", messages: messages, tools: []
-        ))
+        let result = AgentToolResultTrimming().transform(
+            AgentModelContext(
+                systemPrompt: "", messages: messages, tools: []
+            ))
 
         #expect(result.messages[1].text.count == long.count)
         #expect(result.messages[2].text.count < long.count)
@@ -456,7 +461,8 @@ struct SkillLibraryModelTests {
     @Test
     func importingADuplicateNameNumbersItRatherThanReplacing() throws {
         let library = SkillLibraryModel()
-        let document = try AgentSkillDocument.parse("""
+        let document = try AgentSkillDocument.parse(
+            """
             ---
             name: pdf-processing
             description: Reads PDFs.

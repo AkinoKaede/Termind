@@ -48,13 +48,14 @@ nonisolated struct RemoteFile: Identifiable, Hashable, Sendable {
     }
 
     var permissionDescription: String {
-        let type: Character = switch kind {
-        case .file: "-"
-        case .directory: "d"
-        case .symbolicLink: "l"
-        case .special: "s"
-        case .unknown: "?"
-        }
+        let type: Character =
+            switch kind {
+            case .file: "-"
+            case .directory: "d"
+            case .symbolicLink: "l"
+            case .special: "s"
+            case .unknown: "?"
+            }
         let masks: [UInt32] = [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001]
         let letters: [Character] = ["r", "w", "x", "r", "w", "x", "r", "w", "x"]
         return String([type] + zip(masks, letters).map { permissions & $0.0 == 0 ? "-" : $0.1 })
@@ -99,18 +100,20 @@ nonisolated private struct SFTPProgressMeter {
             0.001,
             Double(components.seconds) + Double(components.attoseconds) / 1e18
         )
-        report(SFTPProgress(
-            completedBytes: completed, totalBytes: total,
-            bytesPerSecond: Int64(Double(sampledBytes) / seconds)
-        ))
+        report(
+            SFTPProgress(
+                completedBytes: completed, totalBytes: total,
+                bytesPerSecond: Int64(Double(sampledBytes) / seconds)
+            ))
         sampledBytes = 0
         sampledAt = .now
     }
 
     nonisolated func finish() {
-        report(SFTPProgress(
-            completedBytes: completed, totalBytes: total, bytesPerSecond: 0
-        ))
+        report(
+            SFTPProgress(
+                completedBytes: completed, totalBytes: total, bytesPerSecond: 0
+            ))
     }
 }
 
@@ -450,12 +453,14 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     func listDirectory(at path: String) async throws -> [RemoteFile] {
         try await queue.perform {
             let sftp = try self.requireSFTP()
-            guard let handle = path.withCString({
-                libssh2_sftp_open_ex(
-                    sftp, $0, UInt32(path.utf8.count), 0, 0,
-                    Int32(LIBSSH2_SFTP_OPENDIR)
-                )
-            }) else {
+            guard
+                let handle = path.withCString({
+                    libssh2_sftp_open_ex(
+                        sftp, $0, UInt32(path.utf8.count), 0, 0,
+                        Int32(LIBSSH2_SFTP_OPENDIR)
+                    )
+                })
+            else {
                 throw self.error("Unable to open \(path)")
             }
             defer { _ = libssh2_sftp_close_handle(handle) }
@@ -470,7 +475,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                     let bytes = name.prefix(Int(count)).map { UInt8(bitPattern: $0) }
                     let filename = String(decoding: bytes, as: UTF8.self)
                     guard filename != ".", filename != ".." else { continue }
-                    result.append(Self.remoteFile(path: Self.join(path, filename), name: filename, attributes: attributes))
+                    result.append(
+                        Self.remoteFile(path: Self.join(path, filename), name: filename, attributes: attributes))
                 } else if count == 0 {
                     break
                 } else {
@@ -511,9 +517,13 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 while data.count <= maximumBytes {
                     let wanted = min(buffer.count, maximumBytes + 1 - data.count)
                     let count = libssh2_sftp_read(handle, &buffer, wanted)
-                    if count > 0 { data.append(Data(bytes: buffer, count: count)) }
-                    else if count == 0 { break }
-                    else { throw self.error("Unable to read \(path)") }
+                    if count > 0 {
+                        data.append(Data(bytes: buffer, count: count))
+                    } else if count == 0 {
+                        break
+                    } else {
+                        throw self.error("Unable to read \(path)")
+                    }
                 }
                 guard data.count <= maximumBytes else {
                     throw SFTPError.operation("\(path) exceeds the inline read limit of \(maximumBytes) bytes.")
@@ -604,9 +614,11 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     func removeFile(at path: String) async throws {
         try await queue.perform {
             let sftp = try self.requireSFTP()
-            guard path.withCString({
-                libssh2_sftp_unlink_ex(sftp, $0, UInt32(path.utf8.count))
-            }) == 0 else {
+            guard
+                path.withCString({
+                    libssh2_sftp_unlink_ex(sftp, $0, UInt32(path.utf8.count))
+                }) == 0
+            else {
                 throw self.error("Unable to delete \(path)")
             }
         }
@@ -615,9 +627,11 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     func removeDirectory(at path: String) async throws {
         try await queue.perform {
             let sftp = try self.requireSFTP()
-            guard path.withCString({
-                libssh2_sftp_rmdir_ex(sftp, $0, UInt32(path.utf8.count))
-            }) == 0 else {
+            guard
+                path.withCString({
+                    libssh2_sftp_rmdir_ex(sftp, $0, UInt32(path.utf8.count))
+                }) == 0
+            else {
                 throw self.error("Unable to delete \(path)")
             }
         }
@@ -631,13 +645,15 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         try await queue.perform {
             let sftp = try self.requireSFTP()
             let file: FileHandle
-            do { file = try FileHandle(forReadingFrom: localURL) }
-            catch { throw SFTPError.localFile(error.localizedDescription) }
+            do { file = try FileHandle(forReadingFrom: localURL) } catch {
+                throw SFTPError.localFile(error.localizedDescription)
+            }
             defer { try? file.close() }
             try self.withAtomicRemoteWrite(
                 sftp: sftp, destination: remotePath, overwrite: overwrite
             ) { handle in
-                let total = (try? localURL.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+                let total =
+                    (try? localURL.resourceValues(forKeys: [.fileSizeKey]).fileSize)
                     .map(Int64.init) ?? 0
                 var meter = SFTPProgressMeter(total: total, report: progress)
                 while true {
@@ -674,7 +690,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         try await queue.perform {
             try self.withRemoteReadHandle(at: remotePath) { handle in
                 let fm = FileManager.default
-                let temporary = localURL.deletingLastPathComponent().appendingPathComponent(".termind-part-\(UUID().uuidString)")
+                let temporary = localURL.deletingLastPathComponent().appendingPathComponent(
+                    ".termind-part-\(UUID().uuidString)")
                 guard fm.createFile(atPath: temporary.path, contents: nil) else {
                     throw SFTPError.localFile("Unable to create \(temporary.path)")
                 }
@@ -693,8 +710,11 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                     if count > 0 {
                         try file.write(contentsOf: Data(bytes: buffer, count: count))
                         meter.add(count)
-                    } else if count == 0 { break }
-                    else { throw self.error("Unable to download \(remotePath)") }
+                    } else if count == 0 {
+                        break
+                    } else {
+                        throw self.error("Unable to download \(remotePath)")
+                    }
                 }
                 try file.synchronize()
                 meter.finish()
@@ -824,12 +844,14 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     ) throws {
         let temporary = destination + temporaryTag + UUID().uuidString
         let flags = UInt(LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC)
-        guard let handle = temporary.withCString({
-            libssh2_sftp_open_ex(
-                sftp, $0, UInt32(temporary.utf8.count), flags, 0o600,
-                Int32(LIBSSH2_SFTP_OPENFILE)
-            )
-        }) else {
+        guard
+            let handle = temporary.withCString({
+                libssh2_sftp_open_ex(
+                    sftp, $0, UInt32(temporary.utf8.count), flags, 0o600,
+                    Int32(LIBSSH2_SFTP_OPENFILE)
+                )
+            })
+        else {
             throw error("Unable to create \(destination)")
         }
         var succeeded = false
@@ -848,7 +870,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         succeeded = true
     }
 
-    private func renameOnQueue(sftp: OpaquePointer, from source: String, to destination: String, overwrite: Bool) throws {
+    private func renameOnQueue(sftp: OpaquePointer, from source: String, to destination: String, overwrite: Bool) throws
+    {
         let flags = overwrite ? Int(LIBSSH2_SFTP_RENAME_OVERWRITE) : 0
         let result = source.withCString { sourceBuffer in
             destination.withCString { destinationBuffer in
@@ -888,7 +911,10 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     private func cleanup() {
         keepaliveTimer?.cancel()
         keepaliveTimer = nil
-        if let sftp { _ = libssh2_sftp_shutdown(sftp); self.sftp = nil }
+        if let sftp {
+            _ = libssh2_sftp_shutdown(sftp)
+            self.sftp = nil
+        }
         if let session {
             _ = libssh2_session_disconnect_ex(session, SSH_DISCONNECT_BY_APPLICATION, "Termind closed SFTP", "")
             _ = libssh2_session_free(session)
@@ -934,11 +960,17 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     ) -> RemoteFile {
         let mode = UInt32(attributes.permissions)
         let kind: RemoteFile.Kind
-        if mode & UInt32(LIBSSH2_SFTP_S_IFMT) == UInt32(LIBSSH2_SFTP_S_IFDIR) { kind = .directory }
-        else if mode & UInt32(LIBSSH2_SFTP_S_IFMT) == UInt32(LIBSSH2_SFTP_S_IFREG) { kind = .file }
-        else if mode & UInt32(LIBSSH2_SFTP_S_IFMT) == UInt32(LIBSSH2_SFTP_S_IFLNK) { kind = .symbolicLink }
-        else if mode == 0 { kind = .unknown }
-        else { kind = .special }
+        if mode & UInt32(LIBSSH2_SFTP_S_IFMT) == UInt32(LIBSSH2_SFTP_S_IFDIR) {
+            kind = .directory
+        } else if mode & UInt32(LIBSSH2_SFTP_S_IFMT) == UInt32(LIBSSH2_SFTP_S_IFREG) {
+            kind = .file
+        } else if mode & UInt32(LIBSSH2_SFTP_S_IFMT) == UInt32(LIBSSH2_SFTP_S_IFLNK) {
+            kind = .symbolicLink
+        } else if mode == 0 {
+            kind = .unknown
+        } else {
+            kind = .special
+        }
         return RemoteFile(
             path: path, name: name, kind: kind, size: Int64(attributes.filesize),
             modifiedAt: attributes.mtime == 0 ? nil : Date(timeIntervalSince1970: TimeInterval(attributes.mtime)),

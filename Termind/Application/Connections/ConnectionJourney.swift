@@ -331,8 +331,8 @@ final class ConnectionJourney {
     }
 }
 
-private extension ConnectionPurpose {
-    var logName: String {
+extension ConnectionPurpose {
+    fileprivate var logName: String {
         switch self {
         case .sshSession: "SSH session"
         case .sftpSession: "SFTP session"

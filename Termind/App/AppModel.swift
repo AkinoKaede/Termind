@@ -266,13 +266,14 @@ final class AppModel {
         for hostID in changedHostIDs {
             let oldHost = hosts.host(hostID)
             let newHost = snapshot.hosts.first { $0.id == hostID }
-            let routeChanged = oldHost.map { old in
-                newHost.map {
-                    old.host != $0.host || old.port != $0.port
-                        || old.identityID != $0.identityID || old.jumpHostID != $0.jumpHostID
-                        || old.proxy != $0.proxy
-                } ?? true
-            } ?? false
+            let routeChanged =
+                oldHost.map { old in
+                    newHost.map {
+                        old.host != $0.host || old.port != $0.port
+                            || old.identityID != $0.identityID || old.jumpHostID != $0.jumpHostID
+                            || old.proxy != $0.proxy
+                    } ?? true
+                } ?? false
             if routeChanged {
                 hosts.willDeleteHost?(hostID, hosts.portForwardings(for: hostID).map(\.id))
             }
@@ -334,10 +335,12 @@ final class AppModel {
             prompt
             ?? lastUserTurn?.text
             ?? ""
-        let userImages = promptImages
+        let userImages =
+            promptImages
             ?? lastUserTurn?.images
             ?? []
-        let userContextAttachments = promptContextAttachments
+        let userContextAttachments =
+            promptContextAttachments
             ?? lastUserTurn?.contextAttachments
             ?? []
         guard !userPrompt.isEmpty || !userImages.isEmpty || !userContextAttachments.isEmpty
@@ -406,7 +409,8 @@ final class AppModel {
         // thinking must not change what this run was told it had. Empty when the
         // model cannot call tools, which is what keeps the catalog block from
         // naming a tool this run was never given.
-        let skillCatalog = chat.model.abilities.contains(.toolCall)
+        let skillCatalog =
+            chat.model.abilities.contains(.toolCall)
             ? skills.catalog : AgentSkillCatalog()
 
         var registry = AgentToolRegistry([AnyAgentTool]())
@@ -447,13 +451,14 @@ final class AppModel {
                     mcpServers: servers,
                     mcpClient: MCPClient(clientInfo: TermindAgentPolicy.mcpClientInfo)
                 ),
-                additional: TermindAgentTools.tools(in: TermindAgentToolEnvironment(
-                    hosts: agentHosts, connections: agentConnections,
-                    authentication: agentAuthentication,
-                    background: agentBackgroundCommands,
-                    includesTerminalSuggestion: includesTerminalSuggestion,
-                    workspace: scratch
-                ))
+                additional: TermindAgentTools.tools(
+                    in: TermindAgentToolEnvironment(
+                        hosts: agentHosts, connections: agentConnections,
+                        authentication: agentAuthentication,
+                        background: agentBackgroundCommands,
+                        includesTerminalSuggestion: includesTerminalSuggestion,
+                        workspace: scratch
+                    ))
             )
         }
         // The one place the resolved tool set exists. Recorded on the
@@ -537,9 +542,10 @@ final class AppModel {
         guard proAccess.require(.assistant) else { return false }
         guard !conversation.isStreaming, !conversation.isCompacting else { return false }
         conversation.beginCompaction()
-        guard let span = conversation.compactionSpan(
-            keepRecentTokens: compactionBudget.keepRecentTokens
-        )
+        guard
+            let span = conversation.compactionSpan(
+                keepRecentTokens: compactionBudget.keepRecentTokens
+            )
         else {
             if isManual {
                 conversation.failCompaction(
@@ -560,9 +566,11 @@ final class AppModel {
                 span.summarize, instructions: instructions,
                 toolResultLimit: compactionBudget.toolResultLimit, model: model
             )
-            guard let record = conversation.prepareCompaction(
-                summary: summary, cut: span.cut
-            ) else {
+            guard
+                let record = conversation.prepareCompaction(
+                    summary: summary, cut: span.cut
+                )
+            else {
                 throw AgentCompactionError.nothingToCompact
             }
             try await persistAndApplyCompaction(record, to: conversation, cut: span.cut)
@@ -682,7 +690,8 @@ final class AppModel {
                 $0.role == .assistant && !$0.text.isEmpty
             })?.text
         else { return nil }
-        let user = firstUser.text.isEmpty
+        let user =
+            firstUser.text.isEmpty
             ? firstUser.images.first?.label
                 ?? firstUser.contextAttachments.first?.label
                 ?? ""
@@ -781,7 +790,8 @@ final class AppModel {
             let library = window?.assistantLibrary
         else { return }
         let toPinned = !conversation.isPinned
-        let nextID = (toPinned
+        let nextID =
+            (toPinned
             ? library.pinnedConversations
             : library.activeConversations).first?.id
         moveConversation(
@@ -868,9 +878,10 @@ final class AppModel {
     ) {
         guard let source = conversation(id) else { return }
         let title = assistantConversations.nextForkTitle(for: source)
-        guard let fork = source.forked(
-            throughAssistantMessage: messageID, title: title
-        )
+        guard
+            let fork = source.forked(
+                throughAssistantMessage: messageID, title: title
+            )
         else { return }
         let stored = StoredAgentConversation(
             id: fork.id, messages: fork.transcript,
@@ -896,8 +907,7 @@ final class AppModel {
                 try await agentRunRepository.createConversation(stored)
                 guard let self else { return }
                 self.assistantConversations.insert(fork)
-                if inSidebar { window?.openAssistantInSidebar(fork.id) }
-                else { window?.selectAssistant(fork.id) }
+                if inSidebar { window?.openAssistantInSidebar(fork.id) } else { window?.selectAssistant(fork.id) }
             } catch {
                 try? await AgentScratchWorkspace(conversationID: fork.id).removeScope()
                 window?.assistantOperationError = error.localizedDescription

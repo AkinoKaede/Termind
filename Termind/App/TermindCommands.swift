@@ -32,8 +32,8 @@ struct TermindCommands: Commands {
                 app.onboarding.recordUse(of: .quickOpen)
                 window?.isQuickOpenPresented = true
             }
-                .termindShortcut("p")
-                .disabled(window == nil)
+            .termindShortcut("p")
+            .disabled(window == nil)
 
             Divider()
 

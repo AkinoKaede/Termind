@@ -151,12 +151,14 @@ struct TranscriptPresentationStateTests {
             for: id, revision: "first", now: start
         )
         #expect(first == start.addingTimeInterval(3))
-        #expect(state.reasoningTitleDeadline(
-            for: id, revision: "first", now: start.addingTimeInterval(2)
-        ) == first)
-        #expect(state.reasoningTitleDeadline(
-            for: id, revision: "second", now: start.addingTimeInterval(2)
-        ) == start.addingTimeInterval(5))
+        #expect(
+            state.reasoningTitleDeadline(
+                for: id, revision: "first", now: start.addingTimeInterval(2)
+            ) == first)
+        #expect(
+            state.reasoningTitleDeadline(
+                for: id, revision: "second", now: start.addingTimeInterval(2)
+            ) == start.addingTimeInterval(5))
     }
 
     @Test
@@ -722,9 +724,11 @@ struct TranscriptListViewBridgeTests {
         let listView = coordinator.makeListView()
         listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
         let id = UUID()
-        let data = try #require(Data(base64Encoded:
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL7WQAAAABJRU5ErkJggg=="
-        ))
+        let data = try #require(
+            Data(
+                base64Encoded:
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL7WQAAAABJRU5ErkJggg=="
+            ))
         let attachment = AgentImageAttachment(
             label: "Dropped image",
             mimeType: "image/png",
@@ -777,9 +781,11 @@ struct TranscriptListViewBridgeTests {
 
     @Test
     func userImageUsesAReliableSquareCenterCropForEverySourceRatio() throws {
-        let data = try #require(Data(base64Encoded:
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL7WQAAAABJRU5ErkJggg=="
-        ))
+        let data = try #require(
+            Data(
+                base64Encoded:
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL7WQAAAABJRU5ErkJggg=="
+            ))
         for (pixelWidth, pixelHeight) in [(400, 200), (200, 400)] {
             let coordinator = TranscriptListView.Coordinator()
             let listView = coordinator.makeListView()
@@ -963,18 +969,22 @@ struct TranscriptListViewBridgeTests {
         card.state = .running
         let entry = TranscriptEntry(
             id: runID,
-            content: .work(AgentWorkGroup(
-                run: AgentRunSummary(
-                    id: runID, state: .running, startedAt: .now
-                ),
-                items: [.tools(AgentToolBatch(
-                    cards: [card], runID: runID, reasoning: nil
-                ))],
-                orderedAt: .now,
-                anchorMessageID: nil,
-                appearsAfterAnswer: false,
-                activeReasoningBlockID: nil
-            ))
+            content: .work(
+                AgentWorkGroup(
+                    run: AgentRunSummary(
+                        id: runID, state: .running, startedAt: .now
+                    ),
+                    items: [
+                        .tools(
+                            AgentToolBatch(
+                                cards: [card], runID: runID, reasoning: nil
+                            ))
+                    ],
+                    orderedAt: .now,
+                    anchorMessageID: nil,
+                    appearsAfterAnswer: false,
+                    activeReasoningBlockID: nil
+                ))
         )
         listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
 
@@ -1285,22 +1295,26 @@ struct TranscriptListViewBridgeTests {
         let start = Date(timeIntervalSince1970: 1_000)
         return TranscriptEntry(
             id: id,
-            content: .work(AgentWorkGroup(
-                run: AgentRunSummary(
-                    id: id,
-                    state: state,
-                    startedAt: start,
-                    finishedAt: state == .completed ? start.addingTimeInterval(2) : nil
-                ),
-                items: [.message(ChatMessage(
-                    role: .assistant,
-                    text: String(repeating: "Visible work detail. ", count: 20)
-                ))],
-                orderedAt: start,
-                anchorMessageID: nil,
-                appearsAfterAnswer: false,
-                activeReasoningBlockID: nil
-            ))
+            content: .work(
+                AgentWorkGroup(
+                    run: AgentRunSummary(
+                        id: id,
+                        state: state,
+                        startedAt: start,
+                        finishedAt: state == .completed ? start.addingTimeInterval(2) : nil
+                    ),
+                    items: [
+                        .message(
+                            ChatMessage(
+                                role: .assistant,
+                                text: String(repeating: "Visible work detail. ", count: 20)
+                            ))
+                    ],
+                    orderedAt: start,
+                    anchorMessageID: nil,
+                    appearsAfterAnswer: false,
+                    activeReasoningBlockID: nil
+                ))
         )
     }
 }

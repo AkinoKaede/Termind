@@ -819,7 +819,7 @@ private struct SnippetTargetPickerSheet: View {
                     isChecked: item.isChecked
                 )
                 .onTapGesture { chooser.activate(item.id) }
-                }
+            }
             .padding(.horizontal, Metrics.Space.l)
             .padding(.bottom, Metrics.Space.s)
         }

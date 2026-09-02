@@ -301,9 +301,10 @@ struct AgentCompactionTests {
         let transcript = conversation.transcript
         let estimate = conversation.contextEstimate
 
-        let record = try #require(conversation.prepareCompaction(
-            summary: "summary", cut: span.cut
-        ))
+        let record = try #require(
+            conversation.prepareCompaction(
+                summary: "summary", cut: span.cut
+            ))
 
         #expect(conversation.transcript == transcript)
         #expect(conversation.contextEstimate == estimate)
@@ -317,13 +318,15 @@ struct AgentCompactionTests {
         conversation.appendUserTurn("old " + filler(tokens: 600))
         conversation.appendUserTurn("recent " + filler(tokens: 20))
         let firstSpan = try #require(conversation.compactionSpan(keepRecentTokens: 20))
-        let first = try #require(conversation.applyCompaction(
-            summary: "first summary", cut: firstSpan.cut
-        ))
+        let first = try #require(
+            conversation.applyCompaction(
+                summary: "first summary", cut: firstSpan.cut
+            ))
 
-        let second = try #require(conversation.prepareCompaction(
-            summary: "second summary", cut: 1
-        ))
+        let second = try #require(
+            conversation.prepareCompaction(
+                summary: "second summary", cut: 1
+            ))
 
         #expect(second.compactedThroughMessageID == first.compactedThroughMessageID)
         #expect(second.sequence == first.sequence + 1)
@@ -399,18 +402,19 @@ struct AgentCompactionTests {
     @Test
     func restoreDoesNotResurrectCompactedHistory() {
         let at: (TimeInterval) -> Date = { Date(timeIntervalSinceReferenceDate: $0) }
-        let restored = AgentCompactionProjection.restore(messages: [
-            AgentTranscriptMessage(role: .user, text: "very old", createdAt: at(1)),
-            AgentTranscriptMessage(role: .assistant, text: "older reply", createdAt: at(2)),
-            AgentTranscriptMessage(
-                role: .user, text: "## Goal\nfirst", isCompaction: true, createdAt: at(2)
-            ),
-            AgentTranscriptMessage(role: .user, text: "recent", createdAt: at(3)),
-            AgentTranscriptMessage(
-                role: .user, text: "## Goal\nsecond", isCompaction: true, createdAt: at(3)
-            ),
-            AgentTranscriptMessage(role: .user, text: "newest", createdAt: at(4)),
-        ], records: [])
+        let restored = AgentCompactionProjection.restore(
+            messages: [
+                AgentTranscriptMessage(role: .user, text: "very old", createdAt: at(1)),
+                AgentTranscriptMessage(role: .assistant, text: "older reply", createdAt: at(2)),
+                AgentTranscriptMessage(
+                    role: .user, text: "## Goal\nfirst", isCompaction: true, createdAt: at(2)
+                ),
+                AgentTranscriptMessage(role: .user, text: "recent", createdAt: at(3)),
+                AgentTranscriptMessage(
+                    role: .user, text: "## Goal\nsecond", isCompaction: true, createdAt: at(3)
+                ),
+                AgentTranscriptMessage(role: .user, text: "newest", createdAt: at(4)),
+            ], records: [])
 
         // The last marker, not the first: a conversation compacted twice has
         // two, and the older summary was folded into the newer one.

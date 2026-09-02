@@ -120,7 +120,10 @@ struct AgentBackgroundCommandTests {
         let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
         let handle = await commands.adopt(
             hostID: UUID(), command: "deploy", stream: stream,
-            task: Task { await released.wait(); return exited(0) }, session: StubSession()
+            task: Task {
+                await released.wait()
+                return exited(0)
+            }, session: StubSession()
         )
         stream.handler(Data("step 1 of 9\n".utf8), false)
 
@@ -151,7 +154,10 @@ struct AgentBackgroundCommandTests {
         let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
         let handle = await commands.adopt(
             hostID: UUID(), command: "deploy", stream: stream,
-            task: Task { await released.wait(); return exited(0) }, session: StubSession()
+            task: Task {
+                await released.wait()
+                return exited(0)
+            }, session: StubSession()
         )
 
         let seen = Sink()
@@ -172,12 +178,18 @@ struct AgentBackgroundCommandTests {
         let start = ContinuousClock.now
         let stale = await commands.adopt(
             hostID: UUID(), command: "tail -f", stream: AgentCommandOutputStream { _, _ in },
-            task: Task { await released.wait(); return exited(0) }, session: forgotten,
+            task: Task {
+                await released.wait()
+                return exited(0)
+            }, session: forgotten,
             now: start
         )
         _ = await commands.adopt(
             hostID: UUID(), command: "deploy", stream: AgentCommandOutputStream { _, _ in },
-            task: Task { await released.wait(); return exited(0) }, session: StubSession(),
+            task: Task {
+                await released.wait()
+                return exited(0)
+            }, session: StubSession(),
             now: start.advanced(by: .seconds(590))
         )
 
@@ -203,7 +215,10 @@ struct AgentBackgroundCommandTests {
         let released = AsyncRelease()
         _ = await commands.adopt(
             hostID: UUID(), command: "tail -f", stream: AgentCommandOutputStream { _, _ in },
-            task: Task { await released.wait(); return exited(0) }, session: session
+            task: Task {
+                await released.wait()
+                return exited(0)
+            }, session: session
         )
 
         for _ in 0..<50 where await commands.count > 0 {
@@ -226,7 +241,10 @@ struct AgentBackgroundCommandTests {
         let commands = AgentBackgroundCommands(sweepInterval: nil)
         let released = AsyncRelease()
         let signal = AgentInterjectionSignal()
-        let task = Task<SSHExecResult, any Error> { await released.wait(); return exited(0) }
+        let task = Task<SSHExecResult, any Error> {
+            await released.wait()
+            return exited(0)
+        }
         let handle = await commands.adopt(
             hostID: UUID(), command: "deploy", stream: AgentCommandOutputStream { _, _ in },
             task: task, session: StubSession()
@@ -262,7 +280,10 @@ struct AgentBackgroundCommandTests {
         signal.disarm()
 
         let finished = Sink()
-        let waiter = Task { await signal.wait(); finished.append("released") }
+        let waiter = Task {
+            await signal.wait()
+            finished.append("released")
+        }
         try await Task.sleep(for: .milliseconds(30))
 
         #expect(finished.values.isEmpty, "nothing is queued, so nothing to hurry for")
@@ -302,7 +323,7 @@ private actor AsyncRelease {
         isReleased = true
         let pending = waiters
         waiters.removeAll()
-        pending.forEach { $0.resume() }
+        for waiter in pending { waiter.resume() }
     }
 }
 

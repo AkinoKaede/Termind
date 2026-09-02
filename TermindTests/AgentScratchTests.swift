@@ -197,9 +197,10 @@ struct AgentScratchTests {
         _ = try await workspace.write("dir/blob.bin", data: Data([0xFF, 0x00, 0x80]))
 
         let directory = try await workspace.search("hit", path: "dir")
-        #expect(directory.matches.map { "\($0.path):\($0.line)" } == [
-            "dir/a.txt:1", "dir/b.txt:2",
-        ])
+        #expect(
+            directory.matches.map { "\($0.path):\($0.line)" } == [
+                "dir/a.txt:1", "dir/b.txt:2",
+            ])
         #expect(directory.searchedFiles == 2)
         #expect(directory.skippedBinaryFiles == 1)
 
@@ -208,9 +209,10 @@ struct AgentScratchTests {
         #expect(file.searchedFiles == 1)
 
         let wholeWorkspace = try await workspace.search("hit")
-        #expect(wholeWorkspace.matches.map(\.path) == [
-            ".hidden", "dir/a.txt", "dir/b.txt", "z.txt",
-        ])
+        #expect(
+            wholeWorkspace.matches.map(\.path) == [
+                ".hidden", "dir/a.txt", "dir/b.txt", "z.txt",
+            ])
         #expect(wholeWorkspace.searchedFiles == 4)
         #expect(wholeWorkspace.skippedBinaryFiles == 1)
     }
@@ -218,7 +220,8 @@ struct AgentScratchTests {
     @Test
     func searchBoundsResultsAndKeepsTheMatchVisibleInLongLines() async throws {
         let workspace = Fixture.workspace()
-        let longLine = String(repeating: "x", count: 5_000)
+        let longLine =
+            String(repeating: "x", count: 5_000)
             + "target" + String(repeating: "y", count: 5_000)
         _ = try await workspace.write(
             "long.txt", data: Data((longLine + "\ntarget two\ntarget three\n").utf8)
@@ -559,10 +562,11 @@ struct AgentScratchTests {
     func theToolSetIsRegisteredWithoutShadowingABuiltIn() async throws {
         let workspace = Fixture.workspace()
         let local = Fixture.scratchTools(workspace: workspace)
-        #expect(local.map(\.descriptor.name).sorted() == [
-            "scratch_copy", "scratch_delete", "scratch_diff", "scratch_list", "scratch_move",
-            "scratch_read", "scratch_replace", "scratch_search", "scratch_write",
-        ])
+        #expect(
+            local.map(\.descriptor.name).sorted() == [
+                "scratch_copy", "scratch_delete", "scratch_diff", "scratch_list", "scratch_move",
+                "scratch_read", "scratch_replace", "scratch_search", "scratch_write",
+            ])
         // Every purely local tool is parallel, and only the ones that change
         // something claim to.
         #expect(local.allSatisfy { $0.descriptor.concurrency == .parallel })
@@ -578,9 +582,10 @@ struct AgentScratchTests {
         #expect(!local.contains { $0.descriptor.safety == .requiresAuthorization })
         let search = try #require(local.first { $0.descriptor.name == "scratch_search" })
         let properties = search.descriptor.inputSchema.objectValue?["properties"]?.objectValue
-        #expect(properties?.keys.sorted() == [
-            "case_sensitive", "limit", "path", "query", "regex",
-        ])
+        #expect(
+            properties?.keys.sorted() == [
+                "case_sensitive", "limit", "path", "query", "regex",
+            ])
         #expect(search.descriptor.presentation?.actionKind == .search)
 
         // Transfer is absent until a connection pool is supplied, on the same terms
@@ -648,7 +653,8 @@ struct AgentScratchTests {
         let names = tools.map(\.descriptor.name)
         #expect(!names.contains { $0.hasPrefix("scratch_") })
         for name in ["sftp_read", "sftp_write"] {
-            let properties = tools.first { $0.descriptor.name == name }?
+            let properties =
+                tools.first { $0.descriptor.name == name }?
                 .descriptor.inputSchema.objectValue?["properties"]?.objectValue ?? [:]
             #expect(properties["to_scratch"] == nil)
             #expect(properties["from_scratch"] == nil)
@@ -671,9 +677,11 @@ struct AgentScratchTests {
                 .first { $0.descriptor.name == "scratch_search" }
         )
         let result = try await tool.execute(
-            Fixture.invocation("scratch_search", [
-                "query": .string("target"), "limit": .number(100),
-            ]), context: Fixture.context()
+            Fixture.invocation(
+                "scratch_search",
+                [
+                    "query": .string("target"), "limit": .number(100),
+                ]), context: Fixture.context()
         )
         let payload = try #require(result.untrustedPayload)
         let object = try #require(
@@ -698,13 +706,15 @@ struct AgentScratchTests {
                 workspace: workspace, connections: Fixture.pool(client),
                 authentication: Fixture.authentication()
             )
-                .first { $0.descriptor.name == "scratch_pull" }
+            .first { $0.descriptor.name == "scratch_pull" }
         )
 
-        let invocation = Fixture.invocation("scratch_pull", [
-            "host_id": .string(Fixture.hostID.uuidString),
-            "remote_path": .string("/etc/app.conf"), "scratch_path": .string("app.conf"),
-        ])
+        let invocation = Fixture.invocation(
+            "scratch_pull",
+            [
+                "host_id": .string(Fixture.hostID.uuidString),
+                "remote_path": .string("/etc/app.conf"), "scratch_path": .string("app.conf"),
+            ])
         let result = try await tool.execute(invocation, context: Fixture.context())
 
         #expect(!result.isError)
@@ -726,10 +736,13 @@ struct AgentScratchTests {
         )
         for (remote, scratch) in [("relative/path", "ok.conf"), ("/etc/app.conf", "../out.conf")] {
             await #expect(throws: (any Error).self) {
-                try await tool.preflight(Fixture.invocation("scratch_pull", [
-                    "host_id": .string(Fixture.hostID.uuidString),
-                    "remote_path": .string(remote), "scratch_path": .string(scratch),
-                ]))
+                try await tool.preflight(
+                    Fixture.invocation(
+                        "scratch_pull",
+                        [
+                            "host_id": .string(Fixture.hostID.uuidString),
+                            "remote_path": .string(remote), "scratch_path": .string(scratch),
+                        ]))
             }
         }
         #expect(await client.reads.isEmpty)
@@ -749,13 +762,15 @@ struct AgentScratchTests {
                 workspace: workspace, connections: Fixture.pool(client),
                 authentication: Fixture.authentication()
             )
-                .first { $0.descriptor.name == "scratch_push" }
+            .first { $0.descriptor.name == "scratch_push" }
         )
 
-        let invocation = Fixture.invocation("scratch_push", [
-            "host_id": .string(Fixture.hostID.uuidString),
-            "scratch_path": .string("app.conf"), "remote_path": .string("/etc/app.conf"),
-        ])
+        let invocation = Fixture.invocation(
+            "scratch_push",
+            [
+                "host_id": .string(Fixture.hostID.uuidString),
+                "scratch_path": .string("app.conf"), "remote_path": .string("/etc/app.conf"),
+            ])
         let preflight = try await tool.preflight(invocation)
         let reasons = preflight.reasons.joined(separator: "\n")
 
@@ -786,12 +801,14 @@ struct AgentScratchTests {
                 workspace: workspace, connections: Fixture.pool(client),
                 authentication: Fixture.authentication()
             )
-                .first { $0.descriptor.name == "scratch_push" }
+            .first { $0.descriptor.name == "scratch_push" }
         )
-        let invocation = Fixture.invocation("scratch_push", [
-            "host_id": .string(Fixture.hostID.uuidString),
-            "scratch_path": .string("app.conf"), "remote_path": .string("/etc/app.conf"),
-        ])
+        let invocation = Fixture.invocation(
+            "scratch_push",
+            [
+                "host_id": .string(Fixture.hostID.uuidString),
+                "scratch_path": .string("app.conf"), "remote_path": .string("/etc/app.conf"),
+            ])
         let approved = try await tool.preflight(invocation).executionMetadata
 
         let result = try await tool.execute(
@@ -822,16 +839,20 @@ struct AgentScratchTests {
         let push = try #require(tools.first { $0.descriptor.name == "scratch_push" })
 
         _ = try await pull.execute(
-            Fixture.invocation("scratch_pull", [
-                "host_id": .string(Fixture.hostID.uuidString),
-                "remote_path": .string("/opt/blob.bin"), "scratch_path": .string("blob.bin"),
-            ]),
+            Fixture.invocation(
+                "scratch_pull",
+                [
+                    "host_id": .string(Fixture.hostID.uuidString),
+                    "remote_path": .string("/opt/blob.bin"), "scratch_path": .string("blob.bin"),
+                ]),
             context: Fixture.context()
         )
-        let invocation = Fixture.invocation("scratch_push", [
-            "host_id": .string(Fixture.hostID.uuidString),
-            "scratch_path": .string("blob.bin"), "remote_path": .string("/opt/copy.bin"),
-        ])
+        let invocation = Fixture.invocation(
+            "scratch_push",
+            [
+                "host_id": .string(Fixture.hostID.uuidString),
+                "scratch_path": .string("blob.bin"), "remote_path": .string("/opt/copy.bin"),
+            ])
         _ = try await push.execute(
             invocation,
             context: Fixture.context(preflight: try await push.preflight(invocation).executionMetadata)
@@ -851,10 +872,12 @@ struct AgentScratchTests {
         )
 
         let result = try await tool.execute(
-            Fixture.invocation("scratch_fetch", [
-                "url": .string("https://example.com/docs"),
-                "scratch_path": .string("docs/page.md"),
-            ]),
+            Fixture.invocation(
+                "scratch_fetch",
+                [
+                    "url": .string("https://example.com/docs"),
+                    "scratch_path": .string("docs/page.md"),
+                ]),
             context: Fixture.context()
         )
 
@@ -880,9 +903,11 @@ struct AgentScratchTests {
         )
 
         let result = try await tool.execute(
-            Fixture.invocation("scratch_fetch", [
-                "url": .string("https://example.com/big"), "scratch_path": .string("big.md"),
-            ]),
+            Fixture.invocation(
+                "scratch_fetch",
+                [
+                    "url": .string("https://example.com/big"), "scratch_path": .string("big.md"),
+                ]),
             context: Fixture.context()
         )
 
@@ -900,10 +925,12 @@ struct AgentScratchTests {
         )
 
         let result = try await tool.execute(
-            Fixture.invocation("scratch_fetch", [
-                "url": .string("https://example.com/"), "scratch_path": .string("page.html"),
-                "format": .string("original"),
-            ]),
+            Fixture.invocation(
+                "scratch_fetch",
+                [
+                    "url": .string("https://example.com/"), "scratch_path": .string("page.html"),
+                    "format": .string("original"),
+                ]),
             context: Fixture.context()
         )
 
@@ -937,9 +964,10 @@ struct AgentScratchTests {
             ["url": "https://example.com/", "scratch_path": "/etc/passwd"],
         ] {
             await #expect(throws: (any Error).self) {
-                try await tool.preflight(Fixture.invocation(
-                    "scratch_fetch", arguments.mapValues(AgentJSONValue.string)
-                ))
+                try await tool.preflight(
+                    Fixture.invocation(
+                        "scratch_fetch", arguments.mapValues(AgentJSONValue.string)
+                    ))
             }
         }
         #expect(await loaded.count == 0)
@@ -956,10 +984,12 @@ struct AgentScratchTests {
 
         await #expect(throws: (any Error).self) {
             try await tool.execute(
-                Fixture.invocation("scratch_fetch", [
-                    "url": .string("https://example.com/js-only"),
-                    "scratch_path": .string("empty.md"),
-                ]),
+                Fixture.invocation(
+                    "scratch_fetch",
+                    [
+                        "url": .string("https://example.com/js-only"),
+                        "scratch_path": .string("empty.md"),
+                    ]),
                 context: Fixture.context()
             )
         }
@@ -995,12 +1025,14 @@ private enum Fixture {
         ]
         if let connections, let authentication {
             tools += [
-                AnyAgentTool(ScratchPullTool(
-                    workspace: workspace, pool: connections, authentication: authentication
-                )),
-                AnyAgentTool(ScratchPushTool(
-                    workspace: workspace, pool: connections, authentication: authentication
-                )),
+                AnyAgentTool(
+                    ScratchPullTool(
+                        workspace: workspace, pool: connections, authentication: authentication
+                    )),
+                AnyAgentTool(
+                    ScratchPushTool(
+                        workspace: workspace, pool: connections, authentication: authentication
+                    )),
             ]
         }
         if let web { tools.append(AnyAgentTool(ScratchFetchTool(workspace: workspace, web: web))) }
@@ -1015,9 +1047,10 @@ private enum Fixture {
         // scratch tools are absent while `fetch` is not.
         AgentToolCatalog.registry(
             builtIn: .init(web: web()),
-            additional: TermindAgentTools.tools(in: .init(
-                hosts: hosts, connections: connections
-            ))
+            additional: TermindAgentTools.tools(
+                in: .init(
+                    hosts: hosts, connections: connections
+                ))
         ).registeredTools
     }
 

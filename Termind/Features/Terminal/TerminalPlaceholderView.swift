@@ -44,64 +44,64 @@ struct TerminalPlaceholderView: View {
         terminalSurface
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
-        .animation(Motion.panel, value: uploadNotice)
-        .background(terminalAppearance.background)
-        .onAppear {
-            // The mounted view is the final source of truth after any drag,
-            // merge, detach, or SwiftUI tree rebuild. Reassert the relationship
-            // here so a stale layout callback cannot leave live keystrokes on a
-            // sshSession whose router was cleared while it moved.
-            sshSession.inputRouter = workspace
-            sshSession.terminalState.isSurfaceVisible = isVisible
-            terminalFocused = requestsFocus
-            sshSession.terminalState.applyAppearance(terminalAppearance.preferences)
-            if sshSession.status == .connecting { sshSession.connect(using: app.hostLibrary) }
-            if requestsFocus { sshSession.requestTerminalFocus() }
-        }
-        .onChange(of: isVisible) { _, visible in
-            sshSession.terminalState.isSurfaceVisible = visible
-        }
-        .onChange(of: requestsFocus) { _, focused in
-            terminalFocused = focused
-            if focused { sshSession.requestTerminalFocus() }
-        }
-        .onChange(of: externalFileDrop?.id) {
-            guard let externalFileDrop else { return }
-            _ = receiveDroppedURLs(externalFileDrop.urls)
-        }
-        .onDisappear {
-            sshSession.terminalState.isSurfaceVisible = false
-            terminalFocused = false
-            uploadNoticeTask?.cancel()
-            uploadPreparationTask?.cancel()
-            cancelPendingUpload()
-        }
-        .onChange(of: terminalAppearance.preferences) { _, preferences in
-            sshSession.terminalState.applyAppearance(preferences)
-        }
-        .confirmationDialog(
-            uploadConflictTitle,
-            isPresented: $uploadConflictPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Replace") { enqueuePendingUpload(.replace) }
-            Button("Skip Existing") { enqueuePendingUpload(.skip) }
-            Button("Keep Both") { enqueuePendingUpload(.keepBoth) }
-            Button("Cancel", role: .cancel) { cancelPendingUpload() }
-        } message: {
-            Text("Use this choice for all conflicts in this batch.")
-        }
-        .alert(
-            "Upload Failed",
-            isPresented: Binding(
-                get: { uploadError != nil },
-                set: { if !$0 { uploadError = nil } }
-            )
-        ) {
-            Button("OK") { uploadError = nil }
-        } message: {
-            Text(uploadError ?? "")
-        }
+            .animation(Motion.panel, value: uploadNotice)
+            .background(terminalAppearance.background)
+            .onAppear {
+                // The mounted view is the final source of truth after any drag,
+                // merge, detach, or SwiftUI tree rebuild. Reassert the relationship
+                // here so a stale layout callback cannot leave live keystrokes on a
+                // sshSession whose router was cleared while it moved.
+                sshSession.inputRouter = workspace
+                sshSession.terminalState.isSurfaceVisible = isVisible
+                terminalFocused = requestsFocus
+                sshSession.terminalState.applyAppearance(terminalAppearance.preferences)
+                if sshSession.status == .connecting { sshSession.connect(using: app.hostLibrary) }
+                if requestsFocus { sshSession.requestTerminalFocus() }
+            }
+            .onChange(of: isVisible) { _, visible in
+                sshSession.terminalState.isSurfaceVisible = visible
+            }
+            .onChange(of: requestsFocus) { _, focused in
+                terminalFocused = focused
+                if focused { sshSession.requestTerminalFocus() }
+            }
+            .onChange(of: externalFileDrop?.id) {
+                guard let externalFileDrop else { return }
+                _ = receiveDroppedURLs(externalFileDrop.urls)
+            }
+            .onDisappear {
+                sshSession.terminalState.isSurfaceVisible = false
+                terminalFocused = false
+                uploadNoticeTask?.cancel()
+                uploadPreparationTask?.cancel()
+                cancelPendingUpload()
+            }
+            .onChange(of: terminalAppearance.preferences) { _, preferences in
+                sshSession.terminalState.applyAppearance(preferences)
+            }
+            .confirmationDialog(
+                uploadConflictTitle,
+                isPresented: $uploadConflictPresented,
+                titleVisibility: .visible
+            ) {
+                Button("Replace") { enqueuePendingUpload(.replace) }
+                Button("Skip Existing") { enqueuePendingUpload(.skip) }
+                Button("Keep Both") { enqueuePendingUpload(.keepBoth) }
+                Button("Cancel", role: .cancel) { cancelPendingUpload() }
+            } message: {
+                Text("Use this choice for all conflicts in this batch.")
+            }
+            .alert(
+                "Upload Failed",
+                isPresented: Binding(
+                    get: { uploadError != nil },
+                    set: { if !$0 { uploadError = nil } }
+                )
+            ) {
+                Button("OK") { uploadError = nil }
+            } message: {
+                Text(uploadError ?? "")
+            }
     }
 
     @ViewBuilder
@@ -312,11 +312,12 @@ struct TerminalPlaceholderView: View {
         // The log rides on the chip rather than in the draft. Pasting it into
         // the editable text made the pill a label for something the user could
         // silently delete half of, and left the draft too long to read.
-        conversation.attach(ContextChip(
-            kind: .output,
-            label: String(localized: "Connection error"),
-            content: String(log.suffix(4_000))
-        ))
+        conversation.attach(
+            ContextChip(
+                kind: .output,
+                label: String(localized: "Connection error"),
+                content: String(log.suffix(4_000))
+            ))
         conversation.composer.draft = String(
             localized: "SSH connection failed: \(message). What should I check?"
         )

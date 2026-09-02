@@ -1,6 +1,6 @@
 import AgentKit
-import Foundation
 import AppKit
+import Foundation
 import PDFKit
 import Testing
 import ZIPFoundation
@@ -41,24 +41,30 @@ struct ContextAttachmentImporterTests {
 
     @Test
     func extractsModernOfficePackages() async throws {
-        let docx = try officePackage(extension: "docx", entries: [
-            "word/document.xml": """
+        let docx = try officePackage(
+            extension: "docx",
+            entries: [
+                "word/document.xml": """
                 <w:document xmlns:w="word"><w:body><w:p><w:r><w:t>Hello Word</w:t></w:r></w:p></w:body></w:document>
                 """
-        ])
-        let pptx = try officePackage(extension: "pptx", entries: [
-            "ppt/slides/slide1.xml": """
+            ])
+        let pptx = try officePackage(
+            extension: "pptx",
+            entries: [
+                "ppt/slides/slide1.xml": """
                 <p:sld xmlns:p="presentation" xmlns:a="drawing"><a:p><a:r><a:t>Hello Slide</a:t></a:r></a:p></p:sld>
                 """
-        ])
-        let xlsx = try officePackage(extension: "xlsx", entries: [
-            "xl/sharedStrings.xml": """
+            ])
+        let xlsx = try officePackage(
+            extension: "xlsx",
+            entries: [
+                "xl/sharedStrings.xml": """
                 <sst><si><t>Name</t></si><si><t>Kaede</t></si></sst>
                 """,
-            "xl/worksheets/sheet1.xml": """
+                "xl/worksheets/sheet1.xml": """
                 <worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row></sheetData></worksheet>
                 """,
-        ])
+            ])
         defer {
             for url in [docx, pptx, xlsx] { try? FileManager.default.removeItem(at: url) }
         }

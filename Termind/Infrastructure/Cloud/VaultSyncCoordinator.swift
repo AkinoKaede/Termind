@@ -63,8 +63,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
     func setEnabled(_ enabled: Bool) {
         UserDefaults.standard.set(enabled, forKey: SettingsKey.vaultSyncEnabled)
-        if enabled { start() }
-        else { pause() }
+        if enabled { start() } else { pause() }
     }
 
     func pause() {
@@ -80,8 +79,12 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     func retry() {
         guard isEnabled else { return }
         terminalError = nil
-        if engine == nil { isStarted = false; start() }
-        else { run { [weak self] in try await self?.synchronizeNow() } }
+        if engine == nil {
+            isStarted = false
+            start()
+        } else {
+            run { [weak self] in try await self?.synchronizeNow() }
+        }
     }
 
     func noteLocalChanges(_ mutations: VaultMutationSet) {
@@ -113,9 +116,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         guard operation == nil else { return }
         operation = Task { [weak self] in
             defer { self?.operation = nil }
-            do { try await body() }
-            catch is CancellationError {}
-            catch { self?.status = Self.status(for: error) }
+            do { try await body() } catch is CancellationError {} catch { self?.status = Self.status(for: error) }
         }
     }
 
@@ -190,9 +191,10 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
     private func addPendingChanges(_ keys: Set<VaultRecordKey>) {
         guard let engine else { return }
-        engine.state.add(pendingRecordZoneChanges: keys.map {
-            .saveRecord(CKRecord.ID(recordName: $0.recordName, zoneID: zoneID))
-        })
+        engine.state.add(
+            pendingRecordZoneChanges: keys.map {
+                .saveRecord(CKRecord.ID(recordName: $0.recordName, zoneID: zoneID))
+            })
     }
 
     private func updateUpToDateStatus() throws {
@@ -248,8 +250,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         guard let key = VaultRecordKey(recordName: recordID.recordName),
             let outgoing = try? journal.outgoingEntry(for: key)
         else { return nil }
-        do { return try Self.makeRecord(outgoing, recordID: recordID) }
-        catch {
+        do { return try Self.makeRecord(outgoing, recordID: recordID) } catch {
             terminalError = error.localizedDescription
             status = .failed(error.localizedDescription)
             return nil
@@ -355,9 +356,11 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
         // Physical deletes are not part of the protocol; recreate the local
         // envelope instead of converting a console accident into data loss.
-        let physicallyDeleted = Set(changes.deletions.compactMap {
-            VaultRecordKey(recordName: $0.recordID.recordName)
-        }).filter { (try? journal.envelope(for: $0)) != nil }
+        let physicallyDeleted = Set(
+            changes.deletions.compactMap {
+                VaultRecordKey(recordName: $0.recordID.recordName)
+            }
+        ).filter { (try? journal.envelope(for: $0)) != nil }
         try journal.markNeedsUpload(physicallyDeleted)
         addPendingChanges(result.needsUpload.union(physicallyDeleted))
         try context.save()
@@ -424,8 +427,9 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     /// scoped to Development or Production. Rebind once per environment while
     /// retaining every local envelope and its conflict-resolution version.
     private func prepareForCurrentEnvironment() throws {
-        guard defaults.string(forKey: SettingsKey.vaultSyncEnvironment)
-            != environmentIdentifier
+        guard
+            defaults.string(forKey: SettingsKey.vaultSyncEnvironment)
+                != environmentIdentifier
         else { return }
 
         try journal.markAllEntriesNeedsUploadAfterEnvironmentChange()
@@ -544,6 +548,6 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     }
 }
 
-private extension SHA256.Digest {
-    nonisolated var hexString: String { map { String(format: "%02x", $0) }.joined() }
+extension SHA256.Digest {
+    fileprivate nonisolated var hexString: String { map { String(format: "%02x", $0) }.joined() }
 }

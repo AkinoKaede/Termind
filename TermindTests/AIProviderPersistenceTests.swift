@@ -299,7 +299,6 @@ struct AIProviderPersistenceTests {
         #expect(AIRole.commandGenerator.unsetLabel == "Same as Chat")
     }
 
-
     @Test
     func catalogReplacementKeepsManualModelOverrides() {
         var original = reasoningModel("custom-reasoner")
@@ -501,9 +500,10 @@ struct ModelCapabilityResolverTests {
         #expect(!chat.supportsNativeWebSearch(model: model))
 
         var legacyModel = AIModel(id: "deepseek-chat")
-        legacyModel.abilities = ModelCapabilityResolver.resolve(
-            model: AIModel(id: "deepseek-chat"), provider: responsesShaped
-        ).model.abilities
+        legacyModel.abilities =
+            ModelCapabilityResolver.resolve(
+                model: AIModel(id: "deepseek-chat"), provider: responsesShaped
+            ).model.abilities
         #expect(!legacyModel.abilities.contains(.webSearch))
     }
 

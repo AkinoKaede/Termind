@@ -91,13 +91,13 @@ struct SettingsPageView: View {
 
     var body: some View {
         detail.frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(TermindColor.windowSurface)
-        .onChange(of: window.settingsRoute) { oldRoute, newRoute in
-            cleanUpDraft(from: oldRoute, movingTo: newRoute)
-        }
-        .onDisappear {
-            cleanUpDraft(from: window.settingsRoute, movingTo: .index)
-        }
+            .background(TermindColor.windowSurface)
+            .onChange(of: window.settingsRoute) { oldRoute, newRoute in
+                cleanUpDraft(from: oldRoute, movingTo: newRoute)
+            }
+            .onDisappear {
+                cleanUpDraft(from: window.settingsRoute, movingTo: .index)
+            }
     }
 
     @ViewBuilder
@@ -264,7 +264,9 @@ private struct SettingsIndexPage: View {
     }
 
     private func categoryButton(_ category: SettingsCategory) -> some View {
-        Button { select(category) } label: {
+        Button {
+            select(category)
+        } label: {
             SettingsCategoryRow(category: category)
         }
         .buttonStyle(.plain)
@@ -292,9 +294,11 @@ private struct SettingsCategoryRow: View {
 
 enum SettingsDraftPolicy {
     static func shouldDiscard(_ provider: ModelProvider) -> Bool {
-        let hasDefaultName = provider.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasDefaultName =
+            provider.name.trimmingCharacters(in: .whitespacesAndNewlines)
             == String(localized: "New Provider")
-        let hasConfiguration = !provider.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasConfiguration =
+            !provider.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !provider.apiPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || provider.hasCredential || !provider.models.isEmpty
         return hasDefaultName && !hasConfiguration
@@ -426,8 +430,10 @@ private struct ProSettings: View {
         }
 
         Section("Termind Pro") {
-            Text("Unlock multiple-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and private iCloud Vault sync with one permanent purchase.")
-                .foregroundStyle(.secondary)
+            Text(
+                "Unlock multiple-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and private iCloud Vault sync with one permanent purchase."
+            )
+            .foregroundStyle(.secondary)
             if app.proAccess.status.canPurchase {
                 Button(purchaseEntryTitle) { app.proAccess.presentPaywall() }
                     .buttonStyle(.borderedProminent)
@@ -500,8 +506,10 @@ private struct SidebarSettings: View {
 
 private struct SFTPSettings: View {
     @Environment(AppModel.self) private var app
-    @AppStorage(SettingsKey.sftpGlobalTransferLimit) private var globalLimit = SettingsKey.defaultSFTPGlobalTransferLimit
-    @AppStorage(SettingsKey.sftpPerHostTransferLimit) private var perHostLimit = SettingsKey.defaultSFTPPerHostTransferLimit
+    @AppStorage(SettingsKey.sftpGlobalTransferLimit) private var globalLimit = SettingsKey
+        .defaultSFTPGlobalTransferLimit
+    @AppStorage(SettingsKey.sftpPerHostTransferLimit) private var perHostLimit = SettingsKey
+        .defaultSFTPPerHostTransferLimit
 
     var body: some View {
         Section("SFTP") {
@@ -519,8 +527,10 @@ private struct SFTPSettings: View {
                     Text(perHostLimit, format: .number).monospacedDigit()
                 }
             }
-            Text("Changes apply to queued transfers. Active transfers continue unchanged. Unsaved credentials limit a session to one transfer at a time.")
-                .font(.caption).foregroundStyle(.secondary)
+            Text(
+                "Changes apply to queued transfers. Active transfers continue unchanged. Unsaved credentials limit a session to one transfer at a time."
+            )
+            .font(.caption).foregroundStyle(.secondary)
         }
         .onAppear { applyLimits() }
         .onChange(of: globalLimit) { applyLimits() }
@@ -529,9 +539,15 @@ private struct SFTPSettings: View {
 
     private func applyLimits() {
         let normalizedGlobal = min(max(globalLimit, 1), 8)
-        if globalLimit != normalizedGlobal { globalLimit = normalizedGlobal; return }
+        if globalLimit != normalizedGlobal {
+            globalLimit = normalizedGlobal
+            return
+        }
         let normalizedPerHost = min(max(perHostLimit, 1), normalizedGlobal)
-        if perHostLimit != normalizedPerHost { perHostLimit = normalizedPerHost; return }
+        if perHostLimit != normalizedPerHost {
+            perHostLimit = normalizedPerHost
+            return
+        }
         app.sftpTransfers.updateLimits(global: globalLimit, perHost: perHostLimit)
     }
 }
@@ -615,8 +631,12 @@ private struct TerminalSettings: View {
             }
         }
         .onAppear {
-            if TermindTerminalThemeCatalog.darkTheme(named: darkTheme) == nil { darkTheme = SettingsKey.defaultTerminalThemeDark }
-            if TermindTerminalThemeCatalog.lightTheme(named: lightTheme) == nil { lightTheme = SettingsKey.defaultTerminalThemeLight }
+            if TermindTerminalThemeCatalog.darkTheme(named: darkTheme) == nil {
+                darkTheme = SettingsKey.defaultTerminalThemeDark
+            }
+            if TermindTerminalThemeCatalog.lightTheme(named: lightTheme) == nil {
+                lightTheme = SettingsKey.defaultTerminalThemeLight
+            }
         }
         .onChange(of: shellIntegration) { _, isEnabled in
             shellIntegrationChanged(isEnabled)
@@ -636,8 +656,10 @@ private struct SyncSettings: View {
             LabeledContent("Status") { statusLabel }
 
             if case .accountChangeConfirmationRequired = status {
-                Text("This Mac is signed in to a different iCloud account. Your local Vault will not be uploaded until you confirm the merge.")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text(
+                    "This Mac is signed in to a different iCloud account. Your local Vault will not be uploaded until you confirm the merge."
+                )
+                .font(.caption).foregroundStyle(.secondary)
                 Button("Merge with This iCloud Account") {
                     app.vaultSync?.confirmAccountSwitchMerge()
                 }
@@ -645,8 +667,10 @@ private struct SyncSettings: View {
                 Button("Retry") { app.vaultSync?.retry() }
             }
 
-            Text("Hosts, identities, public key metadata, Known Hosts, snippets, and port forwards sync through your private iCloud database. Passwords and private keys remain protected separately by Keychain. Credentials marked “This Mac” will be missing on other Macs.")
-                .font(.caption).foregroundStyle(.secondary)
+            Text(
+                "Hosts, identities, public key metadata, Known Hosts, snippets, and port forwards sync through your private iCloud database. Passwords and private keys remain protected separately by Keychain. Credentials marked “This Mac” will be missing on other Macs."
+            )
+            .font(.caption).foregroundStyle(.secondary)
         }
     }
 

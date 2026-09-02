@@ -283,7 +283,8 @@ nonisolated enum Metrics {
         /// Space to the right of the navigation sidebar in Vault's complete
         /// working layout: two dividers, the main surface, and an Edit/New
         /// detail panel.
-        static let trailingContentMinWidth: CGFloat = 1
+        static let trailingContentMinWidth: CGFloat =
+            1
             + Metrics.VaultContent.min
             + 1
             + Metrics.VaultDetail.min
@@ -482,11 +483,13 @@ struct TermindSidebarRowBackground: ViewModifier {
     func body(content: Content) -> some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
-            .foregroundStyle(SidebarSelectionStyle.foreground(
-                isSelected: isSelected,
-                controlActiveState: controlActiveState,
-                unselected: AnyShapeStyle(.primary)
-            ))
+            .foregroundStyle(
+                SidebarSelectionStyle.foreground(
+                    isSelected: isSelected,
+                    controlActiveState: controlActiveState,
+                    unselected: AnyShapeStyle(.primary)
+                )
+            )
             .fontWeight(isSelected ? .semibold : .regular)
             .background { backgroundFill }
             .overlay { menuHost }
@@ -568,29 +571,32 @@ extension View {
         tint: Color? = nil,
         isInteractive: Bool = false
     ) -> some View {
-        modifier(TermindGlassShape(
-            shape: RoundedRectangle(cornerRadius: cornerRadius),
-            tint: tint,
-            isInteractive: isInteractive
-        ))
+        modifier(
+            TermindGlassShape(
+                shape: RoundedRectangle(cornerRadius: cornerRadius),
+                tint: tint,
+                isInteractive: isInteractive
+            ))
     }
 
     func termindGlassCapsule(
         tint: Color? = nil,
         isInteractive: Bool = false
     ) -> some View {
-        modifier(TermindGlassShape(
-            shape: Capsule(), tint: tint, isInteractive: isInteractive
-        ))
+        modifier(
+            TermindGlassShape(
+                shape: Capsule(), tint: tint, isInteractive: isInteractive
+            ))
     }
 
     func termindGlassCircle(
         tint: Color? = nil,
         isInteractive: Bool = false
     ) -> some View {
-        modifier(TermindGlassShape(
-            shape: Circle(), tint: tint, isInteractive: isInteractive
-        ))
+        modifier(
+            TermindGlassShape(
+                shape: Circle(), tint: tint, isInteractive: isInteractive
+            ))
     }
 
     func termindGlassBar() -> some View {

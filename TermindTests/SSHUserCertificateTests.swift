@@ -80,12 +80,12 @@ struct SSHUserCertificateTests {
         blob.append(uint64(42))
         blob.append(uint32(type))
         blob.append(field(Data("termind-test".utf8)))
-        blob.append(field(Data())) // principals
+        blob.append(field(Data()))  // principals
         blob.append(uint64(validAfter))
         blob.append(uint64(validBefore))
-        blob.append(field(Data())) // critical options
-        blob.append(field(Data())) // extensions
-        blob.append(field(Data())) // reserved
+        blob.append(field(Data()))  // critical options
+        blob.append(field(Data()))  // extensions
+        blob.append(field(Data()))  // reserved
         blob.append(field(Data("ca".utf8)))
         blob.append(field(Data("signature".utf8)))
         return "ssh-ed25519-cert-v01@openssh.com \(blob.base64EncodedString())"

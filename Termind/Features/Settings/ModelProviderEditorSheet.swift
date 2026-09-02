@@ -350,7 +350,10 @@ struct ModelProviderEditorPage: View {
     /// the provider exists.
     private func binding<Value>(_ keyPath: WritableKeyPath<ModelProvider, Value>) -> Binding<Value> {
         Binding(
-            get: { app.aiConfiguration.modelProvider(modelProviderID)?[keyPath: keyPath] ?? ModelProvider(name: "")[keyPath: keyPath] },
+            get: {
+                app.aiConfiguration.modelProvider(modelProviderID)?[keyPath: keyPath]
+                    ?? ModelProvider(name: "")[keyPath: keyPath]
+            },
             set: { newValue in
                 guard var provider = app.aiConfiguration.modelProvider(modelProviderID) else { return }
                 provider[keyPath: keyPath] = newValue

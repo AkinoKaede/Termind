@@ -20,9 +20,10 @@ nonisolated struct DetectedDistribution: Codable, Hashable, Sendable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let proposedID = try container.decode(String.self, forKey: .id)
-        let proposedLikeIDs = try container.decodeIfPresent(
-            [String].self, forKey: .likeIDs
-        ) ?? []
+        let proposedLikeIDs =
+            try container.decodeIfPresent(
+                [String].self, forKey: .likeIDs
+            ) ?? []
         guard let value = Self(id: proposedID, likeIDs: proposedLikeIDs) else {
             throw DecodingError.dataCorruptedError(
                 forKey: .id, in: container,

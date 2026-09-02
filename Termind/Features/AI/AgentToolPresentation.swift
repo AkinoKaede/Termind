@@ -179,10 +179,12 @@ nonisolated enum AgentToolPresentation {
         // MCP output is remote-defined and intentionally keeps the established
         // JSON presentation. Built-ins below never fall back to JSON syntax.
         if card.descriptor.target == .mcp {
-            guard let output = detailOutput(
-                from: result, presentation: card.descriptor.presentation,
-                review: card.review
-            ) else { return nil }
+            guard
+                let output = detailOutput(
+                    from: result, presentation: card.descriptor.presentation,
+                    review: card.review
+                )
+            else { return nil }
             return AgentToolDetail(items: [
                 .text(.init(title: nil, text: output, style: .monospaced))
             ])
@@ -190,10 +192,12 @@ nonisolated enum AgentToolPresentation {
 
         let raw = result.untrustedPayload ?? result.content
         guard let value = try? AgentJSONValue.decode(Data(raw.utf8)) else {
-            guard let output = detailOutput(
-                from: result, presentation: card.descriptor.presentation,
-                review: card.review
-            ) else { return nil }
+            guard
+                let output = detailOutput(
+                    from: result, presentation: card.descriptor.presentation,
+                    review: card.review
+                )
+            else { return nil }
             let text = output.isEmpty ? String(localized: "Completed without output") : output
             return AgentToolDetail(items: [
                 .message(text, result.isError ? .failure : .secondary)
@@ -213,11 +217,13 @@ nonisolated enum AgentToolPresentation {
                 items: AgentToolDetailFormatting.genericItems(value, locale: locale)
             )
         }
-        return AgentToolDetail(items: presenter.present(.init(
-            result: value,
-            arguments: card.invocation.call.arguments.objectValue ?? [:],
-            locale: locale
-        )))
+        return AgentToolDetail(
+            items: presenter.present(
+                .init(
+                    result: value,
+                    arguments: card.invocation.call.arguments.objectValue ?? [:],
+                    locale: locale
+                )))
     }
 
     /// A bounded rendering projection. The full transformed output stays beside
@@ -351,9 +357,11 @@ nonisolated enum AgentToolPresentation {
         for card: AgentToolCard, locale: Locale
     ) -> RenderedOperation {
         guard let presentation = card.descriptor.presentation else {
-            if isChinese(locale), let recovered = recoveredBuiltInOperation(
-                for: card, locale: locale
-            ) {
+            if isChinese(locale),
+                let recovered = recoveredBuiltInOperation(
+                    for: card, locale: locale
+                )
+            {
                 return recovered
             }
             return RenderedOperation(
@@ -484,7 +492,8 @@ nonisolated enum AgentToolPresentation {
                 return RenderedOperation(text: oneLine, isArgumentValue: true)
             }
         }
-        let text = card.descriptor.name == "web_search"
+        let text =
+            card.descriptor.name == "web_search"
             ? "" : activityName(metadata.activity, locale: locale)
         return RenderedOperation(text: text, isArgumentValue: false)
     }
@@ -494,7 +503,8 @@ nonisolated enum AgentToolPresentation {
     ) -> String {
         guard let first = cards.first else { return "" }
         guard let presentation = first.descriptor.presentation else {
-            let activity = cards.count == 1
+            let activity =
+                cards.count == 1
                 ? operation(for: first, locale: locale)
                 : RenderedOperation(
                     text: toolCallCount(cards.count, locale: locale), isArgumentValue: false
@@ -719,41 +729,43 @@ nonisolated enum AgentToolPresentation {
         if isChinese(locale) {
             let action = localizedActionVerb(kind, locale: locale)
             let displayedActivity = isArgumentValue ? "“\(activity)”" : activity
-            let rendered: String = switch state {
-            case .proposed, .reviewing:
-                localized("Tool action preparing: \(action) \(displayedActivity)", locale: locale)
-            case .waitingForApproval, .waitingForUser:
-                localized("Tool action waiting: \(action) \(displayedActivity)", locale: locale)
-            case .running:
-                localized("Tool action running: \(action) \(displayedActivity)", locale: locale)
-            case .completed:
-                localized("Tool action completed: \(action) \(displayedActivity)", locale: locale)
-            case .denied:
-                localized("Tool action denied: \(action) \(displayedActivity)", locale: locale)
-            case .failed:
-                localized("Tool action failed: \(action) \(displayedActivity)", locale: locale)
-            case .interrupted:
-                localized("Tool action interrupted: \(action) \(displayedActivity)", locale: locale)
-            }
+            let rendered: String =
+                switch state {
+                case .proposed, .reviewing:
+                    localized("Tool action preparing: \(action) \(displayedActivity)", locale: locale)
+                case .waitingForApproval, .waitingForUser:
+                    localized("Tool action waiting: \(action) \(displayedActivity)", locale: locale)
+                case .running:
+                    localized("Tool action running: \(action) \(displayedActivity)", locale: locale)
+                case .completed:
+                    localized("Tool action completed: \(action) \(displayedActivity)", locale: locale)
+                case .denied:
+                    localized("Tool action denied: \(action) \(displayedActivity)", locale: locale)
+                case .failed:
+                    localized("Tool action failed: \(action) \(displayedActivity)", locale: locale)
+                case .interrupted:
+                    localized("Tool action interrupted: \(action) \(displayedActivity)", locale: locale)
+                }
             guard let target, !target.isEmpty else { return rendered }
             return localized("Tool action target: \(rendered) \(target)", locale: locale)
         }
         if activity.isEmpty {
-            let rendered: String = switch state {
-            case .proposed, .reviewing:
-                "Preparing to \(actionName(kind, form: .infinitive, locale: locale))"
-            case .waitingForApproval, .waitingForUser:
-                "Waiting to \(actionName(kind, form: .infinitive, locale: locale))"
-            case .running: actionName(kind, form: .progressive, locale: locale)
-            case .completed: actionName(kind, form: .past, locale: locale)
-            case .denied:
-                "Did not \(actionName(kind, form: .infinitive, locale: locale))"
-            case .failed:
-                "Failed to \(actionName(kind, form: .infinitive, locale: locale))"
-            case .interrupted:
-                "Interrupted while "
-                    + lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
-            }
+            let rendered: String =
+                switch state {
+                case .proposed, .reviewing:
+                    "Preparing to \(actionName(kind, form: .infinitive, locale: locale))"
+                case .waitingForApproval, .waitingForUser:
+                    "Waiting to \(actionName(kind, form: .infinitive, locale: locale))"
+                case .running: actionName(kind, form: .progressive, locale: locale)
+                case .completed: actionName(kind, form: .past, locale: locale)
+                case .denied:
+                    "Did not \(actionName(kind, form: .infinitive, locale: locale))"
+                case .failed:
+                    "Failed to \(actionName(kind, form: .infinitive, locale: locale))"
+                case .interrupted:
+                    "Interrupted while "
+                        + lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
+                }
             guard let target, !target.isEmpty else { return rendered }
             return "\(rendered) on \(target)"
         }
@@ -852,44 +864,45 @@ nonisolated enum AgentToolPresentation {
         form: ActionForm, locale: Locale
     ) -> String {
         if isChinese(locale) { return localizedActionVerb(kind, locale: locale) }
-        let forms: ActionForms = switch kind {
-        case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
-        case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
-        case .copy: .init(infinitive: "copy", progressive: "Copying", past: "Copied")
-        case .create: .init(infinitive: "create", progressive: "Creating", past: "Created")
-        case .delete: .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
-        case .edit: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
-        case .fetch: .init(infinitive: "fetch", progressive: "Fetching", past: "Fetched")
-        case .inspect: .init(infinitive: "inspect", progressive: "Inspecting", past: "Inspected")
-        case .list: .init(infinitive: "list", progressive: "Listing", past: "Listed")
-        case .move: .init(infinitive: "move", progressive: "Moving", past: "Moved")
-        case .present: .init(infinitive: "present", progressive: "Writing", past: "Presented")
-        case .pull: .init(infinitive: "pull", progressive: "Pulling", past: "Pulled")
-        case .push: .init(infinitive: "push", progressive: "Pushing", past: "Pushed")
-        case .read: .init(infinitive: "read", progressive: "Reading", past: "Read")
-        case .request: .init(infinitive: "request", progressive: "Requesting", past: "Requested")
-        case .run: .init(infinitive: "run", progressive: "Running", past: "Ran")
-        case .search: .init(infinitive: "search", progressive: "Searching", past: "Searched")
-        case .suggest: .init(infinitive: "suggest", progressive: "Suggesting", past: "Suggested")
-        case .update: .init(infinitive: "update", progressive: "Updating", past: "Updated")
-        case .wait: .init(infinitive: "wait for", progressive: "Waiting for", past: "Waited for")
-        case .write: .init(infinitive: "write", progressive: "Writing", past: "Wrote")
-        case .changePermissions:
-            .init(
-                infinitive: "change permissions for",
-                progressive: "Changing permissions for",
-                past: "Changed permissions for"
-            )
-        case .use: .init(infinitive: "use", progressive: "Using", past: "Used")
-        // Open vocabulary. The raw value is the verb an app chose, so using it
-        // uninflected reads better than a generic "act on".
-        default:
-            .init(
-                infinitive: kind.rawValue,
-                progressive: "\(kind.rawValue.capitalized)ing",
-                past: "\(kind.rawValue.capitalized)ed"
-            )
-        }
+        let forms: ActionForms =
+            switch kind {
+            case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
+            case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
+            case .copy: .init(infinitive: "copy", progressive: "Copying", past: "Copied")
+            case .create: .init(infinitive: "create", progressive: "Creating", past: "Created")
+            case .delete: .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
+            case .edit: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
+            case .fetch: .init(infinitive: "fetch", progressive: "Fetching", past: "Fetched")
+            case .inspect: .init(infinitive: "inspect", progressive: "Inspecting", past: "Inspected")
+            case .list: .init(infinitive: "list", progressive: "Listing", past: "Listed")
+            case .move: .init(infinitive: "move", progressive: "Moving", past: "Moved")
+            case .present: .init(infinitive: "present", progressive: "Writing", past: "Presented")
+            case .pull: .init(infinitive: "pull", progressive: "Pulling", past: "Pulled")
+            case .push: .init(infinitive: "push", progressive: "Pushing", past: "Pushed")
+            case .read: .init(infinitive: "read", progressive: "Reading", past: "Read")
+            case .request: .init(infinitive: "request", progressive: "Requesting", past: "Requested")
+            case .run: .init(infinitive: "run", progressive: "Running", past: "Ran")
+            case .search: .init(infinitive: "search", progressive: "Searching", past: "Searched")
+            case .suggest: .init(infinitive: "suggest", progressive: "Suggesting", past: "Suggested")
+            case .update: .init(infinitive: "update", progressive: "Updating", past: "Updated")
+            case .wait: .init(infinitive: "wait for", progressive: "Waiting for", past: "Waited for")
+            case .write: .init(infinitive: "write", progressive: "Writing", past: "Wrote")
+            case .changePermissions:
+                .init(
+                    infinitive: "change permissions for",
+                    progressive: "Changing permissions for",
+                    past: "Changed permissions for"
+                )
+            case .use: .init(infinitive: "use", progressive: "Using", past: "Used")
+            // Open vocabulary. The raw value is the verb an app chose, so using it
+            // uninflected reads better than a generic "act on".
+            default:
+                .init(
+                    infinitive: kind.rawValue,
+                    progressive: "\(kind.rawValue.capitalized)ing",
+                    past: "\(kind.rawValue.capitalized)ed"
+                )
+            }
         return forms[form]
     }
 

@@ -203,27 +203,27 @@ struct ManagedChooserHeader: View {
 
     private var searchRow: some View {
         HStack(spacing: Metrics.Space.s) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField(prompt, text: $query)
-                    .textFieldStyle(.plain)
-                    .focused($searchFocused)
-                    .onSubmit(onSubmit)
-                    .onKeyPress(.upArrow) { moveCursor(-1) }
-                    .onKeyPress(.downArrow) { moveCursor(1) }
-                    .onKeyPress(.space, action: toggleCursor)
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField(prompt, text: $query)
+                .textFieldStyle(.plain)
+                .focused($searchFocused)
+                .onSubmit(onSubmit)
+                .onKeyPress(.upArrow) { moveCursor(-1) }
+                .onKeyPress(.downArrow) { moveCursor(1) }
+                .onKeyPress(.space, action: toggleCursor)
 
-                if !query.isEmpty {
-                    Button {
-                        query = ""
-                        searchFocused = true
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Clear search"))
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                    searchFocused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Clear search"))
+            }
         }
         .padding(Metrics.Space.s)
         .background(

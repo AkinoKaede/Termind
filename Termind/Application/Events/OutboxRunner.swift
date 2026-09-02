@@ -56,7 +56,8 @@ final class OutboxRunner {
                     try store.markSucceeded(job.id)
                 } catch {
                     let attempt = job.attemptCount + 1
-                    let retryAt = attempt >= maximumAttempts
+                    let retryAt =
+                        attempt >= maximumAttempts
                         ? nil
                         : Date().addingTimeInterval(pow(2, Double(attempt)))
                     try store.markFailed(

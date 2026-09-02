@@ -1,5 +1,5 @@
-import Foundation
 import Darwin
+import Foundation
 
 @main
 struct TermindMCPBridge {

@@ -91,9 +91,10 @@ struct MCPServerToolsTests {
         if case .secret(let request)? = authentication.current?.request {
             #expect(request.timeout == .seconds(300))
         }
-        authentication.respondSecret(.answered([
-            AgentUserInputAnswer(questionID: "secret", value: .secret("TOP-SECRET"))
-        ]))
+        authentication.respondSecret(
+            .answered([
+                AgentUserInputAnswer(questionID: "secret", value: .secret("TOP-SECRET"))
+            ]))
 
         let result = try await call.value
         let payload = try #require(result.untrustedPayload)

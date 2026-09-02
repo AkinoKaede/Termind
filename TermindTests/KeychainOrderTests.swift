@@ -91,7 +91,6 @@ struct KeychainOrderTests {
         )
     }
 
-
     @Test
     func dropPoliciesExpressFixedAndExchangeableSections() {
         let fixed = ManagedCardDropPolicy<KeychainPageView.SectionID>.sameSection

@@ -139,19 +139,23 @@ struct AgentInterruptedRunRecoveryTests {
             runID: UUID(),
             call: AgentToolCall(id: "call-b", name: "ssh_exec", arguments: .object([:]))
         )
-        store.restore([StoredAgentConversation(
-            id: UUID(),
-            messages: [],
-            toolCards: [StoredAgentToolCard(
-                invocation: invocation,
-                descriptor: AgentToolDescriptor(
-                    name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
-                    target: .host, safety: .requiresAuthorization
-                ),
-                state: "started", result: nil
-            )],
-            lastRunState: .interrupted
-        )])
+        store.restore([
+            StoredAgentConversation(
+                id: UUID(),
+                messages: [],
+                toolCards: [
+                    StoredAgentToolCard(
+                        invocation: invocation,
+                        descriptor: AgentToolDescriptor(
+                            name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
+                            target: .host, safety: .requiresAuthorization
+                        ),
+                        state: "started", result: nil
+                    )
+                ],
+                lastRunState: .interrupted
+            )
+        ])
 
         let card = try! #require(store.conversations.first?.toolCards.first)
         #expect(card.state == .interrupted)

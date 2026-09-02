@@ -40,17 +40,21 @@ final class AssistantConversationStore {
     }
 
     private func forkRoot(for title: String, sourceID: UUID) -> String {
-        guard let range = title.range(
-            of: #" \([0-9]+\)$"#, options: .regularExpression
-        ) else { return title }
+        guard
+            let range = title.range(
+                of: #" \([0-9]+\)$"#, options: .regularExpression
+            )
+        else { return title }
         let candidate = String(title[..<range.lowerBound])
         let belongsToExistingSequence = conversations.contains { conversation in
             guard conversation.id != sourceID else { return false }
             let other = conversation.derivedTitle
             if other == candidate { return true }
-            guard let suffix = other.range(
-                of: #" \([0-9]+\)$"#, options: .regularExpression
-            ) else { return false }
+            guard
+                let suffix = other.range(
+                    of: #" \([0-9]+\)$"#, options: .regularExpression
+                )
+            else { return false }
             return other[..<suffix.lowerBound] == candidate
         }
         return belongsToExistingSequence ? candidate : title
@@ -108,22 +112,30 @@ final class AssistantConversationStore {
             // Empty is "never summarized", not a name of nothing — `derivedTitle`
             // has to be able to tell those apart to fall back.
             conversation.title = value.title.isEmpty ? nil : value.title
-            conversation.customTitle = value.metadata.customTitle.isEmpty
+            conversation.customTitle =
+                value.metadata.customTitle.isEmpty
                 ? nil : value.metadata.customTitle
             conversation.isPinned = value.metadata.isPinned
             conversation.archivedAt = value.metadata.archivedAt
             conversation.toolCards = value.toolCards.map { card in
                 let state: AgentToolCard.State
-                if card.result?.isInterrupted == true { state = .interrupted }
-                else if card.result?.isError == true { state = .failed }
-                else if card.result != nil || card.state == "finished" { state = .completed }
+                if card.result?.isInterrupted == true {
+                    state = .interrupted
+                } else if card.result?.isError == true {
+                    state = .failed
+                } else if card.result != nil || card.state == "finished" {
+                    state = .completed
+                }
                 // Not `.running`, which is what this used to restore to. Every
                 // unfinished run is marked interrupted at launch, so a card
                 // that was mid-flight when the process died is not running
                 // now and never will be — it came back as a spinner that
                 // nothing would ever stop.
-                else if card.state == "started" { state = .interrupted }
-                else { state = .proposed }
+                else if card.state == "started" {
+                    state = .interrupted
+                } else {
+                    state = .proposed
+                }
                 return AgentToolCard(
                     invocation: card.invocation, descriptor: card.descriptor,
                     state: state, result: card.result, review: card.review
@@ -187,20 +199,23 @@ final class AssistantLibraryModel {
         var pinned = pinnedConversations.filter { $0.id != id }
         var chats = activeConversations.filter { $0.id != id }
         if toPinned {
-            let index = nextID.flatMap { next in pinned.firstIndex { $0.id == next } }
+            let index =
+                nextID.flatMap { next in pinned.firstIndex { $0.id == next } }
                 ?? pinned.endIndex
             pinned.insert(source, at: index)
         } else {
-            let index = nextID.flatMap { next in chats.firstIndex { $0.id == next } }
+            let index =
+                nextID.flatMap { next in chats.firstIndex { $0.id == next } }
                 ?? chats.endIndex
             chats.insert(source, at: index)
         }
 
         return pinned.enumerated().map {
             StoredAgentConversationOrder(id: $0.element.id, isPinned: true, sortIndex: Double($0.offset))
-        } + chats.enumerated().map {
-            StoredAgentConversationOrder(id: $0.element.id, isPinned: false, sortIndex: Double($0.offset))
         }
+            + chats.enumerated().map {
+                StoredAgentConversationOrder(id: $0.element.id, isPinned: false, sortIndex: Double($0.offset))
+            }
     }
 
     func applyOrder(_ updates: [StoredAgentConversationOrder]) {
@@ -323,10 +338,11 @@ final class AssistantLibraryModel {
     /// search field is not a way to read them.
     func search(_ query: String, scope: SearchScope) -> [ConversationModel] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let candidates: [ConversationModel] = switch scope {
-        case .active: pinnedConversations + activeConversations
-        case .archived: archivedConversations
-        }
+        let candidates: [ConversationModel] =
+            switch scope {
+            case .active: pinnedConversations + activeConversations
+            case .archived: archivedConversations
+            }
         guard !trimmed.isEmpty else { return candidates }
         return candidates.filter { $0.matches(trimmed) }
     }

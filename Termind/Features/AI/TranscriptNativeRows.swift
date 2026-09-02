@@ -1848,7 +1848,8 @@ private final class NativeFlowView: NSView {
         let available = max(1, bounds.width)
         var y: CGFloat = 0
         for row in rows(for: available) {
-            let rowWidth = row.reduce(CGFloat.zero) { $0 + $1.size.width }
+            let rowWidth =
+                row.reduce(CGFloat.zero) { $0 + $1.size.width }
                 + spacing * CGFloat(max(0, row.count - 1))
             var x: CGFloat =
                 horizontalAlignment == .trailing ? max(0, available - rowWidth) : 0
@@ -1873,9 +1874,10 @@ private final class NativeFlowView: NSView {
     override var intrinsicContentSize: NSSize {
         let available = max(1, bounds.width > 0 ? bounds.width : superview?.bounds.width ?? 1)
         let rows = rows(for: available)
-        let height = rows.reduce(CGFloat.zero) { total, row in
-            total + (row.map(\.size.height).max() ?? 0)
-        }
+        let height =
+            rows.reduce(CGFloat.zero) { total, row in
+                total + (row.map(\.size.height).max() ?? 0)
+            }
             + spacing * CGFloat(max(0, rows.count - 1))
         return NSSize(width: NSView.noIntrinsicMetric, height: height)
     }
@@ -1956,7 +1958,8 @@ private final class NativeDisclosureHeader: NSControl {
                 "Transcript.ScanningTitle"
             )
         }
-        let showsTransientTitle = transientMarkdownTitle != nil
+        let showsTransientTitle =
+            transientMarkdownTitle != nil
             && transientUntil.map { $0 > .now } == true
         if showsTransientTitle, let transientMarkdownTitle {
             titleLabel.attributedStringValue = TermindMarkdownParser.singleLineAttributedText(
@@ -2008,7 +2011,8 @@ private final class NativeDisclosureHeader: NSControl {
             row.topAnchor.constraint(equalTo: topAnchor),
             row.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
-        let accessibleTitle = showsTransientTitle
+        let accessibleTitle =
+            showsTransientTitle
             ? transientMarkdownTitle.map(TermindMarkdownParser.plainText) ?? title
             : title
         setAccessibilityLabel(accessibleTitle)
@@ -2167,10 +2171,11 @@ private final class NativeChipButton: NativeButton {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = nativeHierarchicalColor(
-            .quaternaryLabelColor,
-            opacity: 0.5
-        ).cgColor
+        layer?.backgroundColor =
+            nativeHierarchicalColor(
+                .quaternaryLabelColor,
+                opacity: 0.5
+            ).cgColor
     }
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
@@ -2236,10 +2241,11 @@ private final class NativeRiskBadge: NSView {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = TermindColor.resolvedNative(
-            Self.color(assessment.risk).withAlphaComponent(0.12),
-            for: effectiveAppearance
-        ).cgColor
+        layer?.backgroundColor =
+            TermindColor.resolvedNative(
+                Self.color(assessment.risk).withAlphaComponent(0.12),
+                for: effectiveAppearance
+            ).cgColor
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -2282,10 +2288,11 @@ private final class NativeBadge: NSView {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = TermindColor.resolvedNative(
-            NSColor.quaternaryLabelColor.withAlphaComponent(0.5),
-            for: effectiveAppearance
-        ).cgColor
+        layer?.backgroundColor =
+            TermindColor.resolvedNative(
+                NSColor.quaternaryLabelColor.withAlphaComponent(0.5),
+                for: effectiveAppearance
+            ).cgColor
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -2380,10 +2387,11 @@ private final class NativeVerticalRule: NSView {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = TermindColor.resolvedNative(
-            .quaternaryLabelColor,
-            for: effectiveAppearance
-        ).cgColor
+        layer?.backgroundColor =
+            TermindColor.resolvedNative(
+                .quaternaryLabelColor,
+                for: effectiveAppearance
+            ).cgColor
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -2601,11 +2609,13 @@ private nonisolated final class NativeScanningMaskLayer: CALayer {
         let bandWidth = min(max(bounds.width * 0.32, 40), 96)
         let origin = -bandWidth + (bounds.width + bandWidth) * progress
         let alphas: [CGFloat] = [0, 0.34, 0.82, 1, 0.82, 0.34, 0]
-        guard let gradient = CGGradient(
-            colorsSpace: CGColorSpaceCreateDeviceRGB(),
-            colors: alphas.map { CGColor(gray: 1, alpha: $0) } as CFArray,
-            locations: [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1]
-        ) else { return }
+        guard
+            let gradient = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: alphas.map { CGColor(gray: 1, alpha: $0) } as CFArray,
+                locations: [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1]
+            )
+        else { return }
 
         context.saveGState()
         context.setBlendMode(.destinationOut)
@@ -2760,16 +2770,18 @@ private final class NativeCard: NSView {
     required init?(coder: NSCoder) { fatalError() }
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = TermindColor.resolvedNative(
-            fillProvider(),
-            for: effectiveAppearance
-        ).cgColor
-        if let strokeProvider {
-            layer?.borderWidth = 1
-            layer?.borderColor = TermindColor.resolvedNative(
-                strokeProvider(),
+        layer?.backgroundColor =
+            TermindColor.resolvedNative(
+                fillProvider(),
                 for: effectiveAppearance
             ).cgColor
+        if let strokeProvider {
+            layer?.borderWidth = 1
+            layer?.borderColor =
+                TermindColor.resolvedNative(
+                    strokeProvider(),
+                    for: effectiveAppearance
+                ).cgColor
         } else {
             layer?.borderWidth = 0
             layer?.borderColor = nil

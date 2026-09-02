@@ -198,12 +198,13 @@ final class AppCommandRegistry {
             ),
         ]
         if canShowAssistant {
-            commands.append(AppCommandDescriptor(
-                id: "action.show-assistant", title: String(localized: "Show Assistant in Sidebar"),
-                subtitle: String(localized: "Action"), symbol: "sidebar.left",
-                section: .actions,
-                keywords: ["sidebar", "assistant", "context", "details"], target: .showAssistant
-            ))
+            commands.append(
+                AppCommandDescriptor(
+                    id: "action.show-assistant", title: String(localized: "Show Assistant in Sidebar"),
+                    subtitle: String(localized: "Action"), symbol: "sidebar.left",
+                    section: .actions,
+                    keywords: ["sidebar", "assistant", "context", "details"], target: .showAssistant
+                ))
         }
         return commands
     }

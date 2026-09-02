@@ -171,7 +171,8 @@ enum HostMenuEntries {
             NativeMenuEntry(title: String(localized: "Edit")) {
                 window.openHostEditor(host: host)
             },
-            NativeMenuEntry(title: String(localized: "Copy SSH Command"),
+            NativeMenuEntry(
+                title: String(localized: "Copy SSH Command"),
                 isEnabled: app.hostLibrary.sshCommand(for: host) != nil
             ) {
                 guard let command = app.hostLibrary.sshCommand(for: host) else { return }

@@ -6,15 +6,17 @@ extension DispatchQueue {
     ) async throws -> T {
         try await withCheckedThrowingContinuation { continuation in
             async {
-                do { continuation.resume(returning: try operation()) }
-                catch { continuation.resume(throwing: error) }
+                do { continuation.resume(returning: try operation()) } catch { continuation.resume(throwing: error) }
             }
         }
     }
 
     func perform(_ operation: @escaping @Sendable () -> Void) async {
         await withCheckedContinuation { continuation in
-            async { operation(); continuation.resume() }
+            async {
+                operation()
+                continuation.resume()
+            }
         }
     }
 }

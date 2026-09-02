@@ -270,9 +270,10 @@ final class Workspace: Identifiable {
         commandGenerationSequence &+= 1
         let generation = commandGenerationSequence
         let targetIDs = targets.map(\.id)
-        let revisions = Dictionary(uniqueKeysWithValues: targets.map {
-            ($0.id, $0.commandGeneratorRevision)
-        })
+        let revisions = Dictionary(
+            uniqueKeysWithValues: targets.map {
+                ($0.id, $0.commandGeneratorRevision)
+            })
         let focusedID = focusedPaneID
         let wasBroadcasting = broadcastsInput && canBroadcast
         commandGeneratorState = .readingDraft
@@ -284,11 +285,13 @@ final class Workspace: Identifiable {
                 guard !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                     throw WorkspaceCommandGenerationError.emptyDraft
                 }
-                guard self?.commandGenerationSnapshotIsCurrent(
-                    generation: generation, focusedID: focusedID,
-                    wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
-                    revisions: revisions
-                ) == true else { throw CancellationError() }
+                guard
+                    self?.commandGenerationSnapshotIsCurrent(
+                        generation: generation, focusedID: focusedID,
+                        wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
+                        revisions: revisions
+                    ) == true
+                else { throw CancellationError() }
 
                 self?.commandGeneratorState = .generating
                 let context = CommandGeneratorContext(
@@ -300,11 +303,13 @@ final class Workspace: Identifiable {
                     try await controller.generate(context)
                 }
                 try Task.checkCancellation()
-                guard self?.commandGenerationSnapshotIsCurrent(
-                    generation: generation, focusedID: focusedID,
-                    wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
-                    revisions: revisions
-                ) == true else { throw CancellationError() }
+                guard
+                    self?.commandGenerationSnapshotIsCurrent(
+                        generation: generation, focusedID: focusedID,
+                        wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
+                        revisions: revisions
+                    ) == true
+                else { throw CancellationError() }
 
                 for target in targets {
                     target.replaceCurrentDraft(with: command)

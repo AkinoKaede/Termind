@@ -1,4 +1,5 @@
 import SwiftUI
+
 /// The first pinned destination's main content. Its navigator is mounted by the
 /// window-level split view and remains alive while top-level destinations change.
 struct VaultView: View {

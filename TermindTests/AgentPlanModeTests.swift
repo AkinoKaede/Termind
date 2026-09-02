@@ -117,10 +117,12 @@ private func drain(
         hooks: [TermindAgentPolicy.planModeHook(isPlanning: isPlanning)]
     )
     var events: [AgentEvent] = []
-    for await event in await runtime.start(AgentRunRequest(
-        conversationID: UUID(), prompt: "go", permissionMode: .askForApproval,
-        isPlanning: isPlanning
-    )) { events.append(event) }
+    for await event in await runtime.start(
+        AgentRunRequest(
+            conversationID: UUID(), prompt: "go", permissionMode: .askForApproval,
+            isPlanning: isPlanning
+        ))
+    { events.append(event) }
     return events
 }
 

@@ -16,10 +16,11 @@ struct WebSearchTests {
         #expect(try await tool.preflight(invocation(query: "swift")).safety == .locallyReadOnly)
 
         await #expect(throws: AgentToolError.self) {
-            try await tool.preflight(AgentToolInvocation(
-                runID: UUID(),
-                call: AgentToolCall(id: "1", name: "web_search", arguments: .object([:]))
-            ))
+            try await tool.preflight(
+                AgentToolInvocation(
+                    runID: UUID(),
+                    call: AgentToolCall(id: "1", name: "web_search", arguments: .object([:]))
+                ))
         }
     }
 
@@ -69,10 +70,13 @@ struct WebSearchTests {
             target: .network, safety: .locallyReadOnly
         )
         conversation.handle(.toolProposed(invocation, descriptor))
-        conversation.handle(.toolFinished(invocation, AgentToolResult(
-            callID: invocation.call.id, content: "[]",
-            metadata: [AgentToolResult.providerNativeKey: .bool(true)]
-        )))
+        conversation.handle(
+            .toolFinished(
+                invocation,
+                AgentToolResult(
+                    callID: invocation.call.id, content: "[]",
+                    metadata: [AgentToolResult.providerNativeKey: .bool(true)]
+                )))
 
         #expect(conversation.toolCards.count == 1)
         #expect(conversation.transcript.isEmpty)
@@ -89,9 +93,12 @@ struct WebSearchTests {
             target: .network, safety: .locallyReadOnly
         )
         conversation.handle(.toolProposed(invocation, descriptor))
-        conversation.handle(.toolFinished(invocation, AgentToolResult(
-            callID: invocation.call.id, content: "<untrusted-data>\n[]\n</untrusted-data>"
-        )))
+        conversation.handle(
+            .toolFinished(
+                invocation,
+                AgentToolResult(
+                    callID: invocation.call.id, content: "<untrusted-data>\n[]\n</untrusted-data>"
+                )))
         #expect(conversation.transcript.count == 1)
         #expect(conversation.transcript[0].role == .tool)
     }

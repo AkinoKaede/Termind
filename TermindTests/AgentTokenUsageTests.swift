@@ -4,8 +4,8 @@ import Testing
 
 @testable import Termind
 
-private extension [AgentModelStreamEvent] {
-    var firstUsage: AgentTokenUsage? {
+extension [AgentModelStreamEvent] {
+    fileprivate var firstUsage: AgentTokenUsage? {
         for case .usage(let usage) in self { return usage }
         return nil
     }
@@ -78,15 +78,17 @@ struct AgentTokenUsageTests {
     /// that is nearly full.
     @Test
     func anthropicAddsCacheTokensIntoTheInputTotal() {
-        let events = AgentProviderClient.parseAnthropic("message_start", [
-            "message": [
-                "usage": [
-                    "input_tokens": 220,
-                    "cache_read_input_tokens": 96_000,
-                    "cache_creation_input_tokens": 1_800,
+        let events = AgentProviderClient.parseAnthropic(
+            "message_start",
+            [
+                "message": [
+                    "usage": [
+                        "input_tokens": 220,
+                        "cache_read_input_tokens": 96_000,
+                        "cache_creation_input_tokens": 1_800,
+                    ]
                 ]
-            ]
-        ])
+            ])
 
         #expect(events.firstUsage?.inputTokens == 98_020)
         #expect(events.firstUsage?.cachedInputTokens == 96_000)
@@ -323,10 +325,11 @@ struct AgentTokenUsageTests {
             runID: UUID(),
             call: AgentToolCall(id: "call", name: "lookup", arguments: .object([:]))
         )
-        conversation.handle(.toolFinished(
-            invocation,
-            AgentToolResult(callID: "call", content: String(repeating: "r", count: 800))
-        ))
+        conversation.handle(
+            .toolFinished(
+                invocation,
+                AgentToolResult(callID: "call", content: String(repeating: "r", count: 800))
+            ))
         expectSnapshotMatchesReference(conversation)
 
         _ = try #require(conversation.editUserMessage(opening.id, authoredText: "edited"))

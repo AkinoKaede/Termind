@@ -146,10 +146,11 @@ private struct ChipView: View {
                 styledContent(removable: false)
             }
         }
-        .help(Text(
-            remove == nil
-                ? String(localized: "Always included") : String(localized: "Remove attachment")
-        ))
+        .help(
+            Text(
+                remove == nil
+                    ? String(localized: "Always included") : String(localized: "Remove attachment")
+            ))
     }
 
     private func styledContent(removable: Bool) -> some View {
@@ -158,9 +159,9 @@ private struct ChipView: View {
                 systemName: removable && (isHovering || isFocused)
                     ? "xmark" : chip.kind.symbol
             )
-                .font(.caption2)
-                .frame(width: 12, height: 12)
-                .contentTransition(.symbolEffect(.replace))
+            .font(.caption2)
+            .frame(width: 12, height: 12)
+            .contentTransition(.symbolEffect(.replace))
             Text(chip.label).font(.caption).lineLimit(1)
         }
         .padding(.horizontal, Metrics.Space.s)
@@ -214,9 +215,10 @@ struct FlowLayout: Layout {
         let width = proposal.width ?? naturalWidth
         let rows = arrange(subviews: subviews, in: width)
         let height = rows.last.map { $0.y + $0.height } ?? 0
-        let usedWidth = rows.map { row in
-            row.items.last.map { $0.x + $0.size.width } ?? 0
-        }.max() ?? 0
+        let usedWidth =
+            rows.map { row in
+                row.items.last.map { $0.x + $0.size.width } ?? 0
+            }.max() ?? 0
         return CGSize(width: fillsWidth ? width : usedWidth, height: height)
     }
 
@@ -524,7 +526,7 @@ struct ComposerView: View {
                     sessionContext: sessionContext, conversation: conversation,
                     cancelPending: cancelAttachmentImport
                 )
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
             draftEditor($composer.draft)
@@ -1075,9 +1077,11 @@ struct ComposerView: View {
         }
     }
 
-    private var slashModelChoices: [(
-        argument: String, provider: ModelProvider, model: AIModel
-    )] {
+    private var slashModelChoices:
+        [(
+            argument: String, provider: ModelProvider, model: AIModel
+        )]
+    {
         modelProviders.flatMap { provider in
             provider.assistantModels.map { model in
                 (
@@ -1376,9 +1380,10 @@ struct ComposerView: View {
 
     private func handleContextPaste() -> Bool {
         let pasteboard = NSPasteboard.general
-        let urls = pasteboard.readObjects(
-            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
-        ) as? [URL] ?? []
+        let urls =
+            pasteboard.readObjects(
+                forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
+            ) as? [URL] ?? []
         if !urls.isEmpty {
             conversation.importAttachmentFiles(urls)
             return true
@@ -1392,8 +1397,9 @@ struct ComposerView: View {
         guard let text = pasteboard.string(forType: .string),
             ContextAttachmentImporter.shouldAttachPastedText(text)
         else { return false }
-        do { conversation.attach(try ContextAttachmentImporter.pastedText(text)) }
-        catch { conversation.composer.attachmentImportError = error.localizedDescription }
+        do { conversation.attach(try ContextAttachmentImporter.pastedText(text)) } catch {
+            conversation.composer.attachmentImportError = error.localizedDescription
+        }
         return true
     }
 
@@ -1717,9 +1723,10 @@ struct ComposerView: View {
     private var modelOptionItems: [AssistantModelOptionListItem] {
         guard !modelProviders.isEmpty else { return [.empty] }
         return modelProviders.flatMap { provider in
-            [.provider(provider)] + provider.assistantModels.map { model in
-                .model(provider: provider, model: model, selected: isSelected(model, on: provider))
-            }
+            [.provider(provider)]
+                + provider.assistantModels.map { model in
+                    .model(provider: provider, model: model, selected: isSelected(model, on: provider))
+                }
         }
     }
 

@@ -673,7 +673,8 @@ final class SSHSessionModel: Identifiable {
             {
                 let identity = store.identity(for: jump)
                 let submitted = suppliedAuthentications[jump.id]
-                let retryNeedsPassphrase = submitted?.passphrase == nil
+                let retryNeedsPassphrase =
+                    submitted?.passphrase == nil
                     && (submitted?.keyID ?? identity?.keyID)
                         .flatMap { store.key($0) }?.requiresPassphraseEntry == true
                 connectionAttemptID = nil
@@ -768,9 +769,11 @@ final class SSHSessionModel: Identifiable {
                     }
                     let authenticationIdentity = store.identity(for: authenticationHost)
                     let submitted = suppliedAuthentications[authenticationHost.id]
-                    let authenticationKeyID = submitted?.keyID
+                    let authenticationKeyID =
+                        submitted?.keyID
                         ?? authenticationIdentity?.keyID ?? selectedKeyID
-                    let retryNeedsPassphrase = submitted?.passphrase == nil
+                    let retryNeedsPassphrase =
+                        submitted?.passphrase == nil
                         && authenticationKeyID.flatMap { store.key($0) }?
                             .requiresPassphraseEntry == true
                     let returnsToIdentity = submitted?.passphrase != nil

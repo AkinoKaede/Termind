@@ -89,7 +89,7 @@ nonisolated struct SSHKeyMaterial: Sendable {
         var blobLength = 0
         let result = privateKey.withCString { privateBuffer in
             let parse: (UnsafePointer<CChar>?) -> Int32 = { passphraseBuffer in
-                termind_libssh2_publickey_from_private_memory(
+                libssh2PublicKeyFromPrivateMemory(
                     session, &method, &methodLength, &blob, &blobLength,
                     privateBuffer, privateKey.utf8.count, passphraseBuffer
                 )
@@ -307,7 +307,7 @@ extension SSHKeyMaterial.Generation {
 /// argument is nil. Using it here keeps imports and authentication consistent,
 /// including passphrase-protected OpenSSH keys.
 @_silgen_name("_libssh2_pub_priv_keyfilememory")
-private nonisolated func termind_libssh2_publickey_from_private_memory(
+private nonisolated func libssh2PublicKeyFromPrivateMemory(
     _ session: OpaquePointer?,
     _ method: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
     _ methodLength: UnsafeMutablePointer<Int>?,

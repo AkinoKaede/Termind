@@ -95,9 +95,11 @@ struct ExternalAuthCoordinatorTests {
         }
         try await waitUntil { coordinator.current?.id == identity.id }
 
-        coordinator.respondSSH(.submit(AgentSSHAuthenticationAnswer(
-            username: "deploy", keyID: keyID, save: false
-        )))
+        coordinator.respondSSH(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", keyID: keyID, save: false
+                )))
 
         try await waitUntil {
             guard case .ssh(let request)? = coordinator.current?.request,
@@ -192,12 +194,15 @@ struct ExternalAuthCoordinatorTests {
             return false
         }
 
-        coordinator.respondSecret(.answered([
-            AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
-        ]))
-        #expect(await task.value == .answered([
-            AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
-        ]))
+        coordinator.respondSecret(
+            .answered([
+                AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
+            ]))
+        #expect(
+            await task.value
+                == .answered([
+                    AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
+                ]))
 
         let ordinary = AgentUserInputRequest(
             questions: [AgentUserQuestion(id: "text", prompt: "Name", kind: .text)]
@@ -283,9 +288,10 @@ struct ExternalAuthCoordinatorTests {
             await coordinator.enqueue(request, clientName: "Claude", runID: UUID())
         }
         try await waitUntil { coordinator.current?.id == request.id }
-        coordinator.respondSecret(.answered([
-            AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
-        ]))
+        coordinator.respondSecret(
+            .answered([
+                AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
+            ]))
         guard case .answered = await secret.value else {
             Issue.record("expected the secret request to be answered")
             return
@@ -404,18 +410,24 @@ struct ExternalToolCallHistoryTests {
             arguments: ["path": .string("/srv/config"), "content": .string("TOP-SECRET")]
         )
         channel.emit(.toolProposed(write, descriptor(name: "sftp_write", readOnly: false)))
-        channel.emit(.toolFinished(write, untrustedResult(
-            callID: write.call.id, payload: .object(["bytes": .number(10)])
-        )))
+        channel.emit(
+            .toolFinished(
+                write,
+                untrustedResult(
+                    callID: write.call.id, payload: .object(["bytes": .number(10)])
+                )))
 
         let exec = invocation(
             runID: runID, name: "ssh_exec", arguments: ["command": .string("uname -a")]
         )
         channel.emit(.toolProposed(exec, descriptor(name: "ssh_exec", readOnly: false)))
-        channel.emit(.toolFinished(exec, untrustedResult(
-            callID: exec.call.id,
-            payload: .object(["stdout": .string("PRIVATE OUTPUT"), "exit_code": .number(0)])
-        )))
+        channel.emit(
+            .toolFinished(
+                exec,
+                untrustedResult(
+                    callID: exec.call.id,
+                    payload: .object(["stdout": .string("PRIVATE OUTPUT"), "exit_code": .number(0)])
+                )))
         try await waitUntil {
             let rows = store.entries()
             return rows.count == 2 && rows.allSatisfy { $0.status != .running }

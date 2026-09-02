@@ -229,10 +229,11 @@ struct StatusBarView: View {
                 Text(status.label)
             }
         }
-        .help(Text(
-            host.map { app.hostLibrary.loginAddress(for: $0) }
-                ?? serialSession?.subtitle ?? status.label
-        ))
+        .help(
+            Text(
+                host.map { app.hostLibrary.loginAddress(for: $0) }
+                    ?? serialSession?.subtitle ?? status.label
+            ))
     }
 
     private var host: Host? { pane?.hostID.flatMap { app.hostLibrary.host($0) } }
@@ -611,9 +612,12 @@ private struct TransferCenterNativeList: NSViewRepresentable {
                 return Metrics.TransferCenter.estimatedRowHeight
             }
             measurement.rootView = root
-            return ceil(measurement.sizeThatFits(in: CGSize(
-                width: width, height: .greatestFiniteMagnitude
-            )).height)
+            return ceil(
+                measurement.sizeThatFits(
+                    in: CGSize(
+                        width: width, height: .greatestFiniteMagnitude
+                    )
+                ).height)
         }
 
         private func configure(_ row: HostingListRow, item: TransferCenterListItem) {

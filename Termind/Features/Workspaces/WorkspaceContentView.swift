@@ -21,7 +21,7 @@ struct WorkspaceContentView: View {
                 isActive: isActive,
                 omittedPaneID: omittedPaneID
             )
-                .id(workspace.id)
+            .id(workspace.id)
 
             if workspace.commandGeneratorState != .idle {
                 CommandGeneratorOverlay(state: workspace.commandGeneratorState)
@@ -554,7 +554,8 @@ private struct PaneView: View {
                     tone: .unavailable
                 )
             }
-            let hostName = app.hostLibrary.host(sftpSession.hostID)?.name
+            let hostName =
+                app.hostLibrary.host(sftpSession.hostID)?.name
                 ?? String(localized: "SFTP")
             return DropTargetPresentation(
                 title: nativeDropKind == .sftpItems

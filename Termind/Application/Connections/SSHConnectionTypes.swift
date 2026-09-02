@@ -85,10 +85,13 @@ nonisolated enum TermindSSHError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .socket(let message), .proxy(let message), .route(let message),
-            .library(let message), .authenticationFailed(let message): message
+            .library(let message), .authenticationFailed(let message):
+            message
         case .routeHost(_, _, _, _, let message): message
         case .hostKeyChanged(let expected, let received):
-            String(localized: "The host key changed. Expected one of \(expected.joined(separator: ", ")), received \(received).")
+            String(
+                localized:
+                    "The host key changed. Expected one of \(expected.joined(separator: ", ")), received \(received).")
         case .missingCredential: String(localized: "The selected identity has no usable password or private key.")
         case .keyPassphraseRequired: String(localized: "Enter the Passphrase for the selected key.")
         case .missingUsername: String(localized: "The selected host has no login username.")
@@ -137,7 +140,8 @@ nonisolated enum TermindSSHError: LocalizedError, Sendable {
         case .socket, .library, .disconnected: true
         case .proxy, .route, .routeHost, .authenticationFailed, .hostKeyChanged,
             .missingCredential, .keyPassphraseRequired, .missingUsername,
-            .untrustedHost, .mismatchedHostKey: false
+            .untrustedHost, .mismatchedHostKey:
+            false
         }
     }
 }

@@ -42,7 +42,8 @@ struct SerialFeatureTests {
     func enterMappingChangesOnlyCarriageReturnBytes() {
         var configuration = SerialConnectionConfiguration()
         configuration.enterKey = .lineFeed
-        #expect(configuration.transformInteractiveInput(Data([0x41, 0x0D, 0x42, 0x0A])) == Data([0x41, 0x0A, 0x42, 0x0A]))
+        #expect(
+            configuration.transformInteractiveInput(Data([0x41, 0x0D, 0x42, 0x0A])) == Data([0x41, 0x0A, 0x42, 0x0A]))
 
         configuration.enterKey = .carriageReturnLineFeed
         #expect(configuration.transformInteractiveInput(Data([0x0D])) == Data([0x0D, 0x0A]))

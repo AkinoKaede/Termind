@@ -39,9 +39,11 @@ struct ScrubberWebClientTests {
         #expect(!markdown.content.contains("raw-marker"))
 
         let original = try await tool.execute(
-            invocation("fetch", [
-                "url": .string("http://router.local/"), "format": .string("original"),
-            ]),
+            invocation(
+                "fetch",
+                [
+                    "url": .string("http://router.local/"), "format": .string("original"),
+                ]),
             context: context()
         )
         #expect(original.content.contains("\"format\":\"original\""))
@@ -76,11 +78,13 @@ struct ScrubberWebClientTests {
             search: { query, count in
                 #expect(query == "swift concurrency")
                 #expect(count == 5)
-                return [AgentWebDocument(
-                    engine: "google", title: "Result",
-                    url: URL(string: "https://example.com/result")!,
-                    markdown: oversized, original: "<html></html>"
-                )]
+                return [
+                    AgentWebDocument(
+                        engine: "google", title: "Result",
+                        url: URL(string: "https://example.com/result")!,
+                        markdown: oversized, original: "<html></html>"
+                    )
+                ]
             }
         )
         let result = try await WebSearchTool(web: client).execute(
@@ -95,9 +99,11 @@ struct ScrubberWebClientTests {
 
     @Test
     func fetchPreflightNeverEscalatesPrivateHTTP() async throws {
-        let invocation = invocation("fetch", [
-            "url": .string("http://192.168.1.1/admin")
-        ])
+        let invocation = invocation(
+            "fetch",
+            [
+                "url": .string("http://192.168.1.1/admin")
+            ])
         let preflight = try await FetchTool(web: fixtureClient()).preflight(invocation)
         #expect(preflight.safety == .locallyReadOnly)
         #expect(preflight.reasons.isEmpty)

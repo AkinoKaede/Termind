@@ -4,8 +4,7 @@ import SwiftData
 @MainActor
 final class SwiftDataHostRepository: HostRepository {
     private let context: ModelContext
-    private var continuations: [UUID: AsyncStream<RepositoryChange<HostLibrarySnapshot>>.Continuation]
-        = [:]
+    private var continuations: [UUID: AsyncStream<RepositoryChange<HostLibrarySnapshot>>.Continuation] = [:]
     var didRecordVaultChanges: ((VaultMutationSet) -> Void)?
 
     init(context: ModelContext) {

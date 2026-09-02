@@ -14,7 +14,8 @@ final class ConnectionHistoryModel {
         entries: [ConnectionHistoryEntry] = [],
         repository: (any ConnectionHistoryRepository)? = nil
     ) {
-        self.repository = repository
+        self.repository =
+            repository
             ?? InMemoryConnectionHistoryRepository(entries: entries)
     }
 
@@ -66,8 +67,7 @@ final class ConnectionHistoryModel {
             cachedEntries = nil
             storageError = nil
             revision &+= 1
-        }
-        catch { storageError = error.localizedDescription }
+        } catch { storageError = error.localizedDescription }
     }
 
     func clear(for hostID: Host.ID) {
@@ -76,8 +76,7 @@ final class ConnectionHistoryModel {
             cachedEntries = nil
             storageError = nil
             revision &+= 1
-        }
-        catch { storageError = error.localizedDescription }
+        } catch { storageError = error.localizedDescription }
     }
 
     func clearAll() {
@@ -86,7 +85,6 @@ final class ConnectionHistoryModel {
             cachedEntries = []
             storageError = nil
             revision &+= 1
-        }
-        catch { storageError = error.localizedDescription }
+        } catch { storageError = error.localizedDescription }
     }
 }

@@ -196,7 +196,9 @@ struct ModelListEditor: View {
     /// Roles whose model is among the ticked ones.
     private var brokenRoles: [AIRole] {
         AIRole.allCases.filter { role in
-            guard let ref = app.aiConfiguration.assignment(for: role), ref.modelProviderID == modelProviderID else { return false }
+            guard let ref = app.aiConfiguration.assignment(for: role), ref.modelProviderID == modelProviderID else {
+                return false
+            }
             return state.checked.contains(ref.modelID)
         }
     }
@@ -507,7 +509,8 @@ struct ModelListEditor: View {
     }
 
     private func reasoningLevelRow(_ effort: ReasoningEffort, model: AIModel) -> some View {
-        let mapping = model.reasoningProfile?.mapping(for: effort)
+        let mapping =
+            model.reasoningProfile?.mapping(for: effort)
             ?? ReasoningLevelMapping(isSupported: false)
         let supportedCount = model.reasoningProfile?.levels.values.filter(\.isSupported).count ?? 0
 
@@ -603,7 +606,8 @@ struct ModelListEditor: View {
     ) -> Binding<Value> where Value: Hashable {
         Binding(
             get: {
-                app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id)?[keyPath: keyPath] ?? model[keyPath: keyPath]
+                app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id)?[keyPath: keyPath]
+                    ?? model[keyPath: keyPath]
             },
             set: { newValue in
                 guard var updated = app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id) else { return }
@@ -751,8 +755,8 @@ struct ModelListEditor: View {
     }
 }
 
-private extension AIModel {
-    var withoutReasoningOverride: AIModel {
+extension AIModel {
+    fileprivate var withoutReasoningOverride: AIModel {
         var copy = self
         copy.reasoningProfile = nil
         return copy
@@ -825,7 +829,7 @@ private struct CandidatePicker: View {
                     let ids = filtered.map(\.id)
                     chooser.toggleAll(visible: ids, enabled: Set(selectable.map(\.id)))
                 }
-                    .disabled(selectable.isEmpty)
+                .disabled(selectable.isEmpty)
                 Button("Select None") { chooser.selected.subtract(filtered.map(\.id)) }
                     .disabled(chooser.selected.isEmpty)
                 Spacer(minLength: 0)
@@ -844,7 +848,7 @@ private struct CandidatePicker: View {
                 isChosen: item.isChosen
             ) {
                 chooser.activate(item.id)
-                }
+            }
         }
     }
 
@@ -867,8 +871,8 @@ private struct CandidatePicker: View {
             Button(
                 chooser.selected.isEmpty ? "Add" : "Add \(chooser.selected.count)"
             ) { add(chooser.selected) }
-                .keyboardShortcut(.defaultAction)
-                .disabled(chooser.selected.isEmpty)
+            .keyboardShortcut(.defaultAction)
+            .disabled(chooser.selected.isEmpty)
         }
         .padding(Metrics.Space.l)
     }

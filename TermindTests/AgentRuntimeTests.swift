@@ -20,7 +20,10 @@ private struct ScriptedAgentModel: AgentModelStreaming {
 
     actor Counter {
         var value = 0
-        func next() -> Int { defer { value += 1 }; return value }
+        func next() -> Int {
+            defer { value += 1 }
+            return value
+        }
     }
 }
 
@@ -61,13 +64,17 @@ private struct CapturingAgentModel: AgentModelStreaming {
             Task {
                 await requests.append(request)
                 if await counter.next() == 0 {
-                    continuation.yield(.providerItem(.object([
-                        "type": .string("reasoning"), "id": .string("reasoning-1"),
-                    ])))
-                    continuation.yield(.providerItem(.object([
-                        "type": .string("reasoning"), "id": .string("reasoning-1"),
-                        "encrypted_content": .string("final-state"),
-                    ])))
+                    continuation.yield(
+                        .providerItem(
+                            .object([
+                                "type": .string("reasoning"), "id": .string("reasoning-1"),
+                            ])))
+                    continuation.yield(
+                        .providerItem(
+                            .object([
+                                "type": .string("reasoning"), "id": .string("reasoning-1"),
+                                "encrypted_content": .string("final-state"),
+                            ])))
                     continuation.yield(.toolCallDelta(id: "wait", name: "wait", arguments: "{}"))
                     continuation.yield(.finished(.toolCalls))
                 } else {
@@ -165,10 +172,12 @@ struct AgentRuntimeTests {
         ]
         var runID: UUID?
 
-        for await event in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "again",
-            permissionMode: .askForApproval, priorMessages: prior
-        )) {
+        for await event in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "again",
+                permissionMode: .askForApproval, priorMessages: prior
+            ))
+        {
             runID = runID ?? event.associatedRunID
         }
 
@@ -209,14 +218,16 @@ struct AgentRuntimeTests {
             ],
             requests: requests
         )
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "inspect", summary: "inspect",
-            inputSchema: .object([
-                "type": .string("object"), "properties": .object([:]),
-                "required": .array([]), "additionalProperties": .bool(false),
-            ]),
-            target: .local, safety: .locallyReadOnly
-        )) { invocation, _ in
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "inspect", summary: "inspect",
+                inputSchema: .object([
+                    "type": .string("object"), "properties": .object([:]),
+                    "required": .array([]), "additionalProperties": .bool(false),
+                ]),
+                target: .local, safety: .locallyReadOnly
+            )
+        ) { invocation, _ in
             AgentToolResult(callID: invocation.call.id, content: "ok")
         }
         let runtime = AgentRuntime(
@@ -235,10 +246,12 @@ struct AgentRuntimeTests {
         )
         var runID: UUID?
 
-        for await event in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "inspect", permissionMode: .askForApproval,
-            sessionContext: context.modelContext
-        )) {
+        for await event in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "inspect", permissionMode: .askForApproval,
+                sessionContext: context.modelContext
+            ))
+        {
             runID = runID ?? event.associatedRunID
         }
 
@@ -250,20 +263,24 @@ struct AgentRuntimeTests {
 
         // One block, carrying everything, sitting between the replayed history
         // and the turn it describes.
-        #expect(captured.allSatisfy { request in
-            request.messages.filter { $0.text.contains("cwd: /srv/app") }.count == 1
-        })
-        #expect(captured.allSatisfy { request in
-            guard let index = request.messages.firstIndex(where: {
-                $0.text.contains("Session context")
-            }) else { return false }
-            let block = request.messages[index].text
-            return block.contains("host_name: edge-01")
-                && block.contains("distribution_id: alpine")
-                && block.contains("kernel_release: 6.6.44-0-lts")
-                && block.contains("architecture: aarch64")
-                && request.messages[index + 1].text == "inspect"
-        })
+        #expect(
+            captured.allSatisfy { request in
+                request.messages.filter { $0.text.contains("cwd: /srv/app") }.count == 1
+            })
+        #expect(
+            captured.allSatisfy { request in
+                guard
+                    let index = request.messages.firstIndex(where: {
+                        $0.text.contains("Session context")
+                    })
+                else { return false }
+                let block = request.messages[index].text
+                return block.contains("host_name: edge-01")
+                    && block.contains("distribution_id: alpine")
+                    && block.contains("kernel_release: 6.6.44-0-lts")
+                    && block.contains("architecture: aarch64")
+                    && request.messages[index + 1].text == "inspect"
+            })
 
         // Present in what is sent, absent from what is kept — otherwise it would
         // be replayed, and restore would project it into the user's own bubble.
@@ -314,11 +331,13 @@ struct AgentRuntimeTests {
         let gate = AsyncGate()
         let events = EventRecorder()
         let model = CapturingAgentModel(requests: requests)
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "wait", summary: "wait",
-            inputSchema: .object(["type": .string("object")]),
-            target: .local, safety: .locallyReadOnly
-        )) { invocation, _ in
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "wait", summary: "wait",
+                inputSchema: .object(["type": .string("object")]),
+                target: .local, safety: .locallyReadOnly
+            )
+        ) { invocation, _ in
             await gate.beginAndWait()
             return AgentToolResult(callID: invocation.call.id, content: "released")
         }
@@ -326,9 +345,10 @@ struct AgentRuntimeTests {
             model: model, tools: [tool],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
-        let stream = await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
-        ))
+        let stream = await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+            ))
         let consumer = Task { for await event in stream { await events.append(event) } }
 
         await gate.waitUntilStarted()
@@ -339,15 +359,17 @@ struct AgentRuntimeTests {
 
         let captured = await requests.values
         #expect(captured.count == 2)
-        #expect(captured.last?.messages.contains {
-            $0.role == .user && $0.text == "also inspect logs"
-        } == true)
+        #expect(
+            captured.last?.messages.contains {
+                $0.role == .user && $0.text == "also inspect logs"
+            } == true)
         // Announced by identity, so a reader can retire the queued row it drew
         // without comparing one piece of text against another.
-        #expect(await events.values.contains { event in
-            guard case .steeringDelivered(let message) = event else { return false }
-            return message.id == steered.id && message.text == steered.text
-        })
+        #expect(
+            await events.values.contains { event in
+                guard case .steeringDelivered(let message) = event else { return false }
+                return message.id == steered.id && message.text == steered.text
+            })
         let providerItems = captured.last?.messages
             .first(where: { $0.role == .assistant })?.providerItems
         #expect(providerItems?.count == 1)
@@ -372,9 +394,10 @@ struct AgentRuntimeTests {
         )
         var runID: UUID?
         var states: [AgentRunState] = []
-        let stream = await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
-        ))
+        let stream = await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+            ))
         let consumer = Task {
             for await event in stream {
                 if case .runState(let state) = event { states.append(state) }
@@ -405,16 +428,19 @@ struct AgentRuntimeTests {
         let gate = AsyncGate()
         let runtime = AgentRuntime(
             model: ScriptedAgentModel(turns: [
-                [.toolCallSnapshot(id: "1", providerItemID: nil, name: "hang", arguments: "{}"),
-                 .finished(.toolCalls)],
+                [
+                    .toolCallSnapshot(id: "1", providerItemID: nil, name: "hang", arguments: "{}"),
+                    .finished(.toolCalls),
+                ],
                 [.textDelta("done"), .finished(.completed)],
             ]),
             tools: [hangingTool(gate, onCancel: cancelled)],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
-        let stream = await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
-        ))
+        let stream = await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+            ))
         let consumer = Task { for await _ in stream {} }
 
         await gate.waitUntilStarted()
@@ -436,9 +462,11 @@ struct AgentRuntimeTests {
             repository: repository
         )
         var runID: UUID?
-        for await event in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
-        )) {
+        for await event in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "start", permissionMode: .askForApproval
+            ))
+        {
             runID = runID ?? event.associatedRunID
         }
 
@@ -475,12 +503,17 @@ struct AgentRuntimeTests {
         }
         let broker = AgentApprovalBroker(
             reviewer: nil,
-            manualApproval: { _ in await approvals.increment(); return .allow }
+            manualApproval: { _ in
+                await approvals.increment()
+                return .allow
+            }
         )
         let runtime = AgentRuntime(model: model, tools: [tool], approval: broker)
-        for await _ in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "write", permissionMode: .askForApproval
-        )) {}
+        for await _ in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "write", permissionMode: .askForApproval
+            ))
+        {}
 
         #expect(await approvals.value == 0)
         #expect(await executions.value == 0)
@@ -496,14 +529,16 @@ struct AgentRuntimeTests {
             [.textDelta("done"), .finished(.completed)],
         ])
         let executions = Counter()
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "list_hosts", summary: "list",
-            inputSchema: .object([
-                "type": .string("object"), "properties": .object([:]),
-                "required": .array([]), "additionalProperties": .bool(false),
-            ]),
-            target: .host, safety: .locallyReadOnly
-        )) { invocation, _ in
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "list_hosts", summary: "list",
+                inputSchema: .object([
+                    "type": .string("object"), "properties": .object([:]),
+                    "required": .array([]), "additionalProperties": .bool(false),
+                ]),
+                target: .host, safety: .locallyReadOnly
+            )
+        ) { invocation, _ in
             #expect(invocation.call.arguments == .object([:]))
             await executions.increment()
             return AgentToolResult(callID: invocation.call.id, content: "[]")
@@ -512,9 +547,11 @@ struct AgentRuntimeTests {
             model: model, tools: [tool],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
-        for await _ in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
-        )) {}
+        for await _ in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
+            ))
+        {}
         #expect(await executions.value == 1)
     }
 
@@ -531,14 +568,16 @@ struct AgentRuntimeTests {
             [.textDelta("done"), .finished(.completed)],
         ])
         let executions = Counter()
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "list_hosts", summary: "list",
-            inputSchema: .object([
-                "type": .string("object"), "properties": .object([:]),
-                "required": .array([]), "additionalProperties": .bool(false),
-            ]),
-            target: .host, safety: .locallyReadOnly
-        )) { invocation, _ in
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "list_hosts", summary: "list",
+                inputSchema: .object([
+                    "type": .string("object"), "properties": .object([:]),
+                    "required": .array([]), "additionalProperties": .bool(false),
+                ]),
+                target: .host, safety: .locallyReadOnly
+            )
+        ) { invocation, _ in
             #expect(invocation.call.arguments == .object([:]))
             await executions.increment()
             return AgentToolResult(callID: invocation.call.id, content: "[]")
@@ -547,9 +586,11 @@ struct AgentRuntimeTests {
             model: model, tools: [tool],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
-        for await _ in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
-        )) {}
+        for await _ in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
+            ))
+        {}
         #expect(await executions.value == 1)
     }
 
@@ -566,12 +607,17 @@ struct AgentRuntimeTests {
             invocation: invocation, descriptor: descriptor, userIntent: "change it"
         )
         let manual = Counter()
-        let reviewer = FixedReviewer(result: .success(SecurityReviewDecision(
-            verdict: .approve, risk: .medium, userAuthorization: .sufficient, reason: "ok"
-        )))
+        let reviewer = FixedReviewer(
+            result: .success(
+                SecurityReviewDecision(
+                    verdict: .approve, risk: .medium, userAuthorization: .sufficient, reason: "ok"
+                )))
         let broker = AgentApprovalBroker(
             reviewer: reviewer,
-            manualApproval: { _ in await manual.increment(); return .allow }
+            manualApproval: { _ in
+                await manual.increment()
+                return .allow
+            }
         )
 
         #expect(await broker.authorize(request, mode: .askForApproval) == .allow)
@@ -616,11 +662,12 @@ struct AgentRuntimeTests {
                     #expect(context.preflightMetadata["scope"] == .string("public"))
                     var escalation = descriptor
                     escalation.safety = .requiresAuthorization
-                    let decision = await context.authorize(AgentApprovalRequest(
-                        invocation: invocation, descriptor: escalation,
-                        userIntent: context.userIntent,
-                        localReasons: ["redirect entered a restricted origin"]
-                    ))
+                    let decision = await context.authorize(
+                        AgentApprovalRequest(
+                            invocation: invocation, descriptor: escalation,
+                            userIntent: context.userIntent,
+                            localReasons: ["redirect entered a restricted origin"]
+                        ))
                     guard decision == .allow else {
                         return AgentToolResult(
                             callID: invocation.call.id, content: "denied", isError: true
@@ -634,12 +681,17 @@ struct AgentRuntimeTests {
                 model: model, tools: [tool],
                 approval: AgentApprovalBroker(
                     reviewer: reviewer,
-                    manualApproval: { _ in await manual.increment(); return .allow }
+                    manualApproval: { _ in
+                        await manual.increment()
+                        return .allow
+                    }
                 )
             )
-            for await _ in await runtime.start(AgentRunRequest(
-                conversationID: UUID(), prompt: "follow it", permissionMode: mode
-            )) {}
+            for await _ in await runtime.start(
+                AgentRunRequest(
+                    conversationID: UUID(), prompt: "follow it", permissionMode: mode
+                ))
+            {}
         }
 
         #expect(await manual.value == 1)
@@ -669,10 +721,12 @@ struct AgentRuntimeTests {
         }
 
         let critical = AgentApprovalBroker(
-            reviewer: FixedReviewer(result: .success(SecurityReviewDecision(
-                verdict: .approve, risk: .critical,
-                userAuthorization: .sufficient, reason: "critical"
-            ))),
+            reviewer: FixedReviewer(
+                result: .success(
+                    SecurityReviewDecision(
+                        verdict: .approve, risk: .critical,
+                        userAuthorization: .sufficient, reason: "critical"
+                    ))),
             manualApproval: { _ in .allow }
         )
         #expect(
@@ -707,10 +761,11 @@ struct AgentRuntimeTests {
         }
         #expect(reason.contains("timed out"))
         try? await Task.sleep(for: .milliseconds(10))
-        #expect(await events.values.contains {
-            if case .reviewFailed(_, _, let timedOut) = $0 { return timedOut }
-            return false
-        })
+        #expect(
+            await events.values.contains {
+                if case .reviewFailed(_, _, let timedOut) = $0 { return timedOut }
+                return false
+            })
     }
 
     /// Returning a bare error result left the transcript with an empty
@@ -730,18 +785,24 @@ struct AgentRuntimeTests {
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
         var events: [AgentEvent] = []
-        for await event in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
-        )) { events.append(event) }
+        for await event in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
+            ))
+        { events.append(event) }
 
-        #expect(events.contains {
-            if case .toolProposed(let invocation, _) = $0 {
-                invocation.call.name == "not_registered"
-            } else { false }
-        })
-        #expect(events.contains {
-            if case .toolFinished(_, let result) = $0 { result.isError } else { false }
-        })
+        #expect(
+            events.contains {
+                if case .toolProposed(let invocation, _) = $0 {
+                    invocation.call.name == "not_registered"
+                } else {
+                    false
+                }
+            })
+        #expect(
+            events.contains {
+                if case .toolFinished(_, let result) = $0 { result.isError } else { false }
+            })
         // The loop still recovers: the model is told, and answers.
         #expect(events.contains(.runState(.completed)))
     }
@@ -752,14 +813,16 @@ struct AgentRuntimeTests {
     func duplicateToolNamesAreResolvedRatherThanTrapping() async {
         let executed = Recorder()
         let tools = ["builtin", "mcp-shadow"].map { origin in
-            AnyAgentTool(descriptor: AgentToolDescriptor(
-                name: "list_hosts", summary: origin,
-                inputSchema: .object([
-                    "type": .string("object"), "properties": .object([:]),
-                    "required": .array([]), "additionalProperties": .bool(false),
-                ]),
-                target: .host, safety: .locallyReadOnly
-            )) { invocation, _ in
+            AnyAgentTool(
+                descriptor: AgentToolDescriptor(
+                    name: "list_hosts", summary: origin,
+                    inputSchema: .object([
+                        "type": .string("object"), "properties": .object([:]),
+                        "required": .array([]), "additionalProperties": .bool(false),
+                    ]),
+                    target: .host, safety: .locallyReadOnly
+                )
+            ) { invocation, _ in
                 await executed.append(origin)
                 return AgentToolResult(callID: invocation.call.id, content: origin)
             }
@@ -772,9 +835,11 @@ struct AgentRuntimeTests {
             tools: tools,
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
-        for await _ in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
-        )) {}
+        for await _ in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
+            ))
+        {}
 
         // First registration wins, so a remote name cannot shadow a built-in.
         #expect(await executed.values == ["builtin"])
@@ -794,22 +859,28 @@ struct AgentRuntimeTests {
                 ],
                 [.textDelta("done"), .finished(.completed)],
             ]),
-            tools: [AnyAgentTool(descriptor: AgentToolDescriptor(
-                name: "noop", summary: "noop",
-                inputSchema: .object([
-                    "type": .string("object"), "properties": .object([:]),
-                    "required": .array([]), "additionalProperties": .bool(false),
-                ]),
-                target: .local, safety: .locallyReadOnly
-            )) { invocation, _ in
-                AgentToolResult(callID: invocation.call.id, content: "ok")
-            }],
+            tools: [
+                AnyAgentTool(
+                    descriptor: AgentToolDescriptor(
+                        name: "noop", summary: "noop",
+                        inputSchema: .object([
+                            "type": .string("object"), "properties": .object([:]),
+                            "required": .array([]), "additionalProperties": .bool(false),
+                        ]),
+                        target: .local, safety: .locallyReadOnly
+                    )
+                ) { invocation, _ in
+                    AgentToolResult(callID: invocation.call.id, content: "ok")
+                }
+            ],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
             repository: repository
         )
-        for await _ in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
-        )) {}
+        for await _ in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
+            ))
+        {}
         try? await Task.sleep(for: .milliseconds(50))
 
         let recorded = await repository.recorded
@@ -833,9 +904,10 @@ struct AgentRuntimeTests {
         #expect(names.allSatisfy { $0.hasPrefix("gateway.") })
         #expect(descriptors.allSatisfy { $0.namespace == "gateway" })
         #expect(descriptors.map(\.name).contains("list_hosts_2"))
-        #expect(descriptors.allSatisfy {
-            $0.presentation?.activity == .label($0.qualifiedName)
-        })
+        #expect(
+            descriptors.allSatisfy {
+                $0.presentation?.activity == .label($0.qualifiedName)
+            })
     }
 
     @Test
@@ -899,14 +971,16 @@ private actor Recorder {
 /// The sleep is long enough that finishing normally is never the fast path, and
 /// short enough that a test which fails to cancel it fails rather than hangs.
 private func hangingTool(_ gate: AsyncGate, onCancel: Recorder? = nil) -> AnyAgentTool {
-    AnyAgentTool(descriptor: AgentToolDescriptor(
-        name: "hang", summary: "hang",
-        inputSchema: .object([
-            "type": .string("object"), "properties": .object([:]),
-            "required": .array([]), "additionalProperties": .bool(false),
-        ]),
-        target: .local, safety: .locallyReadOnly, concurrency: .parallel
-    )) { invocation, _ in
+    AnyAgentTool(
+        descriptor: AgentToolDescriptor(
+            name: "hang", summary: "hang",
+            inputSchema: .object([
+                "type": .string("object"), "properties": .object([:]),
+                "required": .array([]), "additionalProperties": .bool(false),
+            ]),
+            target: .local, safety: .locallyReadOnly, concurrency: .parallel
+        )
+    ) { invocation, _ in
         await gate.begin()
         do {
             try await Task.sleep(for: .seconds(5))
@@ -965,7 +1039,7 @@ private actor AsyncGate {
         started = true
         let waiters = startedWaiters
         startedWaiters.removeAll()
-        waiters.forEach { $0.resume() }
+        for waiter in waiters { waiter.resume() }
     }
 
     func beginAndWait() async {

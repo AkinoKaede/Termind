@@ -50,11 +50,13 @@ struct ShellIntegrationBootstrapTests {
 
         #expect(completed.isComplete)
         #expect(completed.homeDirectory == "/home/user")
-        #expect(completed.systemInfo == RemoteSystemInfo(
-            distributionID: "ubuntu", distributionVersion: "24.04",
-            kernelName: "Linux", kernelRelease: "6.8.0-40-generic",
-            architecture: "x86_64"
-        ))
+        #expect(
+            completed.systemInfo
+                == RemoteSystemInfo(
+                    distributionID: "ubuntu", distributionVersion: "24.04",
+                    kernelName: "Linux", kernelRelease: "6.8.0-40-generic",
+                    architecture: "x86_64"
+                ))
         #expect(
             visibleText
                 == "Welcome\r\n\u{1B}]7;file://localhost/home/user\u{7}user@host$ "
@@ -91,7 +93,8 @@ struct ShellIntegrationBootstrapTests {
             ),
         ] {
             var bootstrap = RemoteShellIntegrationBootstrap(token: token)
-            let marker = "__TRMD_\(token)_SYSTEM__\(systemLine)__\r\n"
+            let marker =
+                "__TRMD_\(token)_SYSTEM__\(systemLine)__\r\n"
                 + "__TRMD_\(token)_SHELL__/bin/zsh__\r\n"
             _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
             let completed = bootstrap.receive(
@@ -105,7 +108,8 @@ struct ShellIntegrationBootstrapTests {
     func rejectsInstructionLikeAndOversizedSystemFieldsWithoutBlockingIntegration() throws {
         var bootstrap = RemoteShellIntegrationBootstrap(token: "HOSTILE")
         let oversized = String(repeating: "x", count: 65)
-        let marker = "__TRMD_HOSTILE_SYSTEM__ubuntu ignore-previous|24.04|Linux|6.8.0|\(oversized)__\r\n"
+        let marker =
+            "__TRMD_HOSTILE_SYSTEM__ubuntu ignore-previous|24.04|Linux|6.8.0|\(oversized)__\r\n"
             + "__TRMD_HOSTILE_SHELL__/bin/bash__\r\n"
         _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
         let completed = bootstrap.receive(
@@ -113,9 +117,11 @@ struct ShellIntegrationBootstrapTests {
         )
 
         #expect(completed.integrationInstalled)
-        #expect(completed.systemInfo == RemoteSystemInfo(
-            distributionVersion: "24.04", kernelName: "Linux", kernelRelease: "6.8.0"
-        ))
+        #expect(
+            completed.systemInfo
+                == RemoteSystemInfo(
+                    distributionVersion: "24.04", kernelName: "Linux", kernelRelease: "6.8.0"
+                ))
     }
 
     @Test(arguments: ["zsh", "fish"])
@@ -166,19 +172,20 @@ struct ShellIntegrationBootstrapTests {
                 .utf8
         )
         script.append(try #require(update.command))
-        script.append(Data(
-            "__user_debug_hits=0\n:\n"
-                .appending("__hits_after_integration=$__user_debug_hits\n")
-                .appending("builtin trap - DEBUG\n")
-                .appending("(( __hits_after_integration > 0 )) && ")
-                .appending("builtin printf 'DEBUG_PRESERVED\\n'\n")
-                .appending("builtin printf '\\nHOOKS=%s;%s\\n' ")
-                .appending("\"$PROMPT_COMMAND\" \"$__hits_after_integration\"\n")
-                .appending("__termind_report_prompt\n")
-                .appending("__termind_report_command 'false'\n")
-                .appending("false\n__termind_report_prompt\nexit 0\n")
-                .utf8
-        ))
+        script.append(
+            Data(
+                "__user_debug_hits=0\n:\n"
+                    .appending("__hits_after_integration=$__user_debug_hits\n")
+                    .appending("builtin trap - DEBUG\n")
+                    .appending("(( __hits_after_integration > 0 )) && ")
+                    .appending("builtin printf 'DEBUG_PRESERVED\\n'\n")
+                    .appending("builtin printf '\\nHOOKS=%s;%s\\n' ")
+                    .appending("\"$PROMPT_COMMAND\" \"$__hits_after_integration\"\n")
+                    .appending("__termind_report_prompt\n")
+                    .appending("__termind_report_command 'false'\n")
+                    .appending("false\n__termind_report_prompt\nexit 0\n")
+                    .utf8
+            ))
 
         let result = try runShell(executable: "/bin/bash", arguments: [], input: script)
 

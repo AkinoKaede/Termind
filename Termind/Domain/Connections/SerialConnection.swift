@@ -12,7 +12,10 @@ nonisolated struct SerialPortDescriptor: Identifiable, Hashable, Sendable {
 }
 
 nonisolated enum SerialDataBits: Int, CaseIterable, Identifiable, Sendable {
-    case five = 5, six = 6, seven = 7, eight = 8
+    case five = 5
+    case six = 6
+    case seven = 7
+    case eight = 8
     var id: Int { rawValue }
 }
 
@@ -29,7 +32,8 @@ nonisolated enum SerialParity: String, CaseIterable, Identifiable, Sendable {
 }
 
 nonisolated enum SerialStopBits: Int, CaseIterable, Identifiable, Sendable {
-    case one = 1, two = 2
+    case one = 1
+    case two = 2
     var id: Int { rawValue }
 }
 
@@ -91,15 +95,18 @@ nonisolated struct SerialConnectionConfiguration: Hashable, Sendable {
         "\(baudRate) \(dataBits.rawValue)-\(parityLetter)-\(stopBits.rawValue)"
     }
     private var parityLetter: String {
-        switch parity { case .none: "N"; case .even: "E"; case .odd: "O" }
+        switch parity {
+        case .none: "N"
+        case .even: "E"
+        case .odd: "O"
+        }
     }
 
     func transformInteractiveInput(_ data: Data) -> Data {
         guard enterKey != .carriageReturn, data.contains(0x0D) else { return data }
         var result = Data()
         for byte in data {
-            if byte == 0x0D { result.append(contentsOf: enterKey.bytes) }
-            else { result.append(byte) }
+            if byte == 0x0D { result.append(contentsOf: enterKey.bytes) } else { result.append(byte) }
         }
         return result
     }

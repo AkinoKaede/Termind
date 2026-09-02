@@ -29,22 +29,22 @@ nonisolated struct AgentHostListing: Hashable, Sendable {
 /// never serialized into a tool result.
 @MainActor
 final class AgentHostResolver: Sendable {
-    typealias HostKeyDiscovering = @Sendable (
-        _ hostID: Host.ID, _ host: String, _ port: Int,
-        _ proxy: SSHTransportProxy?, _ jumps: [SSHRouteHopConfiguration]
-    ) async throws -> SSHHostKeyObservation
+    typealias HostKeyDiscovering =
+        @Sendable (
+            _ hostID: Host.ID, _ host: String, _ port: Int,
+            _ proxy: SSHTransportProxy?, _ jumps: [SSHRouteHopConfiguration]
+        ) async throws -> SSHHostKeyObservation
 
     private let store: HostLibraryModel
     private let discoverHostKey: HostKeyDiscovering?
     private var temporaryTargets: @MainActor @Sendable () -> [AgentHostTarget]
-    private var temporaryConfiguration:
-        @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration?
+    private var temporaryConfiguration: @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration?
 
     init(
         store: HostLibraryModel,
         temporaryTargets: @escaping @MainActor @Sendable () -> [AgentHostTarget] = { [] },
-        temporaryConfiguration: @escaping
-            @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration? = { _ in nil },
+        temporaryConfiguration: @escaping @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration? = { _ in nil
+        },
         discoverHostKey: HostKeyDiscovering? = nil
     ) {
         self.store = store
@@ -55,8 +55,7 @@ final class AgentHostResolver: Sendable {
 
     func configureTemporaryTargets(
         targets: @escaping @MainActor @Sendable () -> [AgentHostTarget],
-        configuration: @escaping
-            @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration?
+        configuration: @escaping @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration?
     ) {
         temporaryTargets = targets
         temporaryConfiguration = configuration
@@ -74,12 +73,13 @@ final class AgentHostResolver: Sendable {
         }
         return AgentHostListing(
             groups: groupTree(paths: paths),
-            hosts: saved + temporaryTargets().map { target in
-                var target = target
-                target.groupID = nil
-                target.groupPath = nil
-                return target
-            }
+            hosts: saved
+                + temporaryTargets().map { target in
+                    var target = target
+                    target.groupID = nil
+                    target.groupPath = nil
+                    return target
+                }
         )
     }
 
@@ -123,10 +123,11 @@ final class AgentHostResolver: Sendable {
                 children: children
             )
         }
-        let roots = ordered(store.groups.filter { group in
-            guard let parentID = group.parentID else { return true }
-            return all[parentID] == nil
-        })
+        let roots = ordered(
+            store.groups.filter { group in
+                guard let parentID = group.parentID else { return true }
+                return all[parentID] == nil
+            })
         var result = roots.map { build($0, ancestors: []) }
         for group in ordered(store.groups) where !emitted.contains(group.id) {
             result.append(build(group, ancestors: []))
@@ -188,7 +189,8 @@ final class AgentHostResolver: Sendable {
                 for: node, submissions: submissions, forcedHostID: forcedHostID
             ) {
                 let existing = submissions[node.id]
-                let identity = existing?.identityID.flatMap(store.identity)
+                let identity =
+                    existing?.identityID.flatMap(store.identity)
                     ?? store.identity(for: node)
                 let request = AgentSSHAuthenticationRequest(
                     invocationID: invocationID, hostID: node.id,
@@ -302,9 +304,11 @@ final class AgentHostResolver: Sendable {
                 configuration.hostID, configuration.host, configuration.port,
                 configuration.proxy, configuration.jumps
             )
-            displayName = temporaryTargets().first { $0.id == configuration.hostID }?.displayName
+            displayName =
+                temporaryTargets().first { $0.id == configuration.hostID }?.displayName
                 ?? configuration.host
-            address = configuration.port == 22
+            address =
+                configuration.port == 22
                 ? configuration.host : "\(configuration.host):\(configuration.port)"
             trustedCount = configuration.expectedHostKeys.count
             configuration.expectedHostKeys.insert(observation.identity)
@@ -796,7 +800,10 @@ actor AgentConnectionPool {
         }
     }
 
-    private struct Key: Hashable { var hostID: UUID; var kind: Kind }
+    private struct Key: Hashable {
+        var hostID: UUID
+        var kind: Kind
+    }
 
     private struct Entry {
         var client: Client
@@ -864,9 +871,10 @@ actor AgentConnectionPool {
     func exec(
         hostID: UUID, configuration override: ConfigurationResolving? = nil
     ) async throws -> any SSHExecSessionProtocol {
-        guard case .exec(let session) = try await resolve(
-            hostID: hostID, kind: .exec, configuration: override
-        )
+        guard
+            case .exec(let session) = try await resolve(
+                hostID: hostID, kind: .exec, configuration: override
+            )
         else { throw AgentToolError.invalidHost }
         return session
     }
@@ -874,9 +882,10 @@ actor AgentConnectionPool {
     func sftp(
         hostID: UUID, configuration override: ConfigurationResolving? = nil
     ) async throws -> any SFTPClientProtocol {
-        guard case .sftp(let client) = try await resolve(
-            hostID: hostID, kind: .sftp, configuration: override
-        )
+        guard
+            case .sftp(let client) = try await resolve(
+                hostID: hostID, kind: .sftp, configuration: override
+            )
         else { throw AgentToolError.invalidHost }
         return client
     }

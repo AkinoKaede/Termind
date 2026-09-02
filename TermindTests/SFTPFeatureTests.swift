@@ -77,9 +77,10 @@ struct SFTPFeatureTests {
         #expect(RemotePath.parent(of: "/") == "/")
         #expect(RemotePath.parent(of: "/var/log") == "/var")
         #expect(RemotePath.join("/", "tmp") == "/tmp")
-        #expect(RemotePath.components(of: "/var/log/nginx").map(\.path) == [
-            "/", "/var", "/var/log", "/var/log/nginx",
-        ])
+        #expect(
+            RemotePath.components(of: "/var/log/nginx").map(\.path) == [
+                "/", "/var", "/var/log", "/var/log/nginx",
+            ])
         #expect(RemotePath.displayed("/home/deploy", home: .resolved("/home/deploy")) == "~")
         #expect(RemotePath.displayed("/home/deploy/app", home: .resolved("/home/deploy")) == "~/app")
         #expect(RemotePath.displayed("/home/deployer", home: .resolved("/home/deploy")) == "/home/deployer")
@@ -111,27 +112,31 @@ struct SFTPFeatureTests {
         let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home", client: client)
 
         await session.reload(silently: true)
-        #expect(session.filteredFiles.map(\.name) == [
-            "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
-        ])
+        #expect(
+            session.filteredFiles.map(\.name) == [
+                "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
+            ])
 
         session.sort(by: .modified)
         #expect(session.sortDirection == .descending)
-        #expect(session.filteredFiles.map(\.name) == [
-            "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
-        ])
+        #expect(
+            session.filteredFiles.map(\.name) == [
+                "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
+            ])
 
         session.sort(by: .size)
         #expect(session.sortDirection == .descending)
-        #expect(session.filteredFiles.map(\.name) == [
-            "a-folder", "z-folder", "large.txt", "undated.log", "small.txt",
-        ])
+        #expect(
+            session.filteredFiles.map(\.name) == [
+                "a-folder", "z-folder", "large.txt", "undated.log", "small.txt",
+            ])
 
         session.sort(by: .kind)
         #expect(session.sortDirection == .ascending)
-        #expect(session.filteredFiles.map(\.name) == [
-            "a-folder", "z-folder", "undated.log", "large.txt", "small.txt",
-        ])
+        #expect(
+            session.filteredFiles.map(\.name) == [
+                "a-folder", "z-folder", "undated.log", "large.txt", "small.txt",
+            ])
     }
 
     /// The visible list is cached rather than recomputed on every read, so the

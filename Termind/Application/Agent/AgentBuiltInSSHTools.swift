@@ -7,33 +7,42 @@ nonisolated struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBuilding {
     )
     let hosts: AgentHostResolver
 
-    var descriptor: AgentToolDescriptor { Self.descriptor(
-        "list_hosts", "List Vault and temporary Termind SSH targets without credentials.",
-        properties: [:], required: [], target: .host, safety: .locallyReadOnly,
-        concurrency: .parallel,
-        presentation: .init(
-            symbol: "server.rack", activity: .semanticLabel(.hosts), output: .json,
-            actionKind: .list
+    var descriptor: AgentToolDescriptor {
+        Self.descriptor(
+            "list_hosts", "List Vault and temporary Termind SSH targets without credentials.",
+            properties: [:], required: [], target: .host, safety: .locallyReadOnly,
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "server.rack", activity: .semanticLabel(.hosts), output: .json,
+                actionKind: .list
+            )
         )
-    ) }
+    }
 
     func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
-        -> AgentToolResult {
+        -> AgentToolResult
+    {
         let listing = await hosts.listing()
-        let rows = listing.hosts.map { target in AgentJSONValue.object([
-            "id": .string(target.id.uuidString), "display_name": .string(target.displayName),
-            "address": .string(target.address), "tags": .array(target.tags.map(AgentJSONValue.string)),
-            "connection_state": .string(target.connectionState), "temporary": .bool(target.isTemporary),
-            "group_id": target.groupID.map { .string($0.uuidString) } ?? .null,
-            "group_path": target.groupPath.map(AgentJSONValue.string) ?? .null,
-        ]) }
-        func groupJSON(_ group: AgentHostGroupTarget) -> AgentJSONValue { .object([
-            "id": .string(group.id.uuidString), "name": .string(group.name),
-            "path": .string(group.path), "children": .array(group.children.map(groupJSON)),
-        ]) }
-        return Self.result(invocation, .object([
-            "groups": .array(listing.groups.map(groupJSON)), "hosts": .array(rows),
-        ]))
+        let rows = listing.hosts.map { target in
+            AgentJSONValue.object([
+                "id": .string(target.id.uuidString), "display_name": .string(target.displayName),
+                "address": .string(target.address), "tags": .array(target.tags.map(AgentJSONValue.string)),
+                "connection_state": .string(target.connectionState), "temporary": .bool(target.isTemporary),
+                "group_id": target.groupID.map { .string($0.uuidString) } ?? .null,
+                "group_path": target.groupPath.map(AgentJSONValue.string) ?? .null,
+            ])
+        }
+        func groupJSON(_ group: AgentHostGroupTarget) -> AgentJSONValue {
+            .object([
+                "id": .string(group.id.uuidString), "name": .string(group.name),
+                "path": .string(group.path), "children": .array(group.children.map(groupJSON)),
+            ])
+        }
+        return Self.result(
+            invocation,
+            .object([
+                "groups": .array(listing.groups.map(groupJSON)), "hosts": .array(rows),
+            ]))
     }
 }
 
@@ -43,20 +52,25 @@ nonisolated struct SSHWaitTool: AgentToolDefinition, AgentToolSchemaBuilding {
     )
     let background: AgentBackgroundCommands
 
-    var descriptor: AgentToolDescriptor { Self.descriptor(
-        "ssh_wait", "Wait for a command ssh_exec reported as still running, and return its output.",
-        properties: ["handle": Self.string(max: 64),
-                     "timeout_seconds": Self.integer(min: 1, max: 900)],
-        required: ["handle"], target: .host, safety: .locallyReadOnly,
-        concurrency: .parallel,
-        presentation: .init(
-            symbol: "clock.arrow.circlepath", activity: .semanticLabel(.remoteCommand),
-            output: .streams, actionKind: .wait
+    var descriptor: AgentToolDescriptor {
+        Self.descriptor(
+            "ssh_wait", "Wait for a command ssh_exec reported as still running, and return its output.",
+            properties: [
+                "handle": Self.string(max: 64),
+                "timeout_seconds": Self.integer(min: 1, max: 900),
+            ],
+            required: ["handle"], target: .host, safety: .locallyReadOnly,
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "clock.arrow.circlepath", activity: .semanticLabel(.remoteCommand),
+                output: .streams, actionKind: .wait
+            )
         )
-    ) }
+    }
 
     func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
-        -> AgentToolResult {
+        -> AgentToolResult
+    {
         let arguments = try Arguments(invocation)
         guard let handle = UUID(uuidString: try arguments.string("handle")) else {
             throw AgentToolError.invalidArguments("handle is not a valid handle.")
@@ -66,15 +80,21 @@ nonisolated struct SSHWaitTool: AgentToolDefinition, AgentToolSchemaBuilding {
             reporting: AgentToolSupport.reporting(invocation, context.report),
             orWhen: context.whenUserInterjects
         )
-        guard let exitCode = outcome.exitCode else { return Self.result(invocation, .object([
-            "status": .string("running"), "handle": .string(handle.uuidString),
-            "stdout": .string(outcome.standardOut), "stderr": .string(outcome.standardError),
-        ])) }
-        return Self.result(invocation, .object([
-            "status": .string("exited"), "stdout": .string(outcome.standardOut),
-            "stderr": .string(outcome.standardError), "exit_code": .number(Double(exitCode)),
-            "signal": outcome.signal.map(AgentJSONValue.string) ?? .null,
-        ]))
+        guard let exitCode = outcome.exitCode else {
+            return Self.result(
+                invocation,
+                .object([
+                    "status": .string("running"), "handle": .string(handle.uuidString),
+                    "stdout": .string(outcome.standardOut), "stderr": .string(outcome.standardError),
+                ]))
+        }
+        return Self.result(
+            invocation,
+            .object([
+                "status": .string("exited"), "stdout": .string(outcome.standardOut),
+                "stderr": .string(outcome.standardError), "exit_code": .number(Double(exitCode)),
+                "signal": outcome.signal.map(AgentJSONValue.string) ?? .null,
+            ]))
     }
 }
 
@@ -82,30 +102,37 @@ nonisolated struct TerminalSuggestTool: AgentToolDefinition, AgentToolSchemaBuil
     static let presenter = AgentToolDetailPresenter(
         id: "builtin.terminal_suggest", present: present
     )
-    var descriptor: AgentToolDescriptor { Self.descriptor(
-        "terminal_suggest", "Create a command card. Only the user can insert or run it in a PTY.",
-        properties: ["command": Self.string(max: 32_768),
-                     "explanation": Self.string(max: 4_096)],
-        required: ["command"], target: .user, safety: .locallyReadOnly,
-        concurrency: .parallel,
-        presentation: .init(
-            symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command),
-            groupsWithAdjacentTools: false, actionKind: .suggest
+    var descriptor: AgentToolDescriptor {
+        Self.descriptor(
+            "terminal_suggest", "Create a command card. Only the user can insert or run it in a PTY.",
+            properties: [
+                "command": Self.string(max: 32_768),
+                "explanation": Self.string(max: 4_096),
+            ],
+            required: ["command"], target: .user, safety: .locallyReadOnly,
+            concurrency: .parallel,
+            presentation: .init(
+                symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command),
+                groupsWithAdjacentTools: false, actionKind: .suggest
+            )
         )
-    ) }
+    }
     func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
-        -> AgentToolResult {
+        -> AgentToolResult
+    {
         let arguments = try Arguments(invocation)
         let command = try arguments.string("command")
         guard !command.contains("\n"), !command.contains("\r"), !command.contains("\0") else {
             throw AgentToolError.invalidArguments("A terminal suggestion must be one command line.")
         }
-        return Self.result(invocation, .object([
-            "command": .string(command),
-            "explanation": .string(arguments.optionalString("explanation") ?? ""),
-            "risk": .string(CommandRiskClassifier.assess(command).risk.label),
-            "requires_user_action": .bool(true),
-        ]))
+        return Self.result(
+            invocation,
+            .object([
+                "command": .string(command),
+                "explanation": .string(arguments.optionalString("explanation") ?? ""),
+                "risk": .string(CommandRiskClassifier.assess(command).risk.label),
+                "requires_user_action": .bool(true),
+            ]))
     }
 }
 
@@ -119,12 +146,15 @@ nonisolated extension TerminalSuggestTool {
     static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
         let object = input.result.objectValue ?? [:]
-        let command = input.arguments["command"]?.stringValue
+        let command =
+            input.arguments["command"]?.stringValue
             ?? object["command"]?.stringValue ?? ""
         var items: [AgentToolDetail.Item] = [F.text("Command", command, locale: input.locale)]
         if let explanation = F.nonempty(
             input.arguments["explanation"]?.stringValue ?? object["explanation"]?.stringValue
-        ) { items.append(.message(explanation, .secondary)) }
+        ) {
+            items.append(.message(explanation, .secondary))
+        }
         let assessment = CommandRiskClassifier.assess(command)
         items.append(F.field("Risk", assessment.risk.label, locale: input.locale))
         items.append(contentsOf: assessment.reasons.map { .message($0, .warning) })
@@ -155,10 +185,12 @@ nonisolated extension AgentToolSupport {
         _ report: @escaping @Sendable (AgentToolResult) -> Void
     ) -> @Sendable (String, String) -> Void {
         { out, error in
-            var progress = result(invocation, .object([
-                "status": .string("running"),
-                "stdout": .string(out), "stderr": .string(error),
-            ]))
+            var progress = result(
+                invocation,
+                .object([
+                    "status": .string("running"),
+                    "stdout": .string(out), "stderr": .string(error),
+                ]))
             progress.metadata["presentation_phase"] = .string("command")
             report(progress)
         }
@@ -167,14 +199,16 @@ nonisolated extension AgentToolSupport {
     fileprivate static func exitedResult(
         _ invocation: AgentToolInvocation, _ output: SSHExecResult
     ) -> AgentToolResult {
-        result(invocation, .object([
-            "status": .string("exited"),
-            "stdout": .string(output.stdout), "stderr": .string(output.stderr),
-            "exit_code": .number(Double(output.exitCode)),
-            "signal": output.signal.map(AgentJSONValue.string) ?? .null,
-            "stdout_truncated": .bool(output.stdoutTruncated),
-            "stderr_truncated": .bool(output.stderrTruncated),
-        ]), truncated: output.stdoutTruncated || output.stderrTruncated)
+        result(
+            invocation,
+            .object([
+                "status": .string("exited"),
+                "stdout": .string(output.stdout), "stderr": .string(output.stderr),
+                "exit_code": .number(Double(output.exitCode)),
+                "signal": output.signal.map(AgentJSONValue.string) ?? .null,
+                "stdout_truncated": .bool(output.stdoutTruncated),
+                "stderr_truncated": .bool(output.stderrTruncated),
+            ]), truncated: output.stdoutTruncated || output.stderrTruncated)
     }
 
     /// Picks up a command `ssh_exec` left running.
@@ -191,7 +225,8 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
     let pool: AgentConnectionPool
     let background: AgentBackgroundCommands
 
-    var descriptor: AgentToolDescriptor { Self.descriptor(
+    var descriptor: AgentToolDescriptor {
+        Self.descriptor(
             "ssh_exec", "Execute one command over a dedicated non-PTY SSH exec channel.",
             properties: [
                 "host_id": Self.string(), "command": Self.string(max: 32_768),
@@ -228,151 +263,157 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
                     "interrupted": "Stopped waiting for “{activity}” on {target}",
                 ]
             )
-        ) }
+        )
+    }
 
     func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {
-                var checked = invocation
-                let arguments = try Arguments(invocation)
-                checked.targetHostID = try arguments.uuid("host_id")
-                let command = try arguments.string("command")
-                if arguments.optionalString("stdin") != nil && arguments.optionalString("secret_handle") != nil {
-                    throw AgentToolError.invalidArguments("stdin and secret_handle are mutually exclusive.")
-                }
-                let assessment = CommandRiskClassifier.assess(command)
-                let safe = assessment.risk == .safe
-                return AgentToolPreflight(
-                    invocation: checked,
-                    safety: safe ? .locallyReadOnly : .requiresAuthorization,
-                    reasons: assessment.reasons,
-                    // Whether a command may run beside another is a property of
-                    // the command, not of `ssh_exec`, and it is decided by the
-                    // same locally-proven evidence that just decided `safety`.
-                    // A command the classifier cannot vouch for makes its whole
-                    // turn serial, so nothing observes the host while it is
-                    // being changed.
-                    //
-                    // The ceiling on what this buys is worth stating: commands
-                    // aimed at one host queue behind each other inside
-                    // `SSHExecSession` regardless, because a libssh2 session
-                    // cannot be driven from two places at once. The win is
-                    // several hosts at once, and host work overlapping `fetch`,
-                    // `web_search`, and MCP.
-                    concurrency: safe ? .parallel : .sequential
-                )
+        var checked = invocation
+        let arguments = try Arguments(invocation)
+        checked.targetHostID = try arguments.uuid("host_id")
+        let command = try arguments.string("command")
+        if arguments.optionalString("stdin") != nil && arguments.optionalString("secret_handle") != nil {
+            throw AgentToolError.invalidArguments("stdin and secret_handle are mutually exclusive.")
+        }
+        let assessment = CommandRiskClassifier.assess(command)
+        let safe = assessment.risk == .safe
+        return AgentToolPreflight(
+            invocation: checked,
+            safety: safe ? .locallyReadOnly : .requiresAuthorization,
+            reasons: assessment.reasons,
+            // Whether a command may run beside another is a property of
+            // the command, not of `ssh_exec`, and it is decided by the
+            // same locally-proven evidence that just decided `safety`.
+            // A command the classifier cannot vouch for makes its whole
+            // turn serial, so nothing observes the host while it is
+            // being changed.
+            //
+            // The ceiling on what this buys is worth stating: commands
+            // aimed at one host queue behind each other inside
+            // `SSHExecSession` regardless, because a libssh2 session
+            // cannot be driven from two places at once. The win is
+            // several hosts at once, and host work overlapping `fetch`,
+            // `web_search`, and MCP.
+            concurrency: safe ? .parallel : .sequential
+        )
     }
 
     func execute(
         _ invocation: AgentToolInvocation, context: AgentToolExecutionContext
     ) async throws -> AgentToolResult {
-                let arguments = try Arguments(invocation)
-                let hostID = try arguments.uuid("host_id")
-                let command = try arguments.string("command")
-                var input = arguments.optionalString("stdin").map { Data($0.utf8) }
-                if let rawHandle = arguments.optionalString("secret_handle") {
-                    guard let handleID = UUID(uuidString: rawHandle) else {
-                        throw AgentToolError.invalidArguments(
-                            "secret_handle must be a handle issued by request_user_secret in this "
-                                + "run. Omit secret_handle and stdin_purpose when the command needs "
-                                + "no secret input; otherwise call request_user_secret again."
-                        )
-                    }
-                    let purpose = try arguments.string("stdin_purpose")
-                    let secret: String
-                    do {
-                        secret = try await context.secretBroker.consume(
-                            SecretHandle(id: handleID),
-                            matching: SecretBinding(
-                                runID: context.runID, toolName: "ssh_exec", hostID: hostID,
-                                purpose: purpose
-                            )
-                        )
-                    } catch SecretBrokerError.notFound {
-                        throw AgentToolError.invalidArguments(
-                            "secret_handle is unavailable or has already been used. Call "
-                                + "request_user_secret again before retrying ssh_exec."
-                        )
-                    } catch SecretBrokerError.bindingMismatch {
-                        throw AgentToolError.invalidArguments(
-                            "secret_handle was issued for a different run, host, tool, or purpose. "
-                                + "Call request_user_secret again with matching values."
-                        )
-                    }
-                    input = Data(secret.utf8)
-                }
-                // Live output, so a command that takes a minute is a card
-                // filling in rather than a spinner. Reported, never returned:
-                // the model is owed one result per call and gets it below.
-                let stream = AgentCommandOutputStream(
-                    report: AgentToolSupport.reporting(invocation, context.report)
+        let arguments = try Arguments(invocation)
+        let hostID = try arguments.uuid("host_id")
+        let command = try arguments.string("command")
+        var input = arguments.optionalString("stdin").map { Data($0.utf8) }
+        if let rawHandle = arguments.optionalString("secret_handle") {
+            guard let handleID = UUID(uuidString: rawHandle) else {
+                throw AgentToolError.invalidArguments(
+                    "secret_handle must be a handle issued by request_user_secret in this "
+                        + "run. Omit secret_handle and stdin_purpose when the command needs "
+                        + "no secret input; otherwise call request_user_secret again."
                 )
-                let cwd = arguments.optionalString("cwd")
-                // A `let` copy, because the task below outlives this call and a
-                // captured `var` would be shared mutable state across it.
-                let stdin = input
-                let deadline = Duration.seconds(
-                    arguments.optionalInt("timeout_seconds")
-                        ?? AgentToolSupport.defaultReportingDeadline
-                )
-                // Connecting is inside the deadline too. A hang is a hang
-                // whether it is DNS, a jump host or a handshake, and a turn that
-                // ends on time is what lets the user be heard at all.
-                let handover = AgentCommandHandover()
-                let running = Task { () async throws -> SSHExecResult in
-                    var connection = try await authentication.execConnection(
-                        hostID: hostID, invocationID: invocation.id,
-                        interaction: context.sshInteraction, pool: pool
+            }
+            let purpose = try arguments.string("stdin_purpose")
+            let secret: String
+            do {
+                secret = try await context.secretBroker.consume(
+                    SecretHandle(id: handleID),
+                    matching: SecretBinding(
+                        runID: context.runID, toolName: "ssh_exec", hostID: hostID,
+                        purpose: purpose
                     )
-                    var retriedDeadSession = false
-                    while true {
-                        let session = connection.client
-                        // The call may already have given up while this was
-                        // connecting. Starting anyway would leave a command
-                        // running, printing and finishing with nobody holding
-                        // a handle to it.
-                        guard retriedDeadSession || handover.beginRunning(on: session) else {
-                            throw AgentCommandNotStarted()
-                        }
-                        context.report(AgentToolResult(
-                            callID: invocation.call.id, content: "",
-                            metadata: ["presentation_phase": .string("command")]
-                        ))
-                        do {
-                            return try await session.execute(
-                                command, workingDirectory: cwd, stdin: stdin,
-                                timeout: AgentToolSupport.maximumCommandLifetime,
-                                outputLimit: 256 * 1_024,
-                                onOutput: stream.handler
-                            )
-                        } catch SSHExecSessionError.channelUnavailable
-                            where !retriedDeadSession
-                        {
-                            // Safe because no command channel opened. The
-                            // authentication actor returned with the connection
-                            // keeps one-use credentials for this retry, while its
-                            // shared registry lease already ended.
-                            retriedDeadSession = true
-                            context.report(AgentToolResult(
-                                callID: invocation.call.id, content: "",
-                                metadata: ["presentation_phase": .string("running")]
-                            ))
-                            await pool.disconnect(hostID: hostID, kind: .exec)
-                            connection.client = try await authentication.openExec(
-                                hostID: hostID, authentication: connection.authentication,
-                                pool: pool
-                            )
-                        }
-                    }
+                )
+            } catch SecretBrokerError.notFound {
+                throw AgentToolError.invalidArguments(
+                    "secret_handle is unavailable or has already been used. Call "
+                        + "request_user_secret again before retrying ssh_exec."
+                )
+            } catch SecretBrokerError.bindingMismatch {
+                throw AgentToolError.invalidArguments(
+                    "secret_handle was issued for a different run, host, tool, or purpose. "
+                        + "Call request_user_secret again with matching values."
+                )
+            }
+            input = Data(secret.utf8)
+        }
+        // Live output, so a command that takes a minute is a card
+        // filling in rather than a spinner. Reported, never returned:
+        // the model is owed one result per call and gets it below.
+        let stream = AgentCommandOutputStream(
+            report: AgentToolSupport.reporting(invocation, context.report)
+        )
+        let cwd = arguments.optionalString("cwd")
+        // A `let` copy, because the task below outlives this call and a
+        // captured `var` would be shared mutable state across it.
+        let stdin = input
+        let deadline = Duration.seconds(
+            arguments.optionalInt("timeout_seconds")
+                ?? AgentToolSupport.defaultReportingDeadline
+        )
+        // Connecting is inside the deadline too. A hang is a hang
+        // whether it is DNS, a jump host or a handshake, and a turn that
+        // ends on time is what lets the user be heard at all.
+        let handover = AgentCommandHandover()
+        let running = Task { () async throws -> SSHExecResult in
+            var connection = try await authentication.execConnection(
+                hostID: hostID, invocationID: invocation.id,
+                interaction: context.sshInteraction, pool: pool
+            )
+            var retriedDeadSession = false
+            while true {
+                let session = connection.client
+                // The call may already have given up while this was
+                // connecting. Starting anyway would leave a command
+                // running, printing and finishing with nobody holding
+                // a handle to it.
+                guard retriedDeadSession || handover.beginRunning(on: session) else {
+                    throw AgentCommandNotStarted()
                 }
+                context.report(
+                    AgentToolResult(
+                        callID: invocation.call.id, content: "",
+                        metadata: ["presentation_phase": .string("command")]
+                    ))
+                do {
+                    return try await session.execute(
+                        command, workingDirectory: cwd, stdin: stdin,
+                        timeout: AgentToolSupport.maximumCommandLifetime,
+                        outputLimit: 256 * 1_024,
+                        onOutput: stream.handler
+                    )
+                } catch SSHExecSessionError.channelUnavailable
+                    where !retriedDeadSession
+                {
+                    // Safe because no command channel opened. The
+                    // authentication actor returned with the connection
+                    // keeps one-use credentials for this retry, while its
+                    // shared registry lease already ended.
+                    retriedDeadSession = true
+                    context.report(
+                        AgentToolResult(
+                            callID: invocation.call.id, content: "",
+                            metadata: ["presentation_phase": .string("running")]
+                        ))
+                    await pool.disconnect(hostID: hostID, kind: .exec)
+                    connection.client = try await authentication.openExec(
+                        hostID: hostID, authentication: connection.authentication,
+                        pool: pool
+                    )
+                }
+            }
+        }
 
-                guard await AgentBackgroundCommands.settled(running, within: deadline) else {
-                    guard let session = handover.giveUp() else {
-                        // Still connecting, so there is nothing to hand over —
-                        // no session, no output, no handle worth giving. The
-                        // connection is left to finish into the pool rather than
-                        // torn down, so the retry this invites is the fast one.
-                        return Self.result(invocation, .object([
-                            "status": .string("connecting"),
-                            "note": .string(String(
+        guard await AgentBackgroundCommands.settled(running, within: deadline) else {
+            guard let session = handover.giveUp() else {
+                // Still connecting, so there is nothing to hand over —
+                // no session, no output, no handle worth giving. The
+                // connection is left to finish into the pool rather than
+                // torn down, so the retry this invites is the fast one.
+                return Self.result(
+                    invocation,
+                    .object([
+                        "status": .string("connecting"),
+                        "note": .string(
+                            String(
                                 localized: """
                                     The host has not finished answering after \
                                     \(deadline.components.seconds)s, so the command has not \
@@ -380,33 +421,36 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
                                     running this again shortly is likely to be quick.
                                     """
                             )),
-                        ]), truncated: false)
-                    }
-                    // It outlived its turn. The session goes with it — the
-                    // channel is still being pumped, so it can be neither shared
-                    // nor swept — and the next command for this host opens a
-                    // fresh one.
-                    await pool.detachExec(hostID: hostID, session: session)
-                    let handle = await background.adopt(
-                        hostID: hostID, command: command, stream: stream,
-                        task: running, session: session
-                    )
-                    let captured = stream.captured
-                    return Self.result(invocation, .object([
-                        "status": .string("running"),
-                        "handle": .string(handle.uuidString),
-                        "stdout": .string(captured.standardOut),
-                        "stderr": .string(captured.standardError),
-                        "note": .string(String(
+                    ]), truncated: false)
+            }
+            // It outlived its turn. The session goes with it — the
+            // channel is still being pumped, so it can be neither shared
+            // nor swept — and the next command for this host opens a
+            // fresh one.
+            await pool.detachExec(hostID: hostID, session: session)
+            let handle = await background.adopt(
+                hostID: hostID, command: command, stream: stream,
+                task: running, session: session
+            )
+            let captured = stream.captured
+            return Self.result(
+                invocation,
+                .object([
+                    "status": .string("running"),
+                    "handle": .string(handle.uuidString),
+                    "stdout": .string(captured.standardOut),
+                    "stderr": .string(captured.standardError),
+                    "note": .string(
+                        String(
                             localized: """
                                 Still running after \(deadline.components.seconds)s. The output \
                                 above is what it has printed so far. Call ssh_wait with this \
                                 handle for the rest; leaving it unasked-about abandons it.
                                 """
                         )),
-                    ]))
-                }
-                return AgentToolSupport.exitedResult(invocation, try await running.value)
+                ]))
+        }
+        return AgentToolSupport.exitedResult(invocation, try await running.value)
     }
 }
 
@@ -422,15 +466,17 @@ nonisolated enum SSHCommandPresentation {
         return F.objectItems(input) { object in
             var items: [AgentToolDetail.Item] = []
             if let status = object["status"]?.stringValue {
-                items.append(F.field(
-                    "Status", F.statusLabel(status, locale: input.locale), locale: input.locale
-                ))
+                items.append(
+                    F.field(
+                        "Status", F.statusLabel(status, locale: input.locale), locale: input.locale
+                    ))
             }
             if let code = object["exit_code"]?.integerValue {
                 items.append(F.field("Exit code", String(code), locale: input.locale, monospaced: true))
             }
-            F.appendField(&items, "Signal", object["signal"]?.stringValue,
-                          locale: input.locale, monospaced: true)
+            F.appendField(
+                &items, "Signal", object["signal"]?.stringValue,
+                locale: input.locale, monospaced: true)
             let stdout = object["stdout"]?.stringValue ?? ""
             let stderr = object["stderr"]?.stringValue ?? ""
             if !stdout.isEmpty { items.append(F.text("Standard output", stdout, locale: input.locale)) }
@@ -460,79 +506,85 @@ nonisolated extension ListHostsTool {
     ) -> [AgentToolDetail.Item] {
         typealias F = AgentToolDetailFormatting
         return F.objectItems(input) { object in
-        let hostValues = object["hosts"]?.arrayValue ?? []
-        let groupValues = object["groups"]?.arrayValue ?? []
-        var groups: [HostGroupDetailProjection] = []
+            let hostValues = object["hosts"]?.arrayValue ?? []
+            let groupValues = object["groups"]?.arrayValue ?? []
+            var groups: [HostGroupDetailProjection] = []
 
-        func walk(_ rows: [AgentJSONValue], prefix: String = "") {
-            for row in rows {
-                guard let fields = row.objectValue else { continue }
-                let name = F.nonempty(fields["name"]?.stringValue)
-                    ?? F.localized("Unnamed group", locale: input.locale)
-                let computed = prefix.isEmpty ? name : "\(prefix) / \(name)"
-                let title = F.nonempty(fields["path"]?.stringValue) ?? computed
-                if let id = fields["id"]?.stringValue {
-                    groups.append(.init(id: id, title: title))
+            func walk(_ rows: [AgentJSONValue], prefix: String = "") {
+                for row in rows {
+                    guard let fields = row.objectValue else { continue }
+                    let name =
+                        F.nonempty(fields["name"]?.stringValue)
+                        ?? F.localized("Unnamed group", locale: input.locale)
+                    let computed = prefix.isEmpty ? name : "\(prefix) / \(name)"
+                    let title = F.nonempty(fields["path"]?.stringValue) ?? computed
+                    if let id = fields["id"]?.stringValue {
+                        groups.append(.init(id: id, title: title))
+                    }
+                    walk(fields["children"]?.arrayValue ?? [], prefix: computed)
                 }
-                walk(fields["children"]?.arrayValue ?? [], prefix: computed)
             }
-        }
-        walk(groupValues)
+            walk(groupValues)
 
-        var grouped: [String: [AgentToolDetail.ListRow]] = [:]
-        var ungrouped: [AgentToolDetail.ListRow] = []
-        var temporary: [AgentToolDetail.ListRow] = []
-        var connected = 0
-        for hostValue in hostValues {
-            guard let host = hostValue.objectValue else { continue }
-            if host["connection_state"]?.stringValue == "connected" { connected += 1 }
-            let row = hostDetailRow(host, locale: input.locale)
-            if host["temporary"]?.boolValue == true {
-                temporary.append(row)
-            } else if let groupID = host["group_id"]?.stringValue,
-                groups.contains(where: { $0.id == groupID })
-            {
-                grouped[groupID, default: []].append(row)
-            } else {
-                ungrouped.append(row)
+            var grouped: [String: [AgentToolDetail.ListRow]] = [:]
+            var ungrouped: [AgentToolDetail.ListRow] = []
+            var temporary: [AgentToolDetail.ListRow] = []
+            var connected = 0
+            for hostValue in hostValues {
+                guard let host = hostValue.objectValue else { continue }
+                if host["connection_state"]?.stringValue == "connected" { connected += 1 }
+                let row = hostDetailRow(host, locale: input.locale)
+                if host["temporary"]?.boolValue == true {
+                    temporary.append(row)
+                } else if let groupID = host["group_id"]?.stringValue,
+                    groups.contains(where: { $0.id == groupID })
+                {
+                    grouped[groupID, default: []].append(row)
+                } else {
+                    ungrouped.append(row)
+                }
             }
-        }
 
-        guard !hostValues.isEmpty || !groups.isEmpty else {
-            return [.message(F.localized("No hosts available", locale: input.locale), .secondary)]
-        }
-        func hostCount(_ count: Int) -> String {
-            String(localized: "\(count) hosts", locale: input.locale)
-        }
-        var summary = [hostCount(hostValues.count)]
-        if connected > 0 {
-            summary.append(String(localized: "\(connected) connected", locale: input.locale))
-        }
-        if !temporary.isEmpty {
-            summary.append(String(localized: "\(temporary.count) temporary", locale: input.locale))
-        }
-        var sections = groups.map { group in
-            let rows = grouped[group.id] ?? []
-            return AgentToolDetail.ListSection(
-                title: "\(group.title) · \(hostCount(rows.count))", rows: rows
-            )
-        }
-        if !groups.isEmpty || !ungrouped.isEmpty {
-            sections.append(.init(
-                title: "\(F.localized("Ungrouped", locale: input.locale)) · \(hostCount(ungrouped.count))",
-                rows: ungrouped
-            ))
-        }
-        if !temporary.isEmpty {
-            sections.append(.init(
-                title: "\(F.localized("Temporary", locale: input.locale)) · \(hostCount(temporary.count))",
-                rows: temporary
-            ))
-        }
-        return [.groupedList(.init(
-            summary: summary.joined(separator: " · "), sections: sections,
-            isScrollable: hostValues.count > 12
-        ))]
+            guard !hostValues.isEmpty || !groups.isEmpty else {
+                return [.message(F.localized("No hosts available", locale: input.locale), .secondary)]
+            }
+            func hostCount(_ count: Int) -> String {
+                String(localized: "\(count) hosts", locale: input.locale)
+            }
+            var summary = [hostCount(hostValues.count)]
+            if connected > 0 {
+                summary.append(String(localized: "\(connected) connected", locale: input.locale))
+            }
+            if !temporary.isEmpty {
+                summary.append(String(localized: "\(temporary.count) temporary", locale: input.locale))
+            }
+            var sections = groups.map { group in
+                let rows = grouped[group.id] ?? []
+                return AgentToolDetail.ListSection(
+                    title: "\(group.title) · \(hostCount(rows.count))", rows: rows
+                )
+            }
+            if !groups.isEmpty || !ungrouped.isEmpty {
+                sections.append(
+                    .init(
+                        title: "\(F.localized("Ungrouped", locale: input.locale)) · \(hostCount(ungrouped.count))",
+                        rows: ungrouped
+                    ))
+            }
+            if !temporary.isEmpty {
+                sections.append(
+                    .init(
+                        title: "\(F.localized("Temporary", locale: input.locale)) · \(hostCount(temporary.count))",
+                        rows: temporary
+                    ))
+            }
+            return [
+                .groupedList(
+                    .init(
+                        summary: summary.joined(separator: " · "), sections: sections,
+                        isScrollable: hostValues.count > 12
+                    ))
+            ]
         }
     }
 
@@ -541,7 +593,8 @@ nonisolated extension ListHostsTool {
     ) -> AgentToolDetail.ListRow {
         typealias F = AgentToolDetailFormatting
         let address = F.nonempty(host["address"]?.stringValue)
-        let name = F.nonempty(host["display_name"]?.stringValue) ?? address
+        let name =
+            F.nonempty(host["display_name"]?.stringValue) ?? address
             ?? F.localized("Unnamed host", locale: locale)
         let state = connectionDetailState(host["connection_state"]?.stringValue ?? "", locale: locale)
         let subtitle = [address ?? F.localized("Address unavailable", locale: locale), state.label]
@@ -562,11 +615,12 @@ nonisolated extension ListHostsTool {
         case "reconnecting": (F.localized("Reconnecting", locale: locale), AgentToolDetail.Tint.warning)
         case "disconnected": (F.localized("Not connected", locale: locale), AgentToolDetail.Tint.secondary)
         case "failed": (F.localized("Failed", locale: locale), AgentToolDetail.Tint.failure)
-        default: (
-            F.nonempty(F.humanized(raw))?.capitalized
-                ?? F.localized("Unknown", locale: locale),
-            AgentToolDetail.Tint.secondary
-        )
+        default:
+            (
+                F.nonempty(F.humanized(raw))?.capitalized
+                    ?? F.localized("Unknown", locale: locale),
+                AgentToolDetail.Tint.secondary
+            )
         }
     }
 

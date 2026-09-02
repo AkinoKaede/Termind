@@ -103,9 +103,12 @@ struct MCPServerEditorPage: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
             } else if namespaceID.isEmpty {
-                Label("Name must produce an ID containing ASCII letters or numbers.", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                Label(
+                    "Name must produce an ID containing ASCII letters or numbers.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
             } else if hasNamespaceConflict {
                 Label("Another MCP server already uses this ID.", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
@@ -297,7 +300,9 @@ struct MCPServerEditorPage: View {
 
     private func binding<Value>(_ keyPath: WritableKeyPath<MCPServer, Value>) -> Binding<Value> {
         Binding(
-            get: { app.aiConfiguration.mcpServer(serverID)?[keyPath: keyPath] ?? MCPServer(name: "")[keyPath: keyPath] },
+            get: {
+                app.aiConfiguration.mcpServer(serverID)?[keyPath: keyPath] ?? MCPServer(name: "")[keyPath: keyPath]
+            },
             set: { newValue in
                 guard var server = app.aiConfiguration.mcpServer(serverID) else { return }
                 server[keyPath: keyPath] = newValue
@@ -336,7 +341,8 @@ private struct ToolRow: View {
 
     private var qualifiedToolName: String {
         guard let server = app.aiConfiguration.mcpServer(serverID) else { return tool.id }
-        let leaf = MCPToolNaming.functionNames(for: server.tools)[tool.id]
+        let leaf =
+            MCPToolNaming.functionNames(for: server.tools)[tool.id]
             ?? MCPToolNaming.functionName(from: tool.id)
         return MCPToolNaming.qualifiedName(
             namespace: server.effectiveNamespaceID, function: leaf
@@ -384,8 +390,8 @@ private struct ToolRow: View {
     }
 }
 
-private extension MCPTool.AccessPolicy {
-    var displayName: LocalizedStringKey {
+extension MCPTool.AccessPolicy {
+    fileprivate var displayName: LocalizedStringKey {
         switch self {
         case .disabled: "Disabled"
         case .alwaysAsk: "Always Ask"

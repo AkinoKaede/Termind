@@ -135,8 +135,9 @@ nonisolated enum ContextAttachmentImporter {
         }
         var pages: [String] = []
         for index in 0..<document.pageCount {
-            guard let value = document.page(at: index)?.string?
-                .trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty
+            guard
+                let value = document.page(at: index)?.string?
+                    .trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty
             else { continue }
             pages.append("--- Page \(index + 1) ---\n\(value)")
         }
@@ -240,18 +241,24 @@ nonisolated enum ContextAttachmentImporter {
                 kCGImageSourceCreateThumbnailWithTransform: true,
                 kCGImageSourceThumbnailMaxPixelSize: dimension,
             ]
-            guard let image = CGImageSourceCreateThumbnailAtIndex(
-                source, 0, options as CFDictionary
-            ) else { throw ImportError.unreadableImage }
+            guard
+                let image = CGImageSourceCreateThumbnailAtIndex(
+                    source, 0, options as CFDictionary
+                )
+            else { throw ImportError.unreadableImage }
             let alpha = image.alphaInfo
-            let hasAlpha = alpha == .first || alpha == .last
+            let hasAlpha =
+                alpha == .first || alpha == .last
                 || alpha == .premultipliedFirst || alpha == .premultipliedLast
             let type = hasAlpha ? UTType.png : UTType.jpeg
             let output = NSMutableData()
-            guard let destination = CGImageDestinationCreateWithData(
-                output, type.identifier as CFString, 1, nil
-            ) else { throw ImportError.unreadableImage }
-            let properties: [CFString: Any] = hasAlpha
+            guard
+                let destination = CGImageDestinationCreateWithData(
+                    output, type.identifier as CFString, 1, nil
+                )
+            else { throw ImportError.unreadableImage }
+            let properties: [CFString: Any] =
+                hasAlpha
                 ? [:] : [kCGImageDestinationLossyCompressionQuality: 0.84]
             CGImageDestinationAddImage(destination, image, properties as CFDictionary)
             guard CGImageDestinationFinalize(destination) else {
@@ -324,9 +331,15 @@ nonisolated private final class ParagraphTextParser: NSObject, XMLParserDelegate
         return output.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
     }
 
-    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName: String?, attributes attributeDict: [String: String] = [:]) {
+    func parser(
+        _ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName: String?,
+        attributes attributeDict: [String: String] = [:]
+    ) {
         let name = elementName.split(separator: ":").last.map(String.init) ?? elementName
-        if name == "t" { capturesText = true; captured = "" }
+        if name == "t" {
+            capturesText = true
+            captured = ""
+        }
         if name == "tab" { output += "\t" }
     }
 
@@ -336,7 +349,10 @@ nonisolated private final class ParagraphTextParser: NSObject, XMLParserDelegate
 
     func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName: String?) {
         let name = elementName.split(separator: ":").last.map(String.init) ?? elementName
-        if name == "t" { output += captured; capturesText = false }
+        if name == "t" {
+            output += captured
+            capturesText = false
+        }
         if cellElements.contains(name) { output += "\t" }
         if paragraphElements.contains(name) { output += "\n" }
     }
@@ -356,10 +372,19 @@ nonisolated private final class SharedStringsParser: NSObject, XMLParserDelegate
         return strings
     }
 
-    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName: String?, attributes attributeDict: [String: String] = [:]) {
+    func parser(
+        _ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName: String?,
+        attributes attributeDict: [String: String] = [:]
+    ) {
         let name = elementName.split(separator: ":").last.map(String.init) ?? elementName
-        if name == "si" { inItem = true; value = "" }
-        if name == "t", inItem { inText = true; text = "" }
+        if name == "si" {
+            inItem = true
+            value = ""
+        }
+        if name == "t", inItem {
+            inText = true
+            text = ""
+        }
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {
@@ -368,8 +393,14 @@ nonisolated private final class SharedStringsParser: NSObject, XMLParserDelegate
 
     func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName: String?) {
         let name = elementName.split(separator: ":").last.map(String.init) ?? elementName
-        if name == "t", inText { value += text; inText = false }
-        if name == "si" { strings.append(value); inItem = false }
+        if name == "t", inText {
+            value += text
+            inText = false
+        }
+        if name == "si" {
+            strings.append(value)
+            inItem = false
+        }
     }
 }
 
@@ -391,7 +422,10 @@ nonisolated private final class WorksheetTextParser: NSObject, XMLParserDelegate
         return rows.joined(separator: "\n")
     }
 
-    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName: String?, attributes attributeDict: [String: String] = [:]) {
+    func parser(
+        _ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName: String?,
+        attributes attributeDict: [String: String] = [:]
+    ) {
         let name = elementName.split(separator: ":").last.map(String.init) ?? elementName
         if name == "row" { cells = [] }
         if name == "c" {
@@ -400,7 +434,10 @@ nonisolated private final class WorksheetTextParser: NSObject, XMLParserDelegate
             let column = Self.columnIndex(cellReference)
             while cells.count < column { cells.append("") }
         }
-        if name == "v" || name == "t" { captureElement = name; captured = "" }
+        if name == "v" || name == "t" {
+            captureElement = name
+            captured = ""
+        }
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {

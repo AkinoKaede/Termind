@@ -1,6 +1,6 @@
+import ListViewKit
 import SwiftUI
 import UniformTypeIdentifiers
-import ListViewKit
 
 #if canImport(AppKit)
     import AppKit
@@ -160,9 +160,7 @@ struct SFTPBrowserView: View {
         case compact
 
         init(width: CGFloat) {
-            if width >= 760 { self = .full }
-            else if width >= 520 { self = .medium }
-            else { self = .compact }
+            if width >= 760 { self = .full } else if width >= 520 { self = .medium } else { self = .compact }
         }
     }
 
@@ -480,14 +478,16 @@ struct SFTPBrowserView: View {
         let components = RemotePath.displayedComponents(
             of: sftpSession.path, home: sftpSession.homeResolution
         )
-        let tailCount = switch layout {
-        case .full: 3
-        case .medium: 2
-        case .compact: 1
-        }
+        let tailCount =
+            switch layout {
+            case .full: 3
+            case .medium: 2
+            case .compact: 1
+            }
         let collapses = components.count > tailCount + 1
         let visible = collapses ? Array(components.suffix(tailCount)) : Array(components.dropFirst())
-        let hidden = collapses
+        let hidden =
+            collapses
             ? Array(components.dropFirst().dropLast(tailCount))
             : []
 
@@ -648,7 +648,8 @@ struct SFTPBrowserView: View {
     }
 
     private func fileListItems(layout: Layout) -> [SFTPFileListItem] {
-        let emphasized = isPaneFocused && !pathFocused
+        let emphasized =
+            isPaneFocused && !pathFocused
             && controlActiveState == .key
         let layoutKey: Int
         switch layout {
@@ -990,7 +991,8 @@ struct SFTPBrowserView: View {
         let files = sftpSession.filteredFiles
         guard !files.isEmpty else { return .ignored }
         let currentID = selectionCursor ?? sftpSession.selectedFiles.first?.id
-        let currentIndex = currentID.flatMap { id in files.firstIndex { $0.id == id } }
+        let currentIndex =
+            currentID.flatMap { id in files.firstIndex { $0.id == id } }
             ?? (offset > 0 ? -1 : files.count)
         let targetIndex = min(max(currentIndex + offset, 0), files.count - 1)
         let target = files[targetIndex]

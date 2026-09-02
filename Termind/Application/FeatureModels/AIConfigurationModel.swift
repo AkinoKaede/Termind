@@ -63,7 +63,8 @@ final class AIConfigurationModel {
         self.mcpServers = mcpServers
         self.roles = roles
         self.lastSelectedModel = lastSelectedModel
-        self.lastSelectedPermissionMode = permissionDefaults
+        self.lastSelectedPermissionMode =
+            permissionDefaults
             .flatMap { $0.string(forKey: SettingsKey.agentPermissionMode) }
             .flatMap(AgentPermissionMode.init(rawValue:))
             ?? lastSelectedPermissionMode
@@ -185,9 +186,10 @@ final class AIConfigurationModel {
     }
 
     func hasMCPNamespaceConflict(_ namespaceID: String, excluding id: MCPServer.ID) -> Bool {
-        !namespaceID.isEmpty && mcpServers.contains {
-            $0.id != id && $0.effectiveNamespaceID == namespaceID
-        }
+        !namespaceID.isEmpty
+            && mcpServers.contains {
+                $0.id != id && $0.effectiveNamespaceID == namespaceID
+            }
     }
 
     /// Every tool the model may be offered: enabled tools on enabled servers.

@@ -170,7 +170,6 @@ struct PortForwardingFeatureTests {
         #expect(reloaded.portForwarding(dynamic.id)?.targetPort == nil)
     }
 
-
     @Test
     func sshCommandUsesJumpAndIsUnavailableForProxyRoutes() {
         let identity = Identity(name: "Deploy", username: "deploy")

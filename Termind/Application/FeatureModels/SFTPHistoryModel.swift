@@ -47,12 +47,18 @@ final class SFTPHistoryModel {
     }
 
     func delete(_ id: SFTPHistoryEntry.ID) {
-        do { try repository.delete(id); storageError = nil; revision &+= 1 }
-        catch { storageError = error.localizedDescription }
+        do {
+            try repository.delete(id)
+            storageError = nil
+            revision &+= 1
+        } catch { storageError = error.localizedDescription }
     }
 
     func clear(for hostID: Host.ID) {
-        do { try repository.clear(for: hostID); storageError = nil; revision &+= 1 }
-        catch { storageError = error.localizedDescription }
+        do {
+            try repository.clear(for: hostID)
+            storageError = nil
+            revision &+= 1
+        } catch { storageError = error.localizedDescription }
     }
 }

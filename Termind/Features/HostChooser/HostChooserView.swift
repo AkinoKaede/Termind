@@ -364,9 +364,10 @@ struct HostChooserView: View {
         }
         .formStyle(.grouped)
         .onChange(of: serialConfiguration.devicePath) {
-            serialConfiguration.deviceName = serialPorts.first {
-                $0.path == serialConfiguration.devicePath
-            }?.name
+            serialConfiguration.deviceName =
+                serialPorts.first {
+                    $0.path == serialConfiguration.devicePath
+                }?.name
             serialError = nil
         }
         .onChange(of: serialBaudRate) {
@@ -396,9 +397,9 @@ struct HostChooserView: View {
                         "\(chooser.selected.count) selected", locale: locale
                     )
                 )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
 
                 Button(selectAllLabel) {
                     toggleAllResults()
@@ -623,26 +624,26 @@ struct HostChooserRow: View {
             isSelected: isChecked ?? isSelected
         ) {
             HStack(spacing: Metrics.Space.m) {
-            // Two channels on purpose, and they mean different things: the box
-            // says what you have chosen, the row's background says where the
-            // arrow keys are. Conflating them would make the cursor look like a
-            // pick you had not made.
-            if let isChecked {
-                SelectionMark(mode: .multiple, isSelected: isChecked)
-            }
+                // Two channels on purpose, and they mean different things: the box
+                // says what you have chosen, the row's background says where the
+                // arrow keys are. Conflating them would make the cursor look like a
+                // pick you had not made.
+                if let isChecked {
+                    SelectionMark(mode: .multiple, isSelected: isChecked)
+                }
 
-            StatusDot(status: app.hostLibrary.status(of: host.id))
+                StatusDot(status: app.hostLibrary.status(of: host.id))
 
-            VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                Text(host.name)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                    Text(host.name)
+                        .lineLimit(1)
 
-                Text(app.hostLibrary.loginAddress(for: host))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
+                    Text(app.hostLibrary.loginAddress(for: host))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
 
             }
         } trailing: {

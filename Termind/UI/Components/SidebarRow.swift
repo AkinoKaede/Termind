@@ -233,19 +233,23 @@ struct SidebarNavigatorRow<Trailing: View>: View {
         Button(action: action) {
             HStack(spacing: Metrics.Space.s) {
                 Image(systemName: symbol)
-                    .foregroundStyle(SidebarSelectionStyle.foreground(
-                        isSelected: isSelected,
-                        controlActiveState: controlActiveState,
-                        unselected: AnyShapeStyle(.secondary)
-                    ))
+                    .foregroundStyle(
+                        SidebarSelectionStyle.foreground(
+                            isSelected: isSelected,
+                            controlActiveState: controlActiveState,
+                            unselected: AnyShapeStyle(.secondary)
+                        )
+                    )
                     .frame(width: Metrics.Sidebar.rowIcon)
                     .accessibilityHidden(true)
                 Text(title)
-                    .foregroundStyle(SidebarSelectionStyle.foreground(
-                        isSelected: isSelected,
-                        controlActiveState: controlActiveState,
-                        unselected: AnyShapeStyle(.primary)
-                    ))
+                    .foregroundStyle(
+                        SidebarSelectionStyle.foreground(
+                            isSelected: isSelected,
+                            controlActiveState: controlActiveState,
+                            unselected: AnyShapeStyle(.primary)
+                        )
+                    )
                     .fontWeight(isSelected ? .semibold : .regular)
                 Spacer(minLength: Metrics.Space.xs)
                 trailing

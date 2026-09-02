@@ -7,7 +7,9 @@ final class MCPServerController {
     static let tokenReference = "termind.ai.mcpserver.token"
 
     enum Status: Equatable {
-        case stopped, starting, ready(port: UInt16), failed(String)
+        case stopped, starting
+        case ready(port: UInt16)
+        case failed(String)
 
         var label: String {
             switch self {
@@ -58,9 +60,11 @@ final class MCPServerController {
         self.defaults = defaults
         self.canUsePro = canUsePro
         self.requestPro = requestPro
-        isEnabled = defaults.object(forKey: SettingsKey.mcpServerEnabled) as? Bool
+        isEnabled =
+            defaults.object(forKey: SettingsKey.mcpServerEnabled) as? Bool
             ?? SettingsKey.defaultMCPServerEnabled
-        port = defaults.object(forKey: SettingsKey.mcpServerPort) as? Int
+        port =
+            defaults.object(forKey: SettingsKey.mcpServerPort) as? Int
             ?? SettingsKey.defaultMCPServerPort
         let initialDisabledTools = Self.readDisabledTools(defaults)
         disabledTools = initialDisabledTools

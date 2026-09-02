@@ -36,7 +36,8 @@ nonisolated enum SecureEnclaveKey {
                 nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly, flags, &accessError
             )
         else {
-            let detail = accessError?.takeRetainedValue().localizedDescription
+            let detail =
+                accessError?.takeRetainedValue().localizedDescription
                 ?? String(localized: "Unknown Security framework error")
             throw SecureEnclaveKeyError.accessControl(detail)
         }
@@ -47,7 +48,8 @@ nonisolated enum SecureEnclaveKey {
         )
         let publicBlob = sshPublicBlob(for: privateKey.publicKey.x963Representation)
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        let publicKey = "ecdsa-sha2-nistp256 \(publicBlob.base64EncodedString())"
+        let publicKey =
+            "ecdsa-sha2-nistp256 \(publicBlob.base64EncodedString())"
             + (trimmedComment.isEmpty ? "" : " \(trimmedComment)")
         return SecureEnclaveKeyMaterial(
             credential: SecureEnclaveKeyCredential(

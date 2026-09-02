@@ -91,20 +91,22 @@ final class PersistentAgentMessage {
         )
         authoredText = message.authoredText.map(AgentPersistenceRedactor.visibleText)
         imagesData = (try? JSONEncoder().encode(message.images)) ?? Data()
-        reasoningData = AgentPersistenceRedactor.encoded(message.reasoning.map { block in
-            AgentReasoningBlock(
-                id: block.id,
-                text: AgentPersistenceRedactor.visibleText(block.text),
-                createdAt: block.createdAt
-            )
-        })
-        toolCallsData = AgentPersistenceRedactor.encoded(message.toolCalls.map { call in
-            AgentToolCall(
-                id: call.id, name: call.name,
-                arguments: AgentPersistenceRedactor.redactedJSON(call.arguments),
-                providerItemID: call.providerItemID
-            )
-        })
+        reasoningData = AgentPersistenceRedactor.encoded(
+            message.reasoning.map { block in
+                AgentReasoningBlock(
+                    id: block.id,
+                    text: AgentPersistenceRedactor.visibleText(block.text),
+                    createdAt: block.createdAt
+                )
+            })
+        toolCallsData = AgentPersistenceRedactor.encoded(
+            message.toolCalls.map { call in
+                AgentToolCall(
+                    id: call.id, name: call.name,
+                    arguments: AgentPersistenceRedactor.redactedJSON(call.arguments),
+                    providerItemID: call.providerItemID
+                )
+            })
         toolCallID = message.toolCallID
         toolName = message.toolName
         isError = message.isError
@@ -276,8 +278,11 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         }
         let runID = snapshot.id
         let runDescriptor = FetchDescriptor<PersistentAgentRun>(predicate: #Predicate { $0.id == runID })
-        if let row = try context.fetch(runDescriptor).first { row.update(snapshot) }
-        else { context.insert(PersistentAgentRun(snapshot)) }
+        if let row = try context.fetch(runDescriptor).first {
+            row.update(snapshot)
+        } else {
+            context.insert(PersistentAgentRun(snapshot))
+        }
 
         let conversationID = snapshot.conversationID
         let conversationDescriptor = FetchDescriptor<PersistentAgentConversation>(
@@ -290,9 +295,10 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         if let conversation = try context.fetch(conversationDescriptor).first {
             conversation.updatedAt = .now
         } else {
-            context.insert(PersistentAgentConversation(
-                id: conversationID, title: "", createdAt: snapshot.startedAt
-            ))
+            context.insert(
+                PersistentAgentConversation(
+                    id: conversationID, title: "", createdAt: snapshot.startedAt
+                ))
         }
 
         // Matched on message id, not on this run's id. A conversation's earlier
@@ -301,17 +307,18 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         // constraint and rewriting rows that were already correct.
         let durableMessages = snapshot.messages.filter { !$0.isCompaction }
         let ids = Set(durableMessages.map(\.id))
-        let stored = try context.fetch(FetchDescriptor<PersistentAgentMessage>(
-            predicate: #Predicate { ids.contains($0.id) }
-        ))
+        let stored = try context.fetch(
+            FetchDescriptor<PersistentAgentMessage>(
+                predicate: #Predicate { ids.contains($0.id) }
+            ))
         let storedIDs = Set(stored.map(\.id))
         var inserted = false
         for (sequence, message) in durableMessages.enumerated()
-            where !storedIDs.contains(message.id)
-        {
-            context.insert(PersistentAgentMessage(
-                message, runID: runID, sequence: sequence
-            ))
+        where !storedIDs.contains(message.id) {
+            context.insert(
+                PersistentAgentMessage(
+                    message, runID: runID, sequence: sequence
+                ))
             insertContextAttachments(for: message)
             inserted = true
         }
@@ -326,26 +333,30 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         guard !deletedConversationIDs.contains(conversationID) else {
             throw AgentConversationPersistenceError.conversationNotFound
         }
-        let conversations = try context.fetch(FetchDescriptor<PersistentAgentConversation>(
-            predicate: #Predicate { $0.id == conversationID }
-        ))
+        let conversations = try context.fetch(
+            FetchDescriptor<PersistentAgentConversation>(
+                predicate: #Predicate { $0.id == conversationID }
+            ))
         guard conversations.first != nil else {
             throw AgentConversationPersistenceError.conversationNotFound
         }
         if let boundary = record.compactedThroughMessageID {
-            let runIDs = Set(try context.fetch(FetchDescriptor<PersistentAgentRun>())
-                .filter { $0.conversationID == conversationID }.map(\.id))
-            let rows = try context.fetch(FetchDescriptor<PersistentAgentMessage>(
-                predicate: #Predicate { $0.id == boundary }
-            ))
+            let runIDs = Set(
+                try context.fetch(FetchDescriptor<PersistentAgentRun>())
+                    .filter { $0.conversationID == conversationID }.map(\.id))
+            let rows = try context.fetch(
+                FetchDescriptor<PersistentAgentMessage>(
+                    predicate: #Predicate { $0.id == boundary }
+                ))
             guard rows.contains(where: { runIDs.contains($0.runID) }) else {
                 throw AgentConversationPersistenceError.messageNotFound
             }
         }
         let recordID = record.id
-        let existing = try context.fetch(FetchDescriptor<PersistentAgentCompaction>(
-            predicate: #Predicate { $0.id == recordID }
-        ))
+        let existing = try context.fetch(
+            FetchDescriptor<PersistentAgentCompaction>(
+                predicate: #Predicate { $0.id == recordID }
+            ))
         guard existing.isEmpty else { return }
         context.insert(PersistentAgentCompaction(record, conversationID: conversationID))
         try context.savePendingChanges()
@@ -363,18 +374,21 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             try upsertInvocation(invocation, state: "finished")
             context.insert(PersistentAgentToolResult(result, invocation: invocation))
         case .reviewStarted(let request):
-            context.insert(PersistentAgentReviewRecord(
-                runID: runID, invocationID: request.invocation.id, decision: nil
-            ))
+            context.insert(
+                PersistentAgentReviewRecord(
+                    runID: runID, invocationID: request.invocation.id, decision: nil
+                ))
         case .reviewFinished(let request, let decision):
-            context.insert(PersistentAgentReviewRecord(
-                runID: runID, invocationID: request.invocation.id, decision: decision
-            ))
+            context.insert(
+                PersistentAgentReviewRecord(
+                    runID: runID, invocationID: request.invocation.id, decision: decision
+                ))
         case .reviewFailed(let request, let reason, let timedOut):
-            context.insert(PersistentAgentReviewRecord(
-                runID: runID, invocationID: request.invocation.id,
-                failure: reason, timedOut: timedOut
-            ))
+            context.insert(
+                PersistentAgentReviewRecord(
+                    runID: runID, invocationID: request.invocation.id,
+                    failure: reason, timedOut: timedOut
+                ))
         default:
             // Nothing to write, so nothing to save. `AgentRuntime` already
             // filters on `isDurable`; this is the second half of the same
@@ -386,9 +400,10 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     func loadConversations() async throws -> [StoredAgentConversation] {
-        let conversations = try context.fetch(FetchDescriptor<PersistentAgentConversation>(
-            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
-        ))
+        let conversations = try context.fetch(
+            FetchDescriptor<PersistentAgentConversation>(
+                sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+            ))
         let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>())
         let sortIndexByConversation = Dictionary(
             uniqueKeysWithValues: orderRows.map { ($0.conversationID, $0.sortIndex) }
@@ -437,16 +452,19 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 }
                 .compactMap { row -> AgentTranscriptMessage? in
                     guard let role = AgentTranscriptRole(rawValue: row.role) else { return nil }
-                    let calls = (try? JSONDecoder().decode(
-                        [AgentToolCall].self, from: row.toolCallsData
-                    )) ?? []
-                    let images = (try? JSONDecoder().decode(
-                        [AgentImageAttachment].self, from: row.imagesData
-                    )) ?? []
+                    let calls =
+                        (try? JSONDecoder().decode(
+                            [AgentToolCall].self, from: row.toolCallsData
+                        )) ?? []
+                    let images =
+                        (try? JSONDecoder().decode(
+                            [AgentImageAttachment].self, from: row.imagesData
+                        )) ?? []
                     let contextAttachments = attachmentsByMessage[row.id] ?? []
-                    let reasoning = (try? JSONDecoder().decode(
-                        [AgentReasoningBlock].self, from: row.reasoningData
-                    )) ?? []
+                    let reasoning =
+                        (try? JSONDecoder().decode(
+                            [AgentReasoningBlock].self, from: row.reasoningData
+                        )) ?? []
                     return AgentTranscriptMessage(
                         id: row.id, role: role, text: row.text,
                         authoredText: row.authoredText, images: images,
@@ -462,7 +480,8 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 uniqueKeysWithValues: messages.filter { runIDs.contains($0.runID) }
                     .map { ($0.id, $0.runID) }
             )
-            let state = matchingRuns.last.flatMap { AgentRunState(rawValue: $0.state) }
+            let state =
+                matchingRuns.last.flatMap { AgentRunState(rawValue: $0.state) }
                 ?? .completed
             let cards = invocations.filter { runIDs.contains($0.runID) }
                 .sorted { $0.createdAt < $1.createdAt }
@@ -545,16 +564,18 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         guard updates.count == ids.count else {
             throw AgentConversationPersistenceError.conversationNotFound
         }
-        let rows = try context.fetch(FetchDescriptor<PersistentAgentConversation>(
-            predicate: #Predicate { ids.contains($0.id) }
-        ))
+        let rows = try context.fetch(
+            FetchDescriptor<PersistentAgentConversation>(
+                predicate: #Predicate { ids.contains($0.id) }
+            ))
         guard rows.count == ids.count else {
             throw AgentConversationPersistenceError.conversationNotFound
         }
         let updatesByID = Dictionary(uniqueKeysWithValues: updates.map { ($0.id, $0) })
-        let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>(
-            predicate: #Predicate { ids.contains($0.conversationID) }
-        ))
+        let orderRows = try context.fetch(
+            FetchDescriptor<PersistentAgentConversationOrder>(
+                predicate: #Predicate { ids.contains($0.conversationID) }
+            ))
         var orderByID = Dictionary(
             uniqueKeysWithValues: orderRows.map { ($0.conversationID, $0) }
         )
@@ -583,9 +604,10 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let runs = allRuns.filter { $0.conversationID == id }
             .sorted { $0.startedAt < $1.startedAt }
         let allMessages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
-        guard let target = allMessages.first(where: { message in
-            message.id == messageID && runs.contains { $0.id == message.runID }
-        }),
+        guard
+            let target = allMessages.first(where: { message in
+                message.id == messageID && runs.contains { $0.id == message.runID }
+            }),
             let targetIndex = runs.firstIndex(where: { $0.id == target.runID })
         else { throw AgentConversationPersistenceError.messageNotFound }
 
@@ -601,8 +623,8 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         do {
             try deleteGraph(runIDs: removedRunIDs, runs: removedRuns)
             for row in try context.fetch(FetchDescriptor<PersistentAgentCompaction>())
-                where row.conversationID == id
-                    && row.compactedThroughMessageID.map(removedMessageIDs.contains) == true
+            where row.conversationID == id
+                && row.compactedThroughMessageID.map(removedMessageIDs.contains) == true
             {
                 context.delete(row)
             }
@@ -613,9 +635,10 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 startedAt: replacement.createdAt, finishedAt: replacement.createdAt
             )
             context.insert(PersistentAgentRun(replacementRun))
-            context.insert(PersistentAgentMessage(
-                replacement, runID: replacementRun.id, sequence: 0
-            ))
+            context.insert(
+                PersistentAgentMessage(
+                    replacement, runID: replacementRun.id, sequence: 0
+                ))
             insertContextAttachments(for: replacement)
 
             let descriptor = FetchDescriptor<PersistentAgentConversation>(
@@ -657,35 +680,42 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         try context.commit {
             context.insert(conversation)
             if let sortIndex = metadata.sortIndex {
-                context.insert(PersistentAgentConversationOrder(
-                    conversationID: value.id, sortIndex: sortIndex
-                ))
+                context.insert(
+                    PersistentAgentConversationOrder(
+                        conversationID: value.id, sortIndex: sortIndex
+                    ))
             }
 
-            let summaries = value.runs.isEmpty
-                ? [AgentRunSummary(
-                    id: UUID(), state: value.lastRunState,
-                    startedAt: metadata.createdAt, finishedAt: metadata.updatedAt
-                )]
+            let summaries =
+                value.runs.isEmpty
+                ? [
+                    AgentRunSummary(
+                        id: UUID(), state: value.lastRunState,
+                        startedAt: metadata.createdAt, finishedAt: metadata.updatedAt
+                    )
+                ]
                 : value.runs.sorted { $0.startedAt < $1.startedAt }
             for summary in summaries {
-                context.insert(PersistentAgentRun(AgentRunSnapshot(
-                    id: summary.id, conversationID: value.id, state: summary.state,
-                    permissionMode: .askForApproval, messages: [],
-                    startedAt: summary.startedAt, finishedAt: summary.finishedAt
-                )))
+                context.insert(
+                    PersistentAgentRun(
+                        AgentRunSnapshot(
+                            id: summary.id, conversationID: value.id, state: summary.state,
+                            permissionMode: .askForApproval, messages: [],
+                            startedAt: summary.startedAt, finishedAt: summary.finishedAt
+                        )))
             }
             let validRunIDs = Set(summaries.map(\.id))
             let fallbackRunID = summaries[0].id
             for (sequence, message) in value.messages.enumerated() {
                 guard !message.isCompaction else { continue }
-                context.insert(PersistentAgentMessage(
-                    message,
-                    runID: value.messageRunIDs[message.id].flatMap {
-                        validRunIDs.contains($0) ? $0 : nil
-                    } ?? fallbackRunID,
-                    sequence: sequence
-                ))
+                context.insert(
+                    PersistentAgentMessage(
+                        message,
+                        runID: value.messageRunIDs[message.id].flatMap {
+                            validRunIDs.contains($0) ? $0 : nil
+                        } ?? fallbackRunID,
+                        sequence: sequence
+                    ))
                 insertContextAttachments(for: message)
             }
             for record in value.compactions {
@@ -701,9 +731,10 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     context.insert(PersistentAgentToolResult(result, invocation: invocation))
                 }
                 if let review = card.review {
-                    context.insert(PersistentAgentReviewRecord(
-                        runID: invocation.runID, invocationID: invocation.id, decision: review
-                    ))
+                    context.insert(
+                        PersistentAgentReviewRecord(
+                            runID: invocation.runID, invocationID: invocation.id, decision: review
+                        ))
                 }
             }
         }
@@ -724,31 +755,32 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>())
         for row in orderRows where row.conversationID == id { context.delete(row) }
         for row in try context.fetch(FetchDescriptor<PersistentAgentCompaction>())
-            where row.conversationID == id { context.delete(row) }
+        where row.conversationID == id { context.delete(row) }
         try context.save()
     }
 
     private func deleteGraph(runIDs: Set<UUID>, runs: [PersistentAgentRun]) throws {
         for row in try context.fetch(FetchDescriptor<PersistentAgentToolResult>())
-            where runIDs.contains(row.runID) { context.delete(row) }
+        where runIDs.contains(row.runID) { context.delete(row) }
         for row in try context.fetch(FetchDescriptor<PersistentAgentReviewRecord>())
-            where runIDs.contains(row.runID) { context.delete(row) }
+        where runIDs.contains(row.runID) { context.delete(row) }
         for row in try context.fetch(FetchDescriptor<PersistentAgentToolInvocation>())
-            where runIDs.contains(row.runID) { context.delete(row) }
+        where runIDs.contains(row.runID) { context.delete(row) }
         let messages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
             .filter { runIDs.contains($0.runID) }
         let messageIDs = Set(messages.map(\.id))
         for row in try context.fetch(FetchDescriptor<PersistentAgentContextAttachments>())
-            where messageIDs.contains(row.messageID) { context.delete(row) }
+        where messageIDs.contains(row.messageID) { context.delete(row) }
         for row in messages { context.delete(row) }
         for row in runs { context.delete(row) }
     }
 
     private func insertContextAttachments(for message: AgentTranscriptMessage) {
         guard !message.contextAttachments.isEmpty else { return }
-        context.insert(PersistentAgentContextAttachments(
-            messageID: message.id, attachments: message.contextAttachments
-        ))
+        context.insert(
+            PersistentAgentContextAttachments(
+                messageID: message.id, attachments: message.contextAttachments
+            ))
     }
 
     /// Puts back tool results that were recorded but never made it into the
@@ -795,10 +827,11 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 // The last recorded one: a call id is unique to its invocation,
                 // so more than one row can only mean a rewritten result.
                 guard let stored = results.last(where: { $0.callID == call.id }) else { continue }
-                recovered.append(AgentTranscriptMessage(
-                    role: .tool, text: stored.content, toolCallID: call.id,
-                    toolName: names[call.id] ?? call.name, isError: stored.isError
-                ))
+                recovered.append(
+                    AgentTranscriptMessage(
+                        role: .tool, text: stored.content, toolCallID: call.id,
+                        toolName: names[call.id] ?? call.name, isError: stored.isError
+                    ))
             }
         }
         return recovered

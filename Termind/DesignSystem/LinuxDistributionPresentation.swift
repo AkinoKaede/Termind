@@ -13,9 +13,11 @@ nonisolated struct LinuxDistributionIconCatalog: Codable, Sendable {
     var entries: [LinuxDistributionIconEntry]
 
     private static let bundled: Self? = {
-        guard let url = Bundle.main.url(
-            forResource: "LinuxDistributionIcons", withExtension: "json"
-        ), let data = try? Data(contentsOf: url) else { return nil }
+        guard
+            let url = Bundle.main.url(
+                forResource: "LinuxDistributionIcons", withExtension: "json"
+            ), let data = try? Data(contentsOf: url)
+        else { return nil }
         return try? JSONDecoder().decode(Self.self, from: data)
     }()
 

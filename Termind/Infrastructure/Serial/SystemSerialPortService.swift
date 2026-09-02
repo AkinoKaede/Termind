@@ -53,7 +53,8 @@ nonisolated final class SystemSerialPortService: SerialPortServing, @unchecked S
                 defer { IOObjectRelease(iterator) }
                 while case let service = IOIteratorNext(iterator), service != 0 {
                     defer { IOObjectRelease(service) }
-                    let product = property("USB Product Name", of: service)
+                    let product =
+                        property("USB Product Name", of: service)
                         ?? property("Product Name", of: service)
                         ?? property(kIOTTYBaseNameKey, of: service)
                     for key in [kIOCalloutDeviceKey, kIODialinDeviceKey] {
@@ -269,7 +270,10 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
                         var offset = 0
                         while offset < raw.count {
                             let count = Darwin.write(descriptor, base.advanced(by: offset), raw.count - offset)
-                            if count > 0 { offset += count; continue }
+                            if count > 0 {
+                                offset += count
+                                continue
+                            }
                             if count < 0, errno == EINTR { continue }
                             throw SerialPortError.system(
                                 operation: String(localized: "Write serial port"), code: errno
@@ -302,9 +306,10 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
             receive(Data(bytes.prefix(count)))
         } else if count == 0 || (errno != EAGAIN && errno != EINTR) {
             let code = count == 0 ? ENXIO : errno
-            finish(SerialPortError.system(
-                operation: String(localized: "Read serial port"), code: code
-            ).localizedDescription)
+            finish(
+                SerialPortError.system(
+                    operation: String(localized: "Read serial port"), code: code
+                ).localizedDescription)
         }
     }
 

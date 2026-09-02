@@ -41,10 +41,12 @@ struct AgentPersistenceTests {
         )
         var result = AgentToolResult(
             callID: call.id,
-            content: AgentJSONValue.array([.object([
-                "title": .string("Example"), "url": .string("https://example.com"),
-                "snippet": .string("A result"), "published_at": .null,
-            ])]).encodedString
+            content: AgentJSONValue.array([
+                .object([
+                    "title": .string("Example"), "url": .string("https://example.com"),
+                    "snippet": .string("A result"), "published_at": .null,
+                ])
+            ]).encodedString
         )
         result.toolPresentation = presentation
         try await repository.record(.toolProposed(invocation, descriptor), runID: snapshot.id)
@@ -122,14 +124,16 @@ struct AgentPersistenceTests {
         let restored = try await repository.loadConversations()
 
         #expect(restored.first?.messages.first?.contextAttachments == [attachment])
-        #expect(try container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentContextAttachments>()
-        ).count == 1)
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentContextAttachments>()
+            ).count == 1)
 
         try await repository.deleteConversation(snapshot.conversationID)
-        #expect(try container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentContextAttachments>()
-        ).isEmpty)
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentContextAttachments>()
+            ).isEmpty)
     }
 
     @Test
@@ -150,9 +154,10 @@ struct AgentPersistenceTests {
                 localModelConfiguration("Migration", schema: legacySchema, url: storeURL)
             ]
         )
-        legacyContainer?.mainContext.insert(PersistentAgentConversation(
-            id: conversationID, title: "Existing"
-        ))
+        legacyContainer?.mainContext.insert(
+            PersistentAgentConversation(
+                id: conversationID, title: "Existing"
+            ))
         try legacyContainer?.mainContext.save()
         legacyContainer = nil
 
@@ -166,12 +171,14 @@ struct AgentPersistenceTests {
             ]
         )
 
-        #expect(try migrated.mainContext.fetch(
-            FetchDescriptor<PersistentAgentConversation>()
-        ).map(\.id) == [conversationID])
-        #expect(try migrated.mainContext.fetch(
-            FetchDescriptor<PersistentAgentContextAttachments>()
-        ).isEmpty)
+        #expect(
+            try migrated.mainContext.fetch(
+                FetchDescriptor<PersistentAgentConversation>()
+            ).map(\.id) == [conversationID])
+        #expect(
+            try migrated.mainContext.fetch(
+                FetchDescriptor<PersistentAgentContextAttachments>()
+            ).isEmpty)
     }
 
     @Test
@@ -192,9 +199,10 @@ struct AgentPersistenceTests {
                 localModelConfiguration("Migration", schema: legacySchema, url: storeURL)
             ]
         )
-        legacyContainer?.mainContext.insert(PersistentAgentConversation(
-            id: conversationID, title: "Existing"
-        ))
+        legacyContainer?.mainContext.insert(
+            PersistentAgentConversation(
+                id: conversationID, title: "Existing"
+            ))
         try legacyContainer?.mainContext.save()
         legacyContainer = nil
 
@@ -208,12 +216,14 @@ struct AgentPersistenceTests {
             ]
         )
 
-        #expect(try migrated.mainContext.fetch(
-            FetchDescriptor<PersistentAgentConversation>()
-        ).map(\.id) == [conversationID])
-        #expect(try migrated.mainContext.fetch(
-            FetchDescriptor<PersistentAgentCompaction>()
-        ).isEmpty)
+        #expect(
+            try migrated.mainContext.fetch(
+                FetchDescriptor<PersistentAgentConversation>()
+            ).map(\.id) == [conversationID])
+        #expect(
+            try migrated.mainContext.fetch(
+                FetchDescriptor<PersistentAgentCompaction>()
+            ).isEmpty)
     }
 
     @Test
@@ -232,9 +242,11 @@ struct AgentPersistenceTests {
         )
         let message = AgentTranscriptMessage(
             role: .assistant, text: "Done", reasoning: [block],
-            providerItems: [.object([
-                "signature": .string("opaque-provider-signature"),
-            ])]
+            providerItems: [
+                .object([
+                    "signature": .string("opaque-provider-signature")
+                ])
+            ]
         )
         let snapshot = AgentRunSnapshot(
             conversationID: UUID(), state: .completed,
@@ -243,9 +255,10 @@ struct AgentPersistenceTests {
 
         try await repository.save(snapshot)
 
-        let row = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentMessage>()
-        ).first)
+        let row = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentMessage>()
+            ).first)
         let storedReasoning = String(decoding: row.reasoningData, as: UTF8.self)
         #expect(!storedReasoning.contains("durable-secret"))
         #expect(!storedReasoning.contains("opaque-provider-signature"))
@@ -289,9 +302,10 @@ struct AgentPersistenceTests {
             target: .network, safety: .locallyReadOnly
         )
         try await repository.record(.toolProposed(invocation, descriptor), runID: snapshot.id)
-        try await repository.record(.toolFinished(
-            invocation, AgentToolResult(callID: "call", content: "[]")
-        ), runID: snapshot.id)
+        try await repository.record(
+            .toolFinished(
+                invocation, AgentToolResult(callID: "call", content: "[]")
+            ), runID: snapshot.id)
 
         let restored = try #require(try await repository.loadConversations().first)
         #expect(restored.messageRunIDs[user.id] == snapshot.id)
@@ -314,9 +328,11 @@ struct AgentPersistenceTests {
         var snapshot = AgentRunSnapshot(
             conversationID: UUID(), state: .running,
             permissionMode: .approveForMe,
-            messages: [AgentTranscriptMessage(
-                role: .user, text: "deploy password=hunter2"
-            )]
+            messages: [
+                AgentTranscriptMessage(
+                    role: .user, text: "deploy password=hunter2"
+                )
+            ]
         )
         try await repository.save(snapshot)
         let invocation = AgentToolInvocation(
@@ -329,25 +345,30 @@ struct AgentPersistenceTests {
             )
         )
         try await repository.record(
-            .toolProposed(invocation, AgentToolDescriptor(
-                name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
-                target: .host, safety: .requiresAuthorization
-            )),
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
+                    target: .host, safety: .requiresAuthorization
+                )),
             runID: snapshot.id
         )
 
         _ = SwiftDataAgentRunRepository(context: container.mainContext)
-        let run = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentRun>()
-        ).first)
+        let run = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentRun>()
+            ).first)
         #expect(run.state == AgentRunState.interrupted.rawValue)
-        let message = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentMessage>()
-        ).first)
+        let message = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentMessage>()
+            ).first)
         #expect(!message.text.contains("hunter2"))
-        let tool = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentToolInvocation>()
-        ).first)
+        let tool = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentToolInvocation>()
+            ).first)
         #expect(!String(decoding: tool.argumentsData, as: UTF8.self).contains("hunter2"))
 
         snapshot.state = .interrupted
@@ -390,19 +411,23 @@ struct AgentPersistenceTests {
         try await repository.save(snapshot)
         let invocation = AgentToolInvocation(runID: snapshot.id, call: call)
         try await repository.record(
-            .toolProposed(invocation, AgentToolDescriptor(
-                name: "fetch", summary: "fetch", inputSchema: .object([:]),
-                target: .network, safety: .locallyReadOnly
-            )),
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "fetch", summary: "fetch", inputSchema: .object([:]),
+                    target: .network, safety: .locallyReadOnly
+                )),
             runID: snapshot.id
         )
 
-        let message = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentMessage>()
-        ).first)
-        let invocationRow = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentToolInvocation>()
-        ).first)
+        let message = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentMessage>()
+            ).first)
+        let invocationRow = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentToolInvocation>()
+            ).first)
         for data in [message.toolCallsData, invocationRow.argumentsData] {
             let stored = String(decoding: data, as: UTF8.self)
             #expect(!stored.contains("durable-secret"))
@@ -482,9 +507,10 @@ struct AgentPersistenceTests {
         let storedMessages = try container.mainContext.fetch(
             FetchDescriptor<PersistentAgentMessage>()
         )
-        let storedResult = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentToolResult>()
-        ).first)
+        let storedResult = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentToolResult>()
+            ).first)
         let durableText = storedMessages.map(\.text).joined() + storedResult.content
         #expect(!durableText.contains(handle))
         #expect(durableText.contains("expired"))
@@ -572,16 +598,19 @@ struct AgentPersistenceTests {
             runID: invocation.runID
         )
         try await repository.record(
-            .toolProposed(invocation, AgentToolDescriptor(
-                name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
-                target: .host, safety: .requiresAuthorization
-            )),
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
+                    target: .host, safety: .requiresAuthorization
+                )),
             runID: invocation.runID
         )
 
-        let row = try #require(container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentToolInvocation>()
-        ).first)
+        let row = try #require(
+            container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentToolInvocation>()
+            ).first)
         #expect(row.state == "finished")
     }
 
@@ -619,10 +648,12 @@ struct AgentPersistenceTests {
             userIntent: "List hosts"
         )
         try await repository.record(
-            .reviewFinished(request, SecurityReviewDecision(
-                verdict: .approve, risk: .low, userAuthorization: .sufficient,
-                reason: "Allowed"
-            )),
+            .reviewFinished(
+                request,
+                SecurityReviewDecision(
+                    verdict: .approve, risk: .low, userAuthorization: .sufficient,
+                    reason: "Allowed"
+                )),
             runID: snapshot.id
         )
 
@@ -652,14 +683,15 @@ struct AgentPersistenceTests {
         )
         let repository = SwiftDataAgentRunRepository(context: container.mainContext)
         let conversationID = UUID()
-        try await repository.save(AgentRunSnapshot(
-            conversationID: conversationID, state: .completed,
-            permissionMode: .askForApproval,
-            messages: [
-                AgentTranscriptMessage(role: .user, text: "Root is at 99%"),
-                AgentTranscriptMessage(role: .assistant, text: "Start with du."),
-            ]
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval,
+                messages: [
+                    AgentTranscriptMessage(role: .user, text: "Root is at 99%"),
+                    AgentTranscriptMessage(role: .assistant, text: "Start with du."),
+                ]
+            ))
 
         #expect(try await repository.loadConversations().first?.title == "")
 
@@ -689,14 +721,17 @@ struct AgentPersistenceTests {
         )
         let repository = SwiftDataAgentRunRepository(context: container.mainContext)
         let id = UUID()
-        try await repository.save(AgentRunSnapshot(
-            conversationID: id, state: .completed,
-            permissionMode: .askForApproval,
-            messages: [AgentTranscriptMessage(
-                role: .user, text: "Prompt\n\n<file label=\"a\">payload</file>",
-                authoredText: "Prompt"
-            )]
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: id, state: .completed,
+                permissionMode: .askForApproval,
+                messages: [
+                    AgentTranscriptMessage(
+                        role: .user, text: "Prompt\n\n<file label=\"a\">payload</file>",
+                        authoredText: "Prompt"
+                    )
+                ]
+            ))
         let archived = Date(timeIntervalSince1970: 10)
         try await repository.setConversationMetadata(
             StoredAgentConversationMetadata(
@@ -724,10 +759,11 @@ struct AgentPersistenceTests {
         let first = UUID()
         let second = UUID()
         for id in [first, second] {
-            try await repository.save(AgentRunSnapshot(
-                conversationID: id, state: .completed,
-                permissionMode: .askForApproval, messages: []
-            ))
+            try await repository.save(
+                AgentRunSnapshot(
+                    conversationID: id, state: .completed,
+                    permissionMode: .askForApproval, messages: []
+                ))
         }
 
         try await repository.reorderConversations([
@@ -796,10 +832,11 @@ struct AgentPersistenceTests {
         let original = AgentTranscriptMessage(
             role: .user, text: "Original", authoredText: "Original"
         )
-        try await repository.save(AgentRunSnapshot(
-            conversationID: id, state: .completed,
-            permissionMode: .askForApproval, messages: [original]
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: id, state: .completed,
+                permissionMode: .askForApproval, messages: [original]
+            ))
 
         await #expect(throws: AgentConversationPersistenceError.self) {
             try await repository.truncateConversation(
@@ -833,34 +870,42 @@ struct AgentPersistenceTests {
             compactedThroughMessageID: nil, sequence: 0, summary: "Fork base",
             summarizedTokens: 10, keptTokens: 2, displayAnchor: .now
         )
-        try await repository.save(AgentRunSnapshot(
-            conversationID: originalID, state: .completed,
-            permissionMode: .askForApproval,
-            messages: [AgentTranscriptMessage(
-                id: originalMessageID, role: .user, text: "Original", authoredText: "Original"
-            )]
-        ))
-        try await repository.createConversation(StoredAgentConversation(
-            id: forkID,
-            messages: [AgentTranscriptMessage(
-                id: forkMessageID, role: .user, text: "Original", authoredText: "Original"
-            )], compactions: [forkCompaction], lastRunState: .completed,
-            metadata: StoredAgentConversationMetadata(customTitle: "Original (1)")
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: originalID, state: .completed,
+                permissionMode: .askForApproval,
+                messages: [
+                    AgentTranscriptMessage(
+                        id: originalMessageID, role: .user, text: "Original", authoredText: "Original"
+                    )
+                ]
+            ))
+        try await repository.createConversation(
+            StoredAgentConversation(
+                id: forkID,
+                messages: [
+                    AgentTranscriptMessage(
+                        id: forkMessageID, role: .user, text: "Original", authoredText: "Original"
+                    )
+                ], compactions: [forkCompaction], lastRunState: .completed,
+                metadata: StoredAgentConversationMetadata(customTitle: "Original (1)")
+            ))
 
         let restored = try await repository.loadConversations()
         #expect(Set(restored.map(\.id)) == Set([originalID, forkID]))
         #expect(restored.first { $0.id == forkID }?.messages.first?.id == forkMessageID)
-        #expect(restored.first { $0.id == forkID }?.modelTranscript?.first?.id
-            == forkCompaction.summaryMessageID)
+        #expect(
+            restored.first { $0.id == forkID }?.modelTranscript?.first?.id
+                == forkCompaction.summaryMessageID)
         #expect(restored.first { $0.id == forkID }?.metadata.customTitle == "Original (1)")
 
         try await repository.deleteConversation(originalID)
         #expect(try await repository.loadConversations().map(\.id) == [forkID])
         try await repository.deleteConversation(forkID)
-        #expect(try container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentCompaction>()
-        ).isEmpty)
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentCompaction>()
+            ).isEmpty)
     }
 
     @Test
@@ -881,10 +926,11 @@ struct AgentPersistenceTests {
         )
         let recent = AgentTranscriptMessage(role: .user, text: "Recent question")
         let repository = SwiftDataAgentRunRepository(context: container.mainContext)
-        try await repository.save(AgentRunSnapshot(
-            conversationID: conversationID, state: .completed,
-            permissionMode: .askForApproval, messages: [old, answer, recent]
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval, messages: [old, answer, recent]
+            ))
         let record = AgentCompactionRecord(
             compactedThroughMessageID: answer.id, sequence: 0,
             summary: "## Goal\nKeep the recent work",
@@ -908,9 +954,10 @@ struct AgentPersistenceTests {
         #expect(live.compactions.map(\.id) == [record.id])
         let fullContext = ConversationModel(transcript: restored.messages).contextEstimate.total
         #expect(live.contextEstimate.total < fullContext)
-        #expect(try container.mainContext.fetch(
-            FetchDescriptor<PersistentAgentCompaction>()
-        ).count == 1)
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentCompaction>()
+            ).count == 1)
     }
 
     @Test
@@ -926,21 +973,23 @@ struct AgentPersistenceTests {
         let old = AgentTranscriptMessage(role: .user, text: "Old")
         let recent = AgentTranscriptMessage(role: .assistant, text: "Recent")
         let repository = SwiftDataAgentRunRepository(context: container.mainContext)
-        try await repository.save(AgentRunSnapshot(
-            conversationID: conversationID, state: .completed,
-            permissionMode: .askForApproval, messages: [old, recent]
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval, messages: [old, recent]
+            ))
         let record = AgentCompactionRecord(
             compactedThroughMessageID: old.id, sequence: 0, summary: "Summary",
             summarizedTokens: 10, keptTokens: 2, displayAnchor: old.createdAt
         )
         try await repository.persistCompaction(record, conversationID: conversationID)
         let followUp = AgentTranscriptMessage(role: .user, text: "Continue")
-        try await repository.save(AgentRunSnapshot(
-            conversationID: conversationID, state: .completed,
-            permissionMode: .askForApproval,
-            messages: [record.summaryMessage, recent, followUp]
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval,
+                messages: [record.summaryMessage, recent, followUp]
+            ))
 
         let messageRows = try container.mainContext.fetch(
             FetchDescriptor<PersistentAgentMessage>()
@@ -950,9 +999,10 @@ struct AgentPersistenceTests {
         #expect(!messageRows.contains { $0.id == record.summaryMessageID })
         let restored = try #require(try await repository.loadConversations().first)
         #expect(restored.messages.map(\.id) == [old.id, recent.id, followUp.id])
-        #expect(restored.modelTranscript?.map(\.id) == [
-            record.summaryMessageID, recent.id, followUp.id,
-        ])
+        #expect(
+            restored.modelTranscript?.map(\.id) == [
+                record.summaryMessageID, recent.id, followUp.id,
+            ])
     }
 
     @Test
@@ -972,10 +1022,11 @@ struct AgentPersistenceTests {
             AgentTranscriptMessage(role: .assistant, text: "Four"),
         ]
         let repository = SwiftDataAgentRunRepository(context: container.mainContext)
-        try await repository.save(AgentRunSnapshot(
-            conversationID: conversationID, state: .completed,
-            permissionMode: .askForApproval, messages: messages
-        ))
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval, messages: messages
+            ))
         let first = AgentCompactionRecord(
             compactedThroughMessageID: messages[1].id, sequence: 0, summary: "First",
             summarizedTokens: 10, keptTokens: 2, displayAnchor: messages[1].createdAt,

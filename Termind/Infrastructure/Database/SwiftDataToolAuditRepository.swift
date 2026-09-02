@@ -55,9 +55,11 @@ final class SwiftDataToolAuditRepository: ToolAuditRepository {
     init(context: ModelContext) { self.context = context }
 
     func entries() throws -> [ExternalToolCall] {
-        try context.fetch(FetchDescriptor<PersistentExternalToolCall>(
-            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
-        )).map(\.value)
+        try context.fetch(
+            FetchDescriptor<PersistentExternalToolCall>(
+                sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+            )
+        ).map(\.value)
     }
 
     func clear() throws {
@@ -97,9 +99,10 @@ final class SwiftDataToolAuditRepository: ToolAuditRepository {
     func recoverInterruptedCalls() throws {
         let running = ExternalToolCall.Status.running.rawValue
         try context.commit {
-            let rows = try context.fetch(FetchDescriptor<PersistentExternalToolCall>(
-                predicate: #Predicate { $0.status == running }
-            ))
+            let rows = try context.fetch(
+                FetchDescriptor<PersistentExternalToolCall>(
+                    predicate: #Predicate { $0.status == running }
+                ))
             for row in rows {
                 row.status = ExternalToolCall.Status.error.rawValue
                 row.finishedAt = .now

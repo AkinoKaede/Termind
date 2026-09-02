@@ -91,9 +91,11 @@ struct OnboardingControllerTests {
 
             controller.preview(.commandGenerator)
             controller.consider(window: window, context: OnboardingContext())
-            guard case .waitingForContext(let reason) = controller.developerStatus(
-                for: .commandGenerator
-            ) else {
+            guard
+                case .waitingForContext(let reason) = controller.developerStatus(
+                    for: .commandGenerator
+                )
+            else {
                 Issue.record("Expected Preview to wait for a shell context")
                 return
             }

@@ -13,10 +13,12 @@ struct MCPServerSettings: View {
 
     var body: some View {
         Section("Server") {
-            Toggle("Enable", isOn: Binding(
-                get: { server.isEnabled && app.proAccess.canUse(.mcpServer) },
-                set: { server.setEnabled($0) }
-            ))
+            Toggle(
+                "Enable",
+                isOn: Binding(
+                    get: { server.isEnabled && app.proAccess.canUse(.mcpServer) },
+                    set: { server.setEnabled($0) }
+                ))
 
             LabeledContent("Status") {
                 HStack(spacing: Metrics.Space.s) {
@@ -28,10 +30,13 @@ struct MCPServerSettings: View {
             }
             LabeledContent("Connected clients", value: "\(server.connectedClients)")
             LabeledContent("Port") {
-                TextField("Port", value: Binding(
-                    get: { server.port },
-                    set: { server.setPort($0) }
-                ), format: .number.grouping(.never))
+                TextField(
+                    "Port",
+                    value: Binding(
+                        get: { server.port },
+                        set: { server.setPort($0) }
+                    ), format: .number.grouping(.never)
+                )
                 .frame(width: 100)
                 .multilineTextAlignment(.trailing)
             }
@@ -68,15 +73,20 @@ struct MCPServerSettings: View {
 
         Section("Exposed Tools") {
             ForEach(MCPServerTools.exportedNames.sorted(), id: \.self) { name in
-                Toggle(name, isOn: Binding(
-                    get: { !server.disabledTools.contains(name) },
-                    set: { server.setToolEnabled($0, name: name) }
-                ))
+                Toggle(
+                    name,
+                    isOn: Binding(
+                        get: { !server.disabledTools.contains(name) },
+                        set: { server.setToolEnabled($0, name: name) }
+                    )
+                )
                 .font(.system(.body, design: .monospaced))
             }
-            Text("Tool changes are enforced immediately. Existing clients see the new list when they reconnect or list tools again.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(
+                "Tool changes are enforced immediately. Existing clients see the new list when they reconnect or list tools again."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
 
         Section("Call History") {
@@ -139,7 +149,9 @@ private struct ExternalToolCallRow: View {
                 HStack {
                     Text(row.clientName)
                     Text(row.startedAt, style: .relative)
-                    if let duration = row.duration { Text(duration, format: .number.precision(.fractionLength(2))) + Text("s") }
+                    if let duration = row.duration {
+                        Text(duration, format: .number.precision(.fractionLength(2))) + Text("s")
+                    }
                 }
                 .font(.caption2).foregroundStyle(.tertiary)
             }

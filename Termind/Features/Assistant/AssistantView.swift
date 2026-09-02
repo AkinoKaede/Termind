@@ -130,7 +130,8 @@ struct AssistantPanelView: View {
 
     private var workspaceAssistantSurface: some View {
         let exitsAsWhole = window.sidebarAssistantConversation != nil
-        let dropConversation = window.sidebarAssistantConversation
+        let dropConversation =
+            window.sidebarAssistantConversation
             ?? window.sidebar.assistantDraft
 
         return VStack(spacing: 0) {
@@ -284,32 +285,32 @@ private struct AssistantConversationList: View {
 
     var body: some View {
         content
-        .onChange(of: visibleConversationIDs) {
-            guard let renamingID, !visibleConversationIDs.contains(renamingID) else { return }
-            cancelRename()
-        }
-        .onChange(of: selectedID) {
-            guard case .active = scope,
-                let id = selectedID,
-                let conversation = window.assistantLibrary.conversation(id: id)
-            else { return }
-            setExpanded(true, for: conversation.isPinned ? .pinned : .chats)
-        }
-        .alert(
-            "Delete Conversation?",
-            isPresented: Binding(
-                get: { deleteTarget != nil },
-                set: { if !$0 { deleteTarget = nil } }
-            ), presenting: deleteTarget
-        ) { conversation in
-            Button("Cancel", role: .cancel) { deleteTarget = nil }
-            Button("Delete", role: .destructive) {
-                window.deleteAssistantConversation(conversation.id)
-                deleteTarget = nil
+            .onChange(of: visibleConversationIDs) {
+                guard let renamingID, !visibleConversationIDs.contains(renamingID) else { return }
+                cancelRename()
             }
-        } message: { _ in
-            Text("This permanently removes the conversation and its scratch files.")
-        }
+            .onChange(of: selectedID) {
+                guard case .active = scope,
+                    let id = selectedID,
+                    let conversation = window.assistantLibrary.conversation(id: id)
+                else { return }
+                setExpanded(true, for: conversation.isPinned ? .pinned : .chats)
+            }
+            .alert(
+                "Delete Conversation?",
+                isPresented: Binding(
+                    get: { deleteTarget != nil },
+                    set: { if !$0 { deleteTarget = nil } }
+                ), presenting: deleteTarget
+            ) { conversation in
+                Button("Cancel", role: .cancel) { deleteTarget = nil }
+                Button("Delete", role: .destructive) {
+                    window.deleteAssistantConversation(conversation.id)
+                    deleteTarget = nil
+                }
+            } message: { _ in
+                Text("This permanently removes the conversation and its scratch files.")
+            }
     }
 
     private var visibleConversationIDs: Set<ConversationModel.ID> {
@@ -357,13 +358,15 @@ private struct AssistantConversationList: View {
             // that asked for it tears down the Button mid-dispatch.
             animatesStructuralChanges: false,
             draggedID: { isSearching ? nil : Self.draggedConversationID(in: window) },
-            onMove: isSearching ? nil : { id, target in
-                setExpanded(true, for: target.section)
-                window.moveAssistantConversation(
-                    id, toPinned: target.section == .pinned, before: target.beforeID
-                )
-                window.dragging = nil
-            },
+            onMove: isSearching
+                ? nil
+                : { id, target in
+                    setExpanded(true, for: target.section)
+                    window.moveAssistantConversation(
+                        id, toPinned: target.section == .pinned, before: target.beforeID
+                    )
+                    window.dragging = nil
+                },
             blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) },
             isInteractive: isInteractive
         ) { item in
@@ -652,7 +655,8 @@ nonisolated enum AssistantConversationDropResolver {
     ) -> AssistantConversationDropTarget? {
         guard items.count == rowFrames.count, !items.isEmpty else { return nil }
 
-        let index = rowFrames.firstIndex { $0.contains(CGPoint(x: $0.midX, y: pointerY)) }
+        let index =
+            rowFrames.firstIndex { $0.contains(CGPoint(x: $0.midX, y: pointerY)) }
             ?? rowFrames.firstIndex { pointerY < $0.midY }
             ?? (items.count - 1)
 
@@ -922,10 +926,11 @@ final class AssistantConversationListContainer: NSView {
     }
 
     private func updateAppearanceLayers() {
-        insertionLine.layer?.backgroundColor = TermindColor.resolvedNative(
-            TermindColor.nativeAccent,
-            for: effectiveAppearance
-        ).cgColor
+        insertionLine.layer?.backgroundColor =
+            TermindColor.resolvedNative(
+                TermindColor.nativeAccent,
+                for: effectiveAppearance
+            ).cgColor
     }
 
     /// A row's own menu is installed by SwiftUI on its hosting view, which
@@ -976,9 +981,11 @@ final class AssistantConversationListContainer: NSView {
         let point = listView.convert(sender.draggingLocation, from: nil)
         let items = listView.content
         let frames = items.indices.map { listView.rectForRow(at: $0) }
-        guard let target = AssistantConversationDropResolver.target(
-            items: items, rowFrames: frames, pointerY: point.y
-        ) else {
+        guard
+            let target = AssistantConversationDropResolver.target(
+                items: items, rowFrames: frames, pointerY: point.y
+            )
+        else {
             clearTarget()
             return false
         }
@@ -1172,8 +1179,8 @@ private struct CompactAssistantHeader: ViewModifier {
     }
 }
 
-private extension View {
-    func compactAssistantHeader() -> some View {
+extension View {
+    fileprivate func compactAssistantHeader() -> some View {
         modifier(CompactAssistantHeader())
     }
 }
@@ -1282,11 +1289,12 @@ struct AssistantConversationRow: View {
     private var rowContent: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: conversation.isArchived ? "archivebox" : "sparkles")
-                .foregroundStyle(SidebarSelectionStyle.foreground(
-                    isSelected: isSelected,
-                    controlActiveState: controlActiveState,
-                    unselected: AnyShapeStyle(.secondary)
-                ))
+                .foregroundStyle(
+                    SidebarSelectionStyle.foreground(
+                        isSelected: isSelected,
+                        controlActiveState: controlActiveState,
+                        unselected: AnyShapeStyle(.secondary)
+                    ))
             if isRenaming {
                 SidebarInlineRenameField(
                     text: $renameTitle,
@@ -1312,17 +1320,19 @@ struct AssistantConversationRow: View {
                         // The row's own foreground, so on a selected card in a
                         // key window this reads white with the title beside it
                         // rather than as an accent-coloured glyph on accent.
-                        .foregroundStyle(SidebarSelectionStyle.foreground(
-                            isSelected: isSelected,
-                            controlActiveState: controlActiveState,
-                            unselected: AnyShapeStyle(.secondary)
-                        ))
+                        .foregroundStyle(
+                            SidebarSelectionStyle.foreground(
+                                isSelected: isSelected,
+                                controlActiveState: controlActiveState,
+                                unselected: AnyShapeStyle(.secondary)
+                            ))
                 }
                 .buttonStyle(.plain)
-                .help(Text(
-                    conversation.isArchived
-                        ? localized("Unarchive") : localized("Archive")
-                ))
+                .help(
+                    Text(
+                        conversation.isArchived
+                            ? localized("Unarchive") : localized("Archive")
+                    ))
             }
         }
     }
@@ -1354,7 +1364,7 @@ struct AssistantView: View {
                 conversation: conversation,
                 onNewChat: { window.openNewAssistantChat() }
             )
-                .background(TermindColor.windowSurface)
+            .background(TermindColor.windowSurface)
         } else {
             ConversationView(
                 conversation: window.assistantLibrary.draftConversation,

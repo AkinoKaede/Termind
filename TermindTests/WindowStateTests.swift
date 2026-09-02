@@ -13,13 +13,15 @@ struct WindowStateTests {
         let second = ConversationModel(updatedAt: Date(timeIntervalSinceReferenceDate: 20))
         let pinned = ConversationModel(updatedAt: Date(timeIntervalSinceReferenceDate: 30))
         pinned.isPinned = true
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [first, second, pinned]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [first, second, pinned]
+            ))
 
-        let updates = try #require(library.orderUpdates(
-            moving: first.id, toPinned: true, before: pinned.id
-        ))
+        let updates = try #require(
+            library.orderUpdates(
+                moving: first.id, toPinned: true, before: pinned.id
+            ))
         library.applyOrder(updates)
 
         #expect(library.pinnedConversations.map(\.id) == [first.id, pinned.id])
@@ -75,9 +77,10 @@ struct WindowStateTests {
             host: Host(name: "Server", host: "server.example")
         )
         let conversation = ConversationModel()
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
         window.sidebarMode = .assistant
         window.openAssistantInSidebar(conversation.id)
@@ -96,9 +99,10 @@ struct WindowStateTests {
             host: Host(name: "Server", host: "server.example")
         )
         let conversation = ConversationModel()
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
         window.sidebarMode = .assistant
         window.openAssistantInSidebar(conversation.id)
@@ -133,9 +137,10 @@ struct WindowStateTests {
         pinned.isPinned = true
         let archived = ConversationModel(updatedAt: Date(timeIntervalSince1970: 4))
         archived.archivedAt = .now
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [old, recent, pinned, archived]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [old, recent, pinned, archived]
+            ))
 
         #expect(library.pinnedConversations.map(\.id) == [pinned.id])
         #expect(library.activeConversations.map(\.id) == [recent.id, old.id])
@@ -146,9 +151,10 @@ struct WindowStateTests {
     func archivingClearsPinAndUnarchivingReturnsTheConversationToChats() {
         let conversation = ConversationModel()
         conversation.isPinned = true
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(assistantLibrary: library)
 
         window.setAssistantArchived(conversation.id, archived: true)
@@ -164,9 +170,10 @@ struct WindowStateTests {
     @Test
     func archivingTheOpenConversationReturnsMainAndSidebarSurfacesToNewChat() {
         let conversation = ConversationModel()
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(assistantLibrary: library)
         window.selectAssistant(conversation.id)
         window.openAssistantInSidebar(conversation.id)
@@ -183,9 +190,10 @@ struct WindowStateTests {
     func archiveIsASeparateWindowDestinationAndConversationNavigationLeavesIt() {
         let conversation = ConversationModel()
         conversation.archivedAt = .now
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(assistantLibrary: library)
 
         window.showAssistantArchive()
@@ -208,9 +216,10 @@ struct WindowStateTests {
     @Test
     func openingSidebarConversationFullScreenKeepsAssistantSidebarSelected() {
         let conversation = ConversationModel()
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(assistantLibrary: library)
 
         window.openAssistantFullScreen(conversation.id)
@@ -300,9 +309,10 @@ struct WindowStateTests {
         let span = try #require(
             conversation.compactionSpan(keepRecentTokens: keepRecentTokens)
         )
-        let record = try #require(conversation.prepareCompaction(
-            summary: "summary", cut: span.cut
-        ))
+        let record = try #require(
+            conversation.prepareCompaction(
+                summary: "summary", cut: span.cut
+            ))
         let transcript = conversation.transcript
         let estimate = conversation.contextEstimate
 
@@ -369,9 +379,10 @@ struct WindowStateTests {
     @Test
     func assistantAndNavigatorModeRailRoundTripsToThePreviousVaultRoute() {
         let conversation = ConversationModel()
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(assistantLibrary: library)
         window.selectAssistant(conversation.id)
         window.openVaultWork(.hostEditor(nil), on: .hosts)
@@ -444,9 +455,10 @@ struct WindowStateTests {
     @Test
     func enteringAssistantKeepsTheVolatileConversationSelection() {
         let conversation = ConversationModel()
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(assistantLibrary: library)
 
         window.selectAssistant(conversation.id)
@@ -469,9 +481,10 @@ struct WindowStateTests {
     @Test
     func enteringAssistantKeepsTheVolatileArchiveDestination() {
         let conversation = ConversationModel()
-        let library = AssistantLibraryModel(store: AssistantConversationStore(
-            conversations: [conversation]
-        ))
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(
+                conversations: [conversation]
+            ))
         let window = WindowModel(assistantLibrary: library)
 
         window.selectAssistant(conversation.id)

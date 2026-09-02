@@ -104,7 +104,10 @@ final class SerialSessionModel: Identifiable {
                     }
                 )
                 try Task.checkCancellation()
-                guard let self else { await opened.close(); return }
+                guard let self else {
+                    await opened.close()
+                    return
+                }
                 self.connection = opened
                 self.status = .connected
                 self.connectionJourney.succeed()
@@ -146,8 +149,9 @@ final class SerialSessionModel: Identifiable {
             terminalBackend.receive(echo)
         }
         Task {
-            do { try await connection.write(output) }
-            catch { await MainActor.run { self.fail(error.localizedDescription) } }
+            do { try await connection.write(output) } catch {
+                await MainActor.run { self.fail(error.localizedDescription) }
+            }
         }
     }
 

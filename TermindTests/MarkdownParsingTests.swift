@@ -50,10 +50,11 @@ struct MarkdownParsingTests {
         }
         #expect(start == 3)
         #expect(items.count == 2)
-        #expect(items[1].children.contains { block in
-            guard case .bulletedList = block else { return false }
-            return true
-        })
+        #expect(
+            items[1].children.contains { block in
+                guard case .bulletedList = block else { return false }
+                return true
+            })
     }
 
     @Test
@@ -101,10 +102,11 @@ struct MarkdownParsingTests {
 
         for source in ["[click](javascript:alert(1))", "[open](file:///etc/passwd)"] {
             let inlines = paragraphInlines(TermindMarkdownParser.parse(source).first)
-            #expect(!inlines.contains { inline in
-                guard case .link = inline else { return false }
-                return true
-            })
+            #expect(
+                !inlines.contains { inline in
+                    guard case .link = inline else { return false }
+                    return true
+                })
             #expect(inlineText(inlines).contains(source.contains("click") ? "click" : "open"))
         }
     }
@@ -121,8 +123,9 @@ struct MarkdownParsingTests {
 
     @Test
     func headingsQuotesRulesAndMathKeepTheirShape() {
-        guard case .heading(let level, let heading)? =
-            TermindMarkdownParser.parse("## Title").first
+        guard
+            case .heading(let level, let heading)? =
+                TermindMarkdownParser.parse("## Title").first
         else {
             Issue.record("expected a heading")
             return
@@ -130,8 +133,9 @@ struct MarkdownParsingTests {
         #expect(level == 2)
         #expect(inlineText(heading) == "Title")
 
-        guard case .blockquote(let children)? =
-            TermindMarkdownParser.parse("> quoted").first
+        guard
+            case .blockquote(let children)? =
+                TermindMarkdownParser.parse("> quoted").first
         else {
             Issue.record("expected a block quote")
             return
@@ -146,10 +150,11 @@ struct MarkdownParsingTests {
         }
 
         let math = paragraphInlines(TermindMarkdownParser.parse("$x^2$").first)
-        #expect(math.contains { inline in
-            guard case .math(let content, _) = inline else { return false }
-            return content == "x^2"
-        })
+        #expect(
+            math.contains { inline in
+                guard case .math(let content, _) = inline else { return false }
+                return content == "x^2"
+            })
     }
 
     @Test
@@ -174,10 +179,11 @@ struct MarkdownParsingTests {
             return
         }
         #expect(userBlocks.count == blocks.count)
-        #expect(userBlocks.contains { block in
-            guard case .codeBlock = block else { return false }
-            return true
-        })
+        #expect(
+            userBlocks.contains { block in
+                guard case .codeBlock = block else { return false }
+                return true
+            })
     }
 
     @Test
@@ -187,15 +193,17 @@ struct MarkdownParsingTests {
             from: blocks,
             allowsShellActions: true
         )
-        #expect(segments.contains { segment in
-            guard case .shell(let language, let command) = segment else { return false }
-            return language == "zsh" && command.trimmingCharacters(in: .whitespaces) == "pwd"
-        })
+        #expect(
+            segments.contains { segment in
+                guard case .shell(let language, let command) = segment else { return false }
+                return language == "zsh" && command.trimmingCharacters(in: .whitespaces) == "pwd"
+            })
     }
 
     @Test
     func plainTextExtractionProducesOneLine() {
-        let title = TermindMarkdownParser.plainText("""
+        let title = TermindMarkdownParser.plainText(
+            """
             **Checked both hosts.**
 
             - Compare the logs
@@ -207,7 +215,8 @@ struct MarkdownParsingTests {
     @MainActor
     @Test
     func transientToolTitleFlattensBlocksAndPreservesSafeInlineMarkdown() throws {
-        let title = TermindMarkdownParser.singleLineAttributedText("""
+        let title = TermindMarkdownParser.singleLineAttributedText(
+            """
             **Checked** *both* hosts and [`sshd`](https://example.com).
 
             - ~~old result~~
@@ -223,7 +232,9 @@ struct MarkdownParsingTests {
         let bothFont = try #require(title.attribute(.font, at: both.location, effectiveRange: nil) as? NSFont)
         #expect(checkedFont.fontDescriptor.symbolicTraits.contains(.bold))
         #expect(bothFont.fontDescriptor.symbolicTraits.contains(.italic))
-        #expect(title.attribute(.link, at: sshd.location, effectiveRange: nil) as? URL == URL(string: "https://example.com"))
+        #expect(
+            title.attribute(.link, at: sshd.location, effectiveRange: nil) as? URL == URL(string: "https://example.com")
+        )
         #expect(title.attribute(.strikethroughStyle, at: old.location, effectiveRange: nil) != nil)
     }
 
@@ -289,8 +300,8 @@ struct MarkdownParsingTests {
             case .lineBreak:
                 "\n"
             case .emphasis(let children), .strong(let children),
-                 .strikethrough(let children), .link(_, let children),
-                 .image(_, let children):
+                .strikethrough(let children), .link(_, let children),
+                .image(_, let children):
                 inlineText(children)
             }
         }.joined()

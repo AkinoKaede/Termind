@@ -196,8 +196,8 @@ struct ConnectionJourneyView: View {
                 .frame(width: 52, height: 52)
                 .overlay {
                     Image(systemName: headerSymbol)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(TermindColor.selectedForeground)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(TermindColor.selectedForeground)
                 }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -327,7 +327,7 @@ struct ConnectionJourneyView: View {
                         .foregroundStyle(.tertiary)
                     Text(entry.endpoint).foregroundStyle(.secondary)
                     Text(entry.message)
-                    }
+                }
                 .font(.caption.monospaced())
                 .textSelection(.enabled)
             }
@@ -362,11 +362,12 @@ struct ConnectionJourneyView: View {
     }
 
     private var headerDetail: String {
-        let protocolName: String = switch journey.purpose {
-        case .sshSession: "SSH"
-        case .sftpSession: "SFTP"
-        case .serialSession: String(localized: "Serial")
-        }
+        let protocolName: String =
+            switch journey.purpose {
+            case .sshSession: "SSH"
+            case .sftpSession: "SFTP"
+            case .serialSession: String(localized: "Serial")
+            }
         let address = journey.destination?.address ?? ""
         if journey.mode == .reconnection {
             return String(localized: "Reconnecting \(protocolName) · \(address)")
@@ -506,9 +507,10 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
             content.update(
                 listView, items: items,
                 renderer: { item in
-                    AnyView(renderer(item)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14))
+                    AnyView(
+                        renderer(item)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 14))
                 },
                 locale: locale, colorScheme: colorScheme, animated: true
             )
@@ -517,9 +519,14 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
         private func height(for item: ConnectionLogListItem, width: CGFloat) -> CGFloat {
             guard width > 0, let root = content.rootView(for: item) else { return 26 }
             measurement.rootView = root
-            return max(26, ceil(measurement.sizeThatFits(in: CGSize(
-                width: width, height: .greatestFiniteMagnitude
-            )).height) + 8)
+            return max(
+                26,
+                ceil(
+                    measurement.sizeThatFits(
+                        in: CGSize(
+                            width: width, height: .greatestFiniteMagnitude
+                        )
+                    ).height) + 8)
         }
 
         private func configure(_ row: HostingListRow, item: ConnectionLogListItem) {
@@ -1169,14 +1176,14 @@ private struct JourneyFailureCard: View {
                     Button(action: cancel) {
                         Text(cancelLabel).frame(width: 88)
                     }
-                        .buttonStyle(.bordered)
-                        .keyboardShortcut(.cancelAction)
+                    .buttonStyle(.bordered)
+                    .keyboardShortcut(.cancelAction)
                     Spacer()
                     Button(action: retry) {
                         Text(retryLabel).frame(width: 88)
                     }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
                 }
             } else {
                 HStack {

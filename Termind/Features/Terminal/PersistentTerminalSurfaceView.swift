@@ -243,7 +243,8 @@
             // search-field → terminal → search-field focus flash.
             let window = terminalView.window
             let editor = window?.firstResponder as? NSTextView
-            let textField = editor?.isFieldEditor == true
+            let textField =
+                editor?.isFieldEditor == true
                 ? editor?.delegate as? NSTextField
                 : nil
             let selection = editor?.selectedRange

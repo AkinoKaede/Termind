@@ -61,11 +61,12 @@ nonisolated struct SessionContext: Hashable, Sendable {
             chips.append(ContextChip(kind: .host, label: hostName, content: hostName))
         }
         if let workingDirectory, showsWorkingDirectoryChip {
-            chips.append(ContextChip(
-                kind: .directory,
-                label: workingDirectoryDisplayLabel ?? workingDirectory,
-                content: workingDirectory
-            ))
+            chips.append(
+                ContextChip(
+                    kind: .directory,
+                    label: workingDirectoryDisplayLabel ?? workingDirectory,
+                    content: workingDirectory
+                ))
         }
         return chips
     }

@@ -2,142 +2,142 @@ import Foundation
 import SwiftData
 
 enum TermindSchemaV7HostModels {
-@Model
-final class PersistentHost {
-    @Attribute(.unique) var id: UUID = UUID()
-    var name = ""
-    var address = ""
-    var port = 22
-    var identityID: UUID?
-    var jumpHostID: UUID?
-    var proxyProtocol: String?
-    var proxyHostname = ""
-    var proxyPort = 0
-    var proxyUsername = ""
-    var proxyIdentityID: UUID?
-    var sftpSessionInitialPath = ""
-    var groupID: UUID?
-    var tags: [String] = []
-    var colorTag = TagColor.none.rawValue
-    /// Legacy V1–V5 storage retained only so existing stores can migrate.
-    /// Recents and last-connected presentation are derived from connection
-    /// history; this column is never read or written by current code.
-    var lastUsedAt: Date?
-    var sortIndex = 0.0
+    @Model
+    final class PersistentHost {
+        @Attribute(.unique) var id: UUID = UUID()
+        var name = ""
+        var address = ""
+        var port = 22
+        var identityID: UUID?
+        var jumpHostID: UUID?
+        var proxyProtocol: String?
+        var proxyHostname = ""
+        var proxyPort = 0
+        var proxyUsername = ""
+        var proxyIdentityID: UUID?
+        var sftpSessionInitialPath = ""
+        var groupID: UUID?
+        var tags: [String] = []
+        var colorTag = TagColor.none.rawValue
+        /// Legacy V1–V5 storage retained only so existing stores can migrate.
+        /// Recents and last-connected presentation are derived from connection
+        /// history; this column is never read or written by current code.
+        var lastUsedAt: Date?
+        var sortIndex = 0.0
 
-    init(_ value: Host) {
-        id = value.id
-        apply(value)
-    }
-
-    func apply(_ value: Host) {
-        name = value.name
-        address = value.host
-        port = value.port
-        identityID = value.identityID
-        jumpHostID = value.jumpHostID
-        proxyProtocol = value.proxy?.kind.rawValue
-        proxyHostname = value.proxy?.hostname ?? ""
-        proxyPort = value.proxy?.port ?? 0
-        proxyUsername = value.proxy?.username ?? ""
-        proxyIdentityID = value.proxy?.identityID
-        sftpSessionInitialPath = value.sftpSessionInitialPath
-        groupID = value.groupID
-        tags = value.tags
-        colorTag = value.colorTag.rawValue
-        sortIndex = value.sortIndex
-    }
-
-    var value: Host {
-        var host = Host(
-            id: id, name: name, host: address, port: port,
-            identityID: identityID, groupID: groupID, tags: tags,
-            colorTag: TagColor(rawValue: colorTag) ?? .none,
-            sortIndex: sortIndex
-        )
-        host.jumpHostID = jumpHostID
-        host.sftpSessionInitialPath = sftpSessionInitialPath
-        if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
-            host.proxy = HostProxy(
-                kind: kind, hostname: proxyHostname, port: proxyPort,
-                username: proxyUsername, identityID: proxyIdentityID
-            )
+        init(_ value: Host) {
+            id = value.id
+            apply(value)
         }
-        return host
+
+        func apply(_ value: Host) {
+            name = value.name
+            address = value.host
+            port = value.port
+            identityID = value.identityID
+            jumpHostID = value.jumpHostID
+            proxyProtocol = value.proxy?.kind.rawValue
+            proxyHostname = value.proxy?.hostname ?? ""
+            proxyPort = value.proxy?.port ?? 0
+            proxyUsername = value.proxy?.username ?? ""
+            proxyIdentityID = value.proxy?.identityID
+            sftpSessionInitialPath = value.sftpSessionInitialPath
+            groupID = value.groupID
+            tags = value.tags
+            colorTag = value.colorTag.rawValue
+            sortIndex = value.sortIndex
+        }
+
+        var value: Host {
+            var host = Host(
+                id: id, name: name, host: address, port: port,
+                identityID: identityID, groupID: groupID, tags: tags,
+                colorTag: TagColor(rawValue: colorTag) ?? .none,
+                sortIndex: sortIndex
+            )
+            host.jumpHostID = jumpHostID
+            host.sftpSessionInitialPath = sftpSessionInitialPath
+            if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
+                host.proxy = HostProxy(
+                    kind: kind, hostname: proxyHostname, port: proxyPort,
+                    username: proxyUsername, identityID: proxyIdentityID
+                )
+            }
+            return host
+        }
     }
-}
 }
 
 enum TermindSchemaV8Models {
-@Model
-final class PersistentHost {
-    @Attribute(.unique) var id: UUID = UUID()
-    var name = ""
-    var address = ""
-    var port = 22
-    var identityID: UUID?
-    var jumpHostID: UUID?
-    var proxyProtocol: String?
-    var proxyHostname = ""
-    var proxyPort = 0
-    var proxyUsername = ""
-    var proxyIdentityID: UUID?
-    var sftpSessionInitialPath = ""
-    var groupID: UUID?
-    var tags: [String] = []
-    var colorTag = TagColor.none.rawValue
-    var detectedDistributionID: String?
-    var detectedDistributionLikeIDs: [String] = []
-    /// Legacy storage retained for the existing V5–V6 migration contract.
-    var lastUsedAt: Date?
-    var sortIndex = 0.0
+    @Model
+    final class PersistentHost {
+        @Attribute(.unique) var id: UUID = UUID()
+        var name = ""
+        var address = ""
+        var port = 22
+        var identityID: UUID?
+        var jumpHostID: UUID?
+        var proxyProtocol: String?
+        var proxyHostname = ""
+        var proxyPort = 0
+        var proxyUsername = ""
+        var proxyIdentityID: UUID?
+        var sftpSessionInitialPath = ""
+        var groupID: UUID?
+        var tags: [String] = []
+        var colorTag = TagColor.none.rawValue
+        var detectedDistributionID: String?
+        var detectedDistributionLikeIDs: [String] = []
+        /// Legacy storage retained for the existing V5–V6 migration contract.
+        var lastUsedAt: Date?
+        var sortIndex = 0.0
 
-    init(_ value: Host) {
-        id = value.id
-        apply(value)
-    }
-
-    func apply(_ value: Host) {
-        name = value.name
-        address = value.host
-        port = value.port
-        identityID = value.identityID
-        jumpHostID = value.jumpHostID
-        proxyProtocol = value.proxy?.kind.rawValue
-        proxyHostname = value.proxy?.hostname ?? ""
-        proxyPort = value.proxy?.port ?? 0
-        proxyUsername = value.proxy?.username ?? ""
-        proxyIdentityID = value.proxy?.identityID
-        sftpSessionInitialPath = value.sftpSessionInitialPath
-        groupID = value.groupID
-        tags = value.tags
-        colorTag = value.colorTag.rawValue
-        detectedDistributionID = value.detectedDistribution?.id
-        detectedDistributionLikeIDs = value.detectedDistribution?.likeIDs ?? []
-        sortIndex = value.sortIndex
-    }
-
-    var value: Host {
-        var host = Host(
-            id: id, name: name, host: address, port: port,
-            identityID: identityID, groupID: groupID, tags: tags,
-            colorTag: TagColor(rawValue: colorTag) ?? .none,
-            detectedDistribution: detectedDistributionID.flatMap {
-                DetectedDistribution(id: $0, likeIDs: detectedDistributionLikeIDs)
-            },
-            sortIndex: sortIndex
-        )
-        host.jumpHostID = jumpHostID
-        host.sftpSessionInitialPath = sftpSessionInitialPath
-        if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
-            host.proxy = HostProxy(
-                kind: kind, hostname: proxyHostname, port: proxyPort,
-                username: proxyUsername, identityID: proxyIdentityID
-            )
+        init(_ value: Host) {
+            id = value.id
+            apply(value)
         }
-        return host
+
+        func apply(_ value: Host) {
+            name = value.name
+            address = value.host
+            port = value.port
+            identityID = value.identityID
+            jumpHostID = value.jumpHostID
+            proxyProtocol = value.proxy?.kind.rawValue
+            proxyHostname = value.proxy?.hostname ?? ""
+            proxyPort = value.proxy?.port ?? 0
+            proxyUsername = value.proxy?.username ?? ""
+            proxyIdentityID = value.proxy?.identityID
+            sftpSessionInitialPath = value.sftpSessionInitialPath
+            groupID = value.groupID
+            tags = value.tags
+            colorTag = value.colorTag.rawValue
+            detectedDistributionID = value.detectedDistribution?.id
+            detectedDistributionLikeIDs = value.detectedDistribution?.likeIDs ?? []
+            sortIndex = value.sortIndex
+        }
+
+        var value: Host {
+            var host = Host(
+                id: id, name: name, host: address, port: port,
+                identityID: identityID, groupID: groupID, tags: tags,
+                colorTag: TagColor(rawValue: colorTag) ?? .none,
+                detectedDistribution: detectedDistributionID.flatMap {
+                    DetectedDistribution(id: $0, likeIDs: detectedDistributionLikeIDs)
+                },
+                sortIndex: sortIndex
+            )
+            host.jumpHostID = jumpHostID
+            host.sftpSessionInitialPath = sftpSessionInitialPath
+            if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
+                host.proxy = HostProxy(
+                    kind: kind, hostname: proxyHostname, port: proxyPort,
+                    username: proxyUsername, identityID: proxyIdentityID
+                )
+            }
+            return host
+        }
     }
-}
 }
 
 typealias PersistentHost = TermindSchemaV8Models.PersistentHost
@@ -289,97 +289,97 @@ enum TermindSchemaV6Models {
 }
 
 enum TermindSchemaV7Models {
-@Model
-final class PersistentIdentity {
-    @Attribute(.unique) var id: UUID = UUID()
-    var name = ""
-    var username = ""
-    var credentialRef = ""
-    var passwordStorage = PasswordStorage.iCloud.rawValue
-    var keyID: UUID?
-    var notes = ""
-    var lastUsedAt: Date?
-    var colorTag = TagColor.none.rawValue
-    var sortIndex = 0.0
+    @Model
+    final class PersistentIdentity {
+        @Attribute(.unique) var id: UUID = UUID()
+        var name = ""
+        var username = ""
+        var credentialRef = ""
+        var passwordStorage = PasswordStorage.iCloud.rawValue
+        var keyID: UUID?
+        var notes = ""
+        var lastUsedAt: Date?
+        var colorTag = TagColor.none.rawValue
+        var sortIndex = 0.0
 
-    init(_ value: Identity) {
-        id = value.id
-        apply(value)
+        init(_ value: Identity) {
+            id = value.id
+            apply(value)
+        }
+
+        func apply(_ value: Identity) {
+            name = value.name
+            username = value.username
+            credentialRef = value.credentialRef
+            passwordStorage = value.passwordStorage.rawValue
+            keyID = value.keyID
+            notes = value.notes
+            lastUsedAt = value.lastUsedAt
+            colorTag = value.colorTag.rawValue
+            sortIndex = value.sortIndex
+        }
+
+        var value: Identity {
+            Identity(
+                id: id, name: name, username: username, credentialRef: credentialRef,
+                passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .iCloud,
+                keyID: keyID, notes: notes, lastUsedAt: lastUsedAt,
+                colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
+            )
+        }
     }
 
-    func apply(_ value: Identity) {
-        name = value.name
-        username = value.username
-        credentialRef = value.credentialRef
-        passwordStorage = value.passwordStorage.rawValue
-        keyID = value.keyID
-        notes = value.notes
-        lastUsedAt = value.lastUsedAt
-        colorTag = value.colorTag.rawValue
-        sortIndex = value.sortIndex
-    }
+    @Model
+    final class PersistentSSHKey {
+        @Attribute(.unique) var id: UUID = UUID()
+        var label = ""
+        var algorithm = SSHKeyAlgorithm.ed25519.rawValue
+        var publicKey = ""
+        var certificate = ""
+        var fingerprint = ""
+        var credentialRef = ""
+        var storage = KeyStorage.iCloud.rawValue
+        var keySize: Int?
+        var hasPassphrase = false
+        var requiresUserPresence = false
+        var createdAt = Date(timeIntervalSince1970: 0)
+        var colorTag = TagColor.none.rawValue
+        var sortIndex = 0.0
 
-    var value: Identity {
-        Identity(
-            id: id, name: name, username: username, credentialRef: credentialRef,
-            passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .iCloud,
-            keyID: keyID, notes: notes, lastUsedAt: lastUsedAt,
-            colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
-        )
-    }
-}
+        init(_ value: SSHKeyRef) {
+            id = value.id
+            apply(value)
+        }
 
-@Model
-final class PersistentSSHKey {
-    @Attribute(.unique) var id: UUID = UUID()
-    var label = ""
-    var algorithm = SSHKeyAlgorithm.ed25519.rawValue
-    var publicKey = ""
-    var certificate = ""
-    var fingerprint = ""
-    var credentialRef = ""
-    var storage = KeyStorage.iCloud.rawValue
-    var keySize: Int?
-    var hasPassphrase = false
-    var requiresUserPresence = false
-    var createdAt = Date(timeIntervalSince1970: 0)
-    var colorTag = TagColor.none.rawValue
-    var sortIndex = 0.0
+        func apply(_ value: SSHKeyRef) {
+            label = value.label
+            algorithm = value.algorithm.rawValue
+            publicKey = value.publicKey
+            certificate = value.certificate
+            fingerprint = value.fingerprint
+            credentialRef = value.credentialRef
+            storage = value.storage.rawValue
+            keySize = value.keySize
+            hasPassphrase = value.hasPassphrase
+            requiresUserPresence = value.requiresUserPresence
+            createdAt = value.createdAt
+            colorTag = value.colorTag.rawValue
+            sortIndex = value.sortIndex
+        }
 
-    init(_ value: SSHKeyRef) {
-        id = value.id
-        apply(value)
+        var value: SSHKeyRef {
+            SSHKeyRef(
+                id: id, label: label,
+                algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
+                publicKey: publicKey, certificate: certificate, fingerprint: fingerprint,
+                credentialRef: credentialRef,
+                storage: KeyStorage(rawValue: storage) ?? .iCloud,
+                keySize: keySize, hasPassphrase: hasPassphrase,
+                requiresUserPresence: requiresUserPresence, createdAt: createdAt,
+                colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
+            )
+        }
     }
-
-    func apply(_ value: SSHKeyRef) {
-        label = value.label
-        algorithm = value.algorithm.rawValue
-        publicKey = value.publicKey
-        certificate = value.certificate
-        fingerprint = value.fingerprint
-        credentialRef = value.credentialRef
-        storage = value.storage.rawValue
-        keySize = value.keySize
-        hasPassphrase = value.hasPassphrase
-        requiresUserPresence = value.requiresUserPresence
-        createdAt = value.createdAt
-        colorTag = value.colorTag.rawValue
-        sortIndex = value.sortIndex
-    }
-
-    var value: SSHKeyRef {
-        SSHKeyRef(
-            id: id, label: label,
-            algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
-            publicKey: publicKey, certificate: certificate, fingerprint: fingerprint,
-            credentialRef: credentialRef,
-            storage: KeyStorage(rawValue: storage) ?? .iCloud,
-            keySize: keySize, hasPassphrase: hasPassphrase,
-            requiresUserPresence: requiresUserPresence, createdAt: createdAt,
-            colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
-        )
-    }
-}
 }
 
 typealias PersistentIdentity = TermindSchemaV7Models.PersistentIdentity
@@ -758,14 +758,12 @@ final class HostPersistence {
         var byID: [UUID: Model] = [:]
         for row in rows {
             let id = rowID(row)
-            if byID[id] == nil { byID[id] = row }
-            else { context.delete(row) }
+            if byID[id] == nil { byID[id] = row } else { context.delete(row) }
         }
         let wanted = Set(values.map(valueID))
         for row in byID.values where !wanted.contains(rowID(row)) { context.delete(row) }
         for value in values {
-            if let row = byID[valueID(value)] { apply(row, value) }
-            else { context.insert(make(value)) }
+            if let row = byID[valueID(value)] { apply(row, value) } else { context.insert(make(value)) }
         }
     }
 }

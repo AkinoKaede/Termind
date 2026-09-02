@@ -25,9 +25,10 @@ private struct TwoTurnModel: AgentModelStreaming {
             Task {
                 await requests.append(request)
                 if await counter.next() == 0 {
-                    continuation.yield(.toolCallSnapshot(
-                        id: "1", providerItemID: nil, name: "slow", arguments: "{}"
-                    ))
+                    continuation.yield(
+                        .toolCallSnapshot(
+                            id: "1", providerItemID: nil, name: "slow", arguments: "{}"
+                        ))
                     continuation.yield(.finished(.toolCalls))
                 } else {
                     continuation.yield(.textDelta("done"))
@@ -40,7 +41,10 @@ private struct TwoTurnModel: AgentModelStreaming {
 
     actor Counter {
         var value = 0
-        func next() -> Int { defer { value += 1 }; return value }
+        func next() -> Int {
+            defer { value += 1 }
+            return value
+        }
     }
 }
 
@@ -52,10 +56,12 @@ struct AgentToolProgressTests {
     @Test
     func partialsReachTheCardAndOnlyTheFinalResultReachesTheModel() async {
         let requests = RequestLog()
-        let tool = AnyAgentTool(descriptor: AgentToolDescriptor(
-            name: "slow", summary: "slow", inputSchema: emptySchema,
-            target: .local, safety: .locallyReadOnly, concurrency: .parallel
-        )) { invocation, context in
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "slow", summary: "slow", inputSchema: emptySchema,
+                target: .local, safety: .locallyReadOnly, concurrency: .parallel
+            )
+        ) { invocation, context in
             context.report(AgentToolResult(callID: invocation.call.id, content: "10 of 20"))
             context.report(AgentToolResult(callID: invocation.call.id, content: "19 of 20"))
             return AgentToolResult(callID: invocation.call.id, content: "20 of 20")
@@ -67,9 +73,11 @@ struct AgentToolProgressTests {
 
         var progress: [String] = []
         var finished: [String] = []
-        for await event in await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
-        )) {
+        for await event in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
+            ))
+        {
             if case .toolProgress(_, let partial) = event { progress.append(partial.content) }
             if case .toolFinished(_, let result) = event { finished.append(result.content) }
         }
@@ -96,9 +104,10 @@ struct AgentToolProgressTests {
         conversation.handle(.toolProposed(invocation, descriptor))
         conversation.handle(.toolStarted(invocation))
 
-        conversation.handle(.toolProgress(
-            invocation, AgentToolResult(callID: "1", content: "half way")
-        ))
+        conversation.handle(
+            .toolProgress(
+                invocation, AgentToolResult(callID: "1", content: "half way")
+            ))
 
         #expect(conversation.toolCards.count == 1)
         #expect(conversation.toolCards[0].result?.content == "half way")

@@ -38,7 +38,8 @@ actor MCPServerProtocol {
         case ("POST", "/mcp"):
             return await streamablePOST(request)
         case ("GET", "/mcp"):
-            return HTTPResponse.text(405, "This server does not expose a standalone MCP SSE stream.", headers: ["Allow": "POST, DELETE"])
+            return HTTPResponse.text(
+                405, "This server does not expose a standalone MCP SSE stream.", headers: ["Allow": "POST, DELETE"])
         case ("DELETE", "/mcp"):
             return await deleteSession(request)
         case ("GET", "/sse"):
@@ -68,8 +69,7 @@ actor MCPServerProtocol {
             return .text(415, "MCP requests must use application/json.")
         }
         let message: RPCMessage
-        do { message = try RPCMessage(request.body) }
-        catch {
+        do { message = try RPCMessage(request.body) } catch {
             return Self.jsonResponse(.error(id: .null, code: -32700, message: "Parse error"), status: 400)
         }
 
@@ -82,7 +82,8 @@ actor MCPServerProtocol {
             sessionCountDidChange()
             let response = await dispatch(message, sessionID: session.id)
             return Self.jsonResponse(
-                response ?? .error(id: message.id ?? .null, code: -32603, message: "Initialize did not produce a response"),
+                response
+                    ?? .error(id: message.id ?? .null, code: -32603, message: "Initialize did not produce a response"),
                 headers: ["Mcp-Session-Id": session.id]
             )
         }
@@ -152,12 +153,12 @@ actor MCPServerProtocol {
             let continuation = session.legacyContinuation
         else { return .text(404, "The legacy MCP session is unknown or expired.") }
         let message: RPCMessage
-        do { message = try RPCMessage(request.body) }
-        catch {
-            continuation.yield(Self.sse(
-                event: "message",
-                data: RPCResponse.error(id: .null, code: -32700, message: "Parse error").data
-            ))
+        do { message = try RPCMessage(request.body) } catch {
+            continuation.yield(
+                Self.sse(
+                    event: "message",
+                    data: RPCResponse.error(id: .null, code: -32700, message: "Parse error").data
+                ))
             return HTTPResponse(status: 202)
         }
         if message.method == "initialize" {
@@ -180,29 +181,38 @@ actor MCPServerProtocol {
         switch message.method {
         case "initialize":
             guard !session.initialized else {
-                response = isNotification ? nil : .error(
-                    id: message.id ?? .null, code: -32600,
-                    message: "initialize may only be sent once"
-                )
+                response =
+                    isNotification
+                    ? nil
+                    : .error(
+                        id: message.id ?? .null, code: -32600,
+                        message: "initialize may only be sent once"
+                    )
                 break
             }
             if let clientName = message.clientName { session.clientName = clientName }
             let requested = message.params?["protocolVersion"]?.stringValue
-            session.protocolVersion = session.isLegacy
+            session.protocolVersion =
+                session.isLegacy
                 ? MCPClient.legacyVersion
                 : Self.negotiatedStreamableVersion(requested)
-            response = isNotification ? nil : .success(id: message.id ?? .null, result: .object([
-                "protocolVersion": .string(session.protocolVersion),
-                "capabilities": .object(["tools": .object([:])]),
-                "serverInfo": .object([
-                    "name": .string("termind"),
-                    "title": .string("Termind MCP Server"),
-                    "version": .string(Bundle.termindDisplayVersion),
-                ]),
-                "instructions": .string(
-                    "Use list_hosts to discover host_id values. SSH and SFTP calls use Termind's saved Vault credentials and may show an authentication window on this Mac. For secret command input, call request_user_secret, then pass its secret_handle to ssh_exec with stdin_purpose exactly matching the original purpose. The handle is bound to this session, host, tool, and purpose, and can be used only once."
-                ),
-            ]))
+            response =
+                isNotification
+                ? nil
+                : .success(
+                    id: message.id ?? .null,
+                    result: .object([
+                        "protocolVersion": .string(session.protocolVersion),
+                        "capabilities": .object(["tools": .object([:])]),
+                        "serverInfo": .object([
+                            "name": .string("termind"),
+                            "title": .string("Termind MCP Server"),
+                            "version": .string(Bundle.termindDisplayVersion),
+                        ]),
+                        "instructions": .string(
+                            "Use list_hosts to discover host_id values. SSH and SFTP calls use Termind's saved Vault credentials and may show an authentication window on this Mac. For secret command input, call request_user_secret, then pass its secret_handle to ssh_exec with stdin_purpose exactly matching the original purpose. The handle is bound to this session, host, tool, and purpose, and can be used only once."
+                        ),
+                    ]))
         case "notifications/initialized":
             session.initialized = true
             response = nil
@@ -210,30 +220,42 @@ actor MCPServerProtocol {
             response = isNotification ? nil : .success(id: message.id ?? .null, result: .object([:]))
         case "tools/list":
             guard session.initialized else {
-                response = isNotification ? nil : .error(
-                    id: message.id ?? .null, code: -32002, message: "Server not initialized"
-                )
+                response =
+                    isNotification
+                    ? nil
+                    : .error(
+                        id: message.id ?? .null, code: -32002, message: "Server not initialized"
+                    )
                 break
             }
             let descriptors = await tools.descriptors
-            response = isNotification ? nil : .success(
-                id: message.id ?? .null,
-                result: .object(["tools": .array(descriptors.map(Self.toolJSON))])
-            )
+            response =
+                isNotification
+                ? nil
+                : .success(
+                    id: message.id ?? .null,
+                    result: .object(["tools": .array(descriptors.map(Self.toolJSON))])
+                )
         case "tools/call":
             guard session.initialized else {
-                response = isNotification ? nil : .error(
-                    id: message.id ?? .null, code: -32002, message: "Server not initialized"
-                )
+                response =
+                    isNotification
+                    ? nil
+                    : .error(
+                        id: message.id ?? .null, code: -32002, message: "Server not initialized"
+                    )
                 break
             }
             guard let params = message.params,
                 let name = params["name"]?.stringValue
             else {
-                response = isNotification ? nil : .error(
-                    id: message.id ?? .null, code: -32602,
-                    message: "tools/call requires an enabled tool name and object arguments"
-                )
+                response =
+                    isNotification
+                    ? nil
+                    : .error(
+                        id: message.id ?? .null, code: -32602,
+                        message: "tools/call requires an enabled tool name and object arguments"
+                    )
                 break
             }
             let arguments = params["arguments"] ?? .object([:])
@@ -241,10 +263,13 @@ actor MCPServerProtocol {
                 arguments.objectValue != nil,
                 await tools.contains(name)
             else {
-                response = isNotification ? nil : .error(
-                    id: message.id ?? .null, code: -32602,
-                    message: "tools/call requires an enabled tool name and object arguments"
-                )
+                response =
+                    isNotification
+                    ? nil
+                    : .error(
+                        id: message.id ?? .null, code: -32602,
+                        message: "tools/call requires an enabled tool name and object arguments"
+                    )
                 break
             }
             do {
@@ -254,19 +279,28 @@ actor MCPServerProtocol {
                     callID: message.id?.encodedString ?? UUID().uuidString,
                     secretBroker: session.secretBroker
                 )
-                response = isNotification ? nil : .success(
-                    id: message.id ?? .null, result: Self.toolResultJSON(result)
-                )
+                response =
+                    isNotification
+                    ? nil
+                    : .success(
+                        id: message.id ?? .null, result: Self.toolResultJSON(result)
+                    )
             } catch {
-                response = isNotification ? nil : .error(
-                    id: message.id ?? .null, code: -32602, message: error.localizedDescription
-                )
+                response =
+                    isNotification
+                    ? nil
+                    : .error(
+                        id: message.id ?? .null, code: -32602, message: error.localizedDescription
+                    )
             }
         default:
-            response = isNotification ? nil : .error(
-                id: message.id ?? .null, code: -32601,
-                message: "Method not found: \(message.method)"
-            )
+            response =
+                isNotification
+                ? nil
+                : .error(
+                    id: message.id ?? .null, code: -32601,
+                    message: "Method not found: \(message.method)"
+                )
         }
         if sessions[sessionID] != nil {
             session.lastUsedAt = .now
@@ -281,7 +315,8 @@ actor MCPServerProtocol {
     private func makeSession(message: RPCMessage, legacy: Bool) -> MCPServerSession {
         let id = UUID().uuidString
         return MCPServerSession(
-            id: id, runID: UUID(), secretBroker: SecretBroker(), protocolVersion: legacy
+            id: id, runID: UUID(), secretBroker: SecretBroker(),
+            protocolVersion: legacy
                 ? MCPClient.legacyVersion : MCPClient.preferredVersion,
             clientName: message.clientName ?? "MCP client", isLegacy: legacy
         )
@@ -351,13 +386,16 @@ actor MCPServerProtocol {
     private static func toolResultJSON(_ result: AgentToolResult) -> AgentJSONValue {
         let text = result.untrustedPayload ?? result.content
         var value: [String: AgentJSONValue] = [
-            "content": .array([.object([
-                "type": .string("text"), "text": .string(text),
-            ])]),
+            "content": .array([
+                .object([
+                    "type": .string("text"), "text": .string(text),
+                ])
+            ]),
             "isError": .bool(result.isError),
         ]
         if let parsed = try? AgentJSONValue.decode(Data(text.utf8)) {
-            value["structuredContent"] = parsed.objectValue == nil
+            value["structuredContent"] =
+                parsed.objectValue == nil
                 ? .object(["value": parsed]) : parsed
         }
         if result.isTruncated {
@@ -415,11 +453,12 @@ private nonisolated struct RPCResponse: Sendable {
     }
 
     static func error(id: AgentJSONValue, code: Int, message: String) -> Self {
-        Self(value: .object([
-            "jsonrpc": .string("2.0"), "id": id,
-            "error": .object([
-                "code": .number(Double(code)), "message": .string(message),
-            ]),
-        ]))
+        Self(
+            value: .object([
+                "jsonrpc": .string("2.0"), "id": id,
+                "error": .object([
+                    "code": .number(Double(code)), "message": .string(message),
+                ]),
+            ]))
     }
 }

@@ -67,8 +67,9 @@ nonisolated enum SSHSocketConnector {
             // the following libssh2 handshake wait for bytes already discarded.
             response.append(try readSome(socket, maximum: 1))
         }
-        guard let firstLine = String(decoding: response, as: UTF8.self)
-            .split(separator: "\n", maxSplits: 1).first
+        guard
+            let firstLine = String(decoding: response, as: UTF8.self)
+                .split(separator: "\n", maxSplits: 1).first
         else { throw TermindSSHError.proxy("The HTTP proxy returned an empty response.") }
         let fields = firstLine.split(separator: " ")
         guard fields.count >= 2, let status = Int(fields[1]), (200..<300).contains(status) else {
@@ -191,7 +192,8 @@ nonisolated enum SSHSocketConnector {
         var descriptor = pollfd(fd: socket, events: Int16(POLLOUT), revents: 0)
         let result = Darwin.poll(&descriptor, 1, Int32(max(1, timeout * 1000)))
         guard result > 0 else {
-            throw TermindSSHError.socket(result == 0 ? String(localized: "Connection timed out.") : String(cString: strerror(errno)))
+            throw TermindSSHError.socket(
+                result == 0 ? String(localized: "Connection timed out.") : String(cString: strerror(errno)))
         }
         var socketError: Int32 = 0
         var errorLength = socklen_t(MemoryLayout<Int32>.size)
@@ -216,7 +218,8 @@ nonisolated enum SSHSocketConnector {
         var buffer = [UInt8](repeating: 0, count: maximum)
         let count = Darwin.recv(socket, &buffer, buffer.count, 0)
         guard count > 0 else {
-            throw TermindSSHError.proxy(count == 0 ? "The proxy closed the connection." : String(cString: strerror(errno)))
+            throw TermindSSHError.proxy(
+                count == 0 ? "The proxy closed the connection." : String(cString: strerror(errno)))
         }
         return Data(buffer.prefix(count))
     }

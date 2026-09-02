@@ -142,7 +142,9 @@ struct WorkspaceNavigatorView: View {
             navigatorSectionHeader("Workspace", isExpanded: $workspaceExpanded)
                 .onGeometryChange(for: CGRect.self) {
                     $0.frame(in: .named(Self.coordinateSpace))
-                } action: { workspaceHeaderFrame = $0 }
+                } action: {
+                    workspaceHeaderFrame = $0
+                }
 
             if workspaceExpanded {
                 if window.workspaces.isEmpty {
@@ -160,7 +162,9 @@ struct WorkspaceNavigatorView: View {
                     )
                     .onGeometryChange(for: CGRect.self) {
                         $0.frame(in: .named(Self.coordinateSpace))
-                    } action: { workspaceFrames[workspace.id] = $0 }
+                    } action: {
+                        workspaceFrames[workspace.id] = $0
+                    }
                     .overlay(alignment: .top) {
                         if workspaceDropTarget?.visibleBoundaryIndex == index {
                             workspaceInsertionLine
@@ -189,7 +193,9 @@ struct WorkspaceNavigatorView: View {
                 }
                 .onGeometryChange(for: CGRect.self) {
                     $0.frame(in: .named(Self.coordinateSpace))
-                } action: { batchStartupFrame = $0 }
+                } action: {
+                    batchStartupFrame = $0
+                }
             }
         }
     }
@@ -201,7 +207,8 @@ struct WorkspaceNavigatorView: View {
 
     private var workspaceDropBounds: CGRect {
         guard workspaceExpanded else { return workspaceHeaderFrame }
-        let frames = [workspaceHeaderFrame, batchStartupFrame]
+        let frames =
+            [workspaceHeaderFrame, batchStartupFrame]
             + window.workspaces.compactMap { workspaceFrames[$0.id] }
         return frames.filter { !$0.isEmpty }.reduce(.null) { $0.union($1) }
     }
@@ -240,7 +247,7 @@ struct WorkspaceNavigatorView: View {
                         return true
                     }
                 )
-                    .frame(width: proxy.size.width, height: proxy.size.height)
+                .frame(width: proxy.size.width, height: proxy.size.height)
             }
             .allowsHitTesting(true)
         }
@@ -381,11 +388,13 @@ private struct WorkspaceNavigatorRow: View {
     private var row: some View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: workspace.symbol)
-                .foregroundStyle(SidebarSelectionStyle.foreground(
-                    isSelected: isSelected,
-                    controlActiveState: controlActiveState,
-                    unselected: AnyShapeStyle(.secondary)
-                ))
+                .foregroundStyle(
+                    SidebarSelectionStyle.foreground(
+                        isSelected: isSelected,
+                        controlActiveState: controlActiveState,
+                        unselected: AnyShapeStyle(.secondary)
+                    )
+                )
                 .frame(width: Metrics.Sidebar.rowIcon)
 
             if isRenaming {

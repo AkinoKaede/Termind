@@ -220,7 +220,8 @@ struct KeychainPageView: ManagedCardPage {
     private func delete(keys: [SSHKeyRef], identities: [Identity]) {
         for identity in identities {
             if !app.credentials.delete(identityID: identity.id) {
-                state.errorMessage = app.credentials.storageError
+                state.errorMessage =
+                    app.credentials.storageError
                     ?? String(localized: "The identity could not be deleted.")
             }
         }
@@ -429,9 +430,10 @@ private struct SoftwareKeyEditor: View {
         existing: SSHKeyRef? = nil, title: String,
         symbol: String, close: @escaping () -> Void,
         loadPrivateKey: (() throws -> String)? = nil,
-        save: @escaping (
-            String, TagColor, KeyStorage, String, String?, String, SSHKeyMaterial
-        ) async throws -> SSHKeyRef
+        save:
+            @escaping (
+                String, TagColor, KeyStorage, String, String?, String, SSHKeyMaterial
+            ) async throws -> SSHKeyRef
     ) {
         self.existing = existing
         self.title = title
@@ -943,7 +945,8 @@ private struct GenerateKeySheet: View {
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(
-                    isWorking || (storage != .secureEnclave && (!passwordsMatch || (!passphrase.isEmpty && rounds <= 0)))
+                    isWorking
+                        || (storage != .secureEnclave && (!passwordsMatch || (!passphrase.isEmpty && rounds <= 0)))
                         || (storage == .secureEnclave && !SecureEnclaveKey.isAvailable)
                 )
             }

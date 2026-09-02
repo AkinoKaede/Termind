@@ -54,10 +54,12 @@ private func turnsCalling(_ names: [String]) -> [[AgentModelStreamEvent]] {
 /// Requires authorization and may run beside its peers — the combination the
 /// single pending-approval slot could not survive.
 private func gatedTool(_ name: String, log: CallLog) -> AnyAgentTool {
-    AnyAgentTool(descriptor: AgentToolDescriptor(
-        name: name, summary: name, inputSchema: queueSchema,
-        target: .host, safety: .requiresAuthorization, concurrency: .parallel
-    )) { invocation, _ in
+    AnyAgentTool(
+        descriptor: AgentToolDescriptor(
+            name: name, summary: name, inputSchema: queueSchema,
+            target: .host, safety: .requiresAuthorization, concurrency: .parallel
+        )
+    ) { invocation, _ in
         await log.start(name)
         await log.finish(name)
         return AgentToolResult(callID: invocation.call.id, content: name)
@@ -66,10 +68,12 @@ private func gatedTool(_ name: String, log: CallLog) -> AnyAgentTool {
 
 /// Never returns on its own; only cancellation ends it.
 private func hangingTool(_ name: String, log: CallLog) -> AnyAgentTool {
-    AnyAgentTool(descriptor: AgentToolDescriptor(
-        name: name, summary: name, inputSchema: queueSchema,
-        target: .local, safety: .locallyReadOnly, concurrency: .parallel
-    )) { invocation, _ in
+    AnyAgentTool(
+        descriptor: AgentToolDescriptor(
+            name: name, summary: name, inputSchema: queueSchema,
+            target: .local, safety: .locallyReadOnly, concurrency: .parallel
+        )
+    ) { invocation, _ in
         await log.start(name)
         try await Task.sleep(for: .seconds(30))
         return AgentToolResult(callID: invocation.call.id, content: name)
@@ -99,9 +103,11 @@ struct AgentApprovalQueueTests {
             )
         )
 
-        conversation.start(runtime: runtime, request: AgentRunRequest(
-            conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval
-        ))
+        conversation.start(
+            runtime: runtime,
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval
+            ))
 
         await wait { conversation.pendingApprovals.count == 2 }
         // Both are waiting, but only the head is presented: authorizing three
@@ -136,9 +142,11 @@ struct AgentApprovalQueueTests {
             )
         )
 
-        conversation.start(runtime: runtime, request: AgentRunRequest(
-            conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval
-        ))
+        conversation.start(
+            runtime: runtime,
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval
+            ))
 
         await wait { conversation.pendingApprovals.count == 2 }
         conversation.respondToApproval(allow: false)
@@ -186,9 +194,12 @@ struct AgentApprovalQueueTests {
         #expect(conversation.runState == .waitingForUser)
 
         // The review finishing must not announce that nothing is outstanding.
-        conversation.handle(.reviewFinished(request, SecurityReviewDecision(
-            verdict: .approve, risk: .low, userAuthorization: .sufficient, reason: "ok"
-        )))
+        conversation.handle(
+            .reviewFinished(
+                request,
+                SecurityReviewDecision(
+                    verdict: .approve, risk: .low, userAuthorization: .sufficient, reason: "ok"
+                )))
         #expect(conversation.runState == .waitingForUser)
 
         conversation.cancelUserInput()
@@ -234,9 +245,10 @@ struct AgentApprovalQueueTests {
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
         )
 
-        let stream = await runtime.start(AgentRunRequest(
-            conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
-        ))
+        let stream = await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
+            ))
         let collector = Task {
             var events: [AgentEvent] = []
             for await event in stream { events.append(event) }

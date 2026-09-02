@@ -128,33 +128,40 @@ nonisolated struct ContextChip: Identifiable, Hashable, Sendable {
                 var cursor = suffix.startIndex
                 while let opening = suffix.range(of: prefix, range: cursor..<suffix.endIndex) {
                     let labelStart = opening.upperBound
-                    guard let labelEnd = suffix.range(
-                        of: "\">", range: labelStart..<suffix.endIndex
-                    ) else { break }
+                    guard
+                        let labelEnd = suffix.range(
+                            of: "\">", range: labelStart..<suffix.endIndex
+                        )
+                    else { break }
                     let contentStart = labelEnd.upperBound
                     let closing = "</\(kind.blockName)>"
-                    guard let contentEnd = suffix.range(
-                        of: closing, range: contentStart..<suffix.endIndex
-                    ) else { break }
+                    guard
+                        let contentEnd = suffix.range(
+                            of: closing, range: contentStart..<suffix.endIndex
+                        )
+                    else { break }
                     let label = String(suffix[labelStart..<labelEnd.lowerBound])
                     let storedIndex = unusedAttachments.firstIndex {
                         $0.label.replacingOccurrences(of: "\"", with: "'") == label
                             && $0.kind == kind.agentAttachmentKind
                     }
-                    let attachment: AgentContextAttachment? = storedIndex.map {
-                        unusedAttachments.remove(at: $0)
-                    } ?? kind.fallbackAttachment(
-                        label: label,
-                        content: String(suffix[contentStart..<contentEnd.lowerBound])
-                    )
-                    matches.append((
-                        opening.lowerBound,
-                        ContextChipReference(
-                            id: attachment?.id ?? UUID(), kind: kind,
-                            label: attachment?.label ?? label,
-                            attachment: attachment
+                    let attachment: AgentContextAttachment? =
+                        storedIndex.map {
+                            unusedAttachments.remove(at: $0)
+                        }
+                        ?? kind.fallbackAttachment(
+                            label: label,
+                            content: String(suffix[contentStart..<contentEnd.lowerBound])
                         )
-                    ))
+                    matches.append(
+                        (
+                            opening.lowerBound,
+                            ContextChipReference(
+                                id: attachment?.id ?? UUID(), kind: kind,
+                                label: attachment?.label ?? label,
+                                attachment: attachment
+                            )
+                        ))
                     cursor = contentEnd.upperBound
                 }
             }
@@ -185,8 +192,8 @@ nonisolated struct ContextChipReference: Identifiable, Hashable, Sendable {
     var attachment: AgentContextAttachment? = nil
 }
 
-private extension ContextChip.Kind {
-    nonisolated var agentAttachmentKind: AgentContextAttachment.Kind? {
+extension ContextChip.Kind {
+    fileprivate nonisolated var agentAttachmentKind: AgentContextAttachment.Kind? {
         switch self {
         case .file: .file
         case .output: .output
@@ -198,7 +205,7 @@ private extension ContextChip.Kind {
         }
     }
 
-    nonisolated func fallbackAttachment(
+    fileprivate nonisolated func fallbackAttachment(
         label: String, content: String
     ) -> AgentContextAttachment? {
         guard let kind = agentAttachmentKind else { return nil }
@@ -212,7 +219,7 @@ private extension ContextChip.Kind {
         )
     }
 
-    nonisolated func fallbackFilename(for label: String) -> String {
+    fileprivate nonisolated func fallbackFilename(for label: String) -> String {
         if self == .file {
             let stem = (label as NSString).deletingPathExtension
             return "\(stem.isEmpty ? label : stem) extracted.txt"
@@ -657,8 +664,7 @@ final class ConversationModel: Identifiable {
     private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
     private var userInputTimeoutTask: Task<Void, Never>?
     private var sshAuthenticationWaiters: [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
-    private var sshHostKeyWaiters:
-        [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
+    private var sshHostKeyWaiters: [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
 
     /// Whether the agent may only look.
     ///
@@ -897,7 +903,8 @@ final class ConversationModel: Identifiable {
         else { return nil }
         let original = transcript[target]
         let visible = original.authoredText ?? ContextChip.visiblePrompt(in: original.text)
-        let suffix = original.text.hasPrefix(visible)
+        let suffix =
+            original.text.hasPrefix(visible)
             ? String(original.text.dropFirst(visible.count)) : ""
         return AgentTranscriptMessage(
             role: .user, text: authoredText + suffix, authoredText: authoredText,
@@ -920,14 +927,18 @@ final class ConversationModel: Identifiable {
         contextEstimateTracker.upsert(replacement)
 
         if let visibleIndex = messages.firstIndex(where: { $0.id == id }) {
-            messages.replaceSubrange(visibleIndex..., with: [ChatMessage(
-                id: replacement.id, role: .user,
-                text: replacement.authoredText ?? ContextChip.visiblePrompt(in: replacement.text),
-                contextChips: ContextChip.visibleReferences(
-                    in: replacement.text, images: replacement.images,
-                    contextAttachments: replacement.contextAttachments
-                ), images: replacement.images, createdAt: replacement.createdAt
-            )])
+            messages.replaceSubrange(
+                visibleIndex...,
+                with: [
+                    ChatMessage(
+                        id: replacement.id, role: .user,
+                        text: replacement.authoredText ?? ContextChip.visiblePrompt(in: replacement.text),
+                        contextChips: ContextChip.visibleReferences(
+                            in: replacement.text, images: replacement.images,
+                            contextAttachments: replacement.contextAttachments
+                        ), images: replacement.images, createdAt: replacement.createdAt
+                    )
+                ])
         }
         toolCards.removeAll {
             removedRunIDs.contains($0.invocation.runID)
@@ -1023,10 +1034,10 @@ final class ConversationModel: Identifiable {
         let runIDMap = Dictionary(uniqueKeysWithValues: originalRunIDs.map { ($0, UUID()) })
         let clonedMessageRunIDs: [UUID: UUID] = Dictionary(
             uniqueKeysWithValues: source.compactMap { message -> (UUID, UUID)? in
-            guard let oldRunID = messageRunIDs[message.id],
-                let newRunID = runIDMap[oldRunID], let newMessageID = messageIDMap[message.id]
-            else { return nil }
-            return (newMessageID, newRunID)
+                guard let oldRunID = messageRunIDs[message.id],
+                    let newRunID = runIDMap[oldRunID], let newMessageID = messageIDMap[message.id]
+                else { return nil }
+                return (newMessageID, newRunID)
             }
         )
         let clonedRuns = originalRunIDs.compactMap { oldRunID -> AgentRunSummary? in
@@ -1084,9 +1095,10 @@ final class ConversationModel: Identifiable {
             grouping: toolCards.filter { $0.terminalSuggestion == nil },
             by: { $0.invocation.runID }
         )
-        let toolProcessMessageIDs = Set(transcript.compactMap { message -> UUID? in
-            message.role == .assistant && !message.toolCalls.isEmpty ? message.id : nil
-        })
+        let toolProcessMessageIDs = Set(
+            transcript.compactMap { message -> UUID? in
+                message.role == .assistant && !message.toolCalls.isEmpty ? message.id : nil
+            })
         var processRunIDs: [UUID: UUID] = [:]
         for message in transcript where message.role == .assistant && !message.toolCalls.isEmpty {
             if let runID = messageRunIDs[message.id] {
@@ -1128,21 +1140,25 @@ final class ConversationModel: Identifiable {
                 guard owner == runID else { return nil }
                 return visibleByID[messageID]
             }
-            let workHasNonReasoningOutput = !cards.isEmpty
+            let workHasNonReasoningOutput =
+                !cards.isEmpty
                 || processMessages.contains { !$0.text.isEmpty }
             let hasVisibleReasoning = processMessages.contains { message in
                 message.id == activeReasoningMessageID && !message.reasoning.isEmpty
             }
             let visibleProcess = processMessages.filter { message in
-                let livePlaceholder = message.isStreaming && message.text.isEmpty
+                let livePlaceholder =
+                    message.isStreaming && message.text.isEmpty
                     && message.reasoning.isEmpty
-                let toolProcess = toolProcessMessageIDs.contains(message.id)
+                let toolProcess =
+                    toolProcessMessageIDs.contains(message.id)
                     && (!message.text.isEmpty
                         || (message.isStreaming && message.reasoning.isEmpty))
                 // Working belongs to the Work as a whole. Reasoning does not
                 // consume this slot: a later empty turn may still be replaced
                 // by its next reasoning block. Any non-reasoning output does.
-                return (livePlaceholder
+                return
+                    (livePlaceholder
                     && !hasVisibleReasoning
                     && !workHasNonReasoningOutput)
                     || toolProcess
@@ -1153,7 +1169,8 @@ final class ConversationModel: Identifiable {
             let hasUnfinishedGroupableTool = groupableCards.contains {
                 !$0.state.isTerminal
             }
-            let latestToolReasoning = processMessages
+            let latestToolReasoning =
+                processMessages
                 .sorted { $0.createdAt < $1.createdAt }
                 .reversed()
                 .compactMap { message -> AgentToolReasoning? in
@@ -1169,7 +1186,8 @@ final class ConversationModel: Identifiable {
             // Once there is a tool surface to carry it, reasoning becomes a
             // transient title instead of a separate structural row. Before the
             // atomic batch is published it remains visible on its own.
-            let reasoningItems = !hasUnfinishedGroupableTool
+            let reasoningItems =
+                !hasUnfinishedGroupableTool
                 ? processMessages.flatMap { message -> [AgentWorkItem] in
                     guard message.id == activeReasoningMessageID else { return [] }
                     return message.reasoning.map(AgentWorkItem.reasoning)
@@ -1178,7 +1196,8 @@ final class ConversationModel: Identifiable {
             let activeReasoningBlockID = processMessages.first(where: {
                 $0.id == activeReasoningMessageID && $0.isStreaming && $0.text.isEmpty
             })?.reasoning.last?.id
-            var items = reasoningItems + visibleProcess.map(AgentWorkItem.message)
+            var items =
+                reasoningItems + visibleProcess.map(AgentWorkItem.message)
                 + cards.map(AgentWorkItem.tool)
             items.sort {
                 if $0.orderedAt != $1.orderedAt { return $0.orderedAt < $1.orderedAt }
@@ -1203,7 +1222,8 @@ final class ConversationModel: Identifiable {
             // The work row follows the clock of the first thing it actually
             // presents. A stopped direct answer has no work item, so its stop
             // event is the row's place in the timeline.
-            let orderedAt = items.first?.orderedAt
+            let orderedAt =
+                items.first?.orderedAt
                 ?? stored?.finishedAt
                 ?? stored?.startedAt
                 ?? .now
@@ -1215,14 +1235,17 @@ final class ConversationModel: Identifiable {
                     && processRunIDs[$0.id] == nil
                     && $0.createdAt < orderedAt
             })?.createdAt
-            let fallbackState: AgentRunState = cards.allSatisfy {
-                $0.state == .completed
-            } ? .completed : .interrupted
-            var run = stored ?? AgentRunSummary(
-                id: runID, state: fallbackState,
-                startedAt: items.first?.orderedAt ?? orderedAt,
-                finishedAt: items.last?.orderedAt
-            )
+            let fallbackState: AgentRunState =
+                cards.allSatisfy {
+                    $0.state == .completed
+                } ? .completed : .interrupted
+            var run =
+                stored
+                ?? AgentRunSummary(
+                    id: runID, state: fallbackState,
+                    startedAt: items.first?.orderedAt ?? orderedAt,
+                    finishedAt: items.last?.orderedAt
+                )
             if activeRunID == runID { run.state = runState }
             return AgentWorkGroup(
                 run: run, items: items, orderedAt: orderedAt,
@@ -1256,11 +1279,13 @@ final class ConversationModel: Identifiable {
                 if card.descriptor.presentation?.groupsWithAdjacentTools == false {
                     grouped.append(.tool(card))
                 } else if !insertedBatch {
-                    grouped.append(.tools(AgentToolBatch(
-                        cards: batched,
-                        runID: runID,
-                        reasoning: reasoning
-                    )))
+                    grouped.append(
+                        .tools(
+                            AgentToolBatch(
+                                cards: batched,
+                                runID: runID,
+                                reasoning: reasoning
+                            )))
                     insertedBatch = true
                 }
             } else {
@@ -1274,12 +1299,13 @@ final class ConversationModel: Identifiable {
     var timeline: [TimelineItem] {
         var items: [TimelineItem] = []
         let groups = workGroups
-        let groupedProcessIDs: Set<UUID> = Set(groups.flatMap { group -> [UUID] in
-            group.items.compactMap { item -> UUID? in
-                guard case .message(let message) = item else { return nil }
-                return message.id
-            }
-        })
+        let groupedProcessIDs: Set<UUID> = Set(
+            groups.flatMap { group -> [UUID] in
+                group.items.compactMap { item -> UUID? in
+                    guard case .message(let message) = item else { return nil }
+                    return message.id
+                }
+            })
         var emittedGroups = Set<UUID>()
         for message in messages {
             for group in groups where group.anchorMessageID == message.id {
@@ -1291,15 +1317,17 @@ final class ConversationModel: Identifiable {
             // bubble reads as the model having said nothing. While it is still
             // streaming it stays only until this turn receives reasoning; that
             // live text then owns the activity treatment until turnFinished.
-            guard message.role != .assistant || !message.text.isEmpty
-                || (message.isStreaming && message.reasoning.isEmpty)
+            guard
+                message.role != .assistant || !message.text.isEmpty
+                    || (message.isStreaming && message.reasoning.isEmpty)
             else { continue }
             items.append(.message(message))
         }
         items += groups.filter { !emittedGroups.contains($0.id) }.map(TimelineItem.work)
         let commands = toolCards.compactMap(\.terminalSuggestion)
-        guard !commands.isEmpty || !plans.isEmpty || !compactions.isEmpty
-            || compactionActivity != nil
+        guard
+            !commands.isEmpty || !plans.isEmpty || !compactions.isEmpty
+                || compactionActivity != nil
         else {
             return items
         }
@@ -1307,7 +1335,8 @@ final class ConversationModel: Identifiable {
         // run and a compaction happens between runs, so there are never many of
         // either, and two more cursors inside that loop would be two more things
         // to keep right for no gain.
-        var extra = commands.map(TimelineItem.command)
+        var extra =
+            commands.map(TimelineItem.command)
             + plans.map(TimelineItem.plan)
             + compactions.map(TimelineItem.compaction)
         if let compactionActivity { extra.append(.compactionActivity(compactionActivity)) }
@@ -1364,7 +1393,8 @@ final class ConversationModel: Identifiable {
                     inCharacters: AgentContextEstimator.characterUnits(in: $1.text)
                 )
         }
-        let boundary = summarized.reversed().first(where: { !$0.isCompaction })?.id
+        let boundary =
+            summarized.reversed().first(where: { !$0.isCompaction })?.id
             ?? compactionRecords.last?.compactedThroughMessageID
         return AgentCompactionRecord(
             compactedThroughMessageID: boundary,
@@ -1436,12 +1466,13 @@ final class ConversationModel: Identifiable {
     }
 
     func attach(_ chip: ContextChip) {
-        guard !composer.attachments.contains(where: {
-            if let image = chip.image, let existing = $0.image {
-                return existing.data == image.data
-            }
-            return $0.kind == chip.kind && $0.content == chip.content
-        })
+        guard
+            !composer.attachments.contains(where: {
+                if let image = chip.image, let existing = $0.image {
+                    return existing.data == image.data
+                }
+                return $0.kind == chip.kind && $0.content == chip.content
+            })
         else { return }
         composer.attachments.append(chip)
         refreshAttachedContextEstimate()
@@ -1453,7 +1484,8 @@ final class ConversationModel: Identifiable {
     }
 
     func beginAttachmentImport(label: String) -> PendingContextAttachment? {
-        guard composer.attachments.count + composer.pendingAttachments.count
+        guard
+            composer.attachments.count + composer.pendingAttachments.count
                 < ContextAttachmentImporter.maximumAttachments
         else {
             composer.attachmentImportError = String(
@@ -2199,15 +2231,17 @@ final class ConversationModel: Identifiable {
             if let activeRunID { messageRunIDs[message.id] = activeRunID }
             let pending = pendingSteering.first(where: { $0.id == message.id })
             let visibleText = pending?.draft ?? ContextChip.visiblePrompt(in: message.text)
-            let contextChips = pending?.attachments.map {
-                ContextChipReference(
-                    id: $0.id, kind: $0.kind, label: $0.label,
-                    attachment: $0.contextAttachment
+            let contextChips =
+                pending?.attachments.map {
+                    ContextChipReference(
+                        id: $0.id, kind: $0.kind, label: $0.label,
+                        attachment: $0.contextAttachment
+                    )
+                }
+                ?? ContextChip.visibleReferences(
+                    in: message.text, images: message.images,
+                    contextAttachments: message.contextAttachments
                 )
-            } ?? ContextChip.visibleReferences(
-                in: message.text, images: message.images,
-                contextAttachments: message.contextAttachments
-            )
             pendingSteering.removeAll { $0.id == message.id }
             messages.append(
                 ChatMessage(
@@ -2360,9 +2394,10 @@ final class ConversationModel: Identifiable {
             guard let source = transcript.first(where: { $0.id == sourceMessageID }),
                 !source.toolCalls.isEmpty
             else { return }
-            let stagedCallIDs = Set(stagedIDs.compactMap {
-                stagedToolCards[$0]?.invocation.call.id
-            })
+            let stagedCallIDs = Set(
+                stagedIDs.compactMap {
+                    stagedToolCards[$0]?.invocation.call.id
+                })
             guard source.toolCalls.allSatisfy({ stagedCallIDs.contains($0.id) }) else {
                 return
             }

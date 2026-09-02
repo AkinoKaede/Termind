@@ -39,21 +39,21 @@ struct RootView: View {
             )
         } detail: {
             detail
-            // Floating over the pane rather than docked under it, so switching
-            // to a Workspace no longer resizes the content area — and so the
-            // bar reads as belonging to the session it describes.
-            .overlay(alignment: .bottomTrailing) {
-                if case .workspace = window.selectedDestination {
-                    StatusBarView()
-                        .padding(Metrics.StatusBar.floatingInset)
+                // Floating over the pane rather than docked under it, so switching
+                // to a Workspace no longer resizes the content area — and so the
+                // bar reads as belonging to the session it describes.
+                .overlay(alignment: .bottomTrailing) {
+                    if case .workspace = window.selectedDestination {
+                        StatusBarView()
+                            .padding(Metrics.StatusBar.floatingInset)
+                    }
                 }
-            }
-            .frame(
-                minWidth: Metrics.Window.detailMin,
-                maxWidth: .infinity,
-                minHeight: Metrics.Window.detailMinHeight,
-                maxHeight: .infinity
-            )
+                .frame(
+                    minWidth: Metrics.Window.detailMin,
+                    maxWidth: .infinity,
+                    minHeight: Metrics.Window.detailMinHeight,
+                    maxHeight: .infinity
+                )
         }
         .navigationSplitViewStyle(.balanced)
         .background {
@@ -74,7 +74,11 @@ struct RootView: View {
             maxHeight: .infinity
         )
         .background { FullHeightWindowContent() }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { layoutWidth = $0 }
+        .onGeometryChange(for: CGFloat.self) {
+            $0.size.width
+        } action: {
+            layoutWidth = $0
+        }
         .toolbarBackground(.hidden, for: .windowToolbar)
         .navigationTitle(
             WindowTitleCatalog.standard(hosts: app.hostLibrary)

@@ -35,12 +35,13 @@ private struct ConversationAttachmentDropModifier: ViewModifier {
     @ViewBuilder
     private var decoration: some View {
         if targetedKind != nil {
-            DropTargetOverlay(presentation: DropTargetPresentation(
-                title: String(localized: "Attach to Chat"),
-                detail: String(localized: "Files and images"),
-                systemImage: targetedKind == .images
-                    ? "photo.badge.plus" : "paperclip"
-            ))
+            DropTargetOverlay(
+                presentation: DropTargetPresentation(
+                    title: String(localized: "Attach to Chat"),
+                    detail: String(localized: "Files and images"),
+                    systemImage: targetedKind == .images
+                        ? "photo.badge.plus" : "paperclip"
+                ))
         }
     }
 

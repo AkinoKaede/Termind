@@ -98,7 +98,8 @@ nonisolated struct SSHUserCertificate: Hashable, Sendable {
             throw SSHUserCertificateError.invalidFormat
         }
 
-        let publicBlob = SSHWireWriter.field(Data(plainMethod.utf8))
+        let publicBlob =
+            SSHWireWriter.field(Data(plainMethod.utf8))
             + keyFields.reduce(into: Data()) { $0.append(SSHWireWriter.field($1)) }
         if let publicKey {
             let publicFields = publicKey.split(whereSeparator: \Character.isWhitespace)

@@ -59,12 +59,9 @@ final class ExternalAuthCoordinator {
 
     private(set) var pending: [Pending] = []
     private(set) var presentationRevision: UInt64 = 0
-    private var sshWaiters:
-        [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
-    private var secretWaiters:
-        [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
-    private var hostKeyWaiters:
-        [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
+    private var sshWaiters: [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
+    private var secretWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
+    private var hostKeyWaiters: [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
     private var secretTimeoutTask: Task<Void, Never>?
 
     var current: Pending? { pending.first }
@@ -162,9 +159,10 @@ final class ExternalAuthCoordinator {
 
     private func append(_ request: Request, clientName: String, runID: UUID) {
         let wasEmpty = pending.isEmpty
-        pending.append(Pending(
-            runID: runID, clientName: String(clientName.prefix(160)), request: request
-        ))
+        pending.append(
+            Pending(
+                runID: runID, clientName: String(clientName.prefix(160)), request: request
+            ))
         if wasEmpty { presentCurrent() }
     }
 

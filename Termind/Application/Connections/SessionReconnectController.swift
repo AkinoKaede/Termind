@@ -129,9 +129,11 @@ final class SessionReconnectController {
         retryTask = nil
     }
 }
+nonisolated
 
-private nonisolated extension Duration {
-    var timeInterval: TimeInterval {
+    extension Duration
+{
+    fileprivate var timeInterval: TimeInterval {
         let components = self.components
         return TimeInterval(components.seconds)
             + TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000

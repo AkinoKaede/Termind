@@ -48,9 +48,10 @@ struct ConnectionHistoryTests {
         let migratedHosts = try migrated.mainContext.fetch(FetchDescriptor<PersistentHost>())
         #expect(migratedHosts.count == 1)
         #expect(migratedHosts.first?.lastUsedAt == nil)
-        #expect(try migrated.mainContext.fetch(
-            FetchDescriptor<PersistentConnectionHistoryEntry>()
-        ).isEmpty)
+        #expect(
+            try migrated.mainContext.fetch(
+                FetchDescriptor<PersistentConnectionHistoryEntry>()
+            ).isEmpty)
     }
 
     @Test
@@ -65,11 +66,12 @@ struct ConnectionHistoryTests {
         let entries = model.entries()
         #expect(entries.count == 3)
         #expect(entries.map(\.kind) == [.sftp, .ssh, .ssh])
-        #expect(entries.map(\.connectedAt) == [
-            Date(timeIntervalSince1970: 3),
-            Date(timeIntervalSince1970: 2),
-            Date(timeIntervalSince1970: 1),
-        ])
+        #expect(
+            entries.map(\.connectedAt) == [
+                Date(timeIntervalSince1970: 3),
+                Date(timeIntervalSince1970: 2),
+                Date(timeIntervalSince1970: 1),
+            ])
         #expect(Set(entries.map(\.id)).count == 3)
     }
 
@@ -85,9 +87,11 @@ struct ConnectionHistoryTests {
 
         let entries = model.entries()
         #expect(entries.count == ConnectionHistoryModel.limit)
-        #expect(entries.first?.connectedAt == Date(
-            timeIntervalSince1970: TimeInterval(ConnectionHistoryModel.limit)
-        ))
+        #expect(
+            entries.first?.connectedAt
+                == Date(
+                    timeIntervalSince1970: TimeInterval(ConnectionHistoryModel.limit)
+                ))
         #expect(entries.last?.connectedAt == Date(timeIntervalSince1970: 1))
     }
 
@@ -108,9 +112,10 @@ struct ConnectionHistoryTests {
         model.record(kind: .sftp, for: hostID)
         model.record(kind: .ssh, for: otherHostID)
         #expect(model.storageError == nil)
-        #expect(try container.mainContext.fetch(
-            FetchDescriptor<PersistentConnectionHistoryEntry>()
-        ).count == 3)
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<PersistentConnectionHistoryEntry>()
+            ).count == 3)
 
         model.delete(first.id)
         #expect(model.entries(for: hostID).count == 1)
@@ -151,10 +156,10 @@ struct ConnectionHistoryTests {
             ConnectionHistoryEntry(hostID: other.id, kind: .ssh),
         ])
         let commands = CommandHistoryModel(entries: [
-            CommandHistoryEntry(hostID: host.id, command: "uptime"),
+            CommandHistoryEntry(hostID: host.id, command: "uptime")
         ])
         let files = SFTPHistoryModel(entries: [
-            SFTPHistoryEntry(hostID: host.id, kind: .directory, path: "/srv"),
+            SFTPHistoryEntry(hostID: host.id, kind: .directory, path: "/srv")
         ])
         let app = AppModel(
             hosts: HostLibraryModel(hosts: [host, other]),

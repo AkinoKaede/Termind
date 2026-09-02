@@ -474,8 +474,9 @@ final class WindowModel {
     var sessionPanes: [PaneRef] {
         workspaces.flatMap { workspace in
             workspace.panes.compactMap { pane in
-                guard pane.kind == .sshSession || pane.kind == .sftpSession
-                    || pane.kind == .serialSession
+                guard
+                    pane.kind == .sshSession || pane.kind == .sftpSession
+                        || pane.kind == .serialSession
                 else { return nil }
                 return PaneRef(workspace: workspace, pane: pane)
             }
@@ -600,12 +601,14 @@ final class WindowModel {
     }
 
     func toggleAssistantPin(_ id: ConversationModel.ID) {
-        if let assistantCommands { assistantCommands.togglePin(id) }
-        else if let conversation = assistantLibrary.conversation(id: id),
+        if let assistantCommands {
+            assistantCommands.togglePin(id)
+        } else if let conversation = assistantLibrary.conversation(id: id),
             !conversation.isArchived, !conversation.isStreaming, !conversation.isCompacting
         {
             let toPinned = !conversation.isPinned
-            let nextID = (toPinned
+            let nextID =
+                (toPinned
                 ? assistantLibrary.pinnedConversations
                 : assistantLibrary.activeConversations).first?.id
             moveAssistantConversation(id, toPinned: toPinned, before: nextID)
@@ -625,8 +628,9 @@ final class WindowModel {
         }
     }
     func renameAssistantConversation(_ id: ConversationModel.ID, to title: String) {
-        if let assistantCommands { assistantCommands.rename(id, title) }
-        else {
+        if let assistantCommands {
+            assistantCommands.rename(id, title)
+        } else {
             let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
             if !value.isEmpty {
                 assistantLibrary.conversation(id: id)?.customTitle = String(value.prefix(80))
@@ -634,8 +638,9 @@ final class WindowModel {
         }
     }
     func setAssistantArchived(_ id: ConversationModel.ID, archived: Bool) {
-        if let assistantCommands { assistantCommands.archive(id, archived) }
-        else if let conversation = assistantLibrary.conversation(id: id),
+        if let assistantCommands {
+            assistantCommands.archive(id, archived)
+        } else if let conversation = assistantLibrary.conversation(id: id),
             !conversation.isStreaming, !conversation.isCompacting
         {
             conversation.archivedAt = archived ? .now : nil

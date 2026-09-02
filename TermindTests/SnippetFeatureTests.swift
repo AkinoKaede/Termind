@@ -123,7 +123,6 @@ struct SnippetFeatureTests {
         #expect(reloaded.snippet(snippet.id)?.body == script)
     }
 
-
     @Test
     func executingSnippetsKeepsDefaultTitlesAndRequestOrder() {
         let firstHost = Host(name: "A", host: "a.example")

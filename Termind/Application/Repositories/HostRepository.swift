@@ -23,8 +23,7 @@ protocol HostRepository: AnyObject {
 final class InMemoryHostRepository: HostRepository {
     private var value: HostLibrarySnapshot
     private var revision: Int64 = 0
-    private var continuations: [UUID: AsyncStream<RepositoryChange<HostLibrarySnapshot>>.Continuation]
-        = [:]
+    private var continuations: [UUID: AsyncStream<RepositoryChange<HostLibrarySnapshot>>.Continuation] = [:]
 
     init(snapshot: HostLibrarySnapshot = .empty) { value = snapshot }
 

@@ -10,12 +10,14 @@ struct MCPServerSessionTests {
     @Test
     func streamableHandshakeMintsASessionAndPreservesStringIDs() async throws {
         let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
-        let initialize = await protocolServer.handle(jsonRequest("""
-            {"jsonrpc":"2.0","id":"request-001","method":"initialize","params":{
-              "protocolVersion":"1900-01-01","clientInfo":{"name":"Tests","version":"1"},
-              "capabilities":{}
-            }}
-            """))
+        let initialize = await protocolServer.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":"request-001","method":"initialize","params":{
+                  "protocolVersion":"1900-01-01","clientInfo":{"name":"Tests","version":"1"},
+                  "capabilities":{}
+                }}
+                """))
         let sessionID = try #require(initialize.headers["Mcp-Session-Id"])
         let initialized = try responseObject(initialize)
 
@@ -31,16 +33,18 @@ struct MCPServerSessionTests {
         #expect(instructions.contains("stdin_purpose"))
         #expect(instructions.contains("only once"))
 
-        let notification = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-            sessionID: sessionID, version: MCPClient.preferredVersion
-        ))
+        let notification = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion
+            ))
         #expect(notification.status == 202)
 
-        let listed = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#,
-            sessionID: sessionID, version: MCPClient.preferredVersion
-        ))
+        let listed = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion
+            ))
         let tools = try #require(
             try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue
         )
@@ -50,45 +54,53 @@ struct MCPServerSessionTests {
     @Test
     func establishedSessionsRequireTheirVersionHeader() async throws {
         let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
-        let initialize = await protocolServer.handle(jsonRequest("""
-            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
-              "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
-              "capabilities":{}
-            }}
-            """))
+        let initialize = await protocolServer.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                  "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
+                  "capabilities":{}
+                }}
+                """))
         let sessionID = try #require(initialize.headers["Mcp-Session-Id"])
 
-        let missing = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","id":2,"method":"ping"}"#, sessionID: sessionID
-        ))
+        let missing = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":2,"method":"ping"}"#, sessionID: sessionID
+            ))
         #expect(missing.status == 400)
 
-        let wrong = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","id":2,"method":"ping"}"#,
-            sessionID: sessionID, version: MCPClient.legacyVersion
-        ))
+        let wrong = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":2,"method":"ping"}"#,
+                sessionID: sessionID, version: MCPClient.legacyVersion
+            ))
         #expect(wrong.status == 400)
     }
 
     @Test
     func malformedToolCallsUseInvalidParams() async throws {
         let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
-        let initialize = await protocolServer.handle(jsonRequest("""
-            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
-              "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
-              "capabilities":{}
-            }}
-            """))
+        let initialize = await protocolServer.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                  "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
+                  "capabilities":{}
+                }}
+                """))
         let sessionID = try #require(initialize.headers["Mcp-Session-Id"])
-        _ = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-            sessionID: sessionID, version: MCPClient.preferredVersion
-        ))
+        _ = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion
+            ))
 
-        let response = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"missing","arguments":{}}}"#,
-            sessionID: sessionID, version: MCPClient.preferredVersion
-        ))
+        let response = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"missing","arguments":{}}}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion
+            ))
         let code = try responseObject(response)["error"]?.objectValue?["code"]?.integerValue
         #expect(code == -32602)
     }
@@ -96,9 +108,10 @@ struct MCPServerSessionTests {
     @Test
     func legacySSEEmitsEndpointBeforeMessages() async throws {
         let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
-        let opened = await protocolServer.handle(HTTPRequest(
-            method: "GET", target: "/sse", version: "HTTP/1.1", headers: [:], body: Data()
-        ))
+        let opened = await protocolServer.handle(
+            HTTPRequest(
+                method: "GET", target: "/sse", version: "HTTP/1.1", headers: [:], body: Data()
+            ))
         guard case .stream(let stream) = opened.body else {
             Issue.record("Expected an SSE stream")
             return
@@ -110,10 +123,11 @@ struct MCPServerSessionTests {
         let sessionID = try #require(endpoint.components(separatedBy: marker).last)
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let posted = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
-            target: "/messages?sessionId=\(sessionID)"
-        ))
+        let posted = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
+                target: "/messages?sessionId=\(sessionID)"
+            ))
         #expect(posted.status == 202)
         let message = String(decoding: try #require(await iterator.next()), as: UTF8.self)
         #expect(message.hasPrefix("event: message\n"))
@@ -123,40 +137,47 @@ struct MCPServerSessionTests {
     @Test
     func deletingASessionCancelsItsSecretPopupWithoutResurrectingTheSession() async throws {
         let authentication = ExternalAuthCoordinator()
-        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools(
-            externalAuthentication: authentication
-        ))
-        let initialize = await protocolServer.handle(jsonRequest("""
-            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
-              "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
-              "capabilities":{}
-            }}
-            """))
+        let protocolServer = MCPServerProtocol(
+            tools: makeMCPServerTools(
+                externalAuthentication: authentication
+            ))
+        let initialize = await protocolServer.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                  "protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},
+                  "capabilities":{}
+                }}
+                """))
         let sessionID = try #require(initialize.headers["Mcp-Session-Id"])
-        _ = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-            sessionID: sessionID, version: MCPClient.preferredVersion
-        ))
+        _ = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion
+            ))
         let hostID = UUID()
         let call = Task {
-            await protocolServer.handle(jsonRequest("""
-                {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
-                  "name":"request_user_secret","arguments":{
-                    "prompt":"Password for sudo","host_id":"\(hostID.uuidString)",
-                    "consumer_tool":"ssh_exec","purpose":"sudo password"
-                  }
-                }}
-                """, sessionID: sessionID, version: MCPClient.preferredVersion))
+            await protocolServer.handle(
+                jsonRequest(
+                    """
+                    {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
+                      "name":"request_user_secret","arguments":{
+                        "prompt":"Password for sudo","host_id":"\(hostID.uuidString)",
+                        "consumer_tool":"ssh_exec","purpose":"sudo password"
+                      }
+                    }}
+                    """, sessionID: sessionID, version: MCPClient.preferredVersion))
         }
         try await waitForProtocolCondition {
             if case .secret? = authentication.current?.request { return true }
             return false
         }
 
-        let deleted = await protocolServer.handle(HTTPRequest(
-            method: "DELETE", target: "/mcp", version: "HTTP/1.1",
-            headers: [MCPServerProtocol.sessionHeader: sessionID], body: Data()
-        ))
+        let deleted = await protocolServer.handle(
+            HTTPRequest(
+                method: "DELETE", target: "/mcp", version: "HTTP/1.1",
+                headers: [MCPServerProtocol.sessionHeader: sessionID], body: Data()
+            ))
         #expect(deleted.status == 200)
         #expect(authentication.current == nil)
         let cancelled = await call.value
@@ -166,10 +187,11 @@ struct MCPServerSessionTests {
         #expect(cancelledResult["isError"]?.boolValue == true)
         #expect(cancelledResult["structuredContent"] == nil)
 
-        let afterCancellation = await protocolServer.handle(jsonRequest(
-            #"{"jsonrpc":"2.0","id":3,"method":"ping"}"#,
-            sessionID: sessionID, version: MCPClient.preferredVersion
-        ))
+        let afterCancellation = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":3,"method":"ping"}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion
+            ))
         #expect(afterCancellation.status == 404)
     }
 }

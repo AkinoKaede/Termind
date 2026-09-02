@@ -48,12 +48,14 @@ struct ChatComposerStateTests {
     func largePasteThresholdUsesCharactersOrLines() {
         #expect(!ContextAttachmentImporter.shouldAttachPastedText(String(repeating: "x", count: 1_999)))
         #expect(ContextAttachmentImporter.shouldAttachPastedText(String(repeating: "x", count: 2_000)))
-        #expect(!ContextAttachmentImporter.shouldAttachPastedText(
-            Array(repeating: "line", count: 19).joined(separator: "\n")
-        ))
-        #expect(ContextAttachmentImporter.shouldAttachPastedText(
-            Array(repeating: "line", count: 20).joined(separator: "\n")
-        ))
+        #expect(
+            !ContextAttachmentImporter.shouldAttachPastedText(
+                Array(repeating: "line", count: 19).joined(separator: "\n")
+            ))
+        #expect(
+            ContextAttachmentImporter.shouldAttachPastedText(
+                Array(repeating: "line", count: 20).joined(separator: "\n")
+            ))
     }
 
     @Test
@@ -150,9 +152,10 @@ struct ChatComposerStateTests {
         let conversation = ConversationModel()
         #expect(!conversation.canSendDraft)
 
-        conversation.attach(ContextChip(
-            kind: .output, label: "Last lines", content: "service failed"
-        ))
+        conversation.attach(
+            ContextChip(
+                kind: .output, label: "Last lines", content: "service failed"
+            ))
         #expect(conversation.canSendDraft)
 
         conversation.sendDraft()
@@ -160,8 +163,9 @@ struct ChatComposerStateTests {
         #expect(conversation.messages.last?.text == "")
         #expect(conversation.messages.last?.contextChips.map(\.label) == ["Last lines"])
         #expect(conversation.transcript.last?.text.contains("service failed") == true)
-        #expect(conversation.transcript.last?.contextAttachments.first?.data
-            == Data("service failed".utf8))
+        #expect(
+            conversation.transcript.last?.contextAttachments.first?.data
+                == Data("service failed".utf8))
         #expect(conversation.composer.attachments.isEmpty)
     }
 
@@ -397,9 +401,10 @@ struct ChatComposerStateTests {
     @Test
     func stoppingDuringReasoningEndsItsActivePresentation() throws {
         let (conversation, _, assistant) = beginStreamingConversation()
-        conversation.handle(.reasoningDelta(
-            messageID: assistant.id, text: "Evaluating the request."
-        ))
+        conversation.handle(
+            .reasoningDelta(
+                messageID: assistant.id, text: "Evaluating the request."
+            ))
         #expect(conversation.workGroups.first?.activeReasoningBlockID != nil)
 
         conversation.stop()
@@ -436,10 +441,13 @@ struct ChatComposerStateTests {
             call: AgentToolCall(id: "call-1", name: "lookup", arguments: .object([:])),
             sourceMessageID: assistant.id
         )
-        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
-            name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
-        )))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "lookup", summary: "lookup", inputSchema: .object([:]),
+                    target: .local, safety: .locallyReadOnly
+                )))
         conversation.handle(.toolStarted(invocation))
 
         conversation.stop()
@@ -455,24 +463,31 @@ struct ChatComposerStateTests {
         let before = try #require(conversation.workGroups.first)
         #expect(before.items.contains { if case .message = $0 { true } else { false } })
 
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            id: assistant.id,
-            role: .assistant,
-            toolCalls: [AgentToolCall(
-                id: "call-1", name: "lookup", arguments: .object([:])
-            )],
-            createdAt: assistant.createdAt
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    id: assistant.id,
+                    role: .assistant,
+                    toolCalls: [
+                        AgentToolCall(
+                            id: "call-1", name: "lookup", arguments: .object([:])
+                        )
+                    ],
+                    createdAt: assistant.createdAt
+                )))
         let invocation = AgentToolInvocation(
             runID: runID,
             call: AgentToolCall(id: "call-1", name: "lookup", arguments: .object([:])),
             sourceMessageID: assistant.id
         )
 
-        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
-            name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
-        )))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "lookup", summary: "lookup", inputSchema: .object([:]),
+                    target: .local, safety: .locallyReadOnly
+                )))
 
         let after = try #require(conversation.workGroups.first)
         #expect(!after.items.contains { if case .message = $0 { true } else { false } })
@@ -489,13 +504,17 @@ struct ChatComposerStateTests {
         let runID = UUID()
         let first = AgentTranscriptMessage(
             role: .assistant,
-            toolCalls: [AgentToolCall(
-                id: "call-1", name: "lookup", arguments: .object([:])
-            )]
+            toolCalls: [
+                AgentToolCall(
+                    id: "call-1", name: "lookup", arguments: .object([:])
+                )
+            ]
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: first.createdAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: first.createdAt
+                )))
         conversation.handle(.messageStarted(first))
         conversation.handle(.messageFinished(first))
         let invocation = AgentToolInvocation(
@@ -503,34 +522,42 @@ struct ChatComposerStateTests {
             call: first.toolCalls[0],
             sourceMessageID: first.id
         )
-        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
-            name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
-        )))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "lookup", summary: "lookup", inputSchema: .object([:]),
+                    target: .local, safety: .locallyReadOnly
+                )))
 
         let next = AgentTranscriptMessage(role: .assistant)
         conversation.handle(.turnStarted(index: 1))
         conversation.handle(.messageStarted(next))
 
         let group = try #require(conversation.workGroups.first)
-        #expect(!group.items.contains { item in
-            guard case .message(let message) = item else { return false }
-            return message.id == next.id
-        })
+        #expect(
+            !group.items.contains { item in
+                guard case .message(let message) = item else { return false }
+                return message.id == next.id
+            })
         #expect(group.items.contains { if case .tools = $0 { true } else { false } })
 
-        conversation.handle(.reasoningDelta(
-            messageID: next.id,
-            text: "Evaluate the first result."
-        ))
+        conversation.handle(
+            .reasoningDelta(
+                messageID: next.id,
+                text: "Evaluate the first result."
+            ))
         let updated = try #require(conversation.workGroups.first)
-        #expect(!updated.items.contains { item in
-            guard case .message(let message) = item else { return false }
-            return message.id == next.id
-        })
-        guard case .tools(let batch) = try #require(
-            updated.items.first(where: { if case .tools = $0 { true } else { false } })
-        ) else {
+        #expect(
+            !updated.items.contains { item in
+                guard case .message(let message) = item else { return false }
+                return message.id == next.id
+            })
+        guard
+            case .tools(let batch) = try #require(
+                updated.items.first(where: { if case .tools = $0 { true } else { false } })
+            )
+        else {
             Issue.record("Expected reasoning to move into the tool title")
             return
         }
@@ -543,20 +570,25 @@ struct ChatComposerStateTests {
         let conversation = ConversationModel()
         let runID = UUID()
         let first = AgentTranscriptMessage(role: .assistant)
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: first.createdAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: first.createdAt
+                )))
         conversation.handle(.messageStarted(first))
-        conversation.handle(.reasoningDelta(
-            messageID: first.id,
-            text: "First reasoning block."
-        ))
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            id: first.id,
-            role: .assistant,
-            reasoning: [AgentReasoningBlock(text: "First reasoning block.")],
-            createdAt: first.createdAt
-        )))
+        conversation.handle(
+            .reasoningDelta(
+                messageID: first.id,
+                text: "First reasoning block."
+            ))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    id: first.id,
+                    role: .assistant,
+                    reasoning: [AgentReasoningBlock(text: "First reasoning block.")],
+                    createdAt: first.createdAt
+                )))
         conversation.handle(.turnFinished(index: 0, stopReason: .completed))
 
         let next = AgentTranscriptMessage(role: .assistant)
@@ -564,10 +596,11 @@ struct ChatComposerStateTests {
         conversation.handle(.messageStarted(next))
 
         let group = try #require(conversation.workGroups.first)
-        #expect(group.items.contains { item in
-            guard case .message(let message) = item else { return false }
-            return message.id == next.id && message.text.isEmpty
-        })
+        #expect(
+            group.items.contains { item in
+                guard case .message(let message) = item else { return false }
+                return message.id == next.id && message.text.isEmpty
+            })
     }
 
     @Test
@@ -576,47 +609,60 @@ struct ChatComposerStateTests {
         let runID = UUID()
         let source = AgentTranscriptMessage(
             role: .assistant,
-            toolCalls: [AgentToolCall(
-                id: "call-1", name: "lookup", arguments: .object([:])
-            )]
+            toolCalls: [
+                AgentToolCall(
+                    id: "call-1", name: "lookup", arguments: .object([:])
+                )
+            ]
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: source.createdAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: source.createdAt
+                )))
         conversation.handle(.messageFinished(source))
         let invocation = AgentToolInvocation(
             runID: runID, call: source.toolCalls[0], sourceMessageID: source.id
         )
-        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
-            name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
-        )))
-        conversation.handle(.toolFinished(
-            invocation,
-            AgentToolResult(callID: invocation.call.id, content: "ok")
-        ))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "lookup", summary: "lookup", inputSchema: .object([:]),
+                    target: .local, safety: .locallyReadOnly
+                )))
+        conversation.handle(
+            .toolFinished(
+                invocation,
+                AgentToolResult(callID: invocation.call.id, content: "ok")
+            ))
 
         let next = AgentTranscriptMessage(role: .assistant)
         conversation.handle(.turnStarted(index: 1))
         conversation.handle(.messageStarted(next))
         let waiting = try #require(conversation.workGroups.first)
-        #expect(!waiting.items.contains {
-            if case .message = $0 { true } else { false }
-        })
+        #expect(
+            !waiting.items.contains {
+                if case .message = $0 { true } else { false }
+            })
 
-        conversation.handle(.reasoningDelta(
-            messageID: next.id,
-            text: "Reason about the completed result."
-        ))
+        conversation.handle(
+            .reasoningDelta(
+                messageID: next.id,
+                text: "Reason about the completed result."
+            ))
 
         let group = try #require(conversation.workGroups.first)
-        #expect(group.items.contains { item in
-            guard case .reasoning(let block) = item else { return false }
-            return block.text == "Reason about the completed result."
-        })
-        guard case .tools(let batch) = try #require(
-            group.items.first(where: { if case .tools = $0 { true } else { false } })
-        ) else {
+        #expect(
+            group.items.contains { item in
+                guard case .reasoning(let block) = item else { return false }
+                return block.text == "Reason about the completed result."
+            })
+        guard
+            case .tools(let batch) = try #require(
+                group.items.first(where: { if case .tools = $0 { true } else { false } })
+            )
+        else {
             Issue.record("Expected the completed tool batch to remain")
             return
         }
@@ -627,9 +673,11 @@ struct ChatComposerStateTests {
     func terminalRunEventSettlesAnUnfinishedMessage() {
         let (conversation, runID, assistant) = beginStreamingConversation()
 
-        conversation.handle(.runFinished(AgentRunSummary(
-            id: runID, state: .failed, startedAt: .now, finishedAt: .now
-        )))
+        conversation.handle(
+            .runFinished(
+                AgentRunSummary(
+                    id: runID, state: .failed, startedAt: .now, finishedAt: .now
+                )))
 
         #expect(conversation.messages.first { $0.id == assistant.id }?.isStreaming == false)
     }
@@ -694,9 +742,11 @@ struct ChatComposerStateTests {
         )
         let runID = UUID()
         let assistant = AgentTranscriptMessage(role: .assistant)
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: .now
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: .now
+                )))
         conversation.handle(.runState(.running))
         conversation.handle(.messageStarted(assistant))
         conversation.handle(.messageDelta(messageID: assistant.id, text: "first"))
@@ -974,9 +1024,11 @@ struct ChatComposerStateTests {
         conversation.appendUserTurn("run both")
         let runID = UUID()
         let start = Date()
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: start
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: start
+                )))
         let descriptor = AgentToolDescriptor(
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
             target: .local, safety: .locallyReadOnly
@@ -1004,9 +1056,12 @@ struct ChatComposerStateTests {
         )
         conversation.handle(.toolProposed(first, descriptor))
         #expect(conversation.workGroups.isEmpty)
-        conversation.handle(.toolFinished(first, AgentToolResult(
-            callID: first.call.id, content: "failed", isError: true
-        )))
+        conversation.handle(
+            .toolFinished(
+                first,
+                AgentToolResult(
+                    callID: first.call.id, content: "failed", isError: true
+                )))
         #expect(conversation.workGroups.isEmpty)
 
         conversation.handle(.toolProposed(second, descriptor))
@@ -1018,12 +1073,17 @@ struct ChatComposerStateTests {
         #expect(live.cards.map(\.id) == [first.id, second.id])
         #expect(live.cards.map(\.state) == [.failed, .proposed])
 
-        conversation.handle(.toolFinished(second, AgentToolResult(
-            callID: second.call.id, content: "ok"
-        )))
-        guard case .tools(let terminal) = try #require(
-            conversation.workGroups.first?.items.first
-        ) else {
+        conversation.handle(
+            .toolFinished(
+                second,
+                AgentToolResult(
+                    callID: second.call.id, content: "ok"
+                )))
+        guard
+            case .tools(let terminal) = try #require(
+                conversation.workGroups.first?.items.first
+            )
+        else {
             Issue.record("A failed member must not split the completed batch")
             return
         }
@@ -1035,9 +1095,11 @@ struct ChatComposerStateTests {
         let conversation = ConversationModel()
         let runID = UUID()
         let source = AgentTranscriptMessage(role: .assistant)
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: source.createdAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: source.createdAt
+                )))
         conversation.handle(.messageStarted(source))
         let descriptor = AgentToolDescriptor(
             name: "web_search", summary: "search", inputSchema: .object([:]),
@@ -1055,20 +1117,25 @@ struct ChatComposerStateTests {
         }
         for invocation in invocations {
             conversation.handle(.toolProposed(invocation, descriptor))
-            conversation.handle(.toolFinished(invocation, AgentToolResult(
-                callID: invocation.call.id,
-                content: "[]",
-                metadata: [AgentToolResult.providerNativeKey: .bool(true)]
-            )))
+            conversation.handle(
+                .toolFinished(
+                    invocation,
+                    AgentToolResult(
+                        callID: invocation.call.id,
+                        content: "[]",
+                        metadata: [AgentToolResult.providerNativeKey: .bool(true)]
+                    )))
             #expect(conversation.toolCards.isEmpty)
         }
 
         conversation.handle(.messageFinished(source))
 
         #expect(conversation.toolCards.map(\.id) == invocations.map(\.id))
-        guard case .tools(let batch) = try #require(
-            conversation.workGroups.first?.items.first
-        ) else {
+        guard
+            case .tools(let batch) = try #require(
+                conversation.workGroups.first?.items.first
+            )
+        else {
             Issue.record("Expected one provider-native batch")
             return
         }
@@ -1089,9 +1156,11 @@ struct ChatComposerStateTests {
             },
             createdAt: start.addingTimeInterval(1)
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: start
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: start
+                )))
         conversation.handle(.messageStarted(source))
         conversation.handle(.messageFinished(source))
         conversation.handle(.turnFinished(index: 0, stopReason: .toolCalls))
@@ -1112,9 +1181,11 @@ struct ChatComposerStateTests {
             conversation.handle(.toolProposed(invocation, descriptor))
         }
 
-        guard case .tools(let live) = try #require(
-            conversation.workGroups.first?.items.first
-        ) else {
+        guard
+            case .tools(let live) = try #require(
+                conversation.workGroups.first?.items.first
+            )
+        else {
             Issue.record("Expected a live tool batch")
             return
         }
@@ -1123,13 +1194,18 @@ struct ChatComposerStateTests {
         #expect(live.reasoning?.markdown == "**Compare** both hosts.\nThen verify them.")
 
         for invocation in invocations {
-            conversation.handle(.toolFinished(invocation, AgentToolResult(
-                callID: invocation.call.id, content: "ok"
-            )))
+            conversation.handle(
+                .toolFinished(
+                    invocation,
+                    AgentToolResult(
+                        callID: invocation.call.id, content: "ok"
+                    )))
         }
-        guard case .tools(let terminal) = try #require(
-            conversation.workGroups.first?.items.first
-        ) else {
+        guard
+            case .tools(let terminal) = try #require(
+                conversation.workGroups.first?.items.first
+            )
+        else {
             Issue.record("Expected the completed tools to remain batched")
             return
         }
@@ -1150,13 +1226,16 @@ struct ChatComposerStateTests {
             },
             createdAt: start.addingTimeInterval(1)
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: start
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: start
+                )))
         conversation.handle(.messageStarted(source))
-        conversation.handle(.reasoningDelta(
-            messageID: source.id, text: reasoning.text
-        ))
+        conversation.handle(
+            .reasoningDelta(
+                messageID: source.id, text: reasoning.text
+            ))
         conversation.handle(.messageFinished(source))
 
         let descriptor = AgentToolDescriptor(
@@ -1164,23 +1243,28 @@ struct ChatComposerStateTests {
             target: .local, safety: .locallyReadOnly
         )
         for (offset, call) in source.toolCalls.enumerated() {
-            conversation.handle(.toolProposed(AgentToolInvocation(
-                runID: runID, call: call, sourceMessageID: source.id,
-                createdAt: start.addingTimeInterval(Double(offset + 2))
-            ), descriptor))
+            conversation.handle(
+                .toolProposed(
+                    AgentToolInvocation(
+                        runID: runID, call: call, sourceMessageID: source.id,
+                        createdAt: start.addingTimeInterval(Double(offset + 2))
+                    ), descriptor))
         }
 
         let overlappingGroup = try #require(conversation.workGroups.first)
-        #expect(!overlappingGroup.items.contains { item in
-            guard case .reasoning = item else { return false }
-            return true
-        })
-        guard case .tools(let overlappingBatch) = try #require(
-            overlappingGroup.items.first(where: {
-                if case .tools = $0 { return true }
-                return false
+        #expect(
+            !overlappingGroup.items.contains { item in
+                guard case .reasoning = item else { return false }
+                return true
             })
-        ) else {
+        guard
+            case .tools(let overlappingBatch) = try #require(
+                overlappingGroup.items.first(where: {
+                    if case .tools = $0 { return true }
+                    return false
+                })
+            )
+        else {
             Issue.record("Expected a live tool batch")
             return
         }
@@ -1188,16 +1272,19 @@ struct ChatComposerStateTests {
 
         conversation.handle(.turnFinished(index: 0, stopReason: .toolCalls))
         let settledGroup = try #require(conversation.workGroups.first)
-        #expect(!settledGroup.items.contains { item in
-            guard case .reasoning = item else { return false }
-            return true
-        })
-        guard case .tools(let settledBatch) = try #require(
-            settledGroup.items.first(where: {
-                if case .tools = $0 { return true }
-                return false
+        #expect(
+            !settledGroup.items.contains { item in
+                guard case .reasoning = item else { return false }
+                return true
             })
-        ) else {
+        guard
+            case .tools(let settledBatch) = try #require(
+                settledGroup.items.first(where: {
+                    if case .tools = $0 { return true }
+                    return false
+                })
+            )
+        else {
             Issue.record("Expected the live tool batch to remain")
             return
         }
@@ -1208,9 +1295,11 @@ struct ChatComposerStateTests {
     func directAnswerDoesNotCreateAWorkGroup() {
         let conversation = ConversationModel()
         conversation.appendUserTurn("hello")
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            role: .assistant, text: "Hello!"
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    role: .assistant, text: "Hello!"
+                )))
 
         #expect(conversation.workGroups.isEmpty)
         #expect(conversation.timeline.count == 2)
@@ -1222,11 +1311,13 @@ struct ChatComposerStateTests {
         conversation.appendUserTurn("compare")
         conversation.start(
             runtime: AgentRuntime(
-                model: ImmediateConversationAgentModel(turns: [[
-                    .reasoningDelta("Compared the two configurations."),
-                    .textDelta("Use the second configuration."),
-                    .finished(.completed),
-                ]]),
+                model: ImmediateConversationAgentModel(turns: [
+                    [
+                        .reasoningDelta("Compared the two configurations."),
+                        .textDelta("Use the second configuration."),
+                        .finished(.completed),
+                    ]
+                ]),
                 tools: [],
                 approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
             ),
@@ -1247,8 +1338,9 @@ struct ChatComposerStateTests {
         #expect(order == ["user", "assistant"])
         #expect(conversation.workGroups.isEmpty)
         #expect(conversation.messages.last?.text == "Use the second configuration.")
-        #expect(conversation.messages.last?.reasoning.map(\.text)
-            == ["Compared the two configurations."])
+        #expect(
+            conversation.messages.last?.reasoning.map(\.text)
+                == ["Compared the two configurations."])
     }
 
     @Test
@@ -1260,9 +1352,11 @@ struct ChatComposerStateTests {
         let assistant = AgentTranscriptMessage(
             role: .assistant, createdAt: startedAt.addingTimeInterval(1)
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: startedAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: startedAt
+                )))
         conversation.handle(.messageStarted(assistant))
 
         let placeholderGroup = try #require(conversation.workGroups.first)
@@ -1272,16 +1366,18 @@ struct ChatComposerStateTests {
         }
         #expect(placeholder.id == assistant.id)
         #expect(placeholder.text.isEmpty)
-        #expect(conversation.timeline.compactMap { item -> UUID? in
-            guard case .message(let message) = item, message.role == .assistant else {
-                return nil
-            }
-            return message.id
-        }.isEmpty)
+        #expect(
+            conversation.timeline.compactMap { item -> UUID? in
+                guard case .message(let message) = item, message.role == .assistant else {
+                    return nil
+                }
+                return message.id
+            }.isEmpty)
 
-        conversation.handle(.reasoningDelta(
-            messageID: assistant.id, text: "Evaluating the request."
-        ))
+        conversation.handle(
+            .reasoningDelta(
+                messageID: assistant.id, text: "Evaluating the request."
+            ))
 
         let group = try #require(conversation.workGroups.first)
         #expect(group.id == placeholderGroup.id)
@@ -1298,10 +1394,12 @@ struct ChatComposerStateTests {
         }
         #expect(visibleAssistantRows.isEmpty)
 
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            id: assistant.id, role: .assistant, reasoning: [block],
-            createdAt: assistant.createdAt
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    id: assistant.id, role: .assistant, reasoning: [block],
+                    createdAt: assistant.createdAt
+                )))
         conversation.handle(.turnFinished(index: 0, stopReason: .toolCalls))
         #expect(conversation.workGroups.isEmpty)
 
@@ -1318,12 +1416,13 @@ struct ChatComposerStateTests {
             return message.id
         }
         #expect(placeholderIDs == [continuation.id])
-        #expect(conversation.timeline.compactMap { item -> UUID? in
-            guard case .message(let message) = item, message.role == .assistant else {
-                return nil
-            }
-            return message.id
-        }.isEmpty)
+        #expect(
+            conversation.timeline.compactMap { item -> UUID? in
+                guard case .message(let message) = item, message.role == .assistant else {
+                    return nil
+                }
+                return message.id
+            }.isEmpty)
 
         conversation.handle(.messageDelta(messageID: continuation.id, text: "Answer"))
         #expect(conversation.workGroups.first?.activeReasoningBlockID == nil)
@@ -1388,10 +1487,11 @@ struct ChatComposerStateTests {
             }
         }
         #expect(kinds == ["tools:call-1,call-2,call-3"])
-        #expect(conversation.timeline.compactMap { item in
-            if case .work = item { return "work" }
-            return nil
-        } == ["work"])
+        #expect(
+            conversation.timeline.compactMap { item in
+                if case .work = item { return "work" }
+                return nil
+            } == ["work"])
     }
 
     @Test
@@ -1447,7 +1547,6 @@ struct ChatComposerStateTests {
         #expect(batches == [["call-1", "call-2", "call-3", "call-4"]])
     }
 
-
     @Test
     func terminalSuggestionStaysIndependentAndBreaksAdjacentToolBatches() throws {
         let conversation = ConversationModel()
@@ -1455,20 +1554,24 @@ struct ChatComposerStateTests {
         let runID = UUID()
         let sourceMessageID = UUID()
         let startedAt = Date()
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: startedAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: startedAt
+                )))
         let calls = [
             "lookup", "lookup", "terminal_suggest", "lookup", "lookup",
         ].enumerated().map { offset, name in
             AgentToolCall(id: "call-\(offset)", name: name, arguments: .object([:]))
         }
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            id: sourceMessageID,
-            role: .assistant,
-            toolCalls: calls,
-            createdAt: startedAt
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    id: sourceMessageID,
+                    role: .assistant,
+                    toolCalls: calls,
+                    createdAt: startedAt
+                )))
         let lookup = AgentToolDescriptor(
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
             target: .local, safety: .locallyReadOnly
@@ -1484,9 +1587,10 @@ struct ChatComposerStateTests {
                 sourceMessageID: sourceMessageID,
                 createdAt: startedAt.addingTimeInterval(Double(offset + 1))
             )
-            conversation.handle(.toolProposed(
-                invocation, name == "terminal_suggest" ? suggestion : lookup
-            ))
+            conversation.handle(
+                .toolProposed(
+                    invocation, name == "terminal_suggest" ? suggestion : lookup
+                ))
         }
 
         let group = try #require(conversation.workGroups.first)
@@ -1498,9 +1602,10 @@ struct ChatComposerStateTests {
             case .reasoning, .message: []
             }
         }.filter { !$0.isEmpty }
-        #expect(groups == [
-            ["lookup", "lookup", "lookup", "lookup"], ["terminal_suggest"],
-        ])
+        #expect(
+            groups == [
+                ["lookup", "lookup", "lookup", "lookup"], ["terminal_suggest"],
+            ])
     }
 
     @Test
@@ -1508,11 +1613,13 @@ struct ChatComposerStateTests {
         let conversation = ConversationModel()
         let runID = UUID()
         let createdAt = Date(timeIntervalSince1970: 2_000)
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID,
-            state: .running,
-            startedAt: createdAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID,
+                    state: .running,
+                    startedAt: createdAt
+                )))
         let invocation = AgentToolInvocation(
             runID: runID,
             call: AgentToolCall(
@@ -1525,14 +1632,16 @@ struct ChatComposerStateTests {
             ),
             createdAt: createdAt
         )
-        conversation.handle(.toolProposed(
-            invocation,
-            AnyAgentTool(TerminalSuggestTool()).descriptor
-        ))
-        conversation.handle(.toolFinished(
-            invocation,
-            AgentToolResult(callID: invocation.call.id, content: "{}")
-        ))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AnyAgentTool(TerminalSuggestTool()).descriptor
+            ))
+        conversation.handle(
+            .toolFinished(
+                invocation,
+                AgentToolResult(callID: invocation.call.id, content: "{}")
+            ))
 
         #expect(conversation.workGroups.isEmpty)
         let item = try #require(conversation.timeline.first)
@@ -1559,15 +1668,19 @@ struct ChatComposerStateTests {
             createdAt: createdAt
         )
         let store = AssistantConversationStore()
-        store.restore([StoredAgentConversation(
-            id: conversationID, messages: [assistant],
-            messageRunIDs: [assistant.id: runID],
-            runs: [AgentRunSummary(
-                id: runID, state: .completed, startedAt: createdAt,
-                finishedAt: createdAt.addingTimeInterval(1)
-            )],
-            lastRunState: .completed
-        )])
+        store.restore([
+            StoredAgentConversation(
+                id: conversationID, messages: [assistant],
+                messageRunIDs: [assistant.id: runID],
+                runs: [
+                    AgentRunSummary(
+                        id: runID, state: .completed, startedAt: createdAt,
+                        finishedAt: createdAt.addingTimeInterval(1)
+                    )
+                ],
+                lastRunState: .completed
+            )
+        ])
 
         let restored = try #require(store.conversation(id: conversationID))
         #expect(restored.messages.first?.reasoning == [reasoning])
@@ -1580,17 +1693,23 @@ struct ChatComposerStateTests {
         conversation.appendUserTurn("Explain")
         let runID = UUID()
         let start = Date()
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: start
-        )))
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            role: .assistant, text: "Partial answer",
-            createdAt: start.addingTimeInterval(1)
-        )))
-        conversation.handle(.runFinished(AgentRunSummary(
-            id: runID, state: .cancelled, startedAt: start,
-            finishedAt: start.addingTimeInterval(62)
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: start
+                )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    role: .assistant, text: "Partial answer",
+                    createdAt: start.addingTimeInterval(1)
+                )))
+        conversation.handle(
+            .runFinished(
+                AgentRunSummary(
+                    id: runID, state: .cancelled, startedAt: start,
+                    finishedAt: start.addingTimeInterval(62)
+                )))
 
         let order = conversation.timeline.map { item in
             switch item {
@@ -1603,12 +1722,13 @@ struct ChatComposerStateTests {
         #expect(conversation.workGroups.first?.items.isEmpty == true)
         #expect(conversation.workGroups.first?.appearsAfterAnswer == true)
         let run = conversation.workGroups.first?.run
-        #expect(run.map {
-            AgentWorkPresentation.title(
-                for: $0.state, from: $0.startedAt, to: $0.finishedAt ?? start,
-                locale: Locale(identifier: "en")
-            )
-        } == "You stopped after 1m 2s")
+        #expect(
+            run.map {
+                AgentWorkPresentation.title(
+                    for: $0.state, from: $0.startedAt, to: $0.finishedAt ?? start,
+                    locale: Locale(identifier: "en")
+                )
+            } == "You stopped after 1m 2s")
     }
 
     @Test
@@ -1620,9 +1740,11 @@ struct ChatComposerStateTests {
         let answer = AgentTranscriptMessage(
             role: .assistant, text: "The answer", createdAt: startedAt.addingTimeInterval(1)
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: startedAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: startedAt
+                )))
         conversation.handle(.messageStarted(answer))
         conversation.handle(.messageFinished(answer))
 
@@ -1635,18 +1757,26 @@ struct ChatComposerStateTests {
             sourceMessageID: answer.id,
             createdAt: startedAt.addingTimeInterval(2)
         )
-        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
-            name: "web_search", summary: "Provider search",
-            inputSchema: .object([:]), target: .network, safety: .locallyReadOnly
-        )))
-        conversation.handle(.toolFinished(invocation, AgentToolResult(
-            callID: invocation.call.id, content: "[]",
-            metadata: [AgentToolResult.providerNativeKey: .bool(true)]
-        )))
-        conversation.handle(.runFinished(AgentRunSummary(
-            id: runID, state: .completed, startedAt: startedAt,
-            finishedAt: startedAt.addingTimeInterval(3)
-        )))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "web_search", summary: "Provider search",
+                    inputSchema: .object([:]), target: .network, safety: .locallyReadOnly
+                )))
+        conversation.handle(
+            .toolFinished(
+                invocation,
+                AgentToolResult(
+                    callID: invocation.call.id, content: "[]",
+                    metadata: [AgentToolResult.providerNativeKey: .bool(true)]
+                )))
+        conversation.handle(
+            .runFinished(
+                AgentRunSummary(
+                    id: runID, state: .completed, startedAt: startedAt,
+                    finishedAt: startedAt.addingTimeInterval(3)
+                )))
 
         let order = conversation.timeline.map { item in
             switch item {
@@ -1658,9 +1788,10 @@ struct ChatComposerStateTests {
         #expect(order == ["user", "assistant", "work"])
         #expect(conversation.workGroups.first?.items.count == 1)
         #expect(conversation.workGroups.first?.appearsAfterAnswer == true)
-        #expect(AgentWorkPresentation.isExpandedByDefault(
-            for: .completed, appearsAfterAnswer: true
-        ))
+        #expect(
+            AgentWorkPresentation.isExpandedByDefault(
+                for: .completed, appearsAfterAnswer: true
+            ))
     }
 
     @Test
@@ -1668,15 +1799,18 @@ struct ChatComposerStateTests {
         let start = Date(timeIntervalSince1970: 1_000)
         let en = Locale(identifier: "en")
         let zh = Locale(identifier: "zh-Hans")
-        #expect(AgentWorkPresentation.duration(
-            from: start, to: start.addingTimeInterval(42), locale: en
-        ) == "42s")
-        #expect(AgentWorkPresentation.duration(
-            from: start, to: start.addingTimeInterval(68), locale: en
-        ) == "1m 8s")
-        #expect(AgentWorkPresentation.duration(
-            from: start, to: start.addingTimeInterval(4_320), locale: en
-        ) == "1h 12m")
+        #expect(
+            AgentWorkPresentation.duration(
+                from: start, to: start.addingTimeInterval(42), locale: en
+            ) == "42s")
+        #expect(
+            AgentWorkPresentation.duration(
+                from: start, to: start.addingTimeInterval(68), locale: en
+            ) == "1m 8s")
+        #expect(
+            AgentWorkPresentation.duration(
+                from: start, to: start.addingTimeInterval(4_320), locale: en
+            ) == "1h 12m")
         #expect(!AgentWorkPresentation.isExpandedByDefault(for: .completed))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .running))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .waitingForUser))
@@ -1684,40 +1818,50 @@ struct ChatComposerStateTests {
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .cancelled))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .interrupted))
         #expect(AgentWorkPresentation.isExpandedByDefault(for: .running, isCompact: true))
-        #expect(AgentWorkPresentation.isExpandedByDefault(
-            for: .waitingForUser, appearsAfterAnswer: true, isCompact: true
-        ))
-        #expect(AgentWorkPresentation.title(
-            for: .running, from: start, to: start.addingTimeInterval(68), locale: en
-        ) == "Working for 1m 8s")
-        #expect(AgentWorkPresentation.title(
-            for: .completed, from: start, to: start.addingTimeInterval(68), locale: en
-        ) == "Worked for 1m 8s")
-        #expect(AgentWorkPresentation.title(
-            for: .cancelled, from: start, to: start.addingTimeInterval(62), locale: en
-        ) == "You stopped after 1m 2s")
-        #expect(AgentWorkPresentation.duration(
-            from: start, to: start.addingTimeInterval(42), locale: zh
-        ) == "42秒")
-        #expect(AgentWorkPresentation.duration(
-            from: start, to: start.addingTimeInterval(68), locale: zh
-        ) == "1分钟8秒")
-        #expect(AgentWorkPresentation.duration(
-            from: start, to: start.addingTimeInterval(4_320), locale: zh
-        ) == "1小时12分钟")
-        #expect(AgentWorkPresentation.title(
-            for: .running, from: start, to: start.addingTimeInterval(68), locale: zh
-        ) == "已工作1分钟8秒")
+        #expect(
+            AgentWorkPresentation.isExpandedByDefault(
+                for: .waitingForUser, appearsAfterAnswer: true, isCompact: true
+            ))
+        #expect(
+            AgentWorkPresentation.title(
+                for: .running, from: start, to: start.addingTimeInterval(68), locale: en
+            ) == "Working for 1m 8s")
+        #expect(
+            AgentWorkPresentation.title(
+                for: .completed, from: start, to: start.addingTimeInterval(68), locale: en
+            ) == "Worked for 1m 8s")
+        #expect(
+            AgentWorkPresentation.title(
+                for: .cancelled, from: start, to: start.addingTimeInterval(62), locale: en
+            ) == "You stopped after 1m 2s")
+        #expect(
+            AgentWorkPresentation.duration(
+                from: start, to: start.addingTimeInterval(42), locale: zh
+            ) == "42秒")
+        #expect(
+            AgentWorkPresentation.duration(
+                from: start, to: start.addingTimeInterval(68), locale: zh
+            ) == "1分钟8秒")
+        #expect(
+            AgentWorkPresentation.duration(
+                from: start, to: start.addingTimeInterval(4_320), locale: zh
+            ) == "1小时12分钟")
+        #expect(
+            AgentWorkPresentation.title(
+                for: .running, from: start, to: start.addingTimeInterval(68), locale: zh
+            ) == "已工作1分钟8秒")
         // Chinese uses one phrase where English distinguishes "Working for"
         // from "Worked for". The running and finished rows are already told
         // apart by the spinner and by whether the disclosure is folded, so the
         // tense the English carries is not load-bearing here.
-        #expect(AgentWorkPresentation.title(
-            for: .completed, from: start, to: start.addingTimeInterval(68), locale: zh
-        ) == "已工作1分钟8秒")
-        #expect(AgentWorkPresentation.title(
-            for: .cancelled, from: start, to: start.addingTimeInterval(62), locale: zh
-        ) == "你在1分钟2秒后停止了")
+        #expect(
+            AgentWorkPresentation.title(
+                for: .completed, from: start, to: start.addingTimeInterval(68), locale: zh
+            ) == "已工作1分钟8秒")
+        #expect(
+            AgentWorkPresentation.title(
+                for: .cancelled, from: start, to: start.addingTimeInterval(62), locale: zh
+            ) == "你在1分钟2秒后停止了")
     }
 
     /// A turn that only called tools has nothing to say, and an empty bubble
@@ -1834,9 +1978,10 @@ struct ChatComposerStateTests {
         ])
 
         #expect(store.conversations.first?.messages.first?.text == "Review this")
-        #expect(store.conversations.first?.messages.first?.contextChips.map(\.label) == [
-            "manual.pdf"
-        ])
+        #expect(
+            store.conversations.first?.messages.first?.contextChips.map(\.label) == [
+                "manual.pdf"
+            ])
         #expect(store.conversations.first?.transcript.first?.text == modelText)
     }
 
@@ -1957,9 +2102,11 @@ struct ChatComposerStateTests {
         let assistant = AgentTranscriptMessage(
             role: .assistant, createdAt: startedAt.addingTimeInterval(1)
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: startedAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: startedAt
+                )))
         conversation.handle(.runState(.running))
         conversation.handle(.messageStarted(assistant))
         return (conversation, runID, assistant)
@@ -1994,13 +2141,17 @@ struct ChatComposerStateTests {
         let conversation = ConversationModel()
         conversation.attach(ContextChip(kind: .image, label: image.label, image: image))
         let opening = conversation.appendUserTurnContent("Original")
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            role: .assistant, text: "First answer", createdAt: .now.addingTimeInterval(1)
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    role: .assistant, text: "First answer", createdAt: .now.addingTimeInterval(1)
+                )))
         _ = conversation.appendUserTurnContent("Follow-up")
-        conversation.handle(.messageFinished(AgentTranscriptMessage(
-            role: .assistant, text: "Second answer", createdAt: .now.addingTimeInterval(2)
-        )))
+        conversation.handle(
+            .messageFinished(
+                AgentTranscriptMessage(
+                    role: .assistant, text: "Second answer", createdAt: .now.addingTimeInterval(2)
+                )))
 
         let replacement = try #require(
             conversation.editUserMessage(opening.id, authoredText: "Edited")
@@ -2034,9 +2185,11 @@ struct ChatComposerStateTests {
         conversation.appendUserTurn("Question")
         let runID = UUID()
         let startedAt = Date()
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: startedAt
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: startedAt
+                )))
         let process = AgentTranscriptMessage(
             role: .assistant, text: "Checking",
             toolCalls: [AgentToolCall(id: "call", name: "lookup", arguments: .object([:]))],
@@ -2047,27 +2200,34 @@ struct ChatComposerStateTests {
             runID: runID, call: process.toolCalls[0], sourceMessageID: process.id,
             createdAt: startedAt.addingTimeInterval(2)
         )
-        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
-            name: "lookup", summary: "Lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
-        )))
-        conversation.handle(.toolFinished(
-            invocation, AgentToolResult(callID: "call", content: "result")
-        ))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "lookup", summary: "Lookup", inputSchema: .object([:]),
+                    target: .local, safety: .locallyReadOnly
+                )))
+        conversation.handle(
+            .toolFinished(
+                invocation, AgentToolResult(callID: "call", content: "result")
+            ))
         let final = AgentTranscriptMessage(
             role: .assistant, text: "Answer", createdAt: startedAt.addingTimeInterval(3)
         )
         conversation.handle(.messageFinished(final))
-        conversation.handle(.runFinished(AgentRunSummary(
-            id: runID, state: .completed, startedAt: startedAt,
-            finishedAt: startedAt.addingTimeInterval(4)
-        )))
+        conversation.handle(
+            .runFinished(
+                AgentRunSummary(
+                    id: runID, state: .completed, startedAt: startedAt,
+                    finishedAt: startedAt.addingTimeInterval(4)
+                )))
 
         let fork = try #require(conversation.forked(throughAssistantMessage: final.id))
         let forkRunIDs = Set(fork.runSummaries.keys)
-        let clonedProcess = try #require(fork.transcript.first {
-            $0.role == .assistant && !$0.toolCalls.isEmpty
-        })
+        let clonedProcess = try #require(
+            fork.transcript.first {
+                $0.role == .assistant && !$0.toolCalls.isEmpty
+            })
         let clonedCard = try #require(fork.toolCards.first)
         #expect(!forkRunIDs.contains(runID))
         #expect(forkRunIDs.contains(clonedCard.invocation.runID))
@@ -2084,17 +2244,22 @@ struct ChatComposerStateTests {
             role: .assistant, text: "Checking",
             toolCalls: [AgentToolCall(id: "call", name: "lookup", arguments: .object([:]))]
         )
-        conversation.handle(.runStarted(AgentRunSummary(
-            id: runID, state: .running, startedAt: .now
-        )))
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(
+                    id: runID, state: .running, startedAt: .now
+                )))
         conversation.handle(.messageFinished(process))
         let invocation = AgentToolInvocation(
             runID: runID, call: process.toolCalls[0], sourceMessageID: process.id
         )
-        conversation.handle(.toolProposed(invocation, AgentToolDescriptor(
-            name: "lookup", summary: "Lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
-        )))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "lookup", summary: "Lookup", inputSchema: .object([:]),
+                    target: .local, safety: .locallyReadOnly
+                )))
         #expect(conversation.workGroups.count == 1)
 
         _ = try #require(conversation.editUserMessage(user.id, authoredText: "Edited"))

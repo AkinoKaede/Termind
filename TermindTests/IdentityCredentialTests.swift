@@ -114,9 +114,11 @@ struct IdentityCredentialTests {
             credential: .software(SSHPrivateKeySecret(privateKey: material.privateKey))
         )
 
-        guard case .software(let stored)? = try keychain.keyCredential(
-            for: reference, storage: .thisDevice
-        ) else {
+        guard
+            case .software(let stored)? = try keychain.keyCredential(
+                for: reference, storage: .thisDevice
+            )
+        else {
             Issue.record("Expected the encrypted private-key material")
             return
         }

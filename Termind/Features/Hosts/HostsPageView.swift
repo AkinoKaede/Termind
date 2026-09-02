@@ -315,7 +315,8 @@ struct HostsPageView: ManagedCardPage {
         if nested == 0 {
             return String(localized: "This group contains \(hostCount).")
         }
-        let groupCount = nested == 1
+        let groupCount =
+            nested == 1
             ? String(localized: "1 nested group")
             : String(localized: "\(nested) nested groups")
         return String(localized: "This group contains \(hostCount) and \(groupCount). Nested groups will be deleted.")
@@ -436,7 +437,7 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
 
     private var confirmationTitle: Text {
         switch state.confirmation {
-        case .deleteGroup(let group): Text("Delete “\(group.name)”?" )
+        case .deleteGroup(let group): Text("Delete “\(group.name)”?")
         case nil: Text("")
         }
     }

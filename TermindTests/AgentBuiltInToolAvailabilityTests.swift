@@ -19,12 +19,16 @@ struct AgentBuiltInToolAvailabilityTests {
             sweepInterval: nil
         )
 
-        let mainAssistant = TermindAgentTools.tools(in: .init(
-            hosts: hosts, connections: connections
-        )).map(\.descriptor)
-        let workspaceSidebar = TermindAgentTools.tools(in: .init(
-            hosts: hosts, connections: connections, includesTerminalSuggestion: true
-        )).map(\.descriptor)
+        let mainAssistant = TermindAgentTools.tools(
+            in: .init(
+                hosts: hosts, connections: connections
+            )
+        ).map(\.descriptor)
+        let workspaceSidebar = TermindAgentTools.tools(
+            in: .init(
+                hosts: hosts, connections: connections, includesTerminalSuggestion: true
+            )
+        ).map(\.descriptor)
 
         #expect(!mainAssistant.contains { $0.name == "terminal_suggest" })
         #expect(workspaceSidebar.contains { $0.name == "terminal_suggest" })
@@ -44,18 +48,19 @@ struct AgentBuiltInToolAvailabilityTests {
             conversationID: UUID(), base: FileManager.default.temporaryDirectory
         )
         let web = ScrubberWebClient(
-                document: { _ in throw AgentWebError.emptyDocument },
-                search: { _, _ in [] }
+            document: { _ in throw AgentWebError.emptyDocument },
+            search: { _, _ in [] }
         )
         let descriptors = AgentToolCatalog.registry(
             builtIn: .init(
                 workspace: workspace, web: web, search: web,
                 tasks: AgentTaskList { _ in }, plans: AgentPlanRecorder { _ in }
             ),
-            additional: TermindAgentTools.tools(in: .init(
-                hosts: hosts, connections: connections,
-                includesTerminalSuggestion: true, workspace: workspace
-            ))
+            additional: TermindAgentTools.tools(
+                in: .init(
+                    hosts: hosts, connections: connections,
+                    includesTerminalSuggestion: true, workspace: workspace
+                ))
         ).descriptors
 
         for descriptor in descriptors where descriptor.target != .mcp {

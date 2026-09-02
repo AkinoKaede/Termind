@@ -389,7 +389,8 @@ final class SFTPSessionModel: Identifiable {
             return
         }
         status = reconnecting ? .reconnecting : .connecting
-        hint = reconnecting
+        hint =
+            reconnecting
             ? String(localized: "Reconnecting") : String(localized: "Connecting")
         connectionTask = Task { [weak self] in
             guard let self else { return }
@@ -490,7 +491,8 @@ final class SFTPSessionModel: Identifiable {
                     authenticationHost = host
                 }
                 let submitted = self.suppliedAuthentications[authenticationHost.id]
-                let retryNeedsPassphrase = submitted?.passphrase == nil
+                let retryNeedsPassphrase =
+                    submitted?.passphrase == nil
                     && (submitted?.keyID ?? store.identity(for: authenticationHost)?.keyID)
                         .flatMap { store.key($0) }?.requiresPassphraseEntry == true
                 let returnsToIdentity = submitted?.passphrase != nil
@@ -1175,7 +1177,9 @@ final class SFTPSessionModel: Identifiable {
                 }
             }
             for var job in batch.jobs {
-                if remoteResolution.skipped.contains(where: { job.remotePath == $0 || job.remotePath.hasPrefix($0 + "/") })
+                if remoteResolution.skipped.contains(where: {
+                    job.remotePath == $0 || job.remotePath.hasPrefix($0 + "/")
+                })
                     || skippedLocalPrefixes.contains(where: {
                         job.localURL.path == $0.path || job.localURL.path.hasPrefix($0.path + "/")
                     })
@@ -1198,11 +1202,13 @@ final class SFTPSessionModel: Identifiable {
                 }
                 if job.hasConflict {
                     if job.direction == .upload {
-                        guard let resolved = try await resolveRemoteConflict(
-                            path: job.remotePath,
-                            conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
-                            policy: policy, client: client
-                        ) else { continue }
+                        guard
+                            let resolved = try await resolveRemoteConflict(
+                                path: job.remotePath,
+                                conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
+                                policy: policy, client: client
+                            )
+                        else { continue }
                         job.remotePath = resolved.path
                         job.hasConflict = resolved.overwrite
                     } else {
@@ -1268,11 +1274,13 @@ final class SFTPSessionModel: Identifiable {
                     job.hasConflict = false
                 }
                 if job.hasConflict {
-                    guard let resolved = try await resolveRemoteConflict(
-                        path: job.destinationPath,
-                        conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
-                        policy: policy, client: client
-                    ) else { continue }
+                    guard
+                        let resolved = try await resolveRemoteConflict(
+                            path: job.destinationPath,
+                            conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
+                            policy: policy, client: client
+                        )
+                    else { continue }
                     job.destinationPath = resolved.path
                     job.hasConflict = resolved.overwrite
                 }
@@ -1354,7 +1362,8 @@ final class SFTPSessionModel: Identifiable {
         let submission = suppliedAuthentications[host.id]
         let selectedKeyID = submission?.keyID ?? identity?.keyID
         let username = submission?.username ?? identity?.username ?? ""
-        let needsPassphrase = requiresPassphrase
+        let needsPassphrase =
+            requiresPassphrase
             ?? (!username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && selectedKeyID.flatMap { store.key($0) }?.requiresPassphraseEntry == true)
         pendingAuthentication = SSHAuthenticationPrompt(
@@ -1483,7 +1492,9 @@ final class SFTPSessionModel: Identifiable {
         for original in directories {
             if result.skipped.contains(where: {
                 original == $0 || original.hasPrefix($0 + "/")
-            }) { continue }
+            }) {
+                continue
+            }
             var destination = original
             for mapping in result.mappings
             where destination == mapping.0 || destination.hasPrefix(mapping.0 + "/") {

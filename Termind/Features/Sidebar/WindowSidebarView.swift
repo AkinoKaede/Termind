@@ -555,18 +555,18 @@ private struct SnippetsSidebarView: View {
         SSHSessionSnippetRow(
             snippet: snippet, isSelected: selectedSnippetID == snippet.id
         )
-            .termindSidebarRow(isSelected: selectedSnippetID == snippet.id) {
-                [
-                    NativeMenuEntry(title: localized("Copy")) {
-                        copyToPasteboard(snippet.body)
-                    },
-                    NativeMenuEntry(title: localized("Execute")) {
-                        requestExecution(snippet)
-                    },
-                ]
-            }
-            .onTapGesture(count: 2) { requestExecution(snippet) }
-            .onTapGesture { selectedSnippetID = snippet.id }
+        .termindSidebarRow(isSelected: selectedSnippetID == snippet.id) {
+            [
+                NativeMenuEntry(title: localized("Copy")) {
+                    copyToPasteboard(snippet.body)
+                },
+                NativeMenuEntry(title: localized("Execute")) {
+                    requestExecution(snippet)
+                },
+            ]
+        }
+        .onTapGesture(count: 2) { requestExecution(snippet) }
+        .onTapGesture { selectedSnippetID = snippet.id }
     }
 
     private var displayedSnippets: [Snippet] {
@@ -598,9 +598,10 @@ private struct SnippetsSidebarView: View {
 
     private func requestExecution(_ snippet: Snippet) {
         if snippet.targetHostIDs.isEmpty {
-            window.hostChooser = .snippet(SnippetHostChooserRequest(
-                snippetIDs: [snippet.id], strategy: .fillMissingTargets
-            ))
+            window.hostChooser = .snippet(
+                SnippetHostChooserRequest(
+                    snippetIDs: [snippet.id], strategy: .fillMissingTargets
+                ))
             return
         }
         if CommandRiskClassifier.assess(snippet.body).requiresSecondConfirmation {
@@ -642,11 +643,13 @@ private struct SidebarCard<Trailing: View>: View {
         HStack(spacing: Metrics.Space.s) {
             if let symbol {
                 Image(systemName: symbol)
-                    .foregroundStyle(SidebarSelectionStyle.foreground(
-                        isSelected: isSelected,
-                        controlActiveState: controlActiveState,
-                        unselected: symbolTint ?? AnyShapeStyle(.secondary)
-                    ))
+                    .foregroundStyle(
+                        SidebarSelectionStyle.foreground(
+                            isSelected: isSelected,
+                            controlActiveState: controlActiveState,
+                            unselected: symbolTint ?? AnyShapeStyle(.secondary)
+                        )
+                    )
                     .frame(width: Metrics.Sidebar.rowIcon)
             }
 
@@ -657,11 +660,13 @@ private struct SidebarCard<Trailing: View>: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(subtitleIsMonospaced ? .caption.monospaced() : .caption)
-                        .foregroundStyle(SidebarSelectionStyle.foreground(
-                            isSelected: isSelected,
-                            controlActiveState: controlActiveState,
-                            unselected: AnyShapeStyle(.secondary)
-                        ))
+                        .foregroundStyle(
+                            SidebarSelectionStyle.foreground(
+                                isSelected: isSelected,
+                                controlActiveState: controlActiveState,
+                                unselected: AnyShapeStyle(.secondary)
+                            )
+                        )
                         .lineLimit(1)
                         .truncationMode(truncatesSubtitleInMiddle ? .middle : .tail)
                 }
@@ -899,7 +904,9 @@ private struct SSHCommandHistorySidebar: View {
     }
 
     private func insert(_ entry: CommandHistoryEntry) {
-        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else { return }
+        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else {
+            return
+        }
         workspace.deliver(entry.command, from: sshSession)
     }
 
@@ -912,7 +919,9 @@ private struct SSHCommandHistorySidebar: View {
     }
 
     private func executeNow(_ entry: CommandHistoryEntry) {
-        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else { return }
+        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else {
+            return
+        }
         workspace.deliver(entry.command, from: sshSession, submit: true)
         destructiveEntry = nil
     }

@@ -2,7 +2,7 @@ import CSSH2
 import Darwin
 import Foundation
 
- /// Installs a small cwd-reporting hook before remote output reaches Ghostty.
+/// Installs a small cwd-reporting hook before remote output reaches Ghostty.
 /// The probe, its echo, and the installation command stay inside this state
 /// machine; only the login banner and the final integrated prompt are emitted.
 nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
@@ -49,19 +49,17 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         // sourcing it. Its output precedes the shell marker, so a missing `sh`
         // still leaves the original shell-only bootstrap path usable.
         startCommand = Data(
-            (
-                " command sh -c 'f=; did=; dlike=; dver=; "
-                    + "[ -r /etc/os-release ] && f=/etc/os-release; "
-                    + "[ -z \"$f\" ] && [ -r /usr/lib/os-release ] && f=/usr/lib/os-release; "
-                    + "if [ -n \"$f\" ]; then while IFS= read -r line; do case \"$line\" in "
-                    + "ID=*) did=${line#ID=} ;; ID_LIKE=*) dlike=${line#ID_LIKE=} ;; "
-                    + "VERSION_ID=*) dver=${line#VERSION_ID=} ;; esac; "
-                    + "done < \"$f\"; fi; kn=$(uname -s 2>/dev/null); "
-                    + "kr=$(uname -r 2>/dev/null); ka=$(uname -m 2>/dev/null); "
-                    + "printf \"\\n__TRMD_%s_SYSTEM__%s|%s|%s|%s|%s|%s__\\n\" "
-                    + "\"$1\" \"$did\" \"$dlike\" \"$dver\" \"$kn\" \"$kr\" \"$ka\"' sh '\(token)'; "
-                    + "printf '\\n__TRMD_%s_SHELL__%s__\\n' '\(token)' \"$SHELL\"\n"
-            ).utf8
+            (" command sh -c 'f=; did=; dlike=; dver=; "
+                + "[ -r /etc/os-release ] && f=/etc/os-release; "
+                + "[ -z \"$f\" ] && [ -r /usr/lib/os-release ] && f=/usr/lib/os-release; "
+                + "if [ -n \"$f\" ]; then while IFS= read -r line; do case \"$line\" in "
+                + "ID=*) did=${line#ID=} ;; ID_LIKE=*) dlike=${line#ID_LIKE=} ;; "
+                + "VERSION_ID=*) dver=${line#VERSION_ID=} ;; esac; "
+                + "done < \"$f\"; fi; kn=$(uname -s 2>/dev/null); "
+                + "kr=$(uname -r 2>/dev/null); ka=$(uname -m 2>/dev/null); "
+                + "printf \"\\n__TRMD_%s_SYSTEM__%s|%s|%s|%s|%s|%s__\\n\" "
+                + "\"$1\" \"$did\" \"$dlike\" \"$dver\" \"$kn\" \"$kr\" \"$ka\"' sh '\(token)'; "
+                + "printf '\\n__TRMD_%s_SHELL__%s__\\n' '\(token)' \"$SHELL\"\n").utf8
         )
         deadline = now + Self.responseTimeout
     }
@@ -337,7 +335,8 @@ nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     }
 
     private func installationCommand(for shell: String?) -> Data? {
-        let marker = "builtin printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' \"$(__termind_encode \"$HOME\")\"; builtin printf '\\n__TRMD_%s_DONE__\\n' '\(token)'"
+        let marker =
+            "builtin printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' \"$(__termind_encode \"$HOME\")\"; builtin printf '\\n__TRMD_%s_DONE__\\n' '\(token)'"
         let command: String
         switch shell {
         case "bash":
@@ -424,7 +423,8 @@ nonisolated struct RemoteCommandEventFilter: Sendable {
                 if let statusText = fields.first, fields.count <= 2,
                     let status = Int32(statusText), (0...255).contains(status)
                 {
-                    let duration = fields.count == 2
+                    let duration =
+                        fields.count == 2
                         ? Self.duration(milliseconds: fields[1])
                         : nil
                     update.events.append(.commandFinished(status, duration: duration))
@@ -829,7 +829,8 @@ nonisolated final class SSHSessionWorker: @unchecked Sendable {
         let printableName = keyName.unicodeScalars
             .map { CharacterSet.controlCharacters.contains($0) ? " " : String($0) }
             .joined()
-        let normalizedName = printableName
+        let normalizedName =
+            printableName
             .split(whereSeparator: \Character.isWhitespace)
             .joined(separator: " ")
         let safeName = normalizedName.isEmpty ? "Key" : normalizedName

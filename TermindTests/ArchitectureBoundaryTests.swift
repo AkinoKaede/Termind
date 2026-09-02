@@ -49,7 +49,8 @@ struct ArchitectureBoundaryTests {
             let lines = try String(contentsOf: file, encoding: .utf8)
                 .split(separator: "\n", omittingEmptySubsequences: false)
             for (offset, line) in lines.enumerated() where line.contains(".keyboardShortcut(") {
-                let isStandardDialogAction = line.contains(".defaultAction")
+                let isStandardDialogAction =
+                    line.contains(".defaultAction")
                     || line.contains(".cancelAction")
                 #expect(
                     isStandardDialogAction,
@@ -177,9 +178,11 @@ struct ArchitectureBoundaryTests {
     private func swiftFiles(in directory: String) throws -> [URL] {
         let root = sourceRoot.appending(path: directory, directoryHint: .isDirectory)
         let keys: [URLResourceKey] = [.isRegularFileKey]
-        guard let enumerator = FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: keys
-        ) else { return [] }
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: root, includingPropertiesForKeys: keys
+            )
+        else { return [] }
         return enumerator.compactMap { element in
             guard let url = element as? URL, url.pathExtension == "swift" else { return nil }
             return url

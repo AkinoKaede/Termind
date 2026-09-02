@@ -159,8 +159,11 @@ extension VaultSnapshot {
     private nonisolated func upsert<Value: Identifiable>(
         _ value: Value, in values: inout [Value]
     ) where Value.ID == UUID {
-        if let index = values.firstIndex(where: { $0.id == value.id }) { values[index] = value }
-        else { values.append(value) }
+        if let index = values.firstIndex(where: { $0.id == value.id }) {
+            values[index] = value
+        } else {
+            values.append(value)
+        }
     }
 }
 
@@ -265,9 +268,11 @@ final class VaultSyncJournal {
                 result.accepted.append(envelope)
                 continue
             }
-            if local.version < envelope.version { result.accepted.append(envelope) }
-            else if envelope.version < local.version { result.needsUpload.insert(local.key) }
-            else if local != envelope {
+            if local.version < envelope.version {
+                result.accepted.append(envelope)
+            } else if envelope.version < local.version {
+                result.needsUpload.insert(local.key)
+            } else if local != envelope {
                 let localData = VaultSyncCodec.encode(local)
                 let remoteData = VaultSyncCodec.encode(envelope)
                 if localData.lexicographicallyPrecedes(remoteData) {
@@ -313,9 +318,10 @@ final class VaultSyncJournal {
             row.reason = reason
             row.receivedAt = .now
         } else {
-            context.insert(PersistentVaultSyncQuarantine(
-                recordName: recordName, payloadData: payloadData, reason: reason
-            ))
+            context.insert(
+                PersistentVaultSyncQuarantine(
+                    recordName: recordName, payloadData: payloadData, reason: reason
+                ))
         }
     }
 
@@ -374,8 +380,9 @@ final class VaultSyncJournal {
     func markAllLiveRecordsNeedsUploadForNewAccount() throws {
         for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()) {
             guard let envelope = row.envelope else { continue }
-            if envelope.isDeleted { context.delete(row) }
-            else {
+            if envelope.isDeleted {
+                context.delete(row)
+            } else {
                 row.needsUpload = true
                 row.systemFieldsData = nil
             }

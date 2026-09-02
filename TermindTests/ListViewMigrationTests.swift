@@ -91,21 +91,24 @@ struct ListViewMigrationTests {
             CGRect(x: 0, y: 98, width: 200, height: 30),
         ]
 
-        let emptyPinned = try #require(AssistantConversationDropResolver.target(
-            items: items, rowFrames: frames, pointerY: 16
-        ))
+        let emptyPinned = try #require(
+            AssistantConversationDropResolver.target(
+                items: items, rowFrames: frames, pointerY: 16
+            ))
         #expect(emptyPinned.section == .pinned)
         #expect(emptyPinned.beforeID == nil)
 
-        let beforeSecond = try #require(AssistantConversationDropResolver.target(
-            items: items, rowFrames: frames, pointerY: 100
-        ))
+        let beforeSecond = try #require(
+            AssistantConversationDropResolver.target(
+                items: items, rowFrames: frames, pointerY: 100
+            ))
         #expect(beforeSecond.section == .chats)
         #expect(beforeSecond.beforeID == second)
 
-        let afterSecond = try #require(AssistantConversationDropResolver.target(
-            items: items, rowFrames: frames, pointerY: 127
-        ))
+        let afterSecond = try #require(
+            AssistantConversationDropResolver.target(
+                items: items, rowFrames: frames, pointerY: 127
+            ))
         #expect(afterSecond.section == .chats)
         #expect(afterSecond.beforeID == nil)
     }
@@ -264,18 +267,18 @@ struct ListViewMigrationTests {
                 .snippet(secondSnippet.id),
             ]
         )
-        }
     }
+}
 
-    @Test
-    func sftpHistoryDisplayPathParticipatesInRowContentUpdates() {
-        let entry = SFTPHistoryEntry(
-            hostID: UUID(), kind: .directory, path: "/home/deploy/project"
-        )
+@Test
+func sftpHistoryDisplayPathParticipatesInRowContentUpdates() {
+    let entry = SFTPHistoryEntry(
+        hostID: UUID(), kind: .directory, path: "/home/deploy/project"
+    )
 
-        let absolute = SidebarListItem.sftpHistory(entry)
-        let abbreviated = SidebarListItem.sftpHistory(entry, displayedPath: "~/project")
+    let absolute = SidebarListItem.sftpHistory(entry)
+    let abbreviated = SidebarListItem.sftpHistory(entry, displayedPath: "~/project")
 
-        #expect(absolute.id == abbreviated.id)
-        #expect(absolute != abbreviated)
-    }
+    #expect(absolute.id == abbreviated.id)
+    #expect(absolute != abbreviated)
+}

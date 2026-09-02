@@ -31,7 +31,8 @@ final class HostingListRow: ListRowView {
 /// Shared renderer and diff state for SwiftUI-backed ListView coordinators.
 /// List-specific setup, selection and scrolling stay in their owning adapter.
 @MainActor
-final class HostingListContent<Item> where
+final class HostingListContent<Item>
+where
     Item: Identifiable & Hashable & SendableMetatype, Item.ID: Hashable
 {
     typealias Renderer = @MainActor (Item) -> AnyView
@@ -72,10 +73,11 @@ final class HostingListContent<Item> where
 
     func rootView(for item: Item) -> AnyView? {
         guard let renderer else { return nil }
-        return AnyView(renderer(item)
-            .id(item.id)
-            .environment(\.locale, locale)
-            .environment(\.colorScheme, colorScheme))
+        return AnyView(
+            renderer(item)
+                .id(item.id)
+                .environment(\.locale, locale)
+                .environment(\.colorScheme, colorScheme))
     }
 }
 
@@ -84,7 +86,8 @@ protocol CursorHostingListItem: Identifiable, Hashable {
 }
 
 /// Fixed-height hosting list shared by keyboard-driven chooser sheets.
-struct CursorHostingList<Item>: NSViewRepresentable where
+struct CursorHostingList<Item>: NSViewRepresentable
+where
     Item: CursorHostingListItem & SendableMetatype, Item.ID: Hashable
 {
     typealias NSViewType = ListView<Item>

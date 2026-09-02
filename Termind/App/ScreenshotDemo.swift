@@ -159,14 +159,16 @@
             }
 
             let first = Pane(.sshSession(firstSession))
-            first.customTitle = showsCommandResult
+            first.customTitle =
+                showsCommandResult
                 ? text(en: "nginx logs", zh: "Nginx 日志")
                 : "api-01"
             let sftpSession = SFTPSessionModel.demo(hostID: saved[0].id)
             sftpSession.selection = ["/etc/nginx/nginx.conf"]
             let sftp = Pane(.sftpSession(sftpSession))
             sftp.customTitle = text(en: "nginx config", zh: "Nginx 配置")
-            let secondSession = showsCommandResult
+            let secondSession =
+                showsCommandResult
                 ? SSHSessionModel.demo(host: saved[1])
                 : SSHSessionModel.demo(
                     host: saved[1],
@@ -196,7 +198,8 @@
                 )
             }
             workspace.focusedPaneID = first.id
-            workspace.customTitle = showsCommandResult
+            workspace.customTitle =
+                showsCommandResult
                 ? text(en: "Log investigation", zh: "日志调查")
                 : text(en: "Production diagnostics", zh: "生产环境诊断")
             workspace.broadcastsInput = !showsCommandResult
@@ -236,12 +239,13 @@
                     "Aug 27 09:14:03 web-02 systemd[1]: Started nginx.service",
                 ]
             }
-            return ([
-                "\u{001B}]7;file://\(host)/var/log/nginx\u{0007}",
-                "\u{001B}[2mLast login: Thu Aug 27 16:42:18 from 10.0.0.12\u{001B}[0m",
-            ] + history + [
-                prompt + " tail -f /var/log/nginx/access.log",
-            ]).joined(separator: "\r\n")
+            return
+                ([
+                    "\u{001B}]7;file://\(host)/var/log/nginx\u{0007}",
+                    "\u{001B}[2mLast login: Thu Aug 27 16:42:18 from 10.0.0.12\u{001B}[0m",
+                ] + history + [
+                    prompt + " tail -f /var/log/nginx/access.log"
+                ]).joined(separator: "\r\n")
         }
 
         private func text(en: String, zh: String) -> String {

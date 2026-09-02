@@ -23,11 +23,12 @@ final class RemoteSessionConnectionController {
     func trustHostKey(
         _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
     ) {
-        store.trust(KnownHostEntry(
-            hostname: observation.hostname, port: observation.port,
-            algorithm: observation.algorithm, fingerprint: observation.fingerprint,
-            addedAt: Date()
-        ))
+        store.trust(
+            KnownHostEntry(
+                hostname: observation.hostname, port: observation.port,
+                algorithm: observation.algorithm, fingerprint: observation.fingerprint,
+                addedAt: Date()
+            ))
         if let pendingHostKeyHostID { temporaryHostKeys[pendingHostKeyHostID] = nil }
         clearHostKeyPrompt()
         journey.resume()

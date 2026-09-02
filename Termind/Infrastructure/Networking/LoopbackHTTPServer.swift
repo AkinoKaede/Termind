@@ -196,7 +196,8 @@ actor LoopbackHTTPServer {
             do { try await Self.send(response, on: connection) } catch { return }
             if case .stream = response.body { return }
             let connectionHeader = request.header("connection")?.lowercased()
-            let keepAlive = request.version == "HTTP/1.1"
+            let keepAlive =
+                request.version == "HTTP/1.1"
                 ? connectionHeader != "close" : connectionHeader == "keep-alive"
             if !keepAlive { return }
         }
@@ -215,7 +216,8 @@ actor LoopbackHTTPServer {
         let count = max(a.count, b.count)
         var difference = a.count ^ b.count
         for index in 0..<count {
-            difference |= Int(index < a.count ? a[index] : 0)
+            difference |=
+                Int(index < a.count ? a[index] : 0)
                 ^ Int(index < b.count ? b[index] : 0)
         }
         return difference == 0
@@ -229,7 +231,8 @@ actor LoopbackHTTPServer {
             components.path.isEmpty, components.query == nil, components.fragment == nil,
             let rawHost = components.host?.lowercased()
         else { return false }
-        let host = rawHost.hasPrefix("[") && rawHost.hasSuffix("]")
+        let host =
+            rawHost.hasPrefix("[") && rawHost.hasSuffix("]")
             ? String(rawHost.dropFirst().dropLast()) : rawHost
         if host == "localhost" || host == "::1" { return true }
         let octets = host.split(separator: ".").compactMap { UInt8($0) }
@@ -285,20 +288,27 @@ actor LoopbackHTTPServer {
         while remainder.count < length { remainder.append(try await receive(connection)) }
         let body = Data(remainder.prefix(length))
         remainder.removeFirst(length)
-        return (HTTPRequest(
-            method: String(requestLine[0]), target: String(requestLine[1]),
-            version: String(requestLine[2]), headers: headers, body: body
-        ), remainder)
+        return (
+            HTTPRequest(
+                method: String(requestLine[0]), target: String(requestLine[1]),
+                version: String(requestLine[2]), headers: headers, body: body
+            ), remainder
+        )
     }
 
     private static func receive(_ connection: NWConnection) async throws -> Data {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, any Error>) in
             connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1_024) {
                 data, _, complete, error in
-                if let error { continuation.resume(throwing: error) }
-                else if let data, !data.isEmpty { continuation.resume(returning: data) }
-                else if complete { continuation.resume(throwing: LoopbackHTTPServerError.endOfStream) }
-                else { continuation.resume(throwing: LoopbackHTTPServerError.malformed) }
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let data, !data.isEmpty {
+                    continuation.resume(returning: data)
+                } else if complete {
+                    continuation.resume(throwing: LoopbackHTTPServerError.endOfStream)
+                } else {
+                    continuation.resume(throwing: LoopbackHTTPServerError.malformed)
+                }
             }
         }
     }
@@ -333,10 +343,11 @@ actor LoopbackHTTPServer {
 
     private static func send(_ data: Data, on connection: NWConnection) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-            connection.send(content: data, completion: .contentProcessed { error in
-                if let error { continuation.resume(throwing: error) }
-                else { continuation.resume() }
-            })
+            connection.send(
+                content: data,
+                completion: .contentProcessed { error in
+                    if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+                })
         }
     }
 

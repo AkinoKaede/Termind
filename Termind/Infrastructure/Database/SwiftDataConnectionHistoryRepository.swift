@@ -30,9 +30,11 @@ final class SwiftDataConnectionHistoryRepository: ConnectionHistoryRepository {
     init(context: ModelContext) { self.context = context }
 
     func entries() throws -> [ConnectionHistoryEntry] {
-        try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>(
-            sortBy: [SortDescriptor(\.connectedAt, order: .reverse)]
-        )).map(\.value)
+        try context.fetch(
+            FetchDescriptor<PersistentConnectionHistoryEntry>(
+                sortBy: [SortDescriptor(\.connectedAt, order: .reverse)]
+            )
+        ).map(\.value)
     }
 
     func insert(_ entry: ConnectionHistoryEntry, limit: Int) throws {

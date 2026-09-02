@@ -33,16 +33,20 @@
 
         @Test
         func rejectsIncompleteAndUnknownArguments() {
-            #expect(throws: ScreenshotDemoConfiguration.ParseError.invalidFormat(
-                "--termind-demo"
-            )) {
+            #expect(
+                throws: ScreenshotDemoConfiguration.ParseError.invalidFormat(
+                    "--termind-demo"
+                )
+            ) {
                 try ScreenshotDemoConfiguration.parse(arguments: [
                     "Termind", "--termind-demo",
                 ])
             }
-            #expect(throws: ScreenshotDemoConfiguration.ParseError.invalidFormat(
-                "--termind-demo=hosts"
-            )) {
+            #expect(
+                throws: ScreenshotDemoConfiguration.ParseError.invalidFormat(
+                    "--termind-demo=hosts"
+                )
+            ) {
                 try ScreenshotDemoConfiguration.parse(arguments: [
                     "Termind", "--termind-demo=hosts",
                 ])

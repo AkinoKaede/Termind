@@ -149,8 +149,8 @@ struct TagField: View {
                 .onTapGesture {
                     commit(item.row)
                 }
-            }
-            .frame(maxHeight: listMaxHeight)
+        }
+        .frame(maxHeight: listMaxHeight)
     }
 
     private var tagListItems: [TagSuggestionListItem] {
@@ -245,7 +245,7 @@ struct TagField: View {
     }
 }
 
-nonisolated fileprivate struct TagSuggestionListItem: Identifiable, Hashable, Sendable {
+nonisolated private struct TagSuggestionListItem: Identifiable, Hashable, Sendable {
     let row: TagField.Row
     let isHighlighted: Bool
     var id: TagField.Row { row }

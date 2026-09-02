@@ -133,7 +133,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             queue.async { [self] in
                 do {
                     guard let session else { throw TermindSSHError.disconnected }
-                    if rules[rule.id] != nil { continuation.resume(); return }
+                    if rules[rule.id] != nil {
+                        continuation.resume()
+                        return
+                    }
                     let context = RuleContext(rule: rule)
                     switch rule.kind {
                     case .local, .dynamic:
@@ -181,7 +184,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     func disconnect() async {
         await withCheckedContinuation { continuation in
-            queue.async { [self] in cleanup(); continuation.resume() }
+            queue.async { [self] in
+                cleanup()
+                continuation.resume()
+            }
         }
     }
 
@@ -223,12 +229,16 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             let flow = Flow(socket: accepted, dynamic: context.rule.kind == .dynamic)
             if context.rule.kind == .local {
                 guard let targetHost = context.rule.targetHost, let targetPort = context.rule.targetPort else {
-                    Darwin.close(accepted); continue
+                    Darwin.close(accepted)
+                    continue
                 }
                 flow.channel = targetHost.withCString { target in
                     libssh2_channel_direct_tcpip_ex(session, target, Int32(targetPort), "127.0.0.1", 0)
                 }
-                guard flow.channel != nil else { Darwin.close(accepted); continue }
+                guard flow.channel != nil else {
+                    Darwin.close(accepted)
+                    continue
+                }
             }
             context.flows[flow.id] = flow
         }
@@ -261,18 +271,21 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             let count = Darwin.recv(flow.socket, &buffer, buffer.count, 0)
             if count > 0 {
                 let data = Data(buffer.prefix(count))
-                if flow.phase == .forwarding { flow.toChannel.append(data) }
-                else {
+                if flow.phase == .forwarding {
+                    flow.toChannel.append(data)
+                } else {
                     flow.handshake.append(data)
                     if flow.handshake.count > 64 * 1024 {
-                        close(flow, in: context); return
+                        close(flow, in: context)
+                        return
                     }
                     handleSOCKSHandshake(flow, session: session)
                 }
             } else if count == 0 {
                 flow.socketEOF = true
             } else if errno != EAGAIN && errno != EWOULDBLOCK {
-                close(flow, in: context); return
+                close(flow, in: context)
+                return
             }
         }
 
@@ -282,24 +295,36 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return 0 }
                     return libssh2_channel_write_ex(channel, 0, base, bytes.count)
                 }
-                if written > 0 { flow.toChannel.removeFirst(written) }
-                else if written == LIBSSH2_ERROR_EAGAIN { break }
-                else { close(flow, in: context); return }
+                if written > 0 {
+                    flow.toChannel.removeFirst(written)
+                } else if written == LIBSSH2_ERROR_EAGAIN {
+                    break
+                } else {
+                    close(flow, in: context)
+                    return
+                }
             }
             if flow.socketEOF, flow.toChannel.isEmpty, !flow.channelWriteClosed {
                 let result = libssh2_channel_send_eof(channel)
-                if result == 0 { flow.channelWriteClosed = true }
-                else if result != LIBSSH2_ERROR_EAGAIN {
-                    close(flow, in: context); return
+                if result == 0 {
+                    flow.channelWriteClosed = true
+                } else if result != LIBSSH2_ERROR_EAGAIN {
+                    close(flow, in: context)
+                    return
                 }
             }
             if flow.toSocket.count < highWaterMark {
                 var buffer = [CChar](repeating: 0, count: 32 * 1024)
                 while flow.toSocket.count < highWaterMark {
                     let count = libssh2_channel_read_ex(channel, 0, &buffer, buffer.count)
-                    if count > 0 { flow.toSocket.append(Data(bytes: buffer, count: count)) }
-                    else if count == LIBSSH2_ERROR_EAGAIN || count == 0 { break }
-                    else { close(flow, in: context); return }
+                    if count > 0 {
+                        flow.toSocket.append(Data(bytes: buffer, count: count))
+                    } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 {
+                        break
+                    } else {
+                        close(flow, in: context)
+                        return
+                    }
                 }
             }
             if libssh2_channel_eof(channel) == 1 { flow.channelEOF = true }
@@ -310,16 +335,21 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                 guard let base = bytes.baseAddress else { return 0 }
                 return Darwin.send(flow.socket, base, bytes.count, 0)
             }
-            if sent > 0 { flow.toSocket.removeFirst(sent) }
-            else if errno == EAGAIN || errno == EWOULDBLOCK { break }
-            else { close(flow, in: context); return }
+            if sent > 0 {
+                flow.toSocket.removeFirst(sent)
+            } else if errno == EAGAIN || errno == EWOULDBLOCK {
+                break
+            } else {
+                close(flow, in: context)
+                return
+            }
         }
         if flow.channelEOF, flow.toSocket.isEmpty, !flow.socketWriteClosed {
             _ = Darwin.shutdown(flow.socket, SHUT_WR)
             flow.socketWriteClosed = true
         }
         if flow.socketEOF,
-            (flow.channel == nil || flow.channelEOF),
+            flow.channel == nil || flow.channelEOF,
             flow.toChannel.isEmpty, flow.toSocket.isEmpty
         {
             close(flow, in: context)
@@ -335,7 +365,9 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             guard flow.handshake[0] == 0x05,
                 flow.handshake[2..<(2 + methods)].contains(0x00)
             else {
-                flow.toSocket.append(contentsOf: [0x05, 0xff]); flow.socketEOF = true; return
+                flow.toSocket.append(contentsOf: [0x05, 0xff])
+                flow.socketEOF = true
+                return
             }
             flow.handshake.removeFirst(2 + methods)
             flow.toSocket.append(contentsOf: [0x05, 0x00])
@@ -344,7 +376,9 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         case .request:
             guard flow.handshake.count >= 4 else { return }
             guard flow.handshake[0] == 0x05, flow.handshake[1] == 0x01 else {
-                flow.toSocket.append(socksReply(0x07)); flow.socketEOF = true; return
+                flow.toSocket.append(socksReply(0x07))
+                flow.socketEOF = true
+                return
             }
             let parsed: (String, Int, Int)?
             switch flow.handshake[3] {
@@ -377,7 +411,9 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     Int(flow.handshake[20]) << 8 | Int(flow.handshake[21]), 22
                 )
             default:
-                flow.toSocket.append(socksReply(0x08)); flow.socketEOF = true; return
+                flow.toSocket.append(socksReply(0x08))
+                flow.socketEOF = true
+                return
             }
             guard let (host, port, consumed) = parsed else { return }
             flow.handshake.removeFirst(consumed)
@@ -385,12 +421,15 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                 libssh2_channel_direct_tcpip_ex(session, target, Int32(port), "127.0.0.1", 0)
             }
             guard flow.channel != nil else {
-                flow.toSocket.append(socksReply(0x05)); flow.socketEOF = true; return
+                flow.toSocket.append(socksReply(0x05))
+                flow.socketEOF = true
+                return
             }
             flow.toSocket.append(socksReply(0x00))
             flow.phase = .forwarding
             if !flow.handshake.isEmpty {
-                flow.toChannel.append(flow.handshake); flow.handshake.removeAll()
+                flow.toChannel.append(flow.handshake)
+                flow.handshake.removeAll()
             }
         case .forwarding: break
         }
@@ -437,7 +476,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     private func close(_ flow: Flow, in context: RuleContext) {
         context.flows[flow.id] = nil
-        if flow.socket >= 0 { Darwin.close(flow.socket); flow.socket = -1 }
+        if flow.socket >= 0 {
+            Darwin.close(flow.socket)
+            flow.socket = -1
+        }
         if let channel = flow.channel {
             _ = libssh2_channel_close(channel)
             _ = libssh2_channel_free(channel)
@@ -447,7 +489,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     private func close(_ context: RuleContext) {
         for flow in Array(context.flows.values) { close(flow, in: context) }
-        if context.socket >= 0 { Darwin.close(context.socket); context.socket = -1 }
+        if context.socket >= 0 {
+            Darwin.close(context.socket)
+            context.socket = -1
+        }
         if let listener = context.remoteListener {
             _ = libssh2_channel_forward_cancel(listener)
             context.remoteListener = nil
@@ -455,7 +500,8 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     }
 
     private func cleanup() {
-        timer?.cancel(); timer = nil
+        timer?.cancel()
+        timer = nil
         for context in Array(rules.values) { close(context) }
         rules.removeAll()
         if let session {

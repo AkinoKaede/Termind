@@ -162,23 +162,31 @@ struct AgentUserInputTests {
             ["questions": .object([:])],
             ["questions": .array([.object(["prompt": .string("no id")])])],
             ["questions": .array([.object(["id": .string("q")])])],
-            ["questions": .array([
-                .object(["id": .string("q"), "prompt": .string("first")]),
-                .object(["id": .string("q"), "prompt": .string("duplicate id")]),
-            ])],
-            ["questions": .array([
-                .object([
-                    "id": .string("q"), "prompt": .string("?"),
-                    "options": .array([
-                        .object(["id": .string("a"), "label": .string("A")]),
-                        .object(["id": .string("a"), "label": .string("Also A")]),
-                    ]),
+            [
+                "questions": .array([
+                    .object(["id": .string("q"), "prompt": .string("first")]),
+                    .object(["id": .string("q"), "prompt": .string("duplicate id")]),
                 ])
-            ])],
-            ["questions": .array([.object([
-                "id": .string("q"), "prompt": .string("?"),
-                "options": .array([.string("a bare string")]),
-            ])])],
+            ],
+            [
+                "questions": .array([
+                    .object([
+                        "id": .string("q"), "prompt": .string("?"),
+                        "options": .array([
+                            .object(["id": .string("a"), "label": .string("A")]),
+                            .object(["id": .string("a"), "label": .string("Also A")]),
+                        ]),
+                    ])
+                ])
+            ],
+            [
+                "questions": .array([
+                    .object([
+                        "id": .string("q"), "prompt": .string("?"),
+                        "options": .array([.string("a bare string")]),
+                    ])
+                ])
+            ],
         ]
         for object in bad {
             #expect(throws: AgentToolError.self) { try arguments(object).userQuestions() }
@@ -902,7 +910,8 @@ struct AgentUserInputTests {
             allowsPersistentTrust: true
         )
         let question = AgentUserInputRequest(
-            createdAt: base, questions: [
+            createdAt: base,
+            questions: [
                 AgentUserQuestion(id: "q", prompt: "Choose", kind: .text)
             ]
         )

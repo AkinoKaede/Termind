@@ -318,10 +318,11 @@ nonisolated struct QuickOpenResults: Equatable, Sendable {
 
     func listItems(selectedID: AppCommandDescriptor.ID?) -> [QuickOpenListItem] {
         sections.flatMap { section in
-            [.section(section)] + commands.compactMap { command in
-                guard command.section == section else { return nil }
-                return .command(command, isSelected: command.id == selectedID)
-            }
+            [.section(section)]
+                + commands.compactMap { command in
+                    guard command.section == section else { return nil }
+                    return .command(command, isSelected: command.id == selectedID)
+                }
         }
     }
 
@@ -330,7 +331,8 @@ nonisolated struct QuickOpenResults: Equatable, Sendable {
         by offset: Int
     ) -> AppCommandDescriptor.ID? {
         guard !commands.isEmpty else { return nil }
-        let current = selectedID.flatMap { id in commands.firstIndex { $0.id == id } }
+        let current =
+            selectedID.flatMap { id in commands.firstIndex { $0.id == id } }
             ?? (offset > 0 ? -1 : commands.count)
         let next = min(max(current + offset, 0), commands.count - 1)
         return commands[next].id
