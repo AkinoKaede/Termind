@@ -150,8 +150,18 @@ struct TermindApp: App {
     /// for that item, so we retarget it here to ⇧⌘W and leave ⌘W to `TermindCommands`.
     final class AppDelegate: NSObject, NSApplicationDelegate {
         weak var app: AppModel?
+        private var quietLaunchObserver: (any NSObjectProtocol)?
+
+        /// The launch Apple Event is readable only while it is being handled.
+        func applicationWillFinishLaunching(_ notification: Notification) {
+            LoginLaunch.capture()
+        }
 
         func applicationDidFinishLaunching(_ notification: Notification) {
+            // Asked for again in case SwiftUI installed this delegate too late
+            // for the call above; `capture()` only ever latches a `true`.
+            LoginLaunch.capture()
+            openHiddenIfLaunchedAtLogin()
             AppShortcutRegistry.shared.register(AppShortcutRegistration("q"))
             if let items = NSApp.mainMenu?.items {
                 for menuItem in items {
@@ -189,6 +199,40 @@ struct TermindApp: App {
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
             true
+        }
+
+        /// Opening at login is for having Termind *available*, not for taking the
+        /// screen from whatever the user opened their Mac to do. Hidden rather
+        /// than window-less: Termind quits with its last window, so the window is
+        /// built as usual and simply never comes forward.
+        ///
+        /// The hide is armed twice because SwiftUI orders the `WindowGroup`
+        /// window front after this runs, which unhides the app again. Whichever
+        /// happens first wins, and the observer is torn down either way so a
+        /// window the user opens later is never hidden out from under them.
+        private func openHiddenIfLaunchedAtLogin() {
+            guard LoginLaunch.wasLaunchedAtLogin, SettingsKey.opensAtLoginQuietly else { return }
+            NSApp.hide(nil)
+            quietLaunchObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    NSApp.hide(nil)
+                    self?.endQuietLaunch()
+                }
+            }
+            // A window that never becomes key — because the first hide already
+            // took — would otherwise leave the observer armed for the session.
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(3))
+                self?.endQuietLaunch()
+            }
+        }
+
+        private func endQuietLaunch() {
+            guard let observer = quietLaunchObserver else { return }
+            NotificationCenter.default.removeObserver(observer)
+            quietLaunchObserver = nil
         }
 
         func applicationWillTerminate(_ notification: Notification) {

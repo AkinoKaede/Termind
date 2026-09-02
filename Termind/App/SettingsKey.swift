@@ -60,6 +60,23 @@ nonisolated enum SettingsKey {
     /// Restore the previous window's Workspaces on launch. Keep the persisted
     /// key stable so this UI rename does not discard the user's preference.
     static let restoreWorkspaces = "window.restoreTabs"
+    /// Keep Termind behind whatever the user is doing when macOS opens it at
+    /// login. Only the launch is quiet; the window is built as usual.
+    ///
+    /// Off by default: an app that opens where it cannot be seen is a surprise
+    /// worth asking for rather than one to hand out.
+    ///
+    /// Whether Termind opens at login at all is not here. That registration
+    /// belongs to `SMAppService`, which the user can undo in System Settings
+    /// without telling us — see `LoginItemController`.
+    static let openAtLoginQuietly = "startup.openAtLogin.quietly"
+    static let defaultOpenAtLoginQuietly = false
+    /// Read from the app delegate during launch, where there is no view to hold
+    /// an `@AppStorage` binding.
+    static var opensAtLoginQuietly: Bool {
+        UserDefaults.standard.object(forKey: openAtLoginQuietly) as? Bool
+            ?? defaultOpenAtLoginQuietly
+    }
     /// The last approval posture selected in the Assistant composer.
     static let agentPermissionMode = "assistant.permissionMode"
     /// How far through `AgentSkillLibrary` the starter skills have been copied

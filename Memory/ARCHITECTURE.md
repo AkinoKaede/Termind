@@ -50,6 +50,11 @@ including that no type AgentKit owns is redefined here.
 - Settings uses app-wide preference storage but window-scoped navigation. It opens as a
   top-level window destination, remembers the content it replaced, and restores that
   destination when its index page goes back.
+- Opening at login is `SMAppService`'s registration, not a preference. The user can revoke
+  it in System Settings without telling the app, so `LoginItemController` reads the system
+  status every time Settings is shown rather than mirroring it into `UserDefaults`. Only
+  *how* that launch behaves is stored here. A quiet login launch hides the app rather than
+  suppressing its window, because Termind terminates with its last window.
 
 Repository data is persistent truth. Runtime connection state is kept in a
 connection registry and is never persisted onto domain records.

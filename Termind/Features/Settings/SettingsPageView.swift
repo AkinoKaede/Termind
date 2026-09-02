@@ -487,10 +487,60 @@ private struct ProSettings: View {
 }
 
 private struct StartupSettings: View {
+    @Environment(\.appearsActive) private var appearsActive
+    @State private var loginItem = LoginItemController()
+    @AppStorage(SettingsKey.openAtLoginQuietly) private var opensQuietly =
+        SettingsKey.defaultOpenAtLoginQuietly
     @AppStorage(SettingsKey.restoreWorkspaces) private var restoreWorkspaces = true
+
     var body: some View {
         Section("Startup") {
+            Toggle(
+                isOn: Binding(
+                    get: { loginItem.isEnabled },
+                    set: { loginItem.setEnabled($0) }
+                )
+            ) {
+                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                    Text("Open at Login")
+                    Text(
+                        "macOS opens Termind when you log in, which also starts the local MCP server if you have it enabled."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+
+            Toggle(isOn: $opensQuietly) {
+                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                    Text("Open Hidden at Login")
+                    Text("Termind opens behind your other windows. Click its icon in the Dock to show it.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(!loginItem.isEnabled)
+
+            if loginItem.requiresApproval {
+                LabeledContent {
+                    Button("Open Login Items Settings") { loginItem.openSystemSettings() }
+                } label: {
+                    Text("macOS is waiting for you to allow Termind in Login Items.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let message = loginItem.errorMessage {
+                Text(message).font(.caption).foregroundStyle(.orange)
+            }
+
             Toggle("Restore Workspaces from Last Session", isOn: $restoreWorkspaces)
+        }
+        // The registration lives in System Settings, where it can be revoked
+        // without telling us. Re-read it whenever this window is looked at.
+        .onAppear { loginItem.refresh() }
+        .onChange(of: appearsActive) { _, isActive in
+            if isActive { loginItem.refresh() }
         }
     }
 }
