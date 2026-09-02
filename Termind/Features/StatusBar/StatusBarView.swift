@@ -251,10 +251,10 @@ struct StatusBarView: View {
             )
         }
         .buttonStyle(.plain)
-        .help(Text("Open current directory in SFTP — right-click for more options"))
-        .accessibilityLabel(Text("Open in SFTP"))
+        .help(Text("Open current directory with SFTP — right-click for more options"))
+        .accessibilityLabel(Text("Open with SFTP"))
         .contextMenu {
-            Menu("Open in SFTP") {
+            Menu("Open with SFTP") {
                 Button("Current Workspace") {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSFTP(path, placement: .currentWorkspace)
@@ -281,10 +281,10 @@ struct StatusBarView: View {
             )
         }
         .buttonStyle(.plain)
-        .help(Text("Open current directory in SSH — right-click for more options"))
-        .accessibilityLabel(Text("Open in SSH"))
+        .help(Text("Open current directory with SSH — right-click for more options"))
+        .accessibilityLabel(Text("Open with SSH"))
         .contextMenu {
-            Menu("Open in SSH") {
+            Menu("Open with SSH") {
                 Button("Current Workspace") {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSSH(path, placement: .currentWorkspace)

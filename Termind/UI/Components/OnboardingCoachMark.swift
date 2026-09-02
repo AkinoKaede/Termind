@@ -80,9 +80,9 @@ struct OnboardingCoachMark: View {
         case .statusBarPath:
             switch presentation.pathDirection {
             case .sshToSFTP:
-                String(localized: "Click the path to open this directory in SFTP. Right-click to copy it or open it in a new workspace.")
+                String(localized: "Click the path to open this directory with SFTP. Right-click to copy it or open it in a new workspace.")
             case .sftpToSSH:
-                String(localized: "Click the path to open this directory in SSH. Right-click to copy it or open it in a new workspace.")
+                String(localized: "Click the path to open this directory with SSH. Right-click to copy it or open it in a new workspace.")
             case nil:
                 String(localized: "Click the path to open the same directory in another session. Right-click for more options.")
             }
