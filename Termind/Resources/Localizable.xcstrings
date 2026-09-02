@@ -7517,6 +7517,17 @@
         }
       }
     },
+    "Paste a private key, or drag one in" : {
+      "comment" : "The prompt shown in an empty private key editor.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴私钥，或将文件拖到这里"
+          }
+        }
+      }
+    },
     "Pasted image" : {
       "localizations" : {
         "zh-Hans" : {

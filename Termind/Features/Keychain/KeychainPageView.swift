@@ -471,17 +471,12 @@ private struct SoftwareKeyEditor: View {
                         }
                     }
 
-                    Section("Private Key") {
-                        HStack {
-                            Text("Private Key")
-                            Spacer()
-                            Button("Choose") { chooseFile(for: .privateKey) }
-                                .controlSize(.small)
-                        }
-                        TextEditor(text: $privateKey)
-                            .font(.caption.monospaced())
-                            .frame(minHeight: 150)
-                            .accessibilityLabel("Private Key")
+                    Section {
+                        keyTextEditor(
+                            text: $privateKey, minHeight: 150,
+                            placeholder: "Paste a private key, or drag one in"
+                        )
+                        .accessibilityLabel("Private Key")
                         if let existing, let material,
                             material.publicKey != existing.publicKey
                         {
@@ -493,6 +488,8 @@ private struct SoftwareKeyEditor: View {
                             .foregroundStyle(.orange)
                         }
                         SecureField("Passphrase", text: $passphrase, prompt: Text("Optional"))
+                    } header: {
+                        fileSectionHeader("Private Key") { chooseFile(for: .privateKey) }
                     }
 
                     Section("Public Key") {
@@ -502,30 +499,19 @@ private struct SoftwareKeyEditor: View {
                             .textSelection(.enabled)
                     }
 
-                    Section("Certificate") {
-                        HStack {
-                            Text("Certificate")
-                            Spacer()
-                            Button("Choose") { chooseFile(for: .certificate) }
-                                .controlSize(.small)
-                        }
-                        TextEditor(text: $certificate)
-                            .font(.caption.monospaced())
-                            .frame(minHeight: 110)
-                            .overlay(alignment: .topLeading) {
-                                if certificate.isEmpty {
-                                    Text("Certificate (optional)")
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.tertiary)
-                                        .padding(.top, 8).padding(.leading, 5)
-                                        .allowsHitTesting(false)
-                                }
-                            }
+                    Section {
+                        keyTextEditor(
+                            text: $certificate, minHeight: 110,
+                            placeholder: "Certificate (optional)"
+                        )
+                        .accessibilityLabel("Certificate")
                         if let warning = certificateWarning {
                             Label(warning, systemImage: "exclamationmark.triangle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                         }
+                    } header: {
+                        fileSectionHeader("Certificate") { chooseFile(for: .certificate) }
                     }
                 }
                 .formStyle(.grouped)
@@ -566,6 +552,59 @@ private struct SoftwareKeyEditor: View {
         )
         .task { load() }
         .task(id: validationToken) { await derivePublicMaterial() }
+    }
+
+    /// A key blob field drawn on the form's own background.
+    ///
+    /// `TextEditor` brings its own opaque control background, which inside a
+    /// grouped `Form` reads as a white card sitting on the section rather than
+    /// as part of it. Hiding it puts these two fields on the same footing as the
+    /// skill editor's, which is the surface this one is measured against.
+    ///
+    /// The prompt is the price of that: `TextEditor` has no `prompt:`, and once
+    /// the box is gone an empty field is an unmarked gap in the form instead of
+    /// a visibly empty box. It matches the editor's font so the first typed
+    /// character lands exactly where the prompt started.
+    private func keyTextEditor(
+        text: Binding<String>, minHeight: CGFloat, placeholder: LocalizedStringKey
+    ) -> some View {
+        TextEditor(text: text)
+            .font(.caption.monospaced())
+            .frame(minHeight: minHeight)
+            .scrollContentBackground(.hidden)
+            .overlay(alignment: .topLeading) {
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.tertiary)
+                        .padding(.leading, Self.textInset)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+
+    /// `TextEditor`'s own text-container inset, which the prompt has to match or
+    /// the first typed character lands somewhere else than the prompt did.
+    ///
+    /// Only leading: the container is inset by its line fragment padding
+    /// horizontally and by nothing vertically, so the top padding this used to
+    /// carry pushed the prompt a line below the caret it was standing in for.
+    /// Same value the composer prompt in `ConversationViews` uses.
+    private static let textInset: CGFloat = 5
+
+    /// The section title with its file picker at the trailing edge.
+    ///
+    /// The button used to head a row of its own, next to a label repeating the
+    /// section title. With the editor no longer drawn as a box, that row had
+    /// nothing left to attach to and read as a second heading.
+    private func fileSectionHeader(
+        _ title: LocalizedStringKey, choose: @escaping () -> Void
+    ) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Button("Choose", action: choose)
+        }
     }
 
     @MainActor
