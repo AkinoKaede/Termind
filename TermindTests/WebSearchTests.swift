@@ -1,3 +1,5 @@
+import AgentKit
+import AgentKitScrubber
 import Foundation
 import Testing
 
@@ -21,22 +23,13 @@ struct WebSearchTests {
         }
     }
 
-    @Test @MainActor
+    @Test
     func localSearchToolIsRegisteredOnlyWhenSelected() {
-        let hosts = AgentHostResolver(store: HostLibraryModel())
-        let pool = AgentConnectionPool(
-            configuration: { _ in throw AgentToolError.invalidHost },
-            routeFingerprint: { _ in "" },
-            openExec: { _ in throw AgentToolError.invalidHost },
-            openSFTP: { _ in throw AgentToolError.invalidHost },
-            sweepInterval: nil
-        )
-        let without = AgentToolCatalog.registry(environment: .init(
-            hosts: hosts, connections: pool
-        )).descriptors
-        let with = AgentToolCatalog.registry(environment: .init(
-            hosts: hosts, connections: pool, search: stubClient()
-        )).descriptors
+        let without = AgentToolCatalog.registry(builtIn: .init(web: stubClient()))
+            .descriptors
+        let with = AgentToolCatalog.registry(
+            builtIn: .init(web: stubClient(), search: stubClient())
+        ).descriptors
         #expect(!without.contains { $0.name == "web_search" })
         #expect(with.contains { $0.name == "web_search" })
     }
@@ -126,7 +119,7 @@ struct WebSearchTests {
 
     private func stubClient() -> ScrubberWebClient {
         ScrubberWebClient(
-            document: { _ in throw ScrubberWebError.emptyDocument },
+            document: { _ in throw AgentWebError.emptyDocument },
             search: { _, _ in [] }
         )
     }

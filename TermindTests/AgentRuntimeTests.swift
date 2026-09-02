@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import Testing
 
@@ -236,7 +237,7 @@ struct AgentRuntimeTests {
 
         for await event in await runtime.start(AgentRunRequest(
             conversationID: UUID(), prompt: "inspect", permissionMode: .askForApproval,
-            sessionContext: context
+            sessionContext: context.modelContext
         )) {
             runID = runID ?? event.associatedRunID
         }
@@ -587,7 +588,7 @@ struct AgentRuntimeTests {
         let reviewer = CountingReviewer()
         let executions = Counter()
 
-        for mode in ChatPermissionMode.allCases {
+        for mode in AgentPermissionMode.allCases {
             let model = ScriptedAgentModel(turns: [
                 [
                     .toolCallDelta(id: "1", name: "escalate", arguments: "{}"),

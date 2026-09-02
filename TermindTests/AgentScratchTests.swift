@@ -1,3 +1,5 @@
+import AgentKit
+import AgentKitScrubber
 import Foundation
 import Testing
 
@@ -467,7 +469,7 @@ struct AgentScratchTests {
     /// `.requiresAuthorization` with extra steps.
     @Test
     func containedActionsSkipTheGateInEveryPermissionMode() async {
-        for mode in ChatPermissionMode.allCases {
+        for mode in AgentPermissionMode.allCases {
             let reviewer = CountingSecurityReviewer()
             let broker = AgentApprovalBroker(
                 reviewer: reviewer,
@@ -880,7 +882,7 @@ struct AgentScratchTests {
         let web = ScrubberWebClient(
             document: { url in
                 await loaded.increment()
-                return ScrubbedWebDocument(
+                return AgentWebDocument(
                     title: "Example", url: url, markdown: "# Example", original: "<html/>"
                 )
             },
@@ -970,9 +972,14 @@ private enum Fixture {
     static func builtInTools(
         hosts: AgentHostResolver, connections: AgentConnectionPool
     ) -> [AnyAgentTool] {
-        AgentToolCatalog.registry(environment: .init(
-            hosts: hosts, connections: connections
-        )).registeredTools
+        // A fetcher but no workspace: the point of every caller is that the
+        // scratch tools are absent while `fetch` is not.
+        AgentToolCatalog.registry(
+            builtIn: .init(web: web()),
+            additional: TermindAgentTools.tools(in: .init(
+                hosts: hosts, connections: connections
+            ))
+        ).registeredTools
     }
 
     static let hostID = UUID(uuidString: "F0000000-0000-0000-0000-00000000000F")!
@@ -1006,7 +1013,7 @@ private enum Fixture {
     static func web(markdown: String = "# Example") -> ScrubberWebClient {
         ScrubberWebClient(
             document: { url in
-                ScrubbedWebDocument(
+                AgentWebDocument(
                     title: "Example", url: url, markdown: markdown,
                     original: "<html><body>raw-marker</body></html>"
                 )

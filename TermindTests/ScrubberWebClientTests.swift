@@ -1,3 +1,5 @@
+import AgentKit
+import AgentKitScrubber
 import Foundation
 import Testing
 
@@ -10,7 +12,7 @@ struct ScrubberWebClientTests {
         "http://router.local/status",
     ])
     func acceptsPublicAndPrivateHTTPPages(_ rawURL: String) throws {
-        #expect(try ScrubberWebClient.validatedURL(rawURL).absoluteString == rawURL)
+        #expect(try AgentWebAddress.validated(rawURL).absoluteString == rawURL)
     }
 
     @Test(arguments: [
@@ -18,8 +20,8 @@ struct ScrubberWebClientTests {
         "not a URL",
     ])
     func rejectsNonWebAndCredentialBearingURLs(_ rawURL: String) {
-        #expect(throws: ScrubberWebError.self) {
-            try ScrubberWebClient.validatedURL(rawURL)
+        #expect(throws: AgentWebError.self) {
+            try AgentWebAddress.validated(rawURL)
         }
     }
 
@@ -52,7 +54,7 @@ struct ScrubberWebClientTests {
         let oversized = String(repeating: "x", count: 256 * 1_024 + 100)
         let client = ScrubberWebClient(
             document: { url in
-                ScrubbedWebDocument(
+                AgentWebDocument(
                     title: "Large", url: url, markdown: oversized, original: oversized
                 )
             },
@@ -70,11 +72,11 @@ struct ScrubberWebClientTests {
     func webSearchReturnsBoundedMarkdownAndEngine() async throws {
         let oversized = String(repeating: "m", count: 32 * 1_024 + 10)
         let client = ScrubberWebClient(
-            document: { _ in throw ScrubberWebError.emptyDocument },
+            document: { _ in throw AgentWebError.emptyDocument },
             search: { query, count in
                 #expect(query == "swift concurrency")
                 #expect(count == 5)
-                return [ScrubbedWebDocument(
+                return [AgentWebDocument(
                     engine: "google", title: "Result",
                     url: URL(string: "https://example.com/result")!,
                     markdown: oversized, original: "<html></html>"
@@ -104,7 +106,7 @@ struct ScrubberWebClientTests {
     private func fixtureClient() -> ScrubberWebClient {
         ScrubberWebClient(
             document: { url in
-                ScrubbedWebDocument(
+                AgentWebDocument(
                     title: "Router", url: url, markdown: "# Readable",
                     original: "<html><body>raw-marker</body></html>"
                 )

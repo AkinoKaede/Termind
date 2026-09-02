@@ -21,6 +21,36 @@
         }
       }
     },
+    "No model is configured for conversation titles." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未为对话标题配置模型。"
+          }
+        }
+      }
+    },
+    "Plan mode is on, so %@ was not run — it changes something outside this app. Investigate with reads, draft the plan in the scratch workspace, and call present_plan. The user runs it, or not, from there." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计划模式已开启，因此未运行%@——它会更改本应用外部的内容。请先读取所需信息，在草稿工作区拟定计划并调用present_plan，由用户决定是否执行。"
+          }
+        }
+      }
+    },
+    "The conversation-title model has no available credential." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对话标题模型没有可用凭据。"
+          }
+        }
+      }
+    },
     "[… %lld characters omitted …]" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10111,7 +10141,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "刷新路径"
+            "value" : "草稿路径"
           }
         }
       }

@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import Testing
 
@@ -244,12 +245,12 @@ struct ChatComposerStateTests {
     @Test
     func permissionModesHaveTheExpectedOrderAndSafeInitialDefault() {
         #expect(
-            ChatPermissionMode.allCases
+            AgentPermissionMode.allCases
                 == [.askForApproval, .approveForMe, .fullAccess]
         )
 
         let store = AIConfigurationModel(persistsSecrets: false)
-        #expect(store.resolve(conversation: nil as ChatPermissionMode?) == .askForApproval)
+        #expect(store.resolve(conversation: nil as AgentPermissionMode?) == .askForApproval)
     }
 
     @Test
@@ -259,12 +260,12 @@ struct ChatComposerStateTests {
         let explicit = ConversationModel()
         explicit.permissionMode = .askForApproval
 
-        store.select(ChatPermissionMode.approveForMe)
+        store.select(AgentPermissionMode.approveForMe)
 
         #expect(store.resolve(conversation: unset.permissionMode) == .approveForMe)
         #expect(store.resolve(conversation: explicit.permissionMode) == .askForApproval)
 
-        store.select(ChatPermissionMode.fullAccess)
+        store.select(AgentPermissionMode.fullAccess)
 
         #expect(store.resolve(conversation: unset.permissionMode) == .fullAccess)
         #expect(store.resolve(conversation: explicit.permissionMode) == .askForApproval)
@@ -278,22 +279,22 @@ struct ChatComposerStateTests {
         )
 
         #expect(store.lastSelectedPermissionMode == .approveForMe)
-        #expect(store.resolve(conversation: nil as ChatPermissionMode?) == .approveForMe)
+        #expect(store.resolve(conversation: nil as AgentPermissionMode?) == .approveForMe)
     }
 
     @Test
     func permissionDefaultPersistsAcrossStoreInstancesIncludingFullAccess() throws {
-        let suiteName = "ChatPermissionMode-\(UUID().uuidString)"
+        let suiteName = "AgentPermissionMode-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
         let first = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
-        first.select(ChatPermissionMode.approveForMe)
+        first.select(AgentPermissionMode.approveForMe)
 
         let second = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
         #expect(second.lastSelectedPermissionMode == .approveForMe)
 
-        second.select(ChatPermissionMode.fullAccess)
+        second.select(AgentPermissionMode.fullAccess)
 
         let third = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
         #expect(third.lastSelectedPermissionMode == .fullAccess)
@@ -305,7 +306,7 @@ struct ChatComposerStateTests {
 
     @Test
     func missingPersistedPermissionDefaultsToAskForApproval() throws {
-        let suiteName = "ChatPermissionMode-Missing-\(UUID().uuidString)"
+        let suiteName = "AgentPermissionMode-Missing-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
@@ -316,7 +317,7 @@ struct ChatComposerStateTests {
 
     @Test
     func invalidPersistedPermissionDefaultsToAskForApproval() throws {
-        let suiteName = "ChatPermissionMode-Invalid-\(UUID().uuidString)"
+        let suiteName = "AgentPermissionMode-Invalid-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set("unknown-mode", forKey: SettingsKey.agentPermissionMode)
@@ -654,7 +655,7 @@ struct ChatComposerStateTests {
         #expect(
             conversation.contextEstimate
                 == AgentContextEstimator.estimate(
-                    systemPrompt: AgentSystemPrompt.default,
+                    systemPrompt: TermindAgentPolicy.systemPrompt,
                     toolSchemaCharacters: 0,
                     transcript: [final],
                     attachedCharacters: 0,

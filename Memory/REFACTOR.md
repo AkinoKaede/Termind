@@ -815,5 +815,42 @@ Production Swift changed by +15/−17 lines, for a net reduction of 2 lines; the
 shared helper's own line cost. The macOS Debug build passed with warnings as errors, and `git diff --check` and the
 Simplified Chinese localization check passed.
 
+### 46. Extract the agent runtime as the AgentKit package — Structural
+
+**Status:** Completed on 2026-09-02; `swift build`/`swift test`/`swift-format lint --strict` pass in the package, the
+macOS Debug build and full test suite pass in the app, and both Simplified Chinese localization checks pass.
+
+**Evidence:** 49 files across `Domain/Agent`, `Application/Agent`, `Infrastructure/LLM`, `Domain/AI`, and
+`Infrastructure/MCP` imported nothing but `Foundation` (plus `Security` for the Google service-account signer) and
+already had four designed seams — `AgentModelStreaming`, `AgentLoopHook`, `AgentContextTransforming`,
+`AgentToolCatalog`. What tied them to this app was four couplings, not a dependency: SSH tools listed in the same
+static catalog as the generic ones, `requestSSHAuthentication`/`requestSSHHostKeyConfirmation` inside
+`AgentUserInteractionHandling`, Termind literals in `AgentSystemPrompt`/`AgentPlanContractInjection`/
+`AgentScratchWorkspace.defaultBase()`/`AgentPlanModeHook`, and four closed presentation enums carrying `sshConnecting`
+and friends.
+
+**Recommended action:** Cut those four couplings in place first, then move the files to a sibling package.
+
+**Verification:** Done in that order. `AgentToolGroup` selects built-in tools by capability and
+`AgentToolCatalog.registry(builtIn:additional:)` takes the app's own registrations after them; `AgentToolServices`
+carries `AgentSSHInteraction` to the SSH/SFTP tools, which also makes credential prompts structurally absent from
+`AgentEventChannel`; `TermindAgentPolicy` owns the prompts and the `ssh_exec` plan-mode rule as
+`AgentPlanModeHook.hostDecision`; the four presentation vocabularies became open `RawRepresentable` structs with
+their raw values unchanged, extended by `TermindAgentPresentation`. `ChatPermissionMode` was renamed
+`AgentPermissionMode`, `AgentRunRequest.sessionContext` became `String?`, `AgentBuiltInTools` became
+`AgentToolSupport`, and `ScratchPullTool`/`ScratchPushTool` moved to `AgentScratchTransferTools` because they are the
+two scratch tools that touch a host.
+
+This is not a net-line-reduction item and was not measured as one: the app shed roughly 9,500 lines to the package
+and gained the seams above. What it buys is a boundary the compiler enforces, checked by
+`ArchitectureBoundaryTests.typesOwnedByTheAgentPackageAreNotRedefinedHere`.
+
+Two things surfaced that were not part of the plan. Adding the local package triggered a full SPM re-resolution that
+silently bumped `libghostty-spm` 1.4.0 → 1.5.1 and broke the OSC working-directory and window-title suites; the pin
+was restored and `-onlyUsePackageVersionsFromResolvedFile` is now documented in `AGENTS.md`. And `swift build` copies
+resources verbatim rather than compiling string catalogs the way Xcode does, so the package keeps its catalog in
+`Localizations/` and commits the compiled `.lproj` output built by `Scripts/build-localizations.sh` — without it
+every lookup outside Xcode returns its key.
+
 No other new exact-duplicate or dead-code candidate meeting this backlog's net-reduction and boundary-preservation
 bar was found in this pass.

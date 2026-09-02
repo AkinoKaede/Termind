@@ -1,3 +1,4 @@
+import AgentKit
 import SwiftUI
 
 @Observable
@@ -252,7 +253,8 @@ struct MCPServerEditorPage: View {
 
         Task {
             do {
-                let discovery = try await MCPClient().discover(server, bearerToken: bearer)
+                let discovery = try await MCPClient(clientInfo: TermindAgentPolicy.mcpClientInfo)
+                    .discover(server, bearerToken: bearer)
                 app.aiConfiguration.setTools(discovery.tools, version: discovery.protocolVersion, for: serverID)
                 app.aiConfiguration.setMCPStatus(.connected, for: serverID)
                 session.connection = .succeeded(

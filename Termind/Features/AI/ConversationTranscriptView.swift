@@ -1,3 +1,4 @@
+import AgentKit
 import SwiftUI
 
 private struct ConversationAttachmentDropModifier: ViewModifier {

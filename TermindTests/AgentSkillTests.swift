@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import SwiftData
 import Testing
@@ -326,20 +327,8 @@ struct LoadSkillToolTests {
 
     @Test
     func isRegisteredOnlyWhenSomethingIsInstalled() {
-        let hosts = AgentHostResolver(store: HostLibraryModel())
-        let connections = AgentConnectionPool(
-            configuration: { _ in throw AgentToolError.invalidHost },
-            routeFingerprint: { _ in "" },
-            openExec: { _ in throw AgentToolError.invalidHost },
-            openSFTP: { _ in throw AgentToolError.invalidHost },
-            sweepInterval: nil
-        )
-        let without = AgentToolCatalog.registry(environment: .init(
-            hosts: hosts, connections: connections
-        )).descriptors
-        let with = AgentToolCatalog.registry(environment: .init(
-            hosts: hosts, connections: connections, skills: catalog
-        )).descriptors
+        let without = AgentToolCatalog.registry(builtIn: .init()).descriptors
+        let with = AgentToolCatalog.registry(builtIn: .init(skills: catalog)).descriptors
 
         #expect(!without.contains { $0.name == LoadSkillTool.name })
         #expect(with.contains { $0.name == LoadSkillTool.name })

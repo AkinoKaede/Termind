@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import Testing
 
@@ -54,7 +55,7 @@ struct AgentHostAuthenticationTests {
         }
         let session = AgentSSHConfigurationSession(
             resolver: AgentHostResolver(store: store), hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         let configuration = try await session.configuration()
@@ -82,7 +83,7 @@ struct AgentHostAuthenticationTests {
         }
         let session = AgentSSHConfigurationSession(
             resolver: AgentHostResolver(store: store), hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         let configuration = try await session.configuration()
@@ -133,7 +134,7 @@ struct AgentHostAuthenticationTests {
         }
         let session = AgentSSHConfigurationSession(
             resolver: AgentHostResolver(store: store), hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         let configuration = try await session.configuration()
@@ -187,6 +188,7 @@ struct AgentHostAuthenticationTests {
             resolver: AgentHostResolver(store: store), hostID: host.id,
             invocationID: UUID(),
             interaction: coordinator.handler(clientName: "Codex", runID: UUID())
+                .sshInteraction
         )
         let configuration = Task { try await session.configuration() }
 
@@ -250,7 +252,7 @@ struct AgentHostAuthenticationTests {
 
         _ = try await registry.sftp(
             hostID: destination.id, invocationID: UUID(),
-            interaction: interaction, pool: pool
+            interaction: interaction.sshInteraction, pool: pool
         )
 
         #expect(requestedHosts == [jump.id, destination.id])
@@ -301,7 +303,10 @@ struct AgentHostAuthenticationTests {
             invocation,
             context: AgentToolExecutionContext(
                 runID: invocation.runID, userIntent: "list files",
-                secretBroker: SecretBroker(), userInteraction: interaction,
+                secretBroker: SecretBroker(),
+                userInteraction: UnavailableAgentUserInteraction(),
+                services: AgentToolServices()
+                    .setting(interaction.sshInteraction, for: .sshInteraction),
                 preflightMetadata: [:], authorize: { _ in .allow }
             )
         )
@@ -324,11 +329,11 @@ struct AgentHostAuthenticationTests {
 
         async let first = setup.registry.sftp(
             hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction, pool: setup.pool
+            interaction: interaction.sshInteraction, pool: setup.pool
         )
         async let second = setup.registry.sftp(
             hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction, pool: setup.pool
+            interaction: interaction.sshInteraction, pool: setup.pool
         )
         while await interaction.requestCount == 0 { await Task.yield() }
         #expect(await interaction.requestCount == 1)
@@ -348,11 +353,11 @@ struct AgentHostAuthenticationTests {
 
         async let exec = setup.registry.exec(
             hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction, pool: setup.pool
+            interaction: interaction.sshInteraction, pool: setup.pool
         )
         async let sftp = setup.registry.sftp(
             hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction, pool: setup.pool
+            interaction: interaction.sshInteraction, pool: setup.pool
         )
         while await interaction.requestCount == 0 { await Task.yield() }
         #expect(await interaction.requestCount == 1)
@@ -373,13 +378,13 @@ struct AgentHostAuthenticationTests {
         let first = Task {
             try await setup.registry.sftp(
                 hostID: setup.host.id, invocationID: UUID(),
-                interaction: interaction, pool: setup.pool
+                interaction: interaction.sshInteraction, pool: setup.pool
             )
         }
         let second = Task {
             try await setup.registry.sftp(
                 hostID: setup.host.id, invocationID: UUID(),
-                interaction: interaction, pool: setup.pool
+                interaction: interaction.sshInteraction, pool: setup.pool
             )
         }
         while await interaction.requestCount == 0 { await Task.yield() }
@@ -407,7 +412,7 @@ struct AgentHostAuthenticationTests {
 
         _ = try await setup.registry.sftp(
             hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction, pool: setup.pool
+            interaction: interaction.sshInteraction, pool: setup.pool
         )
 
         #expect(requests.count == 2)
@@ -430,7 +435,7 @@ struct AgentHostAuthenticationTests {
         let interaction = GatedAuthenticationResponder()
         let session = AgentSSHConfigurationSession(
             resolver: AgentHostResolver(store: store), hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         let firstTask = Task { try await session.configurationAttempt() }
@@ -489,7 +494,10 @@ struct AgentHostAuthenticationTests {
         func context(for invocation: AgentToolInvocation) -> AgentToolExecutionContext {
             AgentToolExecutionContext(
                 runID: invocation.runID, userIntent: "list files",
-                secretBroker: SecretBroker(), userInteraction: interaction,
+                secretBroker: SecretBroker(),
+                userInteraction: UnavailableAgentUserInteraction(),
+                services: AgentToolServices()
+                    .setting(interaction.sshInteraction, for: .sshInteraction),
                 preflightMetadata: [:], authorize: { _ in .allow }
             )
         }
@@ -538,7 +546,7 @@ struct AgentHostAuthenticationTests {
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         let configuration = try await session.configuration()
@@ -580,7 +588,7 @@ struct AgentHostAuthenticationTests {
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: destination.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         _ = try await session.configuration()
@@ -634,7 +642,7 @@ struct AgentHostAuthenticationTests {
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         await #expect(throws: TermindSSHError.self) {
@@ -672,7 +680,7 @@ struct AgentHostAuthenticationTests {
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         let configuration = try await session.configuration()
@@ -705,7 +713,7 @@ struct AgentHostAuthenticationTests {
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         await #expect(throws: AgentToolError.self) {
@@ -730,7 +738,7 @@ struct AgentHostAuthenticationTests {
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
         async let first = session.configuration()
@@ -780,7 +788,7 @@ struct AgentHostAuthenticationTests {
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: hostID,
-            invocationID: UUID(), interaction: interaction
+            invocationID: UUID(), interaction: interaction.sshInteraction
         )
         let initial = try await session.configurationAttempt()
         await session.retryHostKey(
@@ -821,7 +829,10 @@ struct AgentHostAuthenticationTests {
         ) -> AgentToolExecutionContext {
             AgentToolExecutionContext(
                 runID: invocation.runID, userIntent: "transfer configuration",
-                secretBroker: SecretBroker(), userInteraction: interaction,
+                secretBroker: SecretBroker(),
+                userInteraction: UnavailableAgentUserInteraction(),
+                services: AgentToolServices()
+                    .setting(interaction.sshInteraction, for: .sshInteraction),
                 preflightMetadata: preflight, authorize: { _ in .allow }
             )
         }
@@ -961,7 +972,7 @@ private final class PassphraseRequestProbe {
     var wasRequested = false
 }
 
-private final class AuthenticationResponder: AgentUserInteractionHandling, @unchecked Sendable {
+private final class AuthenticationResponder: @unchecked Sendable {
     private let answer:
         @MainActor (AgentSSHAuthenticationRequest) -> AgentSSHAuthenticationResponse
     private let hostKeyAnswer:
@@ -977,40 +988,30 @@ private final class AuthenticationResponder: AgentUserInteractionHandling, @unch
         self.hostKeyAnswer = hostKeyAnswer
     }
 
-    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
-        .cancelled
+    var sshInteraction: AgentSSHInteraction {
+        AgentSSHInteraction(
+            authenticate: { [answer] in await answer($0) },
+            confirmHostKey: { [hostKeyAnswer] in await hostKeyAnswer($0) }
+        )
     }
-
-    func requestSSHAuthentication(
-        _ request: AgentSSHAuthenticationRequest
-    ) async -> AgentSSHAuthenticationResponse {
-        await answer(request)
-    }
-
-    func requestSSHHostKeyConfirmation(
-        _ request: AgentSSHHostKeyRequest
-    ) async -> AgentSSHHostKeyResponse { await hostKeyAnswer(request) }
 }
 
-private actor GatedAuthenticationResponder: AgentUserInteractionHandling {
+private actor GatedAuthenticationResponder {
     private(set) var requestCount = 0
     private var waiters:
         [CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = []
 
-    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
-        .cancelled
+    nonisolated var sshInteraction: AgentSSHInteraction {
+        AgentSSHInteraction(
+            authenticate: { [self] _ in await authenticate() },
+            confirmHostKey: { _ in .deny }
+        )
     }
 
-    func requestSSHAuthentication(
-        _ request: AgentSSHAuthenticationRequest
-    ) async -> AgentSSHAuthenticationResponse {
+    private func authenticate() async -> AgentSSHAuthenticationResponse {
         requestCount += 1
         return await withCheckedContinuation { waiters.append($0) }
     }
-
-    func requestSSHHostKeyConfirmation(
-        _ request: AgentSSHHostKeyRequest
-    ) async -> AgentSSHHostKeyResponse { .deny }
 
     func answer(_ response: AgentSSHAuthenticationResponse) {
         let answering = waiters
@@ -1019,28 +1020,27 @@ private actor GatedAuthenticationResponder: AgentUserInteractionHandling {
     }
 }
 
-private actor GatedHostKeyResponder: AgentUserInteractionHandling {
+private actor GatedHostKeyResponder {
     private(set) var authenticationRequestCount = 0
     private(set) var hostKeyRequestCount = 0
     private var hostKeyWaiters:
         [CheckedContinuation<AgentSSHHostKeyResponse, Never>] = []
 
-    func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
-        .cancelled
+    nonisolated var sshInteraction: AgentSSHInteraction {
+        AgentSSHInteraction(
+            authenticate: { [self] _ in await authenticate() },
+            confirmHostKey: { [self] _ in await confirmHostKey() }
+        )
     }
 
-    func requestSSHAuthentication(
-        _ request: AgentSSHAuthenticationRequest
-    ) async -> AgentSSHAuthenticationResponse {
+    private func authenticate() -> AgentSSHAuthenticationResponse {
         authenticationRequestCount += 1
         return .submit(AgentSSHAuthenticationAnswer(
             username: "deploy", password: "secret", save: false
         ))
     }
 
-    func requestSSHHostKeyConfirmation(
-        _ request: AgentSSHHostKeyRequest
-    ) async -> AgentSSHHostKeyResponse {
+    private func confirmHostKey() async -> AgentSSHHostKeyResponse {
         hostKeyRequestCount += 1
         return await withCheckedContinuation { hostKeyWaiters.append($0) }
     }

@@ -1,3 +1,4 @@
+import AgentKit
 import SwiftUI
 
 /// How full the model's context window is, as a ring.

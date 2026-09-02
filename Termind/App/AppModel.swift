@@ -1,3 +1,5 @@
+import AgentKit
+import AgentKitScrubber
 import Foundation
 
 /// The ways a host can be opened. Centralised so the sidebar, the workspace bar's `+`
@@ -414,7 +416,10 @@ final class AppModel {
             // the run that answers them. Isolation comes from the scope directory
             // being keyed by conversation, so one chat can never read what another
             // pulled off a host.
-            let scratch = AgentScratchWorkspace(conversationID: conversation.id)
+            let scratch = AgentScratchWorkspace(
+                conversationID: conversation.id,
+                applicationName: TermindAgentPolicy.scratchDirectoryName
+            )
             // One client for both, rather than two default-constructed ones: `fetch`
             // and `scratch_fetch` read the same web the same way and differ only in
             // where the page ends up.
@@ -426,21 +431,30 @@ final class AppModel {
             let servers = ai.mcpServers.filter(\.isEnabled).map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
             }
-            // Local definitions are registered once in the static catalog;
-            // discovered MCP definitions join the same resolved registry after
-            // them, so a remote name can never shadow a built-in.
-            registry = AgentToolCatalog.registry(environment: AgentToolEnvironment(
-                hosts: agentHosts, connections: agentConnections,
-                authentication: agentAuthentication,
-                background: agentBackgroundCommands, web: web,
-                search: searchPlan.local,
-                includesTerminalSuggestion: includesTerminalSuggestion,
-                workspace: scratch,
-                tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
-                plans: AgentPlanRecorder { channel.emit(.planPresented($0)) },
-                skills: skillCatalog,
-                mcpServers: servers
-            ))
+            // Local definitions are registered once per catalog — the runtime's
+            // built-in groups, then ours; discovered MCP definitions join the
+            // same resolved registry after both, so neither a Termind name nor a
+            // remote name can shadow a built-in.
+            registry = AgentToolCatalog.registry(
+                builtIn: AgentBuiltInToolConfiguration(
+                    workspace: scratch,
+                    web: web,
+                    search: searchPlan.local,
+                    secretConsumerTools: [TermindAgentPolicy.sshExecToolName],
+                    tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
+                    plans: AgentPlanRecorder { channel.emit(.planPresented($0)) },
+                    skills: skillCatalog,
+                    mcpServers: servers,
+                    mcpClient: MCPClient(clientInfo: TermindAgentPolicy.mcpClientInfo)
+                ),
+                additional: TermindAgentTools.tools(in: TermindAgentToolEnvironment(
+                    hosts: agentHosts, connections: agentConnections,
+                    authentication: agentAuthentication,
+                    background: agentBackgroundCommands,
+                    includesTerminalSuggestion: includesTerminalSuggestion,
+                    workspace: scratch
+                ))
+            )
         }
         // The one place the resolved tool set exists. Recorded on the
         // conversation so the context gauge can account for the schemas without
@@ -454,18 +468,26 @@ final class AppModel {
         // every run and the provider's prefix cache survives a skill being
         // enabled. See `AgentSkillCatalogInjection`.
         var configuration = AgentLoopConfiguration()
+        // Termind draws the reply as it streams, so the bursts a provider
+        // delivers in need smoothing before they reach a view. A surface that
+        // only records events would leave this off — see `AgentStreamPacing`.
+        configuration.streamPacing = .animated
         configuration.contextPipeline = { sessionContext, promptID, planning in
             AgentContextPipeline.chat(
                 sessionContext: sessionContext, before: promptID,
-                isPlanning: planning, skills: skillCatalog
+                isPlanning: planning, skills: skillCatalog,
+                planContract: TermindAgentPolicy.planContract
             )
         }
+        let interaction = WeakAgentUserInteraction(conversation)
         let runtime = AgentRuntime(
             model: model, registry: registry,
             approval: approval,
             repository: agentRunRepository,
-            userInteraction: WeakAgentUserInteraction(conversation),
-            hooks: [AgentPlanModeHook(isPlanning: isPlanning)],
+            userInteraction: interaction,
+            services: AgentToolServices()
+                .setting(interaction.sshInteraction, for: .sshInteraction),
+            hooks: [TermindAgentPolicy.planModeHook(isPlanning: isPlanning)],
             configuration: configuration,
             channel: channel
         )
@@ -482,8 +504,9 @@ final class AppModel {
                 promptImages: userImages,
                 promptContextAttachments: userContextAttachments,
                 permissionMode: mode, isPlanning: isPlanning,
+                systemPrompt: TermindAgentPolicy.systemPrompt,
                 priorMessages: conversation.pendingPriorMessages,
-                sessionContext: context
+                sessionContext: context.modelContext
             ))
         scheduleTitle(for: conversation)
     }
@@ -514,7 +537,9 @@ final class AppModel {
         guard proAccess.require(.assistant) else { return false }
         guard !conversation.isStreaming, !conversation.isCompacting else { return false }
         conversation.beginCompaction()
-        guard let span = conversation.compactionSpan(keepRecentTokens: keepRecentTokens)
+        guard let span = conversation.compactionSpan(
+            keepRecentTokens: compactionBudget.keepRecentTokens
+        )
         else {
             if isManual {
                 conversation.failCompaction(
@@ -532,7 +557,8 @@ final class AppModel {
 
         do {
             let summary = try await agentCompaction.summarize(
-                span.summarize, instructions: instructions, model: model
+                span.summarize, instructions: instructions,
+                toolResultLimit: compactionBudget.toolResultLimit, model: model
             )
             guard let record = conversation.prepareCompaction(
                 summary: summary, cut: span.cut
@@ -570,7 +596,7 @@ final class AppModel {
         guard
             AgentCompaction.shouldCompact(
                 contextTokens: usage.contextTokens, contextWindow: window,
-                reserveTokens: reserveTokens
+                reserveTokens: compactionBudget.reserveTokens
             )
         else { return }
         await compact(conversation, isManual: false)
@@ -594,13 +620,11 @@ final class AppModel {
         )
     }
 
-    private var keepRecentTokens: Int {
-        AgentCompaction.defaultKeepRecentTokens
-    }
-
-    private var reserveTokens: Int {
-        AgentCompaction.defaultReserveTokens
-    }
+    /// What a compaction is allowed to keep, reserve, and show the summarizer.
+    ///
+    /// One value rather than three, so a future Settings control changes them
+    /// together — see `AgentCompaction.Budget`. Termind ships the defaults.
+    private var compactionBudget: AgentCompaction.Budget { .default }
 
     /// Exactly one path is ever live. Offering both would put two tools in
     /// front of the model for one job and leave it to guess which, and the
@@ -864,7 +888,10 @@ final class AppModel {
         Task { [weak self, weak window, agentRunRepository] in
             do {
                 try await Task.detached(priority: .utility) {
-                    try AgentScratchWorkspace.copyScope(from: id, to: fork.id)
+                    try AgentScratchWorkspace.copyScope(
+                        from: id, to: fork.id,
+                        applicationName: TermindAgentPolicy.scratchDirectoryName
+                    )
                 }.value
                 try await agentRunRepository.createConversation(stored)
                 guard let self else { return }

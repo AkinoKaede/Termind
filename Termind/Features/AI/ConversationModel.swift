@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 /// A command the model proposed. It is *never* executed on the model's say-so —
@@ -519,33 +520,6 @@ nonisolated struct AgentPlanCard: Identifiable, Hashable, Sendable {
     var createdAt: Date { plan.createdAt }
 }
 
-/// The approval posture selected for one conversation.
-///
-/// This turn-level state does not yet alter command or MCP execution. Keeping
-/// it separate from those existing approval gates prevents a UI choice from
-/// silently weakening either one before the agent execution pipeline exists.
-nonisolated enum ChatPermissionMode: String, Codable, Sendable, CaseIterable, Identifiable {
-    case askForApproval, approveForMe, fullAccess
-
-    nonisolated var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .askForApproval: String(localized: "Ask for approval")
-        case .approveForMe: String(localized: "Approve for me")
-        case .fullAccess: String(localized: "Full access")
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .askForApproval: "hand.raised"
-        case .approveForMe: "checkmark.shield"
-        case .fullAccess: "lock.open"
-        }
-    }
-}
-
 /// One AI conversation, wherever it is being shown.
 ///
 /// It deliberately knows nothing about a session. Where the conversation is
@@ -804,7 +778,7 @@ final class ConversationModel: Identifiable {
     /// An explicit choice for this conversation. `nil` follows the app-wide
     /// last selection through `AIConfigurationModel.resolve(conversation:)`, the same shape
     /// used by `model` below.
-    var permissionMode: ChatPermissionMode?
+    var permissionMode: AgentPermissionMode?
 
     /// The model this conversation was told to use, if it was told.
     ///
@@ -841,7 +815,7 @@ final class ConversationModel: Identifiable {
         contextEstimatePublishInterval: Duration = .milliseconds(250)
     ) {
         let contextEstimateTracker = AgentContextEstimateTracker(
-            systemPrompt: AgentSystemPrompt.default,
+            systemPrompt: TermindAgentPolicy.systemPrompt,
             toolSchemaCharacters: 0,
             transcript: transcript,
             attachedCharacters: 0,
@@ -2473,18 +2447,19 @@ final class WeakAgentUserInteraction {
         return await conversation.request(request)
     }
 
-    func requestSSHAuthentication(
-        _ request: AgentSSHAuthenticationRequest
-    ) async -> AgentSSHAuthenticationResponse {
-        guard let conversation else { return .cancelled }
-        return await conversation.requestSSHAuthentication(request)
-    }
-
-    func requestSSHHostKeyConfirmation(
-        _ request: AgentSSHHostKeyRequest
-    ) async -> AgentSSHHostKeyResponse {
-        guard let conversation else { return .deny }
-        return await conversation.requestSSHHostKeyConfirmation(request)
+    /// The SSH checkpoints, in the shape the tools take them — see
+    /// `AgentSSHInteraction`. Weak for the same reason `request` is.
+    var sshInteraction: AgentSSHInteraction {
+        AgentSSHInteraction(
+            authenticate: { [weak conversation] request in
+                guard let conversation else { return .cancelled }
+                return await conversation.requestSSHAuthentication(request)
+            },
+            confirmHostKey: { [weak conversation] request in
+                guard let conversation else { return .deny }
+                return await conversation.requestSSHHostKeyConfirmation(request)
+            }
+        )
     }
 }
 

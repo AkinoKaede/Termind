@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 /// Privacy-bounded audit history for tools invoked through the local MCP server.

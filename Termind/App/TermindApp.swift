@@ -1,3 +1,4 @@
+import AgentKitScrubber
 import SwiftData
 import SwiftUI
 

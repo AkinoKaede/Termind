@@ -1,6 +1,15 @@
 {
-  "originHash" : "f4c3143502b0cd833f99b8362111eda2d3f30ca9087b720290ed37e2efe4f2c9",
+  "originHash" : "10cd8ef715c3ea5e1338969f030ed94b372888881ea925093c1fed2cfdb2508d",
   "pins" : [
+    {
+      "identity" : "agentkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AkinoKaede/AgentKit.git",
+      "state" : {
+        "revision" : "45e2fc6eb531ab3838f4c37a4041253983010c74",
+        "version" : "0.2.0"
+      }
+    },
     {
       "identity" : "choreographer",
       "kind" : "remoteSourceControl",
@@ -114,7 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Lakr233/ScrubberKit.git",
       "state" : {
-        "revision" : "4c0e55c2a257ceecae8f86c4781cfd99a6572347"
+        "revision" : "b69932dc44461dd4a73aafeb78d514222f68d3e1",
+        "version" : "0.2.0"
       }
     },
     {

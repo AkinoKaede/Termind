@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import Testing
 
@@ -564,11 +565,17 @@ struct AgentToolPresentationTests {
 
     @Test
     func builtInDetailPresenterCatalogHasUniqueStableIDs() {
-        let ids = AgentToolCatalog.presenterIDs
+        // The composed registry, runtime plus Termind: a duplicate ID across the
+        // two catalogs is exactly the collision that would make one app's card
+        // draw with another's projection, and it is invisible in either catalog
+        // alone.
+        let runtime = AgentToolCatalog.builtInPresenters.map(\.id)
+        let ids = TermindAgentTools.presenterRegistry.ids
         #expect(Set(ids).count == ids.count)
+        #expect(Set(runtime).isSubset(of: Set(ids)))
         #expect(ids.allSatisfy { $0.hasPrefix("builtin.") })
         for id in ids {
-            #expect(AgentToolCatalog.presenter(id: id) != nil)
+            #expect(TermindAgentTools.presenter(id: id) != nil)
         }
     }
 

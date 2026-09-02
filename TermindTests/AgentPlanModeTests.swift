@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import Testing
 
@@ -64,7 +65,7 @@ private func execTool(ran: RanFlag) -> AnyAgentTool {
     ])
     return AnyAgentTool(
         descriptor: AgentToolDescriptor(
-            name: AgentPlanModeHook.sshExecToolName, summary: "exec",
+            name: TermindAgentPolicy.sshExecToolName, summary: "exec",
             inputSchema: schema, target: .host, safety: .requiresAuthorization
         ),
         preflight: { invocation in
@@ -88,7 +89,7 @@ private func execTurns(_ command: String) -> [[AgentModelStreamEvent]] {
         [
             .toolCallSnapshot(
                 id: "call-0", providerItemID: nil,
-                name: AgentPlanModeHook.sshExecToolName, arguments: arguments
+                name: TermindAgentPolicy.sshExecToolName, arguments: arguments
             ),
             .finished(.toolCalls),
         ],
@@ -113,7 +114,7 @@ private func drain(
     let runtime = AgentRuntime(
         model: ScriptedPlanTurns(turns), tools: tools,
         approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
-        hooks: [AgentPlanModeHook(isPlanning: isPlanning)]
+        hooks: [TermindAgentPolicy.planModeHook(isPlanning: isPlanning)]
     )
     var events: [AgentEvent] = []
     for await event in await runtime.start(AgentRunRequest(
@@ -395,6 +396,28 @@ struct AgentPlanModeTests {
             .transform(context)
 
         #expect(unchanged.messages.count == 1)
+    }
+
+    /// The runtime ships a contract that describes only the built-in tools.
+    /// Termind's names hosts, `ssh_exec` and the pull/push route, and that is the
+    /// one a Termind run must actually be given — a plan drafted against the
+    /// neutral text would not know commands were available.
+    @Test
+    func theHostsContractIsWhatAPlanningRunReceives() {
+        let prompt = AgentTranscriptMessage(role: .user, text: "why is root at 99%")
+        let context = AgentModelContext(
+            systemPrompt: TermindAgentPolicy.systemPrompt, messages: [prompt], tools: []
+        )
+
+        let planned = AgentContextPipeline.chat(
+            sessionContext: nil, before: prompt.id, isPlanning: true,
+            planContract: TermindAgentPolicy.planContract
+        )(context)
+
+        #expect(planned.messages.count == 2)
+        #expect(planned.messages[0].text == TermindAgentPolicy.planContract)
+        #expect(planned.messages[0].text != AgentPlanContractInjection.contract)
+        #expect(planned.messages[0].text.contains("ssh_exec"))
     }
 
     // MARK: - Task arguments

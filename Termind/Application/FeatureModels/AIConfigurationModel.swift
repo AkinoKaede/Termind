@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 /// The single source of truth for model providers, their models, which model does
@@ -27,7 +28,7 @@ final class AIConfigurationModel {
     /// The approval posture new and otherwise-unset conversations follow.
     /// Stored in local preferences rather than provider configuration so it
     /// survives relaunches without becoming part of the synced SwiftData model.
-    private(set) var lastSelectedPermissionMode: ChatPermissionMode
+    private(set) var lastSelectedPermissionMode: AgentPermissionMode
 
     /// Live MCP connection state, keyed by server.
     ///
@@ -52,7 +53,7 @@ final class AIConfigurationModel {
         mcpServers: [MCPServer] = [],
         roles: [AIRole: AIModelRef] = [:],
         lastSelectedModel: AIModelRef? = nil,
-        lastSelectedPermissionMode: ChatPermissionMode = .askForApproval,
+        lastSelectedPermissionMode: AgentPermissionMode = .askForApproval,
         persistence: (any AIConfigurationPersisting)? = nil,
         secrets secretStore: any SecretStoring = InMemorySecretStore(),
         persistsSecrets: Bool = true,
@@ -64,7 +65,7 @@ final class AIConfigurationModel {
         self.lastSelectedModel = lastSelectedModel
         self.lastSelectedPermissionMode = permissionDefaults
             .flatMap { $0.string(forKey: SettingsKey.agentPermissionMode) }
-            .flatMap(ChatPermissionMode.init(rawValue:))
+            .flatMap(AgentPermissionMode.init(rawValue:))
             ?? lastSelectedPermissionMode
         self.persistence = persistence
         self.keychain = secretStore
@@ -156,7 +157,7 @@ final class AIConfigurationModel {
 
     /// An explicit conversation choice wins; otherwise the app-wide latest
     /// choice is the default. The latter begins at the safest posture.
-    func resolve(conversation permissionMode: ChatPermissionMode?) -> ChatPermissionMode {
+    func resolve(conversation permissionMode: AgentPermissionMode?) -> AgentPermissionMode {
         permissionMode ?? lastSelectedPermissionMode
     }
 
@@ -380,7 +381,7 @@ final class AIConfigurationModel {
 
     /// Records a composer permission choice for subsequent unset conversations
     /// and future app launches. It does not alter command or MCP execution policy.
-    func select(_ permissionMode: ChatPermissionMode) {
+    func select(_ permissionMode: AgentPermissionMode) {
         lastSelectedPermissionMode = permissionMode
         permissionDefaults?.set(permissionMode.rawValue, forKey: SettingsKey.agentPermissionMode)
     }

@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 /// What the focused pane can tell the model about where it is.

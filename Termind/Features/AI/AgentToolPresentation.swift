@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 /// Turns tool protocol data into the small amount of language the transcript needs.
@@ -201,9 +202,9 @@ nonisolated enum AgentToolPresentation {
 
         let presenter: AgentToolDetailPresenter?
         if let id = card.descriptor.presentation?.presenterID {
-            presenter = AgentToolCatalog.presenter(id: id)
+            presenter = TermindAgentTools.presenter(id: id)
         } else {
-            presenter = AgentToolCatalog.legacyPresenter(
+            presenter = TermindAgentTools.legacyPresenter(
                 forToolNamed: card.descriptor.name
             )
         }
@@ -641,6 +642,9 @@ nonisolated enum AgentToolPresentation {
     ) -> String {
         switch unit {
         case .question: localized("\(count) questions", locale: locale)
+        // Open vocabulary — an app that adds a unit and no resource for it gets
+        // a plain count rather than a missing string.
+        default: "\(count)"
         }
     }
 
@@ -836,6 +840,10 @@ nonisolated enum AgentToolPresentation {
             return target.map {
                 localized("Stopped waiting for “\(activity)” on \($0)", locale: locale)
             } ?? localized("Stopped waiting for “\(activity)”", locale: locale)
+        // Open vocabulary. A phase this app has no wording for falls back to the
+        // ordinary action lifecycle, which is what the caller does with `nil`.
+        default:
+            return activity
         }
     }
 
@@ -872,6 +880,14 @@ nonisolated enum AgentToolPresentation {
                 past: "Changed permissions for"
             )
         case .use: .init(infinitive: "use", progressive: "Using", past: "Used")
+        // Open vocabulary. The raw value is the verb an app chose, so using it
+        // uninflected reads better than a generic "act on".
+        default:
+            .init(
+                infinitive: kind.rawValue,
+                progressive: "\(kind.rawValue.capitalized)ing",
+                past: "\(kind.rawValue.capitalized)ed"
+            )
         }
         return forms[form]
     }
@@ -902,6 +918,7 @@ nonisolated enum AgentToolPresentation {
         case .write: localized("write", locale: locale)
         case .changePermissions: localized("change permissions for", locale: locale)
         case .use: localized("use", locale: locale)
+        default: kind.rawValue
         }
     }
 
@@ -929,6 +946,7 @@ nonisolated enum AgentToolPresentation {
         case .taskList: localized("the task list", locale: locale)
         case .url: localized("a URL", locale: locale)
         case .web: localized("the web", locale: locale)
+        default: kind.rawValue
         }
     }
 

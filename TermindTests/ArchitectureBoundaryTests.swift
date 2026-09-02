@@ -143,6 +143,37 @@ struct ArchitectureBoundaryTests {
         }
     }
 
+    /// The agent runtime lives in AgentKit and must keep living there.
+    ///
+    /// A redefinition here would compile: Swift resolves the app's own type
+    /// ahead of an imported one, so the app would silently fork the runtime and
+    /// nothing would fail until a card drawn by one was replayed by the other.
+    /// Checked by definition rather than by import, because the app is expected
+    /// to import AgentKit everywhere.
+    @Test
+    func typesOwnedByTheAgentPackageAreNotRedefinedHere() throws {
+        let owned = [
+            "AgentRuntime", "AgentToolExecutor", "AgentToolScheduler", "AgentTurnDriver",
+            "AgentToolCatalog", "AgentToolRegistry", "AgentEventChannel", "AgentContextPipeline",
+            "AgentSecretLifecycle", "AgentApprovalBroker", "SecretBroker", "AgentProviderClient",
+            "MCPClient", "MCPServer", "ModelProvider", "AIModel", "AgentSkill",
+        ]
+        let declaration = try Regex(
+            #"(?m)^\s*(?:public |internal |private |fileprivate |nonisolated |final |indirect )*"#
+                + #"(?:struct|class|enum|actor|protocol|typealias)\s+([A-Za-z_][A-Za-z0-9_]*)"#
+        )
+        for file in try swiftFiles(in: "") {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            for match in text.matches(of: declaration) {
+                let name = String(match.output[1].substring ?? "")
+                #expect(
+                    !owned.contains(name),
+                    "\(file.path) redefines \(name), which AgentKit owns"
+                )
+            }
+        }
+    }
+
     private func swiftFiles(in directory: String) throws -> [URL] {
         let root = sourceRoot.appending(path: directory, directoryHint: .isDirectory)
         let keys: [URLResourceKey] = [.isRegularFileKey]

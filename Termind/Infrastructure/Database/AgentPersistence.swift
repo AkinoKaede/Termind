@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import SwiftData
 
@@ -35,7 +36,7 @@ final class PersistentAgentRun {
     @Attribute(.unique) var id: UUID = UUID()
     var conversationID: UUID = UUID()
     var state = AgentRunState.idle.rawValue
-    var permissionMode = ChatPermissionMode.askForApproval.rawValue
+    var permissionMode = AgentPermissionMode.askForApproval.rawValue
     var startedAt: Date = Date()
     var finishedAt: Date?
     var failure: String?
@@ -424,7 +425,7 @@ final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
                     // Transcript grammar gives equal-position, equal-time rows
                     // a stable and useful final ordering.
-                    let rank = { role in
+                    let rank = { (role: String) -> Int in
                         switch AgentTranscriptRole(rawValue: role) {
                         case .user: 0
                         case .assistant: 1

@@ -284,57 +284,6 @@ nonisolated final class AgentCommandHandover: @unchecked Sendable {
 /// it was waiting on is kept while the command itself is not.
 nonisolated struct AgentCommandNotStarted: Error {}
 
-/// Says that the user has interjected and is waiting for a model boundary.
-///
-/// Broadcast and re-armable, unlike `AgentCompletionSignal`: a run has many
-/// boundaries and a user may interject at any of them, so every waiter is
-/// released and the next waiter waits again for the next one.
-///
-/// This exists so a tool whose whole job is waiting can stop. It is offered to
-/// tools rather than done to them, because whether an interruption is free
-/// depends entirely on what is being interrupted: giving up on `ssh_wait` costs
-/// nothing — the command runs on, its session stays, its handle stays valid —
-/// while giving up on `ssh_exec` would strand a half-finished command on a host.
-nonisolated final class AgentInterjectionSignal: @unchecked Sendable {
-    private let lock = NSLock()
-    private var isPending = false
-    private var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
-
-    /// Something is queued for the next boundary. Stateful rather than a pure
-    /// broadcast, because a wait that began a moment *after* the user typed
-    /// would otherwise sit through its whole deadline with a message already
-    /// waiting behind it.
-    func arm() {
-        let released = lock.withLock {
-            isPending = true
-            defer { waiters.removeAll() }
-            return waiters.values
-        }
-        for waiter in released { waiter.resume() }
-    }
-
-    /// The queue has been drained into the turn about to start, so there is
-    /// nothing left to hurry for.
-    func disarm() { lock.withLock { isPending = false } }
-
-    func wait() async {
-        let id = UUID()
-        await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
-                let armed: Bool = lock.withLock {
-                    if isPending { return true }
-                    waiters[id] = continuation
-                    return false
-                }
-                if armed { continuation.resume() }
-            }
-        } onCancel: {
-            let waiter = lock.withLock { waiters.removeValue(forKey: id) }
-            waiter?.resume()
-        }
-    }
-}
-
 /// A one-shot arrival bell whose wait can be abandoned.
 ///
 /// `Task.result` cannot be given up on, which is the whole difficulty: waiting

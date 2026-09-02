@@ -1,3 +1,4 @@
+import AgentKit
 import SwiftUI
 
 /// The "MCP" section: servers whose tools the assistant may call.

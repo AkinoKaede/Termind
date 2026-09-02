@@ -1,15 +1,17 @@
 # Termind architecture
 
-Termind intentionally remains one application target and one unit-test target.
-Directories describe dependency boundaries even though Swift does not enforce
-them as separate modules.
+Termind is one application target, one unit-test target, and one first-party
+package: `AgentKit`, developed in a sibling repository and consumed through SPM.
+Inside the app target, directories describe dependency boundaries even though
+Swift does not enforce them as separate modules. The package boundary *is*
+enforced, which is the point of it.
 
 ## Dependency direction
 
 - `Domain` contains platform-independent values and rules.
 - `Application` contains repositories, feature state, use cases, events, and
   service protocols.
-- `Infrastructure` implements persistence, security, SSH, SFTP, and LLM clients.
+- `Infrastructure` implements persistence, security, SSH, and SFTP clients.
 - `Features` contains SwiftUI presentation and sends intents to Application.
 - `Platform/macOS` contains AppKit adapters.
 - `App` constructs dependencies and owns application/window lifetimes.
@@ -24,8 +26,9 @@ Views must not construct network clients, access SwiftData/Keychain directly, or
 coordinate cross-domain cleanup. Runtime side effects belong to application
 services and durable outbox handlers.
 
-The project remains one target, so `ArchitectureBoundaryTests` enforces the
-framework and concrete-client restrictions that directory layout alone cannot.
+The app remains one target, so `ArchitectureBoundaryTests` enforces the
+framework and concrete-client restrictions that directory layout alone cannot —
+including that no type AgentKit owns is redefined here.
 
 ## State lifetimes
 
@@ -81,6 +84,32 @@ selection belongs to `VaultPageStates`, not to sidebar state.
 
 ## Agent runtime and security
 
+The runtime is `AgentKit`, a separate package with no dependencies and no
+knowledge of hosts, transports, or SwiftUI. What Termind keeps is everything
+that reaches a machine or a person: the SSH and SFTP tools, the connection pool,
+the Vault resolver, the SwiftData store, and every view.
+
+The two meet at four seams, all additive:
+
+- `AgentToolCatalog.registry(builtIn:additional:)`. The package's built-in tools
+  are selected by `AgentToolGroup` — scratch, web, user interaction, planning,
+  tasks, skills, MCP — and `TermindAgentTools` supplies ours after them, so a
+  Termind name can never shadow a built-in and a remote MCP name can shadow
+  neither.
+- `AgentToolServices`, a typed bag a run carries to the tools it registered.
+  `AgentSSHInteraction` travels in it, which is what keeps credential and
+  host-key prompts out of the package's own protocols — and, structurally, off
+  `AgentEventChannel` and out of durable history.
+- `TermindAgentPolicy`, which owns the texts and judgements that are ours: the
+  system prompt, the plan contract, and the `ssh_exec` rule injected into
+  `AgentPlanModeHook.hostDecision`. The package ships neutral defaults for each
+  and Termind's stay byte-identical to what shipped, because every provider
+  cache is a prefix cache.
+- `TermindAgentPresentation`, which extends the package's open card vocabularies
+  with the values only we need — `sshConnecting`, `remoteFile`, and the rest.
+  Their raw values are unchanged, so cards persisted before the split still
+  decode and still render.
+
 `AgentRuntime` is an actor holding a run's state — transcript snapshot, tool
 registry, steering queue, secret broker — and the loop over it. Each phase of
 the loop is a separate value it drives:
@@ -119,9 +148,9 @@ is derived from what is outstanding rather than asserted by whichever call moved
 last.
 
 Extension points, all additive: `AgentToolCatalog` registrations for tool definitions,
-`AgentLoopHook` for `willExecute` / `didExecute` / `shouldStop`,
-`AgentContextTransforming` for the model boundary, `AgentModelStreaming` for
-providers. Authorization is deliberately not among them — `AgentApprovalHandling`
+`AgentToolServices` for what a host lends them, `AgentLoopHook` for
+`willExecute` / `didExecute` / `shouldStop`, `AgentContextTransforming` for the
+model boundary, `AgentModelStreaming` for providers. Authorization is deliberately not among them — `AgentApprovalHandling`
 is a structural stage of the executor that no configuration can remove, and
 hooks run on either side of it.
 
@@ -163,7 +192,9 @@ history. MCP discovery retains schemas and annotations, but remote annotations
 are risk hints rather than proof of safety.
 
 `AgentScratchWorkspace` is a per-conversation staging directory under Application
-Support, inside the sandbox container, deleted with the conversation that owns it.
+Support, inside the sandbox container, named for the app that owns it
+(`TermindAgentPolicy.scratchDirectoryName`) and deleted with the conversation
+that owns it.
 Paths are relative, `..` is refused rather than resolved, symlinks are refused even
 when they point back inside, and every resolved path is proven to still be under the
 scope; writes are bounded per file, per conversation, and by entry count. It is an
@@ -175,8 +206,9 @@ remote file can be pulled, edited and pushed back without a copy of it crossing 
 model boundary in either direction; `scratch_edit` returns a unified diff rather than
 the new file for the same reason. `scratch_search` recursively searches UTF-8 content
 inside that same scope and returns bounded matching-line previews, so locating a small
-region does not require reading a large staged file into the transcript. The SFTP tools
-are unchanged and know nothing about the workspace. Because a push is approved by
+region does not require reading a large staged file into the transcript. `scratch_pull` and `scratch_push` are Termind's rather than the package's,
+precisely because they are the two ends that touch a host. The SFTP tools are
+unchanged and know nothing about the workspace. Because a push is approved by
 filename rather than by content, its
 preflight puts the size, digest and a redacted head into the approval reasons, and
 binds the approval to that digest through execution-only metadata so a file rewritten

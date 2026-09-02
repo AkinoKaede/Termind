@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 /// The skills Termind ships with.

@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 nonisolated struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBuilding {
@@ -62,7 +63,7 @@ nonisolated struct SSHWaitTool: AgentToolDefinition, AgentToolSchemaBuilding {
         }
         let outcome = try await background.wait(
             handle, timeout: .seconds(arguments.optionalInt("timeout_seconds") ?? 60),
-            reporting: AgentBuiltInTools.reporting(invocation, context.report),
+            reporting: AgentToolSupport.reporting(invocation, context.report),
             orWhen: context.whenUserInterjects
         )
         guard let exitCode = outcome.exitCode else { return Self.result(invocation, .object([
@@ -132,7 +133,7 @@ nonisolated extension TerminalSuggestTool {
     }
 }
 
-nonisolated extension AgentBuiltInTools {
+nonisolated extension AgentToolSupport {
     /// How long `ssh_exec` waits before telling the model what it has.
     ///
     /// Short, and safe to be short only because expiry stopped being
@@ -302,7 +303,7 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
                 // filling in rather than a spinner. Reported, never returned:
                 // the model is owed one result per call and gets it below.
                 let stream = AgentCommandOutputStream(
-                    report: AgentBuiltInTools.reporting(invocation, context.report)
+                    report: AgentToolSupport.reporting(invocation, context.report)
                 )
                 let cwd = arguments.optionalString("cwd")
                 // A `let` copy, because the task below outlives this call and a
@@ -310,7 +311,7 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
                 let stdin = input
                 let deadline = Duration.seconds(
                     arguments.optionalInt("timeout_seconds")
-                        ?? AgentBuiltInTools.defaultReportingDeadline
+                        ?? AgentToolSupport.defaultReportingDeadline
                 )
                 // Connecting is inside the deadline too. A hang is a hang
                 // whether it is DNS, a jump host or a handshake, and a turn that
@@ -319,7 +320,7 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
                 let running = Task { () async throws -> SSHExecResult in
                     var connection = try await authentication.execConnection(
                         hostID: hostID, invocationID: invocation.id,
-                        interaction: context.userInteraction, pool: pool
+                        interaction: context.sshInteraction, pool: pool
                     )
                     var retriedDeadSession = false
                     while true {
@@ -338,7 +339,7 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
                         do {
                             return try await session.execute(
                                 command, workingDirectory: cwd, stdin: stdin,
-                                timeout: AgentBuiltInTools.maximumCommandLifetime,
+                                timeout: AgentToolSupport.maximumCommandLifetime,
                                 outputLimit: 256 * 1_024,
                                 onOutput: stream.handler
                             )
@@ -405,7 +406,7 @@ nonisolated struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
                         )),
                     ]))
                 }
-                return AgentBuiltInTools.exitedResult(invocation, try await running.value)
+                return AgentToolSupport.exitedResult(invocation, try await running.value)
     }
 }
 

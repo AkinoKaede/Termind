@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 /// The app's conversations, and the single instance of each.

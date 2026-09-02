@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import Testing
 
@@ -355,7 +356,7 @@ struct AgentTokenUsageTests {
         #expect(
             conversation.contextEstimate
                 == AgentContextEstimator.estimate(
-                    systemPrompt: AgentSystemPrompt.default,
+                    systemPrompt: TermindAgentPolicy.systemPrompt,
                     toolSchemaCharacters: conversation.toolSchemaCharacters,
                     transcript: conversation.transcript,
                     attachedCharacters: attachedCharacters,

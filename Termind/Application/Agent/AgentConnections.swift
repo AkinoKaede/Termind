@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 nonisolated struct AgentHostTarget: Identifiable, Hashable, Sendable, Codable {
@@ -151,7 +152,7 @@ final class AgentHostResolver: Sendable {
     fileprivate func interactiveConfiguration(
         for id: UUID,
         invocationID: AgentToolInvocation.ID,
-        interaction: any AgentUserInteractionHandling,
+        interaction: AgentSSHInteraction,
         submissions initial: [Host.ID: SSHAuthenticationSubmission],
         temporaryHostKeys initialTemporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         forcedHostID initialForcedHostID: Host.ID? = nil,
@@ -198,7 +199,7 @@ final class AgentHostResolver: Sendable {
                     selectedKeyID: existing?.keyID ?? identity?.keyID,
                     failureMessage: failure
                 )
-                switch await interaction.requestSSHAuthentication(request) {
+                switch await interaction.authenticate(request) {
                 case .cancelled:
                     throw AgentToolError.cancelled
                 case .submit(let answer):
@@ -238,7 +239,7 @@ final class AgentHostResolver: Sendable {
                     if !trusted.isEmpty {
                         store.markKnownHostMismatched(hostname: node.host, port: node.port)
                     }
-                    let response = await interaction.requestSSHHostKeyConfirmation(
+                    let response = await interaction.confirmHostKey(
                         AgentSSHHostKeyRequest(
                             invocationID: invocationID, hostID: node.id,
                             displayName: node.name, address: node.displayAddress,
@@ -286,7 +287,7 @@ final class AgentHostResolver: Sendable {
     private func verifyTemporaryConfiguration(
         _ initial: SSHConnectionConfiguration,
         invocationID: AgentToolInvocation.ID,
-        interaction: any AgentUserInteractionHandling,
+        interaction: AgentSSHInteraction,
         forcedHostKeyID: Host.ID?
     ) async throws -> SSHConnectionConfiguration {
         guard let forcedHostKeyID else { return initial }
@@ -320,7 +321,7 @@ final class AgentHostResolver: Sendable {
         } else {
             throw AgentToolError.invalidHost
         }
-        let response = await interaction.requestSSHHostKeyConfirmation(
+        let response = await interaction.confirmHostKey(
             AgentSSHHostKeyRequest(
                 invocationID: invocationID, hostID: forcedHostKeyID,
                 displayName: displayName, address: address,
@@ -489,7 +490,7 @@ actor AgentSSHConfigurationSession {
     private let resolver: AgentHostResolver
     private let hostID: Host.ID
     private let invocationID: AgentToolInvocation.ID
-    private let interaction: any AgentUserInteractionHandling
+    private let interaction: AgentSSHInteraction
     private var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
     private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
     private var cached: SSHConnectionConfiguration?
@@ -502,7 +503,7 @@ actor AgentSSHConfigurationSession {
     init(
         resolver: AgentHostResolver, hostID: Host.ID,
         invocationID: AgentToolInvocation.ID,
-        interaction: any AgentUserInteractionHandling
+        interaction: AgentSSHInteraction
     ) {
         self.resolver = resolver
         self.hostID = hostID
@@ -623,7 +624,7 @@ actor AgentSSHAuthenticationRegistry {
 
     func exec(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
-        interaction: any AgentUserInteractionHandling, pool: AgentConnectionPool
+        interaction: AgentSSHInteraction, pool: AgentConnectionPool
     ) async throws -> any SSHExecSessionProtocol {
         try await withSession(
             hostID: hostID, invocationID: invocationID, interaction: interaction
@@ -636,7 +637,7 @@ actor AgentSSHAuthenticationRegistry {
 
     func execConnection(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
-        interaction: any AgentUserInteractionHandling, pool: AgentConnectionPool
+        interaction: AgentSSHInteraction, pool: AgentConnectionPool
     ) async throws -> AgentSSHExecConnection {
         try await withSession(
             hostID: hostID, invocationID: invocationID, interaction: interaction
@@ -666,7 +667,7 @@ actor AgentSSHAuthenticationRegistry {
 
     func sftp(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
-        interaction: any AgentUserInteractionHandling, pool: AgentConnectionPool
+        interaction: AgentSSHInteraction, pool: AgentConnectionPool
     ) async throws -> any SFTPClientProtocol {
         try await withSession(
             hostID: hostID, invocationID: invocationID, interaction: interaction
@@ -722,7 +723,7 @@ actor AgentSSHAuthenticationRegistry {
 
     fileprivate func withSession<Value: Sendable>(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
-        interaction: any AgentUserInteractionHandling,
+        interaction: AgentSSHInteraction,
         operation: @Sendable (AgentSSHConfigurationSession) async throws -> Value
     ) async throws -> Value {
         let token: UUID

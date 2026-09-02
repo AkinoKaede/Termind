@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 #if canImport(AppKit)
@@ -37,16 +38,22 @@ final class ExternalAuthCoordinator {
             await coordinator.enqueue(request, clientName: clientName, runID: runID)
         }
 
-        func requestSSHAuthentication(
-            _ request: AgentSSHAuthenticationRequest
-        ) async -> AgentSSHAuthenticationResponse {
-            await coordinator.enqueue(request, clientName: clientName, runID: runID)
-        }
-
-        func requestSSHHostKeyConfirmation(
-            _ request: AgentSSHHostKeyRequest
-        ) async -> AgentSSHHostKeyResponse {
-            await coordinator.enqueue(request, clientName: clientName, runID: runID)
+        /// The SSH checkpoints, in the shape the tools take them — see
+        /// `AgentSSHInteraction`. They queue in the same window as the secret
+        /// prompt above; only the route differs.
+        var sshInteraction: AgentSSHInteraction {
+            AgentSSHInteraction(
+                authenticate: { [clientName, runID, coordinator] request in
+                    await coordinator.enqueue(
+                        request, clientName: clientName, runID: runID
+                    )
+                },
+                confirmHostKey: { [clientName, runID, coordinator] request in
+                    await coordinator.enqueue(
+                        request, clientName: clientName, runID: runID
+                    )
+                }
+            )
         }
     }
 

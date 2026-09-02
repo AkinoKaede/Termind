@@ -1,3 +1,5 @@
+import AgentKit
+import AgentKitScrubber
 import Foundation
 import Testing
 
@@ -17,12 +19,12 @@ struct AgentBuiltInToolAvailabilityTests {
             sweepInterval: nil
         )
 
-        let mainAssistant = AgentToolCatalog.registry(environment: .init(
+        let mainAssistant = TermindAgentTools.tools(in: .init(
             hosts: hosts, connections: connections
-        )).descriptors
-        let workspaceSidebar = AgentToolCatalog.registry(environment: .init(
+        )).map(\.descriptor)
+        let workspaceSidebar = TermindAgentTools.tools(in: .init(
             hosts: hosts, connections: connections, includesTerminalSuggestion: true
-        )).descriptors
+        )).map(\.descriptor)
 
         #expect(!mainAssistant.contains { $0.name == "terminal_suggest" })
         #expect(workspaceSidebar.contains { $0.name == "terminal_suggest" })
@@ -42,21 +44,77 @@ struct AgentBuiltInToolAvailabilityTests {
             conversationID: UUID(), base: FileManager.default.temporaryDirectory
         )
         let web = ScrubberWebClient(
-                document: { _ in throw ScrubberWebError.emptyDocument },
+                document: { _ in throw AgentWebError.emptyDocument },
                 search: { _, _ in [] }
         )
-        let descriptors = AgentToolCatalog.registry(environment: .init(
-            hosts: hosts, connections: connections, web: web, search: web,
-            includesTerminalSuggestion: true, workspace: workspace,
-            tasks: AgentTaskList { _ in }, plans: AgentPlanRecorder { _ in }
-        )).descriptors
+        let descriptors = AgentToolCatalog.registry(
+            builtIn: .init(
+                workspace: workspace, web: web, search: web,
+                tasks: AgentTaskList { _ in }, plans: AgentPlanRecorder { _ in }
+            ),
+            additional: TermindAgentTools.tools(in: .init(
+                hosts: hosts, connections: connections,
+                includesTerminalSuggestion: true, workspace: workspace
+            ))
+        ).descriptors
 
         for descriptor in descriptors where descriptor.target != .mcp {
             let id = descriptor.presentation?.presenterID
             #expect(id != nil, "Missing presenter for \(descriptor.name)")
             if let id {
-                #expect(AgentToolCatalog.presenter(id: id) != nil)
+                #expect(TermindAgentTools.presenter(id: id) != nil)
             }
         }
+    }
+
+    /// The point of `AgentToolGroup`: an adopter with no web client and no
+    /// skills gets a registry that never names `fetch` or `load_skill`, rather
+    /// than one that offers them and fails on the first call.
+    @Test
+    func onlyTheSelectedGroupsReachTheRegistry() throws {
+        let workspace = AgentScratchWorkspace(
+            conversationID: UUID(), base: FileManager.default.temporaryDirectory
+        )
+        let web = ScrubberWebClient(
+            document: { _ in throw AgentWebError.emptyDocument },
+            search: { _, _ in [] }
+        )
+        let everything = AgentBuiltInToolConfiguration(
+            workspace: workspace, web: web, search: web,
+            tasks: AgentTaskList { _ in }, plans: AgentPlanRecorder { _ in },
+            skills: AgentSkillCatalog([
+                AgentSkill(name: "deploy", summary: "Deploy the app", body: "Steps")
+            ])
+        )
+
+        var narrowed = everything
+        narrowed.groups = [.scratch, .userInteraction]
+        let names = Set(AgentToolCatalog.registry(builtIn: narrowed).descriptors.map(\.name))
+
+        #expect(names.contains("scratch_write"))
+        #expect(names.contains("request_user_secret"))
+        for absent in [
+            "fetch", "web_search", "scratch_fetch", "load_skill", "manage_tasks",
+            "present_plan",
+        ] {
+            #expect(!names.contains(absent), "\(absent) survived group selection")
+        }
+
+        // Everything the narrowed set dropped is present when its group is.
+        let all = Set(AgentToolCatalog.registry(builtIn: everything).descriptors.map(\.name))
+        #expect(names.isSubset(of: all))
+        #expect(all.isSuperset(of: ["fetch", "web_search", "load_skill", "present_plan"]))
+    }
+
+    /// A selected group whose dependency is missing contributes nothing. The
+    /// alternative — registering `fetch` with no fetcher — puts a tool in front
+    /// of the model that can only ever fail.
+    @Test
+    func aSelectedGroupWithoutItsDependencyRegistersNothing() {
+        let names = Set(
+            AgentToolCatalog.registry(builtIn: .init(groups: [.web, .scratch, .planning]))
+                .descriptors.map(\.name)
+        )
+        #expect(names.isEmpty)
     }
 }

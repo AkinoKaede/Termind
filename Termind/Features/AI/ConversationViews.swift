@@ -1,3 +1,4 @@
+import AgentKit
 import AppKit
 import ListViewKit
 import SwiftUI
@@ -481,7 +482,7 @@ struct ComposerView: View {
         resolved?.model.label ?? String(localized: "No model")
     }
 
-    private var resolvedPermissionMode: ChatPermissionMode {
+    private var resolvedPermissionMode: AgentPermissionMode {
         app.aiConfiguration.resolve(conversation: conversation.permissionMode)
     }
 
@@ -1453,7 +1454,7 @@ struct ComposerView: View {
                 .padding(.bottom, Metrics.Space.s)
 
             VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                ForEach(ChatPermissionMode.allCases) { mode in
+                ForEach(AgentPermissionMode.allCases) { mode in
                     Button {
                         conversation.permissionMode = mode
                         app.aiConfiguration.select(mode)
@@ -1477,7 +1478,7 @@ struct ComposerView: View {
         .presentationBackground(.clear)
     }
 
-    private func permissionOptionRow(_ mode: ChatPermissionMode) -> some View {
+    private func permissionOptionRow(_ mode: AgentPermissionMode) -> some View {
         let isSelected = mode == resolvedPermissionMode
         let isFullAccess = mode == .fullAccess
         return HStack(alignment: .center, spacing: Metrics.Space.m) {
@@ -1512,7 +1513,7 @@ struct ComposerView: View {
         .contentShape(.rect)
     }
 
-    private func permissionDescription(_ mode: ChatPermissionMode) -> LocalizedStringKey {
+    private func permissionDescription(_ mode: AgentPermissionMode) -> LocalizedStringKey {
         switch mode {
         case .askForApproval: "Ask before protected actions"
         case .approveForMe: "Use Security Review automatically"

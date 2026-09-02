@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 nonisolated struct CommandGeneratorContext: Hashable, Codable, Sendable {

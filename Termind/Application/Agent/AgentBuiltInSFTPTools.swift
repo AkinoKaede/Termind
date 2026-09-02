@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 nonisolated protocol SFTPToolDefinition: AgentToolDefinition, AgentToolSchemaBuilding {
@@ -40,7 +41,7 @@ nonisolated extension SFTPToolDefinition {
         var checked = invocation
         let arguments = try Arguments(invocation)
         checked.targetHostID = try arguments.uuid("host_id")
-        _ = try AgentBuiltInTools.normalizeRemotePath(arguments.string("path"))
+        _ = try AgentToolSupport.normalizeRemotePath(arguments.string("path"))
         return AgentToolPreflight(invocation: checked, safety: Self.safety)
     }
 
@@ -49,8 +50,8 @@ nonisolated extension SFTPToolDefinition {
     ) async throws -> AgentToolResult {
         let arguments = try Arguments(invocation)
         let hostID = try arguments.uuid("host_id")
-        let path = try AgentBuiltInTools.normalizeRemotePath(arguments.string("path"))
-        return try await AgentBuiltInTools.withAuthenticatedSFTP(
+        let path = try AgentToolSupport.normalizeRemotePath(arguments.string("path"))
+        return try await AgentToolSupport.withAuthenticatedSFTP(
             hostID: hostID, invocation: invocation, context: context,
             authentication: authentication, pool: connections
         ) { client in
@@ -77,7 +78,7 @@ nonisolated struct SFTPListTool: SFTPToolDefinition {
     func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
                  invocation: AgentToolInvocation) async throws -> AgentToolResult {
         let files = try await client.listDirectory(at: path)
-        return Self.result(invocation, .array(files.map(AgentBuiltInTools.remoteFileJSON)))
+        return Self.result(invocation, .array(files.map(AgentToolSupport.remoteFileJSON)))
     }
 }
 
@@ -97,7 +98,7 @@ nonisolated struct SFTPStatTool: SFTPToolDefinition {
     func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
                  invocation: AgentToolInvocation) async throws -> AgentToolResult {
         guard let file = try await client.attributes(at: path) else { throw AgentToolError.notFound }
-        return Self.result(invocation, AgentBuiltInTools.remoteFileJSON(file))
+        return Self.result(invocation, AgentToolSupport.remoteFileJSON(file))
     }
 }
 
@@ -188,7 +189,7 @@ nonisolated struct SFTPMoveTool: SFTPToolDefinition {
     let connections: AgentConnectionPool
     func perform(client: any SFTPClientProtocol, path: String, arguments: Arguments,
                  invocation: AgentToolInvocation) async throws -> AgentToolResult {
-        let destination = try AgentBuiltInTools.normalizeRemotePath(arguments.string("destination"))
+        let destination = try AgentToolSupport.normalizeRemotePath(arguments.string("destination"))
         try await client.rename(from: path, to: destination,
                                 overwrite: arguments.optionalBool("overwrite") ?? false)
         return Self.result(invocation, .object([
@@ -409,7 +410,7 @@ nonisolated enum SFTPToolPresentation {
     }
 }
 
-nonisolated extension AgentBuiltInTools {
+nonisolated extension AgentToolSupport {
 
     /// One authenticated SFTP operation. Connection setup may safely retry
     /// after a rejected credential because the operation has not begun. Once
@@ -423,7 +424,7 @@ nonisolated extension AgentBuiltInTools {
     ) async throws -> Value {
         let client = try await authentication.sftp(
             hostID: hostID, invocationID: invocation.id,
-            interaction: context.userInteraction, pool: pool
+            interaction: context.sshInteraction, pool: pool
         )
         do {
             return try await operation(client)

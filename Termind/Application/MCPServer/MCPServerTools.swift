@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 
 @MainActor
@@ -61,12 +62,13 @@ final class MCPServerTools {
     ) async throws -> AgentToolResult {
         guard registry[name] != nil else { throw MCPServerToolsError.unknownTool(name) }
         history.register(runID: runID, clientName: clientName)
+        let handler = externalAuthentication.handler(clientName: clientName, runID: runID)
         let executor = AgentToolExecutor(
             tools: registry, approval: approval, hooks: AgentLoopHooks([]),
             channel: channel, secretBroker: secretBroker,
-            userInteraction: externalAuthentication.handler(
-                clientName: clientName, runID: runID
-            ),
+            userInteraction: handler,
+            services: AgentToolServices()
+                .setting(handler.sshInteraction, for: .sshInteraction),
             runID: runID, permissionMode: .fullAccess,
             userIntent: "MCP client: \(clientName)"
         )
@@ -85,10 +87,21 @@ final class MCPServerTools {
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands, disabledTools: Set<String>
     ) -> AgentToolRegistry {
-        AgentToolCatalog.registry(environment: AgentToolEnvironment(
-            hosts: hosts, connections: connections, authentication: authentication,
-            background: background
-        )).filtering {
+        AgentToolCatalog.registry(
+            // `request_user_secret` is the only exported tool the runtime owns;
+            // every other name below is Termind's. The rest of the built-in
+            // groups are left out rather than filtered out, so an external client
+            // cannot reach a scratch workspace or a web fetch that no Termind
+            // conversation is backing.
+            builtIn: AgentBuiltInToolConfiguration(
+                groups: [.userInteraction],
+                secretConsumerTools: [TermindAgentPolicy.sshExecToolName]
+            ),
+            additional: TermindAgentTools.tools(in: TermindAgentToolEnvironment(
+                hosts: hosts, connections: connections, authentication: authentication,
+                background: background
+            ))
+        ).filtering {
             exportedNames.contains($0.name) && !disabledTools.contains($0.name)
         }
     }

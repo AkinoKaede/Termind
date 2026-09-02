@@ -1,3 +1,4 @@
+import AgentKit
 import AppKit
 import Foundation
 import Observation
@@ -81,9 +82,9 @@ struct ExternalAuthCoordinatorTests {
             mode: .identity, username: "", failureMessage: nil
         )
         let flow = Task {
-            let first = await handler.requestSSHAuthentication(identity)
+            let first = await handler.sshInteraction.authenticate(identity)
             guard case .submit = first else { return first }
-            return await handler.requestSSHAuthentication(
+            return await handler.sshInteraction.authenticate(
                 AgentSSHAuthenticationRequest(
                     invocationID: invocationID, hostID: hostID,
                     displayName: "Server", address: "server.example",
