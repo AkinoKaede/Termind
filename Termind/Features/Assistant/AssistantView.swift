@@ -112,6 +112,7 @@ struct AssistantPanelView: View {
         if window.sidebar.isAssistantArchivePresented {
             AssistantArchiveView(
                 isCompact: true,
+                isInteractive: isFocusedOnWorkspace,
                 onBack: { window.closeAssistantInSidebar() },
                 onOpen: { window.openAssistantInSidebar($0) }
             )
@@ -205,6 +206,7 @@ struct AssistantPanelView: View {
     private var conversationList: some View {
         AssistantConversationList(
             selectedID: window.sidebar.assistantConversationID,
+            isInteractive: isFocusedOnWorkspace,
             onOpen: { window.openAssistantInSidebar($0) }
         )
         .overlay {
@@ -263,6 +265,9 @@ private struct AssistantConversationList: View {
     /// with one flat Results section — when you are hunting for a conversation,
     /// which of the two groups it was filed under is noise.
     var query: String = ""
+    /// False for a copy the Assistant panel keeps mounted behind the one on
+    /// screen. See `AssistantConversationListContainer.isInteractive`.
+    var isInteractive: Bool = true
     let onOpen: (UUID) -> Void
     var scope: Scope = .active
     var archiveMaxWidth: CGFloat?
@@ -359,7 +364,8 @@ private struct AssistantConversationList: View {
                 )
                 window.dragging = nil
             },
-            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) }
+            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) },
+            isInteractive: isInteractive
         ) { item in
             renderedItem(item, window: window)
         }
@@ -375,7 +381,8 @@ private struct AssistantConversationList: View {
             window: window,
             topInset: Metrics.Space.m,
             bottomInset: Metrics.Space.m,
-            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) }
+            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) },
+            isInteractive: isInteractive
         ) { item in
             renderedItem(item, window: window)
                 .frame(maxWidth: archiveMaxWidth ?? .infinity)
@@ -720,6 +727,9 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
     var draggedID: () -> UUID? = { nil }
     var onMove: ((UUID, AssistantConversationDropTarget) -> Void)?
     var blankAreaMenu: (() -> [NativeMenuEntry])?
+    /// False for a list its own SwiftUI layer keeps mounted but invisible. See
+    /// `AssistantConversationListContainer.isInteractive`.
+    var isInteractive = true
     let renderer: Renderer
 
     @Environment(\.locale) private var locale
@@ -734,6 +744,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         draggedID: @escaping () -> UUID? = { nil },
         onMove: ((UUID, AssistantConversationDropTarget) -> Void)? = nil,
         blankAreaMenu: (() -> [NativeMenuEntry])? = nil,
+        isInteractive: Bool = true,
         @ViewBuilder renderer: @escaping @MainActor (AssistantConversationListItem) -> some View
     ) {
         self.items = items
@@ -744,6 +755,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         self.draggedID = draggedID
         self.onMove = onMove
         self.blankAreaMenu = blankAreaMenu
+        self.isInteractive = isInteractive
         self.renderer = { AnyView(renderer($0)) }
     }
 
@@ -757,6 +769,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         container.draggedID = draggedID
         container.onMove = onMove
         container.blankAreaMenu = blankAreaMenu
+        container.isInteractive = isInteractive
         context.coordinator.update(
             listView: container.listView,
             items: items,
@@ -843,11 +856,36 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
 }
 
 @MainActor
-private final class AssistantConversationListContainer: NSView {
+final class AssistantConversationListContainer: NSView {
     let listView: ListView<AssistantConversationListItem>
     var draggedID: () -> UUID? = { nil }
     var onMove: ((UUID, AssistantConversationDropTarget) -> Void)?
     var blankAreaMenu: (() -> [NativeMenuEntry])?
+
+    /// Whether this is the list on screen.
+    ///
+    /// `AssistantPanelView` keeps the Workspace layer mounted behind the sidebar
+    /// list so the composer draft and the cross-fade survive, which leaves two
+    /// of these stacked whenever the destination is not a Workspace. AppKit
+    /// honours neither `allowsHitTesting(false)` nor `opacity(0)` when it looks
+    /// for a drag destination, so the hidden copy wins and draws its insertion
+    /// line where nobody can see it.
+    ///
+    /// Both halves of the retreat are needed: unregistering alone still leaves
+    /// this view claiming the hit test that decides which destination AppKit
+    /// walks up from, and refusing the hit test alone still leaves it in the
+    /// window's registered destination list.
+    var isInteractive = true {
+        didSet {
+            guard isInteractive != oldValue else { return }
+            clearTarget()
+            if isInteractive {
+                registerForDraggedTypes([.string])
+            } else {
+                unregisterDraggedTypes()
+            }
+        }
+    }
 
     private let insertionLine = NSView()
     private var target: AssistantConversationDropTarget?
@@ -877,6 +915,10 @@ private final class AssistantConversationListContainer: NSView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         updateAppearanceLayers()
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        isInteractive ? super.hitTest(point) : nil
     }
 
     private func updateAppearanceLayers() {
@@ -1034,6 +1076,9 @@ private final class AssistantConversationHostingRow: ListRowView {
 
 private struct AssistantArchiveView: View {
     let isCompact: Bool
+    /// False for the compact archive while the sidebar shows the chat list
+    /// beneath it. See `AssistantConversationListContainer.isInteractive`.
+    var isInteractive: Bool = true
     /// The titlebar Find field, which searches whichever scope is on screen.
     /// The compact sidebar archive passes none — the titlebar is describing the
     /// main content, not this column.
@@ -1050,6 +1095,7 @@ private struct AssistantArchiveView: View {
             AssistantConversationList(
                 selectedID: nil,
                 query: query,
+                isInteractive: isInteractive,
                 onOpen: onOpen,
                 scope: .archived,
                 archiveMaxWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth

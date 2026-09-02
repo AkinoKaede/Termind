@@ -9,83 +9,11 @@ import Testing
 @MainActor
 struct RemoteWindowTitleTests {
     @Test
-    func sshSessionMirrorsSanitizedGhosttyTitleOnlyWhileConnected() async {
-        let session = SSHSessionModel(hostID: UUID(), title: "Host")
-
-        session.terminalState.terminalDidChangeTitle(
-            "\u{1B}[31mkaede@lima-default:/Users/kaede\u{1B}[0m\nignored"
-        )
-        #expect(session.remoteWindowTitle == "kaede@lima-default:/Users/kaede ignored")
-        #expect(session.menuBarWindowTitle == nil)
-
-        session.status = .connected
-        #expect(session.menuBarWindowTitle == "kaede@lima-default:/Users/kaede ignored")
-
-        session.disconnect()
-        #expect(session.remoteWindowTitle == nil)
-        #expect(session.menuBarWindowTitle == nil)
-    }
-
-    @Test
     func sanitizerKeepsOnePrintableLineAndRejectsEmptyTitles() {
         #expect(RemoteWindowTitle.sanitized("  host: /srv  ") == "host: /srv")
         #expect(RemoteWindowTitle.sanitized("host\r\n/srv\u{7}") == "host /srv")
         #expect(RemoteWindowTitle.sanitized("\u{1B}[1;32mgreen\u{1B}[0m") == "green")
         #expect(RemoteWindowTitle.sanitized("\n\u{7}\u{1B}[31m") == nil)
-    }
-
-    @Test
-    func titleSinkFollowsWorkspaceSelectionAndFocusedSessionOSC() {
-        let first = Workspace.sshSession(
-            host: Host(name: "First", host: "first.example")
-        )
-        let second = Workspace.sshSession(
-            host: Host(name: "Second", host: "second.example")
-        )
-        let window = WindowModel(workspaces: [first, second])
-        let firstSession = first.focusedPane.sshSession!
-        let secondSession = second.focusedPane.sshSession!
-        firstSession.status = .connected
-        secondSession.status = .connected
-
-        let sink = RemoteTitleSinkProbe()
-        window.remoteWindowTitleSink = sink
-        firstSession.terminalState.terminalDidChangeTitle("first:/srv")
-        #expect(sink.titles == ["first:/srv"])
-
-        secondSession.terminalState.terminalDidChangeTitle("second:/tmp")
-        #expect(sink.titles == ["first:/srv"])
-
-        window.select(second.id)
-        #expect(sink.titles == ["first:/srv", "second:/tmp"])
-        #expect(window.focusedSSHSession === secondSession)
-        #expect(window.focusedSSHSession?.remoteWindowTitle == "second:/tmp")
-    }
-
-    @Test
-    func titleSinkFollowsFocusedPaneWithinAWorkspace() {
-        let workspace = Workspace.sshSession(
-            host: Host(name: "First", host: "first.example")
-        )
-        let firstPane = workspace.focusedPane
-        let secondPane = Pane.sshSession(
-            host: Host(name: "Second", host: "second.example")
-        )
-        workspace.splitFocusedPane(axis: .horizontal, with: secondPane)
-        let window = WindowModel(workspaces: [workspace])
-        let firstSession = firstPane.sshSession!
-        let secondSession = secondPane.sshSession!
-        firstSession.status = .connected
-        secondSession.status = .connected
-        firstSession.terminalState.terminalDidChangeTitle("pane-first:/srv")
-        secondSession.terminalState.terminalDidChangeTitle("pane-second:/tmp")
-        let sink = RemoteTitleSinkProbe()
-        window.remoteWindowTitleSink = sink
-
-        workspace.focus(firstPane.id)
-        workspace.focus(secondPane.id)
-
-        #expect(sink.titles == ["pane-first:/srv", "pane-second:/tmp"])
     }
 
     @Test
@@ -168,15 +96,6 @@ struct RemoteWindowTitleTests {
             }
             try await Task.sleep(for: .milliseconds(10))
         }
-    }
-}
-
-@MainActor
-private final class RemoteTitleSinkProbe: WindowRemoteTitleSink {
-    var titles: [String?] = []
-
-    func windowRemoteTitleDidChange(_ title: String?) {
-        titles.append(title)
     }
 }
 

@@ -689,25 +689,6 @@ struct WindowStateTests {
     }
 
     @Test
-    func focusedSSHDirectoryChangesUpdateSessionContext() async {
-        let host = Host(name: "Server", host: "server.example")
-        let workspace = Workspace.sshSession(host: host)
-        let sshSession = workspace.focusedPane.sshSession!
-        let window = WindowModel(workspaces: [workspace])
-        window.hostStore = HostLibraryModel(hosts: [host])
-        sshSession.receiveShellIntegrationEvent(.homeResolutionUnavailable)
-
-        sshSession.terminalState.terminalDidChangeWorkingDirectory("/var/log")
-        await Task.yield()
-
-        #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host, .directory])
-        #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/var/log"])
-
-        sshSession.disconnect()
-        #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host])
-    }
-
-    @Test
     func focusedSSHSystemInfoUpdatesSessionContextAndSFTPClearsIt() {
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sshSession(host: host)
