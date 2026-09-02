@@ -77,7 +77,9 @@ struct AppLanguageTests {
         let strings = try #require(root["strings"] as? [String: Any])
 
         for key in [
-            "%lld hosts", "%lld items", "%lld questions", "%lld results",
+            // `%lld results` is not here: `web_search`'s card moved to AgentKit
+            // with the runtime, and so did the plural resource behind it.
+            "%lld hosts", "%lld items", "%lld questions",
             "%lld tool calls", "%@ — %lld tools",
         ] {
             let entry = try #require(strings[key] as? [String: Any])

@@ -183,14 +183,16 @@ nonisolated enum AgentSkillLibrary {
                 ## 1. Pull it, do not read it into the chat
 
                 ```
-                scratch_pull   → stage the file locally
-                scratch_edit   → change the lines you mean to change
-                scratch_push   → send it back
+                scratch_pull    → stage the file locally
+                scratch_copy    → keep the pristine copy to diff against
+                scratch_replace → change the lines you mean to change
+                scratch_push    → send it back
                 ```
 
                 The contents never enter the conversation, revisions cost a diff instead of another
                 copy of the file, and the only step the user approves is the one that reaches their
-                host. Use `scratch_read` on the staged copy when you need to see it.
+                host. Use `scratch_read` on the staged copy when you need to see it, and
+                `scratch_diff` against the pristine copy to check what you actually changed.
 
                 ## 2. Keep a way back
 

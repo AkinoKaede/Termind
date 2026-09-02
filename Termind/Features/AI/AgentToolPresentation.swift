@@ -855,6 +855,7 @@ nonisolated enum AgentToolPresentation {
         let forms: ActionForms = switch kind {
         case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
         case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
+        case .copy: .init(infinitive: "copy", progressive: "Copying", past: "Copied")
         case .create: .init(infinitive: "create", progressive: "Creating", past: "Created")
         case .delete: .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
         case .edit: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
@@ -898,6 +899,7 @@ nonisolated enum AgentToolPresentation {
         switch kind {
         case .ask: localized("ask", locale: locale)
         case .compare: localized("compare", locale: locale)
+        case .copy: localized("copy", locale: locale)
         case .create: localized("create", locale: locale)
         case .delete: localized("delete", locale: locale)
         case .edit: localized("edit", locale: locale)

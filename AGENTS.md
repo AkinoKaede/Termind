@@ -4,7 +4,9 @@
 
 `Termind/` contains the Swift 6 macOS app: models in `Domain/`, orchestration and ports in `Application/`, adapters in `Infrastructure/`, UI in `Features/`, and macOS integration in `Platform/macOS/`. `TermindMCPBridge/` builds `termind-mcp`; tests live in `TermindTests/`. `LandingPage/` is the Astro site. Utilities belong in `Scripts/`.
 
-The agent runtime is `AgentKit`, a separate open-source package in the sibling `../AgentKit` repository, referenced as a local SPM package. It owns the loop, the approval gate, the provider adapters, the MCP client, and the built-in tools that know nothing about hosts. Termind owns the SSH/SFTP tools and registers them through `TermindAgentTools`. Never add SSH, SFTP, UI, or the name Termind to that package; when a change needs both sides, make the package change first and rebuild the app against it.
+The agent runtime is `AgentKit`, a separate open-source package developed in the sibling `../AgentKit` repository and consumed as a versioned remote SPM dependency on `github.com/AkinoKaede/AgentKit`, pinned in `Package.resolved`. It owns the loop, the approval gate, the provider adapters, the MCP client, and the built-in tools that know nothing about hosts. Termind owns the SSH/SFTP tools and registers them through `TermindAgentTools`. Never add SSH, SFTP, UI, or the name Termind to that package.
+
+Xcode builds the pinned tag, not the sibling working tree, so an uncommitted change in `../AgentKit` is invisible to the app. A change that spans both sides takes three steps: make and test the package change, tag and push a release from `../AgentKit`, then bump `minimumVersion` in `project.pbxproj` and re-resolve so `Package.resolved` records the new revision. Both files belong in the same commit as the app-side change that needs them.
 
 ## Architecture Records & Refactoring Memory
 

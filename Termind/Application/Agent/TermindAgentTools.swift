@@ -17,7 +17,7 @@ nonisolated struct TermindAgentToolEnvironment: Sendable {
     /// Shared with the runtime's scratch group. `scratch_pull` and
     /// `scratch_push` are ours rather than the runtime's precisely because they
     /// are the two ends that touch a host, and they must stage into the same
-    /// directory `scratch_edit` reads.
+    /// directory `scratch_replace` reads.
     var workspace: AgentScratchWorkspace?
 
     init(

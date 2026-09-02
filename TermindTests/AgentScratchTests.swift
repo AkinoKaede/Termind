@@ -262,14 +262,14 @@ struct AgentScratchTests {
         let workspace = Fixture.workspace()
         _ = try await workspace.write("c.conf", data: Data("alpha\nbeta\ngamma\n".utf8))
 
-        let outcome = try await workspace.apply(
+        let outcome = try await workspace.replace(
             [
-                ScratchEdit(oldText: "alpha", newText: "one"),
-                ScratchEdit(oldText: "gamma", newText: "three"),
+                ScratchReplacement(oldText: "alpha", newText: "one"),
+                ScratchReplacement(oldText: "gamma", newText: "three"),
             ],
-            to: "c.conf"
+            in: "c.conf"
         )
-        #expect(outcome.editsApplied == 2)
+        #expect(outcome.replacementsApplied == 2)
         #expect(try await workspace.read("c.conf").content == "one\nbeta\nthree")
         #expect(outcome.diff.firstChangedLine == 1)
         #expect(outcome.diff.text.contains("-alpha"))
@@ -279,12 +279,12 @@ struct AgentScratchTests {
         // the model never has to simulate its own changes to write the second one.
         _ = try await workspace.write("d.conf", data: Data("alpha\nbeta\n".utf8))
         await #expect(throws: (any Error).self) {
-            try await workspace.apply(
+            try await workspace.replace(
                 [
-                    ScratchEdit(oldText: "alpha", newText: "one"),
-                    ScratchEdit(oldText: "one", newText: "uno"),
+                    ScratchReplacement(oldText: "alpha", newText: "one"),
+                    ScratchReplacement(oldText: "one", newText: "uno"),
                 ],
-                to: "d.conf"
+                in: "d.conf"
             )
         }
         #expect(try await workspace.read("d.conf").content == "alpha\nbeta")
@@ -298,30 +298,30 @@ struct AgentScratchTests {
         let before = try await workspace.data(at: "n.conf").sha256
 
         await #expect(throws: (any Error).self) {
-            try await workspace.apply(
-                [ScratchEdit(oldText: "listen 80;", newText: "listen 8080;")], to: "n.conf"
+            try await workspace.replace(
+                [ScratchReplacement(oldText: "listen 80;", newText: "listen 8080;")], in: "n.conf"
             )
         }
         #expect(try await workspace.data(at: "n.conf").sha256 == before)
 
         await #expect(throws: (any Error).self) {
-            try await workspace.apply(
+            try await workspace.replace(
                 [
-                    ScratchEdit(oldText: "server_name a;\nlisten", newText: "x"),
-                    ScratchEdit(oldText: "a;\nlisten 80;\n", newText: "y"),
+                    ScratchReplacement(oldText: "server_name a;\nlisten", newText: "x"),
+                    ScratchReplacement(oldText: "a;\nlisten 80;\n", newText: "y"),
                 ],
-                to: "n.conf"
+                in: "n.conf"
             )
         }
         #expect(try await workspace.data(at: "n.conf").sha256 == before)
 
         // Extending old_text until it names one region is the documented fix, and
         // it works.
-        let outcome = try await workspace.apply(
-            [ScratchEdit(oldText: "server_name a;\nlisten 80;", newText: "server_name a;\nlisten 8080;")],
-            to: "n.conf"
+        let outcome = try await workspace.replace(
+            [ScratchReplacement(oldText: "server_name a;\nlisten 80;", newText: "server_name a;\nlisten 8080;")],
+            in: "n.conf"
         )
-        #expect(outcome.editsApplied == 1)
+        #expect(outcome.replacementsApplied == 1)
         #expect(try await workspace.read("n.conf").content == "listen 80;\nserver_name a;\nlisten 8080;")
     }
 
@@ -330,8 +330,8 @@ struct AgentScratchTests {
         let workspace = Fixture.workspace()
         _ = try await workspace.write("f.txt", data: Data("same\n".utf8))
         await #expect(throws: (any Error).self) {
-            try await workspace.apply(
-                [ScratchEdit(oldText: "same", newText: "same")], to: "f.txt"
+            try await workspace.replace(
+                [ScratchReplacement(oldText: "same", newText: "same")], in: "f.txt"
             )
         }
     }
@@ -344,17 +344,17 @@ struct AgentScratchTests {
         _ = try await workspace.write(
             "q.txt", data: Data("say \u{201C}hello\u{201D} \u{2014} now   \nkeep\n".utf8)
         )
-        let outcome = try await workspace.apply(
-            [ScratchEdit(oldText: "say \"hello\" - now", newText: "say goodbye")], to: "q.txt"
+        let outcome = try await workspace.replace(
+            [ScratchReplacement(oldText: "say \"hello\" - now", newText: "say goodbye")], in: "q.txt"
         )
-        #expect(outcome.editsApplied == 1)
+        #expect(outcome.replacementsApplied == 1)
         #expect(try await workspace.read("q.txt").content == "say goodbye\nkeep")
 
         // A difference in an actual word is still a miss. The fallback forgives how
         // text was typed, not what it says.
         await #expect(throws: (any Error).self) {
-            try await workspace.apply(
-                [ScratchEdit(oldText: "say farewell", newText: "x")], to: "q.txt"
+            try await workspace.replace(
+                [ScratchReplacement(oldText: "say farewell", newText: "x")], in: "q.txt"
             )
         }
     }
@@ -365,8 +365,8 @@ struct AgentScratchTests {
         let original = "\u{FEFF}alpha\r\nbeta\r\ngamma\r\n"
         _ = try await workspace.write("win.ini", data: Data(original.utf8))
 
-        let outcome = try await workspace.apply(
-            [ScratchEdit(oldText: "beta", newText: "BETA")], to: "win.ini"
+        let outcome = try await workspace.replace(
+            [ScratchReplacement(oldText: "beta", newText: "BETA")], in: "win.ini"
         )
         #expect(outcome.lineEnding == .crlf)
         // Asserted on the bytes, not on a decoded String. Decoding is what hides a
@@ -387,9 +387,9 @@ struct AgentScratchTests {
         let body = (1...400).map { "setting_\($0) = off" }.joined(separator: "\n") + "\n"
         _ = try await workspace.write("big.conf", data: Data(body.utf8))
 
-        let outcome = try await workspace.apply(
-            [ScratchEdit(oldText: "setting_200 = off", newText: "setting_200 = on")],
-            to: "big.conf"
+        let outcome = try await workspace.replace(
+            [ScratchReplacement(oldText: "setting_200 = off", newText: "setting_200 = on")],
+            in: "big.conf"
         )
         #expect(outcome.diff.firstChangedLine == 200)
         #expect(outcome.diff.text.contains("+setting_200 = on"))
@@ -401,13 +401,13 @@ struct AgentScratchTests {
     @Test
     func moreEditsThanTheLimitAreRefused() async throws {
         let workspace = Fixture.workspace()
-        let count = AgentScratchWorkspace.Limits.edits + 1
+        let count = AgentScratchWorkspace.Limits.replacements + 1
         let body = (1...count).map { "v\($0)" }.joined(separator: "\n") + "\n"
         _ = try await workspace.write("many.txt", data: Data(body.utf8))
         await #expect(throws: (any Error).self) {
-            try await workspace.apply(
-                (1...count).map { ScratchEdit(oldText: "v\($0)", newText: "w\($0)") },
-                to: "many.txt"
+            try await workspace.replace(
+                (1...count).map { ScratchReplacement(oldText: "v\($0)", newText: "w\($0)") },
+                in: "many.txt"
             )
         }
     }
@@ -521,22 +521,59 @@ struct AgentScratchTests {
 
     // MARK: - Registry
 
+    /// A card records the presenter ID it was written with, and older cards record
+    /// only a tool name. `scratch_edit` became `scratch_replace`, so both routes
+    /// still have to reach a projection — otherwise every transcript that predates
+    /// the rename falls back to generic key/value fields.
+    @Test
+    func aCardWrittenAsScratchEditStillFindsItsProjection() throws {
+        let byID = try #require(TermindAgentTools.presenter(id: "builtin.scratch_edit"))
+        let byLegacyName = try #require(
+            TermindAgentTools.legacyPresenter(forToolNamed: "scratch_edit")
+        )
+        #expect(byLegacyName.id == byID.id)
+        #expect(TermindAgentTools.presenter(id: "builtin.scratch_replace") != nil)
+
+        // And it draws the old payload, which has no `replacements_applied`.
+        let items = byID.present(
+            AgentToolDetailInput(
+                result: .object([
+                    "path": .string("app.conf"), "edits_applied": .number(2),
+                    "diff": .string("@@ -1 +1 @@\n-a\n+b"), "bytes": .number(12),
+                ]),
+                arguments: ["path": .string("app.conf")], locale: Locale(identifier: "en")
+            ))
+        let showsPath = items.contains { item in
+            guard case .field(let field) = item else { return false }
+            return field.value == "app.conf"
+        }
+        let showsDiff = items.contains { item in
+            guard case .text(let block) = item else { return false }
+            return block.text.contains("+b")
+        }
+        #expect(showsPath)
+        #expect(showsDiff)
+    }
+
     @Test
     func theToolSetIsRegisteredWithoutShadowingABuiltIn() async throws {
         let workspace = Fixture.workspace()
         let local = Fixture.scratchTools(workspace: workspace)
         #expect(local.map(\.descriptor.name).sorted() == [
-            "scratch_delete", "scratch_diff", "scratch_edit",
-            "scratch_list", "scratch_read", "scratch_search", "scratch_write",
+            "scratch_copy", "scratch_delete", "scratch_diff", "scratch_list", "scratch_move",
+            "scratch_read", "scratch_replace", "scratch_search", "scratch_write",
         ])
-        // Every purely local tool is parallel, and only the three that change
+        // Every purely local tool is parallel, and only the ones that change
         // something claim to.
         #expect(local.allSatisfy { $0.descriptor.concurrency == .parallel })
         #expect(local.allSatisfy { $0.descriptor.target == .local })
         #expect(
             local.filter { $0.descriptor.safety == .locallyContained }
                 .map(\.descriptor.name).sorted()
-                == ["scratch_delete", "scratch_edit", "scratch_write"]
+                == [
+                    "scratch_copy", "scratch_delete", "scratch_move", "scratch_replace",
+                    "scratch_write",
+                ]
         )
         #expect(!local.contains { $0.descriptor.safety == .requiresAuthorization })
         let search = try #require(local.first { $0.descriptor.name == "scratch_search" })
@@ -950,7 +987,9 @@ private enum Fixture {
             AnyAgentTool(ScratchReadTool(workspace: workspace)),
             AnyAgentTool(ScratchSearchTool(workspace: workspace)),
             AnyAgentTool(ScratchWriteTool(workspace: workspace)),
-            AnyAgentTool(ScratchEditTool(workspace: workspace)),
+            AnyAgentTool(ScratchReplaceTool(workspace: workspace)),
+            AnyAgentTool(ScratchCopyTool(workspace: workspace)),
+            AnyAgentTool(ScratchMoveTool(workspace: workspace)),
             AnyAgentTool(ScratchDiffTool(workspace: workspace)),
             AnyAgentTool(ScratchDeleteTool(workspace: workspace)),
         ]
