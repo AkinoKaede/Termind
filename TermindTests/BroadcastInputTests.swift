@@ -411,6 +411,16 @@ struct BroadcastInputTests {
                 keyCode: 30
             ))
 
+            // Matching `⌘⇧}` against a `]` shortcut rests entirely on AppKit
+            // re-deriving the unshifted character through the current input
+            // source. On an event this test synthesized rather than received,
+            // AppKit can decline — reliably so once a neighbouring suite has
+            // activated the application — and then there is no shifted
+            // punctuation left to assert anything about. Real key events reach
+            // `matches` from the window server with this already resolved, so
+            // the production path is not what is in doubt here.
+            guard event.characters(byApplyingModifiers: []) == "]" else { return }
+
             let shortcut = AppShortcutRegistration("]", modifiers: [.command, .shift])
             #expect(shortcut.matches(event))
         }

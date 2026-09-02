@@ -290,9 +290,16 @@ struct WindowStateTests {
             )
         )
         let conversation = ConversationModel()
-        conversation.appendUserTurn("old " + String(repeating: "x", count: 4_000))
-        conversation.appendUserTurn("recent")
-        let span = try #require(conversation.compactionSpan(keepRecentTokens: 2))
+        // Both turns are sized in tokens, because that is the unit the cut is
+        // chosen in. A last turn worth less than `keepRecentTokens` never
+        // satisfies the budget, so the search walks past it to the start of the
+        // transcript and `compactionSpan` returns nil with nothing to compact.
+        let keepRecentTokens = 2
+        conversation.appendUserTurn("old " + filler(tokens: 1_000))
+        conversation.appendUserTurn("recent " + filler(tokens: keepRecentTokens))
+        let span = try #require(
+            conversation.compactionSpan(keepRecentTokens: keepRecentTokens)
+        )
         let record = try #require(conversation.prepareCompaction(
             summary: "summary", cut: span.cut
         ))

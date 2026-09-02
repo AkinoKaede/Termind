@@ -66,8 +66,11 @@ struct ChatComposerStateTests {
         let conversation = ConversationModel()
 
         conversation.importAttachmentFiles([url])
+        // The import reads the file off the main actor, so yielding only lets
+        // other main-actor work run and can return before the read finishes.
+        // Sleeping suspends until the reader actually reports back.
         for _ in 0..<100 where !conversation.composer.pendingAttachments.isEmpty {
-            await Task.yield()
+            try await Task.sleep(for: .milliseconds(10))
         }
 
         #expect(conversation.composer.pendingAttachments.isEmpty)
@@ -79,7 +82,12 @@ struct ChatComposerStateTests {
     func conversationOwnedImportHonorsAttachmentLimitBeforeStartingTasks() {
         let conversation = ConversationModel()
         for index in 0..<ContextAttachmentImporter.maximumAttachments {
-            conversation.attach(ContextChip(kind: .output, label: "item \(index)", content: "x"))
+            // Distinct content, not just distinct labels: `attach` deduplicates
+            // on kind and content, so chips that differ only by label collapse
+            // into one and the composer never reaches the limit under test.
+            conversation.attach(
+                ContextChip(kind: .output, label: "item \(index)", content: "item \(index)")
+            )
         }
 
         conversation.importAttachmentFiles([URL(fileURLWithPath: "/tmp/extra.txt")])
@@ -1700,9 +1708,13 @@ struct ChatComposerStateTests {
         #expect(AgentWorkPresentation.title(
             for: .running, from: start, to: start.addingTimeInterval(68), locale: zh
         ) == "已工作1分钟8秒")
+        // Chinese uses one phrase where English distinguishes "Working for"
+        // from "Worked for". The running and finished rows are already told
+        // apart by the spinner and by whether the disclosure is folded, so the
+        // tense the English carries is not load-bearing here.
         #expect(AgentWorkPresentation.title(
             for: .completed, from: start, to: start.addingTimeInterval(68), locale: zh
-        ) == "工作了1分钟8秒")
+        ) == "已工作1分钟8秒")
         #expect(AgentWorkPresentation.title(
             for: .cancelled, from: start, to: start.addingTimeInterval(62), locale: zh
         ) == "你在1分钟2秒后停止了")

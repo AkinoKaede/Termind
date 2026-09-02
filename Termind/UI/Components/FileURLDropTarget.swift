@@ -143,15 +143,29 @@ nonisolated struct NativeDropPayload: Sendable {
         /// .leftMouseDragged`; inspect the drag pasteboard, but explicitly let
         /// every ordinary control event pass through this full-surface view.
         override func hitTest(_ point: NSPoint) -> NSView? {
-            guard
-                isEnabled,
-                bounds.contains(point),
-                !Self.isOrdinaryPointerEvent(NSApp.currentEvent?.type),
-                supportedPayload(from: NSPasteboard(name: .drag)) != nil
-            else {
-                return nil
-            }
-            return self
+            participates(
+                at: point,
+                currentEventType: NSApp.currentEvent?.type,
+                pasteboard: NSPasteboard(name: .drag)
+            ) ? self : nil
+        }
+
+        /// The decision `hitTest` makes, with its two ambient inputs passed in.
+        ///
+        /// `NSApp.currentEvent` and the `.drag` pasteboard are both process-wide
+        /// and, in the pasteboard's case, machine-wide. Reading them here rather
+        /// than in `hitTest` keeps the rule itself checkable: a caller supplies
+        /// the event type and pasteboard it means to ask about instead of
+        /// arranging for the whole application to be in the right state.
+        func participates(
+            at point: NSPoint,
+            currentEventType: NSEvent.EventType?,
+            pasteboard: NSPasteboard
+        ) -> Bool {
+            isEnabled
+                && bounds.contains(point)
+                && !Self.isOrdinaryPointerEvent(currentEventType)
+                && supportedPayload(from: pasteboard) != nil
         }
 
         /// `.drag` retains its last contents, so a stale file or bitmap must

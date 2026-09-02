@@ -4,23 +4,45 @@
     import UniformTypeIdentifiers
     @testable import Termind
 
-    /// Serialized because every test here stages its case on the one drag
-    /// pasteboard the whole system shares. Run concurrently, they clear each
-    /// other's fixture mid-assertion.
-    @Suite(.serialized)
+    /// Every test here owns its pasteboard rather than staging its case on the
+    /// one `.drag` pasteboard the whole machine shares, and asks
+    /// `participates(at:currentEventType:pasteboard:)` rather than `hitTest`,
+    /// which reads that pasteboard and `NSApp.currentEvent` for itself. Both
+    /// are ambient: a neighbouring suite that activates the application, or a
+    /// real drag anywhere on the Mac, used to decide the outcome here.
     @MainActor
     struct FileURLDropTargetTests {
+        /// A pasteboard this test owns outright, cleaned up when it returns.
+        private func stagedPasteboard() -> NSPasteboard {
+            let pasteboard = NSPasteboard.withUniqueName()
+            pasteboard.clearContents()
+            return pasteboard
+        }
+
+        /// The event type in effect while a Finder drag is over the window —
+        /// notably not one of the ordinary pointer events that must fall
+        /// through to the control underneath.
+        private static let dragEvent = NSEvent.EventType.leftMouseDragged
+
+        /// Asks the participation rule about a point inside the target, so each
+        /// case below reads as one line instead of a four-line call.
+        private func participation(
+            _ target: FileURLDropNSView, _ pasteboard: NSPasteboard,
+            event: NSEvent.EventType = FileURLDropTargetTests.dragEvent,
+            at point: CGPoint = CGPoint(x: 50, y: 50)
+        ) -> Bool {
+            target.participates(at: point, currentEventType: event, pasteboard: pasteboard)
+        }
+
         @Test
         func nativeTargetOnlyParticipatesWhenDragPasteboardContainsAFileURL() throws {
-            let pasteboard = NSPasteboard(name: .drag)
-            pasteboard.clearContents()
-            defer { pasteboard.clearContents() }
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
 
             let target = FileURLDropNSView(isTargeted: { _ in }, receive: { _ in true })
             target.frame = CGRect(x: 0, y: 0, width: 200, height: 100)
-            let point = CGPoint(x: 50, y: 50)
 
-            #expect(target.hitTest(point) == nil)
+            #expect(!participation(target, pasteboard))
 
             let file = FileManager.default.temporaryDirectory
                 .appendingPathComponent("termind-drop-target-test.txt")
@@ -28,28 +50,29 @@
             defer { try? FileManager.default.removeItem(at: file) }
             #expect(pasteboard.writeObjects([file as NSURL]))
 
-            #expect(target.hitTest(point) === target)
+            #expect(participation(target, pasteboard))
+            // Same file still on the pasteboard: it is the event and the point,
+            // not the contents, that keep this receiver out of the way.
+            #expect(!participation(target, pasteboard, event: .leftMouseDown))
+            #expect(!participation(target, pasteboard, at: CGPoint(x: 500, y: 500)))
         }
 
         @Test
         func bitmapDataDoesNotMakeNativeTargetCaptureComposerInput() {
-            let pasteboard = NSPasteboard(name: .drag)
-            pasteboard.clearContents()
-            defer { pasteboard.clearContents() }
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
             let target = FileURLDropNSView(isTargeted: { _ in }, receive: { _ in false })
             target.frame = CGRect(x: 0, y: 0, width: 200, height: 100)
-            let point = CGPoint(x: 50, y: 50)
 
             pasteboard.setData(Data([1, 2, 3]), forType: .tiff)
 
-            #expect(target.hitTest(point) == nil)
+            #expect(!participation(target, pasteboard))
         }
 
         @Test
         func generalizedTargetRecognizesBitmapAndSFTPItemsSeparately() throws {
-            let pasteboard = NSPasteboard(name: .drag)
-            pasteboard.clearContents()
-            defer { pasteboard.clearContents() }
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
 
             let target = FileURLDropNSView(
                 acceptedKinds: [.images, .sftpItems],
@@ -70,9 +93,8 @@
 
         @Test
         func finderImagePrefersItsFileURLAndFilename() throws {
-            let pasteboard = NSPasteboard(name: .drag)
-            pasteboard.clearContents()
-            defer { pasteboard.clearContents() }
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
             let item = NSPasteboardItem()
             let url = URL(fileURLWithPath: "/tmp/screenshot.png")
             item.setString(url.absoluteString, forType: .fileURL)
@@ -93,9 +115,8 @@
         /// the drop and attach the file to a conversation nobody could see.
         @Test
         func disabledTargetLeavesTheDragToWhateverIsOnScreen() throws {
-            let pasteboard = NSPasteboard(name: .drag)
-            pasteboard.clearContents()
-            defer { pasteboard.clearContents() }
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
 
             let file = FileManager.default.temporaryDirectory
                 .appendingPathComponent("termind-disabled-drop-target-test.txt")
@@ -105,22 +126,21 @@
 
             let target = FileURLDropNSView(isTargeted: { _ in }, receive: { _ in true })
             target.frame = CGRect(x: 0, y: 0, width: 200, height: 100)
-            let point = CGPoint(x: 50, y: 50)
 
             #expect(target.registeredDraggedTypes.contains(.fileURL))
-            #expect(target.hitTest(point) === target)
+            #expect(participation(target, pasteboard))
             #expect(target.supportedPayload(from: pasteboard) != nil)
 
             target.isEnabled = false
 
             #expect(target.registeredDraggedTypes.isEmpty)
-            #expect(target.hitTest(point) == nil)
+            #expect(!participation(target, pasteboard))
             #expect(target.supportedPayload(from: pasteboard) == nil)
 
             target.isEnabled = true
 
             #expect(target.registeredDraggedTypes.contains(.fileURL))
-            #expect(target.hitTest(point) === target)
+            #expect(participation(target, pasteboard))
             #expect(target.supportedPayload(from: pasteboard) != nil)
         }
 

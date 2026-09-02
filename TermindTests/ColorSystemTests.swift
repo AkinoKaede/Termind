@@ -93,6 +93,11 @@ struct ColorSystemTests {
                     relative == "Features/AI/TranscriptNativeRows.swift"
                     && line.contains("mask.colors")
                 if isMask { continue }
+                // A `TagColor` case a user picked for a host or key, not a hue
+                // this code chose to draw. Its presentation is resolved through
+                // the exempt `TagColor+Presentation.swift`, which is the file
+                // this scan exists to funnel such choices into.
+                if line.contains("colorTag:") { continue }
                 for token in forbidden {
                     #expect(
                         !line.contains(token),

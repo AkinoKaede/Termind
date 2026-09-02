@@ -75,7 +75,14 @@ struct RemoteWindowTitleTests {
         )
         window.contentView = terminal
         window.makeKeyAndOrderFront(nil)
-        defer { window.close() }
+        // Ordered out rather than closed, for two reasons. `close()` on a window
+        // whose `isReleasedWhenClosed` still defaults to true releases one ARC
+        // also owns, and the second release lands on freed memory — a SIGSEGV in
+        // `-[_NSWindowTransformAnimation dealloc]`, charged to whichever test is
+        // running when the pool drains. And the test host is the real app, whose
+        // delegate terminates it once the last window closes, which ends the run
+        // wherever it has got to. Letting ARC take the window is enough.
+        defer { window.orderOut(nil) }
 
         backend.receive(Data("\u{1B}]0;zero-title\u{7}".utf8))
         try await waitUntil { state.title == "zero-title" }

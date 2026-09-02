@@ -27,8 +27,9 @@ private func call(_ id: String, _ name: String = "ssh_exec") -> AgentToolCall {
 }
 
 /// Roughly `tokens * 4` characters, so a budget can be reasoned about in a test
-/// the same way the estimator computes it.
-private func filler(tokens: Int) -> String {
+/// the same way the estimator computes it. Shared with `WindowStateTests`,
+/// which sizes its compaction fixture against the same budget.
+func filler(tokens: Int) -> String {
     String(repeating: "x", count: tokens * AgentContextEstimator.charactersPerToken)
 }
 
