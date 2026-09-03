@@ -138,6 +138,12 @@ struct TermindApp: App {
         }
         .defaultSize(width: 560, height: 240)
         .windowResizability(.contentSize)
+        // SwiftUI lists every `Window` scene in the Window menu so people can
+        // open it themselves. This one is only ever raised by
+        // `ExternalAuthWindowPresenter` when an external client asks for a
+        // credential, so opening it by hand shows an empty window that closes
+        // itself a moment later. Take the item away.
+        .commandsRemoved()
     }
 }
 
