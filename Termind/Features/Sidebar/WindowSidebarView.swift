@@ -546,8 +546,10 @@ private struct SnippetsSidebarView: View {
     /// way wherever it lands.
     private var blankAreaMenu: [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: localized("Copy"), isEnabled: false),
-            NativeMenuEntry(title: localized("Execute"), isEnabled: false),
+            NativeMenuEntry(title: localized("Copy"), symbol: MenuSymbol.copy, isEnabled: false),
+            NativeMenuEntry(
+                title: localized("Execute"), symbol: MenuSymbol.execute, isEnabled: false
+            ),
         ]
     }
 
@@ -557,10 +559,10 @@ private struct SnippetsSidebarView: View {
         )
         .termindSidebarRow(isSelected: selectedSnippetID == snippet.id) {
             [
-                NativeMenuEntry(title: localized("Copy")) {
+                NativeMenuEntry(title: localized("Copy"), symbol: MenuSymbol.copy) {
                     copyToPasteboard(snippet.body)
                 },
-                NativeMenuEntry(title: localized("Execute")) {
+                NativeMenuEntry(title: localized("Execute"), symbol: MenuSymbol.execute) {
                     requestExecution(snippet)
                 },
             ]
@@ -809,13 +811,19 @@ private struct SSHCommandHistorySidebar: View {
     /// the list, so it stays live where there is nothing under the pointer.
     private var globalMenu: [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: String(localized: "Copy"), isEnabled: false),
-            NativeMenuEntry(title: String(localized: "Save as Snippet"), isEnabled: false),
+            NativeMenuEntry(
+                title: String(localized: "Copy"), symbol: MenuSymbol.copy, isEnabled: false
+            ),
+            NativeMenuEntry(
+                title: String(localized: "Save as Snippet"),
+                symbol: MenuSymbol.saveAsSnippet,
+                isEnabled: false
+            ),
             .separator,
             NativeMenuEntry(
                 title: String(localized: "Clear History"),
+                symbol: MenuSymbol.clearHistory,
                 isEnabled: !allEntries.isEmpty,
-                isDestructive: true
             ) { confirmsClear = true },
         ]
     }
@@ -864,19 +872,25 @@ private struct SSHCommandHistorySidebar: View {
             }
             .termindSidebarRow(isSelected: selectedID == entry.id) {
                 [
-                    NativeMenuEntry(title: String(localized: "Copy")) {
+                    NativeMenuEntry(
+                        title: String(localized: "Copy"), symbol: MenuSymbol.copy
+                    ) {
                         copyToPasteboard(entry.command)
                     },
-                    NativeMenuEntry(title: String(localized: "Save as Snippet")) {
+                    NativeMenuEntry(
+                        title: String(localized: "Save as Snippet"),
+                        symbol: MenuSymbol.saveAsSnippet
+                    ) {
                         beginSnippetNaming(entry)
                     },
                     .separator,
                     NativeMenuEntry(
                         title: String(localized: "Remove this History"),
-                        isDestructive: true
+                        symbol: MenuSymbol.removeHistory,
                     ) { delete(entry) },
                     NativeMenuEntry(
-                        title: String(localized: "Clear History"), isDestructive: true
+                        title: String(localized: "Clear History"),
+                        symbol: MenuSymbol.clearHistory,
                     ) { confirmsClear = true },
                 ]
             }
@@ -1030,16 +1044,19 @@ private struct SFTPBrowseHistorySidebar: View {
 
     private var globalMenu: [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: String(localized: "Open"), isEnabled: false),
+            NativeMenuEntry(
+                title: String(localized: "Open"), symbol: MenuSymbol.open, isEnabled: false
+            ),
             NativeMenuEntry(
                 title: String(localized: "Remove this History"),
-                isEnabled: false, isDestructive: true
+                symbol: MenuSymbol.removeHistory,
+                isEnabled: false
             ),
             .separator,
             NativeMenuEntry(
                 title: String(localized: "Clear History"),
+                symbol: MenuSymbol.clearHistory,
                 isEnabled: !entries.isEmpty,
-                isDestructive: true
             ) { confirmsClear = true },
         ]
     }
@@ -1060,13 +1077,17 @@ private struct SFTPBrowseHistorySidebar: View {
         .onTapGesture { selectedID = entry.id }
         .termindSidebarRow(isSelected: selectedID == entry.id) {
             [
-                NativeMenuEntry(title: String(localized: "Open")) { reopen(entry) },
+                NativeMenuEntry(title: String(localized: "Open"), symbol: MenuSymbol.open) {
+                    reopen(entry)
+                },
                 .separator,
                 NativeMenuEntry(
-                    title: String(localized: "Remove this History"), isDestructive: true
+                    title: String(localized: "Remove this History"),
+                    symbol: MenuSymbol.removeHistory,
                 ) { app.sftpHistory.delete(entry.id) },
                 NativeMenuEntry(
-                    title: String(localized: "Clear History"), isDestructive: true
+                    title: String(localized: "Clear History"),
+                    symbol: MenuSymbol.clearHistory,
                 ) { confirmsClear = true },
             ]
         }
@@ -1164,16 +1185,21 @@ private struct ConnectionHistorySidebar: View {
 
     private var globalMenu: [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: String(localized: "Quick Connect"), isEnabled: false),
+            NativeMenuEntry(
+                title: String(localized: "Quick Connect"),
+                symbol: MenuSymbol.quickConnect,
+                isEnabled: false
+            ),
             NativeMenuEntry(
                 title: String(localized: "Remove this History"),
-                isEnabled: false, isDestructive: true
+                symbol: MenuSymbol.removeHistory,
+                isEnabled: false
             ),
             .separator,
             NativeMenuEntry(
                 title: String(localized: "Clear History"),
+                symbol: MenuSymbol.clearHistory,
                 isEnabled: !allRows.isEmpty,
-                isDestructive: true
             ) { confirmsClear = true },
         ]
     }
@@ -1209,10 +1235,12 @@ private struct ConnectionHistorySidebar: View {
             HostMenuEntries.entries(for: host, app: app, window: window) + [
                 .separator,
                 NativeMenuEntry(
-                    title: String(localized: "Remove this History"), isDestructive: true
+                    title: String(localized: "Remove this History"),
+                    symbol: MenuSymbol.removeHistory,
                 ) { app.connectionHistory.delete(entry.id) },
                 NativeMenuEntry(
-                    title: String(localized: "Clear History"), isDestructive: true
+                    title: String(localized: "Clear History"),
+                    symbol: MenuSymbol.clearHistory,
                 ) { confirmsClear = true },
             ]
         }

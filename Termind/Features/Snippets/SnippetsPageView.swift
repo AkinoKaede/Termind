@@ -173,10 +173,10 @@ struct SnippetsPageView: ManagedCardPage {
                     isDropTarget: isDropTarget
                 )
                 .contextMenu {
-                    Button("New Subpackage") {
+                    Button("New Subpackage", systemImage: MenuSymbol.newPackage) {
                         openPackageEditor(packageID: nil, parentID: package.id)
                     }
-                    Button("Edit") {
+                    Button("Edit", systemImage: MenuSymbol.edit) {
                         openPackageEditor(packageID: package.id, parentID: package.parentID)
                     }
                     Divider()
@@ -230,10 +230,14 @@ struct SnippetsPageView: ManagedCardPage {
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
         let packageID = section?.packageID
         return [
-            NativeMenuEntry(title: String(localized: "New Snippet")) {
+            NativeMenuEntry(
+                title: String(localized: "New Snippet"), symbol: MenuSymbol.newSnippet
+            ) {
                 openSnippetEditor(snippetID: nil, packageID: packageID)
             },
-            NativeMenuEntry(title: String(localized: "New Package")) {
+            NativeMenuEntry(
+                title: String(localized: "New Package"), symbol: MenuSymbol.newPackage
+            ) {
                 openPackageEditor(packageID: nil, parentID: packageID)
             },
         ]
@@ -506,12 +510,14 @@ private struct SnippetCard: View {
             SnippetCardContent(snippet: snippet, allowsTextSelection: true)
         }
         .contextMenu {
-            Button("Execute") { execute(actionSnippets) }
-            Button("Execute on Hosts") { executeOnHosts(actionSnippets) }
+            Button("Execute", systemImage: MenuSymbol.execute) { execute(actionSnippets) }
+            Button("Execute on Hosts", systemImage: MenuSymbol.executeOnHosts) {
+                executeOnHosts(actionSnippets)
+            }
             if actionSnippets.count == 1 {
                 Divider()
-                Button("Edit", action: edit)
-                Button("Duplicate") { duplicate(snippet) }
+                Button("Edit", systemImage: MenuSymbol.edit, action: edit)
+                Button("Duplicate", systemImage: MenuSymbol.duplicate) { duplicate(snippet) }
             }
             Divider()
             DestructiveMenuButton("Delete") { delete(actionSnippets) }

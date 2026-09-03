@@ -159,11 +159,20 @@ private struct HostForwardingContextMenu: View {
     private var command: String? { app.forwardings.sshCommand(for: rule, host: host) }
 
     var body: some View {
-        Button(app.forwarding.isEnabled(rule.id) ? "Stop" : "Start", action: toggle)
-            .disabled(!canToggle)
-        Button("Edit", action: edit).disabled(isActive)
-        Button("Duplicate", action: duplicate).disabled(isActive)
-        Button("Copy Address", action: copyAddress).disabled(isActive)
+        let isRunning = app.forwarding.isEnabled(rule.id)
+        Button(
+            isRunning ? "Stop" : "Start",
+            systemImage: isRunning ? MenuSymbol.stop : MenuSymbol.start,
+            action: toggle
+        )
+        .disabled(!canToggle)
+        Button("Edit", systemImage: MenuSymbol.edit, action: edit).disabled(isActive)
+        Button("Duplicate", systemImage: MenuSymbol.duplicate, action: duplicate)
+            .disabled(isActive)
+        // Copy SSH Command repeats the verb above it, so only the first carries
+        // the glyph.
+        Button("Copy Address", systemImage: MenuSymbol.copy, action: copyAddress)
+            .disabled(isActive)
         Button("Copy SSH Command", action: copyCommand)
             .disabled(isActive || command == nil)
         Divider()

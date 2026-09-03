@@ -46,9 +46,13 @@ struct HostContextMenu: View {
         // already open, so connecting never decides a layout for you. Connect,
         // then drag the new workspace onto the one you want it beside.
         if hosts.count == 1 {
-            Button("Quick Connect") { app.open(hosts, as: .sshSession, in: window) }
+            Button("Quick Connect", systemImage: MenuSymbol.quickConnect) {
+                app.open(hosts, as: .sshSession, in: window)
+            }
         } else {
-            Menu("Quick Connect") {
+            // The two children pick a layout rather than name a different verb,
+            // so the glyph stays on the parent.
+            Menu("Quick Connect", systemImage: MenuSymbol.quickConnect) {
                 Button("Separate Workspaces") {
                     app.open(hosts, as: .sshSession, in: window)
                 }
@@ -62,16 +66,16 @@ struct HostContextMenu: View {
         Divider()
 
         if hosts.count == 1, let host = hosts.first {
-            Button("Edit") { window.openHostEditor(host: host) }
+            Button("Edit", systemImage: MenuSymbol.edit) { window.openHostEditor(host: host) }
             if showsDuplicate {
-                Button("Duplicate") {
+                Button("Duplicate", systemImage: MenuSymbol.duplicate) {
                     var copy = host
                     copy.id = UUID()
                     copy.name = String(localized: "\(host.name) copy")
                     app.hostLibrary.upsert(copy)
                 }
             }
-            Button("Copy SSH Command") {
+            Button("Copy SSH Command", systemImage: MenuSymbol.copy) {
                 guard let command = app.hostLibrary.sshCommand(for: host) else { return }
                 copyToPasteboard(command)
             }
@@ -85,7 +89,7 @@ struct HostContextMenu: View {
             Divider()
         }
 
-        DestructiveMenuButton("Clear All History") {
+        DestructiveMenuButton("Clear All History", systemImage: MenuSymbol.clearHistory) {
             requestClearAllHistory(hosts.map(\.id))
         }
         .disabled(!hasHistory)
@@ -153,26 +157,34 @@ enum HostMenuEntries {
         window: WindowModel
     ) -> [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: String(localized: "Quick Connect")) {
+            NativeMenuEntry(
+                title: String(localized: "Quick Connect"), symbol: MenuSymbol.quickConnect
+            ) {
                 app.open([host], as: .sshSession, in: window)
             },
             NativeMenuEntry(
                 title: String(localized: "Connect"),
+                symbol: MenuSymbol.connect,
                 children: [
-                    NativeMenuEntry(title: String(localized: "With SSH")) {
+                    NativeMenuEntry(
+                        title: String(localized: "with SSH"), symbol: MenuSymbol.ssh
+                    ) {
                         app.open([host], as: .sshSession, in: window)
                     },
-                    NativeMenuEntry(title: String(localized: "With SFTP")) {
+                    NativeMenuEntry(
+                        title: String(localized: "with SFTP"), symbol: MenuSymbol.sftp
+                    ) {
                         app.open([host], as: .sftpSession, in: window)
                     },
                 ]
             ),
             .separator,
-            NativeMenuEntry(title: String(localized: "Edit")) {
+            NativeMenuEntry(title: String(localized: "Edit"), symbol: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
             },
             NativeMenuEntry(
                 title: String(localized: "Copy SSH Command"),
+                symbol: MenuSymbol.copy,
                 isEnabled: app.hostLibrary.sshCommand(for: host) != nil
             ) {
                 guard let command = app.hostLibrary.sshCommand(for: host) else { return }
@@ -189,9 +201,13 @@ struct HostConnectMenu: View {
     @Environment(WindowModel.self) private var window
 
     var body: some View {
-        Menu("Connect") {
-            Button("With SSH") { app.open(hosts, as: .sshSession, in: window) }
-            Button("With SFTP") { app.open(hosts, as: .sftpSession, in: window) }
+        Menu("Connect", systemImage: MenuSymbol.connect) {
+            Button("with SSH", systemImage: MenuSymbol.ssh) {
+                app.open(hosts, as: .sshSession, in: window)
+            }
+            Button("with SFTP", systemImage: MenuSymbol.sftp) {
+                app.open(hosts, as: .sftpSession, in: window)
+            }
         }
     }
 }

@@ -599,15 +599,15 @@ struct SFTPBrowserView: View {
 
     @ViewBuilder
     private var browserLocationMenu: some View {
-        Button("Paste") { pasteRemoteItems() }
+        Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
             .disabled(sftpSession.status != .connected || !canPasteRemoteItems)
         Divider()
-        Button("New Folder") { newFolderPresented = true }
+        Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
             .disabled(sftpSession.status != .connected)
-        Button("Upload") { chooseUploadItems() }
+        Button("Upload", systemImage: MenuSymbol.upload) { chooseUploadItems() }
             .disabled(sftpSession.status != .connected)
         Divider()
-        Button("Refresh") { sftpSession.reloadNow() }
+        Button("Refresh", systemImage: MenuSymbol.refresh) { sftpSession.reloadNow() }
             .disabled(sftpSession.status != .connected || sftpSession.isLoading)
     }
 
@@ -872,16 +872,23 @@ struct SFTPBrowserView: View {
     private func fileMenu(_ file: RemoteFile) -> some View {
         let targets = menuTargets(for: file)
         if targets.count == 1 {
-            Button("Open") { primaryAction(file) }
+            Button("Open", systemImage: MenuSymbol.open) { primaryAction(file) }
         }
-        Button(targets.count == 1 ? "Download" : "Download \(targets.count) Items") {
+        Button(
+            targets.count == 1 ? "Download" : "Download \(targets.count) Items",
+            systemImage: MenuSymbol.download
+        ) {
             chooseDownloadDestination(for: targets)
         }
         Divider()
-        Button(targets.count == 1 ? "Copy" : "Copy \(targets.count) Items") {
+        Button(
+            targets.count == 1 ? "Copy" : "Copy \(targets.count) Items",
+            systemImage: MenuSymbol.copy
+        ) {
             copyRemoteItems(targets)
         }
-        Menu("Copy As") {
+        // Copy As is Copy's own submenu, so its two children stay bare.
+        Menu("Copy As", systemImage: MenuSymbol.copy) {
             Button(targets.count == 1 ? "Name" : "Names") {
                 copyToPasteboard(targets.map(\.name).joined(separator: "\n"))
             }
@@ -889,17 +896,19 @@ struct SFTPBrowserView: View {
                 copyToPasteboard(targets.map(\.path).joined(separator: "\n"))
             }
         }
-        Button("Paste") { pasteRemoteItems() }
+        Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
             .disabled(sftpSession.status != .connected || !canPasteRemoteItems)
         if targets.count == 1 {
-            Button("Rename") {
+            Button("Rename", systemImage: MenuSymbol.rename) {
                 renameTarget = file
                 renameName = file.name
             }
             .disabled(!sftpSession.allowsRemoteMutations)
             if file.kind == .file || file.kind == .directory {
-                Button("Edit Permissions") { permissionTarget = file }
-                    .disabled(!sftpSession.allowsRemoteMutations)
+                Button("Edit Permissions", systemImage: MenuSymbol.editPermissions) {
+                    permissionTarget = file
+                }
+                .disabled(!sftpSession.allowsRemoteMutations)
             }
         }
         DestructiveMenuButton(targets.count == 1 ? "Delete" : "Delete \(targets.count) Items") {

@@ -406,12 +406,14 @@ private struct AssistantConversationList: View {
     ) -> [NativeMenuEntry] {
         [
             NativeMenuEntry(
-                title: AppLocalization.string("New Chat", locale: locale)
+                title: AppLocalization.string("New Chat", locale: locale),
+                symbol: MenuSymbol.newChat
             ) {
                 window.openNewAssistantChat()
             },
             NativeMenuEntry(
                 title: AppLocalization.string("Show Archive", locale: locale),
+                symbol: MenuSymbol.archive,
                 isOn: window.isAssistantArchivePresented
             ) { window.showAssistantArchive() },
         ]
@@ -1244,7 +1246,9 @@ struct AssistantConversationRow: View {
     private var contextMenu: [NativeMenuEntry] {
         let managementDisabled = conversation.isStreaming || conversation.isCompacting
         var entries: [NativeMenuEntry] = [
-            NativeMenuEntry(title: localized("Open Full Screen")) {
+            NativeMenuEntry(
+                title: localized("Open Full Screen"), symbol: MenuSymbol.openFullScreen
+            ) {
                 window.openAssistantFullScreen(conversation.id)
             },
             .separator,
@@ -1254,17 +1258,27 @@ struct AssistantConversationRow: View {
                 NativeMenuEntry(
                     title: conversation.isPinned
                         ? localized("Unpin") : localized("Pin"),
+                    symbol: conversation.isPinned ? MenuSymbol.unpin : MenuSymbol.pin,
                     isEnabled: !managementDisabled
                 ) { window.toggleAssistantPin(conversation.id) }
             )
         }
         entries.append(
-            NativeMenuEntry(title: localized("Rename"), action: onBeginRename)
+            NativeMenuEntry(
+                title: localized("Rename"),
+                symbol: MenuSymbol.rename,
+                action: onBeginRename
+            )
         )
+        // Archive and Delete are both ways of getting a chat off the list, so
+        // the rule goes above the pair rather than between them — Pin and Rename
+        // above it only change how the chat is listed.
+        entries.append(.separator)
         entries.append(
             NativeMenuEntry(
                 title: conversation.isArchived
                     ? localized("Unarchive") : localized("Archive"),
+                symbol: conversation.isArchived ? MenuSymbol.unarchive : MenuSymbol.archive,
                 isEnabled: conversation.isArchived || !managementDisabled
             ) {
                 window.setAssistantArchived(
@@ -1272,9 +1286,10 @@ struct AssistantConversationRow: View {
                 )
             }
         )
-        entries.append(.separator)
         entries.append(
-            NativeMenuEntry(title: localized("Delete"), isDestructive: true) {
+            NativeMenuEntry(
+                title: localized("Delete"), symbol: MenuSymbol.delete
+            ) {
                 onDelete()
             }
         )

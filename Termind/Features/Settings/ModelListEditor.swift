@@ -1077,8 +1077,8 @@ private struct ModelRow: View {
         .onTapGesture(perform: select)
         .onHover { isHovering = $0 }
         .contextMenu {
-            Button("Edit", action: edit)
-            Button("Test", action: test)
+            Button("Edit", systemImage: MenuSymbol.edit, action: edit)
+            Button("Test", systemImage: MenuSymbol.test, action: test)
                 .disabled(!canTest)
             Divider()
             DestructiveMenuButton("Delete", action: delete)

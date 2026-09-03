@@ -185,14 +185,20 @@ struct KeychainPageView: ManagedCardPage {
     /// just be a second right-click.
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
         [
-            NativeMenuEntry(title: String(localized: "Import Key")) {
+            NativeMenuEntry(
+                title: String(localized: "Import Key"), symbol: MenuSymbol.importItem
+            ) {
                 window.openVaultWork(.importKey, on: .keychain)
             },
-            NativeMenuEntry(title: String(localized: "Generate Key")) {
+            NativeMenuEntry(
+                title: String(localized: "Generate Key"), symbol: MenuSymbol.generateKey
+            ) {
                 window.openVaultWork(.generateKey, on: .keychain)
             },
             .separator,
-            NativeMenuEntry(title: String(localized: "New Identity")) {
+            NativeMenuEntry(
+                title: String(localized: "New Identity"), symbol: MenuSymbol.newIdentity
+            ) {
                 window.openVaultWork(.identityEditor(nil), on: .keychain)
             },
         ]
@@ -1483,14 +1489,18 @@ struct KeyObjectActions: View {
     let export: () -> Void
 
     var body: some View {
-        Button("Copy Fingerprint") { copyToPasteboard(key.fingerprint) }
+        // Copy Public Key repeats Copy Fingerprint's verb, so the glyph stays on
+        // the first of the pair.
+        Button("Copy Fingerprint", systemImage: MenuSymbol.copy) {
+            copyToPasteboard(key.fingerprint)
+        }
         Button("Copy Public Key") { copyToPasteboard(key.publicKey) }
             .disabled(key.publicKey.isEmpty)
         Divider()
-        Button("Export to Hosts", action: export)
+        Button("Export to Hosts", systemImage: MenuSymbol.export, action: export)
             .disabled(key.publicKey.isEmpty)
         Divider()
-        Button("Edit", action: edit)
+        Button("Edit", systemImage: MenuSymbol.edit, action: edit)
     }
 }
 
@@ -1602,7 +1612,7 @@ private struct KeyCard: View {
             if actionKeys.count == 1, actionIdentities.isEmpty {
                 KeyObjectActions(key: key, edit: edit, export: export)
             } else if actionIdentities.isEmpty {
-                Button("Export to Hosts", action: export)
+                Button("Export to Hosts", systemImage: MenuSymbol.export, action: export)
                     .disabled(actionKeys.isEmpty || actionKeys.contains { $0.publicKey.isEmpty })
                 Divider()
             }
@@ -1625,7 +1635,7 @@ struct IdentityObjectActions: View {
     let edit: () -> Void
 
     var body: some View {
-        Button("Edit", action: edit)
+        Button("Edit", systemImage: MenuSymbol.edit, action: edit)
     }
 }
 

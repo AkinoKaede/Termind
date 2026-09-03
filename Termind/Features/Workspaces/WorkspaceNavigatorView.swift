@@ -476,11 +476,17 @@ private struct WorkspaceNavigatorRow: View {
         var entries: [NativeMenuEntry] = []
         if workspace.isRenameable {
             entries.append(
-                NativeMenuEntry(title: localized("Rename"), action: onBeginRename)
+                NativeMenuEntry(
+                    title: localized("Rename"),
+                    symbol: MenuSymbol.rename,
+                    action: onBeginRename
+                )
             )
             if namedTitle != nil {
                 entries.append(
-                    NativeMenuEntry(title: localized("Reset Name")) {
+                    NativeMenuEntry(
+                        title: localized("Reset Name"), symbol: MenuSymbol.resetName
+                    ) {
                         window.rename(workspace.id, to: "")
                     }
                 )
@@ -493,7 +499,9 @@ private struct WorkspaceNavigatorRow: View {
         // detach from.
         if workspace.isSplit {
             entries.append(
-                NativeMenuEntry(title: localized("Separate Panes")) {
+                NativeMenuEntry(
+                    title: localized("Separate Panes"), symbol: MenuSymbol.separatePanes
+                ) {
                     window.separatePanes(in: workspace.id)
                 }
             )
@@ -502,7 +510,10 @@ private struct WorkspaceNavigatorRow: View {
         if workspace.isCombinable {
             if workspace.isSplit {
                 entries.append(
-                    NativeMenuEntry(title: localized("Duplicate in New Workspace")) {
+                    NativeMenuEntry(
+                        title: localized("Duplicate in New Workspace"),
+                        symbol: MenuSymbol.duplicate
+                    ) {
                         act { window.duplicateSelectedInNewWorkspace() }
                     }
                 )
@@ -510,11 +521,18 @@ private struct WorkspaceNavigatorRow: View {
                 entries.append(
                     NativeMenuEntry(
                         title: localized("Duplicate"),
+                        symbol: MenuSymbol.duplicate,
                         children: [
-                            NativeMenuEntry(title: localized("In Current Workspace")) {
+                            NativeMenuEntry(
+                                title: localized("in Current Workspace"),
+                                symbol: MenuSymbol.currentWorkspace
+                            ) {
                                 act { window.duplicateSelected(axis: .horizontal) }
                             },
-                            NativeMenuEntry(title: localized("In New Workspace")) {
+                            NativeMenuEntry(
+                                title: localized("in New Workspace"),
+                                symbol: MenuSymbol.newWorkspace
+                            ) {
                                 act { window.duplicateSelectedInNewWorkspace() }
                             },
                         ]
@@ -523,19 +541,23 @@ private struct WorkspaceNavigatorRow: View {
             }
             entries.append(.separator)
             entries.append(
-                NativeMenuEntry(title: localized("Split Right")) {
+                NativeMenuEntry(title: localized("Split Right"), symbol: MenuSymbol.splitRight) {
                     act { window.splitSelected(axis: .horizontal) }
                 }
             )
             entries.append(
-                NativeMenuEntry(title: localized("Split Down")) {
+                NativeMenuEntry(title: localized("Split Down"), symbol: MenuSymbol.splitDown) {
                     act { window.splitSelected(axis: .vertical) }
                 }
             )
             entries.append(.separator)
         }
+        // Close Other and Close All are the same verb as the item above them,
+        // so only the first of the run carries a glyph.
         entries.append(
-            NativeMenuEntry(title: localized("Close Workspace")) {
+            NativeMenuEntry(
+                title: localized("Close Workspace"), symbol: MenuSymbol.closeWorkspace
+            ) {
                 window.close(workspace.id)
             }
         )

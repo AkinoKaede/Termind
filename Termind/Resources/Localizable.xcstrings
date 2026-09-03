@@ -3197,16 +3197,6 @@
         }
       }
     },
-    "Current Workspace" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前的工作区"
-          }
-        }
-      }
-    },
     "Custom" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5435,7 +5425,7 @@
         }
       }
     },
-    "In Current Workspace" : {
+    "in Current Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5445,7 +5435,7 @@
         }
       }
     },
-    "In New Workspace" : {
+    "in New Workspace" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -6457,16 +6447,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建子包"
-          }
-        }
-      }
-    },
-    "New Workspace" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新建工作区"
           }
         }
       }
@@ -12938,7 +12918,7 @@
         }
       }
     },
-    "With SFTP" : {
+    "with SFTP" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12948,7 +12928,7 @@
         }
       }
     },
-    "With SSH" : {
+    "with SSH" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

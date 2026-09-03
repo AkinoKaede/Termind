@@ -3,22 +3,29 @@ import SwiftUI
 
 /// A destructive action inside a SwiftUI context menu.
 ///
-/// `ButtonRole.destructive` communicates semantics but does not consistently
-/// tint macOS context-menu titles, so the label carries the same explicit red
-/// treatment as `NativeMenuEntry.isDestructive`.
+/// Carries `ButtonRole.destructive` and the trash glyph, and nothing else. The
+/// title used to be painted red by hand, on both this and the AppKit side; that
+/// made Delete the loudest thing in a menu it merely happens to end, and the red
+/// was ours rather than the system's — it did not follow appearance, selection
+/// highlight, or a disabled item. The role says what the item is and lets macOS
+/// decide how to say it.
 struct DestructiveMenuButton: View {
     let title: LocalizedStringKey
+    let systemImage: String
     let action: () -> Void
 
-    init(_ title: LocalizedStringKey, action: @escaping () -> Void) {
+    init(
+        _ title: LocalizedStringKey,
+        systemImage: String = MenuSymbol.delete,
+        action: @escaping () -> Void
+    ) {
         self.title = title
+        self.systemImage = systemImage
         self.action = action
     }
 
     var body: some View {
-        Button(role: .destructive, action: action) {
-            Text(title).foregroundStyle(.red)
-        }
+        Button(title, systemImage: systemImage, role: .destructive, action: action)
     }
 }
 
@@ -30,9 +37,11 @@ struct DestructiveMenuButton: View {
 /// on the manager pages.
 struct NativeMenuEntry {
     var title: String
+    /// The SF Symbol beside the title, from `MenuSymbol`. AppKit fills this in
+    /// for standard actions and leaves ours empty, so every verb names its own.
+    var symbol: String?
     var isOn = false
     var isEnabled = true
-    var isDestructive = false
     var children: [NativeMenuEntry] = []
     var action: () -> Void = {}
 
@@ -61,6 +70,9 @@ struct NativeMenuEntry {
     func menuItem() -> NSMenuItem {
         guard !isSeparator else { return .separator() }
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.image = symbol.flatMap {
+            NSImage(systemSymbolName: $0, accessibilityDescription: nil)
+        }
         if children.isEmpty {
             let target = NativeMenuActionTarget(action)
             item.representedObject = target
@@ -68,12 +80,6 @@ struct NativeMenuEntry {
             item.action = #selector(NativeMenuActionTarget.invoke)
             item.state = isOn ? .on : .off
             item.isEnabled = isEnabled
-            if isDestructive {
-                item.attributedTitle = NSAttributedString(
-                    string: title,
-                    attributes: [.foregroundColor: NSColor.systemRed]
-                )
-            }
         } else {
             item.submenu = NativeMenuEntry.menu(children)
             item.isEnabled = isEnabled

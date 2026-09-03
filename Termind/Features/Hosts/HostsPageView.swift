@@ -201,7 +201,7 @@ struct HostsPageView: ManagedCardPage {
                 isDropTarget: isDropTarget
             )
             .contextMenu {
-                Button("Edit") { editGroup(group) }
+                Button("Edit", systemImage: MenuSymbol.edit) { editGroup(group) }
                 Divider()
                 DestructiveMenuButton("Delete Group") { requestDelete(group) }
             }
@@ -243,10 +243,10 @@ struct HostsPageView: ManagedCardPage {
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
         let groupID = section?.groupID
         return [
-            NativeMenuEntry(title: String(localized: "New Host")) {
+            NativeMenuEntry(title: String(localized: "New Host"), symbol: MenuSymbol.newHost) {
                 openHostEditor(nil)
             },
-            NativeMenuEntry(title: String(localized: "New Group")) {
+            NativeMenuEntry(title: String(localized: "New Group"), symbol: MenuSymbol.newGroup) {
                 openWork(.hostGroupEditor(groupID: nil, parentID: groupID))
             },
             .separator,
@@ -275,12 +275,16 @@ struct HostsPageView: ManagedCardPage {
             children.append(
                 NativeMenuEntry(
                     title: String(localized: "Clear Filter"),
+                    symbol: MenuSymbol.clearFilter,
                     isEnabled: !state.selectedTags.isEmpty
                 ) { state.selectedTags.removeAll() }
             )
         }
+        // The tags themselves stay bare: they are data rather than verbs, and
+        // `isOn` already claims the column beside them.
         return NativeMenuEntry(
             title: String(localized: "Filter by Tag"),
+            symbol: MenuSymbol.filterByTag,
             isEnabled: !tags.isEmpty,
             children: children
         )

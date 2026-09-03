@@ -255,17 +255,19 @@ struct StatusBarView: View {
         .help(Text("Open current directory with SFTP — right-click for more options"))
         .accessibilityLabel(Text("Open with SFTP"))
         .contextMenu {
-            Menu("Open with SFTP") {
-                Button("Current Workspace") {
+            // The children read on from the parent — "Open with SFTP ▸ in New
+            // Workspace" — and take the same pair of glyphs Duplicate's do.
+            Menu("Open with SFTP", systemImage: MenuSymbol.sftp) {
+                Button("in Current Workspace", systemImage: MenuSymbol.currentWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSFTP(path, placement: .currentWorkspace)
                 }
-                Button("New Workspace") {
+                Button("in New Workspace", systemImage: MenuSymbol.newWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSFTP(path, placement: .newWorkspace)
                 }
             }
-            Button("Copy Path") {
+            Button("Copy Path", systemImage: MenuSymbol.copy) {
                 app.onboarding.recordUse(of: .statusBarPath)
                 copyToPasteboard(path)
             }
@@ -285,17 +287,17 @@ struct StatusBarView: View {
         .help(Text("Open current directory with SSH — right-click for more options"))
         .accessibilityLabel(Text("Open with SSH"))
         .contextMenu {
-            Menu("Open with SSH") {
-                Button("Current Workspace") {
+            Menu("Open with SSH", systemImage: MenuSymbol.ssh) {
+                Button("in Current Workspace", systemImage: MenuSymbol.currentWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSSH(path, placement: .currentWorkspace)
                 }
-                Button("New Workspace") {
+                Button("in New Workspace", systemImage: MenuSymbol.newWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSSH(path, placement: .newWorkspace)
                 }
             }
-            Button("Copy Path") {
+            Button("Copy Path", systemImage: MenuSymbol.copy) {
                 app.onboarding.recordUse(of: .statusBarPath)
                 copyToPasteboard(path)
             }

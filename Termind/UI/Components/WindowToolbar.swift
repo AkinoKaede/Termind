@@ -535,6 +535,7 @@ struct WindowToolbarLeadingActions: View {
                 ForEach(actions) { action in
                     Button(
                         action.localizedTitle(locale: locale),
+                        systemImage: action.symbol,
                         action: action.perform
                     )
                 }
@@ -553,14 +554,19 @@ struct WindowToolbarLeadingActions: View {
 struct WindowToolbarCreationAction: Identifiable {
     let id: String
     private let titleKey: String.LocalizationValue
+    /// Required rather than defaulted: this action is drawn both as a SwiftUI
+    /// menu item and as a `NativeMenuEntry`, and a new verb that forgot its
+    /// glyph would go unnoticed in one of the two.
+    let symbol: String
     let perform: () -> Void
 
     init(
-        id: String, title: String.LocalizationValue,
+        id: String, title: String.LocalizationValue, symbol: String,
         perform: @escaping () -> Void
     ) {
         self.id = id
         titleKey = title
+        self.symbol = symbol
         self.perform = perform
     }
 
@@ -577,7 +583,9 @@ extension WindowModel {
         switch selectedDestination {
         case .assistant:
             return [
-                WindowToolbarCreationAction(id: "chat", title: "New Chat") {
+                WindowToolbarCreationAction(
+                    id: "chat", title: "New Chat", symbol: MenuSymbol.newChat
+                ) {
                     self.openNewAssistantChat()
                 }
             ]
@@ -599,10 +607,14 @@ extension WindowModel {
             return []
         case .hosts:
             return [
-                WindowToolbarCreationAction(id: "host", title: "New Host") {
+                WindowToolbarCreationAction(
+                    id: "host", title: "New Host", symbol: MenuSymbol.newHost
+                ) {
                     self.openHostEditor(host: nil)
                 },
-                WindowToolbarCreationAction(id: "group", title: "New Group") {
+                WindowToolbarCreationAction(
+                    id: "group", title: "New Group", symbol: MenuSymbol.newGroup
+                ) {
                     self.openVaultWork(
                         .hostGroupEditor(groupID: nil, parentID: nil), on: .hosts
                     )
@@ -610,24 +622,34 @@ extension WindowModel {
             ]
         case .keychain:
             return [
-                WindowToolbarCreationAction(id: "import", title: "Import Key") {
+                WindowToolbarCreationAction(
+                    id: "import", title: "Import Key", symbol: MenuSymbol.importItem
+                ) {
                     self.openVaultWork(.importKey, on: .keychain)
                 },
-                WindowToolbarCreationAction(id: "generate", title: "Generate Key") {
+                WindowToolbarCreationAction(
+                    id: "generate", title: "Generate Key", symbol: MenuSymbol.generateKey
+                ) {
                     self.openVaultWork(.generateKey, on: .keychain)
                 },
-                WindowToolbarCreationAction(id: "identity", title: "New Identity") {
+                WindowToolbarCreationAction(
+                    id: "identity", title: "New Identity", symbol: MenuSymbol.newIdentity
+                ) {
                     self.openVaultWork(.identityEditor(nil), on: .keychain)
                 },
             ]
         case .snippets:
             return [
-                WindowToolbarCreationAction(id: "snippet", title: "New Snippet") {
+                WindowToolbarCreationAction(
+                    id: "snippet", title: "New Snippet", symbol: MenuSymbol.newSnippet
+                ) {
                     self.openVaultWork(
                         .snippetEditor(snippetID: nil, packageID: nil), on: .snippets
                     )
                 },
-                WindowToolbarCreationAction(id: "package", title: "New Package") {
+                WindowToolbarCreationAction(
+                    id: "package", title: "New Package", symbol: MenuSymbol.newPackage
+                ) {
                     self.openVaultWork(
                         .snippetPackageEditor(packageID: nil, parentID: nil), on: .snippets
                     )
@@ -640,7 +662,9 @@ extension WindowModel {
     func creationMenu(for page: VaultPage, locale: Locale) -> [NativeMenuEntry] {
         creationActions(for: page).map { action in
             NativeMenuEntry(
-                title: action.localizedTitle(locale: locale), action: action.perform
+                title: action.localizedTitle(locale: locale),
+                symbol: action.symbol,
+                action: action.perform
             )
         }
     }
