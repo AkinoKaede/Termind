@@ -176,7 +176,10 @@ struct AIProviderPersistenceTests {
                 )
             ]
         )
-        legacyContainer?.mainContext.insert(PersistentModelProvider(provider, sortIndex: 0))
+        let legacyRow = TermindSchemaV11Models.PersistentModelProvider()
+        legacyRow.id = provider.id
+        legacyRow.name = provider.name
+        legacyContainer?.mainContext.insert(legacyRow)
         try legacyContainer?.mainContext.save()
         legacyContainer = nil
 
@@ -216,20 +219,14 @@ struct AIProviderPersistenceTests {
             .high: ReasoningLevelMapping(isSupported: true, wireValue: "maximum"),
         ])
         let provider = ModelProvider(
-            name: "Work OpenAI",
-            kind: .openAI,
+            name: "Work Gateway",
+            apiFormat: .responses,
             isEnabled: false,
+            inferenceURL: "https://gateway.example/v1/responses",
+            // Derived from the endpoint on the way back out, so a round trip
+            // fills it in even when the fixture leaves it blank.
             baseURL: "https://gateway.example/v1",
-            apiPath: "/responses",
             credentialRef: "termind.ai.key.reference-only",
-            usesResponsesAPI: true,
-            usesVertex: false,
-            vertex: VertexConfig(
-                projectID: "remembered-project",
-                location: "us-central1",
-                credentialRef: "termind.ai.vertex.reference-only",
-                clientEmail: "agent@example.iam.gserviceaccount.com"
-            ),
             models: [model],
             modelsFetchedAt: Date(timeIntervalSince1970: 1234)
         )
@@ -421,8 +418,8 @@ struct ModelCapabilityResolverTests {
     @Test
     func deepSeekV4IsRecognisedAsSearchCapable() {
         var provider = ModelProvider(name: "DeepSeek")
-        provider.baseURL = "https://api.deepseek.com/v1"
-        provider.usesResponsesAPI = true
+        provider.inferenceURL = "https://api.deepseek.com/v1"
+        provider.apiFormat = .responses
 
         let resolution = ModelCapabilityResolver.resolve(
             model: AIModel(id: "deepseek-v4-pro"), provider: provider
@@ -433,7 +430,7 @@ struct ModelCapabilityResolverTests {
         // The older chat-completions models are excluded by the provider gate
         // even where the id might tempt the pattern.
         var legacy = ModelProvider(name: "DeepSeek Chat")
-        legacy.baseURL = "https://api.deepseek.com/v1"
+        legacy.inferenceURL = "https://api.deepseek.com/v1"
         #expect(!legacy.supportsNativeWebSearch(model: resolution.model))
     }
 
@@ -451,13 +448,13 @@ struct ModelCapabilityResolverTests {
         claude.abilities = [.toolCall, .webSearch]
 
         var gateway = ModelProvider(name: "OpenRouter")
-        gateway.baseURL = "https://openrouter.ai/api/v1"
-        gateway.usesResponsesAPI = true
+        gateway.inferenceURL = "https://openrouter.ai/api/v1"
+        gateway.apiFormat = .responses
         #expect(!gateway.supportsNativeWebSearch(model: claude))
 
         // The same model on Anthropic's own API does have it.
         var anthropic = ModelProvider(name: "Anthropic")
-        anthropic.kind = .anthropic
+        anthropic.apiFormat = .messages
         #expect(anthropic.supportsNativeWebSearch(model: claude))
 
         // And a Gemini id on an Anthropic-shaped endpoint is the same mistake
@@ -467,7 +464,7 @@ struct ModelCapabilityResolverTests {
         #expect(!anthropic.supportsNativeWebSearch(model: gemini))
 
         var google = ModelProvider(name: "Google")
-        google.kind = .google
+        google.apiFormat = .generateContent
         #expect(google.supportsNativeWebSearch(model: gemini))
     }
 
@@ -483,20 +480,20 @@ struct ModelCapabilityResolverTests {
         // https://api.deepseek.com/anthropic — `server_tool_use` and
         // `web_search_tool_result` are documented as supported there.
         var anthropicShaped = ModelProvider(name: "DeepSeek via Anthropic")
-        anthropicShaped.kind = .anthropic
-        anthropicShaped.baseURL = "https://api.deepseek.com/anthropic"
+        anthropicShaped.apiFormat = .messages
+        anthropicShaped.inferenceURL = "https://api.deepseek.com/anthropic"
         #expect(anthropicShaped.supportsNativeWebSearch(model: model))
 
         // https://api.deepseek.com/v1/responses — `{"type": "web_search"}`.
         var responsesShaped = ModelProvider(name: "DeepSeek via Responses")
-        responsesShaped.baseURL = "https://api.deepseek.com/v1"
-        responsesShaped.usesResponsesAPI = true
+        responsesShaped.inferenceURL = "https://api.deepseek.com/v1"
+        responsesShaped.apiFormat = .responses
         #expect(responsesShaped.supportsNativeWebSearch(model: model))
 
         // Chat Completions has no search on any shape, and the older models
         // never get the ability in the first place.
         var chat = ModelProvider(name: "DeepSeek Chat")
-        chat.baseURL = "https://api.deepseek.com/v1"
+        chat.inferenceURL = "https://api.deepseek.com/v1"
         #expect(!chat.supportsNativeWebSearch(model: model))
 
         var legacyModel = AIModel(id: "deepseek-chat")
@@ -641,12 +638,12 @@ struct ModelCapabilityResolverTests {
     @Test
     func providerNamespacesAndGoogleWireValuesAreResolved() {
         let openRouter = ModelProvider(
-            name: "OpenRouter", baseURL: "https://openrouter.ai/api/v1"
+            name: "OpenRouter", inferenceURL: "https://openrouter.ai/api/v1/chat/completions"
         )
         let claude = ModelCapabilityResolver.resolve(
             model: reasoningModel("anthropic/claude-opus-4.7"), provider: openRouter
         )
-        let google = ModelProvider(name: "Google", kind: .google)
+        let google = ModelProvider(name: "Google", apiFormat: .generateContent)
         let gemini = ModelCapabilityResolver.resolve(
             model: reasoningModel("gemini-3.1-pro-preview"), provider: google
         )
@@ -686,7 +683,7 @@ struct ModelCapabilityResolverTests {
 
     @Test
     func blankCustomWireValueUsesTheProviderDefault() {
-        let google = ModelProvider(name: "Google", kind: .google)
+        let google = ModelProvider(name: "Google", apiFormat: .generateContent)
         var model = reasoningModel("gemini-3.1-pro-preview")
         model.reasoningProfile = ReasoningProfile(levels: [
             .low: ReasoningLevelMapping(isSupported: true, wireValue: nil),

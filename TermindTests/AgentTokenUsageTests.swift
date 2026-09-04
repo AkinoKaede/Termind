@@ -56,7 +56,7 @@ struct AgentTokenUsageTests {
     @Test
     func chatCompletionsStreamingBodyAsksForUsage() throws {
         let client = AgentProviderClient(
-            provider: ModelProvider(name: "Compatible", kind: .openAI),
+            provider: ModelProvider(name: "Compatible", apiFormat: .chatCompletions),
             model: AIModel(id: "gpt-5"),
             secret: "key"
         )

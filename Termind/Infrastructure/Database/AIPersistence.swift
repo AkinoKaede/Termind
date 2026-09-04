@@ -2,62 +2,132 @@ import AgentKit
 import Foundation
 import SwiftData
 
+/// The provider row as schema V11 stored it: a vendor-named kind, an address
+/// split into a base and a path, and the Vertex fields.
+///
+/// Frozen rather than described in prose, for the reason
+/// `TermindSchemaV9Models` is: every `VersionedSchema` in the plan points at
+/// live model types, so editing the current `PersistentModelProvider` would
+/// silently rewrite what V11 *means* and leave an installed store recording a
+/// version the plan no longer contains — which is a refusal to open, not a
+/// migration. Keeping the old shape here is what gives V11→V12 two sides.
+enum TermindSchemaV11Models {
+    @Model
+    final class PersistentModelProvider {
+        @Attribute(.unique) var id: UUID = UUID()
+        var name = ""
+        var kind = "openAI"
+        var isEnabled = true
+        var baseURL = ""
+        var apiPath = ""
+        var credentialRef = ""
+        var usesResponsesAPI = false
+        var usesVertex = false
+        var vertexProjectID = ""
+        var vertexLocation = "global"
+        var vertexCredentialRef = ""
+        var vertexClientEmail = ""
+        var modelsFetchedAt: Date?
+        var sortIndex = 0
+
+        init() {}
+    }
+}
+
 @Model
 final class PersistentModelProvider {
     @Attribute(.unique) var id: UUID = UUID()
     var name = ""
-    var kind = ModelProviderKind.openAI.rawValue
+    /// `ModelAPIType.rawValue` — what the editor's picker is set to. Blank
+    /// marks a row written before this column existed; see `legacyFold`.
+    var apiType = ""
+    /// The address as the user typed it.
+    ///
+    /// The *composed* address and the API format are not stored beside it. They
+    /// are derived on read by the same `ProviderEndpoint` the editor writes
+    /// through, so there is nothing for them to drift away from — one rule,
+    /// applied in one place, whether the value is being shown or sent.
+    var typedURL = ""
     var isEnabled = true
-    var baseURL = ""
-    var apiPath = ""
     var credentialRef = ""
-    var usesResponsesAPI = false
-    var usesVertex = false
-    var vertexProjectID = ""
-    var vertexLocation = "global"
-    var vertexCredentialRef = ""
-    var vertexClientEmail = ""
     var modelsFetchedAt: Date?
     var sortIndex = 0
 
-    init(_ value: ModelProvider, sortIndex: Int) {
+    // MARK: - Legacy (schema ≤ V11)
+
+    /// Written by versions that split the address into a base and a path and
+    /// named the protocol after a vendor. Read once by `legacyFold` and never
+    /// written again; removable after the first shipped release.
+    var kind = ""
+    var baseURL = ""
+    var apiPath = ""
+    var usesResponsesAPI = false
+
+    init(_ value: ModelProvider, endpoint: ProviderEndpoint, sortIndex: Int) {
         id = value.id
         name = value.name
-        kind = value.kind.rawValue
+        apiType = endpoint.apiType.rawValue
+        typedURL = endpoint.url
         isEnabled = value.isEnabled
-        baseURL = value.baseURL
-        apiPath = value.apiPath
         credentialRef = value.credentialRef
-        usesResponsesAPI = value.usesResponsesAPI
-        usesVertex = value.usesVertex
-        vertexProjectID = value.vertex.projectID
-        vertexLocation = value.vertex.location
-        vertexCredentialRef = value.vertex.credentialRef
-        vertexClientEmail = value.vertex.clientEmail
         modelsFetchedAt = value.modelsFetchedAt
         self.sortIndex = sortIndex
     }
 
     func value(models: [AIModel]) -> ModelProvider {
-        ModelProvider(
+        let endpoint = endpoint
+        return ModelProvider(
             id: id,
             name: name,
-            kind: ModelProviderKind(rawValue: kind) ?? .openAI,
+            apiFormat: endpoint.format,
             isEnabled: isEnabled,
-            baseURL: baseURL,
-            apiPath: apiPath,
+            inferenceURL: endpoint.requestURL,
+            baseURL: endpoint.baseURL,
             credentialRef: credentialRef,
-            usesResponsesAPI: usesResponsesAPI,
-            usesVertex: usesVertex,
-            vertex: VertexConfig(
-                projectID: vertexProjectID,
-                location: vertexLocation,
-                credentialRef: vertexCredentialRef,
-                clientEmail: vertexClientEmail
-            ),
             models: models,
             modelsFetchedAt: modelsFetchedAt
         )
+    }
+
+    var endpoint: ProviderEndpoint {
+        guard apiType.isEmpty else {
+            return ProviderEndpoint(
+                apiType: ModelAPIType(rawValue: apiType) ?? .automatic, url: typedURL
+            )
+        }
+        return legacyFold
+    }
+
+    /// The pre-V12 columns read as one endpoint.
+    ///
+    /// The old shape had two fields and two fallbacks: a blank base URL meant
+    /// the vendor's public host and a blank path meant that vendor's default
+    /// endpoint. Both are gone, so the fold has to put back what they resolved
+    /// to — otherwise a provider that worked yesterday comes back pointing
+    /// nowhere. It lands on the *explicit* API type rather than `Automatic`,
+    /// which reproduces the old behaviour exactly instead of re-deriving it.
+    private var legacyFold: ProviderEndpoint {
+        let format: ModelAPIFormat =
+            switch kind {
+            case "anthropic": .messages
+            case "google": .generateContent
+            default: usesResponsesAPI ? .responses : .chatCompletions
+            }
+        let base = baseURL.isEmpty ? Self.legacyDefaultBaseURL(kind) : baseURL
+        let path = apiPath.isEmpty ? format.path : apiPath
+        return ProviderEndpoint(apiType: ModelAPIType(format), url: base + path)
+    }
+
+    /// What `ModelProviderKind.defaultBaseURL` used to return. Kept here rather
+    /// than in AgentKit because nothing but this fold still needs it, and an
+    /// endpoint the app supplies on its own is exactly what the single URL
+    /// field exists to stop.
+    private static func legacyDefaultBaseURL(_ kind: String) -> String {
+        switch kind {
+        case "anthropic": "https://api.anthropic.com/v1"
+        case "google": "https://generativelanguage.googleapis.com/v1beta"
+        default: "https://api.openai.com/v1"
+        }
     }
 }
 
@@ -212,6 +282,7 @@ final class AIPersistence {
             FetchDescriptor<PersistentModelProvider>(sortBy: [SortDescriptor(\.sortIndex)])
         )
         var seenProviders: Set<UUID> = []
+        var endpoints: [ModelProvider.ID: ProviderEndpoint] = [:]
         let providers = providerRows.compactMap { row -> ModelProvider? in
             guard seenProviders.insert(row.id).inserted else { return nil }
             var seenModels: Set<String> = []
@@ -219,6 +290,7 @@ final class AIPersistence {
                 guard seenModels.insert(modelRow.modelID).inserted else { return nil }
                 return modelRow.value
             }
+            endpoints[row.id] = row.endpoint
             return row.value(models: models)
         }
 
@@ -253,6 +325,7 @@ final class AIPersistence {
 
         return AIConfigurationSnapshot(
             providers: providers,
+            endpoints: endpoints,
             roles: roles,
             lastSelectedModel: lastSelectedModel,
             mcpServers: mcpServers
@@ -268,7 +341,14 @@ final class AIPersistence {
             try context.delete(model: PersistentMCPServer.self)
 
             for (providerIndex, provider) in snapshot.providers.enumerated() {
-                context.insert(PersistentModelProvider(provider, sortIndex: providerIndex))
+                // A provider with no recorded endpoint is read back as
+                // `Automatic` over its composed URL, which resolves to the same
+                // format it already has — see `AIConfigurationModel.endpoints`.
+                let endpoint =
+                    snapshot.endpoints[provider.id] ?? ProviderEndpoint(url: provider.inferenceURL)
+                context.insert(
+                    PersistentModelProvider(provider, endpoint: endpoint, sortIndex: providerIndex)
+                )
                 for (modelIndex, model) in provider.models.enumerated() {
                     context.insert(
                         PersistentAIModel(model, providerID: provider.id, sortIndex: modelIndex)

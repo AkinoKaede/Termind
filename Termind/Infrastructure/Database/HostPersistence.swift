@@ -471,7 +471,7 @@ enum TermindSchemaV1: VersionedSchema {
             PersistentPendingDeletion.self,
             PersistentDatabaseMetadata.self,
             TermindSchemaV9Models.PersistentCommandHistoryEntry.self,
-            PersistentModelProvider.self,
+            TermindSchemaV11Models.PersistentModelProvider.self,
             PersistentAIModel.self,
             PersistentAIRoleAssignment.self,
             PersistentAISelection.self,
@@ -576,13 +576,36 @@ enum TermindSchemaV11: VersionedSchema {
     }
 }
 
+/// `PersistentModelProvider` trades its vendor-named kind and split address for
+/// one API type and one URL, and drops the Vertex columns.
+///
+/// The stage is lightweight: `apiType` and `typedURL` arrive with defaults, and
+/// the Vertex columns go away. What the old columns *meant* is recovered on
+/// read by `PersistentModelProvider.legacyFold`, which is why `kind`,
+/// `baseURL`, `apiPath` and `usesResponsesAPI` are still declared on the live
+/// model — dropping them here would discard the addresses they encode before
+/// anything had a chance to fold them.
+///
+/// A version has to differ from the one before it to be a version at all, and
+/// two schemas built from the same live types hash identically. Hence
+/// `TermindSchemaV11Models` — see the note there.
+enum TermindSchemaV12: VersionedSchema {
+    static let versionIdentifier = Schema.Version(12, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV11.models.filter {
+            $0 != TermindSchemaV11Models.PersistentModelProvider.self
+        } + [PersistentModelProvider.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self,
             TermindSchemaV4.self, TermindSchemaV5.self, TermindSchemaV6.self,
             TermindSchemaV7.self, TermindSchemaV8.self, TermindSchemaV9.self,
-            TermindSchemaV10.self, TermindSchemaV11.self,
+            TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self,
         ]
     }
 
@@ -627,13 +650,16 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(
                 fromVersion: TermindSchemaV10.self, toVersion: TermindSchemaV11.self
             ),
+            MigrationStage.lightweight(
+                fromVersion: TermindSchemaV11.self, toVersion: TermindSchemaV12.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV11.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV12.self)
 
     let context: ModelContext
 

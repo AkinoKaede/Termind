@@ -133,7 +133,7 @@ struct SettingsNavigationTests {
     @Test
     func configuredProviderDraftIsKept() {
         var provider = ModelProvider(name: String(localized: "New Provider"))
-        provider.baseURL = "https://example.com/v1"
+        provider.inferenceURL = "https://example.com/v1/chat/completions"
         #expect(!SettingsDraftPolicy.shouldDiscard(provider))
 
         provider = ModelProvider(name: "Work")

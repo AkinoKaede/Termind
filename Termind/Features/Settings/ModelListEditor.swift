@@ -203,12 +203,11 @@ struct ModelListEditor: View {
         }
     }
 
-    /// Says *why* the button is off rather than just being off. The Vertex case
-    /// is the one people will otherwise read as a bug.
+    /// Says *why* the button is off rather than just being off.
     private var fetchHelp: Text {
         guard let provider else { return Text("") }
-        if provider.usesVertexEndpoint {
-            return Text(ModelCatalogError.unsupportedForVertex.localizedDescription)
+        if provider.resolvedModelsURL == nil {
+            return Text("Add a URL first. Models are listed from the endpoint's own address.")
         }
         if !provider.hasCredential {
             return Text("Add a key first. This endpoint requires one to list models.")
@@ -296,9 +295,7 @@ struct ModelListEditor: View {
 
     private var emptyHint: LocalizedStringKey {
         guard let provider else { return "" }
-        if provider.usesVertexEndpoint {
-            return "Add Vertex models manually"
-        }
+        if provider.resolvedModelsURL == nil { return "Add a URL, then press Fetch" }
         return provider.hasCredential ? "Press Fetch" : "Add a key, then press Fetch"
     }
 

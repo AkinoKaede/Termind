@@ -3,6 +3,8 @@ import Foundation
 
 nonisolated struct AIConfigurationSnapshot: Sendable {
     var providers: [ModelProvider]
+    /// What was typed and picked per provider — see `AIConfigurationModel.endpoints`.
+    var endpoints: [ModelProvider.ID: ProviderEndpoint] = [:]
     var roles: [AIRole: AIModelRef]
     var lastSelectedModel: AIModelRef?
     var mcpServers: [MCPServer] = []

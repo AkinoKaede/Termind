@@ -890,3 +890,62 @@ The arrow cases match on key code rather than character, as `.tab` and `.escape`
 `PersistentTerminalSurfaceView.TermindTerminalView.performKeyEquivalent` and decline it, so Ghostty writes no
 escape sequence to the shell; `BroadcastInputTests.registeredApplicationShortcutsFallThroughTheTerminal` now
 covers both arrows.
+
+### 48. Address a provider by one URL and one API type — Structural
+
+**Status:** Completed on 2026-09-04; AgentKit `swift build`/`swift test`/`swift-format lint --strict` pass, the
+macOS build and all 994 Termind tests pass, `Scripts/check-zh-localization.sh` passes, and `npm run build` passes
+for the site.
+
+**Evidence:**
+
+- `ModelProviderKind` named three vendors for four wire protocols, so `.openAI` had to carry `usesResponsesAPI` to
+  express the fourth, and every dispatch site wrote `case .openAI where provider.usesResponsesAPI` before the three
+  ordinary cases.
+- Each kind carried a `defaultBaseURL` and a `defaultAPIPath`, which a blank field fell back to. The provider
+  editor printed those defaults as placeholders, so `https://api.openai.com/v1` was on screen for anyone who had
+  added a provider and typed nothing — and a provider with a credential but no address resolved to a vendor
+  endpoint nobody had named.
+- The address was two fields, base and path, which made "does the base URL include `/v1`" a question the user had
+  to answer correctly.
+
+**Action taken:** AgentKit gained `ModelAPIFormat` (`chatCompletions`, `responses`, `messages`,
+`generateContent`) and two named addresses: `inferenceURL`, the complete address a request goes to, and
+`baseURL`, that address with its endpoint segment removed, which is what `ModelCatalogClient` hangs `/models`
+off. Neither is composed or defaulted there. Termind owns the `Automatic` choice and the suffix detection behind
+it (`ModelAPIType`, `ProviderEndpoint`), composes both addresses, and shows one URL field with the composed
+address and body format underneath it.
+
+Removing the endpoint segment has to be the caller's job because only the caller knows which part it appended,
+and `/v1/chat/completions` and `/v1beta/models/{model}:generateContent` do not put their endpoints in comparable
+places — cutting at the colon leaves the model id behind and lists from `…/models/gemini-x/models`. Shipped as
+AgentKit 0.4.0 and then 0.5.0, the second being that split and the rename it forced: with two addresses on a
+provider, `url` no longer says which one.
+
+**Net effect:** AgentKit measured +224/−205 including tests, with `ModelProvider.swift` down 203 lines to 121.
+Termind removed the Vertex editor section, the service-account import, the API-path field, the Responses toggle,
+and 15 string-catalog entries against 5 added.
+
+**Verification:** `ProviderEndpointTests` pins the composition rule, including that an explicit API type changes
+the body without moving the address, that a query stays at the end of whatever is composed, and that every
+pre-V12 row folds back to the address it used to resolve to.
+
+Two things did not go as planned. `TermindSchemaV12` first reused `TermindSchemaV11.models` verbatim, which
+SwiftData rejected with "Duplicate version checksums detected" — every `VersionedSchema` in the plan points at
+live model types, so two versions built from the same types hash identically. Dropping V12 then produced "Cannot
+use staged migration with an unknown model version", because an installed store records the checksum of the shape
+it was saved with and V11 no longer described it. `TermindSchemaV11Models.PersistentModelProvider` freezes the old
+shape, following `TermindSchemaV9Models`; that is what gives V11→V12 two sides. Any future attribute change to a
+persisted model needs the same freeze.
+
+A guard added to `AIConfigurationModel.lookup` — skip providers with no URL — was removed again. It made a
+provider with hand-added models vanish from every picker, which is exactly what the `enabledModelProviders` note
+argues against, and the hazard it was written for no longer exists: with no default endpoint in AgentKit, a blank
+URL fails with a bad-URL error naming the problem instead of reaching a vendor.
+
+### 33 addendum (2026-09-04)
+
+`usesVertexEndpoint` now reads `usesVertex && apiFormat == .generateContent`; `kind` is gone. Vertex itself stays
+in AgentKit, which is an independent package and does not carry the app's constraints — but nothing in Termind
+drives it any more, so `AgentProviderAdapterTests.vertexDerivesItsOwnAddressAndDeclinesTheCatalog` is the only
+thing still holding it honest. `effectiveCredentialRef` is unchanged and still earns its place.

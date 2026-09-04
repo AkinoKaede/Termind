@@ -61,18 +61,24 @@ private struct ModelProviderRow: View {
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
-            Image(systemName: provider.kind.symbol)
+            Image(systemName: provider.apiFormat.symbol)
                 .foregroundStyle(provider.isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
                 .frame(width: Metrics.Sidebar.rowIcon)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(provider.name)
                     .lineLimit(1)
-                Text(provider.resolvedBaseURL)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                Group {
+                    if endpoint.isConfigured {
+                        Text(endpoint.url)
+                    } else {
+                        Text("Needs a URL")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
             }
 
             Spacer(minLength: Metrics.Space.m)
@@ -97,7 +103,11 @@ private struct ModelProviderRow: View {
         // The whole row opens the editor; the toggle and the chevron are
         // ordinary controls layered on top and keep their own hit areas.
         .onTapGesture(perform: edit)
-        .help(Text(provider.resolvedRequestURL()))
+        .help(Text(endpoint.isConfigured ? provider.requestURL() : ""))
+    }
+
+    private var endpoint: ProviderEndpoint {
+        app.aiConfiguration.endpoint(for: provider.id)
     }
 
     private var enabled: Binding<Bool> {
@@ -114,7 +124,7 @@ private struct ModelProviderRow: View {
     /// state on the way to a finished one, not an error.
     @ViewBuilder
     private var chips: some View {
-        CardChip(text: provider.kind.displayName)
+        CardChip(text: provider.apiFormat.displayName)
 
         if !provider.hasCredential {
             CardChip(text: String(localized: "No Key"), symbol: "exclamationmark.circle", tint: .orange)

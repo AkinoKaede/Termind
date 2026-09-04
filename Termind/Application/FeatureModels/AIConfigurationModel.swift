@@ -11,6 +11,21 @@ import Foundation
 @Observable
 final class AIConfigurationModel {
     private(set) var modelProviders: [ModelProvider] = []
+
+    /// What the user typed and picked for each provider's endpoint.
+    ///
+    /// Beside the providers rather than on them, because `ModelProvider` is
+    /// AgentKit's type and this app does not get to add a field to it. Neither
+    /// half survives a round trip through the composed result — a URL ending in
+    /// `/messages` looks the same whether it was typed or appended, and
+    /// `Automatic` looks the same as picking the format it resolved to — so
+    /// there is nothing to derive it from and it has to be kept.
+    ///
+    /// A missing entry is not a broken one: it reads as `Automatic` over the
+    /// provider.s stored `inferenceURL`, which resolves to the format already recorded
+    /// there. The editor shows the same endpoint either way.
+    private var endpoints: [ModelProvider.ID: ProviderEndpoint] = [:]
+
     private(set) var mcpServers: [MCPServer] = []
 
     /// Explicit role assignments. Absent means "work it out" — see `resolve`.
@@ -50,6 +65,7 @@ final class AIConfigurationModel {
 
     init(
         modelProviders: [ModelProvider] = [],
+        endpoints: [ModelProvider.ID: ProviderEndpoint] = [:],
         mcpServers: [MCPServer] = [],
         roles: [AIRole: AIModelRef] = [:],
         lastSelectedModel: AIModelRef? = nil,
@@ -60,6 +76,7 @@ final class AIConfigurationModel {
         permissionDefaults: UserDefaults? = nil
     ) {
         self.modelProviders = modelProviders
+        self.endpoints = endpoints
         self.mcpServers = mcpServers
         self.roles = roles
         self.lastSelectedModel = lastSelectedModel
@@ -76,6 +93,7 @@ final class AIConfigurationModel {
         do {
             let loaded = try persistence.load()
             self.modelProviders = loaded.providers
+            self.endpoints = loaded.endpoints
             self.roles = loaded.roles
             self.lastSelectedModel = loaded.lastSelectedModel
             self.mcpServers = loaded.mcpServers
@@ -90,6 +108,13 @@ final class AIConfigurationModel {
         modelProviders.first { $0.id == id }
     }
 
+    /// What the editor shows for a provider's endpoint. Falls back to reading
+    /// the composed URL as `Automatic` — see `endpoints`.
+    func endpoint(for id: ModelProvider.ID) -> ProviderEndpoint {
+        if let stored = endpoints[id] { return stored }
+        return ProviderEndpoint(url: modelProvider(id)?.inferenceURL ?? "")
+    }
+
     /// Providers whose models may be offered anywhere. A provider with no
     /// credential is included: it may have hand-added models, and hiding it
     /// would make "why is my model missing" unanswerable from the picker.
@@ -102,6 +127,13 @@ final class AIConfigurationModel {
     ///
     /// Every step of `resolve` runs through here, which is what stops a stale
     /// assignment from silently pointing at nothing.
+    ///
+    /// A missing URL is deliberately *not* one of the disqualifying conditions,
+    /// for the same reason a missing credential is not: the model is sitting
+    /// right there in Settings, and a picker that quietly skips it makes "why is
+    /// my model missing" unanswerable. Sending to a blank URL now fails with a
+    /// bad-URL error naming the problem, which is the better of the two — there
+    /// is no default endpoint left for it to reach instead.
     func lookup(_ ref: AIModelRef) -> (provider: ModelProvider, model: AIModel)? {
         guard
             let provider = modelProvider(ref.modelProviderID),
@@ -252,6 +284,22 @@ final class AIConfigurationModel {
         }
     }
 
+    /// The only place `url` and `apiFormat` are ever written.
+    ///
+    /// Everything else edits a name, a key or a model list. Keeping the
+    /// derivation in one function is what lets the caption under the URL field
+    /// promise where requests land: there is exactly one rule turning a typed
+    /// address and a picked type into an address, and both the caption and the
+    /// request read it from the same place.
+    func setEndpoint(_ endpoint: ProviderEndpoint, for id: ModelProvider.ID) {
+        guard var provider = modelProvider(id) else { return }
+        provider.inferenceURL = endpoint.requestURL
+        provider.baseURL = endpoint.baseURL
+        provider.apiFormat = endpoint.format
+        endpoints[id] = endpoint
+        upsert(provider)
+    }
+
     /// Removes a provider along with everything that only made sense while it
     /// existed: its secrets, the role assignments pointing at it, and the
     /// remembered selection if that was one of its models.
@@ -270,10 +318,10 @@ final class AIConfigurationModel {
                 lastSelectedModel = nil
             }
             modelProviders.removeAll { $0.id == modelProviderID }
+            endpoints[modelProviderID] = nil
         }
         guard deleted else { return }
         setSecret(nil, for: provider.credentialRef)
-        setSecret(nil, for: provider.vertex.credentialRef)
     }
 
     func setModelProviderEnabled(_ enabled: Bool, for id: ModelProvider.ID) {
@@ -401,6 +449,7 @@ final class AIConfigurationModel {
             return true
         } catch {
             modelProviders = previous.providers
+            endpoints = previous.endpoints
             roles = previous.roles
             lastSelectedModel = previous.lastSelectedModel
             mcpServers = previous.mcpServers
@@ -412,6 +461,7 @@ final class AIConfigurationModel {
     private var persistedSnapshot: AIConfigurationSnapshot {
         AIConfigurationSnapshot(
             providers: modelProviders,
+            endpoints: endpoints,
             roles: roles,
             lastSelectedModel: lastSelectedModel,
             mcpServers: mcpServers

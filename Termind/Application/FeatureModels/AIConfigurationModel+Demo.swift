@@ -18,28 +18,38 @@ extension AIConfigurationModel {
     /// models at all, so it walks past it — and seeding an assignment would put
     /// that out of reach.
     static func demo() -> AIConfigurationModel {
-        // The fresh state: added, never finished. Fetch stays disabled until a
-        // key exists, which is the first thing anyone needs to see.
-        let openAI = ModelProvider(name: "OpenAI", kind: .openAI)
+        // The fresh state: added, never finished. With no URL it reads as
+        // "Needs a URL", which is the first thing anyone has to see.
+        let unfinished = ModelProvider(name: "Local")
 
-        // The working state. An OpenAI-kind provider pointed somewhere else,
-        // which is the whole reason the base URL is editable — a gateway is not
-        // a fourth API type.
-        let openRouterKey = AIConfigurationModel.makeCredentialRef()
-        var openRouter = ModelProvider(
-            name: "OpenRouter",
-            kind: .openAI,
-            baseURL: "https://openrouter.ai/api/v1",
-            credentialRef: openRouterKey
+        // The working state, and the one that shows why the URL is a single
+        // field: a base address with no endpoint on it, resolved to Chat
+        // Completions because nothing in it said otherwise.
+        let gatewayKey = AIConfigurationModel.makeCredentialRef()
+        let gatewayEndpoint = ProviderEndpoint(url: "https://ai.termind.akinokaede.com/v1")
+        var gateway = ModelProvider(
+            name: "Gateway",
+            apiFormat: gatewayEndpoint.format,
+            inferenceURL: gatewayEndpoint.requestURL,
+            baseURL: gatewayEndpoint.baseURL,
+            credentialRef: gatewayKey
         )
         // No `modelsFetchedAt`: nothing has been fetched on a fresh install, and
         // a "Fetched last year" line under a list that looks current reads as a
         // bug rather than as seed data.
-        openRouter.models = demoModels
+        gateway.models = demoModels
 
-        // Google with Vertex off, so both halves of that toggle are one click
-        // apart rather than one of them being unreachable at P0.
-        let gemini = ModelProvider(name: "Gemini", kind: .google)
+        // A second shape, so the API Type column is not one value repeated —
+        // and one recognised from the URL's own suffix rather than picked.
+        let workEndpoint = ProviderEndpoint(
+            url: "https://ai.termind.akinokaede.com/anthropic/v1/messages"
+        )
+        let work = ModelProvider(
+            name: "Work",
+            apiFormat: workEndpoint.format,
+            inferenceURL: workEndpoint.requestURL,
+            baseURL: workEndpoint.baseURL
+        )
 
         let mcp = MCPServer(
             name: "Context7",
@@ -52,12 +62,14 @@ extension AIConfigurationModel {
         )
 
         let store = AIConfigurationModel(
-            modelProviders: [openAI, openRouter, gemini], mcpServers: [mcp],
+            modelProviders: [unfinished, gateway, work],
+            endpoints: [gateway.id: gatewayEndpoint, work.id: workEndpoint],
+            mcpServers: [mcp],
             persistsSecrets: false
         )
         // A stand-in so the working provider actually looks configured. Gone
         // when the app quits, like every other secret at P0.
-        store.setSecret("sk-or-v1-demo-key-not-real", for: openRouterKey)
+        store.setSecret("demo-key-not-real", for: gatewayKey)
         return store
     }
 
@@ -112,7 +124,7 @@ extension AIConfigurationModel {
         bare.ownedBy = "openai"
         bare.origin = .fetched
 
-        let provider = ModelProvider(name: "OpenAI")
+        let provider = ModelProvider(name: "Gateway")
         return [
             opus,
             gemini,

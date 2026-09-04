@@ -39,15 +39,15 @@ struct WebSearchTests {
     func protocolSupportIsSeparateFromTheModelGuess() {
         var provider = ModelProvider(name: "Gateway")
         #expect(!provider.acceptsNativeWebSearchTool)
-        provider.usesResponsesAPI = true
+        provider.apiFormat = .responses
         #expect(provider.acceptsNativeWebSearchTool)
 
         var anthropic = ModelProvider(name: "Anthropic")
-        anthropic.kind = .anthropic
+        anthropic.apiFormat = .messages
         #expect(anthropic.acceptsNativeWebSearchTool)
 
         var google = ModelProvider(name: "Google")
-        google.kind = .google
+        google.apiFormat = .generateContent
         #expect(google.acceptsNativeWebSearchTool)
     }
 
@@ -56,7 +56,7 @@ struct WebSearchTests {
         var model = AIModel(id: "gpt-5.4")
         model.abilities = [.toolCall, .webSearch]
         var provider = ModelProvider(name: "OpenAI")
-        provider.usesResponsesAPI = true
+        provider.apiFormat = .responses
         #expect(provider.supportsNativeWebSearch(model: model))
     }
 

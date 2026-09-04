@@ -1,20 +1,15 @@
 import AgentKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 @Observable
 final class ModelProviderEditorSession {
     var secret = ""
-    var serviceAccountJSON = ""
-    var isImporting = false
-    var importError: String?
     private var didBegin = false
 
     func begin(with provider: ModelProvider, in store: AIConfigurationModel) {
         guard !didBegin else { return }
         didBegin = true
         secret = store.secret(for: provider.credentialRef) ?? ""
-        serviceAccountJSON = store.secret(for: provider.vertex.credentialRef) ?? ""
     }
 }
 
@@ -70,29 +65,13 @@ struct ModelProviderEditorPage: View {
             Section {
                 TextField("Name", text: binding(\.name))
 
-                Picker("API Type", selection: binding(\.kind)) {
-                    ForEach(ModelProviderKind.allCases) { Text($0.displayName).tag($0) }
+                Picker("API Type", selection: endpointBinding(\.apiType)) {
+                    ForEach(ModelAPIType.allCases) { Text($0.displayName).tag($0) }
                 }
             }
 
-            if provider.usesVertexEndpoint {
-                vertexSection(provider)
-            } else {
-                endpointSection(provider)
-                credentialSection
-            }
-
-            if provider.kind == .google {
-                Section {
-                    Toggle("Use Vertex AI", isOn: binding(\.usesVertex))
-                    Text(
-                        "Vertex AI uses a service account, project, and location instead of an API key."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            endpointSection
+            credentialSection
 
             Section("Models") {
                 Button(action: showModels) {
@@ -129,47 +108,50 @@ struct ModelProviderEditorPage: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// Base URL and API path, both blank with the real default as the
-    /// placeholder, and the resolved URL underneath.
+    /// One address, and the two facts derived from it.
     ///
-    /// That caption is the point of the whole section. "Does the base URL
-    /// include `/v1`" is the question every client of this shape gets wrong, and
-    /// the answer here is not a convention to memorise — it is printed, live,
-    /// from the same computed property the request is built from.
+    /// One field rather than a base and a path, because splitting them made
+    /// "does the base URL include `/v1`" a question the user had to answer —
+    /// and it is the question every client of this shape gets wrong. Here they
+    /// paste whatever their gateway's documentation printed, at whatever depth
+    /// it printed it, and the two captions say what that produced.
+    ///
+    /// The captions are the point of the section. `Full URL` is read from the
+    /// same value the request is built from, so it cannot drift from where
+    /// requests land; the line under it names the body shape, which is how
+    /// `Automatic` explains its own answer and how an explicit pick that
+    /// disagrees with the URL stops being a silent surprise.
     @ViewBuilder
-    private func endpointSection(_ provider: ModelProvider) -> some View {
+    private var endpointSection: some View {
+        let endpoint = endpoint
+
         Section {
             TextField(
-                "Base URL",
-                text: binding(\.baseURL),
-                prompt: Text(provider.kind.defaultBaseURL)
+                "URL",
+                text: endpointBinding(\.url),
+                prompt: Text(verbatim: "https://ai.termind.akinokaede.com/v1")
             )
 
-            TextField(
-                "API Path",
-                text: binding(\.apiPath),
-                prompt: Text(provider.kind.defaultAPIPath(usesResponsesAPI: provider.usesResponsesAPI))
-            )
+            if endpoint.isConfigured {
+                LabeledContent("Full URL") {
+                    Text(endpoint.requestURL)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-            if provider.kind == .openAI {
-                // Only OpenAI has two chat endpoints. A toggle that did nothing
-                // on the other two would be noise in the place noise costs most.
-                Toggle("Responses API", isOn: binding(\.usesResponsesAPI))
-            }
-
-            LabeledContent("Full URL") {
-                Text(provider.resolvedRequestURL())
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .multilineTextAlignment(.trailing)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if provider.resolvedAPIPath.contains(ModelProvider.modelToken) {
-                Text("\(ModelProvider.modelToken) is replaced with the model id.")
+                Text("Requests use the \(endpoint.format.displayName) format.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if endpoint.requestURL.contains(ModelProvider.modelToken) {
+                    Text("\(ModelProvider.modelToken) is replaced with the model id.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         } header: {
             Text("Endpoint")
@@ -194,74 +176,6 @@ struct ModelProviderEditorPage: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    /// Vertex replaces the endpoint *and* the credential, which is why it gets
-    /// its own section rather than an extra field: with it on, there is no base
-    /// URL to type — the address is derived from the project and the location.
-    @ViewBuilder
-    private func vertexSection(_ provider: ModelProvider) -> some View {
-        Section {
-            TextField("Project ID", text: binding(\.vertex.projectID))
-            TextField("Location", text: binding(\.vertex.location), prompt: Text("global"))
-
-            LabeledContent("Full URL") {
-                Text(provider.resolvedRequestURL())
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .multilineTextAlignment(.trailing)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        } header: {
-            Text("Vertex AI")
-        }
-
-        Section {
-            if provider.vertex.clientEmail.isEmpty {
-                Text("No service account yet.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                LabeledContent("Service Account") {
-                    Text(provider.vertex.clientEmail)
-                        .font(.caption.monospaced())
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
-
-            HStack {
-                Button("Import JSON") { session.isImporting = true }
-                if !session.serviceAccountJSON.isEmpty {
-                    Button("Remove", role: .destructive) { clearServiceAccount() }
-                }
-            }
-
-            if let importError = session.importError {
-                Label(importError, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Text(
-                "Termind reads the account name and stores the remaining key data as a secret."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-        } header: {
-            Text("Credential")
-        }
-        .fileImporter(
-            isPresented: Binding(
-                get: { session.isImporting }, set: { session.isImporting = $0 }
-            ),
-            allowedContentTypes: [.json]
-        ) { result in
-            importServiceAccount(result)
         }
     }
 
@@ -293,53 +207,26 @@ struct ModelProviderEditorPage: View {
         app.aiConfiguration.upsert(provider)
     }
 
-    private func importServiceAccount(_ result: Result<URL, any Error>) {
-        session.importError = nil
-        do {
-            let url = try result.get()
-            // The panel hands back a security-scoped URL; without the accessor
-            // the read fails silently under the sandbox.
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-
-            let json = try String(contentsOf: url, encoding: .utf8)
-            guard let email = GoogleServiceAccountAuth.clientEmail(in: json) else {
-                session.importError = GoogleAuthError.malformedServiceAccount.localizedDescription
-                return
-            }
-
-            guard var provider else { return }
-            if provider.vertex.credentialRef.isEmpty {
-                provider.vertex.credentialRef = AIConfigurationModel.makeCredentialRef("vertex")
-            }
-            provider.vertex.clientEmail = email
-            // The file names the project it belongs to, so a field the user
-            // would otherwise copy across by hand fills itself — and fills with
-            // the value that matches the key rather than a different one.
-            if provider.vertex.projectID.isEmpty,
-                let project = GoogleServiceAccountAuth.projectID(in: json)
-            {
-                provider.vertex.projectID = project
-            }
-            app.aiConfiguration.setSecret(json, for: provider.vertex.credentialRef)
-            app.aiConfiguration.upsert(provider)
-            session.serviceAccountJSON = json
-        } catch {
-            session.importError = error.localizedDescription
-        }
-    }
-
-    private func clearServiceAccount() {
-        guard var provider else { return }
-        app.aiConfiguration.setSecret(nil, for: provider.vertex.credentialRef)
-        provider.vertex.credentialRef = ""
-        provider.vertex.clientEmail = ""
-        app.aiConfiguration.upsert(provider)
-        session.serviceAccountJSON = ""
-        session.importError = nil
-    }
-
     // MARK: - Binding
+
+    private var endpoint: ProviderEndpoint {
+        app.aiConfiguration.endpoint(for: modelProviderID)
+    }
+
+    /// A two-way binding into the endpoint, written through the store's one
+    /// derivation so the composed URL and the API format are updated together.
+    private func endpointBinding<Value>(
+        _ keyPath: WritableKeyPath<ProviderEndpoint, Value>
+    ) -> Binding<Value> {
+        Binding(
+            get: { endpoint[keyPath: keyPath] },
+            set: { newValue in
+                var updated = endpoint
+                updated[keyPath: keyPath] = newValue
+                app.aiConfiguration.setEndpoint(updated, for: modelProviderID)
+            }
+        )
+    }
 
     /// A two-way binding into the stored provider.
     ///

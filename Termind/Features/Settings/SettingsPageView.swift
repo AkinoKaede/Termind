@@ -298,8 +298,7 @@ enum SettingsDraftPolicy {
             provider.name.trimmingCharacters(in: .whitespacesAndNewlines)
             == String(localized: "New Provider")
         let hasConfiguration =
-            !provider.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || !provider.apiPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            !provider.inferenceURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || provider.hasCredential || !provider.models.isEmpty
         return hasDefaultName && !hasConfiguration
     }
