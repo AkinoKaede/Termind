@@ -1,4 +1,5 @@
 import Foundation
+import Speech
 import Testing
 
 @testable import Termind
@@ -6,6 +7,24 @@ import Testing
 @Suite
 @MainActor
 struct SpeechTranscriptionTests {
+    @Test(arguments: [
+        SFSpeechRecognizerAuthorizationStatus.notDetermined, .authorized, .denied, .restricted,
+    ])
+    func speechAuthorizationCallbackCanResumeFromABackgroundQueue(
+        status: SFSpeechRecognizerAuthorizationStatus
+    ) async {
+        let returnedStatus = await withCheckedContinuation { continuation in
+            let handler = AppleSpeechTranscriptionService.makeSpeechAuthorizationHandler(continuation: continuation)
+            DispatchQueue.global().async {
+                dispatchPrecondition(condition: .notOnQueue(.main))
+                handler(status)
+            }
+        }
+
+        MainActor.preconditionIsolated()
+        #expect(returnedStatus == status)
+    }
+
     @Test
     func coordinatorMovesThroughRecordingAndTranscribingBeforeCompleting() async {
         let service = FakeSpeechTranscriptionService()
@@ -88,10 +107,14 @@ struct SpeechTranscriptionTests {
         #expect(service.startCount == 1)
     }
 
-    @Test
-    func authorizationFailureReturnsToIdleAndTargetsTheOwningComposer() async {
+    @Test(arguments: [
+        SpeechTranscriptionFailure.Code.microphonePermissionDenied, .speechPermissionDenied,
+    ])
+    func authorizationFailureReturnsToIdleAndTargetsTheOwningComposer(
+        code: SpeechTranscriptionFailure.Code
+    ) async {
         let service = FakeSpeechTranscriptionService()
-        service.authorizationError = SpeechTranscriptionFailure(.microphonePermissionDenied)
+        service.authorizationError = SpeechTranscriptionFailure(code)
         let coordinator = SpeechTranscriptionCoordinator(service: service)
         let ownerID = UUID()
 
@@ -100,13 +123,68 @@ struct SpeechTranscriptionTests {
         #expect(!started)
         #expect(coordinator.phase == .idle)
         #expect(coordinator.ownerID == nil)
-        #expect(coordinator.error?.code == .microphonePermissionDenied)
+        #expect(coordinator.error?.code == code)
         #expect(coordinator.errorOwnerID == ownerID)
         #expect(coordinator.error?.offersSystemSettings == true)
+        #expect(service.startCount == 0)
 
         coordinator.dismissError(ownerID: ownerID)
         #expect(coordinator.error == nil)
         #expect(coordinator.errorOwnerID == nil)
+    }
+
+    @Test(arguments: [false, true], [false, true])
+    func authorizationResultAfterCancellationCannotStartRecording(
+        startNewSession: Bool,
+        permissionDenied: Bool
+    ) async {
+        let service = FakeSpeechTranscriptionService()
+        let coordinator = SpeechTranscriptionCoordinator(service: service)
+        let firstOwner = UUID()
+        let secondOwner = UUID()
+        let authorizationRequested = AsyncStream.makeStream(of: Void.self)
+        var authorizationContinuation: CheckedContinuation<Void, Never>?
+        var completionCount = 0
+        service.authorizationHandler = {
+            await withCheckedContinuation { continuation in
+                authorizationContinuation = continuation
+                authorizationRequested.continuation.yield(())
+                authorizationRequested.continuation.finish()
+            }
+            if permissionDenied { throw SpeechTranscriptionFailure(.speechPermissionDenied) }
+        }
+
+        let pendingStart = Task {
+            await coordinator.start(ownerID: firstOwner) { _, _ in completionCount += 1 }
+        }
+        var requests = authorizationRequested.stream.makeAsyncIterator()
+        _ = await requests.next()
+        #expect(coordinator.isRequestingAuthorization)
+        #expect(coordinator.ownerID == firstOwner)
+
+        coordinator.cancel(ownerID: firstOwner)
+        #expect(!coordinator.isRequestingAuthorization)
+        #expect(coordinator.phase == .idle)
+        #expect(coordinator.ownerID == nil)
+        #expect(service.startCount == 0)
+
+        if startNewSession {
+            service.authorizationHandler = nil
+            let started = await coordinator.start(ownerID: secondOwner) { _, _ in completionCount += 1 }
+            #expect(started)
+        }
+
+        authorizationContinuation?.resume()
+        let started = await pendingStart.value
+        #expect(!started)
+        #expect(!coordinator.isRequestingAuthorization)
+        #expect(coordinator.phase == (startNewSession ? .recording : .idle))
+        #expect(coordinator.ownerID == (startNewSession ? secondOwner : nil))
+        #expect(coordinator.error == nil)
+        #expect(service.startCount == (startNewSession ? 1 : 0))
+        #expect(service.cancelCount == 1)
+        #expect(completionCount == 0)
+        coordinator.cancelAll()
     }
 
     @Test
@@ -232,12 +310,14 @@ struct SpeechTranscriptionTests {
 @MainActor
 private final class FakeSpeechTranscriptionService: SpeechTranscriptionService {
     var authorizationError: SpeechTranscriptionFailure?
+    var authorizationHandler: (@MainActor () async throws -> Void)?
     var handlers: [@MainActor (SpeechTranscriptionEvent) -> Void] = []
     var startCount = 0
     var finishCount = 0
     var cancelCount = 0
 
     func requestAuthorization() async throws {
+        try await authorizationHandler?()
         if let authorizationError { throw authorizationError }
     }
 

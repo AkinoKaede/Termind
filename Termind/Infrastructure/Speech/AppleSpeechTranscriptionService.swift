@@ -89,10 +89,17 @@ final class AppleSpeechTranscriptionService: SpeechTranscriptionService {
         let status = SFSpeechRecognizer.authorizationStatus()
         guard status == .notDetermined else { return status }
         return await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { newStatus in
-                continuation.resume(returning: newStatus)
-            }
+            SFSpeechRecognizer.requestAuthorization(Self.makeSpeechAuthorizationHandler(continuation: continuation))
         }
+    }
+
+    // TCC can invoke this callback on a background queue, independently of
+    // recognizer.queue. Only resume the continuation here; the awaiting method
+    // returns to MainActor before interpreting the permission result.
+    nonisolated static func makeSpeechAuthorizationHandler(
+        continuation: CheckedContinuation<SFSpeechRecognizerAuthorizationStatus, Never>
+    ) -> @Sendable (SFSpeechRecognizerAuthorizationStatus) -> Void {
+        { status in continuation.resume(returning: status) }
     }
 
     nonisolated private static func makeRecognitionHandler(

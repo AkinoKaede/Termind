@@ -87,6 +87,20 @@ Snippets, and History. Dynamic SSH/SFTP containers are consistently named
 Workspaces; “tab” is reserved for keyboard or native UI tab semantics. Vault
 selection belongs to `VaultPageStates`, not to sidebar state.
 
+## Speech authorization and callbacks
+
+Speech service and coordinator state belong to MainActor. System authorization
+callbacks can arrive on arbitrary queues; `SFSpeechRecognizer.queue` controls
+recognition callbacks, not authorization callbacks. The speech authorization
+handler is created in a nonisolated factory as an explicitly Sendable closure
+that only resumes its checked continuation. The awaiting service returns to
+MainActor to interpret the result. Moving work to the main queue inside an
+actor-inherited callback is too late to avoid its entry isolation check.
+
+Authorization does not own a recording session: the coordinator rechecks its
+session token after waiting, so a cancelled request's late result cannot start
+recording or affect a newer session.
+
 ## Agent runtime and security
 
 The runtime is `AgentKit`, a separate package with no dependencies and no
