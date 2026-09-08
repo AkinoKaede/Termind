@@ -76,7 +76,7 @@ struct ArchitectureBoundaryTests {
         try assertNoImports(
             in: "Domain",
             forbidden: [
-                "SwiftUI", "AppKit", "UIKit", "SwiftData", "Security", "Network",
+                "SwiftUI", "AppKit", "UIKit", "SwiftData", "Security", "Network", "StoreKit", "CloudKit",
                 "CSSH2", "OpenSSL", "GhosttyTerminal", "GhosttyTheme",
             ]
         )

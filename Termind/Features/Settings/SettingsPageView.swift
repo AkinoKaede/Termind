@@ -438,6 +438,7 @@ private struct ProSettings: View {
                     .buttonStyle(.borderedProminent)
             }
             Button("Restore Purchase") { Task { await app.proAccess.restorePurchases() } }
+                .disabled(app.proAccess.isProcessing)
             if let message = app.proAccess.message {
                 Text(message).font(.caption).foregroundStyle(.orange)
             }
@@ -474,11 +475,10 @@ private struct ProSettings: View {
         switch app.proAccess.status {
         case .loading: Label("Checking…", systemImage: "arrow.triangle.2.circlepath")
         case .free: Label("Free", systemImage: "person.crop.circle")
-        case .trialActive: Label("7-Day Trial", systemImage: "clock")
+        case .trialActive: Label("14-Day Trial", systemImage: "clock")
         case .trialExpired: Label("Trial Ended", systemImage: "clock.badge.xmark")
         case .purchased(.purchased): Label("Purchased", systemImage: "checkmark.seal.fill")
         case .purchased(.familyShared): Label("Family Shared", systemImage: "person.3.fill")
-        case .purchasePending: Label("Purchase Pending", systemImage: "hourglass")
         case .verificationFailed: Label("Verification Required", systemImage: "exclamationmark.shield")
         case .unrestrictedForTesting: Label("Development Access", systemImage: "hammer")
         }

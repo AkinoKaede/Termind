@@ -4,25 +4,45 @@ import Testing
 @testable import Termind
 
 struct ProAccessTests {
-    @Test
-    func trialProofRoundTripsAndRejectsTampering() throws {
-        let key = Data(repeating: 0xA5, count: 32)
-        let proof = TrialProof(
-            installationID: UUID(),
-            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
-            lastTrustedAt: Date(timeIntervalSince1970: 1_700_000_100),
-            nonce: Data(repeating: 0x42, count: 32)
-        )
-        let signed = try TrialProofCodec.sign(proof, key: key)
-        #expect(try TrialProofCodec.verify(signed, key: key) == proof)
+    private let start = Date(timeIntervalSince1970: 1_700_000_000)
 
-        var envelope = try JSONDecoder().decode(SignedTrialProof.self, from: signed)
-        envelope.proof.startedAt = envelope.proof.startedAt.addingTimeInterval(-3_600)
-        let tampered = try JSONEncoder().encode(envelope)
-        #expect(try TrialProofCodec.verify(tampered, key: key) == nil)
-        #expect(
-            try TrialProofCodec.verify(signed, key: Data(repeating: 0x5A, count: 32)) == nil
-        )
+    @Test
+    func trialLastsFourteenDaysWithAnExclusiveExpirationBoundary() {
+        let trial = ProTrial(originalID: 1, purchasedAt: start, isRevoked: false)
+        #expect(ProTrial.duration == 1_209_600)
+        #expect(trial.status(at: start.addingTimeInterval(7 * 86_400)).hasProAccess)
+        #expect(trial.status(at: trial.expiresAt.addingTimeInterval(-1)).hasProAccess)
+        #expect(trial.status(at: trial.expiresAt) == .trialExpired)
+        #expect(trial.status(at: trial.expiresAt.addingTimeInterval(1)) == .trialExpired)
+    }
+
+    @Test
+    func restoredAndRepeatedPurchasesNeverRestartTrial() {
+        let original = ProTrial(originalID: 1, purchasedAt: start, isRevoked: false)
+        let later = ProTrial(originalID: 2, purchasedAt: start.addingTimeInterval(86_400), isRevoked: false)
+        #expect(ProTrial.earliest([later, original, original]) == original)
+        #expect(ProTrial.earliest([]) == nil)
+    }
+
+    @Test
+    func revocationKeepsTrialClaimedEvenIfPurchasedAgain() {
+        let original = ProTrial(originalID: 1, purchasedAt: start, isRevoked: true)
+        let later = ProTrial(originalID: 2, purchasedAt: start.addingTimeInterval(86_400), isRevoked: false)
+        #expect(ProTrial.earliest([later, original])?.status(at: start) == .trialExpired)
+    }
+
+    @Test @MainActor
+    func clockRollbackCannotReactivateExpiredTrialOrAffectAnotherTransaction() {
+        let suite = "TrialClockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let trial = ProTrial(originalID: 1, purchasedAt: start, isRevoked: false)
+        let clock = TrialClock(defaults: defaults)
+        #expect(trial.status(at: clock.effectiveNow(for: trial, now: trial.expiresAt)) == .trialExpired)
+        let relaunchedClock = TrialClock(defaults: defaults)
+        #expect(trial.status(at: relaunchedClock.effectiveNow(for: trial, now: start)) == .trialExpired)
+        let other = ProTrial(originalID: 2, purchasedAt: start, isRevoked: false)
+        #expect(other.status(at: clock.effectiveNow(for: other, now: start)).hasProAccess)
     }
 
     @Test
@@ -30,11 +50,11 @@ struct ProAccessTests {
         #expect(!EntitlementStatus.loading.hasProAccess)
         #expect(!EntitlementStatus.free(trialAvailable: true).hasProAccess)
         #expect(!EntitlementStatus.trialExpired.hasProAccess)
-        #expect(!EntitlementStatus.purchasePending.hasProAccess)
         #expect(!EntitlementStatus.verificationFailed.hasProAccess)
         #expect(EntitlementStatus.trialActive(expiresAt: .distantFuture).hasProAccess)
         #expect(EntitlementStatus.purchased(.purchased).hasProAccess)
         #expect(EntitlementStatus.purchased(.familyShared).hasProAccess)
+        #expect(EntitlementStatus.unrestrictedForTesting.hasProAccess)
     }
 
     @Test
@@ -45,35 +65,15 @@ struct ProAccessTests {
         #expect(!EntitlementStatus.unrestrictedForTesting.canPurchase)
     }
 
-    @Test
-    func installKeyServicesCannotOverlapUserCredentialServices() {
-        let reserved = [
-            TrialKeychainStore.installKeyService,
-            TrialKeychainStore.proofService,
-        ]
-        #expect(reserved.allSatisfy { $0.contains("commerce") })
-        #expect(reserved.allSatisfy { !$0.contains("passwords") })
-        #expect(reserved.allSatisfy { !$0.contains("ssh-software-keys") })
-        #expect(reserved.allSatisfy { !$0.contains("secure-enclave-handles") })
-    }
-
-    @Test
-    func trialDurationIsExactlySevenDays() {
-        #expect(TrialEligibilityStore.duration == 7 * 24 * 60 * 60)
-    }
-
     @Test @MainActor
     func freeAccessRefusesAssistantBeforeAnyCallerCanProceed() {
         let access = ProAccessController.testing(status: .free(trialAvailable: true))
-
         #expect(!access.require(.assistant))
         #expect(access.isPaywallPresented)
         #expect(access.requestedFeature == .assistant)
-
         access.isPaywallPresented = false
         #expect(!access.require(.terminalFileUpload))
         #expect(access.isPaywallPresented)
         #expect(access.requestedFeature == .terminalFileUpload)
     }
-
 }

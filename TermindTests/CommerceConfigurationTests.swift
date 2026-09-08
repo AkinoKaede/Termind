@@ -77,6 +77,12 @@ struct CommerceConfigurationTests {
         let products = try #require(configuration["products"] as? [[String: Any]])
         let productIDs = products.compactMap { $0["productID"] as? String }
 
-        #expect(productIDs == [ProAccessController.productID])
+        #expect(Set(productIDs) == [ProAccessController.productID, ProAccessController.trialProductID])
+        let trial = try #require(products.first { $0["productID"] as? String == ProAccessController.trialProductID })
+        #expect(trial["displayPrice"] as? String == "0")
+        #expect(trial["type"] as? String == "NonConsumable")
+        #expect(trial["familyShareable"] as? Bool == false)
+        let pro = try #require(products.first { $0["productID"] as? String == ProAccessController.productID })
+        #expect(pro["familyShareable"] as? Bool == true)
     }
 }

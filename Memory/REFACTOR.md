@@ -949,3 +949,37 @@ URL fails with a bad-URL error naming the problem instead of reaching a vendor.
 in AgentKit, which is an independent package and does not carry the app's constraints — but nothing in Termind
 drives it any more, so `AgentProviderAdapterTests.vertexDerivesItsOwnAddressAndDeclinesTheCatalog` is the only
 thing still holding it honest. `effectiveCredentialRef` is unchanged and still earns its place.
+
+## StoreKit trial consolidation — 2026-09-09
+
+**Status:** Completed. The full test run has one unrelated, pre-existing catalog expectation failure.
+
+**Evidence:** `rg` confirms that `TrialEligibilityStore.swift` contains 260 lines of trial-only HMAC,
+Keychain, UserDefaults, and CloudKit coordination. `ProAccessController` already owns StoreKit purchases,
+transaction updates, and restored Pro entitlements, but starts the trial through this separate system.
+
+**Action:** Replace the local seven-day trial with a zero-price, non-consumable 14-day StoreKit product.
+Delete the old eligibility store and proof types; reuse the purchase and restore flow. Keep only a small
+transaction-scoped clock watermark to avoid ordinary clock rollback. Previous trial records are ignored,
+so existing users may claim the new trial. Update the app, both website languages, and configuration guidance.
+
+**Estimated reduction:** Remove approximately 260 lines of legacy persistence and cryptography; net production
+reduction depends on transaction validation and purchase-state handling. Tests and documentation are additional.
+
+**Result:** Production Swift adds 306 and removes 427 lines (net -121); tests, catalogs, and
+website/documentation changes are excluded.
+
+**Verification:** The pinned macOS build passes. The final full run executes 1,006 tests in 98 suites. All commerce, StoreKit, language,
+architecture, and timer tests pass. The only failing test is the unchanged
+`ModelCapabilityResolverTests.bundledPiCatalogEnrichesKnownModelWithoutRegex`: it expects catalog version
+0.84.3 / 1,312 models, while the committed, unchanged catalog is 0.85.1 / 1,354 models. Both source files
+were checked against HEAD. Swift formatting, Chinese localization, and the website build pass.
+English and Chinese paywall/settings screenshots plus desktop/mobile website screenshots are saved under
+`.build/iap-verification` (ignored build artifacts).
+
+StoreKit integration exposed purchase results arriving before history caches. Entitlement resolution now
+includes the verified transaction being delivered. Concurrent refreshes join the latest read so a timer
+cannot leave an awaiting purchase preflight with stale eligibility. Local macOS hosted StoreKit testing
+exposes approved transactions in history without reliably pushing `Transaction.updates`; the approval
+regression exercises the production event handler with that real verified transaction. Actual push delivery
+and cross-device restoration remain in the App Store Connect Sandbox checklist.

@@ -3,6 +3,7 @@ import SwiftUI
 struct ProPaywallView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @State private var isReviewDemoExpanded = false
     @State private var isReviewDemoUnlocked = false
     @State private var reviewCode = ""
@@ -27,6 +28,7 @@ struct ProPaywallView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 430)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.top, 36)
@@ -40,6 +42,11 @@ struct ProPaywallView: View {
             }
             .padding(.vertical, 28)
 
+            if pro.isProcessing {
+                ProgressView("Contacting the App Store…")
+                    .padding(.bottom, 12)
+            }
+
             if let message = pro.message {
                 Text(message).font(.caption).foregroundStyle(.orange)
                     .multilineTextAlignment(.center).padding(.bottom, 12)
@@ -47,8 +54,15 @@ struct ProPaywallView: View {
 
             VStack(spacing: Metrics.Space.s) {
                 if trialIsAvailable {
-                    Button("Start 7-Day Free Trial") { Task { await pro.startTrial() } }
+                    Button("Start 14-Day Free Trial") { Task { await pro.startTrial() } }
                         .buttonStyle(.borderedProminent).controlSize(.large)
+                        .disabled(!pro.canStartTrial)
+                    Text(
+                        "Includes all Pro features for 14 days. After the trial, these features require a permanent Pro purchase."
+                    )
+                    .font(.caption).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     Text("No subscription. You will not be charged when the trial ends.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -58,15 +72,23 @@ struct ProPaywallView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
+                    .disabled(!pro.canPurchase)
                 } else {
                     Button(purchaseTitle) {
                         Task { await pro.purchase() }
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .disabled(!pro.canPurchase)
                 }
                 Button("Restore Purchase") { Task { await pro.restorePurchases() } }
                     .buttonStyle(.link)
+                    .disabled(pro.isProcessing)
+                if pro.displayPrice == nil || (trialIsAvailable && pro.trialProduct == nil) {
+                    Button("Reload App Store Prices") { Task { await pro.reloadProducts() } }
+                        .buttonStyle(.link)
+                        .disabled(pro.isProcessing)
+                }
                 if isReviewDemoUnlocked || pro.isReviewDemoModeEnabled {
                     DisclosureGroup("App Review Demo", isExpanded: $isReviewDemoExpanded) {
                         VStack(alignment: .leading, spacing: Metrics.Space.s) {
@@ -102,6 +124,7 @@ struct ProPaywallView: View {
         }
         .frame(width: 560)
         .padding(.horizontal, 40)
+        .task { await pro.reloadProducts() }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { dismiss() }
@@ -115,8 +138,8 @@ struct ProPaywallView: View {
     }
 
     private var purchaseTitle: String {
-        guard let price = pro.displayPrice else { return String(localized: "Buy Termind Pro") }
-        return String(localized: "Buy Termind Pro — \(price)")
+        guard let price = pro.displayPrice else { return AppLocalization.string("Buy Termind Pro", locale: locale) }
+        return AppLocalization.string("Buy Termind Pro — \(price)", locale: locale)
     }
 
     private func activateReviewDemo() {

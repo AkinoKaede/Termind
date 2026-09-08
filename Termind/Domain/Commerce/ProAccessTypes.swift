@@ -20,7 +20,6 @@ nonisolated enum EntitlementStatus: Equatable, Sendable {
     case trialActive(expiresAt: Date)
     case trialExpired
     case purchased(ProOwnership)
-    case purchasePending
     case verificationFailed
     case unrestrictedForTesting
 
@@ -37,11 +36,4 @@ nonisolated enum EntitlementStatus: Equatable, Sendable {
         default: true
         }
     }
-}
-
-nonisolated enum TrialAssessment: Equatable, Sendable {
-    case available
-    case active(expiresAt: Date)
-    case expired
-    case recoveryRequired
 }

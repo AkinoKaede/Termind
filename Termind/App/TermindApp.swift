@@ -203,6 +203,10 @@ struct TermindApp: App {
             #endif
         }
 
+        func applicationDidBecomeActive(_ notification: Notification) {
+            Task { [weak self] in await self?.app?.proAccess.refresh() }
+        }
+
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
             true
         }

@@ -263,3 +263,32 @@ row was never written. Whatever is still unanswered is answered at the model
 boundary by `AgentUnansweredToolCallRepair`, which says the outcome is unknown
 rather than that the tool did not run: the process died after the command was
 dispatched, and a model told otherwise would repeat it.
+
+## Pro purchases and trial access
+
+`ProAccessController` owns application-wide StoreKit access and purchase activity.
+The permanent non-consumable Pro product supports Family Sharing; the separate,
+zero-price non-consumable trial does not. Trial eligibility comes from verified
+StoreKit history, including revoked purchases, rather than current entitlements
+alone. Resolution also includes the verified purchase/update being delivered because history caches may
+lag behind that result. Concurrent refreshes await the latest resolution before purchase preflight proceeds.
+The trial expires exactly 14 × 24 hours after `originalPurchaseDate`;
+restores and repeated transactions never restart it. A valid permanent entitlement
+always wins. Product metadata loading is independent of entitlement resolution,
+and purchasing/pending approval does not replace existing access with an operation
+state. The trial purchase path checks zero price, product type, sharing settings,
+and availability of the permanent price before invoking the App Store.
+
+Domain's `ProTrial` contains only date and history rules; StoreKit stays outside
+Domain. Infrastructure's `TrialClock` persists a per-original-transaction maximum
+observed date in UserDefaults. This best-effort rollback guard can only shorten a
+verified trial and is never a second source of purchase eligibility. Legacy local
+proofs, trial Keychain keys, and trial CloudKit records are neither read nor written;
+previous trial users may claim the new IAP. Vault sync and credential storage remain
+separate from commerce.
+
+Trial expiration is rechecked on app activation and at most every minute while an
+active trial is observed. Expiration disables gated features, but previously granted
+workspace composition remains available for the current launch so an existing
+workspace is not dismantled. A fresh launch has no such workspace grant. The review
+demo only simulates expired access and cannot grant paid or trial access.
