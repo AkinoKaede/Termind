@@ -145,7 +145,6 @@ struct SettingsPageView: View {
             SettingsFormPage {
                 AppSettings()
                 StartupSettings()
-                SidebarSettings()
                 AppInfoSettings()
             }
         case .terminal:
@@ -553,15 +552,6 @@ private struct StartupSettings: View {
         .onAppear { loginItem.refresh() }
         .onChange(of: appearsActive) { _, isActive in
             if isActive { loginItem.refresh() }
-        }
-    }
-}
-
-private struct SidebarSettings: View {
-    @AppStorage(SettingsKey.showRecents) private var showRecents = true
-    var body: some View {
-        Section("Sidebar") {
-            Toggle("Show Recents", isOn: $showRecents)
         }
     }
 }

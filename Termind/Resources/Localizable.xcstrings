@@ -10022,16 +10022,6 @@
         }
       }
     },
-    "Show Recents" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示近期使用"
-          }
-        }
-      }
-    },
     "Show Session Details" : {
       "localizations" : {
         "zh-Hans" : {

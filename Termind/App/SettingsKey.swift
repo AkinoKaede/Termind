@@ -24,8 +24,6 @@ nonisolated enum SettingsKey {
     static let defaultMCPServerEnabled = false
     static let defaultMCPServerPort = 7_391
 
-    /// Show the "Recents" section at all.
-    static let showRecents = "sidebar.showRecents"
     static let vaultSectionExpanded = "sidebar.section.vault.expanded"
     static let workspaceSectionExpanded = "sidebar.section.workspace.expanded"
     static let chatsSectionExpanded = "sidebar.section.chats.expanded"

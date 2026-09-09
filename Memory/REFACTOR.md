@@ -983,3 +983,23 @@ cannot leave an awaiting purchase preflight with stale eligibility. Local macOS 
 exposes approved transactions in history without reliably pushing `Transaction.updates`; the approval
 regression exercises the production event handler with that real verified transaction. Actual push delivery
 and cross-device restoration remain in the App Store Connect Sandbox checklist.
+
+## Remove the unused Show Recents preference — 2026-09-09
+
+**Status:** Completed.
+
+**Evidence:** `rg` finds `showRecents` only in `SettingsKey` and the `SidebarSettings` toggle.
+No feature reads the preference; the settings group contains no other controls.
+
+**Action:** Remove the toggle, its settings group, the unused preference key, and unused localized labels.
+
+**Estimated reduction:** 22 lines of Swift and string-catalog entries. Keep the shared `Sidebar`
+localization because the navigation sidebar uses it as an accessibility label.
+
+**Verification:** The pinned macOS build, full Swift formatting lint, and Chinese localization checks pass.
+Both full test runs execute 1,020 tests in 100 suites. The default Chinese environment reports 11 issues
+from assertions expecting English output; all `AppLanguageTests`, `ArchitectureBoundaryTests`, and
+`SettingsNavigationTests` pass. Repeating with `-testLanguage en -testRegion US` clears those issues and
+leaves one failure: `explicitLanguagesWriteFullAppleLanguageTags`, because the launch-time `AppleLanguages`
+override takes precedence over the test's stored Chinese preference. That test passes in the default run.
+No production references to the removed preference or settings view remain.
