@@ -47,7 +47,7 @@ nonisolated struct PortForwardingRule: Identifiable, Codable, Hashable, Sendable
         case .local:
             "\(bindAddress) → \(Self.address(targetHost ?? "", port: targetPort ?? 0))"
         case .remote:
-            "SSH \(bindAddress) → This Mac \(Self.address(targetHost ?? "", port: targetPort ?? 0))"
+            String(localized: "SSH \(bindAddress) → This Mac \(Self.address(targetHost ?? "", port: targetPort ?? 0))")
         case .dynamic: "SOCKS5 \(bindAddress)"
         }
     }

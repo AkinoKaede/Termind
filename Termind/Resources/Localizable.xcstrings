@@ -223,6 +223,16 @@
         }
       }
     },
+    "%@ → listen %@ → This Mac → %@:%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@→监听%2$@→这台Mac→%3$@:%4$@"
+          }
+        }
+      }
+    },
     "%@%@ of %@ (%lld%%)" : {
       "localizations" : {
         "en" : {
@@ -3634,6 +3644,26 @@
         }
       }
     },
+    "Destination Host from SSH Host" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH主机可访问的目标主机"
+          }
+        }
+      }
+    },
+    "Destination Host on This Mac" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台Mac可访问的目标主机"
+          }
+        }
+      }
+    },
     "Destination Port" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4006,12 +4036,52 @@
         }
       }
     },
+    "Edit Group" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑组"
+          }
+        }
+      }
+    },
+    "Edit Host" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑主机"
+          }
+        }
+      }
+    },
     "Edit Identity" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑身份"
+          }
+        }
+      }
+    },
+    "Edit Key" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑密钥"
+          }
+        }
+      }
+    },
+    "Edit Package" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑包"
           }
         }
       }
@@ -4044,6 +4114,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "推理强度"
+          }
+        }
+      }
+    },
+    "Edit Port Forward" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑端口转发"
+          }
+        }
+      }
+    },
+    "Edit Snippet" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑片段"
           }
         }
       }
@@ -5940,6 +6030,36 @@
         }
       }
     },
+    "Listen Address on SSH Host" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH主机上的监听地址"
+          }
+        }
+      }
+    },
+    "Listen Address on This Mac" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台Mac上的监听地址"
+          }
+        }
+      }
+    },
+    "Listen Port" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监听端口"
+          }
+        }
+      }
+    },
     "Listening on localhost:%@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6448,6 +6568,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建包"
+          }
+        }
+      }
+    },
+    "New Port Forward" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建端口转发"
           }
         }
       }
@@ -9152,6 +9282,16 @@
         }
       }
     },
+    "SSH handshake failed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH握手失败"
+          }
+        }
+      }
+    },
     "Save" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10068,12 +10208,42 @@
         }
       }
     },
+    "SOCKS Listen Address on This Mac" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台Mac上的SOCKS监听地址"
+          }
+        }
+      }
+    },
+    "SOCKS Listen Port" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SOCKS监听端口"
+          }
+        }
+      }
+    },
     "SOCKS5" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "SOCKS5"
+          }
+        }
+      }
+    },
+    "SOCKS5 %@ → %@ → Requested Target" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SOCKS5 %1$@→%2$@→请求目标"
           }
         }
       }
@@ -10156,6 +10326,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH、SFTP，助手随行。"
+          }
+        }
+      }
+    },
+    "SSH %@ → This Mac %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH %1$@→这台Mac %2$@"
           }
         }
       }
@@ -11018,6 +11198,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当前shell尚未报告工作目录。"
+          }
+        }
+      }
+    },
+    "The forwarding SSH connection closed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于转发的SSH连接已关闭"
           }
         }
       }
@@ -12238,12 +12428,42 @@
         }
       }
     },
+    "Unable to create an SSH forwarding session." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法创建SSH转发会话。"
+          }
+        }
+      }
+    },
     "Unable to generate a secure token." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法生成安全标志。"
+          }
+        }
+      }
+    },
+    "Unable to listen on %@: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法监听%1$@：%2$@"
+          }
+        }
+      }
+    },
+    "Unable to start remote forwarding" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法启动远程转发"
           }
         }
       }

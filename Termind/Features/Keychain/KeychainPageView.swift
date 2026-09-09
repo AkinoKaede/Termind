@@ -405,7 +405,7 @@ private struct SoftwareKeyEditor: View {
     }
 
     let existing: SSHKeyRef?
-    let title: String
+    let title: LocalizedStringKey
     let symbol: String
     let close: () -> Void
     let loadPrivateKey: (() throws -> String)?
@@ -433,7 +433,7 @@ private struct SoftwareKeyEditor: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
-        existing: SSHKeyRef? = nil, title: String,
+        existing: SSHKeyRef? = nil, title: LocalizedStringKey,
         symbol: String, close: @escaping () -> Void,
         loadPrivateKey: (() throws -> String)? = nil,
         save:

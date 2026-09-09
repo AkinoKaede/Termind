@@ -99,12 +99,12 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     guard let routeTransport else { throw TermindSSHError.disconnected }
                     socket = routeTransport.socket
                     guard let created = libssh2_session_init_ex(nil, nil, nil, nil) else {
-                        throw TermindSSHError.library("Unable to create an SSH forwarding session.")
+                        throw TermindSSHError.library(String(localized: "Unable to create an SSH forwarding session."))
                     }
                     session = created
                     libssh2_session_set_blocking(created, 1)
                     guard libssh2_session_handshake(created, socket) == 0 else {
-                        throw SSHSessionWorker.sessionError(created, prefix: "SSH handshake failed")
+                        throw SSHSessionWorker.sessionError(created, prefix: String(localized: "SSH handshake failed"))
                     }
                     let observed = try SSHSessionWorker.observation(
                         host: configuration.host, port: configuration.port, session: created
@@ -146,7 +146,8 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                             )
                         } catch {
                             throw TermindSSHError.route(
-                                "Unable to listen on \(rule.bindAddress): \(error.localizedDescription)"
+                                String(
+                                    localized: "Unable to listen on \(rule.bindAddress): \(error.localizedDescription)")
                             )
                         }
                     case .remote:
@@ -159,7 +160,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                         guard let listener else {
                             throw TermindSSHError.route(
                                 SSHSessionWorker.sessionError(
-                                    session, prefix: "Unable to start remote forwarding"
+                                    session, prefix: String(localized: "Unable to start remote forwarding")
                                 ).localizedDescription
                             )
                         }
@@ -214,7 +215,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         let keepalive = libssh2_keepalive_send(session, &next)
         if keepalive < 0, keepalive != LIBSSH2_ERROR_EAGAIN {
             let message = SSHSessionWorker.sessionError(
-                session, prefix: "The forwarding SSH connection closed"
+                session, prefix: String(localized: "The forwarding SSH connection closed")
             ).localizedDescription
             cleanup()
             failureHandler(message)

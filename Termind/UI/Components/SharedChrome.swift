@@ -119,10 +119,10 @@ struct SheetScaffold<Header: View, Content: View, Footer: View>: View {
 /// resembles the manager toolbars rather than a floating sheet: a clear close
 /// affordance, a quiet title, scrollable work, and actions anchored at the foot.
 struct VaultDetailScaffold<Content: View, Footer: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     let symbol: String
     let close: () -> Void
-    var closeLabel = "Close"
+    var closeLabel: LocalizedStringKey = "Close"
     var closeSymbol = "xmark"
     @ViewBuilder let content: Content
     @ViewBuilder let footer: Footer

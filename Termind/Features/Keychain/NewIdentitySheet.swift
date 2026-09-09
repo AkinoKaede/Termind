@@ -91,7 +91,7 @@ struct NewIdentitySheet: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: existing == nil ? configuration.newTitle : configuration.editTitle,
+            title: LocalizedStringKey(existing == nil ? configuration.newTitle : configuration.editTitle),
             symbol: "person.badge.key.fill", close: close,
             closeLabel: requestedClose == nil ? "Back" : "Close",
             closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"

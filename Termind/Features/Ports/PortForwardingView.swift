@@ -161,7 +161,7 @@ private struct HostForwardingContextMenu: View {
     var body: some View {
         let isRunning = app.forwarding.isEnabled(rule.id)
         Button(
-            isRunning ? "Stop" : "Start",
+            isRunning ? String(localized: "Stop") : String(localized: "Start"),
             systemImage: isRunning ? MenuSymbol.stop : MenuSymbol.start,
             action: toggle
         )
@@ -302,19 +302,20 @@ struct PortForwardingEditorSheet: View {
     }
 
     private var bindPortLabel: String {
-        draft.kind == .dynamic ? "SOCKS Listen Port" : "Listen Port"
+        draft.kind == .dynamic ? String(localized: "SOCKS Listen Port") : String(localized: "Listen Port")
     }
 
     private var bindAddressLabel: String {
         switch draft.kind {
-        case .local: "Listen Address on This Mac"
-        case .remote: "Listen Address on SSH Host"
-        case .dynamic: "SOCKS Listen Address on This Mac"
+        case .local: String(localized: "Listen Address on This Mac")
+        case .remote: String(localized: "Listen Address on SSH Host")
+        case .dynamic: String(localized: "SOCKS Listen Address on This Mac")
         }
     }
 
     private var targetHostLabel: String {
-        draft.kind == .remote ? "Destination Host on This Mac" : "Destination Host from SSH Host"
+        draft.kind == .remote
+            ? String(localized: "Destination Host on This Mac") : String(localized: "Destination Host from SSH Host")
     }
 
     private var exposesNetwork: Bool {
@@ -346,8 +347,8 @@ struct PortForwardingEditorSheet: View {
         switch draft.kind {
         case .local: return "\(start) → \(ssh) → \(targetHost):\(targetPort)"
         case .remote:
-            return "\(ssh) → listen \(start) → This Mac → \(targetHost):\(targetPort)"
-        case .dynamic: return "SOCKS5 \(start) → \(ssh) → Requested Target"
+            return String(localized: "\(ssh) → listen \(start) → This Mac → \(targetHost):\(targetPort)")
+        case .dynamic: return String(localized: "SOCKS5 \(start) → \(ssh) → Requested Target")
         }
     }
 
