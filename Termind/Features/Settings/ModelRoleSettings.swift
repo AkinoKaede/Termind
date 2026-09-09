@@ -83,6 +83,6 @@ private struct RolePicker: View {
         guard role == .chat, app.aiConfiguration.assignment(for: .chat) == nil,
             let resolved = app.aiConfiguration.resolve(.chat)
         else { return role.detail }
-        return "\(role.detail) Currently \(resolved.model.label) on \(resolved.provider.name)."
+        return String(localized: "\(role.detail) Currently \(resolved.model.label) on \(resolved.provider.name).")
     }
 }

@@ -1033,7 +1033,7 @@ struct ComposerView: View {
             commands.append(
                 ChatSlashCommand(
                     id: "skill", displayName: String(localized: "Skill"),
-                    summary: String(localized: "Use an installed procedure"),
+                    summary: String(localized: "Use an installed skill"),
                     icon: .symbol(SkillChip.symbol),
                     argumentHint: String(localized: "skill")
                 ))

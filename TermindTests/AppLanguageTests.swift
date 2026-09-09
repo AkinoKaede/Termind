@@ -116,6 +116,18 @@ struct AppLanguageTests {
     }
 
     @Test
+    func automaticModelCaptionResolvesInChineseAndPreservesModelAndProvider() throws {
+        let path = try #require(Bundle.main.path(forResource: "zh-Hans", ofType: "lproj"))
+        let bundle = try #require(Bundle(path: path))
+        let detail = "用于对话、工具和助手侧边栏。"
+        let model = "model-example"
+        let provider = "Example Provider"
+        let caption = String(localized: "\(detail) Currently \(model) on \(provider).", bundle: bundle)
+
+        #expect(caption == "用于对话、工具和助手侧边栏。当前使用Example Provider提供的model-example。")
+    }
+
+    @Test
     func countedToolResourcesUseCatalogPluralRules() throws {
         let repository = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
