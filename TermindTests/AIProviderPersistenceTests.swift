@@ -336,6 +336,32 @@ struct AIProviderPersistenceTests {
         #expect(store.resolve(conversation: nil)?.model.id == hidden.id)
     }
 
+    @Test(arguments: ["image", "other", "unknown-purpose"])
+    func unrecognisedStoredModelKindsLoadAsChat(kind: String) throws {
+        let container = try makeContainer("UnknownModelKind-" + kind)
+        let provider = ModelProvider(name: "Gateway", models: [AIModel(id: "private-chat")])
+        let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        store.upsert(provider)
+        let row = try #require(container.mainContext.fetch(FetchDescriptor<PersistentAIModel>()).first)
+        row.kind = kind
+        try container.mainContext.save()
+
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        let restored = try #require(reloaded.modelProvider(provider.id))
+        #expect(restored.models.first?.kind == .chat)
+        #expect(restored.assistantModels.map(\.id) == ["private-chat"])
+    }
+
+    @Test(arguments: AIModel.Kind.allCases)
+    func modelPurposesRoundTripThroughPersistence(kind: AIModel.Kind) throws {
+        let container = try makeContainer("ModelPurpose-" + kind.rawValue)
+        let provider = ModelProvider(name: "Gateway", models: [AIModel(id: "custom", kind: kind)])
+        let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        store.upsert(provider)
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        #expect(reloaded.modelProvider(provider.id)?.models.first?.kind == kind)
+    }
+
     private func makeContainer(_ name: String) throws -> ModelContainer {
         let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
@@ -368,6 +394,17 @@ private enum TestPersistenceError: Error {
 
 @Suite
 struct ModelCapabilityResolverTests {
+    @Test(arguments: ["model", "unknown-purpose", "", " \n"])
+    func unrecognisedWireTypeAllowsCatalogClassification(type: String) throws {
+        let data = try JSONSerialization.data(withJSONObject: [
+            "data": [["id": "gpt-5.4", "type": type]]
+        ])
+        let model = try #require(ModelCatalogClient.parseOpenAIPage(data).models.first)
+        #expect(model.kind == .chat)
+        #expect(model.contextLength == 272_000)
+        #expect(model.abilities.contains(.toolCall))
+    }
+
     @Test
     func bundledPiCatalogEnrichesKnownModelWithoutRegex() {
         let provider = ModelProvider(name: "OpenAI")
@@ -376,8 +413,8 @@ struct ModelCapabilityResolverTests {
             provider: provider
         )
 
-        #expect(ModelCapabilityResolver.catalogMetadata?.version == "0.84.3")
-        #expect(ModelCapabilityResolver.catalogMetadata?.modelCount == 1_312)
+        #expect(ModelCapabilityResolver.catalogMetadata?.version == "0.85.1")
+        #expect(ModelCapabilityResolver.catalogMetadata?.modelCount == 1_354)
         #expect(resolution.catalogSource == .init(provider: "openai", modelID: "gpt-5.4"))
         #expect(resolution.model.input == [.text, .image])
         // `webSearch` is the one ability that does come from the model id, and
@@ -542,7 +579,7 @@ struct ModelCapabilityResolverTests {
     func reportedFieldsWinOverCodexAutoReviewOverride() {
         let provider = ModelProvider(name: "OpenAI")
         var model = AIModel(id: "codex-auto-review")
-        model.kind = .other
+        model.kind = .embedding
         model.input = [.audio]
         model.output = [.image]
         model.abilities = []
@@ -555,7 +592,7 @@ struct ModelCapabilityResolverTests {
             reported: [.kind, .input, .output, .abilities]
         )
 
-        #expect(resolution.model.kind == .other)
+        #expect(resolution.model.kind == .embedding)
         #expect(resolution.model.input == [.audio])
         #expect(resolution.model.output == [.image])
         #expect(resolution.model.abilities.isEmpty)
@@ -568,7 +605,7 @@ struct ModelCapabilityResolverTests {
     func explicitlyReportedFieldsWinOverPiCatalog() {
         let provider = ModelProvider(name: "OpenAI")
         var model = AIModel(id: "gpt-5.4")
-        model.kind = .other
+        model.kind = .embedding
         model.input = [.audio]
         model.output = [.image]
         model.abilities = []
@@ -581,7 +618,7 @@ struct ModelCapabilityResolverTests {
             reported: [.kind, .input, .output, .abilities]
         )
 
-        #expect(resolution.model.kind == .other)
+        #expect(resolution.model.kind == .embedding)
         #expect(resolution.model.input == [.audio])
         #expect(resolution.model.output == [.image])
         // Reported abilities still win — `toolCall` and `reasoning` stay off

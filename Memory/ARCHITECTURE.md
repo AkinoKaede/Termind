@@ -155,6 +155,13 @@ adapters at the LLM boundary. Models without tool capability receive no tools.
 Stop cancels the active stream and actions that have not started; steering
 messages are consumed at the next turn boundary.
 
+Model purposes are `chat`, `embedding`, `rerank`, `image_generation`, and
+`video_generation`. Only recognised purpose values from model discovery are
+asserted as reported metadata. Unknown values, including Anthropic's `model`
+object discriminator, leave catalog and name inference available and otherwise
+default to chat. Only chat models enter conversation pickers. Persisted unknown
+purpose strings also default to chat; there are no legacy purpose aliases.
+
 A turn's tool calls run concurrently only when every call in it is marked
 parallel; one sequential call makes the whole turn serial rather than being
 fenced into its own segment. Concurrency is declared per tool and may be
