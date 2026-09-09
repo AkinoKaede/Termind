@@ -196,6 +196,96 @@ struct ShellIntegrationBootstrapTests {
         #expect(result.output.contains("TermindCommandFinished=RUNTIME;1;0\u{7}"))
     }
 
+    @Test(arguments: [0, 1, 42], [false, true])
+    func zshRunsPromptHooksAndPreservesCommandOutput(exitStatus: Int, capturesStartupOutput: Bool) throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try Data().write(to: directory.appendingPathComponent("LS_OUTPUT_VISIBLE"))
+
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "ZSHRUNTIME")
+        let update = bootstrap.receive(
+            Data("__TRMD_ZSHRUNTIME_SHELL__/bin/zsh__\r\n".utf8)
+        )
+        var script = Data(
+            """
+            PS1=; PS2=; RPS1=; unsetopt promptcr promptsp
+            function user_prompt {
+                builtin local prompt_status=$?
+                if [[ -n ${saved_stdout:-} ]]; then
+                    exec 1>&$saved_stdout
+                    exec {saved_stdout}>&-
+                    unset saved_stdout
+                fi
+                builtin printf 'USER_PROMPT_STATUS=%s\\n' "$prompt_status"
+            }
+            function user_preexec { builtin printf 'USER_PREEXEC\\n'; }
+            precmd_functions=(user_prompt); preexec_functions=(user_preexec)
+
+            """.utf8
+        )
+        if capturesStartupOutput {
+            // Model a prompt plugin that captures startup output and restores
+            // stdout from precmd. Aborting our hook must not strand that capture,
+            // which would make subsequent commands, including ls, invisible.
+            script.append(Data("exec {saved_stdout}>&1; exec >/dev/null; ".utf8))
+        }
+        script.append(try #require(update.command))
+        script.append(
+            Data(
+                """
+                ls
+                builtin printf 'STDOUT_VISIBLE\\n'; builtin printf 'STDERR_VISIBLE\\n' >&2; (exit \(exitStatus))
+                builtin printf 'NEXT_STATUS=%s\\n' "$?"
+                exit 0
+
+                """.utf8
+            ))
+
+        // Interactive mode executes zsh's real preexec/precmd chain. A syntax
+        // check cannot detect assignments to special read-only parameters.
+        let result = try runShell(
+            executable: "/bin/zsh", arguments: ["-d", "-f", "-i"], input: script,
+            directory: directory
+        )
+        #expect(result.status == 0, Comment(rawValue: result.errors))
+        #expect(!result.errors.contains("read-only variable"), Comment(rawValue: result.errors))
+        #expect(result.errors.contains("STDERR_VISIBLE\n"))
+
+        var filter = RemoteCommandEventFilter(token: "ZSHRUNTIME")
+        var visible = Data()
+        var events: [RemoteCommandEventFilter.Event] = []
+        // SSH may split an OSC frame at any byte; ordinary output must survive.
+        for byte in result.output.utf8 {
+            let filtered = filter.receive(Data([byte]))
+            visible.append(filtered.visibleOutput)
+            events.append(contentsOf: filtered.events)
+        }
+        let text = String(decoding: visible, as: UTF8.self)
+        #expect(text.contains("LS_OUTPUT_VISIBLE\n"))
+        #expect(text.contains("STDOUT_VISIBLE\n"))
+        #expect(text.contains("NEXT_STATUS=\(exitStatus)\n"))
+        #expect(text.contains("USER_PROMPT_STATUS=\(exitStatus)\n"))
+        #expect(text.contains("USER_PREEXEC\n"))
+        #expect(text.contains("\u{1B}]7;file://localhost"))
+        #expect(events.contains(.promptReady))
+        #expect(events.contains(.commandStarted("ls")))
+        #expect(
+            events.contains { event in
+                if case .commandStarted(let command) = event {
+                    return command.contains("STDOUT_VISIBLE")
+                }
+                return false
+            })
+        #expect(
+            events.contains { event in
+                if case .commandFinished(let status, let duration) = event {
+                    return status == Int32(exitStatus) && duration != nil
+                }
+                return false
+            })
+    }
+
     @Test
     func unsupportedShellSkipsInjection() {
         var bootstrap = RemoteShellIntegrationBootstrap(token: "OTHER")
@@ -403,13 +493,14 @@ struct ShellIntegrationBootstrapTests {
     }
 
     private func runShell(
-        executable: String, arguments: [String], input: Data
+        executable: String, arguments: [String], input: Data, directory: URL? = nil
     ) throws -> (status: Int32, output: String, errors: String) {
         let process = Process()
         let standardInput = Pipe()
         let standardOutput = Pipe()
         let standardError = Pipe()
         process.executableURL = URL(fileURLWithPath: executable)
+        process.currentDirectoryURL = directory
         process.arguments = arguments
         process.standardInput = standardInput
         process.standardOutput = standardOutput
