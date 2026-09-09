@@ -1,6 +1,76 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Update client configurations after changing the port or token, or after moving Termind for Codex and Hermes." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改端口或令牌后，请更新客户端配置；移动Termind后，还需更新Codex和Hermes的配置。"
+          }
+        }
+      }
+    },
+    "Hermes needs the server running during setup and may ask you to select tools." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加Hermes时需保持服务器运行，客户端可能会提示选择工具。"
+          }
+        }
+      }
+    },
+    "Run the copied command in a terminal on this Mac. Enable the server before connecting." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在本机终端中运行复制的命令，并在连接前启用服务器。"
+          }
+        }
+      }
+    },
+    "The bundled MCP bridge is missing. Codex and Hermes setup commands are unavailable." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内置MCP桥接程序缺失，无法复制Codex和Hermes的添加命令。"
+          }
+        }
+      }
+    },
+    "Generate a token to copy client setup commands." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先生成令牌，再复制客户端添加命令。"
+          }
+        }
+      }
+    },
+    "Copy Add Command" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制添加命令"
+          }
+        }
+      }
+    },
+    "Connect Clients" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接客户端"
+          }
+        }
+      }
+    },
     "" : {
       "localizations" : {
         "zh-Hans" : {

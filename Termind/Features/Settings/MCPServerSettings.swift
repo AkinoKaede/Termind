@@ -71,6 +71,8 @@ struct MCPServerSettings: View {
             }
         }
 
+        clientSetupSection
+
         Section("Exposed Tools") {
             ForEach(MCPServerTools.exportedNames.sorted(), id: \.self) { name in
                 Toggle(
@@ -112,6 +114,53 @@ struct MCPServerSettings: View {
     }
 
     private var displayToken: String { server.token }
+
+    private var clientSetupSection: some View {
+        let setup = MCPClientSetupCommand(
+            port: server.port, token: displayToken,
+            bridgePath: Bundle.main.url(forAuxiliaryExecutable: "termind-mcp")?.path
+        )
+        let preview = MCPClientSetupCommand(
+            port: setup.port, token: showsToken ? setup.token : "••••••••",
+            bridgePath: setup.bridgePath
+        )
+        return Section("Connect Clients") {
+            ForEach(MCPClientSetupCommand.Client.allCases) { client in
+                let command = setup.command(for: client)
+                HStack(spacing: Metrics.Space.m) {
+                    VStack(alignment: .leading, spacing: Metrics.Space.xs) {
+                        Text(verbatim: client.rawValue)
+                        if command != nil, let detail = preview.command(for: client) {
+                            Text(verbatim: detail)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    CopyButton(text: command ?? "", title: "Copy Add Command")
+                        .disabled(command == nil)
+                        .fixedSize()
+                }
+            }
+            VStack(alignment: .leading, spacing: Metrics.Space.s) {
+                if displayToken.isEmpty {
+                    Text("Generate a token to copy client setup commands.")
+                }
+                if setup.bridgePath == nil {
+                    Text("The bundled MCP bridge is missing. Codex and Hermes setup commands are unavailable.")
+                }
+                Text("Run the copied command in a terminal on this Mac. Enable the server before connecting.")
+                Text("Hermes needs the server running during setup and may ask you to select tools.")
+                Text(
+                    "Update client configurations after changing the port or token, or after moving Termind for Codex and Hermes."
+                )
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
 
     private var statusColor: Color {
         switch server.status {
