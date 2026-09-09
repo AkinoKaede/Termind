@@ -351,6 +351,7 @@ struct SettingsFormPage<Content: View>: View {
 }
 
 private struct AppSettings: View {
+    @AppStorage(SettingsKey.appAppearance) private var appearanceID = AppAppearance.system.rawValue
     @AppStorage(SettingsKey.appLanguage) private var languageID = AppLanguage.system.rawValue
     @State private var launchLanguage = AppLanguage.stored()
 
@@ -359,8 +360,20 @@ private struct AppSettings: View {
     }
 
     var body: some View {
-        Section("Language") {
-            Picker("Application Language", selection: $languageID) {
+        Section("Appearance") {
+            Picker(
+                "Theme",
+                selection: Binding(
+                    get: { AppAppearance(rawValue: appearanceID) ?? .system },
+                    set: { appearanceID = $0.rawValue }
+                )
+            ) {
+                ForEach(AppAppearance.allCases) { appearance in
+                    Text(appearance.displayName).tag(appearance)
+                }
+            }
+
+            Picker("Language", selection: $languageID) {
                 ForEach(AppLanguage.allCases) { language in
                     Text(language.displayName).tag(language.rawValue)
                 }

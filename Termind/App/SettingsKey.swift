@@ -9,6 +9,8 @@ import Foundation
 nonisolated enum SettingsKey {
     /// App language selection. `system` means normal Bundle negotiation.
     static let appLanguage = "app.language"
+    /// App-wide appearance. `system` inherits changes from macOS.
+    static let appAppearance = "app.appearance"
     static let vaultSyncEnabled = "vault.sync.enabled"
     /// The CloudKit environment owning the persisted sync engine state and
     /// record system fields. Debug and TestFlight share the app container, but

@@ -157,13 +157,16 @@ struct TermindApp: App {
     final class AppDelegate: NSObject, NSApplicationDelegate {
         weak var app: AppModel?
         private var quietLaunchObserver: (any NSObjectProtocol)?
+        private let appearanceController = AppAppearanceController()
 
         /// The launch Apple Event is readable only while it is being handled.
         func applicationWillFinishLaunching(_ notification: Notification) {
+            appearanceController.start()
             LoginLaunch.capture()
         }
 
         func applicationDidFinishLaunching(_ notification: Notification) {
+            appearanceController.start()
             // Asked for again in case SwiftUI installed this delegate too late
             // for the call above; `capture()` only ever latches a `true`.
             LoginLaunch.capture()
@@ -246,6 +249,7 @@ struct TermindApp: App {
         }
 
         func applicationWillTerminate(_ notification: Notification) {
+            appearanceController.stop()
             app?.shutdownForTermination()
         }
     }

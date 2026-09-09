@@ -50,6 +50,11 @@ including that no type AgentKit owns is redefined here.
 - Settings uses app-wide preference storage but window-scoped navigation. It opens as a
   top-level window destination, remembers the content it replaced, and restores that
   destination when its index page goes back.
+- App appearance is an app-wide UserDefaults preference, defaulting to the system.
+  The app delegate owns `AppAppearanceController`, which applies changes through
+  `NSApplication.appearance` so existing and new windows, native controls, and terminal
+  surfaces inherit one appearance without rebuilding sessions. Following the system
+  clears the override; explicit light/dark choices reuse the corresponding terminal theme.
 - Opening at login is `SMAppService`'s registration, not a preference. The user can revoke
   it in System Settings without telling the app, so `LoginItemController` reads the system
   status every time Settings is shown rather than mirroring it into `UserDefaults`. Only
