@@ -21,6 +21,46 @@
         }
       }
     },
+    "Cached metrics are stale" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓存指标已过期"
+          }
+        }
+      }
+    },
+    "Metrics collection failed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指标采集失败"
+          }
+        }
+      }
+    },
+    "Not monitored" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未监控"
+          }
+        }
+      }
+    },
+    "Sampled at" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "采样时间"
+          }
+        }
+      }
+    },
     "[… %lld characters omitted …]" : {
       "localizations" : {
         "zh-Hans" : {
@@ -786,6 +826,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "`sed -i`会直接修改文件。"
+          }
+        }
+      }
+    },
+    "host metrics" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主机指标"
           }
         }
       }

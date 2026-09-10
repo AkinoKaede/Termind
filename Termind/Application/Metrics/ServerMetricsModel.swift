@@ -6,6 +6,7 @@ final class ServerMetric: Identifiable {
     var selection: MetricsSelection
     var name: String
     var status = String(localized: "Connecting…")
+    var collectionState = MetricsMonitorState.connecting
     var isConnecting = true
     var point: MetricsPoint?
     var history: [MetricsPoint] = []
@@ -39,7 +40,7 @@ final class ServerMetric: Identifiable {
 
 /// One application owner, independent of windows, with one serial worker per host.
 @Observable
-final class ServerMetricsModel {
+final class ServerMetricsModel: MetricsSnapshotReading {
     static let freeCardLimit = 3
     private(set) var servers: [ServerMetric] = []
     private(set) var sleeping = false
@@ -81,6 +82,29 @@ final class ServerMetricsModel {
         self.clock = clock
         self.cardLimit = cardLimit
         self.limitReached = limitReached
+    }
+
+    func snapshot(for hostID: UUID) -> MetricsSnapshot? {
+        guard hosts.host(hostID) != nil, let server = servers.first(where: { $0.id == hostID }) else { return nil }
+        let state: MetricsMonitorState
+        if !server.selection.enabled {
+            state = .paused
+        } else if sleeping {
+            state = .sleeping
+        } else if stopped {
+            state = .stopped
+        } else if server.requiresAuthentication {
+            state = .awaitingAuthentication
+        } else {
+            state = server.collectionState
+        }
+        return MetricsSnapshot(
+            capturedAt: clock.now(), state: state, point: server.point, history: server.history,
+            gpuState: server.gpuState, gpu: server.gpuSnapshot, gpuDate: server.gpuDate,
+            processes: server.processes, processesDate: server.processesDate,
+            processesFailed: server.processesFailed, filesystems: server.filesystems,
+            filesystemsDate: server.filesystemsDate, filesystemsFailed: server.filesystemsFailed
+        )
     }
 
     var remainingCardSlots: Int? { cardLimit().map { max(0, $0 - servers.count) } }
@@ -232,6 +256,7 @@ final class ServerMetricsModel {
                 hosts.upsert(host)
             } catch {
                 server.status = error.localizedDescription
+                server.collectionState = .failed
                 server.journey.fail(error.localizedDescription, at: host.id)
                 return
             }
@@ -370,6 +395,7 @@ final class ServerMetricsModel {
         generations[server.id] = token
         server.isConnecting = true
         server.status = String(localized: "Connecting…")
+        server.collectionState = .connecting
         server.gpuState = .probing
         if let host = hosts.host(server.id) { stamps[server.id] = connectionStamp(host) }
         workers[server.id] = Task { [weak self] in await self?.run(server, token: token) }
@@ -387,6 +413,7 @@ final class ServerMetricsModel {
             do {
                 guard let host = hosts.host(server.id) else { return }
                 server.status = String(localized: "Connecting…")
+                server.collectionState = .connecting
                 server.isConnecting = true
                 server.journey.begin(
                     host: host, route: hosts.route(for: host), purpose: .metrics,
@@ -402,6 +429,7 @@ final class ServerMetricsModel {
                 server.isConnecting = false
                 server.journey.receive(.connected(host.id))
                 server.status = String(localized: "Connected — collecting metrics…")
+                server.collectionState = .collecting
                 var previous: MetricsSample?
                 var previousProcesses: MetricsProcessSample?
                 var nextFilesystemRefresh = Date.distantPast
@@ -417,6 +445,7 @@ final class ServerMetricsModel {
                     server.disks = sample.disks.map { $0.keys.sorted() } ?? server.disks
                     server.interfaces = sample.interfaces.map { $0.keys.sorted() } ?? server.interfaces
                     server.status = String(localized: "Live")
+                    server.collectionState = .live
                     if server.journey.phase == .connecting { server.journey.succeed() }
                     // Publish base metrics before the optional, bounded GPU command.
                     server.point = point
@@ -484,6 +513,7 @@ final class ServerMetricsModel {
                 }
                 server.isConnecting = false
                 server.status = error.localizedDescription
+                server.collectionState = .failed
                 if let ssh = error as? TermindSSHError {
                     let targetID = ssh.routeHostID ?? server.id
                     if ssh.isLocalAuthenticationRequirement || ssh.shouldRequestAuthentication {
@@ -540,6 +570,7 @@ final class ServerMetricsModel {
         } catch {
             guard current(server, token) else { return }
             server.status = error.localizedDescription
+            server.collectionState = .failed
             if let ssh = error as? TermindSSHError, ssh.shouldRequestAuthentication {
                 requestAuthentication(server, hostID: ssh.routeHostID ?? hostID, error: ssh)
             } else if let ssh = error as? TermindSSHError, ssh.shouldRequestHostKey,

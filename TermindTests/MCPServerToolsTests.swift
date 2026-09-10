@@ -8,11 +8,11 @@ import Testing
 @MainActor
 struct MCPServerToolsTests {
     @Test
-    func exportsTheCompleteSSHAndSFTPToolSet() {
+    func exportsTheCompleteHostToolSet() {
         let server = makeMCPServerTools()
         let descriptors = server.descriptors
 
-        #expect(descriptors.count == 12)
+        #expect(descriptors.count == 13)
         #expect(Set(descriptors.map(\.name)) == MCPServerTools.exportedNames)
         for descriptor in descriptors {
             #expect(descriptor.inputSchema.objectValue?["type"]?.stringValue == "object")
@@ -187,12 +187,14 @@ struct MCPServerToolsTests {
 @MainActor
 func makeMCPServerTools(
     disabledTools: Set<String> = [],
-    externalAuthentication: ExternalAuthCoordinator = ExternalAuthCoordinator()
+    externalAuthentication: ExternalAuthCoordinator = ExternalAuthCoordinator(),
+    hosts: [Termind.Host] = [],
+    metrics: any MetricsSnapshotReading = TestMetricsReader()
 ) -> MCPServerTools {
-    let store = HostLibraryModel()
+    let store = HostLibraryModel(hosts: hosts)
     let resolver = AgentHostResolver(store: store)
     return MCPServerTools(
-        hosts: resolver,
+        hosts: resolver, metrics: metrics,
         connections: AgentConnectionPool(
             configuration: { _ in throw MCPTestFailure.unused },
             routeFingerprint: { _ in throw MCPTestFailure.unused },

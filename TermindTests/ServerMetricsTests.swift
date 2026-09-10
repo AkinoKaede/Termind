@@ -221,6 +221,7 @@ struct ServerMetricsLifecycleTests {
         fixture.model.setEnabled(false, for: server)
         #expect(!server.isConnecting)
         #expect(!fixture.model.keepsRunning)
+        #expect(fixture.model.snapshot(for: fixture.host.id)?.state == .paused)
         await fixture.sampler.releaseConnection()
         await Task.yield()
         #expect(server.point == nil)
@@ -303,6 +304,7 @@ struct ServerMetricsLifecycleTests {
         let server = try #require(fixture.model.servers.first)
         await eventually { server.point != nil }
         #expect(fixture.model.servers.count == 1)
+        #expect(fixture.model.snapshot(for: fixture.host.id)?.state == .live)
         #expect(await fixture.sampler.connections == 1)
         let first = server.point?.date
         fixture.time.advance(2)
@@ -317,6 +319,7 @@ struct ServerMetricsLifecycleTests {
         await eventually { await fixture.sampler.connections == 2 }
         fixture.model.suspend()
         #expect(fixture.model.sleeping)
+        #expect(fixture.model.snapshot(for: fixture.host.id)?.state == .sleeping)
         fixture.time.advance(2)
         fixture.model.resume()
         await eventually { await fixture.sampler.connections == 3 }
@@ -351,6 +354,7 @@ struct ServerMetricsLifecycleTests {
         #expect(server.journey.phase == .waiting)
         #expect(server.journey.waitsForLocalIdentity)
         #expect(server.authenticationPrompt != nil)
+        #expect(fixture.model.snapshot(for: fixture.host.id)?.state == .awaitingAuthentication)
         #expect(await fixture.sampler.connections == 0)
         fixture.model.submitAuthentication(
             server, identityID: nil, username: "root", password: "test-only", passphrase: nil, keyID: nil, save: false)

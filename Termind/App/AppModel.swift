@@ -184,7 +184,7 @@ final class AppModel {
             )
         outboxRunner = dependencies.outboxRunner
         mcpServer = MCPServerController(
-            ai: ai, hosts: agentHosts, connections: agentConnections,
+            ai: ai, hosts: agentHosts, metrics: serverMetrics, connections: agentConnections,
             authentication: agentAuthentication, background: agentBackgroundCommands,
             externalAuthentication: externalAuthentication, history: externalToolCalls,
             canUsePro: { proAccess.canUse(.mcpServer) },
@@ -466,7 +466,7 @@ final class AppModel {
                 ),
                 additional: TermindAgentTools.tools(
                     in: TermindAgentToolEnvironment(
-                        hosts: agentHosts, connections: agentConnections,
+                        hosts: agentHosts, metrics: serverMetrics, connections: agentConnections,
                         authentication: agentAuthentication,
                         background: agentBackgroundCommands,
                         includesTerminalSuggestion: includesTerminalSuggestion,

@@ -24,6 +24,7 @@ final class MCPServerController {
 
     private let defaults: UserDefaults
     private let ai: AIConfigurationModel
+    private let metrics: any MetricsSnapshotReading
     private let hosts: AgentHostResolver
     private let connections: AgentConnectionPool
     private let authentication: AgentSSHAuthenticationRegistry
@@ -42,7 +43,8 @@ final class MCPServerController {
     private(set) var disabledTools: Set<String>
 
     init(
-        ai: AIConfigurationModel, hosts: AgentHostResolver, connections: AgentConnectionPool,
+        ai: AIConfigurationModel, hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
+        connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands,
         externalAuthentication: ExternalAuthCoordinator,
@@ -52,6 +54,7 @@ final class MCPServerController {
         defaults: UserDefaults = .standard
     ) {
         self.ai = ai
+        self.metrics = metrics
         self.hosts = hosts
         self.connections = connections
         self.authentication = authentication
@@ -69,7 +72,7 @@ final class MCPServerController {
         let initialDisabledTools = Self.readDisabledTools(defaults)
         disabledTools = initialDisabledTools
         tools = MCPServerTools(
-            hosts: hosts, connections: connections, authentication: authentication,
+            hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
             background: background, externalAuthentication: externalAuthentication,
             history: history, disabledTools: initialDisabledTools
         )
@@ -119,7 +122,7 @@ final class MCPServerController {
         if enabled { disabledTools.remove(name) } else { disabledTools.insert(name) }
         defaults.set(Array(disabledTools).sorted(), forKey: SettingsKey.mcpServerDisabledTools)
         tools.replaceDisabledTools(
-            disabledTools, hosts: hosts, connections: connections,
+            disabledTools, hosts: hosts, metrics: metrics, connections: connections,
             authentication: authentication, background: background
         )
     }

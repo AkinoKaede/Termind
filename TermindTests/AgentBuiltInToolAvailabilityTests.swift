@@ -21,15 +21,17 @@ struct AgentBuiltInToolAvailabilityTests {
 
         let mainAssistant = TermindAgentTools.tools(
             in: .init(
-                hosts: hosts, connections: connections
+                hosts: hosts, metrics: TestMetricsReader(), connections: connections
             )
         ).map(\.descriptor)
         let workspaceSidebar = TermindAgentTools.tools(
             in: .init(
-                hosts: hosts, connections: connections, includesTerminalSuggestion: true
+                hosts: hosts, metrics: TestMetricsReader(), connections: connections, includesTerminalSuggestion: true
             )
         ).map(\.descriptor)
 
+        #expect(mainAssistant.contains { $0.name == "get_metrics" })
+        #expect(workspaceSidebar.contains { $0.name == "get_metrics" })
         #expect(!mainAssistant.contains { $0.name == "terminal_suggest" })
         #expect(workspaceSidebar.contains { $0.name == "terminal_suggest" })
     }
@@ -58,7 +60,7 @@ struct AgentBuiltInToolAvailabilityTests {
             ),
             additional: TermindAgentTools.tools(
                 in: .init(
-                    hosts: hosts, connections: connections,
+                    hosts: hosts, metrics: TestMetricsReader(), connections: connections,
                     includesTerminalSuggestion: true, workspace: workspace
                 ))
         ).descriptors

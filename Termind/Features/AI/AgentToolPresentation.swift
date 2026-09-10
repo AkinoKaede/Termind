@@ -947,6 +947,7 @@ nonisolated enum AgentToolPresentation {
         switch kind {
         case .command: localized("a command", locale: locale)
         case .hosts: localized("hosts", locale: locale)
+        case .metrics: localized("host metrics", locale: locale)
         case .plan: localized("a plan", locale: locale)
         case .question: localized("a question", locale: locale)
         case .remoteCommand: localized("the remote command", locale: locale)

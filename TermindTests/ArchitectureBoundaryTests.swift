@@ -27,6 +27,23 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func metricsToolDependsOnSnapshotsAndMonitoringDoesNotImportAgentKit() throws {
+        let tool = try String(
+            contentsOf: sourceRoot.appending(path: "Application/Agent/GetMetricsTool.swift"), encoding: .utf8)
+        #expect(tool.contains("any MetricsSnapshotReading"))
+        for forbidden in [
+            "SSHMetricsSampler", "AgentConnectionPool", "ServerMetricsModel", "observeDetails(",
+            "requestAuthentication(",
+        ] {
+            #expect(!tool.contains(forbidden))
+        }
+        for path in ["Application/Metrics/MetricsSnapshot.swift", "Application/Metrics/ServerMetricsModel.swift"] {
+            let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
+            #expect(!source.contains("import AgentKit"))
+        }
+    }
+
+    @Test
     func coreDirectoryIsGone() {
         let core = sourceRoot.appending(path: "Core", directoryHint: .isDirectory)
         #expect(!FileManager.default.fileExists(atPath: core.path))

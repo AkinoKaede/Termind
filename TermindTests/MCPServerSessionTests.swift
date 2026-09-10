@@ -48,7 +48,46 @@ struct MCPServerSessionTests {
         let tools = try #require(
             try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue
         )
-        #expect(tools.count == 12)
+        #expect(tools.count == 13)
+    }
+
+    @Test
+    func getMetricsIsListedAndReturnsStructuredCachedData() async throws {
+        let host = Host(name: "Monitor", host: "monitor.example")
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let reader = TestMetricsReader(
+            MetricsSnapshot(capturedAt: now, state: .live, point: MetricsPoint(date: now, cpu: 33)))
+        let server = MCPServerProtocol(tools: makeMCPServerTools(hosts: [host], metrics: reader))
+        let initialize = await server.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"Tests","version":"1"},"capabilities":{}}}"#
+            ))
+        let sessionID = try #require(initialize.headers["Mcp-Session-Id"])
+        let initialized = await server.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion
+            ))
+        #expect(initialized.status == 202)
+        let listed = await server.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#,
+                sessionID: sessionID, version: MCPClient.preferredVersion))
+        let tools = try #require(try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue)
+        let descriptor = try #require(tools.first { $0.objectValue?["name"]?.stringValue == "get_metrics" })
+        #expect(descriptor.objectValue?["annotations"]?.objectValue?["readOnlyHint"] == .bool(true))
+        let response = await server.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_metrics","arguments":{"host_id":"\(host.id.uuidString)","include":["gpu"]}}}
+                """, sessionID: sessionID, version: MCPClient.preferredVersion))
+        let result = try #require(try responseObject(response)["result"]?.objectValue)
+        #expect(result["isError"] == .bool(false))
+        let data = try #require(result["structuredContent"]?.objectValue)
+        #expect(data["overview"]?.objectValue?["cpu_percent"] == .number(33))
+        #expect(data["gpu"]?.objectValue?["status"] == .string("probing"))
+        #expect(data["processes"] == nil)
+        #expect(reader.reads == [host.id])
     }
 
     @Test

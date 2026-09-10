@@ -346,6 +346,27 @@ persist in local preferences. GPU identity uses NVIDIA UUID, and XML external
 entities are disabled. There is no WidgetKit extension, App Group, remote agent,
 or dependency on AgentKit for monitoring.
 
+`get_metrics` gives the built-in Agent and the authenticated MCP server the same
+read-only view of existing monitoring. `MetricsSnapshotReading` copies Sendable
+values on MainActor; tools cannot admit hosts, start sampling, register detail
+observers, or access authentication state through this port. A structured monitor
+state accompanies the snapshot independently of localized UI text. The tool
+validates host IDs against the Agent host listing; known unmonitored targets
+return `not_monitored`. It is locally read-only, parallel, and allowed while
+planning. MCP exports it by default and preserves the injected reader when tools
+are disabled or re-enabled, under the existing server access and audit rules.
+
+The default output contains core metrics and sample means/peaks over the available
+points within the preceding five minutes, with actual bounds and per-metric valid
+sample counts. Optional device, GPU, process, and filesystem sections expose only
+already collected values; processes retain the existing CPU ordering and are
+limited to 20 with explicit counts. Each section carries its own timestamp, age,
+availability and stale flag (30 seconds, or 60 for filesystems). Failed sections
+may retain older values without presenting them as fresh. Missing/non-finite
+numbers are null. JSON uses UTC ISO 8601 timestamps, bytes, bytes per second, and
+percent; process CPU remains 100% per core. This projection belongs to Termind's
+Agent tools; monitoring itself still has no AgentKit dependency.
+
 MetricsMenuBarController owns an AppKit NSStatusItem and NSPopover for the
 application lifetime. The menu view receives its monitoring model and open
 callback explicitly, rather than relying on a window scene's environment.

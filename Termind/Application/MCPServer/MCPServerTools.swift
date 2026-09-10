@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class MCPServerTools {
     static let exportedNames: Set<String> = [
-        "list_hosts", "request_user_secret", "ssh_exec", "ssh_wait",
+        "list_hosts", "get_metrics", "request_user_secret", "ssh_exec", "ssh_wait",
         "sftp_list", "sftp_stat", "sftp_read", "sftp_write",
         "sftp_mkdir", "sftp_move", "sftp_chmod", "sftp_delete",
     ]
@@ -16,7 +16,7 @@ final class MCPServerTools {
     private var registry: AgentToolRegistry
 
     init(
-        hosts: AgentHostResolver,
+        hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
         connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands,
@@ -35,7 +35,7 @@ final class MCPServerTools {
             event: channel.emit
         )
         registry = Self.makeRegistry(
-            hosts: hosts, connections: connections, authentication: authentication,
+            hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
             background: background, disabledTools: disabledTools
         )
         history.consume(channel)
@@ -46,12 +46,12 @@ final class MCPServerTools {
     func contains(_ name: String) -> Bool { registry[name] != nil }
 
     func replaceDisabledTools(
-        _ disabledTools: Set<String>, hosts: AgentHostResolver,
+        _ disabledTools: Set<String>, hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
         connections: AgentConnectionPool, authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands
     ) {
         registry = Self.makeRegistry(
-            hosts: hosts, connections: connections, authentication: authentication,
+            hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
             background: background, disabledTools: disabledTools
         )
     }
@@ -83,7 +83,7 @@ final class MCPServerTools {
     }
 
     private static func makeRegistry(
-        hosts: AgentHostResolver, connections: AgentConnectionPool,
+        hosts: AgentHostResolver, metrics: any MetricsSnapshotReading, connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands, disabledTools: Set<String>
     ) -> AgentToolRegistry {
@@ -99,7 +99,7 @@ final class MCPServerTools {
             ),
             additional: TermindAgentTools.tools(
                 in: TermindAgentToolEnvironment(
-                    hosts: hosts, connections: connections, authentication: authentication,
+                    hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
                     background: background
                 ))
         ).filtering {

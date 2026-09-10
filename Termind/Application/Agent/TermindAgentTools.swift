@@ -9,6 +9,7 @@ import Foundation
 /// the environment is unpacked here and each definition receives only what it
 /// uses.
 nonisolated struct TermindAgentToolEnvironment: Sendable {
+    var metrics: any MetricsSnapshotReading
     var hosts: AgentHostResolver
     var connections: AgentConnectionPool
     var authentication: AgentSSHAuthenticationRegistry
@@ -22,12 +23,14 @@ nonisolated struct TermindAgentToolEnvironment: Sendable {
 
     init(
         hosts: AgentHostResolver,
+        metrics: any MetricsSnapshotReading,
         connections: AgentConnectionPool,
         authentication suppliedAuthentication: AgentSSHAuthenticationRegistry? = nil,
         background: AgentBackgroundCommands = AgentBackgroundCommands(),
         includesTerminalSuggestion: Bool = false,
         workspace: AgentScratchWorkspace? = nil
     ) {
+        self.metrics = metrics
         self.hosts = hosts
         self.connections = connections
         authentication =
@@ -73,6 +76,7 @@ nonisolated enum TermindAgentTools {
     }
 
     private static let definitions: [Registration] = [
+        .init(GetMetricsTool.self) { GetMetricsTool(hosts: $0.hosts, metrics: $0.metrics) },
         .init(ListHostsTool.self) { ListHostsTool(hosts: $0.hosts) },
         .init(SSHExecTool.self) {
             SSHExecTool(

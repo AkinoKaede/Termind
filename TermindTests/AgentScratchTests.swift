@@ -1049,7 +1049,7 @@ private enum Fixture {
             builtIn: .init(web: web()),
             additional: TermindAgentTools.tools(
                 in: .init(
-                    hosts: hosts, connections: connections
+                    hosts: hosts, metrics: TestMetricsReader(), connections: connections
                 ))
         ).registeredTools
     }

@@ -14,6 +14,7 @@ import Foundation
 nonisolated extension AgentToolDescriptor.Presentation.ActivityKind {
     static let command = Self("command")
     static let hosts = Self("hosts")
+    static let metrics = Self("metrics")
     static let remoteCommand = Self("remoteCommand")
     static let remoteFile = Self("remoteFile")
     static let sshCommand = Self("sshCommand")
