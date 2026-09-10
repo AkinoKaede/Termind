@@ -105,6 +105,42 @@
         }
 
         @Test
+        func metricsScenesUseFrozenRowsAndCorrectNavigation() throws {
+            for scene in [ScreenshotDemoConfiguration.Scene.metrics, .metricsDetail] {
+                let configuration = ScreenshotDemoConfiguration(scene: scene, language: .english)
+                let hosts = HostLibraryModel.demo()
+                let model = configuration.makeMetricsModel(hosts: hosts)
+                let window = configuration.makeWindow(hosts: hosts)
+                #expect(window.selectedDestination == .metrics)
+                #expect(window.showsSidebar == (scene == .metrics))
+                #expect(window.metricsHostID == (scene == .metricsDetail ? hosts.hosts.first?.id : nil))
+                #expect(model.servers.count == 6)
+                let first = try #require(model.servers.first)
+                let point = try #require(first.point)
+                #expect(first.processes.count == 20)
+                #expect(first.filesystems.count == 1)
+                #expect(point.cpu == 32.8)
+                let liveSample = LinuxMetricsParser.parse(
+                    "__TERMIND_ADDRESSES__\n2: eth0 inet 192.0.2.10/24 brd 192.0.2.255 scope global eth0"
+                )
+                #expect(point.networkDevices.first?.addresses == liveSample.interfaceAddresses["eth0"])
+                model.start()
+                #expect(model.servers.first === first)
+                #expect(model.servers.allSatisfy { !$0.isConnecting && $0.point != nil })
+                model.shutdown()
+            }
+        }
+
+        @Test
+        func otherScreenshotScenesDoNotLoadSavedMonitors() {
+            let configuration = ScreenshotDemoConfiguration(scene: .hosts, language: .english)
+            let model = configuration.makeMetricsModel(hosts: .demo())
+            model.start()
+            #expect(model.servers.isEmpty)
+            model.shutdown()
+        }
+
+        @Test
         func demoHostsUseEightDistinctBundledDistributionIcons() throws {
             let hosts = HostLibraryModel.demo().hosts
             let distributions = try hosts.map {

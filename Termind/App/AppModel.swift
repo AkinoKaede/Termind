@@ -120,17 +120,20 @@ final class AppModel {
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil,
         proAccess: ProAccessController = .unrestrictedForTesting(),
-        onboarding: OnboardingController = OnboardingController()
+        onboarding: OnboardingController = OnboardingController(),
+        serverMetrics suppliedMetrics: ServerMetricsModel? = nil
     ) {
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         let connectionCoordinator = dependencies.connectionCoordinator
-        serverMetrics = ServerMetricsModel(
-            hosts: hosts, preferences: MetricsPreferences(),
-            makeSampler: { connectionCoordinator.makeMetricsSampler() },
-            discover: { try await connectionCoordinator.discoverMetricsHostKey(host: $0, proxy: $1, jumps: $2) },
-            cardLimit: { proAccess.canUse(.unlimitedMetrics) ? nil : ServerMetricsModel.freeCardLimit },
-            limitReached: { proAccess.require(.unlimitedMetrics) }
-        )
+        self.serverMetrics =
+            suppliedMetrics
+            ?? ServerMetricsModel(
+                hosts: hosts, preferences: MetricsPreferences(),
+                makeSampler: { connectionCoordinator.makeMetricsSampler() },
+                discover: { try await connectionCoordinator.discoverMetricsHostKey(host: $0, proxy: $1, jumps: $2) },
+                cardLimit: { proAccess.canUse(.unlimitedMetrics) ? nil : ServerMetricsModel.freeCardLimit },
+                limitReached: { proAccess.require(.unlimitedMetrics) }
+            )
         self.hosts = hosts
         self.proAccess = proAccess
         self.onboarding = onboarding

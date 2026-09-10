@@ -10,6 +10,8 @@
             case workspace
             case agent
             case command
+            case metrics
+            case metricsDetail = "metrics-detail"
         }
 
         enum ParseError: Error, Equatable, CustomStringConvertible {
@@ -24,9 +26,10 @@
                     return "Pass --termind-demo only once."
                 case .invalidFormat(let value):
                     return "Invalid Demo argument \(value). Expected "
-                        + "--termind-demo=<hosts|workspace|agent|command>:<en|zh>."
+                        + "--termind-demo=<hosts|workspace|agent|command|metrics|metrics-detail>:<en|zh>."
                 case .unknownScene(let value):
-                    return "Unknown Demo scene \(value). Expected hosts, workspace, agent, or command."
+                    return
+                        "Unknown Demo scene \(value). Expected hosts, workspace, agent, command, metrics, or metrics-detail."
                 case .unknownLanguage(let value):
                     return "Unknown Demo language \(value). Expected en or zh."
                 }
@@ -82,7 +85,7 @@
             switch scene {
             case .command:
                 CGSize(width: 1_022, height: 640)
-            case .workspace, .agent, .hosts:
+            case .workspace, .agent, .hosts, .metrics, .metricsDetail:
                 CGSize(
                     width: Metrics.Window.defaultWidth,
                     height: Metrics.Window.defaultHeight
@@ -100,6 +103,13 @@
                 return agentWindow(hosts: hosts)
             case .hosts:
                 return hostsWindow()
+            case .metrics, .metricsDetail:
+                let window = WindowModel()
+                window.selectedDestination = .metrics
+                window.showsSidebar = scene == .metrics
+                window.sidebarMode = .navigation
+                window.metricsHostID = scene == .metricsDetail ? hosts.hosts.first?.id : nil
+                return window
             }
         }
 

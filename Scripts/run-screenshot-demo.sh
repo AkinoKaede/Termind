@@ -3,7 +3,7 @@
 set -euo pipefail
 
 usage() {
-    print -u2 "Usage: Scripts/run-screenshot-demo.sh <hosts|workspace|agent|command> <en|zh>"
+    print -u2 "Usage: Scripts/run-screenshot-demo.sh <hosts|workspace|agent|command|metrics|metrics-detail> <en|zh>"
 }
 
 if (( $# != 2 )); then
@@ -15,7 +15,7 @@ scene="$1"
 language="$2"
 
 case "$scene" in
-    hosts|workspace|agent|command) ;;
+    hosts|workspace|agent|command|metrics|metrics-detail) ;;
     *)
         print -u2 "Unknown Demo scene: $scene"
         usage
@@ -24,7 +24,14 @@ case "$scene" in
 esac
 
 case "$language" in
-    en|zh) ;;
+    en)
+        apple_language="en"
+        apple_locale="en_US"
+        ;;
+    zh)
+        apple_language="zh-Hans"
+        apple_locale="zh_CN"
+        ;;
     *)
         print -u2 "Unknown Demo language: $language"
         usage
@@ -41,7 +48,10 @@ xcodebuild \
     -project "$repository_directory/Termind.xcodeproj" \
     -scheme Termind \
     -configuration Debug \
+    -destination 'platform=macOS' \
+    -onlyUsePackageVersionsFromResolvedFile \
     -derivedDataPath "$derived_data" \
     build
 
-open -n "$application" --args "--termind-demo=$scene:$language"
+open -n "$application" --args "--termind-demo=$scene:$language" \
+    -AppleLanguages "($apple_language)" -AppleLocale "$apple_locale"

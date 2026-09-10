@@ -85,6 +85,21 @@ final class ServerMetricsModel {
 
     var remainingCardSlots: Int? { cardLimit().map { max(0, $0 - servers.count) } }
 
+    #if DEBUG
+        /// Frozen product fixtures never load preferences or start an SSH worker.
+        convenience init(screenshotHosts: any RemoteSessionHostStore, rows: [ServerMetric]) {
+            self.init(
+                hosts: screenshotHosts, preferences: ScreenshotMetricsPreferences(),
+                makeSampler: { preconditionFailure("Screenshot metrics cannot connect") },
+                discover: { _, _, _ in preconditionFailure("Screenshot metrics cannot discover hosts") },
+                cardLimit: { nil }
+            )
+            servers = rows
+            started = true
+            stopped = true
+        }
+    #endif
+
     @discardableResult
     func requestAddition(count: Int = 1) -> Bool {
         guard count > 0 else { return true }
@@ -535,3 +550,10 @@ final class ServerMetricsModel {
         }
     }
 }
+
+#if DEBUG
+    private final class ScreenshotMetricsPreferences: MetricsConfigurationStoring {
+        func load() -> [MetricsSelection] { [] }
+        func save(_ selections: [MetricsSelection]) {}
+    }
+#endif

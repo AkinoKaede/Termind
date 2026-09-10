@@ -308,6 +308,16 @@ demo only simulates expired access and cannot grant paid or trial access.
 
 ## Server metrics
 
+Debug screenshot launches inject a frozen `ServerMetricsModel` into AppModel.
+Its in-memory preferences never read or write saved monitor configuration, and
+it cannot start samplers or host-key discovery. The metrics overview and detail
+fixtures render the production views using deterministic, fictitious data.
+Screenshot launches explicitly create an AppKit window hosting the same
+RootView as the normal WindowGroup and disable restoration;
+window preparation waits for a visible key-capable window before sizing and activation; their ready
+log records both focus conditions before capture. Vault captures clear the
+initial disclosure-button focus without resigning the key window.
+
 `ServerMetricsModel` is application-owned, with one serial SSH exec sampler per
 monitored saved host. Metrics navigation and the menu-bar popover consume the
 same observable rows. Rows are created synchronously from saved selections,

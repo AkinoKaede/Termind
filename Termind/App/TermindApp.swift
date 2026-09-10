@@ -48,10 +48,14 @@ struct TermindApp: App {
                     let hosts = HostLibraryModel.demo(language: screenshotDemo.language)
                     let app = AppModel(
                         hosts: hosts, ai: .demo(), proAccess: .unrestrictedForTesting(),
-                        onboarding: OnboardingController(automaticPresentationEnabled: false)
+                        onboarding: OnboardingController(automaticPresentationEnabled: false),
+                        serverMetrics: screenshotDemo.makeMetricsModel(hosts: hosts)
                     )
                     _app = State(initialValue: app)
-                    launchWindow = screenshotDemo.makeWindow(hosts: hosts)
+                    let window = screenshotDemo.makeWindow(hosts: hosts)
+                    launchWindow = window
+                    ScreenshotDemoWindow.configure(
+                        app: app, windowModel: window, container: container, locale: screenshotDemo.language.locale)
                     return
                 }
             #endif
@@ -124,6 +128,10 @@ struct TermindApp: App {
                     .onAppear { delegate.app = app }
                 #endif
         }
+        #if DEBUG
+            .defaultLaunchBehavior(ScreenshotDemoConfiguration.active == nil ? .automatic : .suppressed)
+            .restorationBehavior(ScreenshotDemoConfiguration.active == nil ? .automatic : .disabled)
+        #endif
         .defaultSize(width: Metrics.Window.defaultWidth, height: Metrics.Window.defaultHeight)
         // RootView publishes the calculated two-column floor. Active optional
         // panes may raise it, but the window can never shrink below the base UI.
@@ -199,18 +207,34 @@ struct TermindApp: App {
             // workspace composition.
             #if DEBUG
                 if let screenshotDemo = ScreenshotDemoConfiguration.active {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-                        guard let window = NSApp.windows.first(where: \.isVisible) else { return }
-                        window.isRestorable = false
-                        window.contentMinSize = .zero
-                        window.setFrame(
-                            NSRect(
-                                origin: window.frame.origin,
-                                size: screenshotDemo.windowSize
-                            ),
-                            display: true
-                        )
-                        window.center()
+                    ScreenshotDemoWindow.present()
+                    app = ScreenshotDemoWindow.model
+                    Task { @MainActor in
+                        for _ in 0..<100 {
+                            if let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeKey }) {
+                                window.isRestorable = false
+                                window.contentMinSize = .zero
+                                window.setFrame(
+                                    NSRect(origin: window.frame.origin, size: screenshotDemo.windowSize), display: true)
+                                window.center()
+                                window.appearance = NSAppearance(named: .aqua)
+                                window.makeKeyAndOrderFront(nil)
+                                NSApp.activate(ignoringOtherApps: true)
+                                try? await Task.sleep(for: .milliseconds(500))
+                                if screenshotDemo.scene == .hosts {
+                                    window.initialFirstResponder = nil
+                                    window.makeFirstResponder(nil)
+                                }
+                                let neutralFocus = window.firstResponder == nil || window.firstResponder === window
+                                let state =
+                                    "TERMIND_DEMO_READY window=\(window.windowNumber) "
+                                    + "active=\(NSApp.isActive) key=\(window.isKeyWindow) neutral=\(neutralFocus)\n"
+                                FileHandle.standardOutput.write(Data(state.utf8))
+                                return
+                            }
+                            try? await Task.sleep(for: .milliseconds(100))
+                        }
+                        FileHandle.standardError.write(Data("Screenshot window did not appear.\n".utf8))
                     }
                 }
             #endif
