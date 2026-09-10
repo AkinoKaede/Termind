@@ -42,8 +42,8 @@ final class MetricsMenuBarController: NSObject, NSPopoverDelegate {
         }
         guard item == nil, model != nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let image = NSImage(
-            systemSymbolName: "waveform.path.ecg", accessibilityDescription: ApplicationIdentity.displayName)
+        let image = NSImage(named: "MenuBarIcon")?.copy() as? NSImage
+        image?.size = NSSize(width: 18, height: 18)
         image?.isTemplate = true
         item.button?.image = image
         item.button?.toolTip = ApplicationIdentity.displayName

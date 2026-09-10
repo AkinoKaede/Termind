@@ -1,20 +1,81 @@
 {
   "fill" : {
-    "solid" : "srgb:0.33725,0.61961,0.97647,1.00000"
+    "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
   },
   "groups" : [
     {
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "Artwork.png",
-          "name" : "Artwork"
+          "image-name" : "Terminal.svg",
+          "name" : "Terminal"
         }
       ],
       "lighting" : "individual",
+      "name" : "Terminal",
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0
+      },
+      "specular" : false,
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0
+      }
+    },
+    {
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "FrontWindow.svg",
+          "name" : "FrontWindow"
+        }
+      ],
+      "lighting" : "individual",
+      "name" : "FrontWindow",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.08
+      },
+      "specular" : false,
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0
+      }
+    },
+    {
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "MiddleWindow.svg",
+          "name" : "MiddleWindow"
+        }
+      ],
+      "lighting" : "individual",
+      "name" : "MiddleWindow",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.08
+      },
+      "specular" : false,
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0
+      }
+    },
+    {
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "BackWindow.svg",
+          "name" : "BackWindow"
+        }
+      ],
+      "lighting" : "individual",
+      "name" : "BackWindow",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.08
       },
       "specular" : false,
       "translucency" : {
