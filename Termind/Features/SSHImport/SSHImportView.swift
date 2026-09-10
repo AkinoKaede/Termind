@@ -41,38 +41,42 @@ private struct SSHImportContent: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding()
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Metrics.Space.l) {
+                Form {
+                    Section {
                         sourcePicker
-                        if !knownHostsOnly {
-                            LabeledContent("Store Keys in") {
-                                Picker("Store Keys in", selection: $model.storage) {
-                                    Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
-                                    Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
-                                }
-                                .labelsHidden()
-                                .pickerStyle(.menu)
-                                .labelStyle(.titleAndIcon)
-                                .fixedSize()
+                    }
+                    if !knownHostsOnly {
+                        Section("Keys") {
+                            Picker("Store in", selection: $model.storage) {
+                                Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
+                                Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
                             }
                         }
-                        if !model.items.isEmpty {
+                    }
+                    if !model.items.isEmpty {
+                        Section {
                             selectionButton(category: nil, title: String(localized: "Select All"))
-                            ForEach(SSHImportCategory.allCases) { category in
-                                if model.items.contains(where: { $0.category == category }) {
+                        }
+                        ForEach(SSHImportCategory.allCases) { category in
+                            if model.items.contains(where: { $0.category == category }) {
+                                Section {
                                     categorySection(category)
                                 }
                             }
                         }
-                        if let issue = model.routeProblem {
+                    }
+                    if let issue = model.routeProblem {
+                        Section {
                             Text(issue).font(.caption).foregroundStyle(.orange)
                         }
-                        if let error = inputError ?? model.error { Text(error).foregroundStyle(.red) }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
+                    if let error = inputError ?? model.error {
+                        Section {
+                            Text(error).foregroundStyle(.red)
+                        }
+                    }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .formStyle(.grouped)
                 .disabled(model.isWorking)
             }
         } footer: {
@@ -133,7 +137,7 @@ private struct SSHImportContent: View {
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }
-            Button(knownHostsOnly ? "Choose Known Hosts File" : "Choose .ssh Folder") {
+            Button("Choose") {
                 Task {
                     if let url = await SSHImportFilePicker.choose(folder: !knownHostsOnly) {
                         inputError = nil
@@ -144,8 +148,6 @@ private struct SSHImportContent: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.primary.opacity(0.035), in: .rect(cornerRadius: Metrics.Radius.medium))
     }
 
     private func receiveDrop(_ urls: [URL]) -> Bool {
@@ -206,8 +208,6 @@ private struct SSHImportContent: View {
                 }
             }
         }
-        .padding()
-        .background(.primary.opacity(0.035), in: .rect(cornerRadius: Metrics.Radius.medium))
     }
 
     private func sourceLabel(_ source: String) -> String {
