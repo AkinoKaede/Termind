@@ -36,11 +36,18 @@ struct ProPaywallView: View {
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 feature("Arrange multiple panes and broadcast input", "rectangle.split.2x1")
                 feature("Use the AI Assistant", "sparkles")
+                feature("Monitor more than 3 servers", "waveform.path.ecg")
                 feature("Upload files by dropping them on a terminal", "arrow.up.doc")
                 feature("Connect MCP tools and run the built-in MCP Server", "server.rack")
                 feature("Sync your Vault through your private iCloud database", "icloud")
             }
             .padding(.vertical, 28)
+
+            if pro.requestedFeature == .unlimitedMetrics {
+                Text("Free includes up to 3 monitoring cards. Upgrade to Pro for more.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center).padding(.horizontal, 24).padding(.bottom, 12)
+            }
 
             if pro.isProcessing {
                 ProgressView("Contacting the App Store…")

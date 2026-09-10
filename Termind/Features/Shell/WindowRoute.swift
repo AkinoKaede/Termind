@@ -82,6 +82,7 @@ nonisolated enum VaultWorkRoute: Hashable, Sendable {
 /// The top-level workspace selection for one window. Vault, Assistant, and Settings
 /// have no close lifecycle; only Workspace entries are dynamic.
 nonisolated enum WindowDestination: Hashable, Sendable {
+    case metrics
     case vault
     case assistant
     case settings

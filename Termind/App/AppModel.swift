@@ -65,6 +65,8 @@ final class AppModel {
     let mcpServer: MCPServerController
     let commands = AppCommandRegistry()
     let onboarding: OnboardingController
+    let serverMetrics: ServerMetricsModel
+    var opensMetricsOnNextWindow = false
     let connections: RemoteConnectionCoordinator
     let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
@@ -122,6 +124,13 @@ final class AppModel {
     ) {
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         let connectionCoordinator = dependencies.connectionCoordinator
+        serverMetrics = ServerMetricsModel(
+            hosts: hosts, preferences: MetricsPreferences(),
+            makeSampler: { connectionCoordinator.makeMetricsSampler() },
+            discover: { try await connectionCoordinator.discoverMetricsHostKey(host: $0, proxy: $1, jumps: $2) },
+            cardLimit: { proAccess.canUse(.unlimitedMetrics) ? nil : ServerMetricsModel.freeCardLimit },
+            limitReached: { proAccess.require(.unlimitedMetrics) }
+        )
         self.hosts = hosts
         self.proAccess = proAccess
         self.onboarding = onboarding
@@ -184,7 +193,8 @@ final class AppModel {
                 self?.temporaryAgentConfiguration(for: hostID)
             }
         )
-        hosts.willDeleteHost = { [weak forwarding, agentConnections] hostID, ruleIDs in
+        hosts.willDeleteHost = { [weak forwarding, weak serverMetrics, agentConnections] hostID, ruleIDs in
+            serverMetrics?.remove(hostID)
             forwarding?.stop(ruleIDs)
             // Not a `HostDeletionOutbox` step like the others: a live socket
             // cannot outlive the process, so there is nothing to replay after a
@@ -703,6 +713,7 @@ final class AppModel {
     }
 
     func registerWindow(_ window: WindowModel) {
+        window.metricsModel = serverMetrics
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
         window.commandHistoryStore = commandHistory
@@ -1002,6 +1013,7 @@ final class AppModel {
     /// path runs on the main thread, so awaiting SSH/SFTP shutdown here can make
     /// ⌘Q appear hung when a peer is slow or unreachable.
     func shutdownForTermination() {
+        serverMetrics.shutdown()
         speechTranscription.cancelAll()
         let liveWindows = windows.values.compactMap(\.value)
         windows.removeAll()

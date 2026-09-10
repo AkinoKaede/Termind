@@ -51,6 +51,7 @@ nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sen
 nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     case connect
     case batchStartup
+    case metrics
     case snippet(SnippetHostChooserRequest)
 
     nonisolated var id: Self { self }
@@ -59,6 +60,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         switch self {
         case .connect: "Connect"
         case .batchStartup: "Batch Startup"
+        case .metrics: "Add Server"
         case .snippet: "Execute on Hosts"
         }
     }
@@ -67,6 +69,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         switch self {
         case .connect: "network"
         case .batchStartup: "wind"
+        case .metrics: "waveform.path.ecg"
         case .snippet: "text.badge.play"
         }
     }
@@ -76,6 +79,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     var confirmLabel: LocalizedStringKey {
         switch self {
         case .connect, .batchStartup: "Connect"
+        case .metrics: "Add Server"
         case .snippet: "Execute"
         }
     }
@@ -86,6 +90,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     var workspaceConfirmLabel: LocalizedStringKey {
         switch self {
         case .connect, .batchStartup: "Connect in the same workspace"
+        case .metrics: "Add Server"
         case .snippet: "Execute"
         }
     }
@@ -95,21 +100,21 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     var allowsMultiple: Bool {
         switch self {
         case .connect: false
-        case .batchStartup, .snippet: true
+        case .batchStartup, .snippet, .metrics: true
         }
     }
 
     var showsWorkspaceChoice: Bool {
         switch self {
         case .batchStartup: true
-        case .connect, .snippet: false
+        case .connect, .snippet, .metrics: false
         }
     }
 
     var choosesConnectionProtocol: Bool {
         switch self {
         case .connect, .batchStartup: true
-        case .snippet: false
+        case .snippet, .metrics: false
         }
     }
 }
@@ -191,7 +196,10 @@ struct HostChooserView: View {
     }
 
     private var results: [Host] {
-        app.hostLibrary.searchHosts(query)
+        let matches = app.hostLibrary.searchHosts(query)
+        guard purpose == .metrics else { return matches }
+        let monitored = Set(app.serverMetrics.servers.map(\.id))
+        return matches.filter { !monitored.contains($0.id) }
     }
 
     var body: some View {
@@ -249,13 +257,22 @@ struct HostChooserView: View {
             symbol: purpose.symbol,
             prompt: "Search hosts",
             query: queryBinding,
-            aboveSearch: purpose.choosesConnectionProtocol
-                ? AnyView(connectionProtocolPicker) : nil,
+            aboveSearch: chooserOptions,
             showsSearch: connectionProtocol != .serial,
             onSubmit: openSelected,
             moveCursor: move,
             toggleCursor: toggleCursor
         )
+    }
+
+    private var chooserOptions: AnyView? {
+        if purpose.choosesConnectionProtocol { return AnyView(connectionProtocolPicker) }
+        if purpose == .metrics, app.serverMetrics.remainingCardSlots != nil {
+            return AnyView(
+                Text("Free includes up to 3 monitoring cards. Upgrade to Pro for more.")
+                    .font(.caption).foregroundStyle(.secondary))
+        }
+        return nil
     }
 
     private var connectionProtocolPicker: some View {
@@ -298,6 +315,8 @@ struct HostChooserView: View {
                     isSelected: item.isCursor,
                     isChecked: item.isChecked
                 )
+                // Each ListViewKit row has an independent NSHostingView root.
+                .environment(app)
                 .onTapGesture(count: 2) {
                     if !purpose.allowsMultiple {
                         open(item.host)
@@ -487,6 +506,11 @@ struct HostChooserView: View {
         guard !batch.isEmpty else { return }
         if case .snippet = purpose {
             requestSnippetExecution()
+        } else if purpose == .metrics {
+            // The parent admits the complete batch after this sheet has closed,
+            // so a limit paywall never competes with the chooser presentation.
+            window.pendingMetricsHostIDs = batch.map(\.id)
+            dismiss()
         } else {
             guard let target = connectionProtocol.target else { return }
             app.open(batch, as: target, layout: layout, in: window)

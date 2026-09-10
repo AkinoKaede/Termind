@@ -8,6 +8,7 @@ import Foundation
 /// `UserDefaults` rather than SwiftData is named here.
 nonisolated enum SettingsKey {
     /// App language selection. `system` means normal Bundle negotiation.
+    static let showMetricsInMenuBar = "metrics.showInMenuBar"
     static let appLanguage = "app.language"
     /// App-wide appearance. `system` inherits changes from macOS.
     static let appAppearance = "app.appearance"

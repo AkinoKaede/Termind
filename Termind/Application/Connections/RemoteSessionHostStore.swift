@@ -14,6 +14,9 @@ protocol RemoteSessionHostStore: AnyObject, Sendable {
     func expectedHostKeys(
         for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
     ) throws -> Set<SSHHostKeyIdentity>
+    func prepareSSHConnection(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation
     func sshConnectionConfiguration(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]

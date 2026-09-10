@@ -31,6 +31,13 @@ struct WorkspaceNavigatorView: View {
                 // `Metrics.Sidebar.rowHorizontalMargin` inside the row itself.
                 Group {
                     welcomeRow
+                    SidebarNavigatorRow(
+                        title: "Metrics", symbol: "waveform.path.ecg",
+                        isSelected: window.selectedDestination == .metrics
+                    ) {
+                        window.dragging = nil
+                        window.selectedDestination = .metrics
+                    }
                     vaultSection
                     workspaceSection
                     settingsSection
@@ -54,7 +61,7 @@ struct WorkspaceNavigatorView: View {
         .onChange(of: window.selectedDestination) {
             switch window.selectedDestination {
             case .vault: vaultExpanded = true
-            case .assistant, .settings: break
+            case .assistant, .settings, .metrics: break
             case .workspace: workspaceExpanded = true
             }
         }

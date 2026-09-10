@@ -40,6 +40,7 @@ struct WindowTitleCatalog {
 
     static func standard(hosts: HostLibraryModel) -> Self {
         Self([
+            AnyWindowTitleProvider(MetricsWindowTitleProvider(hosts: hosts)),
             AnyWindowTitleProvider(VaultWindowTitleProvider()),
             AnyWindowTitleProvider(AssistantWindowTitleProvider()),
             AnyWindowTitleProvider(SettingsWindowTitleProvider()),
@@ -105,5 +106,14 @@ struct WorkspaceWindowTitleProvider: WindowTitleProviding {
     func title(in window: WindowModel, locale: Locale) -> String? {
         guard let workspace = window.selectedWorkspace else { return nil }
         return workspace.title(in: hosts, locale: locale)
+    }
+}
+
+struct MetricsWindowTitleProvider: WindowTitleProviding {
+    var hosts: HostLibraryModel? = nil
+    func title(in window: WindowModel, locale: Locale) -> String? {
+        guard window.selectedDestination == .metrics else { return nil }
+        return window.metricsHostID.flatMap { hosts?.host($0)?.name }
+            ?? AppLocalization.string("Metrics", locale: locale)
     }
 }

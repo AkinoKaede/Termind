@@ -43,6 +43,9 @@ final class UserInputModalityTracker {
         }
     }
 
+    /// Status-item clicks can arrive from Control Center without a local mouse event.
+    func notePointerInteraction() { record(.leftMouseDown) }
+
     private func record(_ eventType: NSEvent.EventType) {
         let updated = modality.updated(for: eventType)
         if updated != modality { modality = updated }

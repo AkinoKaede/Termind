@@ -11,6 +11,22 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func metricsViewsCannotOwnTransportsAndSecretsAreResolvedOffMainActor() throws {
+        try assertNoConcreteImplementations(in: "Features/Metrics")
+        let model = try String(
+            contentsOf: sourceRoot.appending(path: "Application/Metrics/ServerMetricsModel.swift"), encoding: .utf8)
+        #expect(!model.contains("hosts.sshConnectionConfiguration("))
+        let preparation = try String(
+            contentsOf: sourceRoot.appending(path: "Application/Connections/SSHConnectionPreparation.swift"),
+            encoding: .utf8)
+        #expect(preparation.contains("Task.detached"))
+        let view = try String(
+            contentsOf: sourceRoot.appending(path: "Features/Metrics/MetricsView.swift"), encoding: .utf8)
+        #expect(!view.contains("SSHExecSession"))
+        #expect(!view.contains("KeychainSecretStore"))
+    }
+
+    @Test
     func coreDirectoryIsGone() {
         let core = sourceRoot.appending(path: "Core", directoryHint: .isDirectory)
         #expect(!FileManager.default.fileExists(atPath: core.path))

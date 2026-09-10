@@ -4,6 +4,7 @@ nonisolated enum ConnectionPurpose: String, Hashable, Sendable {
     case sshSession
     case sftpSession
     case serialSession
+    case metrics
 }
 
 nonisolated struct ConnectionEndpoint: Identifiable, Hashable, Sendable {
@@ -337,6 +338,7 @@ extension ConnectionPurpose {
         case .sshSession: "SSH session"
         case .sftpSession: "SFTP session"
         case .serialSession: "serial session"
+        case .metrics: "metrics"
         }
     }
 }

@@ -34,6 +34,7 @@ including that no type AgentKit owns is redefined here.
 
 - Repository snapshots are application-wide and shared by every window.
 - A window owns one top-level shell, quick-open, and context-panel state.
+- Metrics is a fixed window destination below Welcome and above the Vault group.
 - The shell always starts with `Vault` and `Assistant`; Settings is the final Navigator
   page after the dynamic SSH/SFTP Workspaces.
 - Vault owns its navigation column, including quick-connect Recents, and routes
@@ -59,7 +60,7 @@ including that no type AgentKit owns is redefined here.
   it in System Settings without telling the app, so `LoginItemController` reads the system
   status every time Settings is shown rather than mirroring it into `UserDefaults`. Only
   *how* that launch behaves is stored here. A quiet login launch hides the app rather than
-  suppressing its window, because Termind terminates with its last window.
+  suppressing its window, because a quiet login launch must not present an empty foreground window.
 
 Repository data is persistent truth. Runtime connection state is kept in a
 connection registry and is never persisted onto domain records.
@@ -304,3 +305,119 @@ active trial is observed. Expiration disables gated features, but previously gra
 workspace composition remains available for the current launch so an existing
 workspace is not dismantled. A fresh launch has no such workspace grant. The review
 demo only simulates expired access and cannot grant paid or trial access.
+
+## Server metrics
+
+`ServerMetricsModel` is application-owned, with one serial SSH exec sampler per
+monitored saved host. Metrics navigation and the menu-bar popover consume the
+same observable rows. Rows are created synchronously from saved selections,
+before credential resolution or networking starts, and expose connecting,
+connected/collecting, live, paused, sleeping, and actionable failure states.
+The menu-bar setting defaults on. Closing the last window keeps the process
+alive while that setting or any enabled monitor requires it; explicit Quit
+cancels monitoring. NSWorkspace sleep/wake and native window reopening belong
+to Platform/macOS, not to the sampling coordinator.
+
+Connection preparation snapshots route, identity, public-key and trust metadata
+on MainActor. `SSHConnectionPreparation` resolves the Sendable secret store on a
+detached worker: Keychain access must never block first paint or state updates.
+Cancellation is checked again before connecting, so late credential results
+cannot revive a paused monitor. Secrets remain memory-only, are never written
+with selections or history, and are cleared when monitoring is paused/removed
+or the app terminates. Known-host verification still gates every SSH connection;
+interactive trust and authentication are presented in Metrics.
+
+Linux procfs and optional `nvidia-smi -q -x` are read by Infrastructure with bounded
+output and command deadlines. GPU failure does not erase base metrics. Servers without NVIDIA hardware omit
+the GPU section entirely. Missing
+values and invalid counter deltas remain unknown; remote uptime determines
+rates. History is an in-memory five-minute window; only host/device selections
+persist in local preferences. GPU identity uses NVIDIA UUID, and XML external
+entities are disabled. There is no WidgetKit extension, App Group, remote agent,
+or dependency on AgentKit for monitoring.
+
+MetricsMenuBarController owns an AppKit NSStatusItem and NSPopover for the
+application lifetime. The menu view receives its monitoring model and open
+callback explicitly, rather than relying on a window scene's environment.
+Preference notifications reconcile item visibility without writing defaults
+back, preventing insertion/render feedback loops.
+
+Metrics overview uses an adaptive grid of compact server cards. Per-window
+selection opens a fixed two-column detail page. System panels scroll on the
+left and the native process Table scrolls independently on the right; there is
+no outer detail-page scroll view or trend tab. CPU breakdown, uptime, load,
+free/cached memory and per-device traffic/I/O are displayed in separate panels;
+GPU details join the left column only when hardware has been detected. Process counters are collected only while at least one window observes
+that host's details; multiple windows still share the same sampler. procfs
+process CPU is computed from adjacent process/system tick deltas (100% per
+logical core), RSS uses the remote page size, and PID plus start time prevents
+reused PIDs from inheriting prior counters. Process reads have separate output
+and time limits so errors leave base metrics available. No command arguments
+or process environment variables are collected.
+
+Metrics uses ManagedCardPage/CardTile for the same surfaces, hover, native
+selection, marquee, drag ghosts, and reordering contract as Hosts. Its local
+monitor order is persisted independently of Vault host order and moving rows
+does not reconnect them. Metrics opts into single-click activation; drag gestures retain the shared
+reordering behavior and Shift-click extends selection without opening details.
+Add Server is a window-toolbar creation action backed by the shared host chooser;
+Show in Menu Bar lives only in Settings. The page does not duplicate its title
+or creation controls inside the card canvas.
+
+Both metrics routes use the shared titlebar search field: the overview filters
+servers and the detail filters processes, with separate window-owned queries.
+The process Table has PID first, user-selectable column sorting, and uniform
+row backgrounds. Overview cards fill the available grid width and omit GPU
+rows; GPU data belongs to the detail panels. Normal sampling has no redundant
+Live badge. Free Memory is a contextual localization key, separate from the
+commerce Free label. Native host-chooser row roots explicitly receive AppModel
+because an independent NSHostingView does not inherit the parent environment.
+
+Healthy metrics render no status/timer footer. Detail controls (pause/resume,
+retry, device selection and removal) belong beside the toolbar Back button,
+not in a duplicate server-name card. Add Server is overview-only. Connection
+and authentication notices remain visible when action or waiting is required.
+
+Overview cards reserve a fixed instrument-body height. Connecting, initial
+sampling, paused and attention states replace that body with a centered status
+instead of appending a footer or expanding authentication controls. Clicking
+an authentication-required card opens ConnectionJourneyView, not metric detail.
+Journey owns the familiar identity/passphrase and host-key UI; the metrics
+coordinator retains the only transport owner. Temporary host-key acceptance is
+scoped to that enabled monitor and cleared on pause/removal/configuration change.
+Successful collection completes the Journey before displaying metrics. Rejection
+pauses monitoring without accepting a key or creating a terminal workspace.
+
+Filesystem panels are identified by mount point, with device path, filesystem
+type and df capacity. mountinfo major:minor links the mount to per-partition
+diskstats; whole-device totals still exclude stacked devices and partitions.
+Capacity refreshes every 30 seconds only while details are observed, with its
+own bounded command so failures do not discard base samples. Subdirectory bind
+mounts and pseudo-filesystems are excluded (root overlays and Btrfs subvolumes
+remain representable). Network metadata classifies sysfs-backed hardware versus
+virtual interfaces. Hardware interfaces are expanded, virtual ones collapsed;
+default aggregate traffic uses hardware when available and otherwise non-loopback
+interfaces. Explicit user selections still override aggregation. TCP counters
+are host-wide and the traffic ring compares transmitted and received bytes,
+not link utilization.
+
+The Termind menu-bar popover stacks servers vertically with horizontal
+separator rules. Each row preserves the overview's horizontal instrument
+layout through MetricsInstrumentBody, without CardTile backgrounds. Larger
+fleets scroll vertically. Open and Quit are accessible icon buttons
+in the upper-right corner. CPU steal is labeled virtualization wait in Chinese;
+per-core process CPU semantics remain unchanged without an explanatory banner.
+
+The menu popover has one continuous surface: header and rows use matching
+content insets, separators span the full width, and the list has no nested
+scroll background/edge effects. Pointer opening resets input modality and
+clears AppKit's automatic first-button focus after presentation. Real keyboard
+input keeps the normal accessible focus behavior.
+
+Free metrics admission is capped at three added cards, including paused cards;
+Pro and an active trial allow unlimited additions. The Application model checks
+an injected live limit and inserts deduplicated batches atomically, so concurrent
+windows and bulk selection cannot overrun the cap. Batch admission happens after
+the chooser dismisses, before presenting the existing Pro paywall. Restored or
+previously purchased configurations are retained rather than deleted on downgrade;
+all retained cards count against future additions.

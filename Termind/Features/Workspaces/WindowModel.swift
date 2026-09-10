@@ -42,6 +42,12 @@ final class WindowModel {
     /// Settings is a reversible trip from the content in front. Its own route is
     /// window-scoped so two windows can configure shared preferences independently.
     private var settingsReturnDestination: WindowDestination = .vault
+    weak var metricsModel: ServerMetricsModel?
+    var pendingMetricsHostIDs: [UUID] = []
+    var metricsHostID: UUID?
+    var metricsQuery = ""
+    var metricsProcessQuery = ""
+    var metricsSelection: Set<UUID> = []
     var settingsRoute: SettingsRoute = .index
     var vaultDestination: VaultDestination = .welcome
     var vaultWorkRoute: VaultWorkRoute?
@@ -219,6 +225,8 @@ final class WindowModel {
             // Defensive only: the remembered destination is updated exclusively
             // from non-Assistant routes.
             selectVault()
+        case .metrics:
+            selectedDestination = .metrics
         case .settings:
             selectedDestination = .settings
         }
@@ -350,6 +358,8 @@ final class WindowModel {
         switch selectedDestination {
         case .assistant:
             return .assistant
+        case .metrics:
+            return metricsHostID == nil ? .metrics : .processes
         case .settings:
             return nil
         case .workspace:
@@ -530,6 +540,8 @@ final class WindowModel {
             selectVault()
         case .assistant:
             selectAssistant()
+        case .metrics:
+            selectedDestination = .metrics
         case .settings:
             selectVault()
         }

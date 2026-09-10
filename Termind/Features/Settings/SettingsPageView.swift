@@ -350,6 +350,7 @@ struct SettingsFormPage<Content: View>: View {
 }
 
 private struct AppSettings: View {
+    @AppStorage(SettingsKey.showMetricsInMenuBar) private var showMetricsInMenuBar = true
     @AppStorage(SettingsKey.appAppearance) private var appearanceID = AppAppearance.system.rawValue
     @AppStorage(SettingsKey.appLanguage) private var languageID = AppLanguage.system.rawValue
     @State private var launchLanguage = AppLanguage.stored()
@@ -360,6 +361,7 @@ private struct AppSettings: View {
 
     var body: some View {
         Section("Appearance") {
+            Toggle("Show in Menu Bar", isOn: $showMetricsInMenuBar)
             Picker(
                 "Theme",
                 selection: Binding(

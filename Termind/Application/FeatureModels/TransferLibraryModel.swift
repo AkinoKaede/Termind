@@ -22,6 +22,11 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     ) throws -> Set<SSHHostKeyIdentity> {
         try library.expectedHostKeys(for: host, temporaryHostKeys: temporaryHostKeys)
     }
+    func prepareSSHConnection(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
+        try library.prepareSSHConnection(for: host, submissions: submissions)
+    }
     func sshConnectionConfiguration(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]

@@ -10,6 +10,8 @@ import SwiftUI
 /// two of them could be on screen at once.
 nonisolated enum WindowToolbarFindKind: String, Hashable, Sendable, CaseIterable {
     case hosts
+    case metrics
+    case processes
     case keychain
     case snippets
     case assistant
@@ -509,12 +511,26 @@ struct WindowToolbarFindField: View {
 /// that appeared because the sidebar was showing the Navigator would create
 /// something the page in front cannot show.
 struct WindowToolbarLeadingActions: View {
+    @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.locale) private var locale
 
     var body: some View {
         let actions = window.creationActions
 
+        if window.selectedDestination == .metrics, window.metricsHostID != nil {
+            Button {
+                window.metricsHostID = nil
+            } label: {
+                Label("Back", systemImage: "chevron.backward").labelStyle(.iconOnly)
+            }
+            .help(Text("Back"))
+            if let server = app.serverMetrics.servers.first(where: { $0.id == window.metricsHostID }),
+                !server.showsConnectionJourney
+            {
+                MetricsDetailToolbar(server: server, model: app.serverMetrics)
+            }
+        }
         if window.selectedDestination == .settings {
             Button(action: window.navigateBackInSettings) {
                 Label("Back", systemImage: "chevron.backward")
@@ -591,6 +607,15 @@ extension WindowModel {
             ]
         case .workspace:
             return []
+        case .metrics:
+            guard metricsHostID == nil else { return [] }
+            return [
+                WindowToolbarCreationAction(id: "metrics-server", title: "Add Server", symbol: "plus") {
+                    guard self.metricsModel?.requestAddition() ?? true else { return }
+                    self.pendingMetricsHostIDs = []
+                    self.presentations.hostChooser = .metrics
+                }
+            ]
         case .settings:
             return []
         case .vault:
@@ -673,6 +698,16 @@ extension WindowModel {
     func findContext() -> WindowToolbarFindContext? {
         guard let kind = findKind else { return nil }
         switch kind {
+        case .metrics:
+            return WindowToolbarFindContext(
+                query: Binding(get: { self.metricsQuery }, set: { self.metricsQuery = $0 }),
+                focusRequest: findFocusRequest
+            )
+        case .processes:
+            return WindowToolbarFindContext(
+                query: Binding(get: { self.metricsProcessQuery }, set: { self.metricsProcessQuery = $0 }),
+                focusRequest: findFocusRequest
+            )
         case .hosts:
             let state = vaultPages.hosts
             // No magnifier menu, and so the ordinary search glyph rather than

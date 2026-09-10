@@ -302,6 +302,28 @@ final class HostLibraryModel {
     /// Resolves model references and Keychain secrets before work leaves the
     /// main actor. The resulting value is Sendable and contains no persistence
     /// objects, so several one-shot exports can safely run in parallel.
+    func prepareSSHConnection(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
+        guard let route = validatedRoute(for: host) else {
+            throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
+        }
+        return SSHConnectionPreparation(
+            nodes: route.map { node in
+                let submission = submissions[node.id]
+                let identity = submission?.identityID.flatMap { self.identity($0) } ?? identity(for: node)
+                let keyID = submission != nil ? submission?.keyID : identity?.keyID
+                return SSHConnectionPreparation.Node(
+                    host: node, identity: identity,
+                    key: keyID.flatMap { key($0) },
+                    submission: submission, trustedKeys: Set(knownHosts(for: node).map(\.identity)),
+                    proxyIdentity: node.proxy?.identityID.flatMap { self.identity($0) }
+                )
+            },
+            secrets: keychain
+        )
+    }
+
     func sshConnectionConfiguration(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission] = [:],

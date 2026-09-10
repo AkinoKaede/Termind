@@ -55,6 +55,9 @@ nonisolated enum MenuSymbol {
 
     // MARK: Acting on one thing
 
+    static let details = "info.circle"
+    static let pause = "pause"
+    static let selectDevices = "slider.horizontal.3"
     static let open = "arrow.up.right"
     static let openFullScreen = "arrow.up.left.and.arrow.down.right"
     static let edit = "pencil"
@@ -114,7 +117,7 @@ nonisolated enum MenuSymbol {
         newChat, newHost, newGroup, newPackage, newFolder, newSnippet, saveAsSnippet,
         newIdentity, generateKey, generateCommand,
         importItem, download, export, upload,
-        open, openFullScreen, edit, rename, resetName, duplicate, copy, paste,
+        details, pause, selectDevices, open, openFullScreen, edit, rename, resetName, duplicate, copy, paste,
         execute, executeOnHosts, start, stop, refresh, editPermissions, test,
         pin, unpin, archive, unarchive, delete,
         workspace, nextWorkspace, previousWorkspace, currentWorkspace, newWorkspace,

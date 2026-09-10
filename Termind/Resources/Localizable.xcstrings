@@ -1,76 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Update client configurations after changing the port or token, or after moving Termind for Codex and Hermes." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更改端口或令牌后，请更新客户端配置；移动Termind后，还需更新Codex和Hermes的配置。"
-          }
-        }
-      }
-    },
-    "Hermes needs the server running during setup and may ask you to select tools." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加Hermes时需保持服务器运行，客户端可能会提示选择工具。"
-          }
-        }
-      }
-    },
-    "Run the copied command in a terminal on this Mac. Enable the server before connecting." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请在本机终端中运行复制的命令，并在连接前启用服务器。"
-          }
-        }
-      }
-    },
-    "The bundled MCP bridge is missing. Codex and Hermes setup commands are unavailable." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "内置MCP桥接程序缺失，无法复制Codex和Hermes的添加命令。"
-          }
-        }
-      }
-    },
-    "Generate a token to copy client setup commands." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请先生成令牌，再复制客户端添加命令。"
-          }
-        }
-      }
-    },
-    "Copy Add Command" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复制添加命令"
-          }
-        }
-      }
-    },
-    "Connect Clients" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "连接客户端"
-          }
-        }
-      }
-    },
     "" : {
       "localizations" : {
         "zh-Hans" : {
@@ -167,6 +97,16 @@
         }
       }
     },
+    "%@ → listen %@ → This Mac → %@:%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@→监听%2$@→这台Mac→%3$@:%4$@"
+          }
+        }
+      }
+    },
     "%@ copy" : {
       "localizations" : {
         "zh-Hans" : {
@@ -183,6 +123,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@复制"
+          }
+        }
+      }
+    },
+    "%@ Currently %@ on %@." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@当前使用%3$@提供的%2$@。"
           }
         }
       }
@@ -235,16 +185,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@通过%2$@"
-          }
-        }
-      }
-    },
-    "%@ Currently %@ on %@." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@当前使用%3$@提供的%2$@。"
           }
         }
       }
@@ -303,12 +243,13 @@
         }
       }
     },
-    "%@ → listen %@ → This Mac → %@:%@" : {
+    "%@:%lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@→监听%2$@→这台Mac→%3$@:%4$@"
+            "value" : "%1$@:%2$lld"
           }
         }
       }
@@ -1127,6 +1068,16 @@
         }
       }
     },
+    "Active Opens" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主动连接"
+          }
+        }
+      }
+    },
     "Add" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1183,6 +1134,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加密钥，然后点按“获取”"
+          }
+        }
+      }
+    },
+    "Add a saved Linux server to start monitoring." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加已保存的Linux服务器以开始监控。"
           }
         }
       }
@@ -1407,6 +1368,27 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "算法"
+          }
+        }
+      }
+    },
+    "All Default Disks" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有默认磁盘"
+          }
+        }
+      }
+    },
+    "All Non-loopback Interfaces" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有非回环网卡"
           }
         }
       }
@@ -1770,6 +1752,28 @@
         }
       }
     },
+    "Authenticate Server" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证服务器身份"
+          }
+        }
+      }
+    },
+    "Authenticate: %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "身份验证：%@"
+          }
+        }
+      }
+    },
     "Authenticating" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1980,6 +1984,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "购买Termind Pro—%@"
+          }
+        }
+      }
+    },
+    "Bytes" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字节数"
           }
         }
       }
@@ -2530,6 +2544,16 @@
         }
       }
     },
+    "Collecting processes…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在采集进程…"
+          }
+        }
+      }
+    },
     "Color" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2736,6 +2760,16 @@
         }
       }
     },
+    "Connect Clients" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接客户端"
+          }
+        }
+      }
+    },
     "Connect in the same workspace" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2828,6 +2862,16 @@
         }
       }
     },
+    "Connected — collecting metrics…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已连接，正在采集指标…"
+          }
+        }
+      }
+    },
     "Connected clients" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2864,6 +2908,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在连接%@"
+          }
+        }
+      }
+    },
+    "Connecting…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在连接…"
           }
         }
       }
@@ -3118,6 +3172,16 @@
         }
       }
     },
+    "Copy Add Command" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制添加命令"
+          }
+        }
+      }
+    },
     "Copy Address" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3208,6 +3272,16 @@
         }
       }
     },
+    "Cores" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "核心数"
+          }
+        }
+      }
+    },
     "Couldn’t compact context" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3234,6 +3308,48 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法打开附件"
+          }
+        }
+      }
+    },
+    "CPU" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU"
+          }
+        }
+      }
+    },
+    "CPU ↓" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU↓"
+          }
+        }
+      }
+    },
+    "CPU is measured per core; multithreaded processes may exceed 100%." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU按单核计算，多线程进程可能超过100%。"
+          }
+        }
+      }
+    },
+    "CPU time breakdown" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU时间构成"
           }
         }
       }
@@ -3284,6 +3400,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "凭据"
+          }
+        }
+      }
+    },
+    "Credentials are used only for this monitoring session." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "凭证仅用于本次监控会话。"
           }
         }
       }
@@ -3406,6 +3533,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修改日期"
+          }
+        }
+      }
+    },
+    "Decoder Utilization" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解码器利用率"
+          }
+        }
+      }
+    },
+    "Default Network Interfaces" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认网络接口"
           }
         }
       }
@@ -3764,6 +3911,18 @@
         }
       }
     },
+    "Details" : {
+      "comment" : "A segmented control that lets the user select different views within a server's detailed metrics.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "详情"
+          }
+        }
+      }
+    },
     "Development Access" : {
       "comment" : "A label for a user with access to all features.",
       "isCommentAutoGenerated" : true,
@@ -3782,6 +3941,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设备"
+          }
+        }
+      }
+    },
+    "Device Information" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device Information"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备信息"
           }
         }
       }
@@ -3872,6 +4047,89 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "丢弃"
+          }
+        }
+      }
+    },
+    "Disk Busy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘繁忙度"
+          }
+        }
+      }
+    },
+    "Disk Read" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘读取"
+          }
+        }
+      }
+    },
+    "Disk Read Row" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读"
+          }
+        }
+      }
+    },
+    "Disk Usage" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘用量"
+          }
+        }
+      }
+    },
+    "Disk Write" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘写入"
+          }
+        }
+      }
+    },
+    "Disk Write Row" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写"
+          }
+        }
+      }
+    },
+    "Disks" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘"
           }
         }
       }
@@ -4002,6 +4260,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "拖拽以替换"
+          }
+        }
+      }
+    },
+    "Driver CUDA Version" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "驱动报告的CUDA版本"
           }
         }
       }
@@ -4188,16 +4456,6 @@
         }
       }
     },
-    "effort" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "推理强度"
-          }
-        }
-      }
-    },
     "Edit Port Forward" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4214,6 +4472,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑片段"
+          }
+        }
+      }
+    },
+    "effort" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推理强度"
           }
         }
       }
@@ -4314,6 +4582,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已启用"
+          }
+        }
+      }
+    },
+    "Encoder Utilization" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编码器利用率"
           }
         }
       }
@@ -4656,6 +4934,16 @@
         }
       }
     },
+    "Failed Attempts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失败次数"
+          }
+        }
+      }
+    },
     "Failed to run “%@”" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4684,6 +4972,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "家庭共享"
+          }
+        }
+      }
+    },
+    "Fan Speed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风扇转速"
           }
         }
       }
@@ -4778,6 +5076,16 @@
         }
       }
     },
+    "Filesystem metrics unavailable" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件系统指标不可用"
+          }
+        }
+      }
+    },
     "Filter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4804,6 +5112,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按标签筛选"
+          }
+        }
+      }
+    },
+    "Filter Processes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "筛选进程"
           }
         }
       }
@@ -5022,6 +5341,32 @@
         }
       }
     },
+    "Free includes up to 3 monitoring cards. Upgrade to Pro for more." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免费版最多可添加3张监控卡片，升级Pro可添加更多。"
+          }
+        }
+      }
+    },
+    "Free Memory" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空闲"
+          }
+        }
+      }
+    },
     "Full URL" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5050,6 +5395,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用AI生成命令"
+          }
+        }
+      }
+    },
+    "Generate a token to copy client setup commands." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先生成令牌，再复制客户端添加命令。"
           }
         }
       }
@@ -5126,6 +5481,128 @@
         }
       }
     },
+    "GPU" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU"
+          }
+        }
+      }
+    },
+    "GPU Decoder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DEC"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解码"
+          }
+        }
+      }
+    },
+    "GPU Details" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU详情"
+          }
+        }
+      }
+    },
+    "GPU Encoder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ENC"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编码"
+          }
+        }
+      }
+    },
+    "GPU Fan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAN"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风扇"
+          }
+        }
+      }
+    },
+    "GPU Memory Activity" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MEM"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存"
+          }
+        }
+      }
+    },
+    "GPU metrics unavailable; showing the last sample." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU指标不可用；显示上次采样。"
+          }
+        }
+      }
+    },
+    "GPU sample" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU采样时间"
+          }
+        }
+      }
+    },
+    "GPU Utilization" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU使用率"
+          }
+        }
+      }
+    },
     "Green" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5182,6 +5659,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你好，我是Termind。"
+          }
+        }
+      }
+    },
+    "Hermes needs the server running during setup and may ask you to select tools." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加Hermes时需保持服务器运行，客户端可能会提示选择工具。"
           }
         }
       }
@@ -5426,6 +5913,16 @@
         }
       }
     },
+    "I/O Wait" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I/O等待"
+          }
+        }
+      }
+    },
     "iCloud" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5502,6 +5999,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所需身份"
+          }
+        }
+      }
+    },
+    "Idle" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空闲"
           }
         }
       }
@@ -5742,6 +6249,16 @@
         }
       }
     },
+    "IOPS" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IOPS"
+          }
+        }
+      }
+    },
     "IP address or hostname" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5854,6 +6371,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "缺少密钥"
+          }
+        }
+      }
+    },
+    "Key Passphrase" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密钥口令"
           }
         }
       }
@@ -5986,6 +6514,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上次连接%@"
+          }
+        }
+      }
+    },
+    "Last sample" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次采样"
           }
         }
       }
@@ -6150,6 +6689,26 @@
         }
       }
     },
+    "Live" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时"
+          }
+        }
+      }
+    },
+    "Load Average" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均负载"
+          }
+        }
+      }
+    },
     "Loading" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6310,12 +6869,73 @@
         }
       }
     },
+    "Memory" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存"
+          }
+        }
+      }
+    },
+    "Memory Used / Total" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存已用／总量"
+          }
+        }
+      }
+    },
+    "Memory Utilization" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存利用率"
+          }
+        }
+      }
+    },
     "Merge with This iCloud Account" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "与此iCloud账户合并"
+          }
+        }
+      }
+    },
+    "Metrics" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监控"
+          }
+        }
+      }
+    },
+    "Metrics ready" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监控已就绪"
+          }
+        }
+      }
+    },
+    "Metrics requires a Linux server with procfs." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监控需要支持procfs的Linux服务器。"
           }
         }
       }
@@ -6466,6 +7086,16 @@
         }
       }
     },
+    "Monitor more than 3 servers" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监控超过3台服务器"
+          }
+        }
+      }
+    },
     "move" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6556,6 +7186,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要填写URL"
+          }
+        }
+      }
+    },
+    "Network Interfaces" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络接口"
+          }
+        }
+      }
+    },
+    "Network Receive" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络接收"
+          }
+        }
+      }
+    },
+    "Network Send" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络发送"
           }
         }
       }
@@ -7008,6 +7668,16 @@
         }
       }
     },
+    "No monitored servers" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无监控服务器"
+          }
+        }
+      }
+    },
     "No output" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7392,6 +8062,17 @@
         }
       }
     },
+    "Only trust this key after verifying its fingerprint with the server administrator." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请向服务器管理员核实指纹后再信任此密钥。"
+          }
+        }
+      }
+    },
     "Open" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7506,6 +8187,17 @@
         }
       }
     },
+    "Open Metrics" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开监控"
+          }
+        }
+      }
+    },
     "Open serial port" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7522,6 +8214,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开系统设置"
+          }
+        }
+      }
+    },
+    "Open Terminal" : {
+      "comment" : "Opens a terminal.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开终端"
+          }
+        }
+      }
+    },
+    "Open Termind" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开Termind"
           }
         }
       }
@@ -7668,6 +8382,22 @@
         }
       }
     },
+    "Page Cache" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓存"
+          }
+        }
+      }
+    },
     "Pane Name" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7684,6 +8414,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "校验"
+          }
+        }
+      }
+    },
+    "Passive Opens" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "被动连接"
           }
         }
       }
@@ -7829,6 +8569,16 @@
         }
       }
     },
+    "Pause" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停"
+          }
+        }
+      }
+    },
     "Paused" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7919,6 +8669,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "权限"
+          }
+        }
+      }
+    },
+    "PID" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PID"
           }
         }
       }
@@ -8199,6 +8959,57 @@
         }
       }
     },
+    "Process" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进程"
+          }
+        }
+      }
+    },
+    "Process metrics unavailable" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进程指标不可用"
+          }
+        }
+      }
+    },
+    "Process metrics unavailable; showing the last sample." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进程指标不可用；显示上次采样。"
+          }
+        }
+      }
+    },
+    "Process sample" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进程采样时间"
+          }
+        }
+      }
+    },
+    "Processes" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进程"
+          }
+        }
+      }
+    },
     "Provider default" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8442,6 +9253,16 @@
         }
       }
     },
+    "Quit Termind" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出Termind"
+          }
+        }
+      }
+    },
     "Ran “%@”" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8488,6 +9309,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "读取"
+          }
+        }
+      }
+    },
+    "Read IOPS" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取IOPS"
           }
         }
       }
@@ -8550,6 +9382,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "推理中…"
+          }
+        }
+      }
+    },
+    "Receive Rate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receive Rate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接收速率"
           }
         }
       }
@@ -8782,6 +9630,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "远程路径"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
           }
         }
       }
@@ -9112,6 +9971,26 @@
         }
       }
     },
+    "Resume" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复"
+          }
+        }
+      }
+    },
+    "Retransmissions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重传率"
+          }
+        }
+      }
+    },
     "Retry" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9282,6 +10161,16 @@
         }
       }
     },
+    "Run the copied command in a terminal on this Mac. Enable the server before connecting." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在本机终端中运行复制的命令，并在连接前启用服务器。"
+          }
+        }
+      }
+    },
     "Running" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9358,16 +10247,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "秒"
-          }
-        }
-      }
-    },
-    "SSH handshake failed" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH握手失败"
           }
         }
       }
@@ -9682,6 +10561,16 @@
         }
       }
     },
+    "Select Devices" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择设备"
+          }
+        }
+      }
+    },
     "Select None" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9732,12 +10621,38 @@
         }
       }
     },
+    "Send Rate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Rate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送速率"
+          }
+        }
+      }
+    },
     "Sends each selected model a short prompt and shows the response." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "发送每个选定的模型一个简短的提示并显示响应。"
+          }
+        }
+      }
+    },
+    "Sent / Received Traffic" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送／接收流量"
           }
         }
       }
@@ -9856,6 +10771,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "服务器已删除"
+          }
+        }
+      }
+    },
+    "Server Identity Verification Required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要验证服务器身份"
           }
         }
       }
@@ -10018,6 +10943,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在助手中显示"
+          }
+        }
+      }
+    },
+    "Show in Menu Bar" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在菜单栏中显示"
           }
         }
       }
@@ -10256,6 +11191,16 @@
         }
       }
     },
+    "Sleeping" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "睡眠中"
+          }
+        }
+      }
+    },
     "Snippet Name" : {
       "comment" : "Label for the text field used to name a new snippet.",
       "isCommentAutoGenerated" : true,
@@ -10358,6 +11303,16 @@
         }
       }
     },
+    "Speed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速率"
+          }
+        }
+      }
+    },
     "Split Down" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10390,22 +11345,22 @@
         }
       }
     },
-    "SSH and SFTP, with an assistant at hand." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH、SFTP，助手随行。"
-          }
-        }
-      }
-    },
     "SSH %@ → This Mac %@" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH %1$@→这台Mac %2$@"
+          }
+        }
+      }
+    },
+    "SSH and SFTP, with an assistant at hand." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH、SFTP，助手随行。"
           }
         }
       }
@@ -10446,6 +11401,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH连接失败：%@。我该检查什么？"
+          }
+        }
+      }
+    },
+    "SSH handshake failed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH握手失败"
           }
         }
       }
@@ -10604,6 +11569,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "状态"
+          }
+        }
+      }
+    },
+    "Steal" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "虚拟化等待"
+          }
+        }
+      }
+    },
+    "Steal: time a virtual CPU is ready to run but waiting for the hypervisor." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steal：虚拟CPU已就绪，但仍在等待宿主机调度的时间。"
           }
         }
       }
@@ -10918,6 +11903,16 @@
         }
       }
     },
+    "System" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统"
+          }
+        }
+      }
+    },
     "Tags" : {
       "localizations" : {
         "zh-Hans" : {
@@ -11132,6 +12127,16 @@
         }
       }
     },
+    "The bundled MCP bridge is missing. Codex and Hermes setup commands are unavailable." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内置MCP桥接程序缺失，无法复制Codex和Hermes的添加命令。"
+          }
+        }
+      }
+    },
     "The certificate does not belong to this private key." : {
       "localizations" : {
         "zh-Hans" : {
@@ -11272,16 +12277,6 @@
         }
       }
     },
-    "The forwarding SSH connection closed" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用于转发的SSH连接已关闭"
-          }
-        }
-      }
-    },
     "The forwarding host is unavailable." : {
       "localizations" : {
         "zh-Hans" : {
@@ -11298,6 +12293,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "转发规则不完整。"
+          }
+        }
+      }
+    },
+    "The forwarding SSH connection closed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于转发的SSH连接已关闭"
           }
         }
       }
@@ -11494,6 +12499,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "钥匙串引用的凭据类型不正确。"
+          }
+        }
+      }
+    },
+    "The metrics response is incomplete or too large." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指标响应不完整或过大。"
           }
         }
       }
@@ -12180,6 +13195,17 @@
         }
       }
     },
+    "Time" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时间"
+          }
+        }
+      }
+    },
     "Title" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12310,6 +13336,48 @@
         }
       }
     },
+    "Total Read" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总读取量"
+          }
+        }
+      }
+    },
+    "Total Received" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总接收量"
+          }
+        }
+      }
+    },
+    "Total Sent" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总发送量"
+          }
+        }
+      }
+    },
+    "Total Written" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总写入量"
+          }
+        }
+      }
+    },
     "Transcribe" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12430,6 +13498,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "试用结束时间"
+          }
+        }
+      }
+    },
+    "Trust and Connect" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信任并连接"
           }
         }
       }
@@ -12740,6 +13819,16 @@
         }
       }
     },
+    "Update client configurations after changing the port or token, or after moving Termind for Codex and Hermes." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改端口或令牌后，请更新客户端配置；移动Termind后，还需更新Codex和Hermes的配置。"
+          }
+        }
+      }
+    },
     "Updates or may update local Git references." : {
       "localizations" : {
         "zh-Hans" : {
@@ -12788,6 +13877,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上传到%@"
+          }
+        }
+      }
+    },
+    "Uptime" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行时间"
           }
         }
       }
@@ -12876,6 +13975,26 @@
         }
       }
     },
+    "Used" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已用"
+          }
+        }
+      }
+    },
+    "User" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户"
+          }
+        }
+      }
+    },
     "Username" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12892,6 +14011,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "UTF-8文本"
+          }
+        }
+      }
+    },
+    "UUID" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UUID"
           }
         }
       }
@@ -12926,6 +14055,16 @@
         }
       }
     },
+    "VBIOS" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VBIOS"
+          }
+        }
+      }
+    },
     "Verification Required" : {
       "comment" : "A label for a user that has purchased Termind Pro but has not yet verified their subscription.",
       "isCommentAutoGenerated" : true,
@@ -12948,6 +14087,17 @@
         }
       }
     },
+    "Verify SSH Host Key" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证SSH主机密钥"
+          }
+        }
+      }
+    },
     "Version" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12966,6 +14116,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看Termind Pro"
+          }
+        }
+      }
+    },
+    "Virtual Interfaces" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "虚拟网卡"
+          }
+        }
+      }
+    },
+    "VRAM" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VRAM"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显存"
+          }
+        }
+      }
+    },
+    "VRAM Free" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空闲显存"
+          }
+        }
+      }
+    },
+    "VRAM Occupancy" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显存占比"
+          }
+        }
+      }
+    },
+    "VRAM Total" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总量"
+          }
+        }
+      }
+    },
+    "VRAM Used / Total" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显存已用／总量"
+          }
+        }
+      }
+    },
+    "Wait" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待"
           }
         }
       }
@@ -13036,6 +14270,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "等待答复"
+          }
+        }
+      }
+    },
+    "Waiting for the next sample…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待下次采样…"
           }
         }
       }
@@ -13312,6 +14557,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写入"
+          }
+        }
+      }
+    },
+    "Write IOPS" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入IOPS"
           }
         }
       }

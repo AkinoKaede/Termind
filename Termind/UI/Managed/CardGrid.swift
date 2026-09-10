@@ -495,15 +495,19 @@ extension View {
 /// The grid itself. Adaptive columns, so the same page works at 600pt with the
 /// Sidebar widened and at 1600pt on an external display.
 struct CardGrid<Content: View>: View {
+    var minimumWidth: CGFloat = Metrics.Card.min
+    var maximumWidth: CGFloat = Metrics.Card.max
     @ViewBuilder var content: Content
 
-    private let columns = [
-        GridItem(
-            .adaptive(minimum: Metrics.Card.min, maximum: Metrics.Card.max),
-            spacing: Metrics.Space.l,
-            alignment: .top
-        )
-    ]
+    private var columns: [GridItem] {
+        [
+            GridItem(
+                .adaptive(minimum: minimumWidth, maximum: max(minimumWidth, maximumWidth)),
+                spacing: Metrics.Space.l,
+                alignment: .top
+            )
+        ]
+    }
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: Metrics.Space.l) {
@@ -525,6 +529,7 @@ struct CardTile<Content: View>: View {
     var extendSelection: (() -> Void)?
     var activate: (() -> Void)?
     var activatesOnReturn = false
+    var activatesOnSingleClick = false
     @ViewBuilder var content: Content
 
     @State private var isHovering = false
@@ -563,9 +568,12 @@ struct CardTile<Content: View>: View {
             .contentShape(.rect(cornerRadius: Metrics.Radius.large))
             .modifier(
                 CardTapModifier(
-                    select: select,
+                    select: {
+                        select()
+                        if activatesOnSingleClick { activate?() }
+                    },
                     extendSelection: extendSelection,
-                    activate: activate
+                    activate: activatesOnSingleClick ? nil : activate
                 )
             )
             .focusable(activatesOnReturn && activate != nil)

@@ -355,6 +355,7 @@ struct ConnectionJourneyView: View {
             switch journey.purpose {
             case .sshSession, .serialSession: String(localized: "Terminal ready")
             case .sftpSession: String(localized: "File browser ready")
+            case .metrics: String(localized: "Metrics ready")
             }
         case .failed(let message): message
         case .hidden: ""
@@ -364,7 +365,7 @@ struct ConnectionJourneyView: View {
     private var headerDetail: String {
         let protocolName: String =
             switch journey.purpose {
-            case .sshSession: "SSH"
+            case .sshSession, .metrics: "SSH"
             case .sftpSession: "SFTP"
             case .serialSession: String(localized: "Serial")
             }
@@ -380,6 +381,7 @@ struct ConnectionJourneyView: View {
         case .sshSession: "apple.terminal.fill"
         case .sftpSession: "folder.fill.badge.gearshape"
         case .serialSession: "cable.connector"
+        case .metrics: "waveform.path.ecg"
         }
     }
 
@@ -647,6 +649,7 @@ private struct JourneyEndpointView: View {
             switch purpose {
             case .sshSession: "apple.terminal.fill"
             case .sftpSession: "folder.fill"
+            case .metrics: "waveform.path.ecg"
             case .serialSession: "cable.connector"
             }
         }

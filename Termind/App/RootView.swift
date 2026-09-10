@@ -8,6 +8,7 @@ import SwiftUI
 /// views stay mounted while another destination is in front, preserving terminal
 /// grids, scrollback, and SFTP state.
 struct RootView: View {
+    @Environment(\.openWindow) private var openWindow
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locale) private var locale
@@ -57,6 +58,7 @@ struct RootView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .background {
+            MetricsWindowRegistration(model: window)
             WindowToolbarSearchHost()
             WindowActivityReader(
                 windowModel: window,
@@ -95,8 +97,19 @@ struct RootView: View {
                 WindowToolbarSearchSlot()
             }
         }
-        .sheet(item: $presentations.hostChooser) { purpose in
+        .sheet(
+            item: $presentations.hostChooser,
+            onDismiss: {
+                let ids = window.pendingMetricsHostIDs
+                window.pendingMetricsHostIDs = []
+                guard !ids.isEmpty else { return }
+                window.metricsHostID = nil
+                app.serverMetrics.add(ids.compactMap(app.hostLibrary.host))
+            }
+        ) { purpose in
             HostChooserView(purpose: purpose)
+                .environment(app)
+                .environment(window)
         }
         .overlay {
             if presentations.isQuickOpenPresented {
@@ -150,6 +163,14 @@ struct RootView: View {
             window.connectionCoordinator = app.connections
             window.hostStore = app.hostLibrary
             app.registerWindow(window)
+            if app.opensMetricsOnNextWindow {
+                window.selectedDestination = .metrics
+                app.opensMetricsOnNextWindow = false
+            }
+            MetricsWindowPresenter.reopen = { [weak app, openWindow] in
+                app?.opensMetricsOnNextWindow = true
+                openWindow(id: "main")
+            }
             window.refreshSessionContext()
             window.reconcileSidebarMode()
             app.reconcileProAccess()
@@ -355,6 +376,10 @@ struct RootView: View {
                 AssistantView()
                     .background(TermindColor.windowSurface)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .zIndex(2)
+            case .metrics:
+                ServerMetricsView()
+                    .background(TermindColor.windowSurface)
                     .zIndex(2)
             case .settings:
                 SettingsPageView()

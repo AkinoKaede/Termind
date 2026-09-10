@@ -114,7 +114,7 @@ struct TermindApp: App {
     /// Workspace windows share app data, while each keeps its own Navigator
     /// destinations and dynamic Workspaces.
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             RootView(window: launchWindow ?? WindowModel())
                 .environment(app)
                 .environment(\.locale, launchLanguage.locale)
@@ -155,7 +155,17 @@ struct TermindApp: App {
     /// people lose a screen of work discovering otherwise. SwiftUI has no placement
     /// for that item, so we retarget it here to ⇧⌘W and leave ⌘W to `TermindCommands`.
     final class AppDelegate: NSObject, NSApplicationDelegate {
-        weak var app: AppModel?
+        weak var app: AppModel? {
+            didSet {
+                guard let app else { return }
+                guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+                app.serverMetrics.start()
+                metricsSleep.start(app.serverMetrics)
+                metricsMenu.start(app.serverMetrics)
+            }
+        }
+        private let metricsSleep = MetricsSleepObserver()
+        private let metricsMenu = MetricsMenuBarController()
         private var quietLaunchObserver: (any NSObjectProtocol)?
         private let appearanceController = AppAppearanceController()
 
@@ -211,7 +221,14 @@ struct TermindApp: App {
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-            true
+            let menuEnabled = UserDefaults.standard.object(forKey: SettingsKey.showMetricsInMenuBar) as? Bool ?? true
+            return !menuEnabled && app?.serverMetrics.keepsRunning != true
+        }
+
+        func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+            guard !flag else { return true }
+            if !MetricsWindowPresenter.open() { MetricsWindowPresenter.reopen?() }
+            return false
         }
 
         /// Opening at login is for having Termind *available*, not for taking the
@@ -249,6 +266,8 @@ struct TermindApp: App {
         }
 
         func applicationWillTerminate(_ notification: Notification) {
+            metricsSleep.stop()
+            metricsMenu.stop()
             appearanceController.stop()
             app?.shutdownForTermination()
         }

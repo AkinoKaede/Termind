@@ -79,6 +79,8 @@ protocol ManagedCardPage: View {
     associatedtype NoResultsContent: View
     associatedtype Presentation: ManagedCardPresentationModifier
 
+    var managedMinimumCardWidth: CGFloat { get }
+    var managedMaximumCardWidth: CGFloat { get }
     var managedSections: [ManagedCardSection<SectionID, Item>] { get }
     var managedSelection: ManagedCardSelection<Item.ID> { get }
     var managedCapabilities: ManagedCardCapabilities<SectionID, Item.ID> { get }
@@ -104,10 +106,14 @@ protocol ManagedCardPage: View {
 }
 
 extension ManagedCardPage {
+    var managedMinimumCardWidth: CGFloat { Metrics.Card.min }
+    var managedMaximumCardWidth: CGFloat { Metrics.Card.max }
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] { [] }
 
     var body: some View {
         ManagedCardPageRenderer<Self>(
+            minimumCardWidth: managedMinimumCardWidth,
+            maximumCardWidth: managedMaximumCardWidth,
             sections: managedSections,
             selection: managedSelection,
             capabilities: managedCapabilities,
@@ -177,6 +183,8 @@ private struct ManagedCardDragSession<SectionID: Hashable, ID: Hashable> {
 
 /// Generic implementation behind ManagedCardPage's inherited body.
 struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
+    var minimumCardWidth: CGFloat = Metrics.Card.min
+    var maximumCardWidth: CGFloat = Metrics.Card.max
     let sections: [ManagedCardSection<Page.SectionID, Page.Item>]
     let selection: ManagedCardSelection<Page.Item.ID>
     let capabilities: ManagedCardCapabilities<Page.SectionID, Page.Item.ID>
@@ -269,7 +277,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
             header(section, ghostLocation?.section == section.id)
 
             if section.isExpanded ?? true {
-                CardGrid { cards(in: section) }
+                CardGrid(minimumWidth: minimumCardWidth, maximumWidth: maximumCardWidth) { cards(in: section) }
             }
         }
         .onGeometryChange(for: CGRect.self) {
