@@ -143,12 +143,12 @@ final class WindowModel {
     func pruneVaultSelections(in store: CredentialLibraryModel) {
         let available = Set(store.keys.map { VaultSelectionID.key($0.id) })
             .union(store.identities.map { .identity($0.id) })
-        vaultPages.selection.prune(available: available)
+        vaultPages.selection.prune(available: available, pages: [.keychain])
     }
 
     func pruneVaultSelections(in store: SnippetLibraryModel) {
         vaultPages.selection.prune(
-            available: Set(store.snippets.map { VaultSelectionID.snippet($0.id) })
+            available: Set(store.snippets.map { VaultSelectionID.snippet($0.id) }), pages: [.snippets]
         )
     }
 
@@ -157,6 +157,7 @@ final class WindowModel {
             .union(store.keys.map { .key($0.id) })
             .union(store.identities.map { .identity($0.id) })
             .union(store.snippets.map { .snippet($0.id) })
+            .union(store.knownHosts.map { .knownHost($0.id) })
     }
 
     typealias SidebarMode = WindowSidebarState.Mode
@@ -373,6 +374,7 @@ final class WindowModel {
             case .hosts: return .hosts
             case .keychain: return .keychain
             case .snippets: return .snippets
+            case .knownHosts: return .knownHosts
             }
         }
     }

@@ -250,7 +250,7 @@ final class HostLibraryModel {
     /// hostname plus port. Newest keys are shown first in the host's details.
     func knownHosts(for host: Host) -> [KnownHostEntry] {
         knownHosts
-            .filter { $0.hostname == host.host && $0.port == host.port }
+            .filter { $0.matches(hostname: host.host, port: host.port) }
             .sorted {
                 if $0.addedAt != $1.addedAt { return $0.addedAt > $1.addedAt }
                 if $0.fingerprint != $1.fingerprint { return $0.fingerprint < $1.fingerprint }
@@ -631,8 +631,7 @@ final class HostLibraryModel {
     @discardableResult
     func upsert(
         _ host: Host,
-        replacingPortForwardings rules: [PortForwardingRule],
-        replacingKnownHosts knownHostEntries: [KnownHostEntry]? = nil
+        replacingPortForwardings rules: [PortForwardingRule]
     ) -> Bool {
         guard validatedRoute(for: host) != nil else {
             storageError = String(localized: "The selected jump host creates a routing loop or exceeds 8 hops.")
@@ -654,34 +653,8 @@ final class HostLibraryModel {
             return false
         }
 
-        let normalizedKnownHosts = knownHostEntries.map { entries in
-            entries.map { entry in
-                var normalized = entry
-                normalized.hostname = host.host
-                normalized.port = host.port
-                normalized.fingerprint = entry.fingerprint.trimmingCharacters(
-                    in: .whitespacesAndNewlines
-                )
-                return normalized
-            }
-        }
-        if let normalizedKnownHosts {
-            let identities = normalizedKnownHosts.map(\.identity)
-            guard
-                normalizedKnownHosts.allSatisfy({
-                    !$0.fingerprint.isEmpty
-                }),
-                Set(normalizedKnownHosts.map(\.id)).count == normalizedKnownHosts.count,
-                Set(identities).count == identities.count
-            else {
-                storageError = String(localized: "One or more Known Hosts entries are incomplete or duplicated.")
-                return false
-            }
-        }
-
         let oldHosts = hosts
         let oldRules = portForwardings
-        let oldKnownHosts = knownHosts
         let existingHost = self.host(host.id)
         let existingRules = portForwardings(for: host.id)
         let nextByID = Dictionary(uniqueKeysWithValues: normalizedRules.map { ($0.id, $0) })
@@ -704,20 +677,9 @@ final class HostLibraryModel {
         }
         portForwardings.removeAll { $0.hostID == host.id }
         portForwardings.append(contentsOf: normalizedRules)
-        if let normalizedKnownHosts {
-            if let existingHost {
-                knownHosts.removeAll {
-                    $0.hostname == existingHost.host && $0.port == existingHost.port
-                }
-            }
-            knownHosts.removeAll { $0.hostname == host.host && $0.port == host.port }
-            knownHosts.append(contentsOf: normalizedKnownHosts)
-        }
-
         guard persistCore() else {
             hosts = oldHosts
             portForwardings = oldRules
-            knownHosts = oldKnownHosts
             return false
         }
         return true
@@ -812,18 +774,16 @@ final class HostLibraryModel {
     /// first connection, which is the whole point — it is the escape hatch for a
     /// server that was legitimately rekeyed.
     func forget(knownHost id: KnownHostEntry.ID) {
-        knownHosts.removeAll { $0.id == id }
-        persistCore()
+        deleteKnownHosts([id])
     }
 
     func forgetKnownHosts(for host: Host) {
-        knownHosts.removeAll { $0.hostname == host.host && $0.port == host.port }
-        persistCore()
+        deleteKnownHosts(Set(knownHosts(for: host).map(\.id)))
     }
 
     func trust(_ entry: KnownHostEntry) {
         let endpointMatches: (KnownHostEntry) -> Bool = {
-            $0.hostname == entry.hostname && $0.port == entry.port
+            $0.matches(hostname: entry.hostname, port: entry.port)
         }
         for index in knownHosts.indices where endpointMatches(knownHosts[index]) {
             knownHosts[index].isMismatched = false
@@ -847,7 +807,7 @@ final class HostLibraryModel {
     func markKnownHostMismatched(hostname: String, port: Int) {
         var changed = false
         for index in knownHosts.indices
-        where knownHosts[index].hostname == hostname && knownHosts[index].port == port {
+        where knownHosts[index].matches(hostname: hostname, port: port) {
             knownHosts[index].isMismatched = true
             changed = true
         }
@@ -1512,6 +1472,111 @@ final class HostLibraryModel {
             }
         }
         persistCore()
+    }
+
+    @discardableResult
+    func saveKnownHost(_ entry: KnownHostEntry) -> Bool {
+        var entry = entry
+        entry.hostname = entry.hostname.trimmingCharacters(in: .whitespacesAndNewlines)
+        entry.fingerprint = entry.fingerprint.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard entry.isValid,
+            !knownHosts.contains(where: {
+                $0.id != entry.id && $0.hostname == entry.hostname && $0.port == entry.port
+                    && $0.identity == entry.identity
+            })
+        else {
+            storageError = String(localized: "One or more Known Hosts entries are incomplete or duplicated.")
+            return false
+        }
+        let previous = knownHosts
+        if let index = knownHosts.firstIndex(where: { $0.id == entry.id }) {
+            // Editing the address or key explicitly creates a new trust decision.
+            if knownHosts[index].identity != entry.identity || knownHosts[index].hostname != entry.hostname
+                || knownHosts[index].port != entry.port
+            {
+                entry.addedAt = Date()
+                entry.isMismatched = false
+            }
+            knownHosts[index] = entry
+        } else {
+            entry.addedAt = Date()
+            knownHosts.append(entry)
+        }
+        guard persistCore() else {
+            knownHosts = previous
+            return false
+        }
+        return true
+    }
+
+    @discardableResult
+    func deleteKnownHosts(_ ids: Set<UUID>) -> Bool {
+        let previous = knownHosts
+        knownHosts.removeAll { ids.contains($0.id) }
+        guard persistCore() else {
+            knownHosts = previous
+            return false
+        }
+        return true
+    }
+
+    /// New records only. Existing credentials and host configurations are never overwritten.
+    func commitSSHImport(_ batch: SSHImportBatch) throws {
+        let oldHosts = hosts
+        let oldIdentities = identities
+        let oldKeys = keys
+        let oldKnownHosts = knownHosts
+        guard Set(batch.hosts.map(\.id)).isDisjoint(with: hosts.map(\.id)),
+            Set(batch.keys.map(\.id)).isDisjoint(with: keys.map(\.id)),
+            Set(batch.identities.map(\.id)).isDisjoint(with: identities.map(\.id)),
+            batch.knownHosts.allSatisfy(\.isValid)
+        else { throw CocoaError(.validationMultipleErrors) }
+        var written: [SSHKeyRef] = []
+        do {
+            for key in batch.keys {
+                guard let secret = batch.credentials[key.id] else {
+                    throw CocoaError(.validationMissingMandatoryProperty)
+                }
+                try keychain.setKeyCredential(secret, for: key.credentialRef, storage: key.storage)
+                written.append(key)
+            }
+            for var key in batch.keys {
+                key.sortIndex = (keys.map(\.sortIndex).max() ?? -1) + 1
+                keys.append(key)
+            }
+            for var identity in batch.identities {
+                identity.sortIndex = (identities.map(\.sortIndex).max() ?? -1) + 1
+                identities.append(identity)
+            }
+            for var host in batch.hosts {
+                host.sortIndex = nextSortIndex(in: nil)
+                hosts.append(host)
+            }
+            guard batch.hosts.allSatisfy({ validatedRoute(for: $0) != nil }) else {
+                throw CocoaError(.validationMultipleErrors)
+            }
+            knownHosts.append(contentsOf: batch.knownHosts)
+            guard persistCore() else {
+                throw TermindSSHError.library(storageError ?? String(localized: "Import failed."))
+            }
+        } catch {
+            hosts = oldHosts
+            identities = oldIdentities
+            keys = oldKeys
+            knownHosts = oldKnownHosts
+            var cleanupFailed = false
+            for key in written {
+                do { try keychain.removeKeyCredential(key.credentialRef, storage: key.storage) } catch {
+                    cleanupFailed = true
+                }
+            }
+            if cleanupFailed {
+                storageError = String(
+                    localized: "Import failed. Some newly stored keys could not be removed from Keychain.")
+                throw TermindSSHError.library(storageError!)
+            }
+            throw error
+        }
     }
 
     private func nextSortIndex(in group: HostGroup.ID?) -> Double {

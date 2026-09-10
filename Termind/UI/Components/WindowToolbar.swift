@@ -14,6 +14,7 @@ nonisolated enum WindowToolbarFindKind: String, Hashable, Sendable, CaseIterable
     case processes
     case keychain
     case snippets
+    case knownHosts
     case assistant
     case terminal
     case sftp
@@ -549,6 +550,7 @@ struct WindowToolbarLeadingActions: View {
         } else if !actions.isEmpty {
             Menu {
                 ForEach(actions) { action in
+                    if action.startsGroup { Divider() }
                     Button(
                         action.localizedTitle(locale: locale),
                         systemImage: action.symbol,
@@ -574,15 +576,17 @@ struct WindowToolbarCreationAction: Identifiable {
     /// menu item and as a `NativeMenuEntry`, and a new verb that forgot its
     /// glyph would go unnoticed in one of the two.
     let symbol: String
+    let startsGroup: Bool
     let perform: () -> Void
 
     init(
-        id: String, title: String.LocalizationValue, symbol: String,
+        id: String, title: String.LocalizationValue, symbol: String, startsGroup: Bool = false,
         perform: @escaping () -> Void
     ) {
         self.id = id
         titleKey = title
         self.symbol = symbol
+        self.startsGroup = startsGroup
         self.perform = perform
     }
 
@@ -627,6 +631,9 @@ extension WindowModel {
     /// right-click on that page's row in the Navigator offers, so a host can be
     /// added without first visiting the page to add it on.
     func creationActions(for page: VaultPage) -> [WindowToolbarCreationAction] {
+        let importFolder = WindowToolbarCreationAction(
+            id: "ssh-folder", title: "Import .ssh Folder", symbol: MenuSymbol.importItem, startsGroup: true
+        ) { self.openVaultWork(.sshImport(knownHostsOnly: false), on: page) }
         switch page {
         case .welcome:
             return []
@@ -644,6 +651,7 @@ extension WindowModel {
                         .hostGroupEditor(groupID: nil, parentID: nil), on: .hosts
                     )
                 },
+                importFolder,
             ]
         case .keychain:
             return [
@@ -662,6 +670,19 @@ extension WindowModel {
                 ) {
                     self.openVaultWork(.identityEditor(nil), on: .keychain)
                 },
+                importFolder,
+            ]
+        case .knownHosts:
+            return [
+                WindowToolbarCreationAction(id: "known-host", title: "Add Host Key", symbol: "plus") {
+                    self.openVaultWork(.knownHostEditor(nil), on: .knownHosts)
+                },
+                WindowToolbarCreationAction(
+                    id: "known-hosts-import", title: "Import Known Hosts", symbol: MenuSymbol.importItem
+                ) {
+                    self.openVaultWork(.sshImport(knownHostsOnly: true), on: .knownHosts)
+                },
+                importFolder,
             ]
         case .snippets:
             return [
@@ -685,12 +706,11 @@ extension WindowModel {
 
     /// Those verbs as native menu entries, for the Navigator's own rows.
     func creationMenu(for page: VaultPage, locale: Locale) -> [NativeMenuEntry] {
-        creationActions(for: page).map { action in
-            NativeMenuEntry(
-                title: action.localizedTitle(locale: locale),
-                symbol: action.symbol,
-                action: action.perform
+        creationActions(for: page).flatMap { action in
+            let entry = NativeMenuEntry(
+                title: action.localizedTitle(locale: locale), symbol: action.symbol, action: action.perform
             )
+            return action.startsGroup ? [.separator, entry] : [entry]
         }
     }
 
@@ -719,6 +739,12 @@ extension WindowModel {
             )
         case .keychain:
             let state = vaultPages.keychain
+            return WindowToolbarFindContext(
+                query: Binding(get: { state.query }, set: { state.query = $0 }),
+                focusRequest: findFocusRequest
+            )
+        case .knownHosts:
+            let state = vaultPages.knownHosts
             return WindowToolbarFindContext(
                 query: Binding(get: { state.query }, set: { state.query = $0 }),
                 focusRequest: findFocusRequest

@@ -52,6 +52,7 @@ final class AppModel {
     private let hosts: HostLibraryModel
     let proAccess: ProAccessController
     var hostLibrary: HostLibraryModel { hosts }
+    let knownHosts: KnownHostsLibraryModel
     let credentials: CredentialLibraryModel
     let snippets: SnippetLibraryModel
     let forwardings: ForwardingLibraryModel
@@ -112,6 +113,10 @@ final class AppModel {
     /// conversation, and every run re-arms the hook that would do it.
     private var titledConversationIDs = Set<UUID>()
 
+    func makeSSHImportModel() -> SSHImportModel {
+        SSHImportModel(library: hosts, reader: SSHImportReader())
+    }
+
     init(
         hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
         skills: SkillLibraryModel = SkillLibraryModel(),
@@ -140,6 +145,7 @@ final class AppModel {
         self.hosts = hosts
         self.proAccess = proAccess
         self.onboarding = onboarding
+        knownHosts = KnownHostsLibraryModel(library: hosts)
         credentials = CredentialLibraryModel(library: hosts)
         snippets = SnippetLibraryModel(library: hosts)
         forwardings = ForwardingLibraryModel(library: hosts)

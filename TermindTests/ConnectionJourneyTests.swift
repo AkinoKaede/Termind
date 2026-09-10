@@ -347,41 +347,16 @@ struct ConnectionJourneyTests {
     }
 
     @Test
-    func hostEditorCommitNormalizesAndReplacesKnownHostsWithTheHost() {
+    func hostEditorCommitDoesNotMoveSharedKnownHosts() {
         var host = Host(name: "Server", host: "old.example")
-        let oldKey = KnownHostEntry(
-            hostname: host.host, algorithm: .ed25519, fingerprint: "SHA256:old"
-        )
-        let unrelated = KnownHostEntry(
-            hostname: "other.example", algorithm: .ed25519, fingerprint: "SHA256:other"
-        )
-        let store = HostLibraryModel(hosts: [host], knownHosts: [oldKey, unrelated])
+        let shared = Host(name: "Other Login", host: "old.example")
+        let entry = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:old")
+        let store = HostLibraryModel(hosts: [host, shared], knownHosts: [entry])
         host.host = "new.example"
         host.port = 2222
-        let manual = KnownHostEntry(
-            hostname: "", algorithm: .ed25519, fingerprint: " SHA256:manual "
-        )
-
-        #expect(
-            store.upsert(
-                host, replacingPortForwardings: [], replacingKnownHosts: [manual]
-            )
-        )
-        #expect(store.knownHosts.contains(unrelated))
-        #expect(!store.knownHosts.contains { $0.hostname == "old.example" })
-        let saved = store.knownHosts(for: host)
-        #expect(saved.count == 1)
-        #expect(saved[0].hostname == "new.example")
-        #expect(saved[0].port == 2222)
-        #expect(saved[0].algorithm == .ed25519)
-        #expect(saved[0].fingerprint == "SHA256:manual")
-
-        #expect(
-            !store.upsert(
-                host, replacingPortForwardings: [],
-                replacingKnownHosts: [manual, manual]
-            )
-        )
-        #expect(store.knownHosts(for: host) == saved)
+        #expect(store.upsert(host, replacingPortForwardings: []))
+        #expect(store.knownHosts == [entry])
+        #expect(store.knownHosts(for: host).isEmpty)
+        #expect(store.knownHosts(for: shared) == [entry])
     }
 }

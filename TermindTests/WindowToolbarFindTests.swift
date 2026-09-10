@@ -129,18 +129,31 @@ struct WindowToolbarFindTests {
         let window = WindowModel()
 
         window.openPage(.hosts)
-        #expect(window.creationActions.map(\.id) == ["host", "group"])
+        #expect(window.creationActions.map(\.id) == ["host", "group", "ssh-folder"])
 
         // Switching the sidebar to the Assistant must not put New Chat in the
         // titlebar while Hosts is still the page being looked at.
         window.sidebarMode = .assistant
-        #expect(window.creationActions.map(\.id) == ["host", "group"])
+        #expect(window.creationActions.map(\.id) == ["host", "group", "ssh-folder"])
 
         window.openPage(.keychain)
-        #expect(window.creationActions.map(\.id) == ["import", "generate", "identity"])
+        #expect(window.creationActions.map(\.id) == ["import", "generate", "identity", "ssh-folder"])
 
         window.openPage(.snippets)
         #expect(window.creationActions.map(\.id) == ["snippet", "package"])
+    }
+
+    @Test
+    func sshFolderImportIsLastAndStartsASeparateMenuGroup() {
+        let window = WindowModel()
+        for page in [VaultPage.hosts, .keychain, .knownHosts] {
+            let actions = window.creationActions(for: page)
+            #expect(actions.last?.id == "ssh-folder")
+            #expect(actions.last?.startsGroup == true)
+            let menu = window.creationMenu(for: page, locale: Locale(identifier: "en"))
+            #expect(menu[menu.count - 2].isSeparator)
+            #expect(menu.last?.title == "Import .ssh Folder")
+        }
     }
 
     /// Each Vault page keeps its own query, and keeps it across a page switch —

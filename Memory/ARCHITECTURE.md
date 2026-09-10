@@ -38,10 +38,20 @@ including that no type AgentKit owns is redefined here.
 - The shell always starts with `Vault` and `Assistant`; Settings is the final Navigator
   page after the dynamic SSH/SFTP Workspaces.
 - Vault owns its navigation column, including quick-connect Recents, and routes
-  for Hosts, Keychain, Snippets, Welcome, and Host Editor. These routes never
+  for Hosts, Keychain, Snippets, Known Hosts, Welcome, and Host Editor. These routes never
   enter the Workspace deck.
-- Known Hosts management belongs to the Host Editor draft for both new and
-  existing Hosts. Context-panel Host details are read-only.
+- Known Hosts is an independent Vault card manager below Snippets. Host edits and
+  deletion never move or remove trust records. Plain endpoints and OpenSSH `|1|`
+  hashed endpoints use one matcher across all SSH callers. Hashed tokens retain
+  their original `hostname` wire field; their `port` field is ignored because the
+  port is part of the hashed input. No Host record is required to retain trust.
+- SSH folder imports stage selectable public metadata in a window-owned model;
+  their actor-owned reader retains private keys until commit or cancellation.
+  File picking and native drag-and-drop feed the same source validation and preview.
+  File access is scoped to explicitly selected directories/files. Config parsing
+  never executes commands. New credentials are written before a single Vault
+  snapshot save and removed on failure. Existing records are never overwritten.
+  Imported trust does not clear existing mismatch warnings.
 - Assistant owns its conversation list through `AssistantLibraryModel`; conversations are
   not panes and do not participate in Workspace drag, split, close, or reconnect
   lifecycles.
@@ -73,7 +83,7 @@ an honest unknown outcome. Duration is never inferred from client receive time,
 because SSH buffering can deliver start and completion events together.
 
 Feature views receive aggregate-facing Application Models rather than a generic
-store API: `HostLibraryModel`, `CredentialLibraryModel`, `SnippetLibraryModel`,
+store API: `HostLibraryModel`, `CredentialLibraryModel`, `KnownHostsLibraryModel`, `SnippetLibraryModel`,
 `ForwardingLibraryModel`, `TransferLibraryModel`, `AIConfigurationModel`,
 `SkillLibraryModel`, `CommandHistoryModel`, and `ToolAuditModel`. Aggregates that share one persisted
 vault snapshot still expose separate intent surfaces, so a feature cannot gain

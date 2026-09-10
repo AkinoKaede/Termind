@@ -250,6 +250,25 @@ struct RepositoryOutboxTests {
         #expect(try store.nextReady(at: Date()) == nil)
     }
 
+    @Test
+    func deletingHostPreservesItsIndependentKnownHostRecords() throws {
+        let container = try makeContainer("IndependentKnownHosts")
+        let context = container.mainContext
+        let host = Host(name: "Removed", host: "shared.example")
+        let remaining = Host(name: "Another Login", host: host.host)
+        let trust = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:trusted")
+        context.insert(PersistentHost(host))
+        context.insert(PersistentHost(remaining))
+        context.insert(PersistentKnownHost(trust))
+        try context.save()
+        let repository = SwiftDataHostRepository(context: context)
+        try repository.requestHostDeletion(host.id)
+        try repository.clearReferencesForDeletedHost(host.id)
+        try repository.finalizeHostDeletion(host.id)
+        #expect(try repository.snapshot().value.hosts.map(\.id) == [remaining.id])
+        #expect(try context.fetch(FetchDescriptor<PersistentKnownHost>()).map(\.value) == [trust])
+    }
+
     private func makeContainer(_ name: String) throws -> ModelContainer {
         let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true

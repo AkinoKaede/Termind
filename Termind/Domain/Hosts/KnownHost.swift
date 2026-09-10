@@ -23,3 +23,27 @@ nonisolated struct KnownHostEntry: Identifiable, Codable, Hashable, Sendable {
     }
 
 }
+
+nonisolated extension KnownHostEntry {
+    var isHashed: Bool { hostname.hasPrefix("|") }
+
+    var displayAddress: String {
+        isHashed ? hostname : Host(name: "", host: hostname, port: port).displayAddress
+    }
+
+    func matches(hostname candidate: String, port candidatePort: Int) -> Bool {
+        if isHashed {
+            return SSHKnownHostMatcher.matches(hash: hostname, hostname: candidate, port: candidatePort)
+        }
+        return hostname.caseInsensitiveCompare(candidate) == .orderedSame && port == candidatePort
+    }
+
+    var isValid: Bool {
+        let addressValid =
+            isHashed
+            ? SSHKnownHostMatcher.isValidHash(hostname)
+            : !hostname.isEmpty && !hostname.contains(where: { $0.isWhitespace || "*,!?|[]".contains($0) })
+                && (1...65_535).contains(port)
+        return addressValid && !fingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}

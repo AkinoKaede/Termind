@@ -19,8 +19,6 @@ struct HostEditorView: View {
 
     @State private var draft = Host(name: "", host: "")
     @State private var draftForwardings: [PortForwardingRule] = []
-    @State private var draftKnownHosts: [KnownHostEntry] = []
-    @State private var originalKnownHosts: [KnownHostEntry] = []
     @State private var route: Route?
     @State private var saveError: String?
     @State private var didLoad = false
@@ -160,8 +158,6 @@ struct HostEditorView: View {
                 host: draft, rules: $draftForwardings,
                 openEditor: { route = .forwarding($0) }
             )
-
-            KnownHostsEditorSection(entries: $draftKnownHosts)
 
             Section("Group & Tags") {
                 Picker("Group", selection: groupChoice) {
@@ -455,26 +451,12 @@ struct HostEditorView: View {
                 || draft.sftpSessionInitialPath.hasPrefix("/"))
             && app.hostLibrary.validatedRoute(for: draft) != nil
             && draftForwardings.allSatisfy(\.isValid)
-            && knownHostsAreValid
-    }
-
-    private var knownHostsAreValid: Bool {
-        let normalized = draftKnownHosts.map { entry in
-            SSHHostKeyIdentity(
-                algorithm: entry.algorithm,
-                fingerprint: entry.fingerprint.trimmingCharacters(in: .whitespacesAndNewlines)
-            )
-        }
-        return normalized.allSatisfy { !$0.fingerprint.isEmpty }
-            && Set(normalized).count == normalized.count
     }
 
     private func load() {
         guard let hostID, let existing = app.hostLibrary.host(hostID) else { return }
         draft = existing
         draftForwardings = app.hostLibrary.portForwardings(for: hostID)
-        originalKnownHosts = app.hostLibrary.knownHosts(for: existing)
-        draftKnownHosts = originalKnownHosts
     }
 
     private func loadOnce() {
@@ -494,8 +476,7 @@ struct HostEditorView: View {
         for index in draftForwardings.indices { draftForwardings[index].hostID = draft.id }
         if app.hostLibrary.upsert(
             draft,
-            replacingPortForwardings: draftForwardings,
-            replacingKnownHosts: knownHostsForSave
+            replacingPortForwardings: draftForwardings
         ) {
             closeTab()
         } else {
@@ -503,193 +484,8 @@ struct HostEditorView: View {
         }
     }
 
-    private var knownHostsForSave: [KnownHostEntry] {
-        let originals = Dictionary(uniqueKeysWithValues: originalKnownHosts.map { ($0.id, $0) })
-        return draftKnownHosts.map { entry in
-            var normalized = entry
-            normalized.fingerprint = entry.fingerprint.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            if let original = originals[entry.id],
-                original.algorithm == normalized.algorithm,
-                original.fingerprint == normalized.fingerprint
-            {
-                return normalized
-            }
-            normalized.addedAt = Date()
-            normalized.isMismatched = false
-            return normalized
-        }
-    }
-
     /// Return to Hosts so the saved or retained record is immediately visible.
     private func closeTab() {
         window.openPage(.hosts)
-    }
-}
-
-/// Known Hosts is part of the Host draft, including during creation. Nothing is
-/// trusted or forgotten until the editor's Save commits the entire collection.
-private struct KnownHostsEditorSection: View {
-    @Binding var entries: [KnownHostEntry]
-    @State private var newAlgorithm: SSHKeyAlgorithm = .ed25519
-    @State private var newFingerprint = ""
-
-    var body: some View {
-        Section("Known Hosts") {
-            if entries.contains(where: \.isMismatched) {
-                Label(
-                    "This server recently presented a key that is not in the trusted set.",
-                    systemImage: "exclamationmark.triangle.fill"
-                )
-                .font(.caption)
-                .foregroundStyle(.orange)
-            }
-
-            if entries.isEmpty {
-                Text(
-                    "Add a trusted server key now, or let Termind save it on first connection."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            } else {
-                ForEach($entries) { $entry in
-                    knownHostRow($entry)
-                }
-            }
-
-            newHostKeyComposer
-
-            Text("Changes take effect only after you save this Host.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func knownHostRow(_ entry: Binding<KnownHostEntry>) -> some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            HStack {
-                Label("Host Key", systemImage: "key.horizontal")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button(role: .destructive) {
-                    let id = entry.wrappedValue.id
-                    entries.removeAll { $0.id == id }
-                } label: {
-                    Label("Delete Host Key", systemImage: "trash")
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .help("Delete this Host Key")
-            }
-
-            LabeledContent("Key Type") {
-                algorithmPicker(selection: entry.algorithm)
-            }
-
-            LabeledContent("Fingerprint") {
-                TextField(
-                    "Fingerprint", text: entry.fingerprint,
-                    prompt: Text("SHA256:…")
-                )
-                .labelsHidden()
-                .textFieldStyle(.plain)
-                .font(.body.monospaced())
-                .multilineTextAlignment(.trailing)
-            }
-
-            if entry.wrappedValue.isMismatched {
-                Label("Previously marked as mismatched", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-        }
-        .padding(Metrics.Space.m)
-        .background(Color.primary.opacity(0.045), in: .rect(cornerRadius: Metrics.Radius.medium))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.medium)
-                .strokeBorder(.separator.opacity(0.7))
-        }
-    }
-
-    private var newHostKeyComposer: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Label("Add Host Key", systemImage: "plus.circle.fill")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            LabeledContent("Key Type") {
-                algorithmPicker(selection: $newAlgorithm)
-            }
-
-            LabeledContent("Fingerprint") {
-                TextField(
-                    "Fingerprint", text: $newFingerprint,
-                    prompt: Text("SHA256:…")
-                )
-                .labelsHidden()
-                .textFieldStyle(.plain)
-                .font(.body.monospaced())
-                .multilineTextAlignment(.trailing)
-                .onSubmit(addHostKey)
-            }
-
-            HStack {
-                if isDuplicateDraft {
-                    Text("This host key is already in the list.")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-                Spacer()
-                Button("Add", systemImage: "plus", action: addHostKey)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!canAddHostKey)
-            }
-        }
-        .padding(Metrics.Space.m)
-        .background(Color.primary.opacity(0.045), in: .rect(cornerRadius: Metrics.Radius.medium))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.medium)
-                .strokeBorder(.separator.opacity(0.7))
-        }
-    }
-
-    private func algorithmPicker(selection: Binding<SSHKeyAlgorithm>) -> some View {
-        Picker("Key Type", selection: selection) {
-            ForEach(SSHKeyAlgorithm.allCases) { algorithm in
-                Text(algorithm.displayName).tag(algorithm)
-            }
-        }
-        .labelsHidden()
-        .pickerStyle(.menu)
-        .fixedSize()
-    }
-
-    private var normalizedNewFingerprint: String {
-        newFingerprint.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var draftIdentity: SSHHostKeyIdentity {
-        SSHHostKeyIdentity(algorithm: newAlgorithm, fingerprint: normalizedNewFingerprint)
-    }
-
-    private var isDuplicateDraft: Bool {
-        !normalizedNewFingerprint.isEmpty && entries.contains { $0.identity == draftIdentity }
-    }
-
-    private var canAddHostKey: Bool {
-        !normalizedNewFingerprint.isEmpty && !isDuplicateDraft
-    }
-
-    private func addHostKey() {
-        guard canAddHostKey else { return }
-        entries.append(
-            KnownHostEntry(
-                hostname: "", algorithm: newAlgorithm,
-                fingerprint: normalizedNewFingerprint, addedAt: Date()
-            )
-        )
-        newFingerprint = ""
     }
 }

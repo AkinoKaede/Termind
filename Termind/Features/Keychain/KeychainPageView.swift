@@ -201,6 +201,10 @@ struct KeychainPageView: ManagedCardPage {
             ) {
                 window.openVaultWork(.identityEditor(nil), on: .keychain)
             },
+            .separator,
+            NativeMenuEntry(title: String(localized: "Import .ssh Folder"), symbol: MenuSymbol.importItem) {
+                window.openVaultWork(.sshImport(knownHostsOnly: false), on: .keychain)
+            },
         ]
     }
 

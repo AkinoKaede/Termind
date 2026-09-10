@@ -1,12 +1,13 @@
 import Foundation
 
-/// Stable identity for the ordered selections owned by the three Vault manager pages.
+/// Stable identity for the ordered selections owned by the Vault manager pages.
 nonisolated struct VaultSelectionID: Hashable, Sendable, Identifiable {
     nonisolated enum Kind {
         static let host = "host"
         static let key = "key"
         static let identity = "identity"
         static let snippet = "snippet"
+        static let knownHost = "knownHost"
     }
 
     let kind: String
@@ -32,6 +33,11 @@ nonisolated struct VaultSelectionID: Hashable, Sendable, Identifiable {
         Self(kind: Kind.snippet, rawID: id, page: .snippets)
     }
 
+    nonisolated static func knownHost(_ id: KnownHostEntry.ID) -> Self {
+        Self(kind: Kind.knownHost, rawID: id, page: .knownHosts)
+    }
+
+    var knownHostID: KnownHostEntry.ID? { kind == Kind.knownHost ? rawID : nil }
     var hostID: Host.ID? { kind == Kind.host ? rawID : nil }
     var keyID: SSHKeyRef.ID? { kind == Kind.key ? rawID : nil }
     var identityID: Identity.ID? { kind == Kind.identity ? rawID : nil }
@@ -65,15 +71,15 @@ final class VaultSelectionState {
 
     func clear(_ page: VaultPage) { selections[page] = [] }
 
-    func prune(available: Set<VaultSelectionID>) {
-        for page in VaultPage.allCases {
+    func prune(available: Set<VaultSelectionID>, pages: Set<VaultPage> = Set(VaultPage.allCases)) {
+        for page in pages {
             let valid = selection(for: page).filter(available.contains)
             if valid != selection(for: page) { selections[page] = valid }
         }
     }
 }
 
-/// The three manager pages' query and confirmation state, held for the life of
+/// The manager pages' query and confirmation state, held for the life of
 /// the window rather than of the view.
 ///
 /// Vault pages are torn down and rebuilt every time the destination changes, so
@@ -86,6 +92,7 @@ final class VaultPageStates {
     let hosts = HostsPageState()
     let keychain = KeychainPageState()
     let snippets = SnippetsPageState()
+    let knownHosts = KnownHostsPageState()
     let selection = VaultSelectionState()
 
     /// The query belonging to a page, or nil for Welcome, which searches hosts
@@ -96,6 +103,7 @@ final class VaultPageStates {
         case .hosts: hosts.query
         case .keychain: keychain.query
         case .snippets: snippets.query
+        case .knownHosts: knownHosts.query
         }
     }
 }

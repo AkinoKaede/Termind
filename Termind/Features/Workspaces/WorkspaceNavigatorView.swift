@@ -139,6 +139,7 @@ struct WorkspaceNavigatorView: View {
         case .hosts: app.hostLibrary.hosts.count
         case .keychain: app.hostLibrary.keys.count + app.hostLibrary.identities.count
         case .snippets: app.hostLibrary.snippets.count
+        case .knownHosts: app.knownHosts.entries.count
         }
     }
 

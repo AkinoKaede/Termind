@@ -251,6 +251,10 @@ struct HostsPageView: ManagedCardPage {
             },
             .separator,
             tagFilterMenu,
+            .separator,
+            NativeMenuEntry(title: String(localized: "Import .ssh Folder"), symbol: MenuSymbol.importItem) {
+                openWork(.sshImport(knownHostsOnly: false))
+            },
         ]
     }
 

@@ -24,7 +24,7 @@ struct SyncSettings: View {
 
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 SyncSelectionRow(
-                    title: "Vault", detail: "Hosts, identities, snippets, and port forwards.",
+                    title: "Vault", detail: "Hosts, identities, snippets, known hosts, and port forwards.",
                     isSelected: Binding(
                         get: { includesVault },
                         set: { value in

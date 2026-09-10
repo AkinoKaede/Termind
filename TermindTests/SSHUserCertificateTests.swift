@@ -62,6 +62,30 @@ struct SSHUserCertificateTests {
         #expect(parsed.validityWarning != nil)
     }
 
+    @Test
+    @MainActor
+    func folderImportAssociatesExplicitCertificatesWithTheirHost() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("SSHCertificateImport-\(UUID())")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        let certificate = try makeEd25519Certificate(
+            publicKey: material.publicKey, type: 1, validAfter: 0, validBefore: UInt64.max)
+        try material.privateKey.write(to: root.appendingPathComponent("deploy"), atomically: true, encoding: .utf8)
+        try certificate.write(to: root.appendingPathComponent("user-cert.pub"), atomically: true, encoding: .utf8)
+        try
+            "Host certified\nIdentityFile ~/.ssh/deploy\nCertificateFile ~/.ssh/user-cert.pub\nHost plain\nIdentityFile ~/.ssh/deploy"
+            .write(
+                to: root.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        let model = SSHImportModel(library: HostLibraryModel(), reader: SSHImportReader())
+        await model.scan(root, knownHostsOnly: false)
+        let certified = try #require(model.items.first { $0.name == "certified" })
+        let plain = try #require(model.items.first { $0.name == "plain" })
+        #expect(model.chosenKey(for: certified)?.certificate == certificate)
+        #expect(model.chosenKey(for: plain)?.certificate == "")
+        #expect(model.canImport)
+    }
+
     private func makeEd25519Certificate(
         publicKey: String, type: UInt32, validAfter: UInt64, validBefore: UInt64
     ) throws -> String {

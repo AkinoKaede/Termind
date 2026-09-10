@@ -7,6 +7,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
     case hosts
     case keychain
     case snippets
+    case knownHosts
 
     nonisolated var id: String { rawValue }
 
@@ -16,6 +17,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         case .hosts: "Hosts"
         case .keychain: "Keychain"
         case .snippets: "Snippets"
+        case .knownHosts: "Known Hosts"
         }
     }
 
@@ -25,6 +27,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         case .hosts: AppLocalization.string("Hosts", locale: locale)
         case .keychain: AppLocalization.string("Keychain", locale: locale)
         case .snippets: AppLocalization.string("Snippets", locale: locale)
+        case .knownHosts: AppLocalization.string("Known Hosts", locale: locale)
         }
     }
 
@@ -34,6 +37,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         case .hosts: "server.rack"
         case .keychain: "key.fill"
         case .snippets: "curlybraces"
+        case .knownHosts: "touchid"
         }
     }
 }
@@ -43,6 +47,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
     case hosts
     case keychain
     case snippets
+    case knownHosts
 
     init(page: VaultPage) {
         switch page {
@@ -50,6 +55,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
         case .hosts: self = .hosts
         case .keychain: self = .keychain
         case .snippets: self = .snippets
+        case .knownHosts: self = .knownHosts
         }
     }
 
@@ -59,6 +65,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
         case .hosts: .hosts
         case .keychain: .keychain
         case .snippets: .snippets
+        case .knownHosts: .knownHosts
         }
     }
 }
@@ -72,6 +79,8 @@ nonisolated enum VaultWorkRoute: Hashable, Sendable {
     case identityEditor(Identity.ID?)
     case generateKey
     case importKey
+    case knownHostEditor(KnownHostEntry.ID?)
+    case sshImport(knownHostsOnly: Bool)
     case editKey(SSHKeyRef.ID)
     case exportKeys([SSHKeyRef.ID])
     case snippetEditor(snippetID: Snippet.ID?, packageID: SnippetPackage.ID?)

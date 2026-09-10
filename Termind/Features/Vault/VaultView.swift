@@ -22,6 +22,7 @@ struct VaultView: View {
         case .hosts: HostsPageView(state: pages.hosts)
         case .keychain: KeychainPageView(state: pages.keychain)
         case .snippets: SnippetsPageView(state: pages.snippets)
+        case .knownHosts: KnownHostsPageView(state: pages.knownHosts)
         }
     }
 }
@@ -57,6 +58,10 @@ struct VaultWorkDetailView: View {
             )
         case .generateKey:
             KeychainGenerateDetail()
+        case .knownHostEditor(let id):
+            KnownHostEditorView(entryID: id)
+        case .sshImport(let knownHostsOnly):
+            SSHImportView(knownHostsOnly: knownHostsOnly)
         case .importKey:
             KeychainImportDetail()
         case .editKey(let id):

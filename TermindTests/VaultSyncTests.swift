@@ -38,6 +38,55 @@ struct VaultSyncTests {
     }
 
     @Test
+    func importedKnownHostsSyncWithoutHostsAndPropagateEditsAndDeletion() throws {
+        let source = try makeContainer("KnownHostsSource")
+        let destination = try makeContainer("KnownHostsDestination")
+        let sourcePersistence = HostPersistence(context: source.mainContext)
+        let destinationPersistence = HostPersistence(context: destination.mainContext)
+        let library = HostLibraryModel(persistence: sourcePersistence)
+        let journal = VaultSyncJournal(context: source.mainContext)
+        let hashedAddress =
+            "|1|" + Data(repeating: 7, count: 20).base64EncodedString()
+            + "|" + Data(repeating: 9, count: 20).base64EncodedString()
+        let plain = KnownHostEntry(hostname: "sync.example", port: 2222, fingerprint: "SHA256:plain")
+        let hashed = KnownHostEntry(hostname: hashedAddress, fingerprint: "SHA256:hashed")
+        var published = VaultMutationSet.empty
+        library.didRecordVaultChanges = { published = $0 }
+
+        try library.commitSSHImport(SSHImportBatch(knownHosts: [plain, hashed]))
+        #expect(published.keys == Set([plain, hashed].map { VaultRecordKey(kind: .knownHost, id: $0.id) }))
+        #expect(try source.mainContext.fetch(FetchDescriptor<PersistentVaultSyncEntry>()).allSatisfy(\.needsUpload))
+
+        func transfer(_ id: UUID) throws {
+            let key = VaultRecordKey(kind: .knownHost, id: id)
+            let envelope = try #require(try journal.envelope(for: key))
+            let recordID = CKRecord.ID(
+                recordName: key.recordName,
+                zoneID: CKRecordZone.ID(
+                    zoneName: VaultSyncCoordinator.zoneName, ownerName: CKCurrentUserDefaultName))
+            let record = try VaultSyncCoordinator.makeRecord(VaultOutgoingEntry(envelope: envelope), recordID: recordID)
+            let received = try VaultSyncCoordinator.envelope(from: record)
+            _ = try destinationPersistence.applyRemote([received])
+        }
+
+        try transfer(plain.id)
+        try transfer(hashed.id)
+        let received = try destinationPersistence.load()
+        #expect(received.hosts.isEmpty)
+        #expect(Set(received.knownHosts) == Set([plain, hashed]))
+
+        var edited = plain
+        edited.isMismatched = true
+        #expect(library.saveKnownHost(edited))
+        try transfer(plain.id)
+        #expect(try destinationPersistence.load().knownHosts.first { $0.id == plain.id }?.isMismatched == true)
+
+        #expect(library.deleteKnownHosts([plain.id]))
+        try transfer(plain.id)
+        #expect(try destinationPersistence.load().knownHosts == [hashed])
+    }
+
+    @Test
     func legacyCredentialPayloadsWithoutColorsDecodeAsNone() throws {
         let writer = UUID()
         let identity = Identity(name: "Deploy", username: "deploy", colorTag: .pink)
