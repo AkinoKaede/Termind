@@ -45,9 +45,15 @@ private struct SSHImportContent: View {
                     VStack(alignment: .leading, spacing: Metrics.Space.l) {
                         sourcePicker
                         if !knownHostsOnly {
-                            Picker("Store Keys in", selection: $model.storage) {
-                                Text("iCloud").tag(KeyStorage.iCloud)
-                                Text("This Mac").tag(KeyStorage.thisDevice)
+                            LabeledContent("Store Keys in") {
+                                Picker("Store Keys in", selection: $model.storage) {
+                                    Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
+                                    Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
+                                }
+                                .labelsHidden()
+                                .pickerStyle(.menu)
+                                .labelStyle(.titleAndIcon)
+                                .fixedSize()
                             }
                         }
                         if !model.items.isEmpty {
