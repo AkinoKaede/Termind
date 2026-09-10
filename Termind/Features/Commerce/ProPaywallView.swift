@@ -24,7 +24,7 @@ struct ProPaywallView: View {
                             isReviewDemoUnlocked = true
                             isReviewDemoExpanded = true
                         }
-                    Text("One purchase. Your advanced workspace, AI, MCP, and iCloud tools—forever.")
+                    Text("One purchase for advanced workspaces, AI, MCP, and iCloud sync.")
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 430)
@@ -39,7 +39,7 @@ struct ProPaywallView: View {
                 feature("Monitor more than 3 servers", "waveform.path.ecg")
                 feature("Upload files by dropping them on a terminal", "arrow.up.doc")
                 feature("Connect MCP tools and run the built-in MCP Server", "server.rack")
-                feature("Sync your Vault through your private iCloud database", "icloud")
+                feature("Sync Vault and Settings across devices", "icloud")
             }
             .padding(.vertical, 28)
 

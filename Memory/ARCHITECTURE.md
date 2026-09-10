@@ -452,3 +452,41 @@ windows and bulk selection cannot overrun the cap. Batch admission happens after
 the chooser dismisses, before presenting the existing Pro paywall. Restored or
 previously purchased configurations are retained rather than deleted on downgrade;
 all retained cards count against future additions.
+
+## Settings replication
+
+The iCloud page has one master preference and separate Vault/Settings selections.
+Vault is selected by default; Settings is opt-in. Disabling the master preserves
+both selections. Upgrading with Vault sync disabled keeps the master disabled.
+Pro access gates both CloudKit coordinators, whose zones, subscriptions, account
+bindings and journals are independent. Settings use `TermindAIConfigurationV1`; the
+existing `TermindVaultV1` protocol is unchanged.
+
+`SettingsSyncPersistence` commits configuration and upload intent together in
+SwiftData V14. V13 already exists in installed development stores: its
+`PersistentAIConfigurationSync*` names and defaults stay frozen. V14 adds only
+`PersistentTerminalPreferences`; the Settings rename preserves the original
+CloudKit identifiers as well. Providers (including their models), MCP clients, skills, role
+assignments, model selection, Web Search and Terminal preferences have separate
+records. Terminal custom configuration text is included. Remote commits refresh
+the application models without entering the local mutation path. Web Search and
+Terminal preferences are migrated from UserDefaults once, then mirrored there
+for existing runtime readers. Active agent runs retain their configuration snapshots.
+Conversations, approval mode, local MCP listener settings and other app preferences
+are excluded. Only explicitly selected settings are projected, never all defaults.
+
+The journal retains tombstones and unresolved references across partial fetches.
+Preexisting defaults use baseline versions and yield to cloud records. Built-in
+skills use stable IDs; migration preserves customized skills and records deleted
+built-ins. Duplicate skill names or MCP namespaces retain their data but only the
+lowest UUID is eligible for execution until the conflict is resolved.
+
+AI credentials use `AISecretStore`. First Settings sync checks the iCloud account
+before migrating local Keychain entries. A verified cloud copy and durable local
+storage marker precede local-copy cleanup. Migrated entries remain in iCloud
+Keychain when configuration sync pauses. Production reads do not cache secrets;
+missing synchronized credentials may arrive later. Pending credential deletion
+markers prevent delayed Keychain deliveries from reviving a cleared value.
+Explicit credentials stay out of CloudKit; custom MCP headers and custom terminal
+configuration are ordinary user-authored settings. The private-account sync
+adapter is the only additional trusted source of skill-library snapshots.

@@ -11,6 +11,21 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func settingsSyncKeepsExecutionHistoryAndLocalPermissionsOutsideItsPayloads() throws {
+        let records = try String(
+            contentsOf: sourceRoot.appending(path: "Domain/Settings/SettingsSyncTypes.swift"),
+            encoding: .utf8)
+        for excluded in ["AgentPermissionMode", "AgentRun", "AgentConversation", "mcpServerPort", "mcpServerEnabled"] {
+            #expect(!records.contains(excluded))
+        }
+        let terminal = try String(
+            contentsOf: sourceRoot.appending(path: "Infrastructure/Database/PersistentTerminalPreferences.swift"),
+            encoding: .utf8)
+        #expect(!terminal.contains("dictionaryRepresentation"))
+        #expect(!terminal.contains("agentPermissionMode"))
+    }
+
+    @Test
     func metricsViewsCannotOwnTransportsAndSecretsAreResolvedOffMainActor() throws {
         try assertNoConcreteImplementations(in: "Features/Metrics")
         let model = try String(

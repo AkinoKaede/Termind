@@ -68,7 +68,8 @@ final class SkillLibraryModel {
     /// What a run may be offered. Incomplete drafts are excluded rather than
     /// listed as names with nothing to match on — see `AgentSkill.isComplete`.
     var enabledSkills: [AgentSkill] {
-        skills.filter { $0.isEnabled && $0.isComplete }
+        let conflicts = conflictingSkillIDs
+        return skills.filter { $0.isEnabled && $0.isComplete && !conflicts.contains($0.id) }
     }
 
     /// The snapshot a run is given. Empty when nothing is enabled, which is what
@@ -86,6 +87,23 @@ final class SkillLibraryModel {
 
     func hasNameConflict(_ name: String, excluding id: AgentSkill.ID) -> Bool {
         !name.isEmpty && skills.contains { $0.id != id && $0.effectiveName == name }
+    }
+
+    var conflictingSkillIDs: Set<UUID> {
+        var names = Set<String>()
+        var conflicts = Set<UUID>()
+        for skill in skills.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            if !skill.effectiveName.isEmpty, !names.insert(skill.effectiveName).inserted {
+                conflicts.insert(skill.id)
+            }
+        }
+        return conflicts
+    }
+
+    /// Only the trusted persistence/sync composition root supplies this snapshot.
+    func applyRemoteSnapshot(_ values: [AgentSkill]) {
+        skills = values
+        storageError = nil
     }
 
     // MARK: - Writes

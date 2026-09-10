@@ -56,6 +56,9 @@ final class AIConfigurationModel {
     /// through to the Data Protection Keychain; previews keep their fake secret
     /// in memory so demo data never creates a real Keychain item.
     private var secrets: [String: String] = [:]
+    private let aiSecrets: (any AISecretStoring)?
+    private let webSearchPersistence: (any AIWebSearchPersisting)?
+    private(set) var webSearch = AIWebSearchPreferences()
     private let keychain: any SecretStoring
     private let persistsSecrets: Bool
     private let permissionDefaults: UserDefaults?
@@ -73,8 +76,12 @@ final class AIConfigurationModel {
         persistence: (any AIConfigurationPersisting)? = nil,
         secrets secretStore: any SecretStoring = InMemorySecretStore(),
         persistsSecrets: Bool = true,
-        permissionDefaults: UserDefaults? = nil
+        permissionDefaults: UserDefaults? = nil,
+        aiSecrets: (any AISecretStoring)? = nil,
+        webSearchPersistence: (any AIWebSearchPersisting)? = nil
     ) {
+        self.aiSecrets = aiSecrets
+        self.webSearchPersistence = webSearchPersistence
         self.modelProviders = modelProviders
         self.endpoints = endpoints
         self.mcpServers = mcpServers
@@ -89,6 +96,11 @@ final class AIConfigurationModel {
         self.keychain = secretStore
         self.persistsSecrets = persistsSecrets
         self.permissionDefaults = permissionDefaults
+        if let webSearchPersistence {
+            do { webSearch = try webSearchPersistence.loadWebSearch() } catch {
+                storageError = error.localizedDescription
+            }
+        }
         guard let persistence else { return }
         do {
             let loaded = try persistence.load()
@@ -226,9 +238,49 @@ final class AIConfigurationModel {
 
     /// Every tool the model may be offered: enabled tools on enabled servers.
     var availableTools: [(server: MCPServer, tool: MCPTool)] {
-        mcpServers.filter(\.isEnabled).flatMap { server in
+        usableMCPServers.flatMap { server in
             server.enabledTools.map { (server, $0) }
         }
+    }
+
+    var conflictingMCPServerIDs: Set<UUID> {
+        var names = Set<String>()
+        var conflicts = Set<UUID>()
+        for server in mcpServers.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            if !server.effectiveNamespaceID.isEmpty, !names.insert(server.effectiveNamespaceID).inserted {
+                conflicts.insert(server.id)
+            }
+        }
+        return conflicts
+    }
+
+    var usableMCPServers: [MCPServer] {
+        let conflicts = conflictingMCPServerIDs
+        return mcpServers.filter { $0.isEnabled && !conflicts.contains($0.id) }
+    }
+
+    func setWebSearch(_ value: AIWebSearchPreferences) {
+        do {
+            try webSearchPersistence?.saveWebSearch(value)
+            webSearch = value
+            storageError = nil
+        } catch { storageError = error.localizedDescription }
+    }
+
+    /// Applies an already committed replica. It never calls the local write path.
+    func applyRemoteSnapshot(_ snapshot: AIConfigurationSnapshot, webSearch: AIWebSearchPreferences) {
+        let previousServers = Dictionary(uniqueKeysWithValues: mcpServers.map { ($0.id, $0) })
+        modelProviders = snapshot.providers
+        endpoints = snapshot.endpoints
+        roles = snapshot.roles
+        lastSelectedModel = snapshot.lastSelectedModel
+        mcpServers = snapshot.mcpServers
+        mcpStatuses = mcpStatuses.filter { id, _ in
+            previousServers[id] == mcpServers.first { $0.id == id }
+        }
+        self.webSearch = webSearch
+        secrets.removeAll()
+        storageError = nil
     }
 
     // MARK: - Secrets
@@ -237,6 +289,16 @@ final class AIConfigurationModel {
     /// Protection Keychain and cached only for this process.
     func secret(for ref: String) -> String? {
         guard !ref.isEmpty else { return nil }
+        if let aiSecrets, persistsSecrets {
+            do {
+                let value = try aiSecrets.string(for: ref)
+                secretStorageError = nil
+                return value
+            } catch {
+                secretStorageError = error.localizedDescription
+                return nil
+            }
+        }
         if let cached = secrets[ref] { return cached }
         guard persistsSecrets else { return nil }
         do {
@@ -256,7 +318,11 @@ final class AIConfigurationModel {
         guard !ref.isEmpty else { return }
         do {
             if persistsSecrets {
-                try keychain.setString(secret, for: ref, storage: .thisDevice)
+                if let aiSecrets {
+                    try aiSecrets.setString(secret, for: ref)
+                } else {
+                    try keychain.setString(secret, for: ref, storage: .thisDevice)
+                }
             }
             secrets[ref] = secret
             secretStorageError = nil

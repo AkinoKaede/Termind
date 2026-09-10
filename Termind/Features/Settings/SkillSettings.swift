@@ -19,6 +19,13 @@ struct SkillSettings: View {
 
     var body: some View {
         Section {
+            if !app.skills.conflictingSkillIDs.isEmpty {
+                Label(
+                    "Some skills have duplicate names and are paused. Rename them to resolve the conflict.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .foregroundStyle(.orange)
+            }
             ForEach(app.skills.skills) { skill in
                 SkillRow(skill: skill) { edit(skill.id, false) }
             }

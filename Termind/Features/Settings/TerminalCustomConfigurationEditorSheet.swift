@@ -14,6 +14,13 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
         }
     }
 
+    var preferenceKeyPath: WritableKeyPath<TerminalPreferences, String> {
+        switch self {
+        case .light: \.lightCustomConfiguration
+        case .dark: \.darkCustomConfiguration
+        }
+    }
+
     var title: String {
         switch self {
         case .light: String(localized: "Light Custom Configuration")
@@ -23,16 +30,19 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
 }
 
 struct TerminalCustomConfigurationEditorPage: View {
+    @Environment(AppModel.self) private var app
     let scheme: TerminalCustomConfigurationScheme
 
     @State private var content = ""
+    @State private var lastSavedContent = ""
+    @State private var isLoaded = false
     @State private var isImporting = false
     @State private var importError: String?
     @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 0) {
-            if let importError {
+            if let importError = importError ?? app.terminalSettings.storageError {
                 HStack(spacing: Metrics.Space.m) {
                     Label(importError, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
@@ -67,9 +77,17 @@ struct TerminalCustomConfigurationEditorPage: View {
                 .padding(Metrics.Space.m)
         }
         .onAppear {
-            content = UserDefaults.standard.string(forKey: scheme.settingsKey) ?? ""
+            content = app.terminalSettings.preferences[keyPath: scheme.preferenceKeyPath]
+            lastSavedContent = content
+            isLoaded = true
         }
         .onChange(of: content) { _, newValue in scheduleSave(newValue) }
+        .onChange(of: app.terminalSettings.preferences[keyPath: scheme.preferenceKeyPath]) { _, value in
+            if content == lastSavedContent {
+                lastSavedContent = value
+                content = value
+            }
+        }
         .onDisappear { saveNow() }
         .dropDestination(for: URL.self) { urls, _ in
             guard let url = urls.first else { return false }
@@ -92,17 +110,18 @@ struct TerminalCustomConfigurationEditorPage: View {
 
     private func scheduleSave(_ value: String) {
         saveTask?.cancel()
-        let key = scheme.settingsKey
+        guard isLoaded, value != lastSavedContent else { return }
         saveTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            UserDefaults.standard.set(value, forKey: key)
+            if app.terminalSettings.set(value, for: scheme.preferenceKeyPath) { lastSavedContent = value }
         }
     }
 
     private func saveNow() {
         saveTask?.cancel()
-        UserDefaults.standard.set(content, forKey: scheme.settingsKey)
+        guard isLoaded, content != lastSavedContent else { return }
+        if app.terminalSettings.set(content, for: scheme.preferenceKeyPath) { lastSavedContent = content }
     }
 
     private func importFile(_ url: URL) {

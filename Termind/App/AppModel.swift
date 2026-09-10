@@ -70,6 +70,7 @@ final class AppModel {
     let connections: RemoteConnectionCoordinator
     let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
+    let settingsSync: SettingsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
     let forwarding: PortForwardingController
     let sftpTransfers: SFTPTransferCoordinator
@@ -83,6 +84,7 @@ final class AppModel {
     /// The procedures the user installed for the agent to follow. Its own store
     /// rather than more fields on `ai`: that one is about endpoints you spend a
     /// key at, this is a library of documents. See `SkillLibraryModel`.
+    let terminalSettings: TerminalSettingsModel
     let skills: SkillLibraryModel
     let commandGenerator: CommandGeneratorController
     /// Names conversations for the chat list. Held as the protocol, not the
@@ -113,6 +115,7 @@ final class AppModel {
     init(
         hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
         skills: SkillLibraryModel = SkillLibraryModel(),
+        terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
@@ -168,6 +171,7 @@ final class AppModel {
         )
         hostRepository = dependencies.hostRepository
         vaultSync = dependencies.vaultSync
+        settingsSync = dependencies.settingsSync
         forwarding = PortForwardingController(hosts: hosts)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
@@ -175,6 +179,7 @@ final class AppModel {
         )
         self.ai = ai
         self.skills = skills
+        self.terminalSettings = terminalSettings
         commandGenerator = CommandGeneratorController(ai: ai)
         conversationTitles = ConversationTitleController(ai: ai)
         self.speechTranscription =
@@ -254,15 +259,28 @@ final class AppModel {
         vaultSync?.didApplyRemote = { [weak self] snapshot, keys in
             self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
         }
-        if proAccess.canUse(.vaultSync) { vaultSync?.start() }
+        terminalSettings.didChangeShellIntegration = { [weak self] enabled in
+            self?.shellIntegrationPreferenceDidChange(isEnabled: enabled)
+        }
+        settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
+            self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
+            self?.skills.applyRemoteSnapshot(snapshot.skills)
+            self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+        }
+        if proAccess.canUse(.vaultSync) {
+            vaultSync?.start()
+            settingsSync?.start()
+        }
     }
 
     func reconcileProAccess() {
         if proAccess.canUse(.vaultSync) {
             vaultSync?.start()
+            settingsSync?.start()
             mcpServer.resumeForProAccess()
         } else {
             vaultSync?.pause()
+            settingsSync?.pause()
         }
         if !proAccess.canUse(.mcpServer), mcpServer.isEnabled {
             mcpServer.suspendForProAccess()
@@ -445,7 +463,7 @@ final class AppModel {
             // uses, rather than reaching into the conversation directly: a tool
             // that touched `@Observable` state from a task group would be
             // mutating the UI from off the main actor.
-            let servers = ai.mcpServers.filter(\.isEnabled).map { server in
+            let servers = ai.usableMCPServers.map { server in
                 (server: server, bearerToken: ai.secret(for: server.credentialRef))
             }
             // Local definitions are registered once per catalog — the runtime's

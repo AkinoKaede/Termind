@@ -15,3 +15,9 @@ protocol AIConfigurationPersisting: AnyObject {
     func load() throws -> AIConfigurationSnapshot
     func save(_ snapshot: AIConfigurationSnapshot) throws
 }
+
+@MainActor
+protocol AIWebSearchPersisting: AnyObject {
+    func loadWebSearch() throws -> AIWebSearchPreferences
+    func saveWebSearch(_ value: AIWebSearchPreferences) throws
+}

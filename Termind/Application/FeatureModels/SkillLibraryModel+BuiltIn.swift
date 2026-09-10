@@ -46,6 +46,7 @@ nonisolated enum AgentSkillLibrary {
 
     private static var diskFullTriage: AgentSkill {
         AgentSkill(
+            id: UUID(uuidString: "9C362C57-BCCF-4B44-A1C4-000000000001")!,
             name: "disk-full-triage",
             title: "Disk Full Triage",
             summary: """
@@ -112,6 +113,7 @@ nonisolated enum AgentSkillLibrary {
 
     private static var failingService: AgentSkill {
         AgentSkill(
+            id: UUID(uuidString: "9C362C57-BCCF-4B44-A1C4-000000000002")!,
             name: "failing-service-triage",
             title: "Failing Service Triage",
             summary: """
@@ -167,6 +169,7 @@ nonisolated enum AgentSkillLibrary {
 
     private static var safeConfigEdit: AgentSkill {
         AgentSkill(
+            id: UUID(uuidString: "9C362C57-BCCF-4B44-A1C4-000000000003")!,
             name: "safe-config-edit",
             title: "Safe Remote Config Edit",
             summary: """

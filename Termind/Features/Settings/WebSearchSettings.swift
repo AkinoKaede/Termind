@@ -1,16 +1,24 @@
 import SwiftUI
 
 struct WebSearchSettings: View {
-    @AppStorage(SettingsKey.webSearchEnabled) private var isEnabled =
-        SettingsKey.defaultWebSearchEnabled
-    @AppStorage(SettingsKey.webSearchBuiltIn) private var usesBuiltIn =
-        SettingsKey.defaultWebSearchBuiltIn
+    @Environment(AppModel.self) private var app
+    private var isEnabled: Bool { app.aiConfiguration.webSearch.isEnabled }
+    private var usesBuiltIn: Bool { app.aiConfiguration.webSearch.prefersBuiltIn }
+    private func binding(_ keyPath: WritableKeyPath<AIWebSearchPreferences, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { app.aiConfiguration.webSearch[keyPath: keyPath] },
+            set: { value in
+                var preferences = app.aiConfiguration.webSearch
+                preferences[keyPath: keyPath] = value
+                app.aiConfiguration.setWebSearch(preferences)
+            })
+    }
 
     var body: some View {
         Section {
-            Toggle("Enable Web Search", isOn: $isEnabled)
+            Toggle("Enable Web Search", isOn: binding(\.isEnabled))
 
-            Toggle("Prefer Built-in Web Search", isOn: $usesBuiltIn)
+            Toggle("Prefer Built-in Web Search", isOn: binding(\.prefersBuiltIn))
                 .disabled(!isEnabled)
 
             Text(

@@ -63,6 +63,14 @@ struct TermindApp: App {
             LegacyWebSearchSettings.remove { reference in
                 try secrets.setString(nil, for: reference, storage: .thisDevice)
             }
+            SettingsKey.migrateSyncPreferences()
+            let settingsPersistence = SettingsSyncPersistence(context: container.mainContext)
+            try settingsPersistence.prepare()
+            let aiSecrets = AISecretStore(context: container.mainContext, keychain: secrets)
+            let settingsSync: SettingsSyncCoordinator? =
+                isRunningTests
+                ? nil
+                : SettingsSyncCoordinator(persistence: settingsPersistence, secrets: aiSecrets)
             let hosts = HostLibraryModel(
                 modelContext: container.mainContext, secrets: secrets
             )
@@ -85,9 +93,11 @@ struct TermindApp: App {
                 initialValue: AppModel(
                     hosts: hosts,
                     ai: AIConfigurationModel(
-                        modelContext: container.mainContext, secrets: secrets
+                        persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
+                        permissionDefaults: .standard, aiSecrets: aiSecrets, webSearchPersistence: settingsPersistence
                     ),
-                    skills: SkillLibraryModel(modelContext: container.mainContext),
+                    skills: SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence)),
+                    terminalSettings: TerminalSettingsModel(persistence: settingsPersistence),
                     commandHistory: CommandHistoryModel(modelContext: container.mainContext),
                     sftpHistory: SFTPHistoryModel(modelContext: container.mainContext),
                     connectionHistory: ConnectionHistoryModel(
@@ -100,7 +110,7 @@ struct TermindApp: App {
                         agentRunRepository: SwiftDataAgentRunRepository(
                             context: container.mainContext
                         ),
-                        vaultSync: vaultSync
+                        vaultSync: vaultSync, settingsSync: settingsSync
                     ),
                     proAccess: proAccess
                 )

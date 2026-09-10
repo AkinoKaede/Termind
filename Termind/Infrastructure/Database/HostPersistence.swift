@@ -599,13 +599,33 @@ enum TermindSchemaV12: VersionedSchema {
     }
 }
 
+// V13 has already opened user stores. Preserve these entity names and defaults.
+enum TermindSchemaV13: VersionedSchema {
+    static let versionIdentifier = Schema.Version(13, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV12.models + [
+            PersistentAIConfigurationSyncEntry.self, PersistentAIConfigurationSyncState.self,
+            PersistentAIConfigurationSyncQuarantine.self, PersistentAIWebSearchPreferences.self,
+            PersistentAISecretLocation.self,
+        ]
+    }
+}
+
+enum TermindSchemaV14: VersionedSchema {
+    static let versionIdentifier = Schema.Version(14, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        TermindSchemaV13.models + [PersistentTerminalPreferences.self]
+    }
+}
+
 enum TermindMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
             TermindSchemaV1.self, TermindSchemaV2.self, TermindSchemaV3.self,
             TermindSchemaV4.self, TermindSchemaV5.self, TermindSchemaV6.self,
             TermindSchemaV7.self, TermindSchemaV8.self, TermindSchemaV9.self,
-            TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self,
+            TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self, TermindSchemaV13.self,
+            TermindSchemaV14.self,
         ]
     }
 
@@ -653,13 +673,19 @@ enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(
                 fromVersion: TermindSchemaV11.self, toVersion: TermindSchemaV12.self
             ),
+            MigrationStage.lightweight(
+                fromVersion: TermindSchemaV12.self, toVersion: TermindSchemaV13.self
+            ),
+            MigrationStage.lightweight(
+                fromVersion: TermindSchemaV13.self, toVersion: TermindSchemaV14.self
+            ),
         ]
     }
 }
 
 @MainActor
 final class HostPersistence {
-    static let schema = Schema(versionedSchema: TermindSchemaV12.self)
+    static let schema = Schema(versionedSchema: TermindSchemaV14.self)
 
     let context: ModelContext
 

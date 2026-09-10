@@ -12,6 +12,11 @@ nonisolated enum SettingsKey {
     static let appLanguage = "app.language"
     /// App-wide appearance. `system` inherits changes from macOS.
     static let appAppearance = "app.appearance"
+    static let iCloudSyncEnabled = "icloud.sync.enabled"
+    static let defaultICloudSyncEnabled = true
+    static let settingsSyncEnabled = "settings.sync.enabled"
+    static let settingsSyncEnvironment = "settings.sync.environment"
+    static let defaultSettingsSyncEnabled = false
     static let vaultSyncEnabled = "vault.sync.enabled"
     /// The CloudKit environment owning the persisted sync engine state and
     /// record system fields. Debug and TestFlight share the app container, but
@@ -19,6 +24,19 @@ nonisolated enum SettingsKey {
     /// versa), so an environment switch must rebind the local journal.
     static let vaultSyncEnvironment = "vault.sync.environment"
     static let defaultVaultSyncEnabled = true
+    static func migrateSyncPreferences(in defaults: UserDefaults = .standard) {
+        if defaults.object(forKey: settingsSyncEnabled) == nil,
+            let legacy = defaults.object(forKey: "ai.sync.enabled") as? Bool
+        {
+            defaults.set(legacy, forKey: settingsSyncEnabled)
+        }
+        guard defaults.object(forKey: iCloudSyncEnabled) == nil else { return }
+        let vault = defaults.object(forKey: vaultSyncEnabled) as? Bool ?? defaultVaultSyncEnabled
+        let ai = defaults.object(forKey: settingsSyncEnabled) as? Bool ?? defaultSettingsSyncEnabled
+        defaults.set(vault || ai, forKey: iCloudSyncEnabled)
+        if !vault && !ai { defaults.set(true, forKey: vaultSyncEnabled) }
+    }
+
     static let mcpServerEnabled = "mcpServer.enabled"
     static let mcpServerPort = "mcpServer.port"
     static let mcpServerDisabledTools = "mcpServer.disabledTools"

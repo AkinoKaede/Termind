@@ -274,6 +274,10 @@ final class AIPersistence {
     }
 
     func load() throws -> AIConfigurationSnapshot {
+        try load(preservingUnresolvedReferences: false)
+    }
+
+    func load(preservingUnresolvedReferences: Bool) throws -> AIConfigurationSnapshot {
         let modelRows = try context.fetch(
             FetchDescriptor<PersistentAIModel>(sortBy: [SortDescriptor(\.sortIndex)])
         )
@@ -302,7 +306,7 @@ final class AIPersistence {
         for row in try context.fetch(FetchDescriptor<PersistentAIRoleAssignment>()) {
             guard let role = AIRole(rawValue: row.role) else { continue }
             let ref = AIModelRef(modelProviderID: row.providerID, modelID: row.modelID)
-            if valid(ref) { roles[role] = ref }
+            if preservingUnresolvedReferences || valid(ref) { roles[role] = ref }
         }
 
         let selectionRow = try context.fetch(FetchDescriptor<PersistentAISelection>()).first
@@ -311,7 +315,7 @@ final class AIPersistence {
                 let modelID = selectionRow?.modelID
             else { return nil }
             let ref = AIModelRef(modelProviderID: providerID, modelID: modelID)
-            return valid(ref) ? ref : nil
+            return preservingUnresolvedReferences || valid(ref) ? ref : nil
         }()
 
         let mcpRows = try context.fetch(
@@ -333,36 +337,39 @@ final class AIPersistence {
     }
 
     func save(_ snapshot: AIConfigurationSnapshot) throws {
-        try context.commit {
-            try context.delete(model: PersistentAIModel.self)
-            try context.delete(model: PersistentModelProvider.self)
-            try context.delete(model: PersistentAIRoleAssignment.self)
-            try context.delete(model: PersistentAISelection.self)
-            try context.delete(model: PersistentMCPServer.self)
+        try context.commit { try replace(snapshot) }
+    }
 
-            for (providerIndex, provider) in snapshot.providers.enumerated() {
-                // A provider with no recorded endpoint is read back as
-                // `Automatic` over its composed URL, which resolves to the same
-                // format it already has — see `AIConfigurationModel.endpoints`.
-                let endpoint =
-                    snapshot.endpoints[provider.id] ?? ProviderEndpoint(url: provider.inferenceURL)
+    /// Stages rows in the caller-owned transaction.
+    func replace(_ snapshot: AIConfigurationSnapshot) throws {
+        try context.delete(model: PersistentAIModel.self)
+        try context.delete(model: PersistentModelProvider.self)
+        try context.delete(model: PersistentAIRoleAssignment.self)
+        try context.delete(model: PersistentAISelection.self)
+        try context.delete(model: PersistentMCPServer.self)
+
+        for (providerIndex, provider) in snapshot.providers.enumerated() {
+            // A provider with no recorded endpoint is read back as
+            // `Automatic` over its composed URL, which resolves to the same
+            // format it already has — see `AIConfigurationModel.endpoints`.
+            let endpoint =
+                snapshot.endpoints[provider.id] ?? ProviderEndpoint(url: provider.inferenceURL)
+            context.insert(
+                PersistentModelProvider(provider, endpoint: endpoint, sortIndex: providerIndex)
+            )
+            for (modelIndex, model) in provider.models.enumerated() {
                 context.insert(
-                    PersistentModelProvider(provider, endpoint: endpoint, sortIndex: providerIndex)
+                    PersistentAIModel(model, providerID: provider.id, sortIndex: modelIndex)
                 )
-                for (modelIndex, model) in provider.models.enumerated() {
-                    context.insert(
-                        PersistentAIModel(model, providerID: provider.id, sortIndex: modelIndex)
-                    )
-                }
             }
-            for role in AIRole.allCases {
-                guard let ref = snapshot.roles[role] else { continue }
-                context.insert(PersistentAIRoleAssignment(role: role, ref: ref))
-            }
-            context.insert(PersistentAISelection(snapshot.lastSelectedModel))
-            for (serverIndex, server) in snapshot.mcpServers.enumerated() {
-                context.insert(PersistentMCPServer(server, sortIndex: serverIndex))
-            }
+        }
+        for role in AIRole.allCases {
+            guard let ref = snapshot.roles[role] else { continue }
+            context.insert(PersistentAIRoleAssignment(role: role, ref: ref))
+        }
+        context.insert(PersistentAISelection(snapshot.lastSelectedModel))
+        for (serverIndex, server) in snapshot.mcpServers.enumerated() {
+            context.insert(PersistentMCPServer(server, sortIndex: serverIndex))
         }
     }
 }

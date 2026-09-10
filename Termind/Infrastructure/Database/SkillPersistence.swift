@@ -63,11 +63,14 @@ final class SkillPersistence {
     }
 
     func save(_ skills: [AgentSkill]) throws {
-        try context.commit {
-            try context.delete(model: PersistentAgentSkill.self)
-            for (index, skill) in skills.enumerated() {
-                context.insert(PersistentAgentSkill(skill, sortIndex: index))
-            }
+        try context.commit { try replace(skills) }
+    }
+
+    /// Stages rows in the caller-owned transaction.
+    func replace(_ skills: [AgentSkill]) throws {
+        try context.delete(model: PersistentAgentSkill.self)
+        for (index, skill) in skills.enumerated() {
+            context.insert(PersistentAgentSkill(skill, sortIndex: index))
         }
     }
 }

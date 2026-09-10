@@ -14,6 +14,13 @@ struct MCPSettings: View {
 
     var body: some View {
         Section {
+            if !app.aiConfiguration.conflictingMCPServerIDs.isEmpty {
+                Label(
+                    "Some MCP servers have duplicate namespaces and are paused. Edit their namespace IDs to resolve the conflict.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .foregroundStyle(.orange)
+            }
             ForEach(app.aiConfiguration.mcpServers) { server in
                 MCPServerRow(server: server) { edit(server.id, false) }
             }

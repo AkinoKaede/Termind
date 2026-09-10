@@ -150,10 +150,7 @@ struct SettingsPageView: View {
         case .terminal:
             SettingsFormPage {
                 TerminalSettings(
-                    editConfiguration: { navigate(to: .terminalConfiguration($0)) },
-                    shellIntegrationChanged: {
-                        app.shellIntegrationPreferenceDidChange(isEnabled: $0)
-                    }
+                    editConfiguration: { navigate(to: .terminalConfiguration($0)) }
                 )
             }
         case .sftp:
@@ -174,7 +171,9 @@ struct SettingsPageView: View {
                 )
             }
         case .sync:
-            SettingsFormPage { SyncSettings() }
+            SettingsFormPage {
+                SyncSettings()
+            }
         #if DEBUG
             case .developer:
                 DeveloperSettingsPage()
@@ -444,7 +443,7 @@ private struct ProSettings: View {
 
         Section("Termind Pro") {
             Text(
-                "Unlock multiple-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and private iCloud Vault sync with one permanent purchase."
+                "One purchase unlocks multi-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and iCloud sync for your Vault and settings across devices."
             )
             .foregroundStyle(.secondary)
             if app.proAccess.status.canPurchase {
@@ -608,16 +607,21 @@ private struct SFTPSettings: View {
 
 private struct TerminalSettings: View {
     let editConfiguration: (TerminalCustomConfigurationScheme) -> Void
-    let shellIntegrationChanged: (Bool) -> Void
-    @AppStorage(SettingsKey.terminalFontSize) private var fontSize = 12.0
-    @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
-    @AppStorage(SettingsKey.shellIntegration) private var shellIntegration = true
-    @AppStorage(SettingsKey.remoteWindowTitleInMenuBar) private var remoteWindowTitleInMenuBar =
-        SettingsKey.defaultRemoteWindowTitleInMenuBarEnabled
-    @AppStorage(SettingsKey.terminalThemeDark) private var darkTheme = SettingsKey.defaultTerminalThemeDark
-    @AppStorage(SettingsKey.terminalThemeLight) private var lightTheme = SettingsKey.defaultTerminalThemeLight
-    @AppStorage(SettingsKey.terminalCustomConfigurationDarkEnabled) private var darkCustomEnabled = false
-    @AppStorage(SettingsKey.terminalCustomConfigurationLightEnabled) private var lightCustomEnabled = false
+    @Environment(AppModel.self) private var app
+    private var fontSize: Double { app.terminalSettings.preferences.fontSize }
+    private var fontFollowTheme: Bool { app.terminalSettings.preferences.fontFollowTheme }
+    private var shellIntegration: Bool { app.terminalSettings.preferences.shellIntegration }
+    private var remoteWindowTitleInMenuBar: Bool { app.terminalSettings.preferences.remoteWindowTitleInMenuBar }
+    private var darkTheme: String { app.terminalSettings.preferences.darkTheme }
+    private var lightTheme: String { app.terminalSettings.preferences.lightTheme }
+    private var darkCustomEnabled: Bool { app.terminalSettings.preferences.darkCustomEnabled }
+    private var lightCustomEnabled: Bool { app.terminalSettings.preferences.lightCustomEnabled }
+
+    private func binding<Value>(_ keyPath: WritableKeyPath<TerminalPreferences, Value>) -> Binding<Value> {
+        Binding(
+            get: { app.terminalSettings.preferences[keyPath: keyPath] },
+            set: { app.terminalSettings.set($0, for: keyPath) })
+    }
 
     private var darkThemes: [GhosttyThemeDefinition] {
         TermindTerminalThemeCatalog.allThemes.filter(\.isDark).sorted { $0.name < $1.name }
@@ -628,10 +632,15 @@ private struct TerminalSettings: View {
 
     var body: some View {
         Group {
+            if let error = app.terminalSettings.storageError {
+                Text(error).foregroundStyle(.orange)
+            }
             Section("Light Configuration") {
-                Picker("Theme", selection: $lightTheme) { ForEach(lightThemes) { Text($0.name).tag($0.name) } }
-                    .disabled(lightCustomEnabled)
-                Toggle("Custom Configuration", isOn: $lightCustomEnabled)
+                Picker("Theme", selection: binding(\.lightTheme)) {
+                    ForEach(lightThemes) { Text($0.name).tag($0.name) }
+                }
+                .disabled(lightCustomEnabled)
+                Toggle("Custom Configuration", isOn: binding(\.lightCustomEnabled))
                 if lightCustomEnabled {
                     FormNavigationAction(title: "Edit Custom Configuration") {
                         editConfiguration(.light)
@@ -639,9 +648,9 @@ private struct TerminalSettings: View {
                 }
             }
             Section("Dark Configuration") {
-                Picker("Theme", selection: $darkTheme) { ForEach(darkThemes) { Text($0.name).tag($0.name) } }
+                Picker("Theme", selection: binding(\.darkTheme)) { ForEach(darkThemes) { Text($0.name).tag($0.name) } }
                     .disabled(darkCustomEnabled)
-                Toggle("Custom Configuration", isOn: $darkCustomEnabled)
+                Toggle("Custom Configuration", isOn: binding(\.darkCustomEnabled))
                 if darkCustomEnabled {
                     FormNavigationAction(title: "Edit Custom Configuration") {
                         editConfiguration(.dark)
@@ -649,11 +658,11 @@ private struct TerminalSettings: View {
                 }
             }
             Section("Font Configuration") {
-                Toggle("Follow Theme", isOn: $fontFollowTheme)
+                Toggle("Follow Theme", isOn: binding(\.fontFollowTheme))
                 if !fontFollowTheme {
                     LabeledContent("Font Size") {
                         HStack {
-                            Slider(value: $fontSize, in: 9...24, step: 1)
+                            Slider(value: binding(\.fontSize), in: 9...24, step: 1)
                             Text(fontSize, format: .number.precision(.fractionLength(0)))
                                 .monospacedDigit().frame(width: 24, alignment: .trailing)
                         }
@@ -661,7 +670,7 @@ private struct TerminalSettings: View {
                 }
             }
             Section("Integration") {
-                Toggle(isOn: $shellIntegration) {
+                Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
                         Text("Shell Integration")
                         Text(
@@ -672,7 +681,7 @@ private struct TerminalSettings: View {
                     }
                 }
 
-                Toggle(isOn: $remoteWindowTitleInMenuBar) {
+                Toggle(isOn: binding(\.remoteWindowTitleInMenuBar)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
                         Text("Show Terminal Title in Menu Bar")
                         Text(
@@ -686,95 +695,11 @@ private struct TerminalSettings: View {
         }
         .onAppear {
             if TermindTerminalThemeCatalog.darkTheme(named: darkTheme) == nil {
-                darkTheme = SettingsKey.defaultTerminalThemeDark
+                app.terminalSettings.set(SettingsKey.defaultTerminalThemeDark, for: \.darkTheme)
             }
             if TermindTerminalThemeCatalog.lightTheme(named: lightTheme) == nil {
-                lightTheme = SettingsKey.defaultTerminalThemeLight
+                app.terminalSettings.set(SettingsKey.defaultTerminalThemeLight, for: \.lightTheme)
             }
-        }
-        .onChange(of: shellIntegration) { _, isEnabled in
-            shellIntegrationChanged(isEnabled)
-        }
-    }
-}
-
-private struct SyncSettings: View {
-    @Environment(AppModel.self) private var app
-    @Environment(\.locale) private var locale
-    @AppStorage(SettingsKey.vaultSyncEnabled) private var isEnabled =
-        SettingsKey.defaultVaultSyncEnabled
-
-    var body: some View {
-        Section("iCloud") {
-            Toggle("Sync Vault with iCloud", isOn: syncEnabled)
-            LabeledContent("Status") { statusLabel }
-
-            if case .accountChangeConfirmationRequired = status {
-                Text(
-                    "This Mac is signed in to a different iCloud account. Your local Vault will not be uploaded until you confirm the merge."
-                )
-                .font(.caption).foregroundStyle(.secondary)
-                Button("Merge with This iCloud Account") {
-                    app.vaultSync?.confirmAccountSwitchMerge()
-                }
-            } else if case .failed = status {
-                Button("Retry") { app.vaultSync?.retry() }
-            }
-
-            Text(
-                "Hosts, identities, public key metadata, Known Hosts, snippets, and port forwards sync through your private iCloud database. Passwords and private keys remain protected separately by Keychain. Credentials marked “This Mac” will be missing on other Macs."
-            )
-            .font(.caption).foregroundStyle(.secondary)
-        }
-    }
-
-    private var syncEnabled: Binding<Bool> {
-        Binding(
-            get: { isEnabled && app.proAccess.canUse(.vaultSync) },
-            set: { enabled in
-                guard !enabled || app.proAccess.require(.vaultSync) else { return }
-                isEnabled = enabled
-                app.vaultSync?.setEnabled(enabled)
-            }
-        )
-    }
-
-    private var status: VaultSyncStatus {
-        guard app.proAccess.canUse(.vaultSync) else { return .paused }
-        return app.vaultSync?.status ?? (isEnabled ? .checkingAccount : .paused)
-    }
-
-    @ViewBuilder
-    private var statusLabel: some View {
-        switch status {
-        case .checkingAccount:
-            Label("Checking iCloud…", systemImage: "icloud")
-        case .paused:
-            Label("Paused", systemImage: "pause.circle")
-        case .unavailable(let message):
-            Label(message, systemImage: "icloud.slash").foregroundStyle(.secondary)
-        case .accountChangeConfirmationRequired:
-            Label("Waiting for confirmation", systemImage: "person.crop.circle.badge.exclamationmark")
-                .foregroundStyle(.orange)
-        case .syncing(let pendingCount):
-            Label(
-                pendingCount == 1 ? "Syncing 1 change…" : "Syncing \(pendingCount) changes…",
-                systemImage: "arrow.triangle.2.circlepath.icloud"
-            )
-        case .upToDate(let lastSync):
-            if let lastSync {
-                let formatted = lastSync.formatted(
-                    Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale)
-                )
-                Label(
-                    "Up to date · \(formatted)",
-                    systemImage: "checkmark.icloud"
-                )
-            } else {
-                Label("Up to date", systemImage: "checkmark.icloud")
-            }
-        case .failed(let message):
-            Label(message, systemImage: "exclamationmark.icloud").foregroundStyle(.red)
         }
     }
 }

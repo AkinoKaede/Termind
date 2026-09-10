@@ -173,7 +173,7 @@ nonisolated extension ModelAPIFormat {
 /// recoverable from the composed result: a URL ending in `/messages` looks the
 /// same whether the user typed that suffix or Termind appended it, and
 /// `.automatic` looks the same as picking the format it resolved to.
-nonisolated struct ProviderEndpoint: Hashable, Sendable {
+nonisolated struct ProviderEndpoint: Codable, Hashable, Sendable {
     var apiType: ModelAPIType = .automatic
     var url: String = ""
 

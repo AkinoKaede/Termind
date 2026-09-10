@@ -21,6 +21,8 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     private let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
     private var engine: CKSyncEngine?
     private var operation: Task<Void, Never>?
+    private var operationID = UUID()
+    private var isReadyToSend = false
     private var isStarted = false
     private var terminalError: String?
 
@@ -28,7 +30,11 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     var didApplyRemote: ((VaultSnapshot, Set<VaultRecordKey>) -> Void)?
 
     var isEnabled: Bool {
-        UserDefaults.standard.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool
+        guard
+            defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
+                ?? SettingsKey.defaultICloudSyncEnabled
+        else { return false }
+        return defaults.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool
             ?? SettingsKey.defaultVaultSyncEnabled
     }
 
@@ -53,20 +59,23 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     }
 
     func start() {
-        guard isEnabled, !isStarted else {
-            if !isEnabled { status = .paused }
+        guard isEnabled else {
+            pause()
             return
         }
+        guard !isStarted else { return }
         isStarted = true
         run { [weak self] in try await self?.prepareAndSynchronize() }
     }
 
     func setEnabled(_ enabled: Bool) {
-        UserDefaults.standard.set(enabled, forKey: SettingsKey.vaultSyncEnabled)
+        defaults.set(enabled, forKey: SettingsKey.vaultSyncEnabled)
         if enabled { start() } else { pause() }
     }
 
     func pause() {
+        operationID = UUID()
+        isReadyToSend = false
         operation?.cancel()
         operation = nil
         isStarted = false
@@ -114,15 +123,21 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
     private func run(_ body: @escaping @MainActor () async throws -> Void) {
         guard operation == nil else { return }
+        let id = UUID()
+        operationID = id
         operation = Task { [weak self] in
-            defer { self?.operation = nil }
-            do { try await body() } catch is CancellationError {} catch { self?.status = Self.status(for: error) }
+            defer { if self?.operationID == id { self?.operation = nil } }
+            do { try await body() } catch is CancellationError {} catch {
+                if self?.operationID == id { self?.status = Self.status(for: error) }
+            }
         }
     }
 
     private func prepareAndSynchronize() async throws {
+        let id = operationID
         status = .checkingAccount
         let accountStatus = try await container.accountStatus()
+        guard operationID == id, isStarted, isEnabled, !Task.isCancelled else { return }
         guard accountStatus == .available else {
             status = .unavailable(Self.accountStatusDescription(accountStatus))
             isStarted = false
@@ -130,6 +145,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         }
 
         let userRecordID = try await container.userRecordID()
+        guard operationID == id, isStarted, isEnabled, !Task.isCancelled else { return }
         let currentUser = userRecordID.recordName
         let state = try journal.state()
         if let boundUser = state.boundUserRecordName, boundUser != currentUser {
@@ -167,7 +183,9 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         _ = try await container.privateCloudDatabase.modifyRecordZones(
             saving: [zone], deleting: []
         )
-        try await engine.fetchChanges()
+        try await engine.fetchChanges(.init(scope: .zoneIDs([zoneID])))
+        guard self.engine === engine, isEnabled, !Task.isCancelled else { return }
+        isReadyToSend = true
         try await sendPendingChanges()
         try updateUpToDateStatus()
     }
@@ -175,13 +193,15 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     private func synchronizeNow() async throws {
         guard let engine else { return }
         status = .syncing(pendingCount: try journal.pendingEnvelopes().count)
-        try await engine.fetchChanges()
+        try await engine.fetchChanges(.init(scope: .zoneIDs([zoneID])))
+        guard self.engine === engine, isEnabled, !Task.isCancelled else { return }
+        isReadyToSend = true
         try await sendPendingChanges()
         try updateUpToDateStatus()
     }
 
     private func sendPendingChanges() async throws {
-        guard let engine, isEnabled else { return }
+        guard let engine, isEnabled, isReadyToSend else { return }
         let pending = try journal.pendingEnvelopes()
         guard !pending.isEmpty else { return }
         addPendingChanges(Set(pending.map(\.key)))
@@ -217,6 +237,12 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         }
     }
 
+    nonisolated func nextFetchChangesOptions(
+        _ context: CKSyncEngine.FetchChangesContext, syncEngine: CKSyncEngine
+    ) async -> CKSyncEngine.FetchChangesOptions {
+        .init(scope: .zoneIDs([CKRecordZone.ID(zoneName: Self.zoneName, ownerName: CKCurrentUserDefaultName)]))
+    }
+
     // MARK: CKSyncEngineDelegate
 
     nonisolated func handleEvent(
@@ -235,6 +261,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     private func makeChangeBatch(
         _ context: CKSyncEngine.SendChangesContext, engine: CKSyncEngine
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
+        guard self.engine === engine, isEnabled, isReadyToSend else { return nil }
         let pending = engine.state.pendingRecordZoneChanges.filter {
             context.options.scope.contains($0)
         }
@@ -247,7 +274,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
     @MainActor
     private func recordToSave(_ recordID: CKRecord.ID) -> CKRecord? {
-        guard let key = VaultRecordKey(recordName: recordID.recordName),
+        guard recordID.zoneID == zoneID, let key = VaultRecordKey(recordName: recordID.recordName),
             let outgoing = try? journal.outgoingEntry(for: key)
         else { return nil }
         do { return try Self.makeRecord(outgoing, recordID: recordID) } catch {
@@ -259,6 +286,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
 
     @MainActor
     private func handle(_ event: CKSyncEngine.Event, engine: CKSyncEngine) async {
+        guard self.engine === engine, isEnabled else { return }
         do {
             switch event {
             case .stateUpdate(let update):
@@ -316,6 +344,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     }
 
     private func stopEngineForAccountChange() {
+        isReadyToSend = false
         let activeEngine = engine
         engine = nil
         isStarted = false
@@ -358,7 +387,7 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
         // envelope instead of converting a console accident into data loss.
         let physicallyDeleted = Set(
             changes.deletions.compactMap {
-                VaultRecordKey(recordName: $0.recordID.recordName)
+                $0.recordID.zoneID == zoneID ? VaultRecordKey(recordName: $0.recordID.recordName) : nil
             }
         ).filter { (try? journal.envelope(for: $0)) != nil }
         try journal.markNeedsUpload(physicallyDeleted)
@@ -373,14 +402,14 @@ final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sen
     private func handleSentChanges(
         _ changes: CKSyncEngine.Event.SentRecordZoneChanges, engine: CKSyncEngine
     ) throws {
-        for record in changes.savedRecords {
+        for record in changes.savedRecords where record.recordID.zoneID == zoneID {
             guard let envelope = try? Self.envelope(from: record) else { continue }
             try journal.markUploaded(envelope.key, version: envelope.version)
             try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
             try? FileManager.default.removeItem(at: Self.assetURL(for: envelope.key))
         }
 
-        for failure in changes.failedRecordSaves {
+        for failure in changes.failedRecordSaves where failure.record.recordID.zoneID == zoneID {
             let error = failure.error
             if error.code == .serverRecordChanged, let serverRecord = error.serverRecord,
                 let serverEnvelope = try? Self.envelope(from: serverRecord)
