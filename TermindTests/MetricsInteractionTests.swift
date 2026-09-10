@@ -39,35 +39,6 @@ struct MetricsInteractionTests {
     }
 
     @Test
-    func freeMemoryUsesItsOwnTranslation() {
-        #expect(AppLocalization.string("Free Memory", locale: Locale(identifier: "zh-Hans")) == "空闲")
-        #expect(AppLocalization.string("Steal", locale: Locale(identifier: "zh-Hans")) == "虚拟化等待")
-        #expect(
-            AppLocalization.string("Server Identity Verification Required", locale: Locale(identifier: "zh-Hans"))
-                == "需要验证服务器身份")
-    }
-
-    @Test
-    func networkSpeedLabelsAreLocalizedInBothLanguages() {
-        #expect(AppLocalization.string("Send Speed", locale: Locale(identifier: "en")) == "Send Speed")
-        #expect(AppLocalization.string("Receive Speed", locale: Locale(identifier: "en")) == "Receive Speed")
-        #expect(AppLocalization.string("Send Speed", locale: Locale(identifier: "zh-Hans")) == "发送速度")
-        #expect(AppLocalization.string("Receive Speed", locale: Locale(identifier: "zh-Hans")) == "接收速度")
-    }
-
-    @Test
-    func compactMetricLabelsKeepIndependentEnglishAndChineseTranslations() {
-        let labels: [(String.LocalizationValue, String, String)] = [
-            ("Free Memory", "Free", "空闲"), ("Page Cache", "Cache", "缓存"),
-            ("Disk Read Row", "R", "读"), ("Disk Write Row", "W", "写"),
-        ]
-        for (key, english, chinese) in labels {
-            #expect(AppLocalization.string(key, locale: Locale(identifier: "en")) == english)
-            #expect(AppLocalization.string(key, locale: Locale(identifier: "zh-Hans")) == chinese)
-        }
-    }
-
-    @Test
     func metricsChooserMountsNativeRowsWithTheirRequiredEnvironment() async throws {
         let host = Host(name: "Fixture", host: "fixture.invalid")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))

@@ -235,11 +235,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func reasoningEffortExposesTheFullScaleAndDefaultsToMedium() {
-        #expect(
-            ReasoningEffort.allCases
-                == [.off, .minimal, .low, .medium, .high, .xHigh, .max]
-        )
+    func reasoningEffortDefaultsToMedium() {
         #expect(ConversationModel().reasoningEffort == .medium)
     }
 
@@ -255,12 +251,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func permissionModesHaveTheExpectedOrderAndSafeInitialDefault() {
-        #expect(
-            AgentPermissionMode.allCases
-                == [.askForApproval, .approveForMe, .fullAccess]
-        )
-
+    func initialPermissionRequiresApproval() {
         let store = AIConfigurationModel(persistsSecrets: false)
         #expect(store.resolve(conversation: nil as AgentPermissionMode?) == .askForApproval)
     }

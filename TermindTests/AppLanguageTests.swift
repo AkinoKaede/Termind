@@ -67,7 +67,7 @@ struct AppLanguageTests {
     }
 
     @Test
-    func editorLabelsAndForwardingMessagesHaveChineseTranslations() throws {
+    func forwardingTemplatesPreserveArgumentsInOrder() throws {
         let repository = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
         let url = repository.appending(path: "Termind/Resources/Localizable.xcstrings")
@@ -75,17 +75,6 @@ struct AppLanguageTests {
             JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
         )
         let strings = try #require(root["strings"] as? [String: Any])
-        let labels = [
-            "New Host", "Edit Host", "Import Key", "Generate Key", "Edit Key", "Export to Hosts",
-            "New Group", "Edit Group", "New Snippet", "Edit Snippet", "New Package", "Edit Package",
-            "New Identity", "Edit Identity", "Add Hosts", "Close",
-            "New Port Forward", "Edit Port Forward", "Back", "Start", "Stop",
-            "SOCKS Listen Port", "Listen Port", "Listen Address on This Mac",
-            "Listen Address on SSH Host", "SOCKS Listen Address on This Mac",
-            "Destination Host on This Mac", "Destination Host from SSH Host",
-            "Unable to create an SSH forwarding session.", "SSH handshake failed",
-            "Unable to start remote forwarding", "The forwarding SSH connection closed",
-        ]
         let interpolations: [String: [String]] = [
             "%@ → listen %@ → This Mac → %@:%@": ["jump.example", "[::1]:8080", "db.internal", "5432"],
             "SOCKS5 %@ → %@ → Requested Target": ["[::1]:1080", "jump.example"],
@@ -93,24 +82,19 @@ struct AppLanguageTests {
             "Unable to listen on %@: %@": ["[::1]:8080", "Address already in use"],
         ]
 
-        for key in labels + interpolations.keys.sorted() {
-            let entry = try #require(strings[key] as? [String: Any], "Missing editor or forwarding string: \(key)")
+        for (key, arguments) in interpolations.sorted(by: { $0.key < $1.key }) {
+            let entry = try #require(strings[key] as? [String: Any], "Missing forwarding template: \(key)")
             let localizations = try #require(entry["localizations"] as? [String: Any])
             let chinese = try #require(localizations["zh-Hans"] as? [String: Any])
             let unit = try #require(chinese["stringUnit"] as? [String: Any])
             let translation = try #require(unit["value"] as? String)
-            #expect(unit["state"] as? String == "translated")
-            #expect(translation.range(of: "\\p{Han}", options: .regularExpression) != nil)
-
-            if let arguments = interpolations[key] {
-                let placeholders = translation.matches(of: /%(?:[1-9][0-9]*\$)?@/)
-                #expect(placeholders.count == arguments.count, "Placeholder mismatch: \(key)")
-                let rendered = String(format: translation, arguments: arguments)
-                var remaining = rendered[...]
-                for argument in arguments {
-                    let range = try #require(remaining.range(of: argument), "Lost or reordered value: \(key)")
-                    remaining = remaining[range.upperBound...]
-                }
+            let placeholders = translation.matches(of: /%(?:[1-9][0-9]*\$)?@/)
+            #expect(placeholders.count == arguments.count, "Placeholder mismatch: \(key)")
+            let rendered = String(format: translation, arguments: arguments)
+            var remaining = rendered[...]
+            for argument in arguments {
+                let range = try #require(remaining.range(of: argument), "Lost or reordered value: \(key)")
+                remaining = remaining[range.upperBound...]
             }
         }
     }

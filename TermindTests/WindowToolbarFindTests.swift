@@ -198,13 +198,13 @@ struct WindowToolbarFindTests {
         let locale = Locale(identifier: "zh-Hans-CN")
 
         window.selectAssistant()
-        #expect(title.title(in: window, locale: locale) == "新建对话")
+        #expect(title.title(in: window, locale: locale) == AppLocalization.string("New Chat", locale: locale))
 
         window.selectAssistant(conversation.id)
         #expect(title.title(in: window, locale: locale) == "Nginx rollout")
 
         window.showAssistantArchive()
-        #expect(title.title(in: window, locale: locale) == "已归档")
+        #expect(title.title(in: window, locale: locale) == AppLocalization.string("Archived", locale: locale))
     }
 
     @Test
@@ -221,7 +221,7 @@ struct WindowToolbarFindTests {
             )
         )
 
-        #expect(workspace.title(in: store, locale: locale) == "工作区")
+        #expect(workspace.title(in: store, locale: locale) == AppLocalization.string("Workspace", locale: locale))
         workspace.customTitle = "Production"
         #expect(workspace.title(in: store, locale: locale) == "Production")
     }

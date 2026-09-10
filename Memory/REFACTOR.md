@@ -1003,3 +1003,34 @@ from assertions expecting English output; all `AppLanguageTests`, `ArchitectureB
 leaves one failure: `explicitLanguagesWriteFullAppleLanguageTags`, because the launch-time `AppleLanguages`
 override takes precedence over the test's stored Chinese preference. That test passes in the default run.
 No production references to the removed preference or settings view remain.
+
+## Remove low-value test assertions — 2026-09-11
+
+**Status:** Completed. The full run encountered an intermittent focus-test failure; the focused rerun passed.
+
+**Evidence:** `rg` confirms three static-translation tests in `MetricsInteractionTests`, a static-label
+inventory mixed into the forwarding interpolation test, pinned catalog version/count assertions, and
+enum-list snapshots. `ChatSlashCommandTests` also tests the compiler-synthesized raw-value round trip
+without exercising command parsing.
+
+**Action:** Delete these redundant checks. Resolve expected labels through localization resources in
+title and metrics presenter behavior tests. Retain interpolation, plural rules, catalog completeness,
+language preferences, model resolution, persistence compatibility, safe defaults, and source-boundary checks.
+
+**Estimated reduction:** Approximately 80 lines of test code, with no production or dependency changes.
+
+**Result:** Five redundant tests removed. Nine test files add 22 and remove 99 lines (net -77).
+No production files, localization resources, dependency pins, or source-scanning tests changed.
+
+**Verification:** Strict Swift formatting for all changed test files, `git diff --check`, and Chinese
+localization checks for both Localizable and InfoPlist catalogs pass. The full macOS test command used
+`-onlyUsePackageVersionsFromResolvedFile` and executed 1,121 tests in 111 suites. It reported two issues
+in `statusItemCanBeEnabledDisabledAndOpenItsPopoverWithoutWindowEnvironment`: neutral initial focus
+was false and input modality remained keyboard. That entire test is byte-for-byte identical to HEAD.
+A focused rerun of all five `MetricsInteractionTests` passed, including the focus test. A preceding
+single-function filter matched zero tests and is not counted as verification.
+All other suites passed in the full run, including language, architecture, model resolution, composer,
+command parsing, metrics presentation/lifecycle, settings navigation, and window-title behavior.
+The full run log is `/tmp/termind-test-cleanup.log`; the focused rerun log is
+`/tmp/termind-test-cleanup-focus.log`. The first sandboxed attempt could not write SwiftPM caches;
+the reported test runs used the approved Xcode command outside the filesystem sandbox.

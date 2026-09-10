@@ -209,15 +209,6 @@ struct ChatSlashCommandTests {
         )
     }
 
-    /// Every effort the picker offers has to round-trip through the draft, or a
-    /// command would silently do nothing for one of them.
-    @Test
-    func everyReasoningEffortRoundTripsThroughItsRawValue() {
-        for effort in ReasoningEffort.allCases {
-            #expect(ReasoningEffort(rawValue: effort.rawValue) == effort)
-        }
-    }
-
     // MARK: - Named arguments
 
     /// `/skill <name>` arms it, `/skill <name> <text>` arms it and asks in the

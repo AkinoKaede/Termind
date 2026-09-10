@@ -292,8 +292,6 @@ struct AIProviderPersistenceTests {
         let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
         #expect(reloaded.assignment(for: .chat) == chatRef)
         #expect(reloaded.assignment(for: .commandGenerator) == generatorRef)
-        #expect(AIRole.allCases == [.chat, .commandGenerator, .securityReview])
-        #expect(AIRole.commandGenerator.unsetLabel == "Same as Chat")
     }
 
     @Test
@@ -413,8 +411,6 @@ struct ModelCapabilityResolverTests {
             provider: provider
         )
 
-        #expect(ModelCapabilityResolver.catalogMetadata?.version == "0.85.1")
-        #expect(ModelCapabilityResolver.catalogMetadata?.modelCount == 1_354)
         #expect(resolution.catalogSource == .init(provider: "openai", modelID: "gpt-5.4"))
         #expect(resolution.model.input == [.text, .image])
         // `webSearch` is the one ability that does come from the model id, and

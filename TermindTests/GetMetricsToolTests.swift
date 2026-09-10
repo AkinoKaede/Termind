@@ -203,16 +203,17 @@ struct GetMetricsToolTests {
     }
 
     @Test
-    func persistedPresenterDisplaysEnglishAndChineseSummary() throws {
+    func persistedPresenterPreservesHostValuesAndStaleWarningAcrossLocales() throws {
         let presenter = try #require(TermindAgentTools.presenter(id: "builtin.get_metrics"))
         let snapshot = MetricsSnapshot(
             capturedAt: now, state: .live, point: MetricsPoint(date: now.addingTimeInterval(-31), cpu: 25, memory: 50))
         let value = AgentJSONValue.object(output(snapshot))
-        for (language, hostLabel, staleLabel) in [
-            ("en", "Host", "Cached metrics are stale"), ("zh-Hans", "主机", "缓存指标已过期"),
-        ] {
+        for language in ["en", "zh-Hans"] {
+            let locale = Locale(identifier: language)
+            let hostLabel = AppLocalization.string("Host", locale: locale)
+            let staleLabel = AppLocalization.string("Cached metrics are stale", locale: locale)
             let detail = presenter.present(
-                AgentToolDetailInput(result: value, arguments: [:], locale: Locale(identifier: language)))
+                AgentToolDetailInput(result: value, arguments: [:], locale: locale))
             #expect(detail.contains(.field(.init(label: hostLabel, value: "Host"))))
             #expect(detail.contains(.message(staleLabel, .warning)))
             #expect(detail.contains(.field(.init(label: "CPU", value: "25.0%"))))

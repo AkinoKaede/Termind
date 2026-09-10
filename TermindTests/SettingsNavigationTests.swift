@@ -57,15 +57,6 @@ struct SettingsNavigationTests {
         #expect(SettingsRoute.terminalConfiguration(.dark).parent == .category(.terminal))
     }
 
-    @Test
-    func settingsCategoriesKeepTheirProductOrder() {
-        var expected: [SettingsCategory] = [.pro, .app, .terminal, .sftp, .ai, .sync]
-        #if DEBUG
-            expected.append(.developer)
-        #endif
-        #expect(SettingsCategory.allCases == expected)
-    }
-
     @Test @MainActor
     func settingsRestoresTheDestinationItReplaced() {
         let workspace = Workspace(pane: Pane(.empty))

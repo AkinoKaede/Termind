@@ -243,7 +243,7 @@ struct ServerMetricsLifecycleTests {
     }
 
     @Test
-    func navigationReturnsFromSettingsAndTitlesAreLocalized() {
+    func navigationReturnsFromSettingsAndCreatesMetricsSelections() {
         let window = WindowModel()
         window.selectedDestination = .metrics
         window.openSettings()
@@ -255,8 +255,6 @@ struct ServerMetricsLifecycleTests {
         #expect(window.presentations.hostChooser == .metrics)
         #expect(HostChooserPurpose.metrics.allowsMultiple)
         #expect(!HostChooserPurpose.metrics.choosesConnectionProtocol)
-        #expect(MetricsWindowTitleProvider().title(in: window, locale: Locale(identifier: "en")) == "Metrics")
-        #expect(MetricsWindowTitleProvider().title(in: window, locale: Locale(identifier: "zh-Hans")) == "监控")
     }
 
     @Test
