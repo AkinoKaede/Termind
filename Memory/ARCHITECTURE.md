@@ -322,9 +322,12 @@ Debug screenshot launches inject a frozen `ServerMetricsModel` into AppModel.
 Its in-memory preferences never read or write saved monitor configuration, and
 it cannot start samplers or host-key discovery. The metrics overview and detail
 fixtures render the production views using deterministic, fictitious data.
-Screenshot launches explicitly create an AppKit window hosting the same
-RootView as the normal WindowGroup and disable restoration;
-window preparation waits for a visible key-capable window before sizing and activation; their ready
+Screenshot launches use the production WindowGroup with restoration disabled,
+injecting only the demo model, language, and navigation state. There is no second
+RootView or manual AppKit host to steal persistent terminal/transcript surfaces
+or override the production toolbar style. The ready log includes the titlebar
+height and backing scale for native geometry and resolution verification.
+Window preparation waits for a visible key-capable window before sizing and activation; the ready
 log records both focus conditions before capture. Vault captures clear the
 initial disclosure-button focus without resigning the key window.
 

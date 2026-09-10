@@ -1034,3 +1034,20 @@ command parsing, metrics presentation/lifecycle, settings navigation, and window
 The full run log is `/tmp/termind-test-cleanup.log`; the focused rerun log is
 `/tmp/termind-test-cleanup-focus.log`. The first sandboxed attempt could not write SwiftPM caches;
 the reported test runs used the approved Xcode command outside the filesystem sandbox.
+
+## Remove the duplicate screenshot window host — 2026-09-11
+
+**Status:** Completed.
+
+**Evidence:** `rg` found two screenshot-mode `RootView` construction sites: the production
+WindowGroup and `ScreenshotDemoWindow`. The manual host forced compact toolbar geometry;
+duplicate roots also competed for the persistent native terminal and transcript views.
+
+**Action:** Delete `ScreenshotDemoWindow` and use the production WindowGroup with demo
+state and restoration disabled. Report native titlebar height and backing scale when ready.
+
+**Estimated reduction:** About 50 lines of duplicate window construction and launch wiring.
+
+**Verification:** Full pinned macOS test run passed, including the new architecture guard
+for a single root host. Native capture confirms a 52-point toolbar and visible terminal
+and chat content. Strict formatting and Chinese localization checks passed.

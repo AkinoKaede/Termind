@@ -136,7 +136,31 @@
                 #expect(point.networkDevices.first?.addresses == liveSample.interfaceAddresses["eth0"])
                 model.start()
                 #expect(model.servers.first === first)
-                #expect(model.servers.allSatisfy { !$0.isConnecting && $0.point != nil })
+                #expect(model.servers.allSatisfy { !$0.isConnecting && $0.selection.enabled && $0.point != nil })
+                if scene == .metrics {
+                    let rates = model.servers.flatMap {
+                        [$0.point?.diskRead, $0.point?.diskWrite, $0.point?.networkReceive, $0.point?.networkSend]
+                            .compactMap { $0 }
+                    }
+                    #expect(rates.contains { $0 >= 1_024 && $0 < 1_048_576 })
+                    #expect(rates.contains { $0 >= 1_048_576 })
+                    #expect(model.servers[0].point?.diskWrite == 0)
+                    #expect(model.servers[4].point?.networkSend == 0)
+                    #expect(model.servers[5].point?.diskRead == 0)
+                    #expect(model.servers[5].point?.diskWrite == 0)
+                    #expect(model.servers[2].point?.cpu == 96.4)
+                    #expect(model.servers[2].point?.memory == 82.6)
+                    #expect(model.servers[1].point?.diskWrite == 0)
+                    #expect(model.servers[3].point?.networkReceive == 0)
+                    #expect(model.servers[3].point?.networkSend == 0)
+                    #expect(
+                        model.servers.allSatisfy {
+                            $0.point?.diskRead != nil && $0.point?.diskWrite != nil
+                                && $0.point?.networkReceive != nil && $0.point?.networkSend != nil
+                        })
+                    #expect(model.servers[5].point?.memory == 93.1)
+                    #expect(model.servers.compactMap { $0.point?.memoryFree }.allSatisfy { $0 >= 0 })
+                }
                 model.shutdown()
             }
         }

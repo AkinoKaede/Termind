@@ -4,6 +4,15 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func screenshotScenesShareTheProductionWindowHost() throws {
+        let source = try String(contentsOf: sourceRoot.appending(path: "App/TermindApp.swift"), encoding: .utf8)
+        #expect(source.components(separatedBy: "RootView(").count == 2)
+        #expect(!source.contains("ScreenshotDemoWindow"))
+        #expect(!source.contains(".suppressed"))
+        #expect(source.contains(".restorationBehavior("))
+    }
+
+    @Test
     func reviewInvitationsStayLocalAndOutsideTheAgentRuntime() throws {
         let sync = try String(
             contentsOf: sourceRoot.appending(path: "Domain/Settings/SettingsSyncTypes.swift"), encoding: .utf8

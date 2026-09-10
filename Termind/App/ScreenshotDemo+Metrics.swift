@@ -13,15 +13,31 @@
         private func metricsRow(host: Host, index: Int) -> ServerMetric {
             let gib = 1_073_741_824.0
             let mib = 1_048_576.0
+            let kib = 1_024.0
             let date = Date(timeIntervalSince1970: 1_788_998_400)
-            let cpu = [32.8, 18.4, 57.2, 24.6, 8.3, 12.7][index]
+            let cpu = scene == .metrics && index == 2 ? 96.4 : [32.8, 18.4, 57.2, 24.6, 8.3, 12.7][index]
             let total = [32.0, 16, 64, 8, 16, 32][index] * gib
-            let memory = [46.2, 31.7, 68.4, 22.5, 35.8, 54.1][index]
+            let memory =
+                scene == .metrics
+                ? [46.2, 31.7, 82.6, 22.5, 35.8, 93.1][index]
+                : [46.2, 31.7, 68.4, 22.5, 35.8, 54.1][index]
             let used = total * memory / 100
-            let receive = [8.4, 4.6, 12.8, 32.1, 1.8, 5.2][index] * mib
-            let send = [3.2, 2.1, 4.4, 18.6, 0.6, 1.4][index] * mib
-            let read = [12.4, 3.6, 86.2, 8.8, 1.2, 24.3][index] * mib
-            let write = [4.8, 1.2, 42.7, 2.4, 0.8, 16.1][index] * mib
+            let receive =
+                scene == .metrics
+                ? [1.6 * mib, 96 * kib, 6.8 * mib, 0, 4.8 * kib, 64 * kib][index]
+                : [8.4, 4.6, 12.8, 32.1, 1.8, 5.2][index] * mib
+            let send =
+                scene == .metrics
+                ? [182 * kib, 24 * kib, 2.3 * mib, 0, 0, 16 * kib][index]
+                : [3.2, 2.1, 4.4, 18.6, 0.6, 1.4][index] * mib
+            let read =
+                scene == .metrics
+                ? [768 * kib, 128 * kib, 86.2 * mib, 32 * kib, 0, 0][index]
+                : [12.4, 3.6, 86.2, 8.8, 1.2, 24.3][index] * mib
+            let write =
+                scene == .metrics
+                ? [0, 0, 42.7 * mib, 12 * kib, 8 * kib, 0][index]
+                : [4.8, 1.2, 42.7, 2.4, 0.8, 16.1][index] * mib
             let disk = MetricsDevicePoint(
                 id: "nvme0n1", read: read, write: write, readTotal: 384 * gib, writeTotal: 128 * gib,
                 readIOPS: 312, writeIOPS: 148, busy: 18.6, readWait: 0.8, writeWait: 1.2
@@ -43,8 +59,8 @@
             point.memory = memory
             point.memoryUsed = used
             point.memoryTotal = total
-            point.memoryCached = total * 0.18
-            point.memoryFree = total - used - total * 0.18
+            point.memoryCached = min(total * 0.18, (total - used) * 0.75)
+            point.memoryFree = total - used - (point.memoryCached ?? 0)
             point.diskRead = read
             point.diskWrite = write
             point.networkReceive = receive

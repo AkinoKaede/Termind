@@ -54,8 +54,6 @@ struct TermindApp: App {
                     _app = State(initialValue: app)
                     let window = screenshotDemo.makeWindow(hosts: hosts)
                     launchWindow = window
-                    ScreenshotDemoWindow.configure(
-                        app: app, windowModel: window, container: container, locale: screenshotDemo.language.locale)
                     return
                 }
             #endif
@@ -140,7 +138,6 @@ struct TermindApp: App {
                 #endif
         }
         #if DEBUG
-            .defaultLaunchBehavior(ScreenshotDemoConfiguration.active == nil ? .automatic : .suppressed)
             .restorationBehavior(ScreenshotDemoConfiguration.active == nil ? .automatic : .disabled)
         #endif
         .defaultSize(width: Metrics.Window.defaultWidth, height: Metrics.Window.defaultHeight)
@@ -218,8 +215,6 @@ struct TermindApp: App {
             // workspace composition.
             #if DEBUG
                 if let screenshotDemo = ScreenshotDemoConfiguration.active {
-                    ScreenshotDemoWindow.present()
-                    app = ScreenshotDemoWindow.model
                     Task { @MainActor in
                         for _ in 0..<100 {
                             if let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeKey }) {
@@ -237,9 +232,11 @@ struct TermindApp: App {
                                     window.makeFirstResponder(nil)
                                 }
                                 let neutralFocus = window.firstResponder == nil || window.firstResponder === window
+                                let titlebarHeight = window.frame.height - window.contentLayoutRect.height
                                 let state =
                                     "TERMIND_DEMO_READY window=\(window.windowNumber) "
-                                    + "active=\(NSApp.isActive) key=\(window.isKeyWindow) neutral=\(neutralFocus)\n"
+                                    + "active=\(NSApp.isActive) key=\(window.isKeyWindow) neutral=\(neutralFocus) "
+                                    + "titlebar=\(titlebarHeight) scale=\(window.backingScaleFactor)\n"
                                 FileHandle.standardOutput.write(Data(state.utf8))
                                 return
                             }
