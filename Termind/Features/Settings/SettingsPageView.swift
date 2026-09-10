@@ -397,6 +397,8 @@ private struct AppSettings: View {
 }
 
 private struct AppInfoSettings: View {
+    @Environment(AppModel.self) private var app
+
     var body: some View {
         Section("Version") {
             LabeledContent {
@@ -416,6 +418,17 @@ private struct AppInfoSettings: View {
         }
 
         Section("Support") {
+            Link(destination: AppReviewController.reviewURL) {
+                Label("Rate on the App Store", systemImage: "star")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .environment(
+                \.openURL,
+                OpenURLAction { url in
+                    app.appReview.recordManualReview()
+                    return .systemAction(url)
+                }
+            )
             Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
                 Label("Support", systemImage: "questionmark.circle")
                     .frame(maxWidth: .infinity, alignment: .leading)

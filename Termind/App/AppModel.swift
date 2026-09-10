@@ -66,6 +66,7 @@ final class AppModel {
     let mcpServer: MCPServerController
     let commands = AppCommandRegistry()
     let onboarding: OnboardingController
+    let appReview: AppReviewController
     let serverMetrics: ServerMetricsModel
     var opensMetricsOnNextWindow = false
     let connections: RemoteConnectionCoordinator
@@ -129,6 +130,7 @@ final class AppModel {
         speechTranscription: SpeechTranscriptionCoordinator? = nil,
         proAccess: ProAccessController = .unrestrictedForTesting(),
         onboarding: OnboardingController = OnboardingController(),
+        appReview: AppReviewController = AppReviewController(),
         serverMetrics suppliedMetrics: ServerMetricsModel? = nil
     ) {
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
@@ -145,6 +147,7 @@ final class AppModel {
         self.hosts = hosts
         self.proAccess = proAccess
         self.onboarding = onboarding
+        self.appReview = appReview
         knownHosts = KnownHostsLibraryModel(library: hosts)
         credentials = CredentialLibraryModel(library: hosts)
         snippets = SnippetLibraryModel(library: hosts)

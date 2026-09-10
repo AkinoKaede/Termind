@@ -112,7 +112,8 @@ struct TermindApp: App {
                         ),
                         vaultSync: vaultSync, settingsSync: settingsSync
                     ),
-                    proAccess: proAccess
+                    proAccess: proAccess,
+                    appReview: .live()
                 )
             )
             launchWindow = nil

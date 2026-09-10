@@ -3,6 +3,21 @@ import Testing
 
 @Suite
 struct ArchitectureBoundaryTests {
+    @Test
+    func reviewInvitationsStayLocalAndOutsideTheAgentRuntime() throws {
+        let sync = try String(
+            contentsOf: sourceRoot.appending(path: "Domain/Settings/SettingsSyncTypes.swift"), encoding: .utf8
+        )
+        #expect(!sync.contains("reviewFirstUse"))
+        #expect(!sync.contains("reviewLastAttempt"))
+        let controller = try String(
+            contentsOf: sourceRoot.appending(path: "App/AppReviewController.swift"), encoding: .utf8
+        )
+        for forbidden in ["import StoreKit", "import AppKit", "import SwiftUI", "import AgentKit"] {
+            #expect(!controller.contains(forbidden))
+        }
+    }
+
     private var sourceRoot: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

@@ -9869,6 +9869,16 @@
         }
       }
     },
+    "Rate on the App Store" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在App Store评分"
+          }
+        }
+      }
+    },
     "Recommended" : {
       "localizations" : {
         "zh-Hans" : {

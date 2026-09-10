@@ -463,6 +463,25 @@ the chooser dismisses, before presenting the existing Pro paywall. Restored or
 previously purchased configurations are retained rather than deleted on downgrade;
 all retained cards count against future additions.
 
+## App Store review invitations
+
+`AppModel` owns one `AppReviewController` for all windows. Its device-local
+UserDefaults history records first foreground use, up to three distinct active
+dates, requested marketing versions, and the last automatic or manual review
+attempt. These records never enter Settings sync and never claim a review was
+shown or submitted. A manual Settings link opens the write-review URL directly.
+
+The controller requires seven elapsed days, three active dates, and five minutes
+of foreground workspace time in the current launch. Only leaving a workspace
+for a Vault list or the Settings index/App page can arm a three-second invitation.
+Native focus, input, sleep and modal state are observed in Platform/macOS;
+navigation, input, loss of focus or a blocking presentation cancels the invitation.
+Returning to the foreground or dismissing a dialog does not re-arm it. The
+SwiftUI presenter calls StoreKit only after the shared controller has persisted
+the attempt. Each marketing version gets at most one request, with a 120-day
+cooldown also restarted by the manual link. Test and screenshot AppModels default
+to disabled controllers, and test-host launches never enable live requests.
+
 ## Settings replication
 
 The iCloud page has one master preference and separate Vault/Settings selections.

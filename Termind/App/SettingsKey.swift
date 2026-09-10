@@ -7,6 +7,12 @@ import Foundation
 /// into two preferences that disagree. Everything user-facing that lives in
 /// `UserDefaults` rather than SwiftData is named here.
 nonisolated enum SettingsKey {
+    // Device-local review invitation history; never included in Settings sync.
+    static let reviewFirstUse = "app.review.firstUse"
+    static let reviewActiveDays = "app.review.activeDays"
+    static let reviewLastAttempt = "app.review.lastAttempt"
+    static let reviewRequestedVersions = "app.review.requestedVersions"
+
     /// App language selection. `system` means normal Bundle negotiation.
     static let showMetricsInMenuBar = "metrics.showInMenuBar"
     static let appLanguage = "app.language"

@@ -82,6 +82,16 @@
         }
 
         @Test
+        func appSettingsSceneUsesTheProductionSettingsRouteInBothLanguages() {
+            for language in [AppLanguage.english, .simplifiedChineseChina] {
+                let configuration = ScreenshotDemoConfiguration(scene: .appSettings, language: language)
+                let window = configuration.makeWindow(hosts: .demo())
+                #expect(window.selectedDestination == .settings)
+                #expect(window.settingsRoute == .category(.app))
+            }
+        }
+
+        @Test
         func workspaceScenesBuildExpectedWindowState() {
             let hosts = HostLibraryModel.demo()
             let workspace = ScreenshotDemoConfiguration(

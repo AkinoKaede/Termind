@@ -3,7 +3,7 @@
 set -euo pipefail
 
 usage() {
-    print -u2 "Usage: Scripts/run-screenshot-demo.sh <hosts|workspace|agent|command|metrics|metrics-detail> <en|zh>"
+    print -u2 "Usage: Scripts/run-screenshot-demo.sh <hosts|workspace|agent|command|metrics|metrics-detail|app-settings> <en|zh>"
 }
 
 if (( $# != 2 )); then
@@ -15,7 +15,7 @@ scene="$1"
 language="$2"
 
 case "$scene" in
-    hosts|workspace|agent|command|metrics|metrics-detail) ;;
+    hosts|workspace|agent|command|metrics|metrics-detail|app-settings) ;;
     *)
         print -u2 "Unknown Demo scene: $scene"
         usage
