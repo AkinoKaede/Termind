@@ -48,11 +48,11 @@ struct MetricsInteractionTests {
     }
 
     @Test
-    func networkRateLabelsAreLocalizedInBothLanguages() {
-        #expect(AppLocalization.string("Send Rate", locale: Locale(identifier: "en")) == "Send Rate")
-        #expect(AppLocalization.string("Receive Rate", locale: Locale(identifier: "en")) == "Receive Rate")
-        #expect(AppLocalization.string("Send Rate", locale: Locale(identifier: "zh-Hans")) == "发送速率")
-        #expect(AppLocalization.string("Receive Rate", locale: Locale(identifier: "zh-Hans")) == "接收速率")
+    func networkSpeedLabelsAreLocalizedInBothLanguages() {
+        #expect(AppLocalization.string("Send Speed", locale: Locale(identifier: "en")) == "Send Speed")
+        #expect(AppLocalization.string("Receive Speed", locale: Locale(identifier: "en")) == "Receive Speed")
+        #expect(AppLocalization.string("Send Speed", locale: Locale(identifier: "zh-Hans")) == "发送速度")
+        #expect(AppLocalization.string("Receive Speed", locale: Locale(identifier: "zh-Hans")) == "接收速度")
     }
 
     @Test

@@ -74,8 +74,8 @@ struct MetricsServerDetails: View {
         panel {
             HStack(spacing: 12) {
                 VStack(spacing: 8) {
-                    figure("Send Rate", value: MetricsFormat.rate(point?.networkSend))
-                    figure("Receive Rate", value: MetricsFormat.rate(point?.networkReceive))
+                    figure("Send Speed", value: MetricsFormat.rate(point?.networkSend))
+                    figure("Receive Speed", value: MetricsFormat.rate(point?.networkReceive))
                 }
                 VStack(spacing: 8) {
                     figure(
@@ -124,8 +124,8 @@ struct MetricsServerDetails: View {
                     .lineLimit(1).help(device.addresses.joined(separator: "\n"))
             }
             HStack(spacing: 6) {
-                figure("Send Rate", value: MetricsFormat.rate(device.write))
-                figure("Receive Rate", value: MetricsFormat.rate(device.read))
+                figure("Send Speed", value: MetricsFormat.rate(device.write))
+                figure("Receive Speed", value: MetricsFormat.rate(device.read))
                 figure("Total Sent", value: MetricsFormat.bytes(device.writeTotal))
                 figure("Total Received", value: MetricsFormat.bytes(device.readTotal))
             }

@@ -9843,18 +9843,18 @@
         }
       }
     },
-    "Receive Rate" : {
+    "Receive Speed" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Receive Rate"
+            "value" : "Receive Speed"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "接收速率"
+            "value" : "接收速度"
           }
         }
       }
@@ -11118,18 +11118,18 @@
         }
       }
     },
-    "Send Rate" : {
+    "Send Speed" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Send Rate"
+            "value" : "Send Speed"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "发送速率"
+            "value" : "发送速度"
           }
         }
       }
