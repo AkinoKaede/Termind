@@ -366,7 +366,8 @@ enum TermindColor {
 /// unemphasized pair — a row looks the same whether or not its container is the
 /// key responder. That is the whole reason selection is drawn by hand in this
 /// app instead of by `List(selection:)`, which flips between accent blue and a
-/// faint gray as focus moves. See `SidebarRow` and `HostChooserRow`.
+/// faint gray as focus moves. See `SidebarRow` and `HostChooserView`'s explicit
+/// keyboard cursor.
 enum Highlight {
     static func fill(isSelected: Bool, isHovering: Bool = false) -> Color {
         if isSelected {

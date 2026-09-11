@@ -46,12 +46,14 @@ struct MetricsInteractionTests {
         #expect(rows.sorted(using: KeyPathComparator(\.memorySortValue, order: .reverse)).map(\.pid) == [20, 2])
     }
 
-    @Test
-    func metricsChooserMountsNativeRowsWithTheirRequiredEnvironment() async throws {
+    @Test(arguments: [HostChooserPurpose.connect, .batchStartup, .metrics])
+    func hostChoosersMountNativeListsWithTheirRequiredEnvironment(
+        purpose: HostChooserPurpose
+    ) async throws {
         let host = Host(name: "Fixture", host: "fixture.invalid")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
         let windowModel = WindowModel()
-        let root = HostChooserView(purpose: .metrics).environment(app).environment(windowModel)
+        let root = HostChooserView(purpose: purpose).environment(app).environment(windowModel)
         let hosting = NSHostingView(rootView: root)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 560, height: 520), styleMask: .borderless, backing: .buffered,
@@ -66,6 +68,7 @@ struct MetricsInteractionTests {
         try await Task.sleep(for: .milliseconds(100))
         hosting.layoutSubtreeIfNeeded()
         #expect(hosting.fittingSize.height > 0)
+        #expect(hasTable(hosting))
         #expect(windowModel.workspaces.isEmpty)
         #expect(app.serverMetrics.servers.isEmpty)
     }
@@ -80,7 +83,6 @@ struct MetricsInteractionTests {
         window.isReleasedWhenClosed = false
         window.contentView = hosting
         defer { window.close() }
-        func hasTable(_ view: NSView) -> Bool { view is NSTableView || view.subviews.contains(where: hasTable) }
         hosting.layoutSubtreeIfNeeded()
         try await Task.sleep(for: .milliseconds(100))
         #expect(!hasTable(hosting))
@@ -136,5 +138,9 @@ struct MetricsInteractionTests {
         defaults.set(true, forKey: DesktopSettingsKey.showMetricsInMenuBar)
         menu.refresh()
         #expect(menu.isVisible)
+    }
+
+    private func hasTable(_ view: NSView) -> Bool {
+        view is NSTableView || view.subviews.contains(where: hasTable)
     }
 }

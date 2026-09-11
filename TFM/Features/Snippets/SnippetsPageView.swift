@@ -821,26 +821,30 @@ private struct SnippetTargetPickerSheet: View {
             ContentUnavailableView.search(text: query)
         } else {
             ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(results) { host in
+                List {
+                    ForEach(results) { host in
+                        Button {
+                            chooser.activate(host.id)
+                        } label: {
                             HostChooserRow(
                                 host: host,
-                                isSelected: chooser.cursor == host.id,
+                                isCursor: chooser.cursor == host.id,
                                 isChecked: chooser.selected.contains(host.id)
                             )
-                            .frame(height: 52)
-                            .id(host.id)
-                            .onTapGesture { chooser.activate(host.id) }
                         }
+                        .buttonStyle(.plain)
+                        .id(host.id)
+                        .listRowBackground(
+                            chooser.cursor == host.id
+                                ? Color.accentColor.opacity(0.11) : Color.clear
+                        )
                     }
                 }
+                .listStyle(.inset)
                 .onAppear { scrollCursorIntoView(using: proxy) }
                 .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
                 .onChange(of: results.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
             }
-            .padding(.horizontal, Metrics.Space.l)
-            .padding(.bottom, Metrics.Space.s)
         }
     }
 

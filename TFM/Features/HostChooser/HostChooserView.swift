@@ -2,6 +2,7 @@ import Darwin
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -76,8 +77,8 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         }
     }
 
-    /// Named for what it does, not "OK" — the button is the last thing read
-    /// before something connects, and it should say which thing.
+    /// Named for what it does, not "OK". The footer keeps this explicit action
+    /// in every mode, while clicking a host also performs the single-selection case.
     var confirmLabel: LocalizedStringKey {
         switch self {
         case .connect, .batchStartup: "Connect"
@@ -106,6 +107,15 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         }
     }
 
+    /// A single host is the complete answer, matching the mobile picker. Batch
+    /// purposes keep collecting rows until their explicit confirmation action.
+    var activatesHostImmediately: Bool {
+        switch self {
+        case .connect: true
+        case .batchStartup, .snippet, .metrics: false
+        }
+    }
+
     var showsWorkspaceChoice: Bool {
         switch self {
         case .batchStartup: true
@@ -121,7 +131,8 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     }
 }
 
-/// The sheet ⌘T raises: pick a host, press Return.
+/// The sheet ⌘T raises: click a host, or highlight one with the keyboard and
+/// press Return.
 ///
 /// A sheet rather than a page because it is one question with one answer, and
 /// the window behind it is what you were looking at when you asked — navigating
@@ -134,17 +145,14 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
 /// `AppModel.newSession`. Typing is different — it narrows the list to something
 /// the user is looking at, so the top match highlights and Return opens it.
 ///
-/// Selection is drawn by hand rather than by `List(selection:)`, which is what
-/// this sheet used to do. Two reasons, and the first is a bug: a row carrying a
-/// double-click gesture never commits its single click, so nothing highlighted
-/// and the confirm button stayed disabled. The second is that the search field
-/// holds focus for the sheet's whole life, so a list selection would paint in
-/// AppKit's faint unemphasized gray. Every other selectable surface here already
-/// draws its own — see `CardTile` and `SidebarRow`.
+/// The rows live in a native `List`, but they are buttons rather than
+/// `List(selection:)`: the search field keeps focus while the arrow-key cursor
+/// remains visibly highlighted. In single mode the row is the action and opens
+/// immediately; no second click or footer confirmation is required.
 ///
 /// Batch Startup raises this same sheet with `purpose.allowsMultiple`. There,
-/// rows carry checkboxes and `selection` stops being the answer — it demotes to
-/// the keyboard cursor, and `checked` is what Connect acts on.
+/// rows carry trailing checkmarks and `cursor` stops being the answer — it is
+/// only the keyboard position, while `selected` is what Connect acts on.
 struct HostChooserView: View {
     /// How this chooser got on screen, and therefore what closing it means.
     ///
@@ -312,32 +320,31 @@ struct HostChooserView: View {
             ContentUnavailableView.search(text: query)
         } else {
             ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(results) { host in
+                List {
+                    ForEach(results) { host in
+                        Button {
+                            activate(host)
+                        } label: {
                             HostChooserRow(
                                 host: host,
-                                isSelected: chooser.cursor == host.id,
+                                isCursor: chooser.cursor == host.id,
                                 isChecked: purpose.allowsMultiple
                                     ? chooser.selected.contains(host.id) : nil
                             )
-                            .frame(height: 52)
-                            .id(host.id)
-                            .onTapGesture(count: 2) {
-                                if !purpose.allowsMultiple { open(host) }
-                            }
-                            .onTapGesture {
-                                chooser.activate(host.id)
-                            }
                         }
+                        .buttonStyle(.plain)
+                        .id(host.id)
+                        .listRowBackground(
+                            chooser.cursor == host.id
+                                ? Color.accentColor.opacity(0.11) : Color.clear
+                        )
                     }
                 }
+                .listStyle(.inset)
                 .onAppear { scrollCursorIntoView(using: proxy) }
                 .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
                 .onChange(of: results.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
             }
-            .padding(.horizontal, Metrics.Space.l)
-            .padding(.bottom, Metrics.Space.s)
         }
     }
 
@@ -615,6 +622,11 @@ struct HostChooserView: View {
         return .handled
     }
 
+    private func activate(_ host: Host) {
+        chooser.activate(host.id)
+        if purpose.activatesHostImmediately { open(host) }
+    }
+
     private func open(_ host: Host) {
         guard let target = connectionProtocol.target else { return }
         app.open(host, as: target, in: window)
@@ -628,55 +640,61 @@ struct HostChooserView: View {
 /// you need to recognise a machine is the same whether you are about to type on
 /// it or copy files to it.
 ///
-/// `isChecked` is nil outside batch mode, and then nothing is drawn — a single
-/// pick has one visual channel and does not need two.
+/// `isChecked` is nil outside batch mode. Multi-selection reserves a trailing
+/// slot and only reveals the native checkmark for rows that will be acted on.
 struct HostChooserRow: View {
     let host: Host
-    let isSelected: Bool
+    let isCursor: Bool
     var isChecked: Bool?
 
     @Environment(AppModel.self) private var app
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        SelectableRow(
-            isCursor: isSelected,
-            isSelected: isChecked ?? isSelected
-        ) {
-            HStack(spacing: Metrics.Space.m) {
-                // Two channels on purpose, and they mean different things: the box
-                // says what you have chosen, the row's background says where the
-                // arrow keys are. Conflating them would make the cursor look like a
-                // pick you had not made.
-                if let isChecked {
-                    SelectionMark(mode: .multiple, isSelected: isChecked)
-                }
+        HStack(spacing: Metrics.Space.m) {
+            HostSystemIcon(asset: distributionEntry?.asset, size: 32)
+                .tint(iconTint)
 
-                StatusDot(status: app.hostLibrary.status(of: host.id))
-
-                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text(host.name)
-                        .lineLimit(1)
-
-                    Text(app.hostLibrary.loginAddress(for: host))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-
-            }
-        } trailing: {
-            if let group = host.groupID.flatMap({ app.hostLibrary.group($0) }) {
-                Text(group.name)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+            VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                Text(host.name)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
+
+                Text(app.hostLibrary.loginAddress(for: host))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer(minLength: Metrics.Space.s)
+
+            if let isChecked {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(.tint)
+                    .opacity(isChecked ? 1 : 0)
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
         .accessibilityElement(children: .combine)
         // In batch mode "selected" has to mean ticked, not where the cursor sits
         // — the tick is what Connect acts on, so it is what VoiceOver must read.
-        .accessibilityAddTraits((isChecked ?? isSelected) ? [.isSelected, .isButton] : .isButton)
+        .accessibilityAddTraits((isChecked ?? isCursor) ? .isSelected : [])
+    }
+
+    private var distributionEntry: LinuxDistributionIconEntry? {
+        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
+    }
+
+    private var iconTint: Color {
+        host.colorTag.color
+            ?? distributionEntry.flatMap {
+                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
+            }
+            ?? .accentColor
     }
 }
 
