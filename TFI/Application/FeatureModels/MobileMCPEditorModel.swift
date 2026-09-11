@@ -110,6 +110,22 @@ final class MobileMCPEditorModel {
         draft.lastConnectedAt = nil
     }
 
+    func upsertHeader(_ header: MCPHeader) {
+        if let index = draft.headers.firstIndex(where: { $0.id == header.id }) {
+            guard draft.headers[index] != header else { return }
+            draft.headers[index] = header
+        } else {
+            draft.headers.append(header)
+        }
+        invalidateConnection()
+    }
+
+    func removeHeaders(atOffsets offsets: IndexSet) {
+        guard !offsets.isEmpty else { return }
+        for index in offsets.sorted(by: >) { draft.headers.remove(at: index) }
+        invalidateConnection()
+    }
+
     func save() throws {
         guard canSave else { return }
         var value = draft

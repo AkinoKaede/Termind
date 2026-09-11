@@ -32,8 +32,8 @@ struct MobileAISettingsRenderingTests {
         tool.summary =
             "Find relevant documentation across every connected source and return the most useful matching sections."
         let server = MCPServer(
-            name: "Documentation",
-            url: "https://example.invalid/teams/platform/documentation/model-context-protocol", tools: [tool])
+            name: "Documentation", url: "https://example.invalid/teams/platform/documentation/model-context-protocol",
+            headers: [MCPHeader(name: "X-Tenant", value: "platform")], tools: [tool])
         app.ai.upsert(server)
         var disabledServer = MCPServer(
             name: "Disabled Documentation Mirror",
@@ -64,7 +64,8 @@ struct MobileAISettingsRenderingTests {
             view: MobileSkillEditor(library: app.skills, skill: skill).environment(\.locale, locale))
         try await capture(
             "mcp", language: language,
-            view: MobileMCPEditor(ai: app.ai, pro: app.pro, server: server).environment(\.locale, locale))
+            view: NavigationStack { MobileMCPEditor(ai: app.ai, pro: app.pro, server: server) }
+                .environment(\.locale, locale))
         let discovery = MobileModelDiscovery(fetch: { _, _ in
             var compact = AIModel(id: "compact-chat")
             compact.displayName = "Compact Chat"

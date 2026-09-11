@@ -778,6 +778,10 @@ Models, Skills and MCP. Models owns provider management and Model Roles. Each
 destination owns its list and navigation-bar actions: Models and MCP add from the
 primary plus button; Skills exposes Import and Add in the primary toolbar and keeps
 Reset in its More menu. Add/import/reset controls never appear as list rows. The
+MCP destination manages servers with native List navigation: existing rows and the
+primary Add action push the explicit-save server editor in the same stack rather than
+presenting a modal sheet. Custom headers remain server-draft values, use native rows
+inside that editor, and commit only when the server is saved.
 Assistant MCP shortcut presents the same complete MCP page and adds only its Done
 action at the presentation boundary. Index rows use direct destination links, like
 the parent Settings page, so they work inside both the iPhone stack and the iPad

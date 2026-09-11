@@ -4050,12 +4050,32 @@
         }
       }
     },
+    "Custom Header" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义标头"
+          }
+        }
+      }
+    },
     "Custom Headers" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "自定义标头"
+          }
+        }
+      }
+    },
+    "Custom headers are stored as plain text. For secrets, use the bearer token field above." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义标头以纯文本存储。敏感信息请使用上方的Bearer Token字段。"
           }
         }
       }

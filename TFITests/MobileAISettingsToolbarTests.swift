@@ -1,3 +1,4 @@
+import AgentKit
 import SwiftUI
 import TermindDomain
 import Testing
@@ -20,6 +21,17 @@ struct MobileAISettingsToolbarTests {
         }
         try await withNavigation(MobileMCPSettings(ai: app.ai, pro: app.pro)) { names in
             #expect(names.contains("Add Server"))
+        }
+    }
+
+    @Test func mcpServerUsesPushedEditorToolbar() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let server = MCPServer(name: "Test", url: "https://example.invalid/mcp")
+
+        try await withNavigation(MobileMCPEditor(ai: app.ai, pro: app.pro, server: server)) { names in
+            #expect(names.contains("More"))
+            #expect(names.contains("Save"))
+            #expect(!names.contains("Cancel"))
         }
     }
 

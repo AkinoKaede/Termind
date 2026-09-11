@@ -53,6 +53,23 @@ struct MobileNavigationParityTests {
         #expect(!index.contains("navigationDestination"))
     }
 
+    @Test func mcpUsesNativeListNavigationAndDraftHeaderRows() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFI/Features/Settings/MobileMCPSettings.swift"), encoding: .utf8)
+        let list = try #require(source.components(separatedBy: "private struct MobileMCPServerRow").first)
+        let editor = try #require(source.components(separatedBy: "struct MobileMCPEditor").last)
+
+        #expect(list.contains("NavigationLink {"))
+        #expect(list.contains(".navigationDestination(item: $adding)"))
+        #expect(!list.contains(".sheet(item:"))
+        #expect(editor.contains("ForEach(model.draft.headers)"))
+        #expect(editor.contains(".onDelete(perform: model.removeHeaders)"))
+        #expect(editor.contains("MobileMCPHeaderEditor"))
+    }
+
     @Test func metricsUsesAvailableWidthRatherThanDeviceOrientation() {
         #expect(!MobileMetricsDetailPage.showsBothColumns(width: 430))
         #expect(!MobileMetricsDetailPage.showsBothColumns(width: 680))

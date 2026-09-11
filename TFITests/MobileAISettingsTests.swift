@@ -298,6 +298,36 @@ struct MobileAISettingsTests {
         #expect(editor.canSave)
     }
 
+    @Test func mcpHeadersStayInTheServerDraftAndInvalidateDiscovery() throws {
+        let header = MCPHeader(name: "X-Tenant", value: "original")
+        var server = MCPServer(
+            name: "Test", url: "https://example.invalid/mcp", headers: [header], tools: [MCPTool(id: "old")])
+        server.negotiatedVersion = "test"
+        server.lastConnectedAt = Date(timeIntervalSince1970: 1)
+        let ai = AIConfigurationModel()
+        ai.upsert(server)
+        let editor = MobileMCPEditorModel(ai: ai, server: server)
+
+        var edited = header
+        edited.value = "draft"
+        editor.upsertHeader(edited)
+
+        #expect(ai.mcpServer(server.id)?.headers.first?.value == "original")
+        #expect(editor.draft.headers.first?.value == "draft")
+        #expect(editor.draft.tools.isEmpty)
+        #expect(editor.draft.negotiatedVersion.isEmpty)
+        #expect(editor.draft.lastConnectedAt == nil)
+
+        try editor.save()
+        #expect(ai.mcpServer(server.id)?.headers.first?.value == "draft")
+
+        let removal = MobileMCPEditorModel(ai: ai, server: try #require(ai.mcpServer(server.id)))
+        removal.removeHeaders(atOffsets: IndexSet(integer: 0))
+        #expect(ai.mcpServer(server.id)?.headers.count == 1)
+        try removal.save()
+        #expect(ai.mcpServer(server.id)?.headers.isEmpty == true)
+    }
+
     @Test func mcpNamespaceCollisionPreventsSaving() {
         let ai = AIConfigurationModel()
         ai.upsert(MCPServer(name: "Test", url: "https://example.invalid/mcp"))
