@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -53,22 +54,7 @@ struct HostEditorView: View {
 
     private var form: some View {
         Form {
-            Section("Connection") {
-                TextField("Name", text: $draft.name, prompt: Text(draft.host))
-                TextField("Host", text: $draft.host, prompt: Text("IP address or hostname"))
-                TextField("Port", value: $draft.port, format: .number.grouping(.never))
-            }
-
-            Section("SFTP") {
-                TextField(
-                    "Initial Path", text: $draft.sftpSessionInitialPath,
-                    prompt: Text("~")
-                )
-                .font(.body.monospaced())
-                Text("Leave blank for the remote home directory, or enter an absolute path.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            HostConnectionFields(host: $draft)
 
             Section("Authentication") {
                 // One control, because a host says *where* and an identity says

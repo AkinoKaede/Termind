@@ -58,7 +58,8 @@ struct ArchitectureBoundaryTests {
             contentsOf: sourceRoot.appending(path: "Application/Metrics/ServerMetricsModel.swift"), encoding: .utf8)
         #expect(!model.contains("hosts.sshConnectionConfiguration("))
         let preparation = try String(
-            contentsOf: sourceRoot.appending(path: "Application/Connections/SSHConnectionPreparation.swift"),
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift"),
             encoding: .utf8)
         #expect(preparation.contains("Task.detached"))
         let view = try String(
@@ -136,7 +137,7 @@ struct ArchitectureBoundaryTests {
 
     @Test
     func featureFacadesDoNotExposeTheirBackingLibrary() throws {
-        for file in try swiftFiles(in: "Application/FeatureModels") {
+        for file in try swiftFiles(in: "../Frameworks/TermindApplication/FeatureModels") {
             let text = try String(contentsOf: file, encoding: .utf8)
             #expect(
                 !text.contains("\n    let library: HostLibraryModel"),
@@ -166,6 +167,7 @@ struct ArchitectureBoundaryTests {
             ]
         )
         try assertNoConcreteImplementations(in: "Application")
+        try assertNoConcreteImplementations(in: "../Frameworks/TermindApplication")
     }
 
     @Test
@@ -251,7 +253,10 @@ struct ArchitectureBoundaryTests {
 
     @Test
     func sharedFrameworksCannotImportPlatformAppsOrUI() throws {
-        for module in ["TermindDomain", "TermindApplication", "TermindInfrastructure", "TermindPersistence"] {
+        for module in [
+            "TermindDomain", "TermindApplication", "TermindInfrastructure", "TermindRemoteInfrastructure",
+            "TermindPersistence",
+        ] {
             try assertNoImports(
                 in: "../Frameworks/\(module)",
                 forbidden: ["Termind", "TermindIOS", "AppKit", "UIKit", "IOKit", "ServiceManagement"])
@@ -261,7 +266,17 @@ struct ArchitectureBoundaryTests {
             forbidden: ["TermindInfrastructure", "TermindPersistence", "SwiftData"])
         try assertNoImports(
             in: "../Frameworks/TermindPersistence",
-            forbidden: ["TermindApplication", "TermindInfrastructure"])
+            forbidden: ["TermindInfrastructure", "TermindRemoteInfrastructure"])
+    }
+
+    @Test
+    func sharedPresentationHasNoPlatformOrStorageDependency() throws {
+        try assertNoImports(
+            in: "../Frameworks/TermindPresentation",
+            forbidden: [
+                "Termind", "TermindIOS", "UIKit", "AppKit", "SwiftData", "TermindPersistence",
+                "TermindRemoteInfrastructure",
+            ])
     }
 
     @Test

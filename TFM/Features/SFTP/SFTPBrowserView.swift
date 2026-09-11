@@ -1,5 +1,6 @@
 import ListViewKit
 import SwiftUI
+import TermindPresentation
 import UniformTypeIdentifiers
 
 #if canImport(AppKit)
@@ -1236,15 +1237,6 @@ struct SFTPBrowserView: View {
 }
 
 private struct SFTPEditPermissionsSheet: View {
-    private struct AccessRow: Identifiable {
-        let title: String
-        let read: UInt32
-        let write: UInt32
-        let execute: UInt32
-
-        var id: UInt32 { read }
-    }
-
     let file: RemoteFile
     let displayedPath: String
     let save: (UInt32) async -> Bool
@@ -1253,12 +1245,6 @@ private struct SFTPEditPermissionsSheet: View {
     @FocusState private var modeFieldFocused: Bool
     @State private var draft: SFTPPermissionDraft
     @State private var isSaving = false
-
-    private let accessRows = [
-        AccessRow(title: "Owner", read: 0o400, write: 0o200, execute: 0o100),
-        AccessRow(title: "Group", read: 0o040, write: 0o020, execute: 0o010),
-        AccessRow(title: "Others", read: 0o004, write: 0o002, execute: 0o001),
-    ]
 
     init(
         file: RemoteFile, displayedPath: String,
@@ -1337,44 +1323,10 @@ private struct SFTPEditPermissionsSheet: View {
     private var permissionGrid: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
             Text("File Access").font(.headline)
-            Grid(horizontalSpacing: Metrics.Space.xxl, verticalSpacing: Metrics.Space.l) {
-                GridRow {
-                    Color.clear.frame(width: 72, height: 1)
-                    Text("Read")
-                    Text("Write")
-                    Text("Execute")
-                }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-                ForEach(accessRows) { row in
-                    GridRow {
-                        Text(row.title)
-                            .frame(width: 72, alignment: .leading)
-                            .foregroundStyle(.secondary)
-                        permissionToggle(row.read, label: "\(row.title) read")
-                        permissionToggle(row.write, label: "\(row.title) write")
-                        permissionToggle(row.execute, label: "\(row.title) execute")
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Metrics.Space.s)
+            UnixPermissionGrid(draft: $draft, horizontalSpacing: Metrics.Space.xxl, verticalSpacing: Metrics.Space.l)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Metrics.Space.s)
         }
-    }
-
-    private func permissionToggle(_ permission: UInt32, label: String) -> some View {
-        Toggle(
-            label,
-            isOn: Binding(
-                get: { draft.contains(permission) },
-                set: { draft.set(permission, enabled: $0) }
-            )
-        )
-        .labelsHidden()
-        .toggleStyle(.switch)
-        .controlSize(.small)
-        .accessibilityLabel(label)
     }
 
     private func ownershipRow(_ label: LocalizedStringKey, value: UInt32) -> some View {

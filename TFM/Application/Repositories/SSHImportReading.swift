@@ -1,9 +1,3 @@
-import Foundation
-import TermindDomain
+import TermindApplication
 
-nonisolated protocol SSHImportReading: Sendable {
-    func scan(root: URL, knownHostsOnly: Bool, grants: [URL]) async throws -> [SSHImportItem]
-    func unlock(id: UUID, name: String, passphrase: String) async throws -> SSHKeyRef
-    func credentials(for ids: Set<UUID>) async throws -> [UUID: StoredSSHKeyCredential]
-    func discard() async
-}
+typealias SSHImportReading = TermindApplication.SSHImportReading

@@ -1,0 +1,6 @@
+public typealias SharedHostPersistence = HostPersistence
+public typealias SharedVaultSyncPersistenceError = VaultSyncPersistenceError
+public typealias SharedVaultRemoteMerge = VaultRemoteMerge
+public typealias SharedVaultOutgoingEntry = VaultOutgoingEntry
+public typealias SharedVaultSyncJournal = VaultSyncJournal
+public typealias SharedSwiftDataHostRepository = SwiftDataHostRepository

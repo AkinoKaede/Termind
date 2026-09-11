@@ -1,24 +1,5 @@
-import AgentKit
-import Foundation
-import TermindDomain
+import TermindApplication
 
-nonisolated struct AIConfigurationSnapshot: Sendable {
-    var providers: [ModelProvider]
-    /// What was typed and picked per provider — see `AIConfigurationModel.endpoints`.
-    var endpoints: [ModelProvider.ID: ProviderEndpoint] = [:]
-    var roles: [AIRole: AIModelRef]
-    var lastSelectedModel: AIModelRef?
-    var mcpServers: [MCPServer] = []
-}
-
-@MainActor
-protocol AIConfigurationPersisting: AnyObject {
-    func load() throws -> AIConfigurationSnapshot
-    func save(_ snapshot: AIConfigurationSnapshot) throws
-}
-
-@MainActor
-protocol AIWebSearchPersisting: AnyObject {
-    func loadWebSearch() throws -> AIWebSearchPreferences
-    func saveWebSearch(_ value: AIWebSearchPreferences) throws
-}
+typealias AIConfigurationSnapshot = TermindApplication.AIConfigurationSnapshot
+typealias AIConfigurationPersisting = TermindApplication.AIConfigurationPersisting
+typealias AIWebSearchPersisting = TermindApplication.AIWebSearchPersisting

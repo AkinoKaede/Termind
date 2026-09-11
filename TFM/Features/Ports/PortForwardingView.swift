@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -232,17 +233,7 @@ struct PortForwardingEditorSheet: View {
         ) {
             Form {
                 Section {
-                    Picker("Direction", selection: $draft.kind) {
-                        Text("Local").tag(PortForwardingRule.Kind.local)
-                            .accessibilityLabel("Local Forward")
-                        Text("Remote").tag(PortForwardingRule.Kind.remote)
-                            .accessibilityLabel("Remote Forward")
-                        Text("Dynamic").tag(PortForwardingRule.Kind.dynamic)
-                            .accessibilityLabel("Dynamic SOCKS5 Proxy")
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: .infinity)
+                    PortForwardingDirectionPicker(kind: $draft.kind)
                     Text(directionHelp).font(.caption).foregroundStyle(.secondary)
                 }
                 Section("SSH Host") {

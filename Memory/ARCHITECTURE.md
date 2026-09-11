@@ -1,6 +1,6 @@
 # Termind architecture
 
-Termind uses one Xcode project with two app targets (`TFM` and `TFI`), four
+Termind uses one Xcode project with two app targets (`TFM` and `TFI`), six
 static frameworks, three test targets, and the macOS-only MCP bridge. AgentKit
 remains a versioned remote SPM dependency developed in the sibling repository.
 
@@ -8,13 +8,20 @@ remains a versioned remote SPM dependency developed in the sibling repository.
 
 - `Frameworks/TermindDomain` owns platform-independent values and rules. It may
   use AgentKit values, Foundation, and CryptoKit, never UI or concrete I/O.
-- `TermindApplication` owns the extracted repository ports and reconnect policy;
-  it depends on Domain.
-- `TermindInfrastructure` owns the memory repository and metrics parsers; it
-  depends on Application and Domain.
+- `TermindApplication` owns repository ports, Vault/AI feature models, secret interfaces,
+  SSH configuration/preparation, SSH import preview, the outbox runner, and reconnect policy; it depends on Domain and AgentKit.
+- `TermindInfrastructure` owns the memory repository, metrics parsers and StoreKit access.
+  It depends on Application and Domain.
+- `TermindRemoteInfrastructure` owns SSH/SFTP, key material, Keychain and remote sampling.
+  It also owns scoped SSH import reads, forwarding and transfer execution.
+  Its C libraries are linked only through this target. Keeping it outside the portable
+  FrameworkTests dependency graph avoids Xcode promoting OpenSSL to an empty dynamic
+  package wrapper during multi-host testing. It depends on Infrastructure, Application and Domain.
+- `TermindPresentation` owns reusable SwiftUI content. It depends on Application and Domain,
+  never on app targets, platform UI frameworks, transports or persistence.
 - `TermindPersistence` owns every SwiftData model, frozen historical schema,
   migration plan, and the shared container factory. It depends on Domain,
-  AgentKit, and SwiftData, never an application target.
+  AgentKit, Application repository interfaces, and SwiftData, never an application target.
 - `TFM` retains desktop feature models, adapters, views and application/window
   orchestration. `TFI` owns its native mobile entry point and scene navigation.
   Platform code can consume frameworks; frameworks cannot consume either app.
@@ -34,10 +41,10 @@ fixtures test this boundary independently of newly generated stores.
 
 `TermindPersistence.makeContainer` fixes the complete schema and migration plan.
 Each app process owns one container shared by its scenes. The desktop keeps the
-`Termind` store configuration and its existing local location; the mobile
-scaffold uses an in-memory container with exactly the same schema. Store failures
-never silently recreate a database. CloudKit sync and Keychain access remain in
-the desktop adapters until separately ported; model sharing does not enable sync.
+`Termind` store configuration and its existing local location; mobile uses an
+Application Support store with the same schema and an in-memory container for tests. Store failures
+never silently recreate a database. Keychain access is shared and explicitly configured
+by each app. Mobile CloudKit coordinators are still pending; model sharing does not enable sync.
 
 Shared resources are copied into each app bundle. Localized framework strings
 resolve against the host bundle; platform icons and metadata remain app-owned.
@@ -544,3 +551,42 @@ markers prevent delayed Keychain deliveries from reviving a cleared value.
 Explicit credentials stay out of CloudKit; custom MCP headers and custom terminal
 configuration are ordinary user-authored settings. The private-account sync
 adapter is the only additional trusted source of skill-library snapshots.
+
+## Mobile presentation and workspace activities
+
+The iPhone has four top-level destinations in order: Welcome (including Vault and
+Workspaces), Metrics, Assistant, and Settings. iPad retains a sidebar. Each mobile Workspace
+owns one SSH or SFTP session; composition is never enabled by a purchase. Mobile
+Assistant is independent and has no workspace sidebar or session-attached sheet.
+
+Shared form content is mounted in the desktop work column and in mobile SwiftUI
+sheets. Short mobile forms offer medium/large detents; complex forms use large.
+Dirty drafts prevent interactive dismissal and survive size changes.
+
+The iOS widget extension uses one ActivityKit activity for all workspaces, not one
+notification or activity per workspace. Its bounded state contains counts and up to
+six host system icons, resolved through the same distribution catalog as Vault,
+with the focused session first and a list link for overflow. An unrecognized
+system uses the server icon; SSH shell-integration updates refresh the artwork.
+Each icon opens `termind://workspace/<UUID>`; the compact island opens the focused
+session, while `termind://workspaces` opens the list. Links are validated and carry
+no commands or credentials. A stale activity displays an instruction to check the
+connections instead of asserting connectivity. Closing the last workspace ends it.
+Activity starts, updates and ends are serialized, and starts require the foreground.
+
+Live Activities do not keep SSH alive. The app requests finite background execution,
+stops sampling and Assistant runs, and closes transports when that time expires.
+Opening a session link restores its page and reconnects if necessary using normal
+credential and trust gates; commands and tool actions are never replayed. Restoration
+persists only descriptor IDs, host references, titles and session kinds.
+
+Mobile transfer queues use the same coordinator as desktop and own dedicated connection
+configurations. Closing a browser does not cancel those transfers. Deleting a host or
+expiration of background execution cancels its work; no transfer is silently replayed.
+Downloads are staged in a unique app-temporary directory and exported through the system
+share sheet. Remote names are validated before becoming local path components.
+
+Mobile host deletion records the existing deletion saga and starts the shared outbox
+runner. Restored pending deletions are hidden before workspace restoration. The runner's
+start/stop generation prevents a cancelled background loop from clearing a replacement
+foreground loop. New port forwarding rules never start merely because they were saved.

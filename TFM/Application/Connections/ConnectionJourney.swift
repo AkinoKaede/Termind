@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host
@@ -28,24 +29,6 @@ nonisolated struct ConnectionEndpoint: Identifiable, Hashable, Sendable {
     var name: String
     var address: String
     var role: Role
-}
-
-nonisolated enum SSHRouteEvent: Hashable, Sendable {
-    case connecting(Host.ID)
-    case authenticating(Host.ID)
-    case authenticated(Host.ID)
-    case connected(Host.ID)
-    case initializing(Host.ID, String)
-}
-
-typealias SSHRouteProgressHandler = @Sendable (SSHRouteEvent) -> Void
-
-nonisolated struct SSHAuthenticationSubmission: Hashable, Sendable {
-    var username: String
-    var password: String?
-    var passphrase: String?
-    var keyID: SSHKeyRef.ID?
-    var identityID: Identity.ID? = nil
 }
 
 /// UI-facing state for one connection attempt. The transport emits facts; this model

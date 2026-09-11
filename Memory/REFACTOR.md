@@ -1051,3 +1051,10 @@ state and restoration disabled. Report native titlebar height and backing scale 
 **Verification:** Full pinned macOS test run passed, including the new architecture guard
 for a single root host. Native capture confirms a 52-point toolbar and visible terminal
 and chat content. Strict formatting and Chinese localization checks passed.
+
+## 2026-09-11 — Shared SFTP permission controls
+
+- Evidence: `rg 'accessRows|permissionToggle|SFTPPermissionDraft' TFM/Features/SFTP` confirmed the permission grid and its row metadata were desktop-owned while mobile needed the same bit editing behavior.
+- Action: moved the value-only permission draft into Domain and extracted a SwiftUI permission grid into Presentation, used by both editors. Removed the desktop-only row table and toggle builder.
+- Estimated reduction: approximately 45 desktop view lines, with a single shared permission-control implementation replacing a second mobile implementation.
+- Status: implemented; regression verification is recorded in `MOBILE_ROLLOUT.md`.
