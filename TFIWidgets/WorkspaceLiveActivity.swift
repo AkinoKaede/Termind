@@ -58,11 +58,8 @@ struct WorkspaceLiveActivity: Widget {
         return HStack(spacing: 8) {
             ForEach(visibleSessions) { session in
                 Link(destination: session.destinationURL) {
-                    VStack(spacing: 4) {
-                        HostSystemIcon(asset: session.iconAsset)
-                        Text(session.title).font(.caption2).lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity)
+                    HostSystemIcon(asset: session.iconAsset)
+                        .frame(minWidth: 44, minHeight: 44)
                 }
                 .accessibilityLabel(session.title)
                 .accessibilityHint("Open Workspace")
@@ -70,10 +67,12 @@ struct WorkspaceLiveActivity: Widget {
             if context.state.workspaceCount > visibleSessions.count {
                 Link(destination: WorkspaceActivityAttributes.destinationURL) {
                     Image(systemName: "ellipsis")
-                        .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
+                        .frame(minWidth: 44, minHeight: 44)
                 }.accessibilityLabel("All Workspaces")
             }
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func appIcon(size: CGFloat) -> some View {
