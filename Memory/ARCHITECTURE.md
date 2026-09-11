@@ -853,12 +853,11 @@ The mobile composer is a SwiftUI vertical TextField, with camera, photos, files 
 
 Agent runs may consume the finite background execution time already requested by the mobile shell. Expiration invalidates pending starts, drains cancellation events, closes Agent transports and prevents new starts until cleanup ends. Returning to the foreground never replays commands or approves waiting actions. Platform suspension still bounds execution; Live Activities do not keep Agent runs alive.
 
-### Desktop ListViewKit boundary (2026-09-12)
+### ListViewKit boundary (2026-09-12)
 
-ListViewKit is a macOS-only implementation detail reserved for lists with demonstrated native-list requirements:
-the streaming Assistant transcript, large SFTP directories, the Assistant conversation library, and the window tool
-sidebars. These surfaces depend on one or more of variable-height incremental refresh, imperative viewport control,
-native drag-and-drop, detached-row cleanup, or blank-area AppKit menus. Compact menus, bounded popovers, settings
-editors, and ordinary chooser sheets use SwiftUI `ScrollView` and `LazyVStack`; visual consistency or elastic
-animation alone is not sufficient reason to add another ListViewKit bridge. An architecture test owns the production
-import allowlist so this dependency cannot spread without an explicit boundary change.
+ListViewKit is a platform-independent implementation detail for native lists whose interaction or update behavior
+benefits from explicit row reuse and viewport ownership. TFM uses it for the streaming Assistant transcript, large
+SFTP directories, the Assistant conversation library, and window tool sidebars. TFI uses one UIKit bridge for the
+Terminal Snippets and History sheets, including variable-height rows and History swipe deletion. Each app target
+owns its native bridge; shared frameworks do not import ListViewKit. An architecture test owns the production import
+and bridge-consumer allowlists so the dependency cannot spread without an explicit boundary change.

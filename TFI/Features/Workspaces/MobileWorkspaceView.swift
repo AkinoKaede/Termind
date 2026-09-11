@@ -9,6 +9,13 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct MobileWorkspaceView: View {
+    private enum TerminalSheet: String, Identifiable {
+        case snippets
+        case history
+
+        var id: String { rawValue }
+    }
+
     let library: HostLibraryModel
     let pro: ProAccessController
     let commandGenerator: any CommandGenerating
@@ -16,7 +23,7 @@ struct MobileWorkspaceView: View {
     let workspaces: [MobileWorkspace]
     let selectWorkspace: (UUID) -> Void
     let closeWorkspace: (UUID) -> Void
-    @State private var showingHistory = false
+    @State private var terminalSheet: TerminalSheet?
     @State private var importing = false
     @State private var directoryName = ""
     @State private var creatingDirectory = false
@@ -116,13 +123,14 @@ struct MobileWorkspaceView: View {
         .modifier(MobileTerminalSearchModifier(workspace: workspace))
         .toolbar {
             if workspace.descriptor.kind == .ssh {
-                Button("History", systemImage: "clock") { showingHistory = true }
-                    .labelStyle(.iconOnly)
                 Menu {
                     Button("Generate Command", systemImage: "sparkles") {
                         workspace.generateCommand(using: commandGenerator)
                     }
                     .keyboardShortcut("i", modifiers: .command)
+                    Divider()
+                    Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
+                    Button("History", systemImage: "clock") { terminalSheet = .history }
                     Divider()
                     Button("Next Match", systemImage: "chevron.down") {
                         workspace.find.presentAndNavigate(.next)
@@ -164,7 +172,14 @@ struct MobileWorkspaceView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingHistory) { MobileCommandHistoryView(workspace: workspace) }
+        .sheet(item: $terminalSheet) { sheet in
+            switch sheet {
+            case .snippets:
+                MobileTerminalSnippetsView(library: library, workspace: workspace)
+            case .history:
+                MobileCommandHistoryView(workspace: workspace)
+            }
+        }
         .sheet(
             item: Binding(
                 get: { workspace.terminalTextSelection },

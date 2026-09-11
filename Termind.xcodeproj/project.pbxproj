@@ -49,6 +49,7 @@
 		AA1200000000000000000009 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
 		AA1200000000000000000010 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
 		AA1200000000000000000013 /* TermindPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */; };
+		AA1300000000000000000001 /* ListViewKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100018 /* ListViewKit */; };
 		AB2210ABB10F707CBFB01C78 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
 		ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
 		ABCDEF020000000000000001 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
@@ -581,6 +582,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA1300000000000000000001 /* ListViewKit in Frameworks */,
 				C4AD00000000000000000002 /* MarkdownView in Frameworks */,
 				C4AD00000000000000000001 /* ZIPFoundation in Frameworks */,
 				5310B1DD3FA3FE77185B3F4A /* TermindRemoteInfrastructure.framework in Frameworks */,
@@ -781,6 +783,7 @@
 			);
 			name = TFI;
 			packageProductDependencies = (
+				TRMD00000000000000100018 /* ListViewKit */,
 				TRMD00000000000000100017 /* MarkdownView */,
 				TRMD00000000000000100015 /* ZIPFoundation */,
 				TRMD00000000000000100016 /* GhosttyKit */,

@@ -51,7 +51,7 @@ struct MobileAISettingsToolbarTests {
                     selectWorkspace: { _ in }, closeWorkspace: { _ in })
             ) { names in
                 #expect(names.contains("More"))
-                #expect(names.contains("History") == (kind == .ssh))
+                #expect(!names.contains("History"))
                 #expect(!names.contains("Transfers"))
                 #expect(!names.contains("Close"))
             }

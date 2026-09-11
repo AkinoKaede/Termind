@@ -366,24 +366,44 @@ struct ArchitectureBoundaryTests {
     @Test
     func listViewKitIsLimitedToNativeListWorkloads() throws {
         let allowed: Set<String> = [
-            "Features/AI/TranscriptListView.swift",
-            "Features/AI/TranscriptNativeRows.swift",
-            "Features/Assistant/AssistantView.swift",
-            "Features/SFTP/SFTPBrowserView.swift",
-            "Features/Sidebar/WindowSidebarView.swift",
-            "UI/Components/HostingListRow.swift",
+            "TFI/UI/Components/MobileNativeList.swift",
+            "TFM/Features/AI/TranscriptListView.swift",
+            "TFM/Features/AI/TranscriptNativeRows.swift",
+            "TFM/Features/Assistant/AssistantView.swift",
+            "TFM/Features/SFTP/SFTPBrowserView.swift",
+            "TFM/Features/Sidebar/WindowSidebarView.swift",
+            "TFM/UI/Components/HostingListRow.swift",
         ]
+        let repositoryRoot = sourceRoot.deletingLastPathComponent().standardizedFileURL
+        let productionFiles = try ["", "../TFI", "../Frameworks", "../TermindMCPBridge"].flatMap {
+            try swiftFiles(in: $0)
+        }
         let importers = try Set(
-            swiftFiles(in: "").compactMap { file -> String? in
+            productionFiles.compactMap { file -> String? in
                 let text = try String(contentsOf: file, encoding: .utf8)
                 guard text.split(separator: "\n").contains("import ListViewKit") else {
                     return nil
                 }
-                return file.path.replacingOccurrences(of: sourceRoot.path + "/", with: "")
+                return file.standardizedFileURL.path.replacingOccurrences(
+                    of: repositoryRoot.path + "/", with: "")
             }
         )
 
         #expect(importers == allowed)
+
+        let mobileConsumers = try Set(
+            swiftFiles(in: "../TFI").compactMap { file -> String? in
+                let text = try String(contentsOf: file, encoding: .utf8)
+                guard text.contains("MobileNativeList(") else { return nil }
+                return file.standardizedFileURL.path.replacingOccurrences(
+                    of: repositoryRoot.path + "/", with: "")
+            }
+        )
+        #expect(
+            mobileConsumers == [
+                "TFI/Features/Terminal/MobileCommandHistoryView.swift",
+                "TFI/Features/Terminal/MobileTerminalSnippetsView.swift",
+            ])
     }
 
     private func assertNoImports(in directory: String, forbidden: Set<String>) throws {
@@ -501,6 +521,13 @@ struct ArchitectureBoundaryTests {
         #expect(workspace.contains("closeWorkspace(workspace.id)"))
         #expect(workspace.contains("MobileOverflowMenuLabel(\"More\")"))
         #expect(workspace.contains("Button(\"Generate Command\", systemImage: \"sparkles\")"))
+        let snippets = try #require(workspace.range(of: "Button(\"Snippets\", systemImage: \"curlybraces\")"))
+        let history = try #require(workspace.range(of: "Button(\"History\", systemImage: \"clock\")"))
+        let historyDivider = try #require(workspace[history.upperBound...].range(of: "Divider()"))
+        let nextMatch = try #require(workspace.range(of: "Button(\"Next Match\", systemImage: \"chevron.down\")"))
+        #expect(snippets.lowerBound < history.lowerBound)
+        #expect(history.lowerBound < historyDivider.lowerBound)
+        #expect(historyDivider.lowerBound < nextMatch.lowerBound)
         #expect(workspace.contains(".dropDestination(for: URL.self)"))
         #expect(workspace.contains(".toolbar(.hidden, for: .tabBar)"))
         #expect(root.contains("private func closeWorkspace(_ id: UUID)"))

@@ -250,9 +250,9 @@ final class MobileWorkspace: Identifiable {
         connect()
     }
 
-    func insertHistory(_ command: String) {
+    func insertTerminalText(_ text: String) {
         guard connected else { return }
-        _ = terminal.paste(text: command)
+        _ = terminal.paste(text: text)
         terminal.requestFocus()
     }
 

@@ -1300,6 +1300,9 @@ the six-file production import boundary in `ArchitectureBoundaryTests`.
 **Estimated reduction:** Remove eight adapters and eleven mount sites while retaining the package for four proven
 native-list workloads.
 
+**Follow-up:** The platform restriction was removed for the TFI Terminal Snippets and History sheets. They share one
+UIKit bridge for variable-height rows and History swipe deletion; ListViewKit remains excluded from shared frameworks.
+
 **Result:** Production imports fell from 16 files to a six-file allowlist. Eight adapters and eleven mount sites were
 removed; the TFM production diff adds 225 and removes 836 lines for a net reduction of 611 lines. The macOS build,
 85 focused Architecture/ListView/Quick Open/SFTP tests, strict formatting, Simplified Chinese localization check, and
