@@ -3,7 +3,7 @@
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
-catalog=${1:-"$script_dir/../Termind/Resources/Localizable.xcstrings"}
+catalog=${1:-"$script_dir/../Frameworks/Resources/Localizable.xcstrings"}
 
 if ! jq empty "$catalog"; then
   echo "Invalid string catalog: $catalog" >&2

@@ -1,34 +1,56 @@
 # Termind architecture
 
-Termind is one application target, one unit-test target, and one first-party
-package: `AgentKit`, developed in a sibling repository and consumed through SPM.
-Inside the app target, directories describe dependency boundaries even though
-Swift does not enforce them as separate modules. The package boundary *is*
-enforced, which is the point of it.
+Termind uses one Xcode project with two app targets (`TFM` and `TFI`), four
+static frameworks, three test targets, and the macOS-only MCP bridge. AgentKit
+remains a versioned remote SPM dependency developed in the sibling repository.
 
 ## Dependency direction
 
-- `Domain` contains platform-independent values and rules.
-- `Application` contains repositories, feature state, use cases, events, and
-  service protocols.
-- `Infrastructure` implements persistence, security, SSH, and SFTP clients.
-- `Features` contains SwiftUI presentation and sends intents to Application.
-- `Platform/macOS` contains AppKit adapters.
-- `App` constructs dependencies and owns application/window lifetimes.
+- `Frameworks/TermindDomain` owns platform-independent values and rules. It may
+  use AgentKit values, Foundation, and CryptoKit, never UI or concrete I/O.
+- `TermindApplication` owns the extracted repository ports and reconnect policy;
+  it depends on Domain.
+- `TermindInfrastructure` owns the memory repository and metrics parsers; it
+  depends on Application and Domain.
+- `TermindPersistence` owns every SwiftData model, frozen historical schema,
+  migration plan, and the shared container factory. It depends on Domain,
+  AgentKit, and SwiftData, never an application target.
+- `TFM` retains desktop feature models, adapters, views and application/window
+  orchestration. `TFI` owns its native mobile entry point and scene navigation.
+  Platform code can consume frameworks; frameworks cannot consume either app.
 
-There is deliberately no `Core` or generic shared layer. A value belongs to
-Domain, orchestration and ports belong to Application, concrete I/O belongs to
-Infrastructure, and presentation-only parsing or formatting stays with its
-Feature. This prevents a catch-all directory from bypassing dependency review.
+The frameworks have explicit public boundaries and do not re-export imports.
+`Host` is explicitly imported from Domain where Foundation's same-named type
+would otherwise make lookup ambiguous. Presentation of session-context chips
+belongs to the desktop feature extension, not the domain value.
 
-Domain must not import SwiftUI, SwiftData, AppKit, Ghostty, CSSH2, or OpenSSL.
-Views must not construct network clients, access SwiftData/Keychain directly, or
-coordinate cross-domain cleanup. Runtime side effects belong to application
-services and durable outbox handlers.
+All SwiftData models and V1–V14 schemas have one definition in Persistence,
+including sync journals' records and secret-location metadata. Platform adapters
+can still access public persistent records during incremental extraction, but
+feature views cannot access SwiftData or construct transports. Neither moving a
+model nor renaming a target authorizes changing persisted entity identities,
+fields, defaults, or historical schema meanings. Original-module V1/V14 database
+fixtures test this boundary independently of newly generated stores.
 
-The app remains one target, so `ArchitectureBoundaryTests` enforces the
-framework and concrete-client restrictions that directory layout alone cannot —
-including that no type AgentKit owns is redefined here.
+`TermindPersistence.makeContainer` fixes the complete schema and migration plan.
+Each app process owns one container shared by its scenes. The desktop keeps the
+`Termind` store configuration and its existing local location; the mobile
+scaffold uses an in-memory container with exactly the same schema. Store failures
+never silently recreate a database. CloudKit sync and Keychain access remain in
+the desktop adapters until separately ported; model sharing does not enable sync.
+
+Shared resources are copied into each app bundle. Localized framework strings
+resolve against the host bundle; platform icons and metadata remain app-owned.
+Build settings live in the single project, with SDK and deployment choices on
+targets. The apps link static frameworks without embedding them dynamically.
+
+`FrameworkTests`, `TFMTests`, and `TFITests` have separate root directories.
+Framework tests run on macOS and iOS without importing either application.
+Architecture tests enforce directory and framework boundaries and fail closed
+when an expected source directory is missing or empty.
+
+There is no generic Core directory. Types belong to their domain, application,
+infrastructure, persistence, or presentation responsibility.
 
 ## State lifetimes
 
@@ -339,7 +361,7 @@ connected/collecting, live, paused, sleeping, and actionable failure states.
 The menu-bar setting defaults on. Closing the last window keeps the process
 alive while that setting or any enabled monitor requires it; explicit Quit
 cancels monitoring. NSWorkspace sleep/wake and native window reopening belong
-to Platform/macOS, not to the sampling coordinator.
+to TFM/Platform, not to the sampling coordinator.
 
 Connection preparation snapshots route, identity, public-key and trust metadata
 on MainActor. `SSHConnectionPreparation` resolves the Sendable secret store on a
@@ -477,7 +499,7 @@ shown or submitted. A manual Settings link opens the write-review URL directly.
 The controller requires seven elapsed days, three active dates, and five minutes
 of foreground workspace time in the current launch. Only leaving a workspace
 for a Vault list or the Settings index/App page can arm a three-second invitation.
-Native focus, input, sleep and modal state are observed in Platform/macOS;
+Native focus, input, sleep and modal state are observed in TFM/Platform;
 navigation, input, loss of focus or a blocking presentation cancels the invitation.
 Returning to the foreground or dismissing a dialog does not re-arm it. The
 SwiftUI presenter calls StoreKit only after the shared controller has persisted

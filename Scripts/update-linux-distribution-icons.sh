@@ -21,9 +21,9 @@ esac
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repository_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
 source_catalog="$script_dir/linux-distribution-icons.json"
-assets_dir="$repository_dir/Termind/Resources/Assets.xcassets/LinuxDistributions"
-runtime_catalog="$repository_dir/Termind/Resources/LinuxDistributionIcons.json"
-license_dir="$repository_dir/Termind/Resources/LinuxDistributionIcons"
+assets_dir="$repository_dir/Frameworks/Resources/Assets.xcassets/LinuxDistributions"
+runtime_catalog="$repository_dir/Frameworks/Resources/LinuxDistributionIcons.json"
+license_dir="$repository_dir/Frameworks/Resources/LinuxDistributionIcons"
 temporary_dir=$(mktemp -d /tmp/termind-linux-icons.XXXXXX)
 trap 'rm -rf "$temporary_dir"' EXIT HUP INT TERM
 

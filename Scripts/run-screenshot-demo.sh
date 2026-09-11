@@ -46,7 +46,7 @@ application="$derived_data/Build/Products/Debug/Termind.app"
 
 xcodebuild \
     -project "$repository_directory/Termind.xcodeproj" \
-    -scheme Termind \
+    -scheme TFM \
     -configuration Debug \
     -destination 'platform=macOS' \
     -onlyUsePackageVersionsFromResolvedFile \

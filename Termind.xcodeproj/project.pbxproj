@@ -7,6 +7,35 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0202B16D630CC57432748F0C /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		082994E88792AF7D1F99B147 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		10DD764492A94453449B3484 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
+		1D479CE3B3FF74B0C23BA3F2 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
+		20ADB83C9DB7F78EDF8BCBDF /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
+		23E272F32F769A979F3ABF42 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
+		25C0658E2DD9B2FE28023DA7 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		3CEFDFDB25F7D9C9A795C601 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		640E0A8248C5231A7424BE56 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		6995A68F3132E9C67B0DA01E /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		6DF0C216374DA144B1FC2030 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		6FB449BC0FE9518E6E22B442 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		76535271991F0D93E7277E6F /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		7B23538CFDAF459CA4CB4351 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		7B51DD6FD59A860DDA7F80EE /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
+		7DE0BDBF5E7A76602DDD443D /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		81A97F4DC317A6940A7A2CA5 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		8FCAF8FD0FF78E38C58ED887 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		9AF99D2C7AF5E879598A5972 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		B08DD88AB7C2444E5AEC19BC /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		B1821FD31E7D009C900B5557 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		B616FF213FC31346E6BB3817 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
+		C2D4B372BA5A040DDBCEFC85 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		CF863393BB8C2B38A9EEE18A /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
+		E635C54CA9F1A63D909CFCE6 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		F6ACDF3012081771F6C8F659 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
+		F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
+		FB01141D5DD3036A40889B76 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		TRMD00000000000000030001 /* termind-mcp in Embed MCP Bridge */ = {isa = PBXBuildFile; fileRef = TRMD00000000000000030002 /* termind-mcp */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		TRMD00000000000000100001 /* CSSH2 in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100011 /* CSSH2 */; };
 		TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
@@ -25,12 +54,187 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		DB8AB3CC3053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3CD3053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5F3ED08556B8962920EF788;
+			remoteInfo = TermindApplication;
+		};
+		DB8AB3CE3053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3CF3053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ADAD84AB61B493DA1D22B54C;
+			remoteInfo = TermindInfrastructure;
+		};
+		DB8AB3D03053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3D13053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5F3ED08556B8962920EF788;
+			remoteInfo = TermindApplication;
+		};
+		DB8AB3D23053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB005287D48C7756E15B6830;
+			remoteInfo = TermindPersistence;
+		};
+		DB8AB3D33053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3D43053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3D53053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5F3ED08556B8962920EF788;
+			remoteInfo = TermindApplication;
+		};
+		DB8AB3D63053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ADAD84AB61B493DA1D22B54C;
+			remoteInfo = TermindInfrastructure;
+		};
+		DB8AB3D73053A07800C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB005287D48C7756E15B6830;
+			remoteInfo = TermindPersistence;
+		};
+		DB8AB3D83053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3D93053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5F3ED08556B8962920EF788;
+			remoteInfo = TermindApplication;
+		};
+		DB8AB3DA3053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ADAD84AB61B493DA1D22B54C;
+			remoteInfo = TermindInfrastructure;
+		};
+		DB8AB3DB3053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB005287D48C7756E15B6830;
+			remoteInfo = TermindPersistence;
+		};
+		DB8AB3DC3053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3DD3053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5F3ED08556B8962920EF788;
+			remoteInfo = TermindApplication;
+		};
+		DB8AB3DE3053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ADAD84AB61B493DA1D22B54C;
+			remoteInfo = TermindInfrastructure;
+		};
+		DB8AB3DF3053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB005287D48C7756E15B6830;
+			remoteInfo = TermindPersistence;
+		};
+		DB8AB3E03053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1EAB6B47E04D61C8CFC54762;
+			remoteInfo = TFI;
+		};
+		DB8AB3E13053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
+		DB8AB3E23053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5F3ED08556B8962920EF788;
+			remoteInfo = TermindApplication;
+		};
+		DB8AB3E33053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ADAD84AB61B493DA1D22B54C;
+			remoteInfo = TermindInfrastructure;
+		};
+		DB8AB3E43053A07900C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB005287D48C7756E15B6830;
+			remoteInfo = TermindPersistence;
+		};
 		TRMD00000000000000020090 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = TRMD00000000000000000090 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = TRMD00000000000000000050;
-			remoteInfo = Termind;
+			remoteInfo = TFM;
 		};
 		TRMD00000000000000030090 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -56,34 +260,81 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01FFEA64B9D6E13E50664FB8 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		10111AE8F047FB59B318813A /* TermindApplication.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindApplication.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		13753997381D54B4D92FDDD5 /* TFITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindPersistence.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		67B48098792E58C2955768F2 /* TermindInfrastructure.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindInfrastructure.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A62058825D6607920F1E2A1 /* TermindDomain.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindDomain.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		8C9A1D5C026A485801BF7908 /* FrameworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrameworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBE378B130478CFB00B16AA1 /* Termind.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = Termind.storekit; path = StoreKit/Termind.storekit; sourceTree = "<group>"; };
 		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		TRMD00000000000000020001 /* TermindTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermindTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		TRMD00000000000000020001 /* TFMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000030002 /* termind-mcp */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		TRMD00000000000000000011 /* Exceptions for "Termind" folder in "Termind" target */ = {
+		TRMD00000000000000000011 /* Exceptions for "TFM" folder in "TFM" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = TRMD00000000000000000050 /* Termind */;
+			target = TRMD00000000000000000050 /* TFM */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		TRMD00000000000000000010 /* Termind */ = {
+		0FE0DF713B1C0832D76696AF /* TFI */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				TRMD00000000000000000011 /* Exceptions for "Termind" folder in "Termind" target */,
-			);
-			path = Termind;
+			path = TFI;
 			sourceTree = "<group>";
 		};
-		TRMD00000000000000020010 /* TermindTests */ = {
+		107C3841D2F5B0D215D798F0 /* TermindDomain */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TermindTests;
+			path = TermindDomain;
+			sourceTree = "<group>";
+		};
+		1352C351013C9A37E7DABE9E /* TermindApplication */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TermindApplication;
+			sourceTree = "<group>";
+		};
+		46E0A2AA823D19093256BE94 /* Resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		92C81B33B00182BDC162D7C9 /* TermindInfrastructure */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TermindInfrastructure;
+			sourceTree = "<group>";
+		};
+		A102A7EA2C3532D7FA88B0A4 /* TFITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TFITests;
+			sourceTree = "<group>";
+		};
+		A93D181DCED7ACF38C25FA9E /* TermindPersistence */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TermindPersistence;
+			sourceTree = "<group>";
+		};
+		BA4A4EAD7B8B3A380C9ED1C2 /* FrameworkTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FrameworkTests;
+			sourceTree = "<group>";
+		};
+		TRMD00000000000000000010 /* TFM */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				TRMD00000000000000000011 /* Exceptions for "TFM" folder in "TFM" target */,
+			);
+			path = TFM;
+			sourceTree = "<group>";
+		};
+		TRMD00000000000000020010 /* TFMTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TFMTests;
 			sourceTree = "<group>";
 		};
 		TRMD00000000000000030010 /* TermindMCPBridge */ = {
@@ -94,6 +345,76 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		2F8570B27A408F55FC6F56E3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7B51DD6FD59A860DDA7F80EE /* AgentKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		626F4E8C20AF0B18068B185B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B09CFC5B32584951BD4C8F9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8FCAF8FD0FF78E38C58ED887 /* TermindDomain.framework in Frameworks */,
+				9AF99D2C7AF5E879598A5972 /* TermindApplication.framework in Frameworks */,
+				CF863393BB8C2B38A9EEE18A /* TermindInfrastructure.framework in Frameworks */,
+				3CEFDFDB25F7D9C9A795C601 /* TermindPersistence.framework in Frameworks */,
+				20ADB83C9DB7F78EDF8BCBDF /* AgentKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A911B92D071D716A3CCA771E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7DE0BDBF5E7A76602DDD443D /* TermindDomain.framework in Frameworks */,
+				6DF0C216374DA144B1FC2030 /* TermindApplication.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BD0AED00305B5F77687B8B74 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1D479CE3B3FF74B0C23BA3F2 /* AgentKit in Frameworks */,
+				25C0658E2DD9B2FE28023DA7 /* TermindDomain.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E9D10112240438404117D4ED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				76535271991F0D93E7277E6F /* TermindDomain.framework in Frameworks */,
+				B08DD88AB7C2444E5AEC19BC /* TermindApplication.framework in Frameworks */,
+				10DD764492A94453449B3484 /* TermindInfrastructure.framework in Frameworks */,
+				6FB449BC0FE9518E6E22B442 /* TermindPersistence.framework in Frameworks */,
+				F6ACDF3012081771F6C8F659 /* AgentKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2C7E760B2B6A0B5EE1DEA77 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0202B16D630CC57432748F0C /* TermindDomain.framework in Frameworks */,
+				6995A68F3132E9C67B0DA01E /* TermindApplication.framework in Frameworks */,
+				B616FF213FC31346E6BB3817 /* TermindInfrastructure.framework in Frameworks */,
+				082994E88792AF7D1F99B147 /* TermindPersistence.framework in Frameworks */,
+				23E272F32F769A979F3ABF42 /* AgentKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		TRMD00000000000000000020 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -109,6 +430,10 @@
 				TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */,
 				TRMD00000000000000100003 /* GhosttyTheme in Frameworks */,
 				TRMD00000000000000100004 /* OpenSSL in Frameworks */,
+				7B23538CFDAF459CA4CB4351 /* TermindDomain.framework in Frameworks */,
+				640E0A8248C5231A7424BE56 /* TermindApplication.framework in Frameworks */,
+				F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */,
+				E635C54CA9F1A63D909CFCE6 /* TermindPersistence.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +444,10 @@
 				TRMD0000000000000010000D /* AgentKit in Frameworks */,
 				TRMD0000000000000010000F /* AgentKitScrubber in Frameworks */,
 				TRMD00000000000000100006 /* ZIPFoundation in Frameworks */,
+				B1821FD31E7D009C900B5557 /* TermindDomain.framework in Frameworks */,
+				C2D4B372BA5A040DDBCEFC85 /* TermindApplication.framework in Frameworks */,
+				FB01141D5DD3036A40889B76 /* TermindInfrastructure.framework in Frameworks */,
+				81A97F4DC317A6940A7A2CA5 /* TermindPersistence.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -132,14 +461,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CDDB75F14F753E46BB14D972 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				46E0A2AA823D19093256BE94 /* Resources */,
+				107C3841D2F5B0D215D798F0 /* TermindDomain */,
+				1352C351013C9A37E7DABE9E /* TermindApplication */,
+				92C81B33B00182BDC162D7C9 /* TermindInfrastructure */,
+				A93D181DCED7ACF38C25FA9E /* TermindPersistence */,
+			);
+			path = Frameworks;
+			sourceTree = "<group>";
+		};
 		TRMD00000000000000000030 = {
 			isa = PBXGroup;
 			children = (
 				DBE378B130478CFB00B16AA1 /* Termind.storekit */,
-				TRMD00000000000000000010 /* Termind */,
-				TRMD00000000000000020010 /* TermindTests */,
+				CDDB75F14F753E46BB14D972 /* Frameworks */,
+				TRMD00000000000000000010 /* TFM */,
+				TRMD00000000000000020010 /* TFMTests */,
 				TRMD00000000000000030010 /* TermindMCPBridge */,
 				TRMD00000000000000000040 /* Products */,
+				0FE0DF713B1C0832D76696AF /* TFI */,
+				BA4A4EAD7B8B3A380C9ED1C2 /* FrameworkTests */,
+				A102A7EA2C3532D7FA88B0A4 /* TFITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -147,8 +492,15 @@
 			isa = PBXGroup;
 			children = (
 				TRMD00000000000000000001 /* Termind.app */,
-				TRMD00000000000000020001 /* TermindTests.xctest */,
+				TRMD00000000000000020001 /* TFMTests.xctest */,
 				TRMD00000000000000030002 /* termind-mcp */,
+				7A62058825D6607920F1E2A1 /* TermindDomain.framework */,
+				10111AE8F047FB59B318813A /* TermindApplication.framework */,
+				67B48098792E58C2955768F2 /* TermindInfrastructure.framework */,
+				244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */,
+				01FFEA64B9D6E13E50664FB8 /* Termind.app */,
+				8C9A1D5C026A485801BF7908 /* FrameworkTests.xctest */,
+				13753997381D54B4D92FDDD5 /* TFITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -156,9 +508,187 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		TRMD00000000000000000050 /* Termind */ = {
+		1EAB6B47E04D61C8CFC54762 /* TFI */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = TRMD00000000000000000060 /* Build configuration list for PBXNativeTarget "Termind" */;
+			buildConfigurationList = 20CE6E8A93D697985F372EA6 /* Build configuration list for PBXNativeTarget "TFI" */;
+			buildPhases = (
+				AC89B83FA8E4154383D9AC81 /* Sources */,
+				7B09CFC5B32584951BD4C8F9 /* Frameworks */,
+				8F0C5245592A0E2AFB85E50F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D6444C208365A08727ACC139 /* PBXTargetDependency */,
+				29FDCE2C09E8F0A257C594A5 /* PBXTargetDependency */,
+				C2CB1C43BCBD82FF680630A0 /* PBXTargetDependency */,
+				99D1BE807E1DA1B24CBA115B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0FE0DF713B1C0832D76696AF /* TFI */,
+				46E0A2AA823D19093256BE94 /* Resources */,
+			);
+			name = TFI;
+			packageProductDependencies = (
+				TRMD0000000000000010001B /* AgentKit */,
+			);
+			productName = TFI;
+			productReference = 01FFEA64B9D6E13E50664FB8 /* Termind.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4E03E735D4992AEB794812A1 /* FrameworkTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 76E7A969963CB90646CC1B06 /* Build configuration list for PBXNativeTarget "FrameworkTests" */;
+			buildPhases = (
+				F1FF4852C800F21D4AE3E8C6 /* Sources */,
+				F2C7E760B2B6A0B5EE1DEA77 /* Frameworks */,
+				19B97D4999ACF4791837A994 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1DD69C71517BBB3B34BBBA0C /* PBXTargetDependency */,
+				C81555991C1262931C1ED5A3 /* PBXTargetDependency */,
+				BAFE3F1B3AA7972D0C429218 /* PBXTargetDependency */,
+				FBE9CCCAB149BECFFB7B8567 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				46E0A2AA823D19093256BE94 /* Resources */,
+				BA4A4EAD7B8B3A380C9ED1C2 /* FrameworkTests */,
+			);
+			name = FrameworkTests;
+			packageProductDependencies = (
+				TRMD0000000000000010001B /* AgentKit */,
+			);
+			productName = FrameworkTests;
+			productReference = 8C9A1D5C026A485801BF7908 /* FrameworkTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A5F3ED08556B8962920EF788 /* TermindApplication */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 976EB3B3A2F3583E74DF1E13 /* Build configuration list for PBXNativeTarget "TermindApplication" */;
+			buildPhases = (
+				01260326BA2579B3E3586B26 /* Sources */,
+				626F4E8C20AF0B18068B185B /* Frameworks */,
+				978461AD29C4066E4C394835 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				710D3CAF3582192E63670379 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1352C351013C9A37E7DABE9E /* TermindApplication */,
+			);
+			name = TermindApplication;
+			packageProductDependencies = (
+			);
+			productName = TermindApplication;
+			productReference = 10111AE8F047FB59B318813A /* TermindApplication.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5658F2D4BC8AAEC899C2300F /* Build configuration list for PBXNativeTarget "TermindInfrastructure" */;
+			buildPhases = (
+				9134CC60C9D2F547DC97DAF6 /* Sources */,
+				A911B92D071D716A3CCA771E /* Frameworks */,
+				9215EE77E44C37EC54EA3FAC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA931847718F5BD9BCEBB63A /* PBXTargetDependency */,
+				81CC5F621EFB712B902CD692 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				92C81B33B00182BDC162D7C9 /* TermindInfrastructure */,
+			);
+			name = TermindInfrastructure;
+			packageProductDependencies = (
+			);
+			productName = TermindInfrastructure;
+			productReference = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		B243FDB536F5111B356353DA /* TermindDomain */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B15822D25CFA7C3167647626 /* Build configuration list for PBXNativeTarget "TermindDomain" */;
+			buildPhases = (
+				A2E672E66CF74C027D07828C /* Sources */,
+				2F8570B27A408F55FC6F56E3 /* Frameworks */,
+				77D58C1ACE18922CD4E48C73 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				107C3841D2F5B0D215D798F0 /* TermindDomain */,
+			);
+			name = TermindDomain;
+			packageProductDependencies = (
+				TRMD0000000000000010001B /* AgentKit */,
+			);
+			productName = TermindDomain;
+			productReference = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		DB005287D48C7756E15B6830 /* TermindPersistence */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BD8BF81D53731B72A867D811 /* Build configuration list for PBXNativeTarget "TermindPersistence" */;
+			buildPhases = (
+				C99C8316C00B8A01F2128F1B /* Sources */,
+				BD0AED00305B5F77687B8B74 /* Frameworks */,
+				6418B7148055671AAB2FB492 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				00758A789ECB9643122A60EC /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A93D181DCED7ACF38C25FA9E /* TermindPersistence */,
+			);
+			name = TermindPersistence;
+			packageProductDependencies = (
+				TRMD0000000000000010001B /* AgentKit */,
+			);
+			productName = TermindPersistence;
+			productReference = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		F815C7E534B763A0E88A5CBD /* TFITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7676DA2F42FAE8E2D331D93F /* Build configuration list for PBXNativeTarget "TFITests" */;
+			buildPhases = (
+				7A66ED3CE1F6BC55177F5B13 /* Sources */,
+				E9D10112240438404117D4ED /* Frameworks */,
+				1627D22C6A1816AB5712F093 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0EF002FE2F91FCC695C1D40F /* PBXTargetDependency */,
+				4EB5324D41D2FA6D5726D73D /* PBXTargetDependency */,
+				191B454FB44C6FB85FA289A6 /* PBXTargetDependency */,
+				B5CB96BC5381BEF3FF47AED5 /* PBXTargetDependency */,
+				7643FA54701782DDD29BF1A7 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A102A7EA2C3532D7FA88B0A4 /* TFITests */,
+			);
+			name = TFITests;
+			packageProductDependencies = (
+				TRMD0000000000000010001B /* AgentKit */,
+			);
+			productName = TFITests;
+			productReference = 13753997381D54B4D92FDDD5 /* TFITests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		TRMD00000000000000000050 /* TFM */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TRMD00000000000000000060 /* Build configuration list for PBXNativeTarget "TFM" */;
 			buildPhases = (
 				TRMD00000000000000000070 /* Sources */,
 				TRMD00000000000000000020 /* Frameworks */,
@@ -169,11 +699,16 @@
 			);
 			dependencies = (
 				TRMD00000000000000030091 /* PBXTargetDependency */,
+				F98F58C51DE326AC4AF95F66 /* PBXTargetDependency */,
+				C0B7F56205F86D0178F32100 /* PBXTargetDependency */,
+				97B15C378163C5A05C822115 /* PBXTargetDependency */,
+				521C5CC104E7B21A365A7F89 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				TRMD00000000000000000010 /* Termind */,
+				46E0A2AA823D19093256BE94 /* Resources */,
+				TRMD00000000000000000010 /* TFM */,
 			);
-			name = Termind;
+			name = TFM;
 			packageProductDependencies = (
 				TRMD0000000000000010001B /* AgentKit */,
 				TRMD0000000000000010001C /* AgentKitScrubber */,
@@ -191,9 +726,9 @@
 			productReference = TRMD00000000000000000001 /* Termind.app */;
 			productType = "com.apple.product-type.application";
 		};
-		TRMD00000000000000020050 /* TermindTests */ = {
+		TRMD00000000000000020050 /* TFMTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = TRMD00000000000000020060 /* Build configuration list for PBXNativeTarget "TermindTests" */;
+			buildConfigurationList = TRMD00000000000000020060 /* Build configuration list for PBXNativeTarget "TFMTests" */;
 			buildPhases = (
 				TRMD00000000000000020070 /* Sources */,
 				TRMD00000000000000020020 /* Frameworks */,
@@ -203,18 +738,22 @@
 			);
 			dependencies = (
 				TRMD00000000000000020091 /* PBXTargetDependency */,
+				C436B3D8B1BF8204D50F3848 /* PBXTargetDependency */,
+				4FAF81350D21B55CD76B9E57 /* PBXTargetDependency */,
+				1BE462834539F50116A77177 /* PBXTargetDependency */,
+				438F9D0971977DE55A9319FE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				TRMD00000000000000020010 /* TermindTests */,
+				TRMD00000000000000020010 /* TFMTests */,
 			);
-			name = TermindTests;
+			name = TFMTests;
 			packageProductDependencies = (
 				TRMD0000000000000010001B /* AgentKit */,
 				TRMD0000000000000010001C /* AgentKitScrubber */,
 				TRMD00000000000000100015 /* ZIPFoundation */,
 			);
-			productName = TermindTests;
-			productReference = TRMD00000000000000020001 /* TermindTests.xctest */;
+			productName = TFMTests;
+			productReference = TRMD00000000000000020001 /* TFMTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		TRMD00000000000000030050 /* TermindMCPBridge */ = {
@@ -248,6 +787,10 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					F815C7E534B763A0E88A5CBD = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 1EAB6B47E04D61C8CFC54762;
+					};
 					TRMD00000000000000000050 = {
 						CreatedOnToolsVersion = 26.6;
 						SystemCapabilities = {
@@ -296,14 +839,70 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				TRMD00000000000000000050 /* Termind */,
-				TRMD00000000000000020050 /* TermindTests */,
+				TRMD00000000000000000050 /* TFM */,
+				TRMD00000000000000020050 /* TFMTests */,
 				TRMD00000000000000030050 /* TermindMCPBridge */,
+				B243FDB536F5111B356353DA /* TermindDomain */,
+				A5F3ED08556B8962920EF788 /* TermindApplication */,
+				ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */,
+				DB005287D48C7756E15B6830 /* TermindPersistence */,
+				1EAB6B47E04D61C8CFC54762 /* TFI */,
+				4E03E735D4992AEB794812A1 /* FrameworkTests */,
+				F815C7E534B763A0E88A5CBD /* TFITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1627D22C6A1816AB5712F093 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		19B97D4999ACF4791837A994 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6418B7148055671AAB2FB492 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77D58C1ACE18922CD4E48C73 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8F0C5245592A0E2AFB85E50F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9215EE77E44C37EC54EA3FAC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		978461AD29C4066E4C394835 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		TRMD00000000000000000080 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -321,6 +920,55 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		01260326BA2579B3E3586B26 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A66ED3CE1F6BC55177F5B13 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9134CC60C9D2F547DC97DAF6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A2E672E66CF74C027D07828C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC89B83FA8E4154383D9AC81 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C99C8316C00B8A01F2128F1B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F1FF4852C800F21D4AE3E8C6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		TRMD00000000000000000070 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -345,9 +993,134 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		00758A789ECB9643122A60EC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3D33053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		0EF002FE2F91FCC695C1D40F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1EAB6B47E04D61C8CFC54762 /* TFI */;
+			targetProxy = DB8AB3E03053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		191B454FB44C6FB85FA289A6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5F3ED08556B8962920EF788 /* TermindApplication */;
+			targetProxy = DB8AB3E23053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		1BE462834539F50116A77177 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */;
+			targetProxy = DB8AB3DA3053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		1DD69C71517BBB3B34BBBA0C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3DC3053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		29FDCE2C09E8F0A257C594A5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5F3ED08556B8962920EF788 /* TermindApplication */;
+			targetProxy = DB8AB3CD3053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		438F9D0971977DE55A9319FE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB005287D48C7756E15B6830 /* TermindPersistence */;
+			targetProxy = DB8AB3DB3053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		4EB5324D41D2FA6D5726D73D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3E13053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		4FAF81350D21B55CD76B9E57 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5F3ED08556B8962920EF788 /* TermindApplication */;
+			targetProxy = DB8AB3D93053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		521C5CC104E7B21A365A7F89 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB005287D48C7756E15B6830 /* TermindPersistence */;
+			targetProxy = DB8AB3D73053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		710D3CAF3582192E63670379 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3CE3053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		7643FA54701782DDD29BF1A7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB005287D48C7756E15B6830 /* TermindPersistence */;
+			targetProxy = DB8AB3E43053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		81CC5F621EFB712B902CD692 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5F3ED08556B8962920EF788 /* TermindApplication */;
+			targetProxy = DB8AB3D13053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		97B15C378163C5A05C822115 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */;
+			targetProxy = DB8AB3D63053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		99D1BE807E1DA1B24CBA115B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB005287D48C7756E15B6830 /* TermindPersistence */;
+			targetProxy = DB8AB3D23053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		B5CB96BC5381BEF3FF47AED5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */;
+			targetProxy = DB8AB3E33053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		BAFE3F1B3AA7972D0C429218 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */;
+			targetProxy = DB8AB3DE3053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		C0B7F56205F86D0178F32100 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5F3ED08556B8962920EF788 /* TermindApplication */;
+			targetProxy = DB8AB3D53053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		C2CB1C43BCBD82FF680630A0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */;
+			targetProxy = DB8AB3CF3053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		C436B3D8B1BF8204D50F3848 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3D83053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		C81555991C1262931C1ED5A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5F3ED08556B8962920EF788 /* TermindApplication */;
+			targetProxy = DB8AB3DD3053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
+		D6444C208365A08727ACC139 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3CC3053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		EA931847718F5BD9BCEBB63A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3D03053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		F98F58C51DE326AC4AF95F66 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = DB8AB3D43053A07800C7EFAE /* PBXContainerItemProxy */;
+		};
+		FBE9CCCAB149BECFFB7B8567 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB005287D48C7756E15B6830 /* TermindPersistence */;
+			targetProxy = DB8AB3DF3053A07900C7EFAE /* PBXContainerItemProxy */;
+		};
 		TRMD00000000000000020091 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = TRMD00000000000000000050 /* Termind */;
+			target = TRMD00000000000000000050 /* TFM */;
 			targetProxy = TRMD00000000000000020090 /* PBXContainerItemProxy */;
 		};
 		TRMD00000000000000030091 /* PBXTargetDependency */ = {
@@ -358,6 +1131,330 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		171123A06EEDC2EE73AD3FC8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.tfitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termind.app/Termind";
+			};
+			name = Release;
+		};
+		26CFA808AF64A9ACDD4DF923 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.termindpersistence;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		2E96D702E8EE688FB9B4DC71 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.termindinfrastructure;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		30D03D452305AD59ECD3C460 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.termindapplication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3891D69CE8B2E67E07EFE802 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Termind;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
+				PRODUCT_MODULE_NAME = TermindIOS;
+				PRODUCT_NAME = Termind;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		443D26104FCB9DFBF49EEFD4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.frameworktests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		56B29D693660C76F4121622D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.frameworktests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		925DF91139ED491057366958 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.termindpersistence;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9A9993A9405331488B140C6A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.terminddomain;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BD9E47297AE0FA3235A4633E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.terminddomain;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C4ED38FD24B69F063AC1FCC7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.termindapplication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D76D79A8E58FBD72935F61F2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Termind;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
+				PRODUCT_MODULE_NAME = TermindIOS;
+				PRODUCT_NAME = Termind;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		E072A089DE54B923933916DA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.termindinfrastructure;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F661272902C5911A4C1DECCA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F6SUNDBBN9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.tfitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termind.app/Termind";
+			};
+			name = Debug;
+		};
 		TRMD000000000000000000B0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -367,6 +1464,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -378,11 +1476,10 @@
 					"$(inherited)",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.6.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -403,16 +1500,16 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.6.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				SDKROOT = macosx;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -430,7 +1527,7 @@
 				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Termind/Termind.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TFM/Termind.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -442,7 +1539,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				ICLOUD_CONTAINER_ENVIRONMENT = Development;
-				INFOPLIST_FILE = Termind/Info.plist;
+				INFOPLIST_FILE = TFM/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Termind;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -450,9 +1547,13 @@
 					"@executable_path/../Frameworks",
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = Termind;
+				PRODUCT_NAME = Termind;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;
@@ -463,7 +1564,7 @@
 				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Termind/Termind.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TFM/Termind.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -479,7 +1580,7 @@
 				);
 				GENERATE_INFOPLIST_FILE = NO;
 				ICLOUD_CONTAINER_ENVIRONMENT = Production;
-				INFOPLIST_FILE = Termind/Info.plist;
+				INFOPLIST_FILE = TFM/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Termind;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -487,9 +1588,13 @@
 					"@executable_path/../Frameworks",
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = Termind;
+				PRODUCT_NAME = Termind;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
@@ -506,7 +1611,9 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -Wno-error=deprecated-declarations";
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.tests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = TFMTests;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termind.app/Contents/MacOS/Termind";
 			};
@@ -524,7 +1631,9 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -Wno-error=deprecated-declarations";
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.tests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = TFMTests;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termind.app/Contents/MacOS/Termind";
 			};
@@ -545,7 +1654,9 @@
 				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.mcpbridge;
 				PRODUCT_NAME = "termind-mcp";
+				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_VERSION = 6.0;
 			};
@@ -566,7 +1677,9 @@
 				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.mcpbridge;
 				PRODUCT_NAME = "termind-mcp";
+				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_VERSION = 6.0;
 			};
@@ -575,7 +1688,70 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		TRMD00000000000000000060 /* Build configuration list for PBXNativeTarget "Termind" */ = {
+		20CE6E8A93D697985F372EA6 /* Build configuration list for PBXNativeTarget "TFI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3891D69CE8B2E67E07EFE802 /* Debug */,
+				D76D79A8E58FBD72935F61F2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5658F2D4BC8AAEC899C2300F /* Build configuration list for PBXNativeTarget "TermindInfrastructure" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E072A089DE54B923933916DA /* Debug */,
+				2E96D702E8EE688FB9B4DC71 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7676DA2F42FAE8E2D331D93F /* Build configuration list for PBXNativeTarget "TFITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F661272902C5911A4C1DECCA /* Debug */,
+				171123A06EEDC2EE73AD3FC8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		76E7A969963CB90646CC1B06 /* Build configuration list for PBXNativeTarget "FrameworkTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				443D26104FCB9DFBF49EEFD4 /* Debug */,
+				56B29D693660C76F4121622D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		976EB3B3A2F3583E74DF1E13 /* Build configuration list for PBXNativeTarget "TermindApplication" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				30D03D452305AD59ECD3C460 /* Debug */,
+				C4ED38FD24B69F063AC1FCC7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B15822D25CFA7C3167647626 /* Build configuration list for PBXNativeTarget "TermindDomain" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BD9E47297AE0FA3235A4633E /* Debug */,
+				9A9993A9405331488B140C6A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BD8BF81D53731B72A867D811 /* Build configuration list for PBXNativeTarget "TermindPersistence" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				925DF91139ED491057366958 /* Debug */,
+				26CFA808AF64A9ACDD4DF923 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TRMD00000000000000000060 /* Build configuration list for PBXNativeTarget "TFM" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				TRMD000000000000000000D0 /* Debug */,
@@ -593,7 +1769,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		TRMD00000000000000020060 /* Build configuration list for PBXNativeTarget "TermindTests" */ = {
+		TRMD00000000000000020060 /* Build configuration list for PBXNativeTarget "TFMTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				TRMD000000000000000200D0 /* Debug */,

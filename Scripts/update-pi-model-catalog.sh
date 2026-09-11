@@ -12,7 +12,7 @@ fi
 
 version=$1
 package="@earendil-works/pi-ai@$version"
-output="Termind/Resources/PiModelCatalog.json"
+output="Frameworks/Resources/PiModelCatalog.json"
 temporary_dir=$(mktemp -d /tmp/termind-pi-model-catalog.XXXXXX)
 trap 'rm -rf "$temporary_dir"' EXIT
 
