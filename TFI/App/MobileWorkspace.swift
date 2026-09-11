@@ -18,22 +18,28 @@ final class MobileWorkspace: Identifiable {
     private(set) var status = String(localized: "Disconnected") { didSet { didChangeState?() } }
     private(set) var connected = false { didSet { didChangeState?() } }
     private(set) var busy = false
+    let journey = ConnectionJourney()
     var error: String?
+    private var pendingHostKeyHostID: UUID?
+    private(set) var authenticationPrompt: SSHAuthenticationPrompt?
+    private var authenticationMode = SSHAuthenticationPrompt.Mode.localIdentity
     var pendingHostKey: SSHHostKeyObservation?
     var authenticationRequired = false
     var username = ""
-    var password = ""
-    var passphrase = ""
-    var authenticationHostName: String {
-        hosts.host(authenticationHostID ?? descriptor.hostID)?.name ?? descriptor.title
-    }
     private var authenticationHostID: UUID?
+    private var temporaryKeys: [UUID: SSHHostKeyIdentity] = [:]
     private var submissions: [UUID: SSHAuthenticationSubmission] = [:]
     var path = "/"
     private(set) var files: [RemoteFile] = []
     let transfers: SFTPTransferCoordinator?
     private var transferConfiguration: SSHConnectionConfiguration?
     private var directoryRequest = UUID()
+    let terminalSettings: TerminalSettingsModel
+    let commandHistory: CommandHistoryModel
+    var isFindPresented = false
+    var findQuery = ""
+    private var activeHistoryID: UUID?
+    private var shellIntegrationAvailable = false
     private let surfaceOwner = MobileTerminalSurface()
     let terminal: TerminalViewState
     private let backend: InMemoryTerminalSession
@@ -46,8 +52,12 @@ final class MobileWorkspace: Identifiable {
 
     init(
         descriptor: MobileWorkspaceDescriptor, hosts: any RemoteSessionHostStore,
-        transfers: SFTPTransferCoordinator? = nil
+        transfers: SFTPTransferCoordinator? = nil,
+        terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
+        commandHistory: CommandHistoryModel = CommandHistoryModel()
     ) {
+        self.terminalSettings = terminalSettings
+        self.commandHistory = commandHistory
         self.transfers = transfers
         self.descriptor = descriptor
         self.hosts = hosts
@@ -65,10 +75,127 @@ final class MobileWorkspace: Identifiable {
         relay.owner = self
     }
 
+    private func makeAuthenticationPrompt() -> SSHAuthenticationPrompt? {
+        guard authenticationRequired, let host = hosts.host(authenticationHostID ?? descriptor.hostID) else {
+            return nil
+        }
+        let staged = submissions[host.id]
+        let identity = staged?.identityID.flatMap { hosts.identity($0) } ?? hosts.identity(for: host)
+        let keyID = staged?.keyID ?? identity?.keyID
+        return SSHAuthenticationPrompt(
+            host: host, selectedIdentityID: identity?.id, username: username,
+            selectedKeyID: keyID, failureMessage: error,
+            requiresPassphrase: keyID.flatMap { hosts.key($0) }?.requiresPassphraseEntry == true
+                && staged?.passphrase == nil,
+            mode: authenticationMode)
+    }
+
+    var hostKeyPrompt: SSHHostKeyPrompt? {
+        guard let observation = pendingHostKey else { return nil }
+        let count = pendingHostKeyHostID.flatMap { hosts.host($0) }.map { hosts.knownHosts(for: $0).count } ?? 0
+        return SSHHostKeyPrompt(
+            observation: observation, kind: count == 0 ? .firstUse : .additionalKey(trustedKeyCount: count))
+    }
+
+    private func preparation(for host: Host) throws -> SSHConnectionPreparation {
+        var result = try hosts.prepareSSHConnection(for: host, submissions: submissions)
+        for index in result.nodes.indices {
+            if let key = temporaryKeys[result.nodes[index].host.id] { result.nodes[index].trustedKeys.insert(key) }
+        }
+        return result
+    }
+
+    func submitAuthentication(
+        identityID: UUID?, username: String, password: String?, passphrase: String?, keyID: UUID?, save: Bool
+    ) {
+        guard var host = hosts.host(authenticationHostID ?? descriptor.hostID) else { return }
+        let identity = identityID.flatMap { hosts.identity($0) }
+        let name = (identity?.username ?? username).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        if authenticationPrompt?.requiresPassphrase == true, var staged = submissions[host.id] {
+            staged.passphrase = passphrase
+            submissions[host.id] = staged
+        } else {
+            let chosenKey = identity?.keyID ?? keyID
+            if save {
+                do {
+                    let value = identity ?? Identity(name: name, username: name, keyID: chosenKey)
+                    try hosts.upsert(value, passwordUpdate: password.map(IdentityPasswordUpdate.replace) ?? .keep)
+                    host.identityID = value.id
+                    hosts.upsert(host)
+                } catch {
+                    self.error = error.localizedDescription
+                    return
+                }
+            }
+            submissions[host.id] = SSHAuthenticationSubmission(
+                username: name, password: password, passphrase: passphrase,
+                keyID: chosenKey, identityID: identity?.id)
+        }
+        authenticationRequired = false
+        authenticationPrompt = nil
+
+        journey.resume()
+        connect()
+    }
+
+    func presentFind() {
+        let wasOpen = isFindPresented
+        isFindPresented = true
+        if !wasOpen && !findQuery.isEmpty { _ = terminal.performBindingAction("search:\(findQuery)") }
+    }
+
+    func updateFindQuery(_ query: String) {
+        findQuery = query
+        _ = terminal.performBindingAction("search:\(query)")
+    }
+
+    func navigateFind(previous: Bool) {
+        presentFind()
+        guard !findQuery.isEmpty else { return }
+        _ = terminal.performBindingAction(previous ? "navigate_search:previous" : "navigate_search:next")
+    }
+
+    func dismissFind() {
+        _ = terminal.performBindingAction("end_search")
+        isFindPresented = false
+        terminal.requestFocus()
+    }
+
+    func insertHistory(_ command: String) {
+        guard connected else { return }
+        _ = terminal.paste(text: command)
+        terminal.requestFocus()
+    }
+
+    func receiveShellEvent(_ event: SSHShellIntegrationEvent) {
+        guard terminalSettings.preferences.shellIntegration else {
+            activeHistoryID = nil
+            shellIntegrationAvailable = false
+            return
+        }
+        switch event {
+        case .available(_, let systemInfo, _):
+            shellIntegrationAvailable = true
+            hosts.recordRemoteSystemInfo(systemInfo, for: descriptor.hostID)
+        case .systemInfo(let systemInfo): hosts.recordRemoteSystemInfo(systemInfo, for: descriptor.hostID)
+        case .commandStarted(let command):
+            guard shellIntegrationAvailable else { return }
+            activeHistoryID = commandHistory.record(command, for: descriptor.hostID)?.id
+        case .commandFinished(let status, let duration):
+            guard let id = activeHistoryID else { return }
+            commandHistory.recordCompletion(for: id, hostID: descriptor.hostID, exitStatus: status, duration: duration)
+            activeHistoryID = nil
+        default: break
+        }
+    }
+
     func connect() {
         guard !busy, !connected else { return }
         let token = UUID()
         generation = token
+        activeHistoryID = nil
+        shellIntegrationAvailable = false
         busy = true
         error = nil
         status = String(localized: "Connecting")
@@ -77,31 +204,39 @@ final class MobileWorkspace: Identifiable {
             defer { if generation == token { busy = false } }
             do {
                 guard let host = hosts.host(descriptor.hostID) else { throw CocoaError(.fileNoSuchFile) }
+                journey.begin(
+                    host: host, route: hosts.route(for: host),
+                    purpose: descriptor.kind == .ssh ? .sshSession : .sftpSession,
+                    username: hosts.identity(for: host)?.username)
                 // Validate each hop in order so credentials and trust prompts name the actual endpoint.
                 for endpoint in hosts.route(for: host) {
-                    let preparation = try hosts.prepareSSHConnection(for: endpoint, submissions: submissions)
+                    let preparation = try preparation(for: endpoint)
                     let discovery = try await preparation.resolve(discoveryOnly: true)
+                    journey.receive(.connecting(endpoint.id))
                     let observation = try await SSHSessionActor.discoverHostKey(
                         hostID: endpoint.id, host: endpoint.host, port: endpoint.port,
                         proxy: discovery.proxy, jumps: discovery.jumps)
                     guard generation == token, !Task.isCancelled else { return }
                     let trusted = hosts.knownHosts(for: endpoint)
-                    if !trusted.contains(where: { $0.identity == observation.identity }) {
+                    if !trusted.contains(where: { $0.identity == observation.identity })
+                        && temporaryKeys[endpoint.id] != observation.identity
+                    {
                         if trusted.contains(where: { $0.algorithm == observation.algorithm }) {
                             hosts.markKnownHostMismatched(hostname: endpoint.host, port: endpoint.port)
                             throw TermindSSHError.hostKeyChanged(
                                 expected: trusted.map(\.fingerprint), received: observation.fingerprint)
                         }
+                        pendingHostKeyHostID = endpoint.id
                         pendingHostKey = observation
+                        journey.waitForHostKey(at: endpoint.id, fingerprint: observation.fingerprint)
                         status = String(localized: "Waiting for approval")
                         return
                     }
                 }
-                let preparation = try hosts.prepareSSHConnection(for: host, submissions: submissions)
+                let preparation = try preparation(for: host)
                 let config = try await preparation.resolve()
                 guard generation == token, !Task.isCancelled else { return }
-                password = ""
-                passphrase = ""
+
                 if descriptor.kind == .ssh {
                     let backend = backend
                     let session = SSHSessionActor(
@@ -120,13 +255,7 @@ final class MobileWorkspace: Identifiable {
                         shellIntegration: { [weak self] event in
                             Task { @MainActor in
                                 guard let self, self.generation == token else { return }
-                                switch event {
-                                case .available(_, let systemInfo, _):
-                                    self.hosts.recordRemoteSystemInfo(systemInfo, for: self.descriptor.hostID)
-                                case .systemInfo(let systemInfo):
-                                    self.hosts.recordRemoteSystemInfo(systemInfo, for: self.descriptor.hostID)
-                                default: return
-                                }
+                                self.receiveShellEvent(event)
                                 self.didChangeState?()
                             }
                         })
@@ -135,8 +264,16 @@ final class MobileWorkspace: Identifiable {
                         hostID: config.hostID, host: config.host, port: config.port,
                         username: config.username, credentials: config.credentials,
                         expectedHostKeys: config.expectedHostKeys,
-                        proxy: config.proxy, jumps: config.jumps, columns: UInt16(clamping: viewport.columns),
-                        rows: UInt16(clamping: viewport.rows))
+                        proxy: config.proxy, jumps: config.jumps,
+                        shellIntegrationEnabled: terminalSettings.preferences.shellIntegration,
+                        columns: UInt16(clamping: viewport.columns),
+                        rows: UInt16(clamping: viewport.rows),
+                        progress: { [weak self] event in
+                            Task { @MainActor in
+                                guard let self, self.generation == token else { return }
+                                self.journey.receive(event)
+                            }
+                        })
                 } else {
                     let client = try await RemoteConnectionCoordinator().connectSFTP(using: config)
                     guard generation == token, !Task.isCancelled else {
@@ -154,9 +291,11 @@ final class MobileWorkspace: Identifiable {
                 submissions.removeAll()
                 connected = true
                 status = String(localized: "Connected")
+                journey.succeed()
             } catch {
                 guard generation == token else { return }
                 self.error = error.localizedDescription
+                journey.fail(error.localizedDescription)
                 status = String(localized: "Disconnected")
                 if let sshError = error as? TermindSSHError {
                     switch sshError {
@@ -165,13 +304,25 @@ final class MobileWorkspace: Identifiable {
                     default: authenticationRequired = sshError.shouldRequestAuthentication
                     }
                     if authenticationRequired {
+                        authenticationMode =
+                            sshError.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity
                         authenticationHostID = sshError.routeHostID ?? descriptor.hostID
                         if let endpoint = hosts.host(authenticationHostID ?? descriptor.hostID) {
                             username =
                                 submissions[endpoint.id]?.username ?? hosts.identity(for: endpoint)?.username ?? ""
                         }
-                        password = ""
-                        passphrase = ""
+                        authenticationPrompt = makeAuthenticationPrompt()
+                        if authenticationPrompt?.requiresPassphrase == true {
+                            journey.waitForLocalPassphrase(
+                                at: authenticationHostID ?? descriptor.hostID, failure: error.localizedDescription)
+                        } else if sshError.isServerAuthenticationChallenge {
+                            journey.waitForAuthentication(
+                                at: authenticationHostID ?? descriptor.hostID, failure: error.localizedDescription)
+                        } else {
+                            journey.waitForLocalIdentity(
+                                at: authenticationHostID ?? descriptor.hostID, failure: error.localizedDescription)
+                        }
+
                     }
                 }
                 await ssh?.disconnect()
@@ -182,37 +333,31 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
-    func submitAuthentication() {
-        let id = authenticationHostID ?? descriptor.hostID
-        guard let host = hosts.host(id) else { return }
-        submissions[id] = SSHAuthenticationSubmission(
-            username: username,
-            password: password.isEmpty ? nil : password, passphrase: passphrase.isEmpty ? nil : passphrase,
-            keyID: hosts.identity(for: host)?.keyID)
-        password = ""
-        passphrase = ""
-        authenticationRequired = false
-        connect()
-    }
-
-    func cancelAuthentication() {
-        password = ""
-        passphrase = ""
-        submissions.removeAll()
-        authenticationRequired = false
-    }
-
-    func trustHostKey() {
+    func trustHostKey(remember: Bool = true) {
         guard let observation = pendingHostKey else { return }
-        hosts.trust(
-            KnownHostEntry(
-                hostname: observation.hostname, port: observation.port,
-                algorithm: observation.algorithm, fingerprint: observation.fingerprint, addedAt: .now))
+        if remember {
+            hosts.trust(
+                KnownHostEntry(
+                    hostname: observation.hostname, port: observation.port,
+                    algorithm: observation.algorithm, fingerprint: observation.fingerprint, addedAt: .now))
+        } else {
+            temporaryKeys[pendingHostKeyHostID ?? descriptor.hostID] = observation.identity
+        }
+        journey.resume()
         pendingHostKey = nil
         connect()
     }
 
     func disconnect() {
+        journey.hide()
+        pendingHostKey = nil
+        authenticationRequired = false
+        authenticationPrompt = nil
+        temporaryKeys.removeAll()
+        submissions.removeAll()
+
+        activeHistoryID = nil
+        shellIntegrationAvailable = false
         generation = UUID()
         attempt?.cancel()
         attempt = nil
@@ -227,10 +372,10 @@ final class MobileWorkspace: Identifiable {
         }
         busy = false
         connected = false
-        password = ""
-        passphrase = ""
+
         submissions.removeAll()
         authenticationRequired = false
+        authenticationPrompt = nil
         pendingHostKey = nil
         status = String(localized: "Disconnected")
     }

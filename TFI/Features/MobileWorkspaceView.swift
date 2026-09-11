@@ -1,12 +1,16 @@
 import GhosttyTerminal
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import TermindRemoteInfrastructure
 import UniformTypeIdentifiers
 
 struct MobileWorkspaceView: View {
+    let library: HostLibraryModel
     @Bindable var workspace: MobileWorkspace
+    @State private var showingHistory = false
+    @FocusState private var findFocused: Bool
     @State private var importing = false
     @State private var directoryName = ""
     @State private var creatingDirectory = false
@@ -18,10 +22,22 @@ struct MobileWorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             if workspace.descriptor.kind == .ssh {
-                TerminalSurfaceView(context: workspace.terminal)
-                    .id(workspace.id)
-                    .onTapGesture { workspace.terminal.requestFocus() }
-                MobileTerminalKeyboard(state: workspace.terminal)
+                ZStack {
+                    VStack(spacing: 0) {
+                        if workspace.isFindPresented { findBar }
+                        TerminalSurfaceView(context: workspace.terminal)
+                            .id(workspace.id)
+                            .onChange(of: workspace.terminalSettings.preferences, initial: true) { _, value in
+                                workspace.terminal.applyPreferences(value)
+                            }
+                            .onTapGesture { workspace.terminal.requestFocus() }
+                        MobileTerminalKeyboard(state: workspace.terminal)
+                    }.opacity(showsJourney ? 0 : 1)
+                        .allowsHitTesting(!showsJourney).accessibilityHidden(showsJourney)
+                    if showsJourney { connectionJourney.background(.background) }
+                }
+            } else if showsJourney {
+                connectionJourney
             } else {
                 List {
                     Button("Parent Directory", systemImage: "arrow.up") {
@@ -64,6 +80,28 @@ struct MobileWorkspaceView: View {
         .navigationTitle(workspace.descriptor.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if workspace.descriptor.kind == .ssh {
+                Button("Find", systemImage: "magnifyingglass") {
+                    workspace.presentFind()
+                    findFocused = true
+                }
+                .keyboardShortcut("f", modifiers: .command)
+                Button("History", systemImage: "clock") { showingHistory = true }
+                Menu {
+                    Button("Next Match") {
+                        workspace.navigateFind(previous: false)
+                        findFocused = true
+                    }
+                    .keyboardShortcut("g", modifiers: .command)
+                    Button("Previous Match") {
+                        workspace.navigateFind(previous: true)
+                        findFocused = true
+                    }
+                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+            }
             if workspace.descriptor.kind == .sftp {
                 Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                 Menu {
@@ -74,6 +112,7 @@ struct MobileWorkspaceView: View {
                 }.disabled(!workspace.connected)
             }
         }
+        .sheet(isPresented: $showingHistory) { MobileCommandHistoryView(workspace: workspace) }
         .sheet(item: $renaming) { MobileRemoteFileEditor(workspace: workspace, file: $0, mode: .rename) }
         .sheet(item: $editingPermissions) { MobileRemoteFileEditor(workspace: workspace, file: $0, mode: .permissions) }
         .sheet(isPresented: $showingTransfers) {
@@ -111,50 +150,9 @@ struct MobileWorkspaceView: View {
             }
         }
         .alert(
-            "Trust Host Key?",
-            isPresented: Binding(
-                get: { workspace.pendingHostKey != nil }, set: { if !$0 { workspace.pendingHostKey = nil } })
-        ) {
-            Button("Trust") { workspace.trustHostKey() }
-            Button("Cancel", role: .cancel) { workspace.pendingHostKey = nil }
-        } message: {
-            Text(
-                workspace.pendingHostKey.map {
-                    "\($0.hostname):\($0.port)\n\($0.algorithm.rawValue)\n\($0.fingerprint)"
-                } ?? "")
-        }
-        .sheet(isPresented: $workspace.authenticationRequired) {
-            NavigationStack {
-                Form {
-                    TextField("Username", text: $workspace.username).textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Text(workspace.authenticationHostName).font(.headline)
-                    SecureField("Password", text: $workspace.password)
-                    SecureField("Passphrase", text: $workspace.passphrase)
-                }
-                .navigationTitle("Authentication")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            workspace.cancelAuthentication()
-                        }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Connect") {
-                            workspace.submitAuthentication()
-                        }
-                    }
-                }
-            }.presentationDetents([.medium, .large])
-                .onDisappear {
-                    workspace.password = ""
-                    workspace.passphrase = ""
-                }
-        }
-        .alert(
             "Connection Error",
             isPresented: Binding(
-                get: { workspace.error != nil && !workspace.authenticationRequired },
+                get: { workspace.error != nil && !workspace.authenticationRequired && !workspace.journey.isPresented },
                 set: { if !$0 { workspace.error = nil } })
         ) {
             Button("OK", role: .cancel) { workspace.error = nil }
@@ -162,4 +160,32 @@ struct MobileWorkspaceView: View {
             Text(workspace.error ?? "")
         }
     }
+    private var showsJourney: Bool {
+        workspace.journey.isPresented || workspace.authenticationRequired || workspace.pendingHostKey != nil
+    }
+
+    private var connectionJourney: some View {
+        MobileConnectionJourneyView(
+            journey: workspace.journey, library: library,
+            authenticationPrompt: workspace.authenticationPrompt, hostKey: workspace.hostKeyPrompt,
+            submit: { identity, username, password, passphrase, key, save in
+                workspace.submitAuthentication(
+                    identityID: identity, username: username, password: password,
+                    passphrase: passphrase, keyID: key, save: save)
+            }, accept: { workspace.trustHostKey(remember: $0) }, retry: { workspace.connect() },
+            cancel: { workspace.disconnect() })
+    }
+
+    private var findBar: some View {
+        HStack {
+            TextField("Find", text: Binding(get: { workspace.findQuery }, set: { workspace.updateFindQuery($0) }))
+                .textInputAutocapitalization(.never).autocorrectionDisabled().focused($findFocused)
+                .onSubmit { workspace.navigateFind(previous: true) }
+            Button("Previous Match", systemImage: "chevron.up") { workspace.navigateFind(previous: true) }
+            Button("Next Match", systemImage: "chevron.down") { workspace.navigateFind(previous: false) }
+            Button("Close", systemImage: "xmark") { workspace.dismissFind() }.keyboardShortcut(.escape, modifiers: [])
+        }.labelStyle(.iconOnly).padding(8).background(.bar)
+            .onAppear { findFocused = true }
+    }
+
 }

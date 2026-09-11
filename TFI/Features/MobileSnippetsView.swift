@@ -45,8 +45,10 @@ private struct MobileSnippetEditor: View {
             },
             content: {
                 TextField("Title", text: $draft.title)
-                TextEditor(text: $draft.body).font(.body.monospaced()).frame(minHeight: 220)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                TextEditor(text: $draft.body).multilineTextAlignment(.leading).font(.body.monospaced()).frame(
+                    minHeight: 220
+                )
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
             })
     }
 }

@@ -43,6 +43,7 @@
 		A671EB6598B90BA03EF86CE7 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		A9A947EA53E15BD04CE319C1 /* TermindPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */; };
 		AB2210ABB10F707CBFB01C78 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
+		ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
 		B08DD88AB7C2444E5AEC19BC /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		B1821FD31E7D009C900B5557 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		B616FF213FC31346E6BB3817 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
@@ -330,6 +331,13 @@
 			remoteGlobalIDString = DB005287D48C7756E15B6830;
 			remoteInfo = TermindPersistence;
 		};
+		DB8AE7623053CEF500C7EFAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB005287D48C7756E15B6830;
+			remoteInfo = TermindPersistence;
+		};
 		DDD7C2043B64225E19B0D941 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = TRMD00000000000000000090 /* Project object */;
@@ -566,6 +574,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */,
 				7DE0BDBF5E7A76602DDD443D /* TermindDomain.framework in Frameworks */,
 				6DF0C216374DA144B1FC2030 /* TermindApplication.framework in Frameworks */,
 			);
@@ -838,6 +847,7 @@
 			);
 			dependencies = (
 				EA931847718F5BD9BCEBB63A /* PBXTargetDependency */,
+				ABCDEF010000000000000002 /* PBXTargetDependency */,
 				81CC5F621EFB712B902CD692 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -1081,6 +1091,16 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					1EAB6B47E04D61C8CFC54762 = {
+						SystemCapabilities = {
+							com.apple.Push = {
+								enabled = 1;
+							};
+							com.apple.iCloud = {
+								enabled = 1;
+							};
+						};
+					};
 					F815C7E534B763A0E88A5CBD = {
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = 1EAB6B47E04D61C8CFC54762;
@@ -1467,6 +1487,11 @@
 			target = DB005287D48C7756E15B6830 /* TermindPersistence */;
 			targetProxy = DB8AB3D23053A07800C7EFAE /* PBXContainerItemProxy */;
 		};
+		ABCDEF010000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB005287D48C7756E15B6830 /* TermindPersistence */;
+			targetProxy = DB8AE7623053CEF500C7EFAE /* PBXContainerItemProxy */;
+		};
 		B5CB96BC5381BEF3FF47AED5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = ADAD84AB61B493DA1D22B54C /* TermindInfrastructure */;
@@ -1647,12 +1672,14 @@
 		3891D69CE8B2E67E07EFE802 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TFI/Termind.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = F6SUNDBBN9;
 				GENERATE_INFOPLIST_FILE = YES;
+				ICLOUD_CONTAINER_ENVIRONMENT = Development;
 				INFOPLIST_FILE = TFI/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Termind;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -1900,12 +1927,14 @@
 		D76D79A8E58FBD72935F61F2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TFI/Termind.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = F6SUNDBBN9;
 				GENERATE_INFOPLIST_FILE = YES;
+				ICLOUD_CONTAINER_ENVIRONMENT = Production;
 				INFOPLIST_FILE = TFI/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Termind;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -2075,7 +2104,7 @@
 				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TFM/Termind.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TFM/TFM.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -2112,7 +2141,7 @@
 				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = TFM/Termind.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TFM/TFM.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;

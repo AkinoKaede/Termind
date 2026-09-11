@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
@@ -14,7 +15,7 @@ struct MobileAppTests {
         let app = try MobileAppModel(inMemory: true)
         #expect(try app.hosts.snapshot().value == .empty)
         #expect(Set(app.container.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
-        #expect(MobileTab.allCases == [.home, .metrics, .assistant, .settings])
+        #expect(MobileTab.allCases == [.vault, .workspaces, .assistant, .settings])
     }
 
     @Test func scenesCanUseTheSameAppRepository() throws {
@@ -56,14 +57,17 @@ struct MobileWorkspaceTests {
     }
 
     @Test func freeMetricsLimitCountsAllSelectionsAndDeduplicates() {
-        let metrics = MobileMetricsModel(defaults: nil)
-        let id = UUID()
-        #expect(metrics.add(id, pro: false))
-        #expect(metrics.add(id, pro: false))
-        #expect(metrics.add(UUID(), pro: false))
-        #expect(metrics.add(UUID(), pro: false))
-        #expect(!metrics.add(UUID(), pro: false))
-        #expect(metrics.add(UUID(), pro: true))
+        let library = HostLibraryModel()
+        let hosts = (0..<5).map { TermindDomain.Host(name: "Host \($0)", host: "example.invalid") }
+        for host in hosts { library.upsert(host) }
+        let metrics = MobileMetricsModel(defaults: nil, hosts: library)
+        metrics.pause()
+        #expect(metrics.add(hosts[0].id, pro: false))
+        #expect(metrics.add(hosts[0].id, pro: false))
+        #expect(metrics.add(hosts[1].id, pro: false))
+        #expect(metrics.add(hosts[2].id, pro: false))
+        #expect(!metrics.add(hosts[3].id, pro: false))
+        #expect(metrics.add(hosts[4].id, pro: true))
         #expect(metrics.selections.count == 4)
     }
 }

@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import TermindApplication
 
 /// `@AppStorage` keys in one place.
 ///
@@ -15,32 +16,23 @@ nonisolated enum SettingsKey {
 
     /// App language selection. `system` means normal Bundle negotiation.
     static let showMetricsInMenuBar = "metrics.showInMenuBar"
-    static let appLanguage = "app.language"
+    static let appLanguage = SharedSettingsKey.appLanguage
     /// App-wide appearance. `system` inherits changes from macOS.
     static let appAppearance = "app.appearance"
-    static let iCloudSyncEnabled = "icloud.sync.enabled"
-    static let defaultICloudSyncEnabled = true
-    static let settingsSyncEnabled = "settings.sync.enabled"
-    static let settingsSyncEnvironment = "settings.sync.environment"
-    static let defaultSettingsSyncEnabled = false
-    static let vaultSyncEnabled = "vault.sync.enabled"
+    static let iCloudSyncEnabled = SharedSettingsKey.iCloudSyncEnabled
+    static let defaultICloudSyncEnabled = SharedSettingsKey.defaultICloudSyncEnabled
+    static let settingsSyncEnabled = SharedSettingsKey.settingsSyncEnabled
+    static let settingsSyncEnvironment = SharedSettingsKey.settingsSyncEnvironment
+    static let defaultSettingsSyncEnabled = SharedSettingsKey.defaultSettingsSyncEnabled
+    static let vaultSyncEnabled = SharedSettingsKey.vaultSyncEnabled
     /// The CloudKit environment owning the persisted sync engine state and
     /// record system fields. Debug and TestFlight share the app container, but
     /// CloudKit development change tags are invalid in production (and vice
     /// versa), so an environment switch must rebind the local journal.
-    static let vaultSyncEnvironment = "vault.sync.environment"
-    static let defaultVaultSyncEnabled = true
+    static let vaultSyncEnvironment = SharedSettingsKey.vaultSyncEnvironment
+    static let defaultVaultSyncEnabled = SharedSettingsKey.defaultVaultSyncEnabled
     static func migrateSyncPreferences(in defaults: UserDefaults = .standard) {
-        if defaults.object(forKey: settingsSyncEnabled) == nil,
-            let legacy = defaults.object(forKey: "ai.sync.enabled") as? Bool
-        {
-            defaults.set(legacy, forKey: settingsSyncEnabled)
-        }
-        guard defaults.object(forKey: iCloudSyncEnabled) == nil else { return }
-        let vault = defaults.object(forKey: vaultSyncEnabled) as? Bool ?? defaultVaultSyncEnabled
-        let ai = defaults.object(forKey: settingsSyncEnabled) as? Bool ?? defaultSettingsSyncEnabled
-        defaults.set(vault || ai, forKey: iCloudSyncEnabled)
-        if !vault && !ai { defaults.set(true, forKey: vaultSyncEnabled) }
+        SharedSettingsKey.migrateSyncPreferences(in: defaults)
     }
 
     static let mcpServerEnabled = "mcpServer.enabled"
@@ -59,25 +51,23 @@ nonisolated enum SettingsKey {
     /// how much of the pane you want covered, not a property of one session.
     static let statusBarExpanded = "statusBar.expanded"
     /// Terminal palette name, matched against `GhosttyThemeCatalog`.
-    static let terminalThemeDark = "terminal.theme.dark"
-    static let terminalThemeLight = "terminal.theme.light"
-    static let terminalCustomConfigurationDarkEnabled =
-        "terminal.customConfiguration.dark.enabled"
-    static let terminalCustomConfigurationLightEnabled =
-        "terminal.customConfiguration.light.enabled"
-    static let terminalCustomConfigurationDark = "terminal.customConfiguration.dark"
-    static let terminalCustomConfigurationLight = "terminal.customConfiguration.light"
-    static let terminalFontFollowTheme = "terminal.font.followTheme"
-    static let defaultTerminalThemeDark = "Termind Dark"
-    static let defaultTerminalThemeLight = "Termind Light"
-    static let terminalFontSize = "terminal.fontSize"
+    static let terminalThemeDark = SharedSettingsKey.terminalThemeDark
+    static let terminalThemeLight = SharedSettingsKey.terminalThemeLight
+    static let terminalCustomConfigurationDarkEnabled = SharedSettingsKey.terminalCustomConfigurationDarkEnabled
+    static let terminalCustomConfigurationLightEnabled = SharedSettingsKey.terminalCustomConfigurationLightEnabled
+    static let terminalCustomConfigurationDark = SharedSettingsKey.terminalCustomConfigurationDark
+    static let terminalCustomConfigurationLight = SharedSettingsKey.terminalCustomConfigurationLight
+    static let terminalFontFollowTheme = SharedSettingsKey.terminalFontFollowTheme
+    static let defaultTerminalThemeDark = SharedSettingsKey.defaultTerminalThemeDark
+    static let defaultTerminalThemeLight = SharedSettingsKey.defaultTerminalThemeLight
+    static let terminalFontSize = SharedSettingsKey.terminalFontSize
     /// Enable session-scoped hooks that report remote shell and system context.
-    static let shellIntegration = "terminal.shellIntegration"
+    static let shellIntegration = SharedSettingsKey.shellIntegration
     static var isShellIntegrationEnabled: Bool {
         UserDefaults.standard.object(forKey: shellIntegration) as? Bool ?? true
     }
     /// Mirror the focused SSH terminal's OSC 0/2 title in the macOS menu bar.
-    static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"
+    static let remoteWindowTitleInMenuBar = SharedSettingsKey.remoteWindowTitleInMenuBar
     static let defaultRemoteWindowTitleInMenuBarEnabled = true
     static let onboardingQuickOpenCompleted = "onboarding.quickOpen.completed"
     static let onboardingStatusBarPathCompleted = "onboarding.statusBarPath.completed"
@@ -107,7 +97,7 @@ nonisolated enum SettingsKey {
     /// How far through `AgentSkillLibrary` the starter skills have been copied
     /// into the user's library. A mark rather than a flag, so a later release
     /// can add one without resurrecting the ones they deleted.
-    static let seededSkillGeneration = "assistant.skills.seededGeneration"
+    static let seededSkillGeneration = SharedSettingsKey.seededSkillGeneration
     static let sftpGlobalTransferLimit = "sftp.transfers.globalLimit"
     static let sftpPerHostTransferLimit = "sftp.transfers.perHostLimit"
     static let defaultSFTPGlobalTransferLimit = 3
@@ -117,8 +107,8 @@ nonisolated enum SettingsKey {
     ///
     /// On by default because ScrubberKit searches from this Mac without an
     /// account or API key.
-    static let webSearchEnabled = "search.enabled"
-    static let defaultWebSearchEnabled = true
+    static let webSearchEnabled = SharedSettingsKey.webSearchEnabled
+    static let defaultWebSearchEnabled = SharedSettingsKey.defaultWebSearchEnabled
     static var isWebSearchEnabled: Bool {
         UserDefaults.standard.object(forKey: webSearchEnabled) as? Bool ?? defaultWebSearchEnabled
     }
@@ -133,8 +123,8 @@ nonisolated enum SettingsKey {
     /// search is a *guess*: `ModelProvider.supportsNativeWebSearch(model:)`
     /// infers it from the model id, and a gateway can make that inference wrong
     /// in either direction. This is the escape hatch for when it is.
-    static let webSearchBuiltIn = "search.builtIn"
-    static let defaultWebSearchBuiltIn = true
+    static let webSearchBuiltIn = SharedSettingsKey.webSearchBuiltIn
+    static let defaultWebSearchBuiltIn = SharedSettingsKey.defaultWebSearchBuiltIn
     static var isBuiltInWebSearchEnabled: Bool {
         UserDefaults.standard.object(forKey: webSearchBuiltIn) as? Bool
             ?? defaultWebSearchBuiltIn

@@ -33,11 +33,16 @@ struct MobileTerminalKeyboard: View {
         }.background(.bar)
             .onChange(of: state.isFocused, initial: true) { _, _ in
                 state.attachedPlatformView?.setStickyModifierChangeHandler {
-                    control = state.attachedPlatformView?.stickyActivation(for: .ctrl) ?? .inactive
-                    alt = state.attachedPlatformView?.stickyActivation(for: .alt) ?? .inactive
+                    refreshModifiers()
                 }
+                refreshModifiers()
             }
             .onDisappear { state.attachedPlatformView?.setStickyModifierChangeHandler(nil) }
+    }
+
+    private func refreshModifiers() {
+        control = state.attachedPlatformView?.stickyActivation(for: .ctrl) ?? .inactive
+        alt = state.attachedPlatformView?.stickyActivation(for: .alt) ?? .inactive
     }
 
     private func modifier(

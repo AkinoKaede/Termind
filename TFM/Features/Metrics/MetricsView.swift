@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 struct ServerMetricsView: View {
     @Environment(AppModel.self) private var app
@@ -173,33 +174,7 @@ struct ServerMetricsCard: View {
 
 }
 
-struct MetricsRing: View {
-    let title: LocalizedStringKey
-    let value: Double?
-    private var color: Color {
-        guard let value else { return TermindColor.secondaryForeground }
-        return value >= 90 ? TermindColor.danger : value >= 75 ? TermindColor.warning : TermindColor.success
-    }
-    var body: some View {
-        VStack(spacing: 5) {
-            ZStack {
-                Circle().stroke(.quaternary, lineWidth: 4)
-                if let value {
-                    Circle().trim(from: 0, to: min(1, max(0, value / 100)))
-                        .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                }
-                Text(value.map { $0.formatted(.number.precision(.fractionLength(0))) + "%" } ?? "—")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-            }.frame(width: 40, height: 40)
-            Text(title).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.7)
-        }
-        .frame(width: 46)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(title))
-        .accessibilityValue(MetricsFormat.percent(value))
-    }
-}
+typealias MetricsRing = TermindPresentation.MetricsRing
 
 struct MetricsProcessList: View {
     let server: ServerMetric
@@ -266,24 +241,7 @@ struct MetricsProcessList: View {
     }
 }
 
-nonisolated enum MetricsFormat {
-    static func percent(_ value: Double?) -> String {
-        guard let value, value.isFinite else { return "—" }
-        return value.formatted(.number.precision(.fractionLength(1))) + "%"
-    }
-    static func bytes(_ value: Double?) -> String {
-        guard var value, value.isFinite, value >= 0 else { return "—" }
-        let units = ["B", "KiB", "MiB", "GiB", "TiB"]
-        var index = 0
-        while value >= 1024, index < units.count - 1 {
-            value /= 1024
-            index += 1
-        }
-        return value.formatted(.number.precision(.fractionLength(index == 0 ? 0 : 1))) + " " + units[index]
-    }
-    static func rate(_ value: Double?) -> String { value == nil ? "—" : bytes(value) + "/s" }
-    static func capacity(_ used: Double?, _ total: Double?) -> String { bytes(used) + " / " + bytes(total) }
-}
+typealias MetricsFormat = TermindPresentation.MetricsFormat
 
 struct MetricsDevicePicker: View {
     let server: ServerMetric

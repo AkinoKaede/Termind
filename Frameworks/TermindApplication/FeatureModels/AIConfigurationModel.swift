@@ -351,20 +351,27 @@ public final class AIConfigurationModel {
         }
     }
 
-    /// The only place `url` and `apiFormat` are ever written.
-    ///
-    /// Everything else edits a name, a key or a model list. Keeping the
-    /// derivation in one function is what lets the caption under the URL field
-    /// promise where requests land: there is exactly one rule turning a typed
-    /// address and a picked type into an address, and both the caption and the
-    /// request read it from the same place.
+    /// Commits a provider form and its endpoint together, without selecting a model.
+    @discardableResult
+    public func saveProvider(_ draft: ModelProvider, endpoint: ProviderEndpoint) -> Bool {
+        mutatePersistedState {
+            var value = draft
+            value.inferenceURL = endpoint.requestURL
+            value.baseURL = endpoint.baseURL
+            value.apiFormat = endpoint.format
+            endpoints[value.id] = endpoint
+            if let index = modelProviders.firstIndex(where: { $0.id == value.id }) {
+                modelProviders[index] = value
+            } else {
+                modelProviders.append(value)
+            }
+        }
+    }
+
+    /// Derives and commits the request URL, base URL and format through the same form transaction.
     public func setEndpoint(_ endpoint: ProviderEndpoint, for id: ModelProvider.ID) {
-        guard var provider = modelProvider(id) else { return }
-        provider.inferenceURL = endpoint.requestURL
-        provider.baseURL = endpoint.baseURL
-        provider.apiFormat = endpoint.format
-        endpoints[id] = endpoint
-        upsert(provider)
+        guard let provider = modelProvider(id) else { return }
+        saveProvider(provider, endpoint: endpoint)
     }
 
     /// Removes a provider along with everything that only made sense while it

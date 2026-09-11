@@ -19,26 +19,6 @@ extension KeyStorage {
     }
 }
 
-extension SSHKeyAlgorithm {
-    nonisolated var displayName: String {
-        switch self {
-        case .ed25519: "Ed25519"
-        case .ecdsa256: "ECDSA P-256"
-        case .ecdsa384: "ECDSA P-384"
-        case .ecdsa521: "ECDSA P-521"
-        case .rsa: "RSA"
-        }
-    }
-
-    nonisolated var typeName: String {
-        switch self {
-        case .ed25519: "Ed25519"
-        case .ecdsa256, .ecdsa384, .ecdsa521: "ECDSA"
-        case .rsa: "RSA"
-        }
-    }
-}
-
 extension PortForwardingRule.Kind {
     nonisolated var displayName: String {
         switch self {

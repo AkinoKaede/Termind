@@ -12,11 +12,12 @@ public struct HostConnectionFields: View {
     public var body: some View {
         Section("Connection") {
             LabeledContent("Name") {
-                TextField("Name", text: $host.name, prompt: Text(host.host)).labelsHidden()
+                TextField("Name", text: $host.name, prompt: Text(host.host)).labelsHidden().multilineTextAlignment(
+                    .trailing)
             }
             LabeledContent("Host") {
                 TextField("Host", text: $host.host, prompt: Text("IP address or hostname"))
-                    .labelsHidden()
+                    .labelsHidden().multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -25,7 +26,7 @@ public struct HostConnectionFields: View {
             }
             LabeledContent("Port") {
                 TextField("Port", value: $host.port, format: .number.grouping(.never))
-                    .labelsHidden()
+                    .labelsHidden().multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .keyboardType(.numberPad)
                     #endif
@@ -34,7 +35,7 @@ public struct HostConnectionFields: View {
         Section("SFTP") {
             LabeledContent("Initial Path") {
                 TextField("Initial Path", text: $host.sftpSessionInitialPath, prompt: Text("~"))
-                    .labelsHidden()
+                    .labelsHidden().multilineTextAlignment(.trailing)
                     .font(.body.monospaced())
                     #if os(iOS)
                         .textInputAutocapitalization(.never)

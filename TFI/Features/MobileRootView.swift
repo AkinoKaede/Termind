@@ -1,26 +1,24 @@
 import SwiftUI
+import UIKit
 
 /// iPhone has four destinations. iPad retains the sidebar with individual library routes.
 struct MobileRootView: View {
     let app: MobileAppModel
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.scenePhase) private var scenePhase
     @State private var sceneID = UUID()
-    @State private var tab: MobileTab = .home
-    @State private var selection: MobileDestination? = .welcome
+    @State private var tab: MobileTab = .vault
+    @State private var selection: MobileDestination? = .vault
     @State private var workspaceID: UUID?
     @State private var unavailable = false
-    @State private var showingWorkspaces = false
 
     var body: some View {
         Group {
-            if sizeClass == .compact {
+            if UIDevice.current.userInterfaceIdiom != .pad {
                 TabView(selection: $tab) {
-                    NavigationStack { home }
-                        .tabItem { Label("Welcome", systemImage: "house") }.tag(MobileTab.home)
-                    NavigationStack { metrics }
-                        .tabItem { Label("Metrics", systemImage: "gauge.with.dots.needle.33percent") }.tag(
-                            MobileTab.metrics)
+                    NavigationStack { vault }
+                        .tabItem { Label("Vault", systemImage: "server.rack") }.tag(MobileTab.vault)
+                    NavigationStack { workspaceList }
+                        .tabItem { Label("Workspaces", systemImage: "terminal") }.tag(MobileTab.workspaces)
                     NavigationStack { assistant }
                         .tabItem { Label("Assistant", systemImage: "sparkles") }.tag(MobileTab.assistant)
                     NavigationStack { settings }
@@ -38,12 +36,12 @@ struct MobileRootView: View {
                 } detail: {
                     NavigationStack {
                         switch selection {
-                        case .hosts: MobileVaultView(app: app, open: open)
+                        case .vault: vault
                         case .assistant: assistant
                         case .settings: settings
                         case .metrics: metrics
                         case .workspaces: workspaceList
-                        default: home
+                        default: vault
                         }
                     }
                 }
@@ -53,17 +51,17 @@ struct MobileRootView: View {
             MobileProView(pro: app.pro)
         }
         .onChange(of: scenePhase, initial: true) { _, phase in app.sceneChanged(sceneID, phase: phase) }
+        .onChange(of: app.pro.hasProAccess) { _, _ in app.reconcileSync() }
         .onDisappear { app.removeScene(sceneID) }
         .onOpenURL { url in
             if WorkspaceActivityAttributes.accepts(url) {
-                tab = .home
+                tab = .workspaces
                 selection = .workspaces
                 workspaceID = nil
-                showingWorkspaces = sizeClass == .compact
                 return
             }
             guard let id = WorkspaceActivityAttributes.workspaceID(from: url) else { return }
-            tab = .home
+            tab = .workspaces
             selection = .workspaces
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
                 workspaceID = id
@@ -96,41 +94,23 @@ struct MobileRootView: View {
 
     }
 
-    private var home: some View {
-        List {
-            Section {
-                NavigationLink {
-                    MobileVaultView(app: app, open: open)
-                } label: {
-                    Label("Vault", systemImage: "server.rack")
-                }
-                if sizeClass != .compact {
-                    NavigationLink {
-                        metrics
-                    } label: {
-                        Label("Metrics", systemImage: "gauge.with.dots.needle.33percent")
-                    }
-                }
-            }
-            Section("Workspaces") { workspaceRows }
-        }
-        .navigationTitle("Welcome")
-        .navigationDestination(isPresented: $showingWorkspaces) { workspaceList }
-        .navigationDestination(item: $workspaceID) { id in
-            if let workspace = app.workspaces.first(where: { $0.id == id }) {
-                MobileWorkspaceView(workspace: workspace)
-            }
-        }
+    private var vault: some View {
+        MobileVaultView(app: app, open: open)
     }
 
     private var workspaceList: some View {
-        List { workspaceRows }
-            .navigationTitle("Workspaces")
-            .navigationDestination(item: $workspaceID) { id in
-                if let workspace = app.workspaces.first(where: { $0.id == id }) {
-                    MobileWorkspaceView(workspace: workspace)
-                }
+        List {
+            Section {
+                NavigationLink("Transfers") { MobileTransfersView(transfers: app.transfers) }
             }
+            Section("Workspaces") { workspaceRows }
+        }
+        .navigationTitle("Workspaces")
+        .navigationDestination(item: $workspaceID) { id in
+            if let workspace = app.workspaces.first(where: { $0.id == id }) {
+                MobileWorkspaceView(library: app.library, workspace: workspace)
+            }
+        }
     }
 
     @ViewBuilder private var workspaceRows: some View {
@@ -169,10 +149,11 @@ struct MobileRootView: View {
 
     private func open(_ hostID: UUID, _ kind: MobileWorkspaceDescriptor.Kind) {
         workspaceID = app.open(hostID: hostID, kind: kind)
-        if sizeClass != .compact { selection = .workspaces }
+        tab = .workspaces
+        selection = .workspaces
     }
 }
 
 nonisolated enum MobileTab: String, CaseIterable {
-    case home, metrics, assistant, settings
+    case vault, workspaces, assistant, settings
 }

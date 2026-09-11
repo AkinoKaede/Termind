@@ -17,7 +17,7 @@ struct MobileEditorSheet<Content: View>: View {
 
     var body: some View {
         NavigationStack {
-            Form { content().disabled(isSaving) }
+            Form { content().disabled(isSaving).textFieldStyle(MobileFormTextFieldStyle()) }
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -55,5 +55,11 @@ struct MobileEditorSheet<Content: View>: View {
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(isDirty || isSaving)
         .onDisappear { saveTask?.cancel() }
+    }
+}
+
+private struct MobileFormTextFieldStyle: TextFieldStyle {
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration.multilineTextAlignment(.trailing)
     }
 }

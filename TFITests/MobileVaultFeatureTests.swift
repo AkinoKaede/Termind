@@ -15,7 +15,9 @@ struct MobileVaultFeatureTests {
         #expect(!generator.isDirty)
         generator.label = "Generated"
         #expect(generator.isDirty)
+        #expect(generator.storage == .iCloud)
         generator.passphrase = "test-only-passphrase"
+        generator.confirmation = "test-only-passphrase"
         try await generator.save()
         let key = try #require(app.credentials.keys.first)
         #expect(key.hasPassphrase)

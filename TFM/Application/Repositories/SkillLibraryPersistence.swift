@@ -1,8 +1,3 @@
-import AgentKit
-import Foundation
+import TermindApplication
 
-@MainActor
-protocol SkillLibraryPersisting: AnyObject {
-    func load() throws -> [AgentSkill]
-    func save(_ skills: [AgentSkill]) throws
-}
+typealias SkillLibraryPersisting = TermindApplication.SkillLibraryPersisting

@@ -1,6 +1,7 @@
 import AgentKit
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 @Observable
 final class ModelProviderEditorSession {
@@ -63,15 +64,10 @@ struct ModelProviderEditorPage: View {
 
     private func settings(_ provider: ModelProvider) -> some View {
         Form {
-            Section {
-                TextField("Name", text: binding(\.name))
-
-                Picker("API Type", selection: endpointBinding(\.apiType)) {
-                    ForEach(ModelAPIType.allCases) { Text($0.displayName).tag($0) }
-                }
-            }
-
-            endpointSection
+            ModelProviderConnectionFields(
+                name: binding(\.name),
+                endpoint: Binding(
+                    get: { endpoint }, set: { app.aiConfiguration.setEndpoint($0, for: modelProviderID) }))
             credentialSection
 
             Section("Models") {
@@ -107,56 +103,6 @@ struct ModelProviderEditorPage: View {
         }
         .formStyle(.grouped)
         .frame(maxWidth: .infinity)
-    }
-
-    /// One address, and the two facts derived from it.
-    ///
-    /// One field rather than a base and a path, because splitting them made
-    /// "does the base URL include `/v1`" a question the user had to answer —
-    /// and it is the question every client of this shape gets wrong. Here they
-    /// paste whatever their gateway's documentation printed, at whatever depth
-    /// it printed it, and the two captions say what that produced.
-    ///
-    /// The captions are the point of the section. `Full URL` is read from the
-    /// same value the request is built from, so it cannot drift from where
-    /// requests land; the line under it names the body shape, which is how
-    /// `Automatic` explains its own answer and how an explicit pick that
-    /// disagrees with the URL stops being a silent surprise.
-    @ViewBuilder
-    private var endpointSection: some View {
-        let endpoint = endpoint
-
-        Section {
-            TextField(
-                "URL",
-                text: endpointBinding(\.url),
-                prompt: Text(verbatim: "https://ai.termind.akinokaede.com/v1")
-            )
-
-            if endpoint.isConfigured {
-                LabeledContent("Full URL") {
-                    Text(endpoint.requestURL)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .multilineTextAlignment(.trailing)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Text("Requests use the \(endpoint.format.displayName) format.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if endpoint.requestURL.contains(ModelProvider.modelToken) {
-                    Text("\(ModelProvider.modelToken) is replaced with the model id.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        } header: {
-            Text("Endpoint")
-        }
     }
 
     @ViewBuilder

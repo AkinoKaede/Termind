@@ -41,6 +41,21 @@ struct MobileAssistantView: View {
         }
         .navigationTitle("Assistant")
         .toolbar {
+            Menu {
+                Picker("Model", selection: Binding(get: { model.selectedModel }, set: { model.selectModel($0) })) {
+                    Text("Automatic").tag(nil as AIModelRef?)
+                    ForEach(app.ai.enabledModelProviders) { provider in
+                        ForEach(provider.assistantModels) { item in
+                            Text("\(provider.name) · \(item.id)")
+                                .tag(AIModelRef(modelProviderID: provider.id, modelID: item.id) as AIModelRef?)
+                        }
+                    }
+                }
+            } label: {
+                Label("Model", systemImage: "cube")
+            }
+            .disabled(model.isRunning)
+
             Button("Conversations", systemImage: "clock") { history = true }.disabled(model.isRunning)
             Button("New Conversation", systemImage: "square.and.pencil") { model.newConversation() }.disabled(
                 model.isRunning)

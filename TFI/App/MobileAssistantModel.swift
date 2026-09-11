@@ -11,8 +11,10 @@ final class MobileAssistantModel {
     private(set) var messages: [AgentTranscriptMessage] = []
     private(set) var isRunning = false
     var selectedID = UUID()
+    var selectedModel: AIModelRef?
     var draft = ""
     var error: String?
+    private var conversationModels: [UUID: AIModelRef] = [:]
     private var runtime: AgentRuntime?
     private var task: Task<Void, Never>?
     private let repository: any AgentRunPersisting
@@ -32,18 +34,26 @@ final class MobileAssistantModel {
     func select(_ conversation: StoredAgentConversation) {
         guard !isRunning else { return }
         selectedID = conversation.id
+        selectedModel = conversationModels[conversation.id]
         messages = conversation.modelTranscript ?? conversation.messages
     }
 
     func newConversation() {
         guard !isRunning else { return }
         selectedID = UUID()
+        selectedModel = nil
         messages = []
+    }
+
+    func selectModel(_ value: AIModelRef?) {
+        selectedModel = value
+        conversationModels[selectedID] = value
+        if let value { configuration.select(value) }
     }
 
     func send() {
         guard !isRunning, !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        guard let resolved = configuration.resolve(conversation: configuration.lastSelectedModel),
+        guard let resolved = configuration.resolve(conversation: selectedModel),
             let secret = configuration.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty
         else {
             error = String(localized: "Configure a model and its API key in Settings before sending a message.")

@@ -7,12 +7,15 @@ public struct PortForwardingFields: View {
 
     public var body: some View {
         Section("Port Forwarding") {
-            TextField("Name", text: $rule.label)
+            TextField("Name", text: $rule.label).textFieldStyle(.automatic).multilineTextAlignment(.leading)
             PortForwardingDirectionPicker(kind: $rule.kind)
             Text(directionDescription).font(.caption).foregroundStyle(.secondary)
-            LabeledContent("Bind Address") { TextField("Bind Address", text: $rule.bindHost).labelsHidden() }
+            LabeledContent("Bind Address") {
+                TextField("Bind Address", text: $rule.bindHost).labelsHidden().multilineTextAlignment(.trailing)
+            }
             LabeledContent("Bind Port") {
                 TextField("Bind Port", value: $rule.bindPort, format: .number.grouping(.never)).labelsHidden()
+                    .multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .keyboardType(.numberPad)
                     #endif
@@ -22,13 +25,13 @@ public struct PortForwardingFields: View {
                     TextField(
                         "Target Host",
                         text: Binding(get: { rule.targetHost ?? "localhost" }, set: { rule.targetHost = $0 })
-                    ).labelsHidden()
+                    ).labelsHidden().multilineTextAlignment(.trailing)
                 }
                 LabeledContent("Target Port") {
                     TextField(
                         "Target Port", value: Binding(get: { rule.targetPort ?? 80 }, set: { rule.targetPort = $0 }),
                         format: .number.grouping(.never)
-                    ).labelsHidden()
+                    ).labelsHidden().multilineTextAlignment(.trailing)
                         #if os(iOS)
                             .keyboardType(.numberPad)
                         #endif
@@ -59,7 +62,7 @@ public struct PortForwardingDirectionPicker: View {
             Text("Remote").tag(PortForwardingRule.Kind.remote).accessibilityLabel("Remote Forward")
             Text("Dynamic").tag(PortForwardingRule.Kind.dynamic).accessibilityLabel("Dynamic SOCKS5 Proxy")
         }
-        .labelsHidden()
+        .labelsHidden().multilineTextAlignment(.trailing)
         .pickerStyle(.segmented)
         .frame(maxWidth: .infinity)
     }

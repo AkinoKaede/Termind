@@ -2,6 +2,7 @@ import AppKit
 import ListViewKit
 import SwiftUI
 import TermindDomain
+import TermindRemoteInfrastructure
 import UniformTypeIdentifiers
 
 import struct TermindDomain.Host
@@ -350,60 +351,8 @@ struct KeychainImportDetail: View {
     }
 }
 
-nonisolated struct SoftwareKeyFileImportResult: Equatable, Sendable {
-    var privateKey: String?
-    var certificate: String?
-    var inferredName: String?
-}
-
-nonisolated enum SoftwareKeyFileImporter {
-    static func shouldInferName(from currentName: String) -> Bool {
-        currentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    static func read(
-        urls: [URL], infersName: Bool
-    ) throws -> SoftwareKeyFileImportResult {
-        guard !urls.isEmpty else { return SoftwareKeyFileImportResult() }
-        var result = SoftwareKeyFileImportResult()
-        for url in urls {
-            let text = try readText(at: url)
-            if text.contains("PRIVATE KEY") {
-                result.privateKey = text
-                if infersName { result.inferredName = url.lastPathComponent }
-            } else if text.contains("-cert-v01@openssh.com") {
-                result.certificate = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            } else {
-                throw CocoaError(
-                    .fileReadCorruptFile,
-                    userInfo: [
-                        NSLocalizedDescriptionKey: String(
-                            localized: "Choose a private key or OpenSSH user certificate file."
-                        )
-                    ]
-                )
-            }
-        }
-        return result
-    }
-
-    static func unexpectedFileError() -> CocoaError {
-        CocoaError(
-            .fileReadCorruptFile,
-            userInfo: [
-                NSLocalizedDescriptionKey: String(
-                    localized: "Choose a private key or OpenSSH user certificate file."
-                )
-            ]
-        )
-    }
-
-    private static func readText(at url: URL) throws -> String {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        return try String(contentsOf: url, encoding: .utf8)
-    }
-}
+typealias SoftwareKeyFileImportResult = TermindRemoteInfrastructure.SoftwareKeyFileImportResult
+typealias SoftwareKeyFileImporter = TermindRemoteInfrastructure.SoftwareKeyFileImporter
 
 private struct SoftwareKeyEditor: View {
     private enum FileChoice {

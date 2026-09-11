@@ -1,9 +1,12 @@
 import SwiftData
 import SwiftUI
+import TermindApplication
 
 @main
 struct TermindIOSApp: App {
+    @UIApplicationDelegateAdaptor(MobileCloudNotifications.self) private var notifications
     @AppStorage("mobile.appearance") private var appearance = "system"
+    private let launchLanguage = AppLanguage.stored()
     private let startup: Result<MobileAppModel, any Error>
 
     init() {
@@ -18,6 +21,7 @@ struct TermindIOSApp: App {
             case .success(let app):
                 MobileRootView(app: app)
                     .modelContainer(app.container)
+                    .environment(\.locale, launchLanguage.locale)
                     .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
             case .failure:
                 ContentUnavailableView(

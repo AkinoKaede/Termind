@@ -4,8 +4,7 @@
 
 - Shared Vault and AI configuration models and persistence, SSH/SFTP transports,
   Keychain adapters, StoreKit access, metrics sampling, and a SwiftUI presentation target.
-- Four iPhone navigation destinations: Welcome/Vault/Workspaces, Metrics, Assistant, Settings.
-  iPad retains the sidebar. No mobile workspace composition or workspace-attached Assistant.
+- Four iPhone navigation destinations: Vault, Workspaces, Assistant, Settings. Metrics is a separate Vault entry; iPad retains Vault, Metrics, Workspaces, Assistant, Settings in its sidebar. No mobile workspace composition or workspace-attached Assistant.
 - Mobile host, identity, group, snippet and provider forms use sheets; desktop host
   connection fields reuse the same SwiftUI content.
 - Independent SSH/SFTP workspace descriptors, reconnect entry points, terminal rendering,
@@ -23,9 +22,7 @@
 - Key generation (including supported Secure Enclave devices), encrypted key import,
   metadata/certificate editing, and key/identity deletion. File parsing and generation
   run off MainActor, and secrets stay in the shared secret store.
-- SSH folder/known_hosts import uses the shared reader and preview model. Missing usernames
-  require an explicit edit on iOS; no local process username is substituted. References
-  outside granted folders still require explicit file selection.
+- SSH folder/known_hosts bulk import remains desktop-only. The mobile import screen and entry were removed at user request; individual private-key and certificate file imports remain supported.
 - Port forwarding management uses the shared runtime and transactional rule updates.
 - Host deletion uses the shared outbox runner, including interrupted-job recovery on startup.
 - iOS Keychain sharing entitlement and localized Face ID usage description are configured.
@@ -35,11 +32,9 @@
 The full mobile port is not complete. Do not describe the current implementation as feature parity.
 
 - Port complete shared Assistant tool registration, approval/user-input/secret presentation,
-  SSH/SFTP agent tools, model discovery/roles, Skills, MCP settings and speech input.
+  SSH/SFTP agent tools, Skills, MCP/Web Search settings and speech input.
   The current mobile runtime intentionally registers no tools.
-- Wire mobile CloudKit Vault/Settings coordinators and CloudKit signing capabilities;
-  current mobile data is local, despite using the shared schema and journals.
-- Complete terminal preferences, history/search UI and broader desktop SwiftUI view reuse.
+- Continue broader desktop SwiftUI view reuse and complete Assistant settings/tool execution beyond provider/model configuration.
 - Test live SSH/SFTP, ActivityKit rendering and taps, external keyboards, background/lock
   behavior, CloudKit and StoreKit on signed physical devices. Widget icon routing and
   bounded payload behavior have automated coverage; real-device behavior is unverified.
@@ -69,3 +64,81 @@ The full mobile port is not complete. Do not describe the current implementation
 - The continuation's full macOS run again executed 1,122 tests and reported 14 issues
   in the previously failing deadline/approval, Keychain (-25308), and native popover suites.
   The full suite is still not green; the focused feature suites above passed.
+
+## Terminal, sync and AI configuration continuation — 2026-09-11
+
+Implemented shared CloudKit coordinators, Settings transaction/journal, terminal preferences,
+command history and provider connection fields. Mobile uses the synced configuration store,
+preserving Skills/MCP records and unresolved references. Defaults match desktop: Pro-gated
+master/Vault enabled, Settings opt-in. Both categories pause in background and resume with
+foreground/entitlement reconciliation. APNs registration and CloudKit signing are configured;
+signing files are now `TFI/TFI.entitlements` and `TFM/TFM.entitlements`.
+
+Mobile Terminal has light/dark theme catalogs, font controls, custom Ghostty text, integration,
+search and per-host history. The remote-title preference is deliberately absent from its UI.
+Search queries/surfaces survive navigation; historical commands paste without an added newline.
+Provider forms support empty model lists, endpoint derivation and explicit keep/replace/clear
+key intent; failed secret/configuration writes keep drafts and attempt credential rollback.
+Model discovery is cancellable, adds selected candidates only, and ignores stale responses.
+Roles and chat pickers use shared fallback rules. Runtime tools remain intentionally absent.
+
+Verification in this continuation:
+
+- iOS simulator builds and 25 mobile plus 26 shared tests passed, including 16 new regression tests.
+- Full macOS run executed 1,123 tests and reported 9 issues in existing Agent approval,
+  user-input deadline and cancellation tests; all 26 shared tests passed separately.
+- Focused rerun still reproduced two existing AgentApprovalQueueTests failures. A catalog
+  check also caught newly auto-extracted, previously untranslated mobile strings; these
+  translations have now been supplied; 68 focused macOS feature/language tests passed afterward.
+- iPhone Terminal preferences and iPad English/Chinese, light/dark settings and provider forms inspected. iPad rotation preserved drafts and cancel required discard confirmation.
+- Connected-device inventory reports the paired iPhone and iPad unavailable. Real SSH,
+  external-keyboard hardware, background/lock and signed Mac/iOS CloudKit delivery remain
+  unverified. Production schema deployment was not attempted. AgentKit and Ghostty pins unchanged.
+
+### Follow-up navigation and desktop parity
+
+Vault replaces Welcome on both mobile layouts. iPhone's Metrics tab is replaced by Workspaces;
+Metrics gets its own Vault section above the other three library links. Transfers moves into
+Workspaces. iPad places Metrics immediately below Vault in its sidebar. Host rows connect SSH
+on tap and use long-press menus. macOS Navigator now labels its workspace group “Workspaces”.
+
+Metrics reuses desktop instruments, system panels and the complete shared monitor/Journey
+state, with shared credential and host-key forms. At >=700 points, details display status and
+processes side by side; narrow layouts use a two-icon switch. Keychain order/defaults and
+certificate import align with macOS. Identity notes have no mobile editor. Port forwarding
+is staged inside the host editor, with explicit runtime actions only for saved rules. Mobile
+SSH folder import was removed, while individual key/certificate import remains.
+
+Settings now has App as its own page, and Sync below AI. The redundant Live Activities
+settings section was removed; activity startup/restoration is automatic for workspaces and
+continues to respect OS authorization. Shared app-language settings take effect on relaunch.
+Phone tabs remain available in landscape; iPad uses a collapsible sidebar.
+
+Follow-up verification:
+- iOS: 29 mobile tests and 28 shared tests passed, including certificate-file validation,
+  default key generation options, navigation/breakpoint rules and shared Metrics credential/
+  temporary-trust continuation without persisting secrets or trust.
+- macOS: 127 targeted tests across 14 suites passed, covering architecture, language, sync,
+  terminal history/themes, Journey, Metrics lifecycle/presentation/interaction, snapshots,
+  key-file import and SSH certificates.
+- A full 1,124-test macOS run reported existing Agent timing/native-popover issues plus a
+  brittle new source-format assertion; that assertion and the shared fake-process fixture
+  were corrected, and the relevant targeted suites then passed. Final full-run status follows.
+
+
+Final macOS regression (2026-09-11): all 1,124 app tests were executed. Six issues remain
+in the preexisting AgentApprovalQueueTests/AgentUserInputTests timing cases; architecture,
+Metrics interaction/presentation, connection forms, localization and the other suites passed.
+All 28 shared tests passed. These results do not establish a green full macOS suite.
+Logs: `/tmp/termind-mac-port-final.log`, `/tmp/termind-mac-nav-focused.log`.
+
+Final visual review on iPhone confirmed the separate Metrics section in Vault, four bottom
+tabs, absence of bulk SSH import, forwarding nested in the host editor, leading-aligned
+forwarding Name with trailing address/port fields, and Settings ordered App/Terminal/AI/Sync.
+The standalone App page shows appearance, language, versions and support; no Live Activities
+settings are exposed. Earlier iPad bilingual/theme/rotation checks remain recorded above.
+
+Final iOS verification: 29 mobile and 28 shared tests passed after the complete navigation,
+App/Sync settings, credential parity and persistent Journey-overlay changes. Log:
+`/tmp/termind-ios-port-complete.log`. Strict Swift formatting, `git diff --check`, and
+`Scripts/check-zh-localization.sh` passed. No dependency pins or cloud schemas were changed.

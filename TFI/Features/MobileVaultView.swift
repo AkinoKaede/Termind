@@ -12,16 +12,14 @@ struct MobileVaultView: View {
     @State private var deletingHost: Host?
     @State private var groupName = ""
     @State private var addingGroup = false
-    @State private var importingSSH = false
 
     var body: some View {
         List {
+            Section { NavigationLink("Metrics") { MobileMetricsView(app: app) } }
             Section {
                 NavigationLink("Keychain") { MobileCredentialsView(app: app) }
                 NavigationLink("Snippets") { MobileSnippetsView(app: app) }
                 NavigationLink("Known Hosts") { MobileKnownHostsView(app: app) }
-                NavigationLink("Port Forwarding") { MobileForwardingsView(app: app) }
-                NavigationLink("Transfers") { MobileTransfersView(transfers: app.transfers) }
             }
             if app.library.hosts.isEmpty {
                 ContentUnavailableView(
@@ -44,14 +42,12 @@ struct MobileVaultView: View {
                 Menu {
                     Button("New Host", systemImage: "server.rack") { editingHost = Host(name: "", host: "") }
                     Button("New Group", systemImage: "folder.badge.plus") { addingGroup = true }
-                    Button("Import SSH Files", systemImage: "square.and.arrow.down") { importingSSH = true }
                 } label: {
                     Label("Add", systemImage: "plus")
                 }
             }
         }
-        .sheet(isPresented: $importingSSH) { MobileSSHImportScreen(app: app) }
-        .sheet(item: $editingHost) { MobileHostEditor(library: app.library, host: $0) }
+        .sheet(item: $editingHost) { MobileHostEditor(app: app, host: $0) }
         .sheet(isPresented: $addingGroup) {
             MobileEditorSheet(
                 title: String(localized: "New Group"), isDirty: !groupName.isEmpty,
@@ -77,11 +73,8 @@ struct MobileVaultView: View {
     }
 
     private func row(_ host: Host) -> some View {
-        Menu {
-            Button("SSH", systemImage: "terminal") { open(host.id, .ssh) }
-            Button("SFTP", systemImage: "folder") { open(host.id, .sftp) }
-            Button("Edit", systemImage: "pencil") { editingHost = host }
-            Button("Delete", systemImage: "trash", role: .destructive) { deletingHost = host }
+        Button {
+            open(host.id, .ssh)
         } label: {
             HStack {
                 HostSystemIcon(asset: LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)?.asset)
@@ -92,6 +85,13 @@ struct MobileVaultView: View {
                 Spacer()
                 Image(systemName: "ellipsis").foregroundStyle(.secondary)
             }
-        }
+        }.buttonStyle(.plain)
+            .contextMenu {
+                Button("SSH", systemImage: "terminal") { open(host.id, .ssh) }
+                Button("SFTP", systemImage: "folder") { open(host.id, .sftp) }
+                Button("Edit", systemImage: "pencil") { editingHost = host }
+                Button("Delete", systemImage: "trash", role: .destructive) { deletingHost = host }
+
+            }
     }
 }

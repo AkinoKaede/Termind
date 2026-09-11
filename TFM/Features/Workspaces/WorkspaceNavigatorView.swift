@@ -147,7 +147,7 @@ struct WorkspaceNavigatorView: View {
 
     private var workspaceSection: some View {
         Group {
-            navigatorSectionHeader("Workspace", isExpanded: $workspaceExpanded)
+            navigatorSectionHeader("Workspaces", isExpanded: $workspaceExpanded)
                 .onGeometryChange(for: CGRect.self) {
                     $0.frame(in: .named(Self.coordinateSpace))
                 } action: {

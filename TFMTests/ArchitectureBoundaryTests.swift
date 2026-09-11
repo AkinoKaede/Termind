@@ -45,7 +45,8 @@ struct ArchitectureBoundaryTests {
             #expect(!records.contains(excluded))
         }
         let terminal = try String(
-            contentsOf: sourceRoot.appending(path: "Infrastructure/Database/PersistentTerminalPreferences.swift"),
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindPersistence/TerminalPreferences+Defaults.swift"),
             encoding: .utf8)
         #expect(!terminal.contains("dictionaryRepresentation"))
         #expect(!terminal.contains("agentPermissionMode"))
@@ -55,7 +56,8 @@ struct ArchitectureBoundaryTests {
     func metricsViewsCannotOwnTransportsAndSecretsAreResolvedOffMainActor() throws {
         try assertNoConcreteImplementations(in: "Features/Metrics")
         let model = try String(
-            contentsOf: sourceRoot.appending(path: "Application/Metrics/ServerMetricsModel.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift"),
+            encoding: .utf8)
         #expect(!model.contains("hosts.sshConnectionConfiguration("))
         let preparation = try String(
             contentsOf: sourceRoot.appending(
@@ -79,7 +81,10 @@ struct ArchitectureBoundaryTests {
         ] {
             #expect(!tool.contains(forbidden))
         }
-        for path in ["Application/Metrics/MetricsSnapshot.swift", "Application/Metrics/ServerMetricsModel.swift"] {
+        for path in [
+            "../Frameworks/TermindApplication/Metrics/MetricsSnapshot.swift",
+            "../Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift",
+        ] {
             let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
             #expect(!source.contains("import AgentKit"))
         }
@@ -249,6 +254,52 @@ struct ArchitectureBoundaryTests {
                 )
             }
         }
+    }
+
+    @Test
+    func mobileNavigationAndMetricsShareTheDesktopDesign() throws {
+        let root = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileRootView.swift"), encoding: .utf8)
+        #expect(!root.contains("Welcome"))
+        #expect(root.contains("NavigationLink(\"Transfers\")"))
+        let vault = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileVaultView.swift"), encoding: .utf8)
+        #expect(vault.contains("NavigationLink(\"Metrics\")"))
+        #expect(!vault.contains("NavigationLink(\"Port Forwarding\")"))
+        #expect(vault.contains("open(host.id, .ssh)"))
+        #expect(vault.contains(".contextMenu"))
+        #expect(!vault.contains("Import SSH Files"))
+        let keys = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileCredentialsView.swift"), encoding: .utf8)
+        #expect(!keys.contains("draft.notes"))
+        let settings = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileSettingsView.swift"), encoding: .utf8)
+        #expect(settings.contains("NavigationLink(\"App\")"))
+        #expect(settings.contains("NavigationLink(\"Sync\")"))
+        #expect(!settings.contains("Live Activities"))
+        let mobile = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileMetricsModel.swift"), encoding: .utf8)
+        #expect(mobile.contains("ServerMetricsModel("))
+        #expect(!mobile.contains("while !Task.isCancelled"))
+    }
+
+    @Test
+    func mobilePortUsesSharedStoresAndSeparateSigningFiles() throws {
+        let mobile = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileAppModel.swift"), encoding: .utf8)
+        #expect(mobile.contains("SyncedAIConfigurationPersistence(settingsPersistence)"))
+        #expect(mobile.contains("settingsSync?.didApplyRemote"))
+        #expect(mobile.contains("vaultSync?.didApplyRemote"))
+        let project = try String(
+            contentsOf: sourceRoot.appending(path: "../Termind.xcodeproj/project.pbxproj"), encoding: .utf8)
+        #expect(project.contains("TFI/TFI.entitlements"))
+        #expect(project.contains("TFM/TFM.entitlements"))
+        #expect(!project.contains("Termind.entitlements"))
+        let terminal = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileTerminalSettingsView.swift"), encoding: .utf8)
+        #expect(!terminal.contains("remoteWindowTitleInMenuBar"))
+        let cloud = try swiftFiles(in: "../Frameworks/TermindInfrastructure/Cloud")
+        #expect(cloud.count == 2)
     }
 
     @Test

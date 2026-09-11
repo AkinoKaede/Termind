@@ -2,74 +2,55 @@ import Foundation
 import Observation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindRemoteInfrastructure
 
+/// The mobile shell delegates collection, authentication and retries to the desktop's shared model.
 @MainActor
 @Observable
 final class MobileMetricsModel {
-    private(set) var points: [UUID: MetricsPoint] = [:]
-    private(set) var errors: [UUID: String] = [:]
-    private(set) var selections: [MetricsSelection]
-    private let defaults: UserDefaults?
-    private var tasks: [UUID: Task<Void, Never>] = [:]
+    let core: ServerMetricsModel
+    private let hosts: any RemoteSessionHostStore
+    private let limit = MobileMetricsLimit()
+    var servers: [ServerMetric] { core.servers }
+    var selections: [MetricsSelection] { servers.map(\.selection) }
 
-    init(defaults: UserDefaults?) {
-        self.defaults = defaults
-        selections =
-            defaults?.data(forKey: "mobile.metrics.v1").flatMap {
-                try? JSONDecoder().decode([MetricsSelection].self, from: $0)
-            } ?? []
+    init(defaults: UserDefaults?, hosts: any RemoteSessionHostStore) {
+        self.hosts = hosts
+        let limit = limit
+        core = ServerMetricsModel(
+            hosts: hosts, preferences: MobileMetricsPreferences(defaults: defaults),
+            makeSampler: { SSHMetricsSampler(session: SSHExecSession()) },
+            discover: { host, proxy, jumps in
+                try await SSHSessionActor.discoverHostKey(
+                    hostID: host.id, host: host.host, port: host.port, proxy: proxy, jumps: jumps)
+            }, cardLimit: { limit.maximum })
     }
 
     func add(_ id: UUID, pro: Bool) -> Bool {
-        if selections.contains(where: { $0.id == id }) { return true }
-        guard pro || selections.count < 3 else { return false }
-        selections.append(MetricsSelection(id: id))
-        persist()
-        return true
+        limit.maximum = pro ? nil : ServerMetricsModel.freeCardLimit
+        guard let host = hosts.host(id) else { return false }
+        return core.add(host)
     }
 
-    func remove(_ id: UUID) {
-        tasks.removeValue(forKey: id)?.cancel()
-        selections.removeAll { $0.id == id }
-        points[id] = nil
-        errors[id] = nil
-        persist()
+    func remove(_ id: UUID) { core.remove(id) }
+    func pause() { core.suspend() }
+    func start() {
+        core.start()
+        core.resume()
     }
+}
 
-    func pause() {
-        for task in tasks.values { task.cancel() }
-        tasks.removeAll()
+@MainActor private final class MobileMetricsLimit { var maximum: Int? = 3 }
+
+@MainActor private final class MobileMetricsPreferences: MetricsConfigurationStoring {
+    private let defaults: UserDefaults?
+    init(defaults: UserDefaults?) { self.defaults = defaults }
+    func load() -> [MetricsSelection] {
+        defaults?.data(forKey: "mobile.metrics.v1").flatMap {
+            try? JSONDecoder().decode([MetricsSelection].self, from: $0)
+        } ?? []
     }
-
-    func start(hosts: any RemoteSessionHostStore) {
-        for selection in selections where selection.enabled && tasks[selection.id] == nil {
-            guard let host = hosts.host(selection.id) else { continue }
-            tasks[selection.id] = Task { [weak self] in
-                let sampler = SSHMetricsSampler(session: SSHExecSession())
-                do {
-                    let config = try await hosts.prepareSSHConnection(for: host, submissions: [:]).resolve()
-                    try await sampler.connect(config)
-                    var previous: MetricsSample?
-                    while !Task.isCancelled {
-                        let sample = try await sampler.sample()
-                        try Task.checkCancellation()
-                        self?.points[host.id] = MetricsCalculation.point(
-                            previous: previous, current: sample, selection: selection, date: .now)
-                        self?.errors[host.id] = nil
-                        previous = sample
-                        try await Task.sleep(for: .seconds(3))
-                    }
-                } catch {
-                    if !Task.isCancelled { self?.errors[host.id] = error.localizedDescription }
-                }
-                await sampler.disconnect()
-            }
-        }
-    }
-
-    private func persist() {
-        if let data = try? JSONEncoder().encode(selections) { defaults?.set(data, forKey: "mobile.metrics.v1") }
+    func save(_ values: [MetricsSelection]) {
+        if let data = try? JSONEncoder().encode(values) { defaults?.set(data, forKey: "mobile.metrics.v1") }
     }
 }

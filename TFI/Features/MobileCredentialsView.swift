@@ -12,6 +12,18 @@ struct MobileCredentialsView: View {
 
     var body: some View {
         List {
+            Section("Keys") {
+                ForEach(app.credentials.keys) { key in
+                    Button {
+                        keyEditor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
+                    } label: {
+                        VStack(alignment: .leading) {
+                            Text(key.label)
+                            Text(key.fingerprint).font(.caption.monospaced()).foregroundStyle(.secondary)
+                        }
+                    }.swipeActions { Button("Delete", role: .destructive) { deletingKey = key } }
+                }
+            }
             Section("Identities") {
                 ForEach(app.credentials.identities) { identity in
                     Button {
@@ -25,29 +37,18 @@ struct MobileCredentialsView: View {
                     .swipeActions { Button("Delete", role: .destructive) { deletingIdentity = identity } }
                 }
             }
-            Section("Keys") {
-                ForEach(app.credentials.keys) { key in
-                    Button {
-                        keyEditor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(key.label)
-                            Text(key.fingerprint).font(.caption.monospaced()).foregroundStyle(.secondary)
-                        }
-                    }.swipeActions { Button("Delete", role: .destructive) { deletingKey = key } }
-                }
-            }
         }
         .navigationTitle("Keychain")
         .toolbar {
             Menu {
-                Button("New Identity") { editing = Identity(name: "", username: "") }
                 Button("Generate Key") {
                     keyEditor = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
                 }
                 Button("Import Key") {
                     keyEditor = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
                 }
+                Divider()
+                Button("New Identity") { editing = Identity(name: "", username: "") }
             } label: {
                 Label("Add", systemImage: "plus")
             }
@@ -106,21 +107,33 @@ private struct MobileIdentityEditor: View {
         MobileEditorSheet(
             title: String(localized: "Identity"),
             isDirty: draft != original || !password.isEmpty || removePassword,
-            canSave: !draft.name.isEmpty && !draft.username.isEmpty,
+            canSave: !draft.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             save: {
+                draft.username = draft.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                draft.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                if draft.name.isEmpty { draft.name = draft.username }
                 try app.library.upsert(
                     draft, passwordUpdate: removePassword ? .remove : password.isEmpty ? .keep : .replace(password))
             },
             content: {
                 Section("Identity") {
-                    TextField("Name", text: $draft.name)
-                    TextField("Username", text: $draft.username).textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    LabeledContent("Name") { TextField("Name", text: $draft.name, prompt: Text(draft.username)) }
+                    LabeledContent("Username") {
+                        TextField("Username", text: $draft.username).textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                }
+                Section {
+                    Picker("Color", selection: $draft.colorTag) {
+                        ForEach(TagColor.allCases) { Text(LocalizedStringKey($0.rawValue.capitalized)).tag($0) }
+                    }
                 }
                 Section("Authentication") {
-                    SecureField("Password", text: $password).textContentType(.password)
+                    LabeledContent("Password") {
+                        SecureField("Password", text: $password).textContentType(.password).disabled(removePassword)
+                    }
                     if original.usesPassword { Toggle("Remove Password", isOn: $removePassword) }
-                    Picker("Storage", selection: $draft.passwordStorage) {
+                    Picker("Store password in", selection: $draft.passwordStorage) {
                         Text("This Device").tag(PasswordStorage.thisDevice)
                         Text("iCloud").tag(PasswordStorage.iCloud)
                     }
@@ -129,7 +142,6 @@ private struct MobileIdentityEditor: View {
                         ForEach(app.credentials.keys) { Text($0.label).tag(Optional($0.id)) }
                     }
                 }
-                Section("Notes") { TextEditor(text: $draft.notes).frame(minHeight: 100) }
             })
     }
 }

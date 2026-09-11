@@ -1,10 +1,12 @@
 import SwiftUI
 import TermindDomain
+import TermindRemoteInfrastructure
 import UniformTypeIdentifiers
 
 struct MobileKeyEditor: View {
     @Bindable var model: MobileKeyEditorModel
     @State private var choosingFile = false
+    @State private var choosingCertificate = false
     @State private var fileError: String?
 
     var body: some View {
@@ -13,9 +15,12 @@ struct MobileKeyEditor: View {
             save: { try await model.save() },
             content: {
                 Section("Key") {
-                    TextField("Name", text: $model.label)
+                    LabeledContent("Name") { TextField("Name", text: $model.label, prompt: Text(model.defaultName)) }
+                    Picker("Color", selection: $model.colorTag) {
+                        ForEach(TagColor.allCases) { Text(LocalizedStringKey($0.rawValue.capitalized)).tag($0) }
+                    }
                     if !model.isEnclave {
-                        Picker("Storage", selection: $model.storage) {
+                        Picker("Store in", selection: $model.storage) {
                             Text("This Device").tag(KeyStorage.thisDevice)
                             Text("iCloud").tag(KeyStorage.iCloud)
                             if model.mode == .generate && model.canUseEnclave {
@@ -30,24 +35,57 @@ struct MobileKeyEditor: View {
                             Picker("Algorithm", selection: $model.algorithm) {
                                 ForEach(MobileKeyEditorModel.Algorithm.allCases) { Text($0.rawValue).tag($0) }
                             }
-                            SecureField("Passphrase", text: $model.passphrase)
+                            if model.algorithm == .ecdsa {
+                                Picker("Elliptic Curve", selection: $model.curveBits) {
+                                    Text("NIST P-256").tag(256)
+                                    Text("NIST P-384").tag(384)
+                                    Text("NIST P-521").tag(521)
+                                }
+                            } else if model.algorithm == .rsa {
+                                Picker("Key Size", selection: $model.rsaBits) {
+                                    Text("2048 bit").tag(2048)
+                                    Text("3072 bit").tag(3072)
+                                    Text("4096 bit").tag(4096)
+                                }
+                            }
+                            LabeledContent("Passphrase") { SecureField("Optional", text: $model.passphrase) }
+                            LabeledContent("Confirm Passphrase") {
+                                SecureField("Confirm Passphrase", text: $model.confirmation).disabled(
+                                    model.passphrase.isEmpty)
+                            }
+                            if !model.passphrase.isEmpty {
+                                Picker("Cipher", selection: $model.cipher) {
+                                    ForEach(SSHKeyMaterial.Cipher.allCases) { Text($0.displayName).tag($0) }
+                                }
+                                LabeledContent("Rounds") {
+                                    TextField("Rounds", value: $model.rounds, format: .number).keyboardType(.numberPad)
+                                }
+                                if model.passphrase != model.confirmation {
+                                    Text("Passphrases do not match.").foregroundStyle(.red)
+                                }
+                            }
                         }
                     }
                 }
                 if model.mode == .importKey {
                     Section("Private Key") {
                         Button("Choose File") { choosingFile = true }
-                        TextEditor(text: $model.privateKey).font(.body.monospaced()).frame(minHeight: 150)
+                        TextEditor(text: $model.privateKey).multilineTextAlignment(.leading).font(.body.monospaced())
+                            .frame(minHeight: 150)
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
                         SecureField("Passphrase", text: $model.passphrase)
                     }
                 }
-                if model.storage != .secureEnclave {
+                if model.mode != .generate && model.storage != .secureEnclave {
                     Section("SSH Certificate") {
-                        TextEditor(text: $model.certificate).font(.caption.monospaced()).frame(minHeight: 90)
+                        Button("Choose File") { choosingCertificate = true }
+                        TextEditor(text: $model.certificate).multilineTextAlignment(.leading).font(
+                            .caption.monospaced()
+                        ).frame(minHeight: 90)
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
                     }
                 }
+                if let warning = model.certificateWarning { Text(warning).font(.caption).foregroundStyle(.orange) }
                 if let publicKey = model.publicKey {
                     Section("Public Key") { Text(publicKey).font(.caption.monospaced()).textSelection(.enabled) }
                 }
@@ -59,6 +97,13 @@ struct MobileKeyEditor: View {
         .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.data]) { result in
             Task {
                 do { try await model.loadFile(result.get()) } catch { fileError = error.localizedDescription }
+            }
+        }
+        .fileImporter(isPresented: $choosingCertificate, allowedContentTypes: [.data]) { result in
+            Task {
+                do { try await model.loadCertificateFile(result.get()) } catch {
+                    fileError = error.localizedDescription
+                }
             }
         }
         .alert(

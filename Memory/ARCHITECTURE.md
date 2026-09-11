@@ -11,7 +11,7 @@ remains a versioned remote SPM dependency developed in the sibling repository.
 - `TermindApplication` owns repository ports, Vault/AI feature models, secret interfaces,
   SSH configuration/preparation, SSH import preview, the outbox runner, and reconnect policy; it depends on Domain and AgentKit.
 - `TermindInfrastructure` owns the memory repository, metrics parsers and StoreKit access.
-  It depends on Application and Domain.
+  It depends on Application, Domain and Persistence. CloudKit Vault/Settings coordinators live here and share one implementation across both apps.
 - `TermindRemoteInfrastructure` owns SSH/SFTP, key material, Keychain and remote sampling.
   It also owns scoped SSH import reads, forwarding and transfer execution.
   Its C libraries are linked only through this target. Keeping it outside the portable
@@ -44,7 +44,9 @@ Each app process owns one container shared by its scenes. The desktop keeps the
 `Termind` store configuration and its existing local location; mobile uses an
 Application Support store with the same schema and an in-memory container for tests. Store failures
 never silently recreate a database. Keychain access is shared and explicitly configured
-by each app. Mobile CloudKit coordinators are still pending; model sharing does not enable sync.
+by each app. Both apps wire the shared CloudKit coordinators into the persisted journals;
+TFI/TFI.entitlements and TFM/TFM.entitlements use the same CloudKit container and
+bundle-derived Keychain access group. Signing environments remain target-specific.
 
 Shared resources are copied into each app bundle. Localized framework strings
 resolve against the host bundle; platform icons and metadata remain app-owned.
@@ -523,6 +525,12 @@ Pro access gates both CloudKit coordinators, whose zones, subscriptions, account
 bindings and journals are independent. Settings use `TermindAIConfigurationV1`; the
 existing `TermindVaultV1` protocol is unchanged.
 
+Shared `TerminalSettingsModel` and `CommandHistoryModel` live in Application, with
+repository protocols there and their concrete SwiftData implementations in Persistence.
+Theme palettes and custom-configuration parsing are pure Domain values; AppKit and UIKit
+apply them through their native Ghostty adapters. Provider forms share Presentation content
+and one atomic provider/endpoint mutation. Saving a provider never selects a conversation model.
+
 `SettingsSyncPersistence` commits configuration and upload intent together in
 SwiftData V14. V13 already exists in installed development stores: its
 `PersistentAIConfigurationSync*` names and defaults stay frozen. V14 adds only
@@ -554,8 +562,7 @@ adapter is the only additional trusted source of skill-library snapshots.
 
 ## Mobile presentation and workspace activities
 
-The iPhone has four top-level destinations in order: Welcome (including Vault and
-Workspaces), Metrics, Assistant, and Settings. iPad retains a sidebar. Each mobile Workspace
+The iPhone has four top-level destinations in order: Vault, Workspaces, Assistant, and Settings. Metrics has its own row/section inside Vault, separate from Keychain, Snippets and Known Hosts. iPad retains a sidebar ordered Vault, Metrics, Workspaces, Assistant, Settings; neither mobile layout has Welcome. Each mobile Workspace
 owns one SSH or SFTP session; composition is never enabled by a purchase. Mobile
 Assistant is independent and has no workspace sidebar or session-attached sheet.
 
@@ -590,3 +597,41 @@ Mobile host deletion records the existing deletion saga and starts the shared ou
 runner. Restored pending deletions are hidden before workspace restoration. The runner's
 start/stop generation prevents a cancelled background loop from clearing a replacement
 foreground loop. New port forwarding rules never start merely because they were saved.
+
+Mobile Settings exposes full terminal themes, font controls, custom text, shell integration,
+Vault/Settings sync, providers, model discovery and role assignments. The macOS window-title
+preference remains in synchronized records but has no mobile control. Search belongs to each
+workspace and uses Ghostty's search actions; history insertion uses the paste path without
+appending Enter. Only authenticated integration events produce history rows; interrupted
+commands retain unknown completion. App-wide history is bounded to 1,000 rows per host.
+
+Mobile sync runs while a scene is active and Pro access permits it. Backgrounding pauses
+both engines, retaining upload journals; foregrounding fetches again. Entitlement changes
+reconcile the same gate. Remote host deletion closes its workspaces, cancels transfers and
+forwardings, and clears local command history. Modified connections are disconnected rather
+than automatically replayed. Mobile AI/Terminal edits preserve all other Settings record kinds,
+including Skills and MCP configurations without mobile editors. Active chat requests retain
+the provider/model/credential captured at start, and no Agent tools are registered.
+
+Mobile navigation and Metrics reuse (2026-09-11):
+
+- Transfers belongs to Workspaces. Host rows connect to SSH on a single activation and expose SFTP/edit/delete through a long-press context menu. SSH folder import is desktop-only; mobile retains private-key and certificate file import.
+- Port forwarding rules belong to the host draft and commit with it. Only unchanged, saved rules can start; runtime start/stop and bulk controls are available inside that host editor.
+- Keychain lists Keys before Identities. Identity notes remain preserved data without an editor field. Generation defaults match macOS: iCloud, Ed25519, ECDSA P-256, RSA 3072, AES-256 and 100 rounds; encrypted generation requires a matching confirmation. The shared bounded/scoped key-file reader accepts explicit private-key and certificate files.
+- ServerMetricsModel, ServerMetric, MetricsClock and ConnectionJourney live in Application. Their samplers/discovery functions remain injected. Mobile delegates its collector to this shared model, including authentication, temporary trust, process/filesystem sampling and detail observer lifetimes.
+- Metrics instruments/system panels, Journey route/checkpoint animations, and SSH decision forms live in Presentation. AppKit's keyboard monitor stays in TFM and is injected through ConnectionFormKeyboardAdapting; Presentation has no native UI imports.
+- Metrics details show status and processes together at content widths of at least 700 points; narrower widths show a two-icon segmented switch. Width, rather than orientation or device model, determines the layout.
+- Inline labeled mobile inputs align trailing. Standalone Port Forwarding Name and multiline editors align leading.
+
+Mobile Settings mirrors the desktop category hierarchy with App, Terminal, AI, then Sync.
+App owns appearance, language selection (effective on relaunch), runtime versions and support
+links. AppLanguage and AppLocalization are shared Foundation-only Application values; native
+relaunch remains macOS-owned. There is no Live Activities settings section. Opening a workspace
+starts the activity, and the first foreground activation restores it for retained workspaces;
+later foreground updates do not resurrect an activity dismissed by the user. OS authorization
+still controls availability.
+
+The mobile navigation shell uses device idiom: iPhone keeps its four tabs even in landscape,
+while iPad uses NavigationSplitView's own width adaptation. Metrics' two-column breakpoint uses
+the actual detail content width. An SSH terminal surface remains attached underneath the Journey,
+so early output and viewport changes are retained while credentials or trust are presented.

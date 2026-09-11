@@ -1058,3 +1058,17 @@ and chat content. Strict formatting and Chinese localization checks passed.
 - Action: moved the value-only permission draft into Domain and extracted a SwiftUI permission grid into Presentation, used by both editors. Removed the desktop-only row table and toggle builder.
 - Estimated reduction: approximately 45 desktop view lines, with a single shared permission-control implementation replacing a second mobile implementation.
 - Status: implemented; regression verification is recorded in `MOBILE_ROLLOUT.md`.
+
+## 2026-09-11 — Share mobile settings and terminal behavior
+
+- Evidence: `rg` confirms CloudKit coordinators, Settings transaction/journal, terminal settings, and command-history models were still desktop-owned; mobile used an unsynchronized AI store.
+- Action: move these implementations to their owning shared frameworks, retaining desktop compatibility aliases and native surface adapters.
+- Estimated reduction: avoids duplicating approximately 2,000 lines of synchronization and repository behavior in TFI.
+- Status: implemented. Shared/mobile regression tests pass; full macOS verification retains existing Agent timing failures. See MOBILE_ROLLOUT.md for the complete verification record.
+
+## 2026-09-11 — Share Metrics and connection presentation
+
+- Evidence: desktop ServerMetricsModel already owns sampling, detail observers, host-key prompts and authentication while MobileMetricsModel duplicated a basic sampling loop; Journey graph and decision forms were embedded in the AppKit view.
+- Action: move the monitor and Journey state to Application, metrics panels/instruments and connection decisions/route to Presentation; retain AppKit keyboard handling via a narrow injected adapter. Mobile metrics now delegates to that same monitor.
+- Estimated reduction: removes the separate mobile sampling loop and avoids another approximately 1,200 lines of graph, instruments, panels and authentication form code.
+- Status: implemented; shared/mobile regression tests and 127 focused macOS tests pass. The final full macOS run retains six existing Agent approval/input timing issues; see MOBILE_ROLLOUT.md.
