@@ -22,6 +22,13 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
         }
     }
 
+    var enabledKeyPath: WritableKeyPath<TerminalPreferences, Bool> {
+        switch self {
+        case .light: \.lightCustomEnabled
+        case .dark: \.darkCustomEnabled
+        }
+    }
+
     var title: String {
         switch self {
         case .light: String(localized: "Light Custom Configuration")
@@ -64,6 +71,13 @@ struct TerminalCustomConfigurationEditorPage: View {
             }
 
             HStack {
+                Toggle(
+                    "Enabled",
+                    isOn: Binding(
+                        get: { app.terminalSettings.preferences[keyPath: scheme.enabledKeyPath] },
+                        set: { app.terminalSettings.set($0, for: scheme.enabledKeyPath) })
+                )
+                .toggleStyle(.switch)
                 Spacer()
                 Button("Import from File") { isImporting = true }
             }

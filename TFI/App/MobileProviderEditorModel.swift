@@ -4,16 +4,22 @@ import Observation
 import TermindApplication
 import TermindDomain
 
-@MainActor
-@Observable
+@MainActor @Observable
 final class MobileProviderEditorModel {
-    enum KeyAction: String, CaseIterable { case preserve, replace, clear }
+    typealias KeyAction = MobileSecretDraft.Action
     let original: ModelProvider
     let originalEndpoint: ProviderEndpoint
     var draft: ModelProvider
     var endpoint: ProviderEndpoint
-    var keyAction = KeyAction.preserve
-    var secret = ""
+    let key = MobileSecretDraft()
+    var keyAction: KeyAction {
+        get { key.action }
+        set { key.action = newValue }
+    }
+    var secret: String {
+        get { key.text }
+        set { key.text = newValue }
+    }
     private let ai: AIConfigurationModel
     private let wasPersisted: Bool
 
@@ -24,13 +30,50 @@ final class MobileProviderEditorModel {
         wasPersisted = ai.modelProvider(provider.id) != nil
         originalEndpoint = wasPersisted ? ai.endpoint(for: provider.id) : ProviderEndpoint(url: provider.inferenceURL)
         endpoint = originalEndpoint
+        key.begin(in: ai, reference: provider.credentialRef)
+        if requiresKey { key.action = .replace }
     }
 
-    var isDirty: Bool { draft != original || endpoint != originalEndpoint || keyAction != .preserve || !secret.isEmpty }
+    var hasExistingKey: Bool { wasPersisted && !original.credentialRef.isEmpty }
+    var requiresKey: Bool { !wasPersisted }
+    var isDirty: Bool { draft != original || endpoint != originalEndpoint || key.isDirty }
     var canSave: Bool {
         let url = URL(string: endpoint.requestURL)
         return !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && url?.scheme == "https" && url?.host != nil && (keyAction != .replace || !secret.isEmpty)
+            && url?.scheme == "https" && url?.host != nil && key.isValid
+    }
+
+    var requestProvider: ModelProvider {
+        var provider = draft
+        provider.inferenceURL = endpoint.requestURL
+        provider.baseURL = endpoint.baseURL
+        provider.apiFormat = endpoint.format
+        return provider
+    }
+
+    func requestSecret() throws -> String {
+        guard !wasPersisted || ai.modelProvider(original.id) != nil else {
+            throw MobileEditorError.message(String(localized: "Provider Deleted"))
+        }
+        return try key.effective(
+            in: ai, reference: ai.modelProvider(original.id)?.effectiveCredentialRef ?? draft.effectiveCredentialRef)
+    }
+
+    func add(_ models: [AIModel]) {
+        for model in models where !draft.models.contains(where: { $0.id == model.id }) { draft.models.append(model) }
+    }
+
+    func add(id: String) {
+        let id = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !id.isEmpty else { return }
+        add([ModelCapabilityResolver.resolve(model: AIModel(id: id), provider: requestProvider).model])
+    }
+
+    func remove(_ ids: Set<String>) { draft.models.removeAll { ids.contains($0.id) } }
+
+    func update(_ model: AIModel) {
+        guard let index = draft.models.firstIndex(where: { $0.id == model.id }) else { return }
+        draft.models[index] = model
     }
 
     func save() throws {
@@ -39,27 +82,39 @@ final class MobileProviderEditorModel {
         guard !wasPersisted || current != nil else {
             throw MobileEditorError.message(String(localized: "Provider Deleted"))
         }
-        var value = current ?? draft
-        // A live model refresh must not be overwritten by this form's older draft.
-        value.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        value.isEnabled = draft.isEnabled
-        let reference = value.credentialRef.isEmpty ? AIConfigurationModel.makeCredentialRef() : value.credentialRef
-        var previousSecret: String?
-        if keyAction != .preserve {
-            previousSecret = ai.secret(for: reference)
-            if let error = ai.secretStorageError { throw MobileEditorError.message(error) }
-            ai.setSecret(keyAction == .clear ? nil : secret, for: reference)
-            if let error = ai.secretStorageError { throw MobileEditorError.message(error) }
-            value.credentialRef = keyAction == .clear ? "" : reference
+        var value = draft
+        var savedEndpoint = endpoint
+        if let current {
+            var fields = SettingsFields(original, draft, current)
+            try fields.merge(\.name)
+            try fields.merge(\.isEnabled)
+            value = fields.result
+            value.models = try SettingsDraftMerge.collection(
+                original.models, draft.models, current.models, merge: Self.mergeModel)
+            // Discovery time is observational metadata, not an editable conflict.
+            if draft.modelsFetchedAt != original.modelsFetchedAt { value.modelsFetchedAt = draft.modelsFetchedAt }
+            var connection = SettingsFields(originalEndpoint, endpoint, ai.endpoint(for: original.id))
+            try connection.merge(\.url)
+            try connection.merge(\.apiType)
+            savedEndpoint = connection.result
         }
-        guard ai.saveProvider(value, endpoint: endpoint) else {
-            var message = ai.storageError ?? String(localized: "Unable to Save")
-            if keyAction != .preserve {
-                ai.setSecret(previousSecret, for: reference)
-                if let rollback = ai.secretStorageError { message += "\n" + rollback }
-            }
-            throw MobileEditorError.message(message)
+        value.name = value.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        try key.commit(in: ai, reference: value.credentialRef) { reference in
+            value.credentialRef = reference
+            return ai.saveProvider(value, endpoint: savedEndpoint)
         }
-        secret = ""
+    }
+
+    static func mergeModel(_ original: AIModel, _ draft: AIModel, _ current: AIModel) throws -> AIModel {
+        var fields = SettingsFields(original, draft, current)
+        try fields.merge(\.displayName)
+        try fields.merge(\.kind)
+        try fields.merge(\.input)
+        try fields.merge(\.abilities)
+        try fields.merge(\.contextLength)
+        try fields.merge(\.maxOutputTokens)
+        try fields.merge(\.isShownInAssistant)
+        try fields.merge(\.reasoningProfile)
+        return fields.result
     }
 }

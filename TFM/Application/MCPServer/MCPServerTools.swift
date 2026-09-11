@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import TermindApplication
 
 @MainActor
 final class MCPServerTools {

@@ -37,6 +37,7 @@ struct MobileRemoteFileEditor: View {
                 Section { Text(file.path).font(.caption.monospaced()).textSelection(.enabled) }
                 if mode == .rename {
                     TextField("Name", text: $name).textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .multilineTextAlignment(.leading)
                 } else {
                     UnixPermissionFields(draft: $permissions)
                 }

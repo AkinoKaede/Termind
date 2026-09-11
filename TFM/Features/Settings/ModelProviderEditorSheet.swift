@@ -67,7 +67,10 @@ struct ModelProviderEditorPage: View {
             ModelProviderConnectionFields(
                 name: binding(\.name),
                 endpoint: Binding(
-                    get: { endpoint }, set: { app.aiConfiguration.setEndpoint($0, for: modelProviderID) }))
+                    get: { endpoint }, set: { app.aiConfiguration.setEndpoint($0, for: modelProviderID) }),
+                isEnabled: Binding(
+                    get: { app.aiConfiguration.modelProvider(modelProviderID)?.isEnabled ?? false },
+                    set: { app.aiConfiguration.setModelProviderEnabled($0, for: modelProviderID) }))
             credentialSection
 
             Section("Models") {

@@ -1,0 +1,205 @@
+import Foundation
+import SwiftData
+import SwiftUI
+import TermindApplication
+import TermindDomain
+import TermindPersistence
+import TermindPresentation
+import Testing
+import UIKit
+
+@testable import TermindIOS
+
+@Suite @MainActor
+struct MobileCardTests {
+    @Test func phonesKeepOneColumnInLandscapeAndPadsUseActualContentWidth() {
+        for width: CGFloat in [0, 288, 370, 660, 1024] {
+            #expect(MobileCardLayout.columns(width: width, isPad: false, accessibilitySize: false) == 1)
+            #expect(MobileCardLayout.columns(width: width, isPad: true, accessibilitySize: true) == 1)
+        }
+        #expect(MobileCardLayout.columns(width: 651, isPad: true, accessibilitySize: false) == 1)
+        #expect(MobileCardLayout.columns(width: 652, isPad: true, accessibilitySize: false) == 2)
+        #expect(MobileCardLayout.columns(width: 983, isPad: true, accessibilitySize: false) == 2)
+        #expect(MobileCardLayout.columns(width: 984, isPad: true, accessibilitySize: false) == 3)
+    }
+
+    @Test func standardCardHeightDoesNotChangeWithHostTags() {
+        let noTags = measuredHeight(of: standardCard(tags: []))
+        let oneTag = measuredHeight(of: standardCard(tags: ["production"]))
+        let manyTags = measuredHeight(
+            of: standardCard(tags: ["production", "a-very-long-tag-that-must-not-wrap", "hidden"]))
+        let actionNoTags = measuredHeight(of: standardActionCard(tags: []))
+        let actionManyTags = measuredHeight(
+            of: standardActionCard(tags: ["production", "a-very-long-tag-that-must-not-wrap", "hidden"]))
+
+        #expect(noTags >= MobileCardLayout.minimumHeight)
+        #expect(abs(noTags - oneTag) <= 1)
+        #expect(abs(noTags - manyTags) <= 1)
+        #expect(actionNoTags >= MobileCardLayout.minimumHeight)
+        #expect(abs(actionNoTags - actionManyTags) <= 1)
+    }
+
+    @Test func hostCardsShowAtMostTwoTags() {
+        #expect(Array(MobileCardLayout.visibleTags([])).isEmpty)
+        #expect(Array(MobileCardLayout.visibleTags(["one"])) == ["one"])
+        #expect(Array(MobileCardLayout.visibleTags(["one", "two", "three"])) == ["one", "two"])
+    }
+
+    @Test func distributionBrandColorsAreValidAndReadableOnHostIconSurfaces() throws {
+        #expect(LinuxDistributionBrandColor.color(hex: "not-a-color", colorScheme: .light) == nil)
+
+        for scheme in [ColorScheme.light, .dark] {
+            let color = try #require(LinuxDistributionBrandColor.color(hex: "000000", colorScheme: scheme))
+            let traits = UITraitCollection(userInterfaceStyle: scheme == .dark ? .dark : .light)
+            let foreground = try components(UIColor(color))
+            let surface = try components(
+                UIColor.secondarySystemGroupedBackground.resolvedColor(with: traits))
+            let tintedSurface = mix(surface, foreground, amount: 0.16)
+            #expect(contrastRatio(foreground, tintedSurface) >= 3)
+        }
+    }
+
+    @Test func openingSavedHostsRecordsSSHAndSFTPForTheCardTimestamp() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
+
+        let ssh = try #require(app.open(hostID: host.id, kind: .ssh))
+        let sftp = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer {
+            app.close(ssh)
+            app.close(sftp)
+        }
+
+        #expect(Set(app.connectionHistory.entries(for: host.id).map(\.kind)) == [.ssh, .sftp])
+        #expect(app.lastConnectedAt(for: host.id) != nil)
+        let restored = ConnectionHistoryModel(
+            repository: SwiftDataConnectionHistoryRepository(context: ModelContext(app.container)))
+        #expect(Set(restored.entries(for: host.id).map(\.kind)) == [.ssh, .sftp])
+    }
+
+    @Test func hostAndIdentityColorsRemainDraftsUntilSavedAndRoundTripThroughPersistence() throws {
+        let app = try MobileAppModel(inMemory: true)
+        var host = TermindDomain.Host(name: "Test", host: "example.invalid", colorTag: .teal)
+        var identity = Identity(name: "Deploy", username: "deploy", colorTag: .purple)
+        app.library.upsert(host)
+        #expect(app.library.upsert(identity))
+        host.colorTag = .pink
+        identity.colorTag = .orange
+        #expect(app.library.host(host.id)?.colorTag == .teal)
+        #expect(app.credentials.identities.first?.colorTag == .purple)
+        app.library.upsert(host)
+        #expect(app.library.upsert(identity))
+        let saved = try HostPersistence(context: ModelContext(app.container)).load()
+        #expect(saved.hosts.first?.colorTag == .pink)
+        #expect(saved.identities.first?.colorTag == .orange)
+        host.colorTag = .none
+        identity.colorTag = .none
+        app.library.upsert(host)
+        #expect(app.library.upsert(identity))
+        let cleared = try HostPersistence(context: ModelContext(app.container)).load()
+        #expect(cleared.hosts.first?.colorTag == TagColor.none)
+        #expect(cleared.identities.first?.colorTag == TagColor.none)
+    }
+
+    @Test func generatedImportedAndEditedKeysPreserveColorWithoutSavingCancelledDrafts() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
+        generator.label = "Colored Key"
+        generator.colorTag = .green
+        #expect(generator.isDirty)
+        try await generator.save()
+        let key = try #require(app.credentials.keys.first)
+        #expect(key.colorTag == .green)
+        let credential = try #require(try app.credentials.keyCredential(for: key))
+        guard case .software(let secret) = credential else {
+            Issue.record("Expected software key")
+            return
+        }
+        let importer = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
+        importer.label = "Imported Color"
+        importer.privateKey = secret.privateKey
+        importer.colorTag = .blue
+        try await importer.save()
+        #expect(app.credentials.keys.first(where: { $0.label == "Imported Color" })?.colorTag == .blue)
+
+        let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
+        #expect(editor.colorTag == .green && !editor.isDirty)
+        editor.colorTag = .red
+        #expect(editor.isDirty)
+        #expect(app.credentials.key(key.id)?.colorTag == .green)
+        editor.colorTag = .none
+        try await editor.save()
+        let updated = try #require(app.credentials.key(key.id))
+        let reopened = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: updated)
+        #expect(reopened.colorTag == .none && !reopened.isDirty)
+        #expect(updated.fingerprint == key.fingerprint)
+    }
+
+    private func standardCard(tags: [String]) -> some View {
+        MobileCard { standardCardContent(tags: tags) }
+    }
+
+    private func standardActionCard(tags: [String]) -> some View {
+        MobileActionCard(
+            action: {},
+            content: { standardCardContent(tags: tags) },
+            actions: { EmptyView() }
+        )
+    }
+
+    private func standardCardContent(tags: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                MobileCardIcon(symbol: "server.rack")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Production").font(.headline).lineLimit(1)
+                    Text("deploy@example.invalid").font(.caption.monospaced()).lineLimit(1)
+                }
+            }
+            HStack(spacing: 6) {
+                ForEach(MobileCardLayout.visibleTags(tags), id: \.self) { MobileCardChip(text: $0) }
+                Spacer(minLength: 6)
+                Text("1 hr ago").font(.caption2).lineLimit(1).fixedSize(horizontal: true, vertical: false)
+            }
+        }
+    }
+
+    private func measuredHeight<V: View>(of view: V, width: CGFloat = 320) -> CGFloat {
+        let controller = UIHostingController(rootView: view.environment(\.dynamicTypeSize, .large))
+        return controller.sizeThatFits(in: CGSize(width: width, height: 1_000)).height
+    }
+
+    private func components(_ color: UIColor) throws -> (CGFloat, CGFloat, CGFloat) {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        #expect(color.getRed(&red, green: &green, blue: &blue, alpha: nil))
+        return (red, green, blue)
+    }
+
+    private func mix(
+        _ lhs: (CGFloat, CGFloat, CGFloat), _ rhs: (CGFloat, CGFloat, CGFloat), amount: CGFloat
+    ) -> (CGFloat, CGFloat, CGFloat) {
+        (
+            lhs.0 + (rhs.0 - lhs.0) * amount,
+            lhs.1 + (rhs.1 - lhs.1) * amount,
+            lhs.2 + (rhs.2 - lhs.2) * amount
+        )
+    }
+
+    private func contrastRatio(
+        _ lhs: (CGFloat, CGFloat, CGFloat), _ rhs: (CGFloat, CGFloat, CGFloat)
+    ) -> CGFloat {
+        let lighter = max(luminance(lhs), luminance(rhs))
+        let darker = min(luminance(lhs), luminance(rhs))
+        return (lighter + 0.05) / (darker + 0.05)
+    }
+
+    private func luminance(_ color: (CGFloat, CGFloat, CGFloat)) -> CGFloat {
+        func linear(_ value: CGFloat) -> CGFloat {
+            value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(color.0) + 0.7152 * linear(color.1) + 0.0722 * linear(color.2)
+    }
+}

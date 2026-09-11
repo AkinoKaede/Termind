@@ -352,8 +352,7 @@ struct SFTPBrowserView: View {
             Button("Skip Existing") { enqueue(.skip) }
             Button("Keep Both") { enqueue(.keepBoth) }
             Button("Cancel", role: .cancel) {
-                sftpSession.pendingBatch = nil
-                sftpSession.pendingRemoteCopyBatch = nil
+                sftpSession.cancelPendingBatch()
             }
         } message: {
             Text("Use this choice for all conflicts in this batch.")
@@ -1219,7 +1218,7 @@ struct SFTPBrowserView: View {
     }
 
     private func finishPreparingBatch() {
-        guard sftpSession.pendingBatch != nil || sftpSession.pendingRemoteCopyBatch != nil else { return }
+        guard sftpSession.hasPendingBatch else { return }
         if sftpSession.conflictCount > 0 { conflictPresented = true } else { enqueue(.replace) }
     }
 

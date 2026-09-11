@@ -1,10 +1,12 @@
 import Foundation
+import GhosttyTerminal
 import SwiftData
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
 import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import TermindIOS
@@ -46,6 +48,23 @@ struct MobileWorkspaceTests {
         #expect(first.destinationURL != second.destinationURL)
     }
 
+    @Test func closeAllDisconnectsAndRemovesEveryWorkspaceAndIsRepeatable() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
+        _ = try #require(app.open(hostID: host.id, kind: .ssh))
+        _ = try #require(app.open(hostID: host.id, kind: .sftp))
+        let opened = app.workspaces
+
+        app.closeAll()
+
+        #expect(app.workspaces.isEmpty)
+        #expect(opened.allSatisfy { !$0.connected && $0.status == String(localized: "Disconnected") })
+
+        app.closeAll()
+        #expect(app.workspaces.isEmpty)
+    }
+
     @Test func hostEditsPersistThroughTheSharedVaultStore() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
@@ -72,6 +91,499 @@ struct MobileWorkspaceTests {
     }
 }
 
+@Suite
+struct MobileTerminalShiftStateTests {
+    @Test func armedShiftAppliesOnce() {
+        var state = MobileTerminalShiftState()
+        state.toggle(at: Date(timeIntervalSince1970: 1))
+        #expect(state.activation == .armed)
+        #expect(state.consumeForNextKey() == .shift)
+        #expect(state.activation == .inactive)
+        #expect(state.consumeForNextKey().isEmpty)
+    }
+
+    @Test func quickSecondTapLocksShiftUntilCancelled() {
+        var state = MobileTerminalShiftState()
+        state.toggle(at: Date(timeIntervalSince1970: 1))
+        state.toggle(at: Date(timeIntervalSince1970: 1.2))
+        #expect(state.activation == .locked)
+        #expect(state.consumeForNextKey() == .shift)
+        #expect(state.activation == .locked)
+        state.toggle(at: Date(timeIntervalSince1970: 2))
+        #expect(state.activation == .inactive)
+    }
+
+    @Test func slowSecondTapCancelsArmedShift() {
+        var state = MobileTerminalShiftState()
+        state.toggle(at: Date(timeIntervalSince1970: 1))
+        state.toggle(at: Date(timeIntervalSince1970: 2))
+        #expect(state.activation == .inactive)
+    }
+}
+
+@Suite @MainActor
+struct MobileWorkspaceReconnectStateTests {
+    @Test func backgroundExpirationResumesEveryAffectedWorkspaceOnForeground() async throws {
+        let background = MobileTestBackgroundTaskManager()
+        let connections = MobileSFTPConnectionBox(
+            clients: [
+                MobileTestSFTPClient(), MobileTestSFTPClient(),
+                MobileTestSFTPClient(), MobileTestSFTPClient(),
+            ])
+        let app = try MobileAppModel(
+            inMemory: true, background: background, workspaceConnectionServices: connections.services)
+        let host = try configureConnectionFixture(in: app)
+        _ = try #require(app.open(hostID: host.id, kind: .sftp))
+        _ = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        #expect(await eventually { app.workspaces.allSatisfy(\.connected) })
+        let sceneID = UUID()
+        app.sceneChanged(sceneID, phase: .active)
+        app.sceneChanged(sceneID, phase: .background)
+
+        background.expire()
+
+        #expect(app.workspaces.allSatisfy { !$0.connected && $0.journey.isPresented })
+        #expect(app.workspaces.allSatisfy { $0.journey.mode == .reconnection })
+        #expect(connections.connectCount == 2)
+
+        app.sceneChanged(sceneID, phase: .active)
+
+        #expect(await eventually { app.workspaces.allSatisfy(\.connected) })
+        #expect(connections.connectCount == 4)
+    }
+
+    @Test func returningBeforeBackgroundExpirationKeepsHealthyConnection() async throws {
+        let background = MobileTestBackgroundTaskManager()
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let app = try MobileAppModel(
+            inMemory: true, background: background, workspaceConnectionServices: connections.services)
+        let host = try configureConnectionFixture(in: app)
+        _ = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        #expect(await eventually { app.workspaces.first?.connected == true })
+        let sceneID = UUID()
+        app.sceneChanged(sceneID, phase: .active)
+        app.sceneChanged(sceneID, phase: .background)
+
+        app.sceneChanged(sceneID, phase: .active)
+        background.expire()
+
+        #expect(app.workspaces.first?.connected == true)
+        #expect(connections.connectCount == 1)
+    }
+
+    @Test func failedForegroundResumeKeepsReconnectionJourneyVisible() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let reconnectController = SessionReconnectController(
+            sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library, connectionServices: connections.services,
+            reconnectController: reconnectController)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+
+        workspace.suspendForBackgroundExpiration()
+        workspace.resumeAfterBackground()
+
+        #expect(await eventually { workspace.reconnectState?.attempt == 1 })
+        #expect(workspace.journey.isPresented)
+        #expect(workspace.journey.mode == .reconnection)
+        #expect(workspace.operationError == nil)
+    }
+
+    @Test func restoredWorkspaceConnectsOnlyWhenFirstOpened() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient(), MobileTestSFTPClient()])
+        let first = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: "First", kind: .sftp),
+            hosts: library, connectionServices: connections.services, connectsWhenOpened: true)
+        let second = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: "Second", kind: .sftp),
+            hosts: library, connectionServices: connections.services, connectsWhenOpened: true)
+        defer {
+            first.disconnect()
+            second.disconnect()
+        }
+
+        #expect(connections.connectCount == 0)
+        #expect(!first.journey.isPresented && !second.journey.isPresented)
+
+        first.activateWhenOpened()
+
+        #expect(first.journey.isPresented)
+        #expect(!second.journey.isPresented)
+        #expect(await eventually { first.connected })
+        #expect(connections.connectCount == 1)
+        first.activateWhenOpened()
+        #expect(connections.connectCount == 1)
+    }
+
+    @Test func explicitDisconnectDoesNotCreateAResumeIntent() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient(), MobileTestSFTPClient()])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library, connectionServices: connections.services)
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+
+        workspace.disconnect()
+        workspace.resumeAfterBackground()
+        workspace.activateWhenOpened()
+
+        #expect(!workspace.connected)
+        #expect(!workspace.journey.isPresented)
+        #expect(connections.connectCount == 1)
+    }
+
+    @Test func backgroundExpirationClearsPendingAuthenticationBeforeResume() async throws {
+        let host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        let library = HostLibraryModel(
+            hosts: [host],
+            knownHosts: [
+                KnownHostEntry(
+                    hostname: host.host, port: host.port, algorithm: .ed25519,
+                    fingerprint: "SHA256:test")
+            ])
+        let connections = MobileSFTPConnectionBox(clients: [])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library, connectionServices: connections.services)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.authenticationPrompt != nil })
+
+        workspace.suspendForBackgroundExpiration()
+
+        #expect(workspace.authenticationPrompt == nil)
+        #expect(!workspace.authenticationRequired)
+        #expect(workspace.journey.isPresented)
+        #expect(workspace.journey.mode == .connection)
+
+        workspace.resumeAfterBackground()
+        #expect(await eventually { workspace.authenticationPrompt != nil })
+    }
+
+    @Test func initialConnectionFailureStaysInJourney() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(clients: [])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library,
+            connectionServices: connections.services)
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+
+        #expect(
+            await eventually {
+                if case .failed = workspace.journey.phase { return true }
+                return false
+            })
+        #expect(workspace.operationError == nil)
+    }
+
+    @Test func authenticationPersistenceFailureRemainsInJourneyForm() async throws {
+        let message = "Keychain unavailable"
+        let host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        let library = HostLibraryModel(
+            hosts: [host],
+            knownHosts: [
+                KnownHostEntry(
+                    hostname: host.host, port: host.port, algorithm: .ed25519,
+                    fingerprint: "SHA256:test")
+            ],
+            secrets: MobileFailingSecretStore(message: message))
+        let connections = MobileSFTPConnectionBox(clients: [])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library,
+            connectionServices: connections.services)
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+        #expect(await eventually { workspace.authenticationPrompt != nil })
+        workspace.submitAuthentication(
+            identityID: nil, username: "deploy", password: "test-only", passphrase: nil, keyID: nil, save: true)
+
+        #expect(workspace.authenticationPrompt?.failureMessage == message)
+        #expect(workspace.journey.phase == .waiting)
+        #expect(workspace.operationError == nil)
+    }
+
+    @Test func sftpOperationFailureUsesOperationErrorWithoutFailingJourney() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(clients: [MobileOperationFailingSFTPClient()])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library,
+            connectionServices: connections.services)
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        await workspace.openDirectory("/restricted")
+
+        #expect(workspace.operationError == "Permission denied")
+        if case .failed = workspace.journey.phase {
+            Issue.record("An ordinary SFTP operation error must not fail the connection Journey")
+        }
+    }
+
+    @Test func disconnectClearsJourneyAndOperationErrors() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(clients: [])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library,
+            connectionServices: connections.services)
+        workspace.operationError = "Permission denied"
+        workspace.connect()
+        #expect(await eventually { workspace.journey.isPresented })
+
+        workspace.disconnect()
+
+        #expect(!workspace.journey.isPresented)
+        #expect(workspace.operationError == nil)
+    }
+
+    @Test func sftpUnexpectedLossReconnectsWithoutResettingTheCurrentPath() async throws {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        let library = HostLibraryModel(
+            hosts: [host],
+            knownHosts: [
+                KnownHostEntry(
+                    hostname: host.host, port: host.port, algorithm: .ed25519, fingerprint: "SHA256:test")
+            ])
+        try library.upsert(identity, passwordUpdate: .replace("test-only"))
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient(), MobileTestSFTPClient()])
+        let reconnectController = SessionReconnectController(
+            sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library,
+            connectionServices: connections.services,
+            reconnectController: reconnectController)
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        await workspace.openDirectory("/srv/project")
+        #expect(workspace.path == "/srv/project")
+
+        connections.connectionFailure?("offline")
+        #expect(await eventually { workspace.reconnectState?.attempt == 1 })
+        #expect(workspace.journey.mode == .reconnection)
+        #expect(workspace.operationError == nil)
+        workspace.retryReconnectNow()
+
+        #expect(await eventually { workspace.connected })
+        #expect(workspace.path == "/srv/project")
+        #expect(connections.connectCount == 2)
+    }
+
+    @Test func onlySuccessfulSessionsEnterAutomaticRecovery() {
+        let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        let state = MobileWorkspaceReconnectState(controller: controller)
+        defer { state.reset() }
+
+        #expect(!state.schedule(after: "initial failure") {})
+        #expect(state.state == nil)
+        #expect(!state.markConnected())
+        #expect(state.schedule(after: "connection lost") {})
+        #expect(state.isRecovering)
+        #expect(state.state?.attempt == 1)
+        #expect(!state.schedule(after: "still offline") {})
+        #expect(state.state?.attempt == 2)
+    }
+
+    @Test func stoppingRecoveryKeepsManualReconnectAvailableAndResetClearsHistory() {
+        let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        let state = MobileWorkspaceReconnectState(controller: controller)
+        _ = state.markConnected()
+        _ = state.schedule(after: "offline") {}
+
+        #expect(state.stopReconnecting()?.lastError == "offline")
+        #expect(state.state == nil)
+        #expect(state.hasConnectedOnce)
+        #expect(!state.isRecovering)
+
+        state.reset()
+        #expect(!state.hasConnectedOnce)
+        #expect(!state.isRecovering)
+    }
+
+    @Test func aRecoveredConnectionReportsRecoveryAndClearsRetryState() {
+        let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        let state = MobileWorkspaceReconnectState(controller: controller)
+        _ = state.markConnected()
+        _ = state.schedule(after: "offline") {}
+
+        #expect(state.markConnected())
+        #expect(state.state == nil)
+        #expect(state.hasConnectedOnce)
+        #expect(!state.isRecovering)
+    }
+
+    private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
+        for _ in 0..<100 {
+            if condition() { return true }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return false
+    }
+
+    private func connectionFixture() throws -> (TermindDomain.Host, HostLibraryModel) {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        let library = HostLibraryModel(
+            hosts: [host], identities: [identity],
+            knownHosts: [
+                KnownHostEntry(
+                    hostname: host.host, port: host.port, algorithm: .ed25519,
+                    fingerprint: "SHA256:test")
+            ])
+        try library.upsert(identity, passwordUpdate: .replace("test-only"))
+        return (host, library)
+    }
+
+    private func configureConnectionFixture(in app: MobileAppModel) throws -> TermindDomain.Host {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        try app.library.upsert(identity, passwordUpdate: .replace("test-only"))
+        app.library.upsert(host)
+        app.library.trust(
+            KnownHostEntry(
+                hostname: host.host, port: host.port, algorithm: .ed25519,
+                fingerprint: "SHA256:test"))
+        return host
+    }
+}
+
+@MainActor
+private final class MobileSFTPConnectionBox {
+    var connectionFailure: (@Sendable (String) -> Void)?
+    private var clients: [any SFTPClientProtocol]
+    private(set) var connectCount = 0
+
+    init(clients: [any SFTPClientProtocol]) {
+        self.clients = clients
+    }
+
+    var services: MobileWorkspaceConnectionServices {
+        MobileWorkspaceConnectionServices(
+            discoverHostKey: { _, host, port, _, _ in
+                SSHHostKeyObservation(
+                    hostname: host, port: port, algorithm: .ed25519, fingerprint: "SHA256:test")
+            },
+            makeSSHSession: { output, exit, shellIntegration in
+                SSHSessionActor(output: output, exit: exit, shellIntegration: shellIntegration)
+            },
+            connectSSH: { _, _, _, _, _, _ in },
+            connectSFTP: { [self] _, _, connectionFailure in
+                guard !clients.isEmpty else { throw SFTPError.notConnected }
+                self.connectionFailure = connectionFailure
+                self.connectCount += 1
+                return self.clients.removeFirst()
+            },
+            writeSSH: { session, data in await session.write(data) })
+    }
+}
+
+@MainActor
+private final class MobileTestBackgroundTaskManager: MobileBackgroundTaskManaging {
+    private var expiration: (@MainActor () -> Void)?
+
+    func begin(expiration: @escaping @MainActor () -> Void) {
+        self.expiration = expiration
+    }
+
+    func finish() {
+        expiration = nil
+    }
+
+    func expire() {
+        let action = expiration
+        expiration = nil
+        action?()
+    }
+}
+
+private actor MobileOperationFailingSFTPClient: SFTPClientProtocol {
+    private var listCount = 0
+
+    func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
+    func disconnect() async {}
+    func homeDirectory() async throws -> String { "/home/test" }
+    func listDirectory(at path: String) async throws -> [RemoteFile] {
+        defer { listCount += 1 }
+        if listCount > 0 { throw SFTPError.operation("Permission denied") }
+        return []
+    }
+    func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
+    func createDirectory(at path: String) async throws {}
+    func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
+    func removeFile(at path: String) async throws {}
+    func removeDirectory(at path: String) async throws {}
+    func uploadFile(
+        from localURL: URL, to remotePath: String, overwrite: Bool,
+        cancellation: TransferCancellationToken,
+        progress: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
+    func downloadFile(
+        from remotePath: String, to localURL: URL, overwrite: Bool,
+        cancellation: TransferCancellationToken,
+        progress: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
+}
+
+private final class MobileFailingSecretStore: SecretStoring, @unchecked Sendable {
+    let message: String
+
+    init(message: String) { self.message = message }
+
+    func string(for account: String, storage: PasswordStorage) throws -> String? { nil }
+    func setString(_ value: String?, for account: String, storage: PasswordStorage) throws {
+        throw TermindSSHError.library(message)
+    }
+    func keyCredential(for account: String, storage: KeyStorage) throws -> StoredSSHKeyCredential? { nil }
+    func setKeyCredential(_ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage) throws {}
+    func removePassword(_ account: String, storage: PasswordStorage) throws {}
+    func removeKeyCredential(_ account: String, storage: KeyStorage) throws {}
+}
+
+private actor MobileTestSFTPClient: SFTPClientProtocol {
+    func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
+    func disconnect() async {}
+    func homeDirectory() async throws -> String { "/home/test" }
+    func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
+    func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func setPermissions(at path: String, to permissions: UInt32) async throws {}
+    func createDirectory(at path: String) async throws {}
+    func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
+    func removeFile(at path: String) async throws {}
+    func removeDirectory(at path: String) async throws {}
+    func uploadFile(
+        from localURL: URL, to remotePath: String, overwrite: Bool,
+        cancellation: TransferCancellationToken,
+        progress: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
+    func downloadFile(
+        from remotePath: String, to localURL: URL, overwrite: Bool,
+        cancellation: TransferCancellationToken,
+        progress: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
+}
+
 @Suite struct WorkspaceActivityRoutingTests {
     @Test func activityBoundsItsPayloadAndKeepsTheFocusedSessionVisible() throws {
         let sessions = (0..<12).map { index in
@@ -79,14 +591,31 @@ struct MobileWorkspaceTests {
                 id: UUID(), title: String(repeating: "服务器🖥️", count: 100),
                 kind: "ssh", connected: index < 3)
         }
-        let focused = try #require(sessions.first?.id)
+        let focused = sessions[10].id
         let state = WorkspaceActivityAttributes.ContentState.snapshot(sessions, focusedID: focused)
         #expect(state.workspaceCount == 12)
         #expect(state.connectedCount == 3)
-        #expect(state.sessions.count == 6)
+        #expect(state.sessions.count == WorkspaceActivityAttributes.ContentState.maximumPresentedSessionCount)
         #expect(state.sessions.first?.id == focused)
         #expect(WorkspaceActivityAttributes.workspaceID(from: state.destinationURL) == focused)
         #expect(try JSONEncoder().encode(state).count < 3500)
+    }
+
+    @Test func activityDecodesLegacyStatesWithSixSessions() throws {
+        let sessions = (0..<6).map { index in
+            WorkspaceActivityAttributes.Session(
+                id: UUID(), title: "Workspace \(index)", kind: "ssh", connected: index < 2)
+        }
+        let legacyState = WorkspaceActivityAttributes.ContentState(
+            workspaceCount: sessions.count, connectedCount: 2, sessions: sessions, focusedWorkspaceID: nil)
+
+        let restored = try JSONDecoder().decode(
+            WorkspaceActivityAttributes.ContentState.self,
+            from: JSONEncoder().encode(legacyState))
+
+        #expect(restored.sessions.count == 6)
+        #expect(restored.workspaceCount == 6)
+        #expect(restored.connectedCount == 2)
     }
 
     @Test func aggregateActivityOpensOnlyTheWorkspaceList() throws {

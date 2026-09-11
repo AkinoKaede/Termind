@@ -211,7 +211,7 @@ struct TerminalPlaceholderView: View {
                     uploadError = error
                     return
                 }
-                guard uploadSession.pendingBatch != nil else {
+                guard uploadSession.hasPendingBatch else {
                     uploadSession.disconnect()
                     uploadNotice = nil
                     uploadError = String(localized: "No uploadable files were found.")
@@ -268,7 +268,7 @@ struct TerminalPlaceholderView: View {
         uploadPreparationTask = nil
         guard let uploadSession = pendingUploadSession else { return }
         uploadConflictPresented = false
-        uploadSession.pendingBatch = nil
+        uploadSession.cancelPendingBatch()
         uploadSession.disconnect()
         pendingUploadSession = nil
         pendingUploadItemCount = 0

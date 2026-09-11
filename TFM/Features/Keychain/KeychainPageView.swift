@@ -2,6 +2,7 @@ import AppKit
 import ListViewKit
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 import UniformTypeIdentifiers
 
@@ -427,7 +428,7 @@ private struct SoftwareKeyEditor: View {
                     Section("Key") {
                         TextField("Name", text: $name)
                         LabeledContent("Color") {
-                            ColorTagPicker(selection: $colorTag)
+                            ColorTagPicker(selection: $colorTag, layout: .compact)
                         }
                         Picker("Store in", selection: $storage) {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
@@ -832,7 +833,7 @@ private struct GenerateKeySheet: View {
             Form {
                 TextField("Name", text: $label, prompt: Text(defaultName))
                 LabeledContent("Color") {
-                    ColorTagPicker(selection: $colorTag)
+                    ColorTagPicker(selection: $colorTag, layout: .compact)
                 }
                 Picker("Store in", selection: $storage) {
                     ForEach(availableStorage) { location in
@@ -1052,7 +1053,7 @@ private struct SecureEnclaveKeyEditor: View {
                 Section("Key") {
                     TextField("Name", text: $name)
                     LabeledContent("Color") {
-                        ColorTagPicker(selection: $colorTag)
+                        ColorTagPicker(selection: $colorTag, layout: .compact)
                     }
                 }
                 Section("Secure Enclave") {

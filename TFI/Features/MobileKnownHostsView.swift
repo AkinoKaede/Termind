@@ -4,17 +4,47 @@ import TermindDomain
 struct MobileKnownHostsView: View {
     let app: MobileAppModel
     @State private var removing: KnownHostEntry?
+    @State private var query = ""
+
+    private var entries: [KnownHostEntry] { app.knownHosts.search(query) }
+
+    init(app: MobileAppModel, initialQuery: String = "") {
+        self.app = app
+        _query = State(initialValue: initialQuery)
+    }
 
     var body: some View {
-        List(app.knownHosts.entries) { entry in
-            VStack(alignment: .leading, spacing: 6) {
-                Label(
-                    entry.displayAddress,
-                    systemImage: entry.isMismatched ? "exclamationmark.shield" : "checkmark.shield")
-                Text(entry.fingerprint).font(.caption.monospaced()).textSelection(.enabled)
+        MobileCardPage {
+            if app.knownHosts.entries.isEmpty {
+                ContentUnavailableView("No Known Hosts", systemImage: "checkmark.shield")
+            } else if entries.isEmpty {
+                ContentUnavailableView.search(text: query)
             }
-            .swipeActions { Button("Delete", role: .destructive) { removing = entry } }
+            MobileCardGrid {
+                ForEach(entries) { entry in
+                    MobileCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top, spacing: 12) {
+                                MobileCardIcon(
+                                    symbol: entry.isMismatched ? "exclamationmark.shield" : "checkmark.shield",
+                                    tint: entry.isMismatched ? .orange : .green)
+                                Text(entry.displayAddress).font(.headline).frame(
+                                    maxWidth: .infinity, alignment: .leading)
+                            }
+                            if entry.isMismatched {
+                                MobileCardChip(
+                                    title: "Host key changed", symbol: "exclamationmark.triangle",
+                                    tint: .orange)
+                            }
+                        }
+                    }
+                    .contextMenu {
+                        Button("Delete", systemImage: "trash", role: .destructive) { removing = entry }
+                    }
+                }
+            }
         }
+        .searchable(text: $query)
         .navigationTitle("Known Hosts")
         .confirmationDialog(
             "Delete Known Host?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),

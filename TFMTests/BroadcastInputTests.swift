@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 import TermindDomain
 import Testing
 

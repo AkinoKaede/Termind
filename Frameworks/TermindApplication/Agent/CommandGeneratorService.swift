@@ -2,11 +2,31 @@ import AgentKit
 import Foundation
 import TermindDomain
 
-nonisolated struct CommandGeneratorContext: Hashable, Codable, Sendable {
-    var draft: String
-    var shell: String
-    var cwd: String
-    var remoteSystemInfo: RemoteSystemInfo? = nil
+public nonisolated struct CommandGeneratorContext: Hashable, Codable, Sendable {
+    public var draft: String
+    public var shell: String
+    public var cwd: String
+    public var remoteSystemInfo: RemoteSystemInfo?
+
+    public init(
+        draft: String,
+        shell: String,
+        cwd: String,
+        remoteSystemInfo: RemoteSystemInfo? = nil
+    ) {
+        self.draft = draft
+        self.shell = shell
+        self.cwd = cwd
+        self.remoteSystemInfo = remoteSystemInfo
+    }
+}
+
+public nonisolated enum CommandGeneratorState: Equatable, Sendable {
+    case idle
+    case readingDraft
+    case generating
+    case inserted(targetCount: Int)
+    case failed(String)
 }
 
 /// A narrow, tool-free model path for turning the active shell edit buffer into
@@ -73,28 +93,33 @@ actor CommandGeneratorService {
 }
 
 @MainActor
-protocol CommandGenerating: AnyObject, Sendable {
+public protocol CommandGenerating: AnyObject, Sendable {
     func generate(_ context: CommandGeneratorContext) async throws -> String
 }
 
 @MainActor
-final class CommandGeneratorController: CommandGenerating {
+public final class CommandGeneratorController: CommandGenerating {
     private let ai: AIConfigurationModel
     private let service: CommandGeneratorService
 
-    init(ai: AIConfigurationModel, service: CommandGeneratorService = CommandGeneratorService()) {
+    public init(ai: AIConfigurationModel) {
+        self.ai = ai
+        self.service = CommandGeneratorService()
+    }
+
+    init(ai: AIConfigurationModel, service: CommandGeneratorService) {
         self.ai = ai
         self.service = service
     }
 
     /// A local readiness check for contextual UI. It never contacts a model;
     /// it only resolves the configured role and its already local credential.
-    var isLocallyAvailable: Bool {
+    public var isLocallyAvailable: Bool {
         guard let resolved = ai.resolve(.commandGenerator) else { return false }
         return ai.secret(for: resolved.provider.effectiveCredentialRef)?.isEmpty == false
     }
 
-    func generate(_ context: CommandGeneratorContext) async throws -> String {
+    public func generate(_ context: CommandGeneratorContext) async throws -> String {
         guard let resolved = ai.resolve(.commandGenerator) else {
             throw CommandGeneratorError.missingModel
         }
@@ -112,10 +137,14 @@ final class CommandGeneratorController: CommandGenerating {
     }
 }
 
-nonisolated enum CommandGeneratorError: LocalizedError, Sendable {
-    case missingModel, missingCredential, inputTooLarge, invalidResponse, timedOut
+public nonisolated enum CommandGeneratorError: LocalizedError, Sendable {
+    case missingModel
+    case missingCredential
+    case inputTooLarge
+    case invalidResponse
+    case timedOut
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .missingModel:
             String(localized: "No Command Generator model is configured.")

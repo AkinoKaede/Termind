@@ -359,6 +359,15 @@ public final class AIConfigurationModel {
             value.inferenceURL = endpoint.requestURL
             value.baseURL = endpoint.baseURL
             value.apiFormat = endpoint.format
+            let removed = Set((modelProvider(value.id)?.models ?? []).map(\.id)).subtracting(value.models.map(\.id))
+            for role in AIRole.allCases {
+                if let ref = roles[role], ref.modelProviderID == value.id, removed.contains(ref.modelID) {
+                    roles[role] = nil
+                }
+            }
+            if let ref = lastSelectedModel, ref.modelProviderID == value.id, removed.contains(ref.modelID) {
+                lastSelectedModel = nil
+            }
             endpoints[value.id] = endpoint
             if let index = modelProviders.firstIndex(where: { $0.id == value.id }) {
                 modelProviders[index] = value

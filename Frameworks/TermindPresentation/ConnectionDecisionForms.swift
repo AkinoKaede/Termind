@@ -178,19 +178,32 @@ public struct SharedSSHAuthenticationForm: View {
             #endif
 
             HStack {
-                Button("Cancel", action: cancel).keyboardShortcut(.cancelAction)
+                Button(action: cancel) { ConnectionActionLabel(title: "Cancel", symbol: "xmark") }.keyboardShortcut(
+                    .cancelAction)
                 Spacer()
                 if needsPassphrase {
-                    Button("Continue") { commit(save: false) }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(!canContinue)
+                    Button {
+                        commit(save: false)
+                    } label: {
+                        ConnectionActionLabel(title: "Continue", symbol: "arrow.right")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canContinue)
                 } else {
-                    Button("Continue") { commit(save: false) }.disabled(!canContinue)
-                    Button("Save and Continue") { commit(save: true) }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(!canContinue)
+                    Button {
+                        commit(save: false)
+                    } label: {
+                        ConnectionActionLabel(title: "Continue", symbol: "arrow.right")
+                    }.disabled(!canContinue)
+                    Button {
+                        commit(save: true)
+                    } label: {
+                        ConnectionActionLabel(title: "Save and Continue", symbol: "checkmark")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canContinue)
                 }
             }
         }
@@ -385,15 +398,18 @@ public struct SharedSSHHostKeyConfirmationForm: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.background.opacity(0.65), in: .rect(cornerRadius: 8))
             HStack {
-                Button("Deny", role: .destructive, action: deny).keyboardShortcut(.cancelAction)
+                Button(role: .destructive, action: deny) { ConnectionActionLabel(title: "Deny", symbol: "xmark") }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 if let trust {
-                    Button("Continue", action: proceed)
+                    Button(action: proceed) { ConnectionActionLabel(title: "Continue", symbol: "arrow.right") }
                         .help("Continue once without saving this host key")
-                    Button("Trust and Continue", action: trust)
-                        .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                    Button(action: trust) {
+                        ConnectionActionLabel(title: "Trust and Continue", symbol: "checkmark.shield")
+                    }
+                    .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
                 } else {
-                    Button("Continue", action: proceed)
+                    Button(action: proceed) { ConnectionActionLabel(title: "Continue", symbol: "arrow.right") }
                         .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
                 }
             }
@@ -412,5 +428,19 @@ public struct SharedSSHHostKeyConfirmationForm: View {
                     "This key is not among the \(trustedKeyCount) trusted keys saved for \(observation.hostname). Verify it carefully before adding it."
             )
         }
+    }
+}
+
+private struct ConnectionActionLabel: View {
+    let title: LocalizedStringKey
+    let symbol: String
+
+    var body: some View {
+        #if os(iOS)
+            Label(title, systemImage: symbol).fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 44)
+        #else
+            Text(title)
+        #endif
     }
 }

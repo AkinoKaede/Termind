@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
@@ -242,6 +243,7 @@ final class SFTPSessionModel: Identifiable {
     let connection = RemoteSessionConnectionController()
     var connectionJourney: ConnectionJourney { connection.journey }
     var pendingBatch: PreparedBatch?
+    var pendingUploadBatch: SFTPLocalUploadBatch?
     var pendingRemoteCopyBatch: PreparedRemoteCopyBatch?
     var operationError: String?
     private(set) var canCancelOperation = false
@@ -306,7 +308,13 @@ final class SFTPSessionModel: Identifiable {
     var canGoBack: Bool { !backHistory.isEmpty }
     var canGoForward: Bool { !forwardHistory.isEmpty }
     var conflictCount: Int {
-        pendingRemoteCopyBatch?.conflictCount ?? pendingBatch?.conflictCount ?? 0
+        pendingRemoteCopyBatch?.conflictCount
+            ?? pendingUploadBatch?.conflictCount
+            ?? pendingBatch?.conflictCount
+            ?? 0
+    }
+    var hasPendingBatch: Bool {
+        pendingUploadBatch != nil || pendingBatch != nil || pendingRemoteCopyBatch != nil
     }
     /// What the list draws. Already filtered, sorted, and formatted.
     var visibleRows: [SFTPRow] { directoryPresentation.visibleRows }
@@ -534,6 +542,7 @@ final class SFTPSessionModel: Identifiable {
     }
 
     func disconnect() {
+        cancelPendingBatch()
         pendingAuthentication = nil
         suppliedAuthentications.removeAll()
         connectionTask?.cancel()
@@ -868,65 +877,27 @@ final class SFTPSessionModel: Identifiable {
 
     func cancelOperation() { operationCancellation?.cancel() }
 
+    func cancelPendingBatch() {
+        pendingUploadBatch = nil
+        pendingBatch = nil
+        pendingRemoteCopyBatch = nil
+    }
+
     func prepareUpload(_ urls: [URL]) async {
         guard let client else { return }
-        var jobs: [PreparedJob] = []
-        var directories: [String] = []
         do {
-            for root in urls {
-                let scoped = root.startAccessingSecurityScopedResource()
-                defer { if scoped { root.stopAccessingSecurityScopedResource() } }
-                let values = try root.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
-                let destination = RemotePath.join(path, root.lastPathComponent)
-                if values.isDirectory == true {
-                    let resolvedRootPath = root.resolvingSymlinksInPath().path
-                    let enumerator = FileManager.default.enumerator(
-                        at: root, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey],
-                        options: [.skipsPackageDescendants]
-                    )
-                    directories.append(destination)
-                    while let item = enumerator?.nextObject() as? URL {
-                        let resolvedItemPath = item.resolvingSymlinksInPath().path
-                        guard resolvedItemPath.hasPrefix(resolvedRootPath + "/") else { continue }
-                        let relative = String(resolvedItemPath.dropFirst(resolvedRootPath.count + 1))
-                        let remote = RemotePath.join(destination, relative)
-                        let itemValues = try item.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
-                        if itemValues.isDirectory == true {
-                            directories.append(remote)
-                            continue
-                        }
-                        jobs.append(
-                            PreparedJob(
-                                direction: .upload, localURL: item, remotePath: remote,
-                                byteCount: Int64(itemValues.fileSize ?? 0), scopedRoot: root,
-                                hasConflict: false, conflictingTargetIsDirectory: false
-                            ))
-                    }
-                } else {
-                    jobs.append(
-                        PreparedJob(
-                            direction: .upload, localURL: root, remotePath: destination,
-                            byteCount: Int64(values.fileSize ?? 0), scopedRoot: root,
-                            hasConflict: false, conflictingTargetIsDirectory: false
-                        ))
-                }
-            }
-            let preflight = try await remoteConflictPreflight(
-                directories: directories, targets: jobs.map(\.remotePath), client: client
+            let batch = try await SFTPLocalUploadPlanner.prepare(
+                urls,
+                destination: path,
+                client: client
             )
-            for (index, kind) in zip(jobs.indices, preflight.targetKinds) {
-                guard let kind else { continue }
-                jobs[index].hasConflict = true
-                jobs[index].conflictingTargetIsDirectory = kind
-            }
+            pendingBatch = nil
             pendingRemoteCopyBatch = nil
-            pendingBatch = PreparedBatch(
-                jobs: jobs, remoteDirectories: preflight.directories,
-                remoteDirectoryConflicts: preflight.directoryConflicts,
-                localDirectories: [], localDirectoryConflicts: [],
-                conflictCount: preflight.conflictCount
-            )
-        } catch { operationError = error.localizedDescription }
+            pendingUploadBatch = batch.isEmpty ? nil : batch
+        } catch {
+            pendingUploadBatch = nil
+            operationError = error.localizedDescription
+        }
     }
 
     func prepareDownload(_ files: [RemoteFile], to directory: URL) async {
@@ -936,6 +907,7 @@ final class SFTPSessionModel: Identifiable {
         var directoryConflicts: Set<URL> = []
         var conflicts = 0
         do {
+            pendingUploadBatch = nil
             func collect(_ remote: RemoteFile, local: URL) async throws {
                 if remote.isDirectory {
                     directories.append(local)
@@ -982,6 +954,7 @@ final class SFTPSessionModel: Identifiable {
         bindTransfers(to: coordinator)
         guard let client else { return }
         do {
+            pendingUploadBatch = nil
             let manifest = try await coordinator.remoteManifest(for: payload)
             var jobs: [PreparedRemoteCopyJob] = []
             var directories: [String] = []
@@ -1136,6 +1109,27 @@ final class SFTPSessionModel: Identifiable {
 
     func enqueuePending(policy: TransferConflictPolicy, coordinator: SFTPTransferCoordinator) async {
         bindTransfers(to: coordinator)
+        if let batch = pendingUploadBatch {
+            guard let connection = transferConnection, let client else { return }
+            pendingUploadBatch = nil
+            do {
+                let result = try await SFTPLocalUploadPlanner.enqueue(
+                    batch,
+                    policy: policy,
+                    hostID: hostID,
+                    connection: connection,
+                    homeDirectory: homeResolution.resolvedDirectory,
+                    client: client,
+                    coordinator: coordinator
+                ) { [weak self] state in
+                    if state == .completed { self?.scheduleSilentRefresh() }
+                }
+                if result.changedRemoteDirectories { scheduleSilentRefresh() }
+            } catch {
+                operationError = error.localizedDescription
+            }
+            return
+        }
         guard let batch = pendingBatch, let connection = transferConnection, let client else {
             return
         }

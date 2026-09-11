@@ -28,22 +28,32 @@ struct MobileCommandHistoryView: View {
                             dismiss()
                             workspace.insertHistory(entry.command)
                         }.disabled(!workspace.connected)
-                        Button("Delete", role: .destructive) { workspace.commandHistory.delete(entry.id) }
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            workspace.commandHistory.delete(entry.id)
+                        }
                     }
-                    .swipeActions { Button("Delete", role: .destructive) { workspace.commandHistory.delete(entry.id) } }
+                    .swipeActions {
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            workspace.commandHistory.delete(entry.id)
+                        }
+                    }
                 }
                 if let error = workspace.commandHistory.storageError { Text(error).foregroundStyle(.red) }
             }
             .searchable(text: $query)
             .navigationTitle("History")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
-                ToolbarItem(placement: .primaryAction) { Button("Clear", role: .destructive) { clearing = true } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Clear", systemImage: "trash", role: .destructive) { clearing = true }.labelStyle(.iconOnly)
+                }
             }
             .confirmationDialog("Clear History?", isPresented: $clearing, titleVisibility: .visible) {
                 Button("Clear", role: .destructive) { workspace.commandHistory.clear(for: workspace.descriptor.hostID) }
             }
-        }.presentationDetents([.medium, .large])
+        }.mobileSheetPresentation(compact: true)
             .onDisappear { workspace.terminal.requestFocus() }
     }
 }

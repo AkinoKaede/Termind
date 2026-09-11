@@ -12,11 +12,87 @@ struct MobileNavigationParityTests {
         #expect(MobileDestination.allCases == [.vault, .metrics, .workspaces, .assistant, .settings])
     }
 
+    @Test func aiSettingsUseThreeNativeManagementPages() {
+        #expect(MobileAISettingsDestination.allCases == [.models, .skills, .mcp])
+    }
+
+    @Test func aiSettingsRowsUseDirectDestinationsInsideTheParentStack() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileAISettingsView.swift"), encoding: .utf8)
+        let index = try #require(source.components(separatedBy: "enum MobileAISettingsDestination").first)
+        #expect(index.contains("NavigationLink {"))
+        #expect(!index.contains("NavigationLink(value:"))
+        #expect(!index.contains("navigationDestination"))
+    }
+
     @Test func metricsUsesAvailableWidthRatherThanDeviceOrientation() {
         #expect(!MobileMetricsDetailPage.showsBothColumns(width: 430))
         #expect(!MobileMetricsDetailPage.showsBothColumns(width: 680))
         #expect(MobileMetricsDetailPage.showsBothColumns(width: 700))
         #expect(MobileMetricsDetailPage.showsBothColumns(width: 1024))
+    }
+
+    @Test func connectionFailuresStayInJourneyAndCancellationLeavesTheDetail() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let workspace = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileWorkspaceView.swift"), encoding: .utf8)
+        #expect(!workspace.contains("\"Connection Error\""))
+        #expect(workspace.contains("get: { workspace.operationError != nil }"))
+        #expect(workspace.contains("cancel: { closeWorkspace(workspace.id) }"))
+
+        let metrics = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileMetricsView.swift"), encoding: .utf8)
+        #expect(metrics.contains("app.metrics.core.setEnabled(false, for: server)"))
+        #expect(metrics.contains("dismiss()"))
+
+        let rootView = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+        #expect(rootView.contains("workspace.activateWhenOpened()"))
+        let appModel = try String(
+            contentsOf: root.appending(path: "TFI/App/MobileAppModel.swift"), encoding: .utf8)
+        #expect(appModel.contains("connectsWhenOpened: true"))
+        #expect(appModel.contains("workspace.resumeAfterBackground()"))
+    }
+
+    @Test func workspaceListOffersLongPressCloseAndKeepsCloseAllInsideMore() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let workspaceList = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+        #expect(workspaceList.contains(".contextMenu {"))
+        #expect(
+            workspaceList.contains(
+                "Button(\"Close\", systemImage: \"xmark\", role: .destructive) { closeWorkspace(workspace.id) }"))
+
+        let toolbar = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileConnectionPicker.swift"), encoding: .utf8)
+        #expect(toolbar.contains("Menu {"))
+        #expect(toolbar.contains("Button(\"Close All Workspaces\""))
+        #expect(toolbar.contains("systemImage: \"rectangle.stack.badge.minus\", role: .destructive"))
+        #expect(toolbar.contains(".disabled(!hasWorkspaces)"))
+        #expect(toolbar.contains("MobileOverflowMenuLabel(\"More\")"))
+    }
+
+    @Test func workspaceSupportsCommandGenerationAndBatchUploadEntryPoints() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let workspace = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileWorkspaceView.swift"),
+            encoding: .utf8
+        )
+
+        #expect(workspace.contains("Button(\"Generate Command\", systemImage: \"sparkles\")"))
+        #expect(workspace.contains(".keyboardShortcut(\"i\", modifiers: .command)"))
+        #expect(workspace.contains(".dropDestination(for: URL.self)"))
+        #expect(workspace.contains("allowedContentTypes: [.data, .folder]"))
+        #expect(workspace.contains("allowsMultipleSelection: true"))
     }
 
     @Test func keyGenerationMatchesDesktopDefaultsAndRequiresMatchingPassphrases() throws {

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" fill="none">
+  <rect
+    x="144"
+    y="84"
+    width="282"
+    height="282"
+    rx="68"
+    stroke="#000000"
+    stroke-opacity="0.48"
+    stroke-width="12"
+  />
+  <rect
+    x="116"
+    y="112"
+    width="282"
+    height="282"
+    rx="68"
+    stroke="#000000"
+    stroke-opacity="0.72"
+    stroke-width="13"
+  />
+  <rect
+    x="88"
+    y="140"
+    width="282"
+    height="282"
+    rx="68"
+    stroke="#000000"
+    stroke-width="14"
+  />
+  <path
+    d="M143 226L218 301L143 376"
+    stroke="#000000"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <rect x="230" y="350" width="92" height="20" rx="6" fill="#000000" />
+</svg>

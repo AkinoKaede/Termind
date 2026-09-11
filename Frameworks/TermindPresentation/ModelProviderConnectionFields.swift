@@ -3,10 +3,12 @@ import TermindDomain
 
 /// The same endpoint derivation is presented in desktop pages and mobile drafts.
 public struct ModelProviderConnectionFields: View {
+    @Binding private var isEnabled: Bool
     @Binding private var name: String
     @Binding private var endpoint: ProviderEndpoint
 
-    public init(name: Binding<String>, endpoint: Binding<ProviderEndpoint>) {
+    public init(name: Binding<String>, endpoint: Binding<ProviderEndpoint>, isEnabled: Binding<Bool>) {
+        _isEnabled = isEnabled
         _name = name
         _endpoint = endpoint
     }
@@ -14,6 +16,7 @@ public struct ModelProviderConnectionFields: View {
     public var body: some View {
         Section {
             LabeledContent("Name") { TextField("Name", text: $name).multilineTextAlignment(.trailing) }
+            Toggle("Enabled", isOn: $isEnabled)
             Picker("API Type", selection: $endpoint.apiType) {
                 ForEach(ModelAPIType.allCases) { Text($0.displayName).tag($0) }
             }

@@ -98,10 +98,11 @@ nonisolated enum SettingsKey {
     /// into the user's library. A mark rather than a flag, so a later release
     /// can add one without resurrecting the ones they deleted.
     static let seededSkillGeneration = SharedSettingsKey.seededSkillGeneration
-    static let sftpGlobalTransferLimit = "sftp.transfers.globalLimit"
-    static let sftpPerHostTransferLimit = "sftp.transfers.perHostLimit"
-    static let defaultSFTPGlobalTransferLimit = 3
-    static let defaultSFTPPerHostTransferLimit = 2
+    static let sftpGlobalTransferLimit = SharedSettingsKey.sftpGlobalTransferLimit
+    static let sftpPerHostTransferLimit = SharedSettingsKey.sftpPerHostTransferLimit
+    static let defaultSFTPGlobalTransferLimit = SharedSettingsKey.defaultSFTPGlobalTransferLimit
+    static let defaultSFTPPerHostTransferLimit = SharedSettingsKey.defaultSFTPPerHostTransferLimit
+    static let sftpTransferLimitRange = SharedSettingsKey.sftpTransferLimitRange
 
     /// Let the assistant search the web.
     ///

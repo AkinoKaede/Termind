@@ -52,7 +52,7 @@ struct MobileTerminalSettingsView: View {
                 }
             }
             Toggle("Custom Configuration", isOn: binding(dark ? \.darkCustomEnabled : \.lightCustomEnabled))
-            Button("Edit Configuration") {
+            Button("Edit Configuration", systemImage: "pencil") {
                 customText =
                     dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
                 editingDark = dark

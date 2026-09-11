@@ -1072,3 +1072,18 @@ and chat content. Strict formatting and Chinese localization checks passed.
 - Action: move the monitor and Journey state to Application, metrics panels/instruments and connection decisions/route to Presentation; retain AppKit keyboard handling via a narrow injected adapter. Mobile metrics now delegates to that same monitor.
 - Estimated reduction: removes the separate mobile sampling loop and avoids another approximately 1,200 lines of graph, instruments, panels and authentication form code.
 - Status: implemented; shared/mobile regression tests and 127 focused macOS tests pass. The final full macOS run retains six existing Agent approval/input timing issues; see MOBILE_ROLLOUT.md.
+
+## 2026-09-11 — Share AI settings business logic
+
+**Status:** Completed. The isolated AI settings validation build and all 81 mobile/shared tests pass; the desktop SkillLibraryModelTests and ArchitectureBoundaryTests pass. The full desktop run has approval-queue and user-input test failures in unchanged execution code, recorded in the task verification report.
+
+**Evidence:** `SkillLibraryModel` and `SkillImporter` live under TFM despite using portable APIs; `MobileAISettingsView` duplicates role selection with incomplete default labels.
+
+**Action:** Move the skill library to Application, file import to Infrastructure, and role form to Presentation; retain native platform editors and file panels.
+
+**Estimated reduction:** Remove approximately 35 lines of duplicate role form logic and avoid a second 250-line skill library implementation.
+
+
+## 2026-09-11 — Shared Assistant execution (in progress)
+
+Evidence: MobileAssistantModel registers no tools, while TFM/App/AppModel builds the complete runtime and ConversationModel owns its event and interaction queues. Move the existing model, tool adapters, import and speech services into their owning frameworks, then share runtime composition and conversation commands. Expected reduction: remove the mobile duplicate chat loop and avoid a second implementation of approximately 5,000 lines of Agent state/tool behavior. Verification pending macOS/iOS builds and regression suites.

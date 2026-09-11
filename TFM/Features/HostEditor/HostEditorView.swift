@@ -159,7 +159,7 @@ struct HostEditorView: View {
                 }
 
                 LabeledContent("Color") {
-                    ColorTagPicker(selection: $draft.colorTag)
+                    ColorTagPicker(selection: $draft.colorTag, layout: .compact)
                 }
 
                 // Full width rather than a `LabeledContent`, which would squeeze

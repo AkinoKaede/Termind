@@ -1,5 +1,8 @@
 import SwiftUI
+import TermindDomain
 import UIKit
+
+import struct TermindDomain.Host
 
 /// iPhone has four destinations. iPad retains the sidebar with individual library routes.
 struct MobileRootView: View {
@@ -9,6 +12,7 @@ struct MobileRootView: View {
     @State private var tab: MobileTab = .vault
     @State private var selection: MobileDestination? = .vault
     @State private var workspaceID: UUID?
+    @State private var selectingConnection = false
     @State private var unavailable = false
 
     var body: some View {
@@ -64,9 +68,9 @@ struct MobileRootView: View {
             tab = .workspaces
             selection = .workspaces
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
+                workspace.activateWhenOpened()
                 workspaceID = id
                 app.liveActivities.focus(id, in: app.workspaces)
-                workspace.connect()
                 workspace.terminal.requestFocus()
             } else {
                 unavailable = true
@@ -95,21 +99,48 @@ struct MobileRootView: View {
     }
 
     private var vault: some View {
-        MobileVaultView(app: app, open: open)
+        MobileVaultView(app: app, open: open, executeSnippet: executeSnippet)
     }
 
     private var workspaceList: some View {
         List {
             Section {
-                NavigationLink("Transfers") { MobileTransfersView(transfers: app.transfers) }
+                NavigationLink {
+                    MobileTransfersView(transfers: app.transfers)
+                } label: {
+                    Label("Transfers", systemImage: "arrow.up.arrow.down")
+                }
             }
             Section("Workspaces") { workspaceRows }
         }
         .navigationTitle("Workspaces")
+        .toolbar {
+            MobileWorkspaceToolbar(
+                hasWorkspaces: !app.workspaces.isEmpty,
+                closeAll: closeAllWorkspaces,
+                connect: { selectingConnection = true })
+        }
         .navigationDestination(item: $workspaceID) { id in
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
-                MobileWorkspaceView(library: app.library, workspace: workspace)
+                MobileWorkspaceView(
+                    library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
+                    workspace: workspace, workspaces: app.workspaces,
+                    selectWorkspace: selectWorkspace, closeWorkspace: closeWorkspace
+                )
+                .onAppear { workspace.activateWhenOpened() }
             }
+        }
+        .sheet(isPresented: $selectingConnection) {
+            NavigationStack {
+                MobileConnectionPicker(
+                    library: app.library,
+                    connect: { hostID, kind in
+                        selectingConnection = false
+                        open(hostID, kind)
+                    },
+                    cancel: { selectingConnection = false })
+            }
+            .mobileSheetPresentation(compact: true)
         }
     }
 
@@ -119,8 +150,7 @@ struct MobileRootView: View {
         }
         ForEach(app.workspaces) { workspace in
             Button {
-                workspaceID = workspace.id
-                app.liveActivities.focus(workspace.id, in: app.workspaces)
+                selectWorkspace(workspace.id)
             } label: {
                 Label {
                     VStack(alignment: .leading) {
@@ -131,7 +161,12 @@ struct MobileRootView: View {
                     Image(systemName: workspace.descriptor.kind.symbol)
                 }
             }
-            .swipeActions { Button("Close", role: .destructive) { app.close(workspace.id) } }
+            .swipeActions {
+                Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
+            }
+            .contextMenu {
+                Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
+            }
         }
     }
 
@@ -151,6 +186,31 @@ struct MobileRootView: View {
         workspaceID = app.open(hostID: hostID, kind: kind)
         tab = .workspaces
         selection = .workspaces
+    }
+
+    private func executeSnippet(_ snippet: Snippet, on hostIDs: [Host.ID]) {
+        guard let first = app.execute(snippet, on: hostIDs).first else { return }
+        workspaceID = first
+        tab = .workspaces
+        selection = .workspaces
+        app.liveActivities.focus(first, in: app.workspaces)
+    }
+
+    private func selectWorkspace(_ id: UUID) {
+        guard let workspace = app.workspaces.first(where: { $0.id == id }) else { return }
+        workspace.activateWhenOpened()
+        workspaceID = id
+        app.liveActivities.focus(id, in: app.workspaces)
+    }
+
+    private func closeWorkspace(_ id: UUID) {
+        app.close(id)
+        if workspaceID == id { workspaceID = nil }
+    }
+
+    private func closeAllWorkspaces() {
+        app.closeAll()
+        workspaceID = nil
     }
 }
 

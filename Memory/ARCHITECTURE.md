@@ -89,6 +89,10 @@ infrastructure, persistence, or presentation responsibility.
 - A workspace owns SSH/SFTP/serial panes plus its session-scoped assistant
   conversation. Workspace content is full width and has no left sidebar.
 - Session models own live SSH/SFTP/serial resources and terminal/file-browser state.
+- Command Generator's tool-free model request service and validated context live in Application and are shared by
+  both apps. Each platform session model owns prompt/draft capture, stale-generation cancellation, and command
+  insertion because those operations belong to its live terminal. Generated commands are bracketed-pasted into the
+  current edit buffer and are never submitted automatically.
 - Settings uses app-wide preference storage but window-scoped navigation. It opens as a
   top-level window destination, remembers the content it replaced, and restores that
   destination when its index page goes back.
@@ -565,6 +569,22 @@ adapter is the only additional trusted source of skill-library snapshots.
 The iPhone has four top-level destinations in order: Vault, Workspaces, Assistant, and Settings. Metrics has its own row/section inside Vault, separate from Keychain, Snippets and Known Hosts. iPad retains a sidebar ordered Vault, Metrics, Workspaces, Assistant, Settings; neither mobile layout has Welcome. Each mobile Workspace
 owns one SSH or SFTP session; composition is never enabled by a purchase. Mobile
 Assistant is independent and has no workspace sidebar or session-attached sheet.
+An open mobile Workspace switches among its peers through the navigation-title
+menu; switching alone neither connects nor claims keyboard focus. Workspace
+chrome exposes no manual Connect or Disconnect action: an initial failure retries
+through its Journey, an established session recovers through the shared reconnect
+policy, and the More menu closes the Workspace. Explicit closes never schedule
+retries. Background-task expiration closes transports without discarding the
+connection intent or Journey; the next foreground activation immediately resumes
+those Workspaces. Cold-launch restoration remains lazy and starts only the Workspace
+the user opens. Connection, authentication, host-key and
+reconnection failures remain inside Journey and never fall through to a second
+alert after Journey closes. SFTP browsing and file-operation failures use a
+separate operation-error channel and retain the native alert used on macOS. The terminal
+key strip remains visible while the software keyboard is dismissed, uses a borderless
+44-point height, and keeps its keyboard toggle outside the horizontally scrolling function
+keys. SSH and SFTP Workspace detail hides the iPhone root tab bar; returning to the
+Workspace list restores the root navigation.
 
 Shared form content is mounted in the desktop work column and in mobile SwiftUI
 sheets. Short mobile forms offer medium/large detents; complex forms use large.
@@ -598,6 +618,14 @@ runner. Restored pending deletions are hidden before workspace restoration. The 
 start/stop generation prevents a cancelled background loop from clearing a replacement
 foreground loop. New port forwarding rules never start merely because they were saved.
 
+Mobile Snippets retain the shared Vault records, nested packages, ordering and target
+host references. A card opens a read-only detail; execution is always an explicit action.
+Each resolved target opens an independent SSH Workspace, including free multi-host runs,
+because mobile never composes panes. The initial command is live Workspace state only: it
+is submitted once after the first successful authentication/trust flow, then consumed. It
+is absent from restoration descriptors, so reconnect, foreground restoration and Activity
+links can never replay it. Temporary execution targets do not mutate the saved Snippet.
+
 Mobile Settings exposes full terminal themes, font controls, custom text, shell integration,
 Vault/Settings sync, providers, model discovery and role assignments. The macOS window-title
 preference remains in synchronized records but has no mobile control. Search belongs to each
@@ -610,20 +638,20 @@ both engines, retaining upload journals; foregrounding fetches again. Entitlemen
 reconcile the same gate. Remote host deletion closes its workspaces, cancels transfers and
 forwardings, and clears local command history. Modified connections are disconnected rather
 than automatically replayed. Mobile AI/Terminal edits preserve all other Settings record kinds,
-including Skills and MCP configurations without mobile editors. Active chat requests retain
-the provider/model/credential captured at start, and no Agent tools are registered.
+including Skills and MCP configurations. Skills use the shared Application library and the synchronized persistence adapter on both platforms. Active chat requests retain
+the provider/model/credential captured at start. Assistant now registers the same tools as the desktop independent Assistant through the shared registry.
 
 Mobile navigation and Metrics reuse (2026-09-11):
 
-- Transfers belongs to Workspaces. Host rows connect to SSH on a single activation and expose SFTP/edit/delete through a long-press context menu. SSH folder import is desktop-only; mobile retains private-key and certificate file import.
-- Port forwarding rules belong to the host draft and commit with it. Only unchanged, saved rules can start; runtime start/stop and bulk controls are available inside that host editor.
+- Transfers belongs to Workspaces. Host cards connect to SSH on a single activation and expose SFTP/edit/delete through a visible More menu and a long-press context menu. SSH folder import is desktop-only; mobile retains private-key and certificate file import.
+- Port forwarding rules belong to the host draft and commit with it. Only unchanged, saved rules can start; the
+  mobile host editor exposes runtime start/stop per rule and has no bulk controls.
 - Keychain lists Keys before Identities. Identity notes remain preserved data without an editor field. Generation defaults match macOS: iCloud, Ed25519, ECDSA P-256, RSA 3072, AES-256 and 100 rounds; encrypted generation requires a matching confirmation. The shared bounded/scoped key-file reader accepts explicit private-key and certificate files.
 - ServerMetricsModel, ServerMetric, MetricsClock and ConnectionJourney live in Application. Their samplers/discovery functions remain injected. Mobile delegates its collector to this shared model, including authentication, temporary trust, process/filesystem sampling and detail observer lifetimes.
 - Metrics instruments/system panels, Journey route/checkpoint animations, and SSH decision forms live in Presentation. AppKit's keyboard monitor stays in TFM and is injected through ConnectionFormKeyboardAdapting; Presentation has no native UI imports.
 - Metrics details show status and processes together at content widths of at least 700 points; narrower widths show a two-icon segmented switch. Width, rather than orientation or device model, determines the layout.
-- Inline labeled mobile inputs align trailing. Standalone Port Forwarding Name and multiline editors align leading.
 
-Mobile Settings mirrors the desktop category hierarchy with App, Terminal, AI, then Sync.
+Mobile Settings mirrors the desktop category hierarchy with App, Terminal, SFTP, AI, then Sync.
 App owns appearance, language selection (effective on relaunch), runtime versions and support
 links. AppLanguage and AppLocalization are shared Foundation-only Application values; native
 relaunch remains macOS-owned. There is no Live Activities settings section. Opening a workspace
@@ -635,3 +663,135 @@ The mobile navigation shell uses device idiom: iPhone keeps its four tabs even i
 while iPad uses NavigationSplitView's own width adaptation. Metrics' two-column breakpoint uses
 the actual detail content width. An SSH terminal surface remains attached underneath the Journey,
 so early output and viewport changes are retained while credentials or trust are presented.
+
+### Mobile AI settings (2026-09-11)
+
+Provider connection, credential and models share one explicit-save editor. Fetch and
+model probes use an ephemeral snapshot of that draft, never a provisional database
+record or temporary Keychain entry. Fetch chooses models in a separate sheet; model
+parameters expand in the editor. Filter is leading-aligned; Fetch and Add sit below
+the model list and both open modal sheets, initially medium-height on compact text
+sizes. The fetch sheet uses a leading search field and tappable rows with trailing
+checkmarks rather than switches. Candidates show their display name above the ID,
+falling back to the ID only when no display name exists; manual Add opens a focused Model ID field. Existing models have no multiselection control; Test and Delete are
+row context-menu actions. The fetch chooser alone selects models for import. A provider save commits its endpoint and model list
+and clears references to removed models in one configuration transaction. Unedited
+fields follow remote updates; competing edits fail without discarding the local draft.
+
+Skills and remote MCP have mobile management UI, including scoped Markdown import/export,
+HTTP discovery and tool access policies. The portable skill library lives in Application,
+file import in Infrastructure and role form in Presentation. Both apps retain native
+file pickers and editors. MobileAppModel projects remote skill snapshots without writing
+them back. The sync persistence owns built-in seeding; constructing the mobile library
+does not seed a second time. Mobile skill and MCP editors save explicitly. Secrets
+stay in editor/request memory until a save; metadata failure rolls secret changes back.
+Discovery and tests are cancelled when the editor closes or the relevant configuration
+changes; late responses cannot repopulate a discarded draft. Model probes run sequentially.
+MCP configuration respects the existing remoteMCP entitlement. This UI does not register
+Agent tools, supply an approval presenter or start a local MCP listener on iOS.
+
+Provider, Skill and MCP enable switches live inside their mobile editors and follow
+the explicit-save draft. Mobile Provider, Skill and MCP lists use ordinary rows, never cards or grids; rows
+contain summaries and editor links only.
+Desktop keeps its existing list switches and also exposes enable controls in all
+three detail editors; both controls write through the same feature model. Desktop
+Enabled controls follow Name (after Title and stable Name for Skills). The shared
+provider form uses Name then Enabled on both platforms; mobile Skill and MCP editors
+retain their leading enable row. Desktop forwarding details likewise group Name,
+Enabled and runtime status together, with only Name locked while forwarding is active.
+Terminal custom configuration has no Name field and keeps its enable control in the toolbar.
+
+Mobile local uploads and desktop local uploads use one batch planner in Remote Infrastructure. File picking and
+URL drag-and-drop feed the same recursive enumeration, remote-conflict preflight, and replace/skip/keep-both
+resolution. SSH terminal drops target the Shell Integration working directory and retain the existing Pro gate;
+SFTP drops and picker uploads target the visible browser directory and remain free. Security-scoped roots are
+retained by queued transfers, and temporary SSH-side SFTP clients are released when preparation finishes or is
+cancelled.
+
+Mobile modal sizing is centralized in MobileSheetPresentation. iPad uses the system
+form presentation without phone detents, so dialogs center in the presenting window
+and retain system keyboard avoidance. iPhone retains compact medium/large trays
+and large editing sheets; accessibility text sizes use large trays. The same policy
+covers all editors, AI pickers, Pro, history, transfer and Metrics selection sheets.
+Mobile editor fields align by structure: editable values paired with a leading label
+align trailing, while standalone fields align leading. Save remains the trailingmost
+editor action. Skill Export/Delete and MCP Connect/Delete live in the adjacent More
+menu; Provider Fetch/Add, MCP Add Header, Host Add Port Forward, key file selection,
+and Terminal configuration editing remain beside the content they affect. SFTP keeps
+Transfers visible and groups parent navigation, upload, and folder creation in More.
+
+Mobile AI Settings is a native navigation index with exactly three destinations:
+Models, Skills and MCP. Models owns provider management and Model Roles. Each
+destination owns its list and navigation-bar actions: Models and MCP add from the
+primary plus button; Skills exposes Import and Add in the primary toolbar and keeps
+Reset in its More menu. Add/import/reset controls never appear as list rows. The
+Assistant MCP shortcut presents the same complete MCP page and adds only its Done
+action at the presentation boundary. Index rows use direct destination links, like
+the parent Settings page, so they work inside both the iPhone stack and the iPad
+split-view detail stack without a nested value-route registration. An empty Models
+page uses the same native ContentUnavailableView pattern as No Hosts, titled No
+Providers with a short instruction to add one; the primary plus remains available.
+
+The Chat role picker, like the Assistant model picker, lists only concrete models.
+When Chat has no explicit assignment, Settings displays the model resolved by the
+existing fallback chain rather than an Automatic option. Choosing a different model
+creates the explicit assignment. Command Generator and Security Review retain Same
+as Chat because those unset roles intentionally follow Chat.
+
+A new mobile Provider has no credential to preserve. Its editor starts in replacement
+mode and presents a required API Key field directly; Save remains disabled until the
+key is entered. Keep, Replace and Clear are shown only when editing a Provider that
+already has a credential reference. An existing keyless Provider instead shows an
+optional direct key field and can save unrelated edits without inventing a credential.
+The plaintext remains draft-only until Save.
+
+### Desktop configuration detail controls (2026-09-11)
+
+Terminal custom-configuration editors expose the same immediate-persistence enable
+preference as the parent settings page. Both light and dark editors remain reachable
+while disabled; toggling never clears or replaces their independently autosaved text.
+
+Desktop forwarding lists and rule details share one start gate: the normalized rule
+and its host draft must match persisted records. Rule Save still updates only the
+host draft; saving the host persists the collection and never starts it. Runtime
+start/stop remains process-local and uses the existing forwarding controller. Active
+rules can open their details, with configuration edits, Save and Delete locked until
+stopped. Stop remains available even when drafts differ from persisted records,
+including through Stop All. Closing or cancelling an editor does not undo runtime
+start/stop actions.
+
+### Mobile card presentation and color tags (2026-09-11)
+
+TFI owns the touch card canvas and its menus. iPhone uses one column in either
+orientation; iPad derives column count from actual content width, with a 320pt
+minimum. Accessibility text sizes use one column. Primary actions and More menus
+are sibling controls, never nested buttons. Card views do not own connections,
+collectors or drafts. Settings role forms and native editors remain native forms.
+Vault's Metrics, Keychain, Snippets and Known Hosts navigation entries remain native
+List rows. Workspaces, including its Transfers entry, and the Settings index remain
+native List/Form pages; card presentation begins only after navigating into content
+whose records benefit from visual recognition.
+Glass surfaces use the iOS 26 renderer, with opaque semantic surfaces on older
+systems or when transparency reduction/increased contrast requires it.
+Standard mobile cards reserve a 104pt two-row minimum height. Content-rich cards
+and accessibility text may grow past that floor, but Host tags remain on one line
+and show at most the first two, matching the desktop card contract.
+
+TagColor's SwiftUI mapping and ColorTagPicker live in Presentation, without native
+platform imports. Desktop explicitly selects compact swatches; mobile selects
+wrapping 44pt touch targets. Host, identity and key colors remain explicit-save
+draft fields, persisted through existing Vault operations. Tag tint affects item
+artwork, never the independent trust or runtime status colors. MetricsInstrumentBody
+defaults to the desktop horizontal instruments; mobile opts into adaptive content
+with Dynamic Type and no fixed content height.
+
+
+## Shared Assistant and native mobile composition (2026-09-11)
+
+Application owns ConversationModel, AssistantConversationStore/LibraryModel, the execution controller, durable conversation operations, Termind's runtime policy, SSH interaction values, and the speech coordinator. RemoteInfrastructure owns SSH/SFTP Agent definitions, connection pools and the concrete registry factory; Application receives that factory rather than importing transport implementations. Infrastructure owns bounded attachment parsing and Apple Speech recognition; a typed attachment loader is injected into each conversation. The versioned AgentKit dependency and persisted schemas remain unchanged.
+
+Mobile runs belong to the app, not the selected page. Switching conversations preserves their individual drafts and runs. Archive commits metadata before updating navigation, clears pinning, and exposes read-only history until explicitly restored. No conversation or permission selection enters Settings sync.
+
+The mobile composer is a SwiftUI vertical TextField, with camera, photos, files and speech in its leading menu. UIKit is confined to camera/preview/audio adapters and system integration; no UIKit text editor replaces the composer. Speech appends text without sending, owns a conversation token, and cancels on interruption, conversation change or backgrounding.
+
+Agent runs may consume the finite background execution time already requested by the mobile shell. Expiration invalidates pending starts, drains cancellation events, closes Agent transports and prevents new starts until cleanup ends. Returning to the foreground never replays commands or approves waiting actions. Platform suspension still bounds execution; Live Activities do not keep Agent runs alive.

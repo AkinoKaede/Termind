@@ -99,6 +99,23 @@
           }
         }
       }
+    },
+    "NSCameraUsageDescription": {
+      "comment": "Privacy - Camera Usage Description",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termind uses the camera to attach photos to your chat."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termind使用相机为聊天添加照片。"
+          }
+        }
+      }
     }
   },
   "version": "1.2"

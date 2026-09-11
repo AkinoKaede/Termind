@@ -8,6 +8,8 @@ import TermindInfrastructure
 import TermindPersistence
 import TermindRemoteInfrastructure
 
+import struct TermindDomain.Host
+
 @MainActor
 @Observable
 final class MobileAppModel {
@@ -24,20 +26,30 @@ final class MobileAppModel {
     var error: String?
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
+    let connectionHistory: ConnectionHistoryModel
     let vaultSync: VaultSyncCoordinator?
     let settingsSync: SettingsSyncCoordinator?
+    let skills: SkillLibraryModel
     let ai: AIConfigurationModel
+    let commandGenerator: CommandGeneratorController
     let assistant: MobileAssistantModel
     let metrics: MobileMetricsModel
     let pro: ProAccessController
     let liveActivities: MobileLiveActivityController
     private let defaults: UserDefaults?
-    private let background = MobileBackgroundController()
+    private let background: any MobileBackgroundTaskManaging
+    private let workspaceConnectionServices: MobileWorkspaceConnectionServices
     let outbox: OutboxRunner
     private var hasActivated = false
     private var scenePhases: [UUID: ScenePhase] = [:]
 
-    init(hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard) throws {
+    init(
+        hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard,
+        background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
+        workspaceConnectionServices: MobileWorkspaceConnectionServices = .live
+    ) throws {
+        self.background = background
+        self.workspaceConnectionServices = workspaceConnectionServices
         let memoryOnly = inMemory || hosts != nil
         let storeURL = URL.applicationSupportDirectory.appending(path: "Termind.store")
         if !memoryOnly {
@@ -68,6 +80,8 @@ final class MobileAppModel {
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
         commandHistory = CommandHistoryModel(
             repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
+        connectionHistory = ConnectionHistoryModel(
+            repository: SwiftDataConnectionHistoryRepository(context: ModelContext(container)))
         settingsSync =
             memoryOnly
             ? nil
@@ -76,10 +90,15 @@ final class MobileAppModel {
         ai = AIConfigurationModel(
             persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
             aiSecrets: aiSecrets, webSearchPersistence: settingsPersistence)
-        assistant = MobileAssistantModel(
-            configuration: ai, repository: SwiftDataAgentRunRepository(context: ModelContext(container)))
+        commandGenerator = CommandGeneratorController(ai: ai)
+        skills = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence))
         library = HostLibraryModel(persistence: persistence, secrets: secrets)
         metrics = MobileMetricsModel(defaults: memoryOnly ? nil : defaults, hosts: library)
+        assistant = MobileAssistantModel(
+            configuration: ai,
+            repository: SwiftDataAgentRunRepository(context: ModelContext(container)),
+            hosts: library, metrics: metrics.core, skills: skills,
+            authorize: { [pro] in pro.require(.assistant) })
         credentials = CredentialLibraryModel(library: library)
         snippets = SnippetLibraryModel(library: library)
         knownHosts = KnownHostsLibraryModel(library: library)
@@ -116,13 +135,15 @@ final class MobileAppModel {
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+            self?.skills.applyRemoteSnapshot(snapshot.skills)
         }
         if let data = self.defaults?.data(forKey: "mobile.workspaces.v1") {
             let descriptors = try JSONDecoder().decode([MobileWorkspaceDescriptor].self, from: data)
             workspaces = descriptors.filter { library.host($0.hostID) != nil }.map {
                 MobileWorkspace(
                     descriptor: $0, hosts: library, transfers: transfers, terminalSettings: terminalSettings,
-                    commandHistory: commandHistory)
+                    commandHistory: commandHistory, connectionServices: workspaceConnectionServices,
+                    connectsWhenOpened: true)
             }
             for workspace in workspaces {
                 workspace.didChangeState = { [weak self] in
@@ -133,27 +154,42 @@ final class MobileAppModel {
         }
     }
 
-    func open(hostID: UUID, kind: MobileWorkspaceDescriptor.Kind) -> UUID? {
+    func open(
+        hostID: UUID, kind: MobileWorkspaceDescriptor.Kind,
+        initialCommand: String? = nil
+    ) -> UUID? {
         guard let host = library.host(hostID) else { return nil }
-        let descriptor = MobileWorkspaceDescriptor(hostID: hostID, title: host.name, kind: kind)
-        let workspace = MobileWorkspace(
-            descriptor: descriptor, hosts: library, transfers: transfers, terminalSettings: terminalSettings,
-            commandHistory: commandHistory)
-        workspaces.append(workspace)
-        persistWorkspaces()
-        workspace.didChangeState = { [weak self] in
-            guard let self else { return }
-            liveActivities.update(workspaces)
-        }
-        liveActivities.start(workspaces)
-        workspace.connect()
+        let workspace = makeWorkspace(host: host, kind: kind, initialCommand: initialCommand)
+        addWorkspaces([workspace])
         return workspace.id
+    }
+
+    /// Opens one independent SSH workspace per target. The command is intentionally
+    /// carried only by the live workspace and never enters its restoration descriptor.
+    func execute(_ snippet: Snippet, on hostIDs: [Host.ID]) -> [MobileWorkspace.ID] {
+        let wanted = Set(hostIDs)
+        let targets = library.searchHosts("").filter { wanted.contains($0.id) }
+        let opened = targets.map { makeWorkspace(host: $0, kind: .ssh, initialCommand: snippet.body) }
+        addWorkspaces(opened)
+        return opened.map(\.id)
     }
 
     func close(_ id: UUID) {
         guard let workspace = workspaces.first(where: { $0.id == id }) else { return }
         workspace.disconnect()
         workspaces.removeAll { $0.id == id }
+        liveActivities.update(workspaces)
+        persistWorkspaces()
+    }
+
+    func closeAll() {
+        guard !workspaces.isEmpty else { return }
+        let closing = workspaces
+        workspaces.removeAll()
+        for workspace in closing {
+            workspace.didChangeState = nil
+            workspace.disconnect()
+        }
         liveActivities.update(workspaces)
         persistWorkspaces()
     }
@@ -170,6 +206,10 @@ final class MobileAppModel {
         } catch { self.error = error.localizedDescription }
     }
 
+    func lastConnectedAt(for hostID: Host.ID) -> Date? {
+        connectionHistory.mostRecentDate(for: hostID)
+    }
+
     func sceneChanged(_ id: UUID, phase: ScenePhase) {
         let wasBackground = !scenePhases.isEmpty && scenePhases.values.allSatisfy { $0 == .background }
         scenePhases[id] = phase
@@ -179,16 +219,18 @@ final class MobileAppModel {
             settingsSync?.pause()
             metrics.pause()
             outbox.stop()
-            assistant.stop()
+            assistant.suspendRecording()
             background.begin { [weak self] in
                 guard let self else { return }
-                for workspace in workspaces { workspace.disconnect() }
+                for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
                 forwardings.stopAll()
                 transfers.cancelAll()
+                assistant.expireBackground()
             }
             liveActivities.update(workspaces)
         } else if phase == .active {
             background.finish()
+            for workspace in workspaces { workspace.resumeAfterBackground() }
             reconcileSync()
             outbox.start()
             if hasActivated {
@@ -255,6 +297,31 @@ final class MobileAppModel {
         do {
             defaults?.set(try JSONEncoder().encode(workspaces.map(\.descriptor)), forKey: "mobile.workspaces.v1")
         } catch { self.error = error.localizedDescription }
+    }
+
+    private func makeWorkspace(
+        host: Host, kind: MobileWorkspaceDescriptor.Kind, initialCommand: String?
+    ) -> MobileWorkspace {
+        connectionHistory.record(kind: kind == .ssh ? .ssh : .sftp, for: host.id)
+        return MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
+            hosts: library, transfers: transfers, terminalSettings: terminalSettings,
+            commandHistory: commandHistory, connectionServices: workspaceConnectionServices,
+            initialCommand: initialCommand)
+    }
+
+    private func addWorkspaces(_ added: [MobileWorkspace]) {
+        guard !added.isEmpty else { return }
+        for workspace in added {
+            workspace.didChangeState = { [weak self] in
+                guard let self else { return }
+                liveActivities.update(workspaces)
+            }
+        }
+        workspaces.append(contentsOf: added)
+        persistWorkspaces()
+        liveActivities.start(workspaces)
+        for workspace in added { workspace.connect() }
     }
 }
 

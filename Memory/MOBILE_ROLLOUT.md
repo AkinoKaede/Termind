@@ -15,9 +15,13 @@
   is resolved through the same catalog used by the host list and refreshed by shell integration.
 - Workspace restoration contains metadata only. Live Activities do not grant execution
   time; the app uses finite background execution and disconnects at expiration.
-- SFTP browsing, upload/download, rename, permission editing, directory creation and deletion;
-  an app-wide shared transfer queue with cancellation and current-launch history; metrics cards; independent
-  streaming chat with persisted history; provider configuration and Pro purchase presentation.
+- SFTP browsing, recursive multi-item picker/drag upload with desktop-equivalent conflict handling, download,
+  rename, permission editing, directory creation and deletion; SSH terminals accept Pro-gated file/folder drops
+  into the Shell Integration working directory. Upload preparation and queue notices stay in the current workspace.
+  Mobile SSH also exposes the shared Command Generator from its More menu, reads the live shell draft, and inserts
+  the validated command without executing it. The app-wide shared transfer queue provides cancellation and
+  current-launch history; metrics cards; independent streaming chat with persisted history; provider configuration
+  and Pro purchase presentation.
 
 - Key generation (including supported Secure Enclave devices), encrypted key import,
   metadata/certificate editing, and key/identity deletion. File parsing and generation
@@ -142,3 +146,15 @@ Final iOS verification: 29 mobile and 28 shared tests passed after the complete 
 App/Sync settings, credential parity and persistent Journey-overlay changes. Log:
 `/tmp/termind-ios-port-complete.log`. Strict Swift formatting, `git diff --check`, and
 `Scripts/check-zh-localization.sh` passed. No dependency pins or cloud schemas were changed.
+
+## Command Generator and local upload parity — 2026-09-11
+
+Mobile SSH now owns the same guarded draft-read/generate/bracketed-paste lifecycle as desktop and exposes it from
+the workspace More menu. Local upload selection and URL drops share the desktop batch planner across SSH and SFTP,
+including recursive folders, conflict preflight, and replace/skip/keep-both resolution.
+
+The iOS simulator run passed all 221 tests. Command Generator, Broadcast Input, and SFTP focused macOS tests passed.
+The full macOS run executed 1,176 tests and reported three unrelated failures: two known Agent timing cases passed on
+immediate focused rerun, while the existing ArchitectureBoundary source assertion still expects the App icon `app`
+despite the current uncommitted mobile settings source using `app.badge`. Both app builds, strict Swift formatting,
+Simplified Chinese localization checks, and `git diff --check` passed.

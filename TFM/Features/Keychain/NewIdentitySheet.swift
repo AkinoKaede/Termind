@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 /// Controls which parts of the shared Identity editor are visible and which
 /// credentials are mandatory for the context that raised it.
@@ -156,7 +157,7 @@ struct NewIdentitySheet: View {
                 }
 
                 LabeledContent("Color") {
-                    ColorTagPicker(selection: $colorTag)
+                    ColorTagPicker(selection: $colorTag, layout: .compact)
                 }
 
                 Text(passwordHelp)

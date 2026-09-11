@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 struct MobileCredentialsView: View {
     let app: MobileAppModel
@@ -9,48 +10,97 @@ struct MobileCredentialsView: View {
     @State private var deletingKey: SSHKeyRef?
     @State private var deletingIdentity: Identity?
     @State private var error: String?
+    @State private var query = ""
+
+    private var keys: [SSHKeyRef] { app.credentials.searchKeys(query) }
+    private var identities: [Identity] { app.credentials.searchIdentities(query) }
+
+    init(app: MobileAppModel, initialQuery: String = "") {
+        self.app = app
+        _query = State(initialValue: initialQuery)
+    }
 
     var body: some View {
-        List {
-            Section("Keys") {
-                ForEach(app.credentials.keys) { key in
-                    Button {
-                        keyEditor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(key.label)
-                            Text(key.fingerprint).font(.caption.monospaced()).foregroundStyle(.secondary)
-                        }
-                    }.swipeActions { Button("Delete", role: .destructive) { deletingKey = key } }
-                }
+        MobileCardPage {
+            if !query.isEmpty, keys.isEmpty, identities.isEmpty {
+                ContentUnavailableView.search(text: query)
             }
-            Section("Identities") {
-                ForEach(app.credentials.identities) { identity in
-                    Button {
-                        editing = identity
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(identity.name)
-                            Text(identity.username).font(.caption).foregroundStyle(.secondary)
+            if query.isEmpty || !keys.isEmpty {
+                MobileCardSection(title: "Keys", count: keys.count) {
+                    if app.credentials.keys.isEmpty {
+                        ContentUnavailableView("No Keys", systemImage: "key")
+                    }
+                    MobileCardGrid {
+                        ForEach(keys) { key in
+                            MobileActionCard {
+                                keyEditor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
+                            } content: {
+                                HStack(alignment: .top, spacing: 12) {
+                                    MobileCardIcon(symbol: "key", tint: key.colorTag.color ?? .accentColor)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(key.label).font(.headline).lineLimit(1)
+                                        Text(key.fingerprint).font(.caption.monospaced()).foregroundStyle(.secondary)
+                                            .lineLimit(1).truncationMode(.middle)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            } actions: {
+                                Button("Edit", systemImage: "pencil") {
+                                    keyEditor = MobileKeyEditorModel(
+                                        mode: .edit, credentials: app.credentials, key: key)
+                                }
+                                Button("Delete", systemImage: "trash", role: .destructive) { deletingKey = key }
+                            }
                         }
                     }
-                    .swipeActions { Button("Delete", role: .destructive) { deletingIdentity = identity } }
+                }
+            }
+            if query.isEmpty || !identities.isEmpty {
+                MobileCardSection(title: "Identities", count: identities.count) {
+                    if app.credentials.identities.isEmpty {
+                        ContentUnavailableView("No Identities", systemImage: "person.crop.square")
+                    }
+                    MobileCardGrid {
+                        ForEach(identities) { identity in
+                            MobileActionCard {
+                                editing = identity
+                            } content: {
+                                HStack(alignment: .top, spacing: 12) {
+                                    MobileCardIcon(
+                                        symbol: "person.crop.square", tint: identity.colorTag.color ?? .accentColor)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(identity.name).font(.headline).lineLimit(1)
+                                        Text(identity.username).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            } actions: {
+                                Button("Edit", systemImage: "pencil") { editing = identity }
+                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                    deletingIdentity = identity
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
+        .searchable(text: $query)
         .navigationTitle("Keychain")
         .toolbar {
             Menu {
-                Button("Generate Key") {
+                Button("Generate Key", systemImage: "key") {
                     keyEditor = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
                 }
-                Button("Import Key") {
+                Button("Import Key", systemImage: "square.and.arrow.down") {
                     keyEditor = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
                 }
                 Divider()
-                Button("New Identity") { editing = Identity(name: "", username: "") }
+                Button("New Identity", systemImage: "person.crop.circle.badge.plus") {
+                    editing = Identity(name: "", username: "")
+                }
             } label: {
-                Label("Add", systemImage: "plus")
+                Label("Add", systemImage: "plus").labelStyle(.iconOnly)
             }
         }
         .sheet(item: $editing) { MobileIdentityEditor(app: app, identity: $0) }
@@ -117,20 +167,25 @@ private struct MobileIdentityEditor: View {
             },
             content: {
                 Section("Identity") {
-                    LabeledContent("Name") { TextField("Name", text: $draft.name, prompt: Text(draft.username)) }
+                    LabeledContent("Name") {
+                        TextField("Name", text: $draft.name, prompt: Text(draft.username))
+                            .multilineTextAlignment(.trailing)
+                    }
                     LabeledContent("Username") {
                         TextField("Username", text: $draft.username).textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                            .autocorrectionDisabled().multilineTextAlignment(.trailing)
                     }
                 }
                 Section {
-                    Picker("Color", selection: $draft.colorTag) {
-                        ForEach(TagColor.allCases) { Text(LocalizedStringKey($0.rawValue.capitalized)).tag($0) }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Color")
+                        ColorTagPicker(selection: $draft.colorTag, layout: .touch)
                     }
                 }
                 Section("Authentication") {
                     LabeledContent("Password") {
-                        SecureField("Password", text: $password).textContentType(.password).disabled(removePassword)
+                        SecureField("Password", text: $password).textContentType(.password)
+                            .multilineTextAlignment(.trailing).disabled(removePassword)
                     }
                     if original.usesPassword { Toggle("Remove Password", isOn: $removePassword) }
                     Picker("Store password in", selection: $draft.passwordStorage) {

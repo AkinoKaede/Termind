@@ -1,8 +1,9 @@
 import Foundation
 import Speech
+import TermindInfrastructure
 import Testing
 
-@testable import Termind
+@testable import TermindApplication
 
 @Suite
 @MainActor

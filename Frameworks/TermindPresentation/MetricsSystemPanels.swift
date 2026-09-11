@@ -112,6 +112,7 @@ public struct MetricsSystemPanels: View {
                         Text(virtualInterfaces.count.formatted()).monospacedDigit()
                     }.font(.caption).foregroundStyle(.secondary)
                 }
+                .tint(Color.secondary)
             }
         }
     }

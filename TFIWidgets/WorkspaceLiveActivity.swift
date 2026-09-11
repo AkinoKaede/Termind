@@ -12,29 +12,34 @@ struct WorkspaceLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkspaceActivityAttributes.self) { context in
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Termind Workspaces").font(.headline)
-                    Spacer()
+                HStack(spacing: 10) {
+                    appIcon(size: 28)
                     status(context)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Spacer(minLength: 0)
                 }
                 sessions(context)
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
             .widgetURL(context.state.destinationURL)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    HostSystemIcon(asset: context.state.sessions.first?.iconAsset, size: 24, showsBackground: false)
-                }
-                DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.state.workspaceCount, format: .number).monospacedDigit()
-                }
-                DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        sessions(context)
-                        status(context)
+                    HStack(spacing: 8) {
+                        appIcon(size: 24)
+                        workspaceCount(context.state.workspaceCount)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
+                DynamicIslandExpandedRegion(.bottom) {
+                    sessions(context)
+                }
+                .contentMargins(.horizontal, 20)
+                .contentMargins(.bottom, 12)
             } compactLeading: {
                 HostSystemIcon(asset: context.state.sessions.first?.iconAsset, size: 18, showsBackground: false)
             } compactTrailing: {
@@ -47,8 +52,11 @@ struct WorkspaceLiveActivity: Widget {
     }
 
     private func sessions(_ context: ActivityViewContext<WorkspaceActivityAttributes>) -> some View {
-        HStack(spacing: 8) {
-            ForEach(context.state.sessions) { session in
+        let visibleSessions = context.state.sessions.prefix(
+            WorkspaceActivityAttributes.ContentState.maximumPresentedSessionCount)
+
+        return HStack(spacing: 8) {
+            ForEach(visibleSessions) { session in
                 Link(destination: session.destinationURL) {
                     VStack(spacing: 4) {
                         HostSystemIcon(asset: session.iconAsset)
@@ -59,11 +67,30 @@ struct WorkspaceLiveActivity: Widget {
                 .accessibilityLabel(session.title)
                 .accessibilityHint("Open Workspace")
             }
-            if context.state.workspaceCount > context.state.sessions.count {
+            if context.state.workspaceCount > visibleSessions.count {
                 Link(destination: WorkspaceActivityAttributes.destinationURL) {
-                    Image(systemName: "ellipsis").frame(minWidth: 36, minHeight: 44)
+                    Image(systemName: "ellipsis")
+                        .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
                 }.accessibilityLabel("All Workspaces")
             }
+        }
+    }
+
+    private func appIcon(size: CGFloat) -> some View {
+        Image("TermindLiveActivityIcon")
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(.primary)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+
+    private func workspaceCount(_ count: Int) -> Text {
+        switch count {
+        case 1: Text("One workspace")
+        case 2: Text("Two workspaces")
+        default: Text("\(count) workspaces")
         }
     }
 

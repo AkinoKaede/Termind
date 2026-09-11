@@ -1,8 +1,9 @@
 import AgentKit
 import Foundation
+import TermindInfrastructure
 import Testing
 
-@testable import Termind
+@testable import TermindApplication
 
 /// A run that never ends on its own, so a conversation stays steerable for as
 /// long as a test needs it to be.

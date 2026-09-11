@@ -15,6 +15,11 @@ public nonisolated enum SharedSettingsKey {
     public static let settingsSyncEnabled = "settings.sync.enabled"
     public static let settingsSyncEnvironment = "settings.sync.environment"
     public static let shellIntegration = "terminal.shellIntegration"
+    public static let sftpGlobalTransferLimit = "sftp.transfers.globalLimit"
+    public static let sftpPerHostTransferLimit = "sftp.transfers.perHostLimit"
+    public static let defaultSFTPGlobalTransferLimit = 3
+    public static let defaultSFTPPerHostTransferLimit = 2
+    public static let sftpTransferLimitRange = 1...8
     public static let terminalCustomConfigurationDark = "terminal.customConfiguration.dark"
     public static let terminalCustomConfigurationDarkEnabled = "terminal.customConfiguration.dark.enabled"
     public static let terminalCustomConfigurationLight = "terminal.customConfiguration.light"

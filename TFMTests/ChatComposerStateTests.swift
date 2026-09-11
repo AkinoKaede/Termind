@@ -1,8 +1,10 @@
 import AgentKit
 import Foundation
+import TermindInfrastructure
 import Testing
 
 @testable import Termind
+@testable import TermindRemoteInfrastructure
 
 private struct ImmediateConversationAgentModel: AgentModelStreaming {
     var turns: [[AgentModelStreamEvent]]
@@ -67,6 +69,7 @@ struct ChatComposerStateTests {
         try Data("attached through page drop".utf8).write(to: url)
         let conversation = ConversationModel()
 
+        conversation.attachmentLoader = .live
         conversation.importAttachmentFiles([url])
         // The import reads the file off the main actor, so yielding only lets
         // other main-actor work run and can return before the read finishes.
@@ -92,6 +95,7 @@ struct ChatComposerStateTests {
             )
         }
 
+        conversation.attachmentLoader = .live
         conversation.importAttachmentFiles([URL(fileURLWithPath: "/tmp/extra.txt")])
 
         #expect(conversation.composer.pendingAttachments.isEmpty)

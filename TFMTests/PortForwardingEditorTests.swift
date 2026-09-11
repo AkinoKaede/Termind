@@ -1,0 +1,121 @@
+import Foundation
+import TermindDomain
+import Testing
+
+import struct TermindDomain.Host
+
+@testable import Termind
+
+@Suite @MainActor
+struct PortForwardingEditorTests {
+    @Test func startingRequiresBothSavedRuleAndSavedHost() {
+        let host = Host(name: "Server", host: "server.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+        func state(_ candidate: PortForwardingRule?, _ candidateHost: Host, saved: Bool = true)
+            -> PortForwardingEditorState
+        {
+            PortForwardingEditorState(
+                rule: candidate, host: candidateHost, savedRule: saved ? rule : nil,
+                savedHost: saved ? host : nil, isEnabled: false, runtime: .stopped)
+        }
+        #expect(state(rule, host).canStart)
+        #expect(state(rule, host).canEdit)
+        #expect(!state(rule, host, saved: false).canToggle)
+        #expect(!state(nil, host).canStart)
+        var changedRule = rule
+        changedRule.bindPort += 1
+        #expect(!state(changedRule, host).canStart)
+        var changedHost = host
+        changedHost.host = "changed.invalid"
+        #expect(!state(rule, changedHost).canToggle)
+        let unsavedRule = PortForwardingRule(hostID: host.id)
+        #expect(!state(unsavedRule, host).canStart)
+        let deletedHost = PortForwardingEditorState(
+            rule: rule, host: host, savedRule: rule, savedHost: nil, isEnabled: false, runtime: .stopped)
+        #expect(!deletedHost.canStart)
+    }
+
+    @Test func allActivePhasesAllowStoppingDirtyDraftsAndLockEditing() {
+        let host = Host(name: "Server", host: "server.invalid")
+        let phases: [PortForwardingRuntimeState] = [
+            .preparing, .awaitingTrust, .awaitingAuthentication, .connecting, .starting,
+            .running(activeConnections: 2), .reconnecting(attempt: 1, nextRetry: .now, message: "Retry"),
+        ]
+        for phase in phases {
+            let state = PortForwardingEditorState(
+                rule: nil, host: host, savedRule: nil, savedHost: nil, isEnabled: true, runtime: phase)
+            #expect(state.canToggle)
+            #expect(!state.canStart)
+            #expect(!state.canEdit)
+        }
+        let stopped = PortForwardingEditorState(
+            rule: nil, host: host, savedRule: nil, savedHost: nil, isEnabled: false, runtime: .stopped)
+        #expect(stopped.canEdit)
+        #expect(!stopped.canToggle)
+    }
+
+    @Test func failedSavedRulesCanBeEditedAndRetried() {
+        let host = Host(name: "Server", host: "server.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+        let state = PortForwardingEditorState(
+            rule: rule, host: host, savedRule: rule, savedHost: host,
+            isEnabled: false, runtime: .failed("Connection refused"))
+        #expect(state.canEdit)
+        #expect(state.canStart)
+        #expect(state.canToggle)
+    }
+
+    @Test func normalizationMatchesSavedValuesAndRejectsInvalidPorts() throws {
+        let host = Host(name: "Server", host: "server.invalid")
+        let saved = PortForwardingRule(hostID: host.id)
+        var draft = saved
+        draft.bindHost = " 127.0.0.1\n"
+        let normalized = try #require(
+            PortForwardingEditorState.normalized(
+                draft, hostID: host.id, bindPort: " 08080\n", targetHost: " localhost ", targetPort: " 80 "))
+        #expect(normalized == saved)
+        #expect(PortForwardingEditorState.normalized(draft) == saved)
+        for invalid in ["", "abc", "0", "65536"] {
+            #expect(
+                PortForwardingEditorState.normalized(
+                    draft, hostID: host.id, bindPort: invalid, targetHost: "localhost", targetPort: "80") == nil)
+            #expect(
+                PortForwardingEditorState.normalized(
+                    draft, hostID: host.id, bindPort: "8080", targetHost: "localhost", targetPort: invalid) == nil)
+        }
+    }
+
+    @Test func dynamicDraftDiscardsHiddenTargetValuesBeforeComparingOrSaving() throws {
+        let host = Host(name: "Server", host: "server.invalid")
+        let saved = PortForwardingRule(hostID: host.id, kind: .dynamic)
+        var draft = saved
+        draft.targetHost = "old-target.invalid"
+        draft.targetPort = 443
+        let normalized = try #require(
+            PortForwardingEditorState.normalized(
+                draft, hostID: host.id, bindPort: "8080", targetHost: "old-target.invalid", targetPort: "invalid"))
+        #expect(normalized == saved)
+        #expect(normalized.targetHost == nil)
+        #expect(normalized.targetPort == nil)
+        #expect(PortForwardingEditorState.normalized(draft) == saved)
+    }
+
+    @Test func savingHostAndRuleDoesNotStartForwardingAndOtherWindowEditsInvalidateStart() throws {
+        let host = Host(name: "Server", host: "server.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+        let library = HostLibraryModel()
+        let app = AppModel(hosts: library)
+        defer { app.shutdownForTermination() }
+        #expect(library.upsert(host, replacingPortForwardings: [rule]))
+        // Reopening the host editor reloads persisted metadata, including its assigned sort index.
+        let savedHost = try #require(library.host(host.id))
+        let state = PortForwardingEditorState(ruleID: rule.id, rule: rule, host: savedHost, app: app)
+        #expect(state.canStart)
+        #expect(!app.forwarding.isEnabled(rule.id))
+        #expect(app.forwarding.state(for: rule.id) == .stopped)
+        var remotelyChanged = rule
+        remotelyChanged.bindPort = 9000
+        library.upsert(remotelyChanged)
+        #expect(!PortForwardingEditorState(ruleID: rule.id, rule: rule, host: savedHost, app: app).canStart)
+    }
+}

@@ -23,10 +23,6 @@ struct MobileHostEditor: View {
         _draftForwardings = State(initialValue: library.portForwardings(for: host.id))
     }
 
-    private var savedRules: [PortForwardingRule] {
-        draftForwardings.filter { app.forwardingLibrary.portForwarding($0.id) == $0 }
-    }
-
     var body: some View {
         MobileEditorSheet(
             title: String(localized: "Host"), isDirty: draft != original || draftForwardings != originalForwardings,
@@ -57,16 +53,21 @@ struct MobileHostEditor: View {
                             Button {
                                 editingForwarding = rule
                             } label: {
-                                VStack(alignment: .leading) {
-                                    Text(rule.label.isEmpty ? rule.bindAddress : rule.label)
-                                    Text(app.forwardings.state(for: rule.id).label).font(.caption).foregroundStyle(
-                                        .secondary)
+                                Label {
+                                    VStack(alignment: .leading) {
+                                        Text(rule.label.isEmpty ? rule.bindAddress : rule.label)
+                                        Text(app.forwardings.state(for: rule.id).label).font(.caption).foregroundStyle(
+                                            .secondary)
+                                    }
+                                } icon: {
+                                    Image(systemName: "arrow.left.arrow.right").accessibilityHidden(true)
                                 }
                             }
                             Spacer()
                             Button(
                                 app.forwardings.isEnabled(rule.id)
-                                    ? String(localized: "Stop") : String(localized: "Start")
+                                    ? String(localized: "Stop") : String(localized: "Start"),
+                                systemImage: app.forwardings.isEnabled(rule.id) ? "stop" : "play"
                             ) {
                                 if app.forwardings.isEnabled(rule.id) {
                                     app.forwardings.stop(rule.id)
@@ -76,26 +77,26 @@ struct MobileHostEditor: View {
                             }.disabled(app.forwardingLibrary.portForwarding(rule.id) != rule)
                         }
                         .contextMenu {
-                            Button("Duplicate") {
+                            Button("Duplicate", systemImage: "plus.square.on.square") {
                                 var copy = rule
                                 copy.id = UUID()
                                 draftForwardings.append(copy)
                             }
-                            Button("Delete", role: .destructive) { draftForwardings.removeAll { $0.id == rule.id } }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                draftForwardings.removeAll { $0.id == rule.id }
+                            }
                         }
                     }
                     Button("Add Port Forward", systemImage: "plus") {
                         editingForwarding = PortForwardingRule(hostID: draft.id)
                     }
-                    HStack {
-                        Spacer()
-                        Button("Start All") { app.forwardings.start(savedRules.map(\.id)) }.disabled(savedRules.isEmpty)
-                        Button("Stop All") { app.forwardings.stop(savedRules.map(\.id)) }.disabled(savedRules.isEmpty)
-                    }
                     Text(
                         "Forwarding uses a background SSH connection and stops when Termind quits. Save changes before starting a rule."
                     )
                     .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("Color") {
+                    ColorTagPicker(selection: $draft.colorTag, layout: .touch)
                 }
                 Section("Group") {
                     Picker("Group", selection: $draft.groupID) {

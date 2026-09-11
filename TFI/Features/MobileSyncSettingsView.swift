@@ -56,14 +56,21 @@ struct MobileSyncSettingsView: View {
             case .unavailable(let message): Text(message)
             case .accountChangeConfirmationRequired:
                 Text("Waiting for confirmation")
-                Button("Merge with This iCloud Account", action: merge)
+                Button("Merge with This iCloud Account", systemImage: "icloud", action: merge)
             case .syncing(let count): Text("Syncing \(count) changes…")
             case .upToDate(let date):
-                Label("Up to date", systemImage: "checkmark.icloud")
-                if let date { Text(date, format: .dateTime).font(.caption).foregroundStyle(.secondary) }
+                HStack {
+                    Label("Up to date", systemImage: "checkmark.icloud")
+                    Spacer(minLength: 8)
+                    if let date {
+                        Text(date, format: .dateTime.year().month().day().hour().minute())
+                            .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
+                    }
+                }
+                .accessibilityElement(children: .combine)
             case .failed(let message):
                 Text(message).foregroundStyle(.red)
-                Button("Retry", action: retry)
+                Button("Retry", systemImage: "arrow.clockwise", action: retry)
             }
         }
     }

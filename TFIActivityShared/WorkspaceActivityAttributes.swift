@@ -15,6 +15,8 @@ nonisolated struct WorkspaceActivityAttributes: ActivityAttributes {
     }
 
     struct ContentState: Codable, Hashable {
+        static let maximumPresentedSessionCount = 4
+
         var workspaceCount: Int
         var connectedCount: Int
         /// Bounded to fit ActivityKit's payload and the lock-screen layout.
@@ -25,7 +27,7 @@ nonisolated struct WorkspaceActivityAttributes: ActivityAttributes {
             let focused = workspaces.first(where: { $0.id == focusedID }) ?? workspaces.last
             let ordered =
                 focused.map { selected in [selected] + workspaces.filter { $0.id != selected.id } } ?? workspaces
-            let visible = ordered.prefix(6).map { session in
+            let visible = ordered.prefix(maximumPresentedSessionCount).map { session in
                 var session = session
                 session.title = String(decoding: String(session.title.prefix(32)).utf8.prefix(96), as: UTF8.self)
                 return session

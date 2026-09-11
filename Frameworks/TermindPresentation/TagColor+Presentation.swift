@@ -2,7 +2,7 @@ import SwiftUI
 import TermindDomain
 
 extension TagColor {
-    var displayName: LocalizedStringKey {
+    public var displayName: LocalizedStringKey {
         switch self {
         case .none: "None"
         case .red: "Red"
@@ -16,7 +16,7 @@ extension TagColor {
         }
     }
 
-    var color: Color? {
+    public var color: Color? {
         switch self {
         case .none: nil
         case .red: .red

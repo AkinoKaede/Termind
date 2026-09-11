@@ -13,8 +13,8 @@ import SwiftUI
 /// row rather than a side effect of pressing Return on something unrecognised,
 /// so making a new tag is always a thing the user chose to do.
 ///
-/// Lives in `Design/` beside `ColorTagPicker` for the same reason that one does:
-/// snippets carry tags too, and their editor will want this control unchanged.
+/// Lives in `Design/` because snippets carry tags too, and their editor
+/// reuses this desktop token field unchanged.
 struct TagField: View {
     @Binding var tags: [String]
     /// Every tag worth offering — `HostLibraryModel.allTags` at every call site so far.

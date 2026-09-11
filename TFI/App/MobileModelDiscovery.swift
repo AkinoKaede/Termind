@@ -20,12 +20,16 @@ final class MobileModelDiscovery {
 
     func start(ai: AIConfigurationModel, provider: ModelProvider) {
         cancel()
+        do {
+            let secret = ai.secret(for: provider.effectiveCredentialRef) ?? ""
+            if let error = ai.secretStorageError { throw MobileEditorError.message(error) }
+            start(provider: provider, secret: secret, isCurrent: { ai.modelProvider(provider.id) == provider })
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func start(provider: ModelProvider, secret: String, isCurrent: @escaping @MainActor () -> Bool = { true }) {
+        cancel()
         let token = generation
-        let secret = ai.secret(for: provider.effectiveCredentialRef) ?? ""
-        if let error = ai.secretStorageError {
-            self.error = error
-            return
-        }
         running = true
         error = nil
         task = Task { [weak self, fetch] in
@@ -33,12 +37,13 @@ final class MobileModelDiscovery {
             do {
                 let values = try await fetch(provider, secret)
                 guard let self, generation == token, !Task.isCancelled,
-                    ai.modelProvider(provider.id) == provider
+                    isCurrent()
                 else { return }
-                candidates = values
+                var seen = Set<String>()
+                candidates = values.filter { seen.insert($0.id).inserted }
                 running = false
             } catch {
-                guard let self, generation == token, !Task.isCancelled else { return }
+                guard let self, generation == token, !Task.isCancelled, isCurrent() else { return }
                 self.error = error.localizedDescription
                 running = false
             }
@@ -50,6 +55,7 @@ final class MobileModelDiscovery {
         task?.cancel()
         task = nil
         candidates = []
+        error = nil
         running = false
     }
 }

@@ -5,52 +5,43 @@ import TermindPresentation
 
 struct MobileMetricsView: View {
     let app: MobileAppModel
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var selecting = false
     @State private var selectedID: UUID?
-    @State private var query = ""
 
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 310), spacing: 12)], spacing: 12) {
-                ForEach(app.metrics.servers.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) })
-                { server in
-                    Button {
-                        selectedID = server.id
-                    } label: {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text(server.name).font(.subheadline.bold()).lineLimit(1)
-                                Spacer()
-                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
-                            }
-                            MetricsInstrumentBody(server: server, sleeping: app.metrics.core.sleeping)
-                        }
-                        .padding(16).frame(maxWidth: .infinity)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(.quaternary) }
-                        .contentShape(.rect)
-                    }.buttonStyle(.plain)
-                        .contextMenu {
-                            Button(
-                                server.selection.enabled ? "Pause" : "Resume",
-                                systemImage: server.selection.enabled ? "pause" : "play"
-                            ) {
-                                app.metrics.core.setEnabled(!server.selection.enabled, for: server)
-                            }
-                            Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
-                            Button("Remove", role: .destructive) { app.metrics.remove(server.id) }
-                        }
-                }
-            }.padding()
+        MobileCardPage {
             if app.metrics.servers.isEmpty {
                 ContentUnavailableView(
                     "No monitored servers", systemImage: "waveform.path.ecg",
                     description: Text("Add a saved Linux server to start monitoring."))
             }
+            MobileCardGrid {
+                ForEach(app.metrics.servers) { server in
+                    MobileActionCard {
+                        selectedID = server.id
+                    } content: {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(server.name).font(.subheadline.bold()).lineLimit(1)
+                            MetricsInstrumentBody(
+                                server: server, sleeping: app.metrics.core.sleeping,
+                                layout: typeSize.isAccessibilitySize ? .adaptive : .horizontal)
+                        }
+                    } actions: {
+                        Button(
+                            server.selection.enabled ? "Pause" : "Resume",
+                            systemImage: server.selection.enabled ? "pause" : "play"
+                        ) {
+                            app.metrics.core.setEnabled(!server.selection.enabled, for: server)
+                        }
+                        Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
+                        Button("Remove", systemImage: "trash", role: .destructive) { app.metrics.remove(server.id) }
+                    }
+                }
+            }
         }
         .navigationTitle("Metrics")
-        .searchable(text: $query)
-        .toolbar { Button("Add Server", systemImage: "plus") { selecting = true } }
+        .toolbar { Button("Add Server", systemImage: "plus") { selecting = true }.labelStyle(.iconOnly) }
         .navigationDestination(item: $selectedID) { id in
             if let server = app.metrics.servers.first(where: { $0.id == id }) {
                 MobileMetricsDetailView(app: app, server: server)
@@ -59,7 +50,7 @@ struct MobileMetricsView: View {
         .sheet(isPresented: $selecting) {
             NavigationStack {
                 List(app.library.hosts) { host in
-                    Button(host.name) {
+                    Button(host.name, systemImage: "server.rack") {
                         selecting = false
                         if !app.metrics.add(host.id, pro: app.pro.hasProAccess) {
                             app.pro.presentPaywall(for: .unlimitedMetrics)
@@ -67,8 +58,8 @@ struct MobileMetricsView: View {
                     }
                 }
                 .navigationTitle("Hosts")
-                .toolbar { Button("Cancel") { selecting = false } }
-            }.presentationDetents([.medium, .large])
+                .toolbar { Button("Cancel", systemImage: "xmark") { selecting = false }.labelStyle(.iconOnly) }
+            }.mobileSheetPresentation(compact: true)
         }
         .task { app.metrics.start() }
     }
@@ -77,10 +68,10 @@ struct MobileMetricsView: View {
 private struct MobileMetricsDetailView: View {
     let app: MobileAppModel
     let server: ServerMetric
+    @Environment(\.dismiss) private var dismiss
     @State private var page = MobileMetricsDetailPage.status
     @State private var observer = UUID()
     @State private var availableWidth: CGFloat = 0
-    @State private var query = ""
 
     var body: some View {
         Group {
@@ -88,6 +79,7 @@ private struct MobileMetricsDetailView: View {
                 MobileConnectionJourneyView(
                     journey: server.journey, library: app.library,
                     authenticationPrompt: server.authenticationPrompt, hostKey: server.hostKeyPrompt,
+                    reconnectState: nil,
                     submit: { identity, username, password, passphrase, key, save in
                         app.metrics.core.submitAuthentication(
                             server, identityID: identity, username: username,
@@ -98,19 +90,23 @@ private struct MobileMetricsDetailView: View {
                             app.metrics.core.acceptHostKey(server, observation: observation, remember: remember)
                         }
                     }, retry: { app.metrics.core.retry(server) },
-                    cancel: { app.metrics.core.setEnabled(false, for: server) })
+                    retryReconnectNow: {}, stopReconnecting: {},
+                    cancel: {
+                        app.metrics.core.setEnabled(false, for: server)
+                        dismiss()
+                    })
             } else {
                 GeometryReader { geometry in
                     if MobileMetricsDetailPage.showsBothColumns(width: geometry.size.width) {
                         HStack(alignment: .top, spacing: 16) {
                             ScrollView { MetricsSystemPanels(server: server).padding(1) }
                                 .frame(width: min(360, geometry.size.width * 0.4))
-                            MobileMetricsProcessesView(server: server, query: $query)
+                            MobileMetricsProcessesView(server: server)
                         }.padding(16)
                     } else if page == .status {
                         ScrollView { MetricsSystemPanels(server: server).padding() }
                     } else {
-                        MobileMetricsProcessesView(server: server, query: $query)
+                        MobileMetricsProcessesView(server: server)
                     }
                 }
             }
@@ -135,12 +131,15 @@ private struct MobileMetricsDetailView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button(server.selection.enabled ? "Pause" : "Resume") {
+                    Button(
+                        server.selection.enabled ? "Pause" : "Resume",
+                        systemImage: server.selection.enabled ? "pause" : "play"
+                    ) {
                         app.metrics.core.setEnabled(!server.selection.enabled, for: server)
                     }
-                    Button("Retry") { app.metrics.core.retry(server) }
+                    Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
                 } label: {
-                    Image(systemName: "ellipsis")
+                    MobileOverflowMenuLabel("Metrics")
                 }
             }
         }
@@ -165,14 +164,10 @@ nonisolated enum MobileMetricsDetailPage: CaseIterable {
 
 private struct MobileMetricsProcessesView: View {
     let server: ServerMetric
-    @Binding var query: String
     @State private var sort = ProcessSort.cpu
     enum ProcessSort: String, CaseIterable { case cpu, memory, pid }
     private var rows: [MetricsProcess] {
-        let filtered = server.processes.filter {
-            query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) || String($0.pid).contains(query)
-        }
-        return filtered.sorted {
+        server.processes.sorted {
             switch sort {
             case .cpu: ($0.cpu ?? -1) > ($1.cpu ?? -1)
             case .memory: ($0.memory ?? -1) > ($1.memory ?? -1)
@@ -200,6 +195,6 @@ private struct MobileMetricsProcessesView: View {
                     }.font(.caption.monospaced())
                 }
             }
-        }.searchable(text: $query)
+        }
     }
 }

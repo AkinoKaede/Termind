@@ -147,10 +147,13 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             return ServerMetric(selection: selection, name: host.name)
         }
         for server in servers { launch(server) }
-        maintenance = Task { [weak self, clock] in
+        // The clock is nonisolated and may resume on any executor. Run the timer
+        // outside MainActor, then make every model access an explicit actor hop.
+        maintenance = Task.detached { [weak self, clock] in
             while !Task.isCancelled {
                 do { try await clock.sleep(2) } catch { return }
-                self?.reconcile()
+                guard !Task.isCancelled else { return }
+                await self?.reconcile()
             }
         }
     }

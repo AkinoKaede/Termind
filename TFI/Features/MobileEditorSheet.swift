@@ -1,15 +1,25 @@
 import SwiftUI
 
+struct MobileEditorToolbarAction: Identifiable {
+    let id: String
+    let title: LocalizedStringKey
+    let systemImage: String
+    var role: ButtonRole? = nil
+    var startsGroup = false
+    var isEnabled = true
+    let perform: () -> Void
+}
+
 /// Presentation is mobile-owned; form content can also live in desktop work columns.
 struct MobileEditorSheet<Content: View>: View {
     let title: String
     let isDirty: Bool
     var canSave = true
     var compact = false
+    var actions: [MobileEditorToolbarAction] = []
     let save: () async throws -> Void
     @ViewBuilder let content: () -> Content
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var discard = false
     @State private var error: String?
     @State private var isSaving = false
@@ -17,12 +27,29 @@ struct MobileEditorSheet<Content: View>: View {
 
     var body: some View {
         NavigationStack {
-            Form { content().disabled(isSaving).textFieldStyle(MobileFormTextFieldStyle()) }
+            Form { content().disabled(isSaving) }
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { if isDirty { discard = true } else { dismiss() } }.disabled(isSaving)
+                        Button("Cancel", systemImage: "xmark") { if isDirty { discard = true } else { dismiss() } }
+                            .labelStyle(.iconOnly).disabled(isSaving)
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        if !actions.isEmpty {
+                            Menu {
+                                ForEach(actions) { action in
+                                    if action.startsGroup { Divider() }
+                                    Button(role: action.role, action: action.perform) {
+                                        Label(action.title, systemImage: action.systemImage)
+                                    }
+                                    .disabled(!action.isEnabled || isSaving)
+                                }
+                            } label: {
+                                MobileOverflowMenuLabel("More")
+                            }
+                            .disabled(isSaving)
+                        }
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button {
@@ -38,8 +65,8 @@ struct MobileEditorSheet<Content: View>: View {
                                 } catch { self.error = error.localizedDescription }
                             }
                         } label: {
-                            if isSaving { ProgressView() } else { Text("Save") }
-                        }.disabled(!canSave || isSaving)
+                            if isSaving { ProgressView() } else { Label("Save", systemImage: "checkmark") }
+                        }.labelStyle(.iconOnly).accessibilityLabel(Text("Save")).disabled(!canSave || isSaving)
                     }
                 }
                 .confirmationDialog("Discard Changes?", isPresented: $discard, titleVisibility: .visible) {
@@ -51,15 +78,8 @@ struct MobileEditorSheet<Content: View>: View {
                     Text(error ?? "")
                 }
         }
-        .presentationDetents(compact && !typeSize.isAccessibilitySize ? [.medium, .large] : [.large])
-        .presentationDragIndicator(.visible)
+        .mobileSheetPresentation(compact: compact)
         .interactiveDismissDisabled(isDirty || isSaving)
         .onDisappear { saveTask?.cancel() }
-    }
-}
-
-private struct MobileFormTextFieldStyle: TextFieldStyle {
-    func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration.multilineTextAlignment(.trailing)
     }
 }

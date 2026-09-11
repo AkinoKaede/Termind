@@ -2,107 +2,213 @@ import AgentKit
 import Foundation
 import Observation
 import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindRemoteInfrastructure
 
-/// Independent mobile Assistant; no terminal surface or workspace owns this model.
+/// Application-owned runs, with navigation and drafts independent of each run.
 @MainActor
 @Observable
 final class MobileAssistantModel {
-    private(set) var conversations: [StoredAgentConversation] = []
-    private(set) var messages: [AgentTranscriptMessage] = []
-    private(set) var isRunning = false
-    var selectedID = UUID()
-    var selectedModel: AIModelRef?
-    var draft = ""
-    var error: String?
-    private var conversationModels: [UUID: AIModelRef] = [:]
-    private var runtime: AgentRuntime?
-    private var task: Task<Void, Never>?
+    let store = AssistantConversationStore()
+    let library: AssistantLibraryModel
+    let speech: SpeechTranscriptionCoordinator
+    let configuration: AIConfigurationModel
+    let skills: SkillLibraryModel
+    private let authorize: @MainActor () -> Bool
     private let repository: any AgentRunPersisting
-    private let configuration: AIConfigurationModel
+    private let operations: AssistantConversationOperations
+    private let execution: AssistantExecutionController
+    private let connections: AgentConnectionPool
+    private let background: AgentBackgroundCommands
+    private var suspensionTask: Task<Void, Never>?
+    private var loaded = false
+    private(set) var isSuspending = false
+    var error: String?
 
-    init(configuration: AIConfigurationModel, repository: any AgentRunPersisting) {
+    var conversation: ConversationModel { library.selectedConversation ?? library.draftConversation }
+    var isRunning: Bool { store.conversations.contains { $0.isStreaming } }
+
+    init(
+        configuration: AIConfigurationModel, repository: any AgentRunPersisting,
+        hosts: HostLibraryModel, metrics: any MetricsSnapshotReading, skills: SkillLibraryModel,
+        authorize: @escaping @MainActor () -> Bool,
+        speech: SpeechTranscriptionCoordinator? = nil
+    ) {
+        self.authorize = authorize
         self.configuration = configuration
         self.repository = repository
+        self.skills = skills
+        library = AssistantLibraryModel(store: store)
+        operations = AssistantConversationOperations(repository: repository)
+        let audio = IOSSpeechAudioInput()
+        let coordinator =
+            speech ?? SpeechTranscriptionCoordinator(service: AppleSpeechTranscriptionService(audioInput: audio))
+        self.speech = coordinator
+        audio.onInterruption = { [weak coordinator] in coordinator?.cancelAll() }
+        let resolver = AgentHostResolver(
+            store: hosts,
+            discoverHostKey: { id, host, port, proxy, jumps in
+                try await SSHSessionActor.discoverHostKey(
+                    hostID: id, host: host, port: port, proxy: proxy, jumps: jumps)
+            })
+        let connections = AgentConnectionPool(
+            configuration: { try await resolver.configuration(for: $0) },
+            routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
+            openExec: { configuration in
+                let session = SSHExecSession()
+                try await session.connect(using: configuration)
+                return session
+            },
+            openSFTP: { configuration in
+                let client = SFTPClient()
+                try await client.connect(using: configuration)
+                return client
+            })
+        self.connections = connections
+        let authentication = AgentSSHAuthenticationRegistry(resolver: resolver)
+        let background = AgentBackgroundCommands()
+        self.background = background
+        let titles = ConversationTitleController(ai: configuration)
+        execution = AssistantExecutionController(
+            ai: configuration, skills: skills, repository: repository,
+            authorize: authorize,
+            makeRegistry: { conversation, model, provider, catalog, channel, _ in
+                AssistantToolRegistry.make(
+                    conversation: conversation, model: model, provider: provider,
+                    skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
+                    connections: connections, authentication: authentication, background: background)
+            }, title: { try await titles.summarize($0) })
+        configure(conversation)
     }
 
     func load() async {
-        do { conversations = try await repository.loadConversations() } catch {
+        guard !loaded else { return }
+        loaded = true
+        do {
+            library.restore(try await repository.loadConversations())
+            store.conversations.forEach(configure)
+        } catch {
+            loaded = false
             self.error = error.localizedDescription
         }
     }
 
-    func select(_ conversation: StoredAgentConversation) {
-        guard !isRunning else { return }
-        selectedID = conversation.id
-        selectedModel = conversationModels[conversation.id]
-        messages = conversation.modelTranscript ?? conversation.messages
+    private func configure(_ conversation: ConversationModel) { conversation.attachmentLoader = .live }
+
+    func select(_ conversation: ConversationModel) {
+        speech.cancelAll()
+        library.select(conversation.id)
+        configure(conversation)
     }
 
     func newConversation() {
-        guard !isRunning else { return }
-        selectedID = UUID()
-        selectedModel = nil
-        messages = []
-    }
-
-    func selectModel(_ value: AIModelRef?) {
-        selectedModel = value
-        conversationModels[selectedID] = value
-        if let value { configuration.select(value) }
+        speech.cancelAll()
+        _ = library.selectNewConversation()
+        configure(conversation)
     }
 
     func send() {
-        guard !isRunning, !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        guard let resolved = configuration.resolve(conversation: selectedModel),
-            let secret = configuration.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty
-        else {
-            error = String(localized: "Configure a model and its API key in Settings before sending a message.")
+        let conversation = conversation
+        guard !isSuspending, !conversation.isArchived, !conversation.isHistoryChanging,
+            !conversation.isCompacting, conversation.composer.pendingAttachments.isEmpty, authorize()
+        else { return }
+        if conversation.isStreaming {
+            conversation.submitSteeringDraft()
             return
         }
-        let prompt = draft
-        let prior = messages
-        let message = AgentTranscriptMessage(role: .user, text: prompt)
-        messages.append(message)
-        draft = ""
-        error = nil
-        isRunning = true
-        let client = AgentProviderClient(provider: resolved.provider, model: resolved.model, secret: secret)
-        // Until a tool is registered it is absent from the model's capabilities, not silently skipped.
-        let approval = AgentApprovalBroker(
-            reviewer: nil, manualApproval: { _ in .deny("No approval presenter is available.") })
-        let runtime = AgentRuntime(model: client, tools: [], approval: approval, repository: repository)
-        self.runtime = runtime
-        let request = AgentRunRequest(
-            conversationID: selectedID, promptID: message.id, prompt: prompt,
-            permissionMode: .askForApproval, priorMessages: prior)
-        task = Task { [weak self] in
-            let events = await runtime.start(request)
-            for await event in events {
-                guard let self else {
-                    await runtime.cancel()
-                    return
-                }
-                switch event {
-                case .messageStarted(let value), .messageFinished(let value), .steeringDelivered(let value):
-                    if let index = messages.firstIndex(where: { $0.id == value.id }) {
-                        messages[index] = value
-                    } else {
-                        messages.append(value)
-                    }
-                case .messageDelta(let id, let text):
-                    if let index = messages.firstIndex(where: { $0.id == id }) { messages[index].text += text }
-                case .failed(let message): error = message
-                default: break
-                }
-            }
-            self?.isRunning = false
-            self?.runtime = nil
-            await self?.load()
+        guard conversation.canSendDraft else { return }
+        _ = library.startConversation(conversation)
+        execution.sendAgentDraft(conversation)
+    }
+
+    func stop() { for conversation in store.conversations { conversation.stop() } }
+
+    func suspendRecording() { speech.cancelAll() }
+
+    func expireBackground() {
+        guard !isSuspending else { return }
+        isSuspending = true
+        execution.cancelPendingRuns()
+        speech.cancelAll()
+        let conversations = store.conversations
+        suspensionTask = Task {
+            for conversation in conversations { await conversation.stopAndWait() }
+            await background.closeAll()
+            await connections.closeAll()
+            isSuspending = false
+            suspensionTask = nil
         }
     }
 
-    func stop() {
-        guard let runtime else { return }
-        Task { await runtime.cancel() }
+    func waitForSuspension() async { await suspensionTask?.value }
+
+    func selectModel(_ value: AIModelRef?) {
+        conversation.model = value
+        if let value { configuration.select(value) }
+    }
+
+    func archive(_ conversation: ConversationModel, archived: Bool) async {
+        await perform {
+            try await operations.setArchived(archived, conversation: conversation)
+            if archived && conversation.isArchived && self.conversation.id == conversation.id { newConversation() }
+        }
+    }
+
+    func rename(_ conversation: ConversationModel, title: String) async {
+        await perform { try await operations.rename(conversation, title: title) }
+    }
+
+    func move(_ conversation: ConversationModel, pinned: Bool, before: UUID? = nil) async {
+        await perform { try await operations.move(conversation, pinned: pinned, before: before, library: library) }
+    }
+
+    func delete(_ conversation: ConversationModel) async {
+        guard !conversation.isStreaming, !conversation.isCompacting else { return }
+        await perform {
+            let result = try await operations.delete(conversation)
+            guard result.deleted else { return }
+            library.delete(conversation.id)
+            configure(self.conversation)
+            if let cleanupError = result.cleanupError { error = cleanupError }
+        }
+    }
+
+    func fork(_ conversation: ConversationModel, at messageID: UUID) async {
+        await perform {
+            if let fork = try await operations.fork(
+                conversation, at: messageID, title: store.nextForkTitle(for: conversation))
+            {
+                configure(fork)
+                library.insertAndSelect(fork)
+            }
+        }
+    }
+
+    func edit(_ conversation: ConversationModel, messageID: UUID, text: String) async {
+        await perform {
+            guard let prompt = try await operations.edit(conversation, messageID: messageID, text: text) else { return }
+            execution.startAgentRun(
+                conversation, promptID: prompt.id, prompt: prompt.text,
+                authoredPrompt: prompt.authoredText, promptImages: prompt.images,
+                promptContextAttachments: prompt.contextAttachments)
+        }
+    }
+
+    func compact(_ conversation: ConversationModel, instructions: String = "") async {
+        _ = await execution.compact(conversation, instructions: instructions)
+    }
+
+    func implement(_ card: AgentPlanCard, in conversation: ConversationModel) {
+        guard !conversation.isArchived, !conversation.isStreaming else { return }
+        conversation.resolvePlan(card.id, as: .implemented)
+        conversation.isPlanning = false
+        conversation.composer.draft = String(localized: "Implement this plan.")
+        select(conversation)
+        send()
+    }
+
+    private func perform(_ operation: () async throws -> Void) async {
+        do { try await operation() } catch { self.error = error.localizedDescription }
     }
 }

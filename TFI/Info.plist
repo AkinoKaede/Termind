@@ -25,5 +25,11 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Termind uses the microphone to transcribe speech into your chat draft.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Termind uses the camera to attach photos to your chat.</string>
 </dict>
 </plist>

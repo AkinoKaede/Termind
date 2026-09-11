@@ -4,12 +4,17 @@ import TermindDomain
 
 /// Shared horizontal instruments and stable-height connection state, without a card surface.
 public struct MetricsInstrumentBody: View {
-    public init(server: ServerMetric, sleeping: Bool) {
+    public enum Layout { case horizontal, adaptive }
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    public init(server: ServerMetric, sleeping: Bool, layout: Layout = .horizontal) {
         self.server = server
         self.sleeping = sleeping
+        self.layout = layout
     }
     let server: ServerMetric
     let sleeping: Bool
+    let layout: Layout
 
     private var showsMetrics: Bool {
         !server.isConnecting && server.point != nil && !server.needsAttention
@@ -20,7 +25,11 @@ public struct MetricsInstrumentBody: View {
     public var body: some View {
         ZStack {
             if showsMetrics {
-                instruments
+                if layout == .horizontal {
+                    instruments
+                } else {
+                    adaptiveInstruments
+                }
             } else {
                 VStack(spacing: 7) {
                     if server.isConnecting
@@ -34,15 +43,78 @@ public struct MetricsInstrumentBody: View {
                     }
                     Text(connectionLabel)
                         .font(.caption).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center).lineLimit(2)
+                        .multilineTextAlignment(.center).lineLimit(layout == .horizontal ? 2 : nil)
                 }
                 .frame(maxWidth: .infinity)
                 .help(connectionLabel)
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 64)
+        .frame(height: layout == .horizontal ? 64 : nil)
+        .frame(minHeight: 64)
         .contentShape(Rectangle())
+    }
+
+    private var adaptiveInstruments: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if typeSize.isAccessibilitySize {
+                capacity("CPU", value: server.point?.cpu)
+                capacity("Memory", value: server.point?.memory)
+                adaptiveRates
+            } else {
+                HStack(alignment: .top, spacing: 12) {
+                    capacity("CPU", value: server.point?.cpu)
+                    capacity("Memory", value: server.point?.memory)
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 12) {
+                        networkRates
+                        diskRates
+                    }.fixedSize(horizontal: true, vertical: false)
+                    adaptiveRates
+                }
+            }
+        }
+    }
+
+    private var adaptiveRates: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            networkRates
+            diskRates
+        }
+    }
+
+    private var networkRates: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            adaptiveRate("Network Send", symbol: "arrow.up", value: server.point?.networkSend)
+            adaptiveRate("Network Receive", symbol: "arrow.down", value: server.point?.networkReceive)
+        }
+    }
+
+    private var diskRates: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            adaptiveRate("Disk Read", symbol: "arrow.up.doc", value: server.point?.diskRead)
+            adaptiveRate("Disk Write", symbol: "arrow.down.doc", value: server.point?.diskWrite)
+        }
+    }
+
+    private func capacity(_ title: LocalizedStringKey, value: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(MetricsFormat.percent(value)).font(.headline.monospacedDigit())
+            ProgressView(value: value.map { min(1, max(0, $0 / 100)) } ?? 0)
+                .tint((value ?? 0) >= 90 ? .red : (value ?? 0) >= 75 ? .orange : .green)
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func adaptiveRate(_ title: LocalizedStringKey, symbol: String, value: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Label(title, systemImage: symbol).font(.caption).foregroundStyle(.secondary)
+            Text(MetricsFormat.rate(value)).font(.subheadline.monospacedDigit())
+        }.accessibilityElement(children: .combine)
     }
 
     private var connectionLabel: String {

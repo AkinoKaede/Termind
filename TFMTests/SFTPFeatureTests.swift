@@ -602,6 +602,36 @@ struct SFTPFeatureTests {
     }
 
     @Test
+    func decreasingLimitsLeavesActiveTransfersRunningAndConstrainsTheQueue() async {
+        let gate = SFTPTransferClientGate()
+        let coordinator = SFTPTransferCoordinator(
+            store: HostLibraryModel(), clientFactory: { FakeSFTPTransferClient(gate: gate) },
+            globalLimit: 3, perHostLimit: 3
+        )
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+        for index in 0..<4 {
+            let hostID = UUID()
+            coordinator.enqueue(
+                direction: .download, batchID: UUID(),
+                localURL: root.appendingPathComponent("decrease-limit-\(index)"),
+                remotePath: "/decrease-limit-\(index)", byteCount: 1, hostID: hostID,
+                configuration: makeTestConfiguration(hostID: hostID, host: "host-\(index)"),
+                scopedRoot: root, overwrite: true
+            )
+        }
+        await gate.waitForStarts(3)
+
+        coordinator.updateLimits(global: 1, perHost: 1)
+
+        #expect(coordinator.activeCount == 3)
+        #expect(coordinator.sftpTransfers.filter { $0.state == .queued }.count == 1)
+        await gate.releaseAll()
+        await gate.waitForStarts(4)
+        #expect(await gate.maximumActive == 3)
+        await gate.releaseAll()
+    }
+
+    @Test
     func coordinatorReportsCompletionForOpenAfterDownload() async {
         let store = HostLibraryModel()
         let client = ManifestSFTPClient(entries: [:])
@@ -817,9 +847,8 @@ struct SFTPFeatureTests {
 
         await sftpSession.prepareUpload([localFile])
 
-        #expect(sftpSession.pendingBatch?.conflictCount == 1)
-        #expect(sftpSession.pendingBatch?.jobs.count == 1)
-        #expect(sftpSession.pendingBatch?.jobs.first?.hasConflict == true)
+        #expect(sftpSession.pendingUploadBatch?.conflictCount == 1)
+        #expect(sftpSession.pendingUploadBatch?.transferCount == 1)
     }
 
     @Test
@@ -843,7 +872,7 @@ struct SFTPFeatureTests {
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
         await sftpSession.prepareUpload([upload])
-        #expect(sftpSession.pendingBatch?.conflictCount == 1)
+        #expect(sftpSession.pendingUploadBatch?.conflictCount == 1)
         #expect(sftpSession.operationError == nil)
 
         await sftpSession.enqueuePending(policy: .skip, coordinator: coordinator)

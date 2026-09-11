@@ -3,6 +3,7 @@ import AppKit
 import ListViewKit
 import SwiftUI
 import TermindDomain
+import TermindInfrastructure
 import UniformTypeIdentifiers
 
 /// Reports composition text that SwiftUI's String binding has not committed.
@@ -1376,6 +1377,7 @@ struct ComposerView: View {
         panel.canChooseFiles = true
         panel.allowedContentTypes = ContextAttachmentImporter.supportedContentTypes
         guard panel.runModal() == .OK else { return }
+        conversation.attachmentLoader = .live
         conversation.importAttachmentFiles(panel.urls)
     }
 
@@ -1386,10 +1388,12 @@ struct ComposerView: View {
                 forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
             ) as? [URL] ?? []
         if !urls.isEmpty {
+            conversation.attachmentLoader = .live
             conversation.importAttachmentFiles(urls)
             return true
         }
         if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+            conversation.attachmentLoader = .live
             conversation.importAttachmentImages(
                 [data], label: String(localized: "Pasted image")
             )

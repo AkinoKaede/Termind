@@ -90,6 +90,14 @@ struct MCPServerEditorPage: View {
     private func connectionSection(_ server: MCPServer) -> some View {
         Section {
             TextField("Name", text: binding(\.name))
+            Toggle(
+                "Enabled",
+                isOn: Binding(
+                    get: { app.aiConfiguration.mcpServer(serverID)?.isEnabled ?? false },
+                    set: {
+                        guard app.proAccess.require(.remoteMCP) else { return }
+                        app.aiConfiguration.setServerEnabled($0, for: serverID)
+                    }))
 
             LabeledContent("ID") {
                 Text(namespaceID)

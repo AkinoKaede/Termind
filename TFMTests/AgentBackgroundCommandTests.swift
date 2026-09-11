@@ -3,6 +3,7 @@ import Foundation
 import Testing
 
 @testable import Termind
+@testable import TermindRemoteInfrastructure
 
 private actor StubSession: SSHExecSessionProtocol {
     private(set) var didDisconnect = false

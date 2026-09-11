@@ -1,7 +1,13 @@
 import UIKit
 
 @MainActor
-final class MobileBackgroundController {
+protocol MobileBackgroundTaskManaging: AnyObject {
+    func begin(expiration: @escaping @MainActor () -> Void)
+    func finish()
+}
+
+@MainActor
+final class MobileBackgroundController: MobileBackgroundTaskManaging {
     private var task: UIBackgroundTaskIdentifier = .invalid
 
     func begin(expiration: @escaping @MainActor () -> Void) {

@@ -31,11 +31,15 @@ struct MobileAppSettingsView: View {
                 LabeledContent("OpenSSL", value: MobileRuntimeVersions.openSSL)
             }
             Section("Support") {
-                Link(
-                    "Rate on the App Store",
-                    destination: URL(string: "https://apps.apple.com/app/id6805856690?action=write-review")!)
-                Link("Support", destination: URL(string: "https://termind.akinokaede.com/support/")!)
-                Link("Privacy Policy", destination: URL(string: "https://termind.akinokaede.com/privacy/")!)
+                Link(destination: URL(string: "https://apps.apple.com/app/id6805856690?action=write-review")!) {
+                    Label("Rate on the App Store", systemImage: "star")
+                }
+                Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
+                    Label("Support", systemImage: "questionmark.circle")
+                }
+                Link(destination: URL(string: "https://termind.akinokaede.com/privacy/")!) {
+                    Label("Privacy Policy", systemImage: "hand.raised")
+                }
             }
         }
         .navigationTitle("App")

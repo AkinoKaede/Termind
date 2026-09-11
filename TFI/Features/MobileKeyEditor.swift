@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 import UniformTypeIdentifiers
 
@@ -15,9 +16,13 @@ struct MobileKeyEditor: View {
             save: { try await model.save() },
             content: {
                 Section("Key") {
-                    LabeledContent("Name") { TextField("Name", text: $model.label, prompt: Text(model.defaultName)) }
-                    Picker("Color", selection: $model.colorTag) {
-                        ForEach(TagColor.allCases) { Text(LocalizedStringKey($0.rawValue.capitalized)).tag($0) }
+                    LabeledContent("Name") {
+                        TextField("Name", text: $model.label, prompt: Text(model.defaultName))
+                            .multilineTextAlignment(.trailing)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Color")
+                        ColorTagPicker(selection: $model.colorTag, layout: .touch)
                     }
                     if !model.isEnclave {
                         Picker("Store in", selection: $model.storage) {
@@ -48,17 +53,20 @@ struct MobileKeyEditor: View {
                                     Text("4096 bit").tag(4096)
                                 }
                             }
-                            LabeledContent("Passphrase") { SecureField("Optional", text: $model.passphrase) }
+                            LabeledContent("Passphrase") {
+                                SecureField("Optional", text: $model.passphrase).multilineTextAlignment(.trailing)
+                            }
                             LabeledContent("Confirm Passphrase") {
-                                SecureField("Confirm Passphrase", text: $model.confirmation).disabled(
-                                    model.passphrase.isEmpty)
+                                SecureField("Confirm Passphrase", text: $model.confirmation)
+                                    .multilineTextAlignment(.trailing).disabled(model.passphrase.isEmpty)
                             }
                             if !model.passphrase.isEmpty {
                                 Picker("Cipher", selection: $model.cipher) {
                                     ForEach(SSHKeyMaterial.Cipher.allCases) { Text($0.displayName).tag($0) }
                                 }
                                 LabeledContent("Rounds") {
-                                    TextField("Rounds", value: $model.rounds, format: .number).keyboardType(.numberPad)
+                                    TextField("Rounds", value: $model.rounds, format: .number)
+                                        .multilineTextAlignment(.trailing).keyboardType(.numberPad)
                                 }
                                 if model.passphrase != model.confirmation {
                                     Text("Passphrases do not match.").foregroundStyle(.red)
@@ -69,16 +77,16 @@ struct MobileKeyEditor: View {
                 }
                 if model.mode == .importKey {
                     Section("Private Key") {
-                        Button("Choose File") { choosingFile = true }
+                        Button("Choose File", systemImage: "folder") { choosingFile = true }
                         TextEditor(text: $model.privateKey).multilineTextAlignment(.leading).font(.body.monospaced())
                             .frame(minHeight: 150)
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        SecureField("Passphrase", text: $model.passphrase)
+                        SecureField("Passphrase", text: $model.passphrase).multilineTextAlignment(.leading)
                     }
                 }
                 if model.mode != .generate && model.storage != .secureEnclave {
                     Section("SSH Certificate") {
-                        Button("Choose File") { choosingCertificate = true }
+                        Button("Choose File", systemImage: "folder") { choosingCertificate = true }
                         TextEditor(text: $model.certificate).multilineTextAlignment(.leading).font(
                             .caption.monospaced()
                         ).frame(minHeight: 90)

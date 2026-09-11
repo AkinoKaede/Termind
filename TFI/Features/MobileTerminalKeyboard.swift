@@ -2,42 +2,77 @@ import GhosttyTerminal
 import SwiftUI
 
 struct MobileTerminalKeyboard: View {
+    static let barHeight: CGFloat = 44
+
     @ObservedObject var state: TerminalViewState
     @State private var control: TerminalPublicStickyActivation = .inactive
     @State private var alt: TerminalPublicStickyActivation = .inactive
+    @State private var shift = MobileTerminalShiftState()
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                key("Esc", .escape)
-                key("Tab", .tab)
-                modifier("Ctrl", .ctrl, activation: control)
-                modifier("Alt", .alt, activation: alt)
-                key("←", .arrowLeft)
-                key("↓", .arrowDown)
-                key("↑", .arrowUp)
-                key("→", .arrowRight)
-                key("Home", .home)
-                key("End", .end)
-                key("PgUp", .pageUp)
-                key("PgDn", .pageDown)
-                Button {
-                    state.attachedPlatformView?.resignFirstResponder()
-                } label: {
-                    Image(systemName: "keyboard.chevron.compact.down")
-                }.accessibilityLabel("Hide Keyboard")
-            }
-            .buttonStyle(.bordered)
-            .font(.system(.callout, design: .monospaced))
-            .padding(8)
-        }.background(.bar)
-            .onChange(of: state.isFocused, initial: true) { _, _ in
-                state.attachedPlatformView?.setStickyModifierChangeHandler {
-                    refreshModifiers()
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    key("Escape", systemImage: "escape", .escape)
+                    key("Tab", systemImage: "arrow.right.to.line", .tab)
+                    modifier("Control", systemImage: "control", .ctrl, activation: control)
+                    modifier("Option", systemImage: "option", .alt, activation: alt)
+                    shiftModifier
+                    key("Left Arrow", systemImage: "arrowtriangle.left.fill", .arrowLeft)
+                    key("Down Arrow", systemImage: "arrowtriangle.down.fill", .arrowDown)
+                    key("Up Arrow", systemImage: "arrowtriangle.up.fill", .arrowUp)
+                    key("Right Arrow", systemImage: "arrowtriangle.right.fill", .arrowRight)
+                    key("Home", systemImage: "arrow.up.to.line.compact", .home)
+                    key("End", systemImage: "arrow.down.to.line.compact", .end)
+                    key("Page Up", systemImage: "arrowtriangle.up.square", .pageUp)
+                    key("Page Down", systemImage: "arrowtriangle.down.square", .pageDown)
                 }
+                .padding(.leading, 8)
+            }
+            .frame(maxWidth: .infinity)
+
+            Divider().padding(.vertical, 8)
+            keyboardToggle.padding(.horizontal, 8)
+        }
+        .buttonStyle(.plain)
+        .font(.system(.callout, design: .monospaced))
+        .frame(height: Self.barHeight)
+        .background(.bar)
+        .onChange(of: state.isFocused, initial: true) { _, _ in
+            state.attachedPlatformView?.setStickyModifierChangeHandler {
                 refreshModifiers()
             }
-            .onDisappear { state.attachedPlatformView?.setStickyModifierChangeHandler(nil) }
+            refreshModifiers()
+        }
+        .onDisappear { state.attachedPlatformView?.setStickyModifierChangeHandler(nil) }
+    }
+
+    private var shiftModifier: some View {
+        Button {
+            shift.toggle()
+        } label: {
+            modifierLabel("Shift", systemImage: "shift", activation: shift.activation)
+        }
+        .tint(shift.activation == .inactive ? .secondary : .accentColor)
+        .accessibilityValue(accessibilityValue(for: shift.activation))
+    }
+
+    private var keyboardToggle: some View {
+        Button {
+            if state.isFocused {
+                state.attachedPlatformView?.resignFirstResponder()
+            } else {
+                state.requestFocus()
+            }
+        } label: {
+            Label(
+                state.isFocused ? "Hide Keyboard" : "Show Keyboard",
+                systemImage: state.isFocused ? "keyboard.chevron.compact.down" : "keyboard"
+            )
+            .labelStyle(.iconOnly)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
     }
 
     private func refreshModifiers() {
@@ -46,21 +81,75 @@ struct MobileTerminalKeyboard: View {
     }
 
     private func modifier(
-        _ title: String, _ modifier: TerminalPublicStickyModifier,
+        _ title: LocalizedStringKey, systemImage: String, _ modifier: TerminalPublicStickyModifier,
         activation: TerminalPublicStickyActivation
     ) -> some View {
         Button {
             state.attachedPlatformView?.toggleStickyModifier(modifier)
         } label: {
-            Text(activation == .locked ? title + " •" : title)
+            modifierLabel(title, systemImage: systemImage, activation: activation)
         }
         .tint(activation == .inactive ? .secondary : .accentColor)
-        .accessibilityValue(activation.rawValue)
+        .accessibilityValue(accessibilityValue(for: activation))
     }
 
-    private func key(_ title: String, _ key: TerminalKey) -> some View {
-        Button(title) {
-            _ = state.attachedPlatformView?.sendKey(TerminalKeyPress(key))
+    private func modifierLabel(
+        _ title: LocalizedStringKey, systemImage: String, activation: TerminalPublicStickyActivation
+    ) -> some View {
+        Label(title, systemImage: systemImage)
+            .labelStyle(.iconOnly)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+            .overlay(alignment: .topTrailing) {
+                if activation == .locked {
+                    Circle().fill(Color.accentColor).frame(width: 6, height: 6).accessibilityHidden(true)
+                }
+            }
+    }
+
+    private func accessibilityValue(for activation: TerminalPublicStickyActivation) -> Text {
+        switch activation {
+        case .inactive: Text("Inactive")
+        case .armed: Text("Armed")
+        case .locked: Text("Locked")
         }
+    }
+
+    private func key(_ title: LocalizedStringKey, systemImage: String, _ key: TerminalKey) -> some View {
+        Button {
+            var shiftState = shift
+            let modifiers = shiftState.consumeForNextKey()
+            shift = shiftState
+            _ = state.attachedPlatformView?.sendKey(TerminalKeyPress(key, modifiers: modifiers))
+        } label: {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+        }
+    }
+}
+
+nonisolated struct MobileTerminalShiftState: Equatable {
+    private(set) var activation: TerminalPublicStickyActivation = .inactive
+    private var lastTap = Date.distantPast
+    private let doubleTapInterval: TimeInterval = 0.3
+
+    mutating func toggle(at date: Date = .now) {
+        switch activation {
+        case .inactive:
+            activation = .armed
+        case .armed:
+            activation = date.timeIntervalSince(lastTap) < doubleTapInterval ? .locked : .inactive
+        case .locked:
+            activation = .inactive
+        }
+        lastTap = date
+    }
+
+    mutating func consumeForNextKey() -> TerminalInputModifiers {
+        guard activation != .inactive else { return [] }
+        if activation == .armed { activation = .inactive }
+        return .shift
     }
 }

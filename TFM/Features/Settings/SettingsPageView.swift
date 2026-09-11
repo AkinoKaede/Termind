@@ -582,14 +582,14 @@ private struct SFTPSettings: View {
 
     var body: some View {
         Section("SFTP") {
-            Stepper(value: $globalLimit, in: 1...8) {
+            Stepper(value: $globalLimit, in: SettingsKey.sftpTransferLimitRange) {
                 HStack {
                     Text("Concurrent Transfers")
                     Spacer()
                     Text(globalLimit, format: .number).monospacedDigit()
                 }
             }
-            Stepper(value: $perHostLimit, in: 1...max(globalLimit, 1)) {
+            Stepper(value: $perHostLimit, in: perHostRange) {
                 HStack {
                     Text("Per-Host Transfers")
                     Spacer()
@@ -606,13 +606,22 @@ private struct SFTPSettings: View {
         .onChange(of: perHostLimit) { applyLimits() }
     }
 
+    private var perHostRange: ClosedRange<Int> {
+        let minimum = SettingsKey.sftpTransferLimitRange.lowerBound
+        return minimum...max(globalLimit, minimum)
+    }
+
     private func applyLimits() {
-        let normalizedGlobal = min(max(globalLimit, 1), 8)
+        let normalizedGlobal = min(
+            max(globalLimit, SettingsKey.sftpTransferLimitRange.lowerBound),
+            SettingsKey.sftpTransferLimitRange.upperBound
+        )
         if globalLimit != normalizedGlobal {
             globalLimit = normalizedGlobal
             return
         }
-        let normalizedPerHost = min(max(perHostLimit, 1), normalizedGlobal)
+        let normalizedPerHost = min(
+            max(perHostLimit, SettingsKey.sftpTransferLimitRange.lowerBound), normalizedGlobal)
         if perHostLimit != normalizedPerHost {
             perHostLimit = normalizedPerHost
             return
@@ -657,20 +666,16 @@ private struct TerminalSettings: View {
                 }
                 .disabled(lightCustomEnabled)
                 Toggle("Custom Configuration", isOn: binding(\.lightCustomEnabled))
-                if lightCustomEnabled {
-                    FormNavigationAction(title: "Edit Custom Configuration") {
-                        editConfiguration(.light)
-                    }
+                FormNavigationAction(title: "Edit Custom Configuration") {
+                    editConfiguration(.light)
                 }
             }
             Section("Dark Configuration") {
                 Picker("Theme", selection: binding(\.darkTheme)) { ForEach(darkThemes) { Text($0.name).tag($0.name) } }
                     .disabled(darkCustomEnabled)
                 Toggle("Custom Configuration", isOn: binding(\.darkCustomEnabled))
-                if darkCustomEnabled {
-                    FormNavigationAction(title: "Edit Custom Configuration") {
-                        editConfiguration(.dark)
-                    }
+                FormNavigationAction(title: "Edit Custom Configuration") {
+                    editConfiguration(.dark)
                 }
             }
             Section("Font Configuration") {

@@ -3,7 +3,7 @@ import Foundation
 import TermindDomain
 import Testing
 
-@testable import Termind
+@testable import TermindApplication
 
 private actor CommandGeneratorRequestRecorder {
     private(set) var requests: [AgentModelRequest] = []

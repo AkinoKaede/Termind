@@ -1,11 +1,12 @@
 import AgentKit
 import Foundation
 import TermindDomain
+import TermindInfrastructure
 import Testing
 
 import struct TermindDomain.Host
 
-@testable import Termind
+@testable import TermindApplication
 
 @MainActor
 @Suite
@@ -569,20 +570,23 @@ struct AgentUserInputTests {
     @Test
     func navigatingBetweenQuestionsDoesNotResetTheRequestDeadline() async throws {
         let conversation = ConversationModel()
+        let clock = QuestionTestClock()
+        conversation.questionClockNow = { clock.now }
+        conversation.questionClockSleep = { try await clock.sleep(until: $0) }
         var pending = threeQuestions()
         pending.timeout = .milliseconds(200)
         let answering = Task { await conversation.request(pending) }
         await settle(conversation)
 
-        try await Task.sleep(for: .milliseconds(150))
+        let deadline = try #require(conversation.userInputDeadline)
         conversation.toggleUserInputOption("postgres", in: "storage")
         conversation.advanceUserInputQuestion()
         conversation.previousUserInputQuestion()
-        try await Task.sleep(for: .milliseconds(100))
-
-        #expect(conversation.pendingUserInput == nil)
-        if conversation.pendingUserInput != nil { conversation.cancelUserInput() }
+        #expect(conversation.userInputDeadline == deadline)
+        clock.advance(by: .seconds(1))
         #expect(await answering.value == .timedOut)
+        #expect(conversation.pendingUserInput == nil)
+        #expect(conversation.userInputDeadline == nil)
     }
 
     @Test
@@ -604,6 +608,9 @@ struct AgentUserInputTests {
     @Test
     func queuedRequestGetsItsFullTimeoutOnlyAfterItBecomesVisible() async throws {
         let conversation = ConversationModel()
+        let clock = QuestionTestClock()
+        conversation.questionClockNow = { clock.now }
+        conversation.questionClockSleep = { try await clock.sleep(until: $0) }
         var firstRequest = request(multiple: false)
         firstRequest.timeout = .milliseconds(300)
         var secondRequest = request(multiple: false)
@@ -614,13 +621,15 @@ struct AgentUserInputTests {
         let second = Task { await conversation.request(secondRequest) }
         try await waitUntil { conversation.pendingUserInputs.count == 2 }
 
-        try await Task.sleep(for: .milliseconds(80))
+        clock.advance(by: .milliseconds(80))
+        await Task.yield()
         #expect(conversation.pendingUserInput?.id == firstRequest.id)
         #expect(conversation.pendingUserInputs.contains { $0.id == secondRequest.id })
 
         conversation.cancelUserInput()
         #expect(await first.value == .cancelled)
         #expect(conversation.pendingUserInput?.id == secondRequest.id)
+        clock.advance(by: .seconds(1))
         #expect(await second.value == .timedOut)
         #expect(conversation.pendingUserInput == nil)
     }
@@ -628,6 +637,9 @@ struct AgentUserInputTests {
     @Test
     func answeringCancelsTheOldDeadlineBeforeTheNextRequest() async throws {
         let conversation = ConversationModel()
+        let clock = QuestionTestClock()
+        conversation.questionClockNow = { clock.now }
+        conversation.questionClockSleep = { try await clock.sleep(until: $0) }
         var firstRequest = request(multiple: false)
         firstRequest.timeout = .milliseconds(40)
         var secondRequest = request(multiple: false)
@@ -644,7 +656,8 @@ struct AgentUserInputTests {
 
         let second = Task { await conversation.request(secondRequest) }
         await settle(conversation)
-        try await Task.sleep(for: .milliseconds(80))
+        clock.advance(by: .milliseconds(80))
+        await Task.yield()
         #expect(conversation.pendingUserInput?.id == secondRequest.id)
 
         conversation.cancelUserInput()
@@ -992,4 +1005,32 @@ private actor TimeoutRecordingUserInteraction: AgentUserInteractionHandling {
     func requestSSHHostKeyConfirmation(
         _ request: AgentSSHHostKeyRequest
     ) async -> AgentSSHHostKeyResponse { .deny }
+}
+
+@MainActor
+private final class QuestionTestClock {
+    var now = ContinuousClock.now
+    private var waiters: [UUID: (ContinuousClock.Instant, CheckedContinuation<Void, any Error>)] = [:]
+
+    func advance(by duration: Duration) {
+        now = now.advanced(by: duration)
+        for (id, waiter) in waiters where waiter.0 <= now {
+            waiters.removeValue(forKey: id)?.1.resume()
+        }
+    }
+
+    func sleep(until deadline: ContinuousClock.Instant) async throws {
+        try Task.checkCancellation()
+        guard deadline > now else { return }
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                waiters[id] = (deadline, continuation)
+            }
+        } onCancel: {
+            Task { @MainActor in
+                self.waiters.removeValue(forKey: id)?.1.resume(throwing: CancellationError())
+            }
+        }
+    }
 }

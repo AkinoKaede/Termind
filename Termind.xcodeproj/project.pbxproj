@@ -44,10 +44,15 @@
 		A9A947EA53E15BD04CE319C1 /* TermindPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */; };
 		AB2210ABB10F707CBFB01C78 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
 		ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		ABCDEF020000000000000001 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
+		ABCDEF020000000000000002 /* AgentKitScrubber in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001C /* AgentKitScrubber */; };
+		ABCDEF020000000000000003 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
 		B08DD88AB7C2444E5AEC19BC /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		B1821FD31E7D009C900B5557 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		B616FF213FC31346E6BB3817 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		C2D4B372BA5A040DDBCEFC85 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		C4AD00000000000000000001 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
+		C4AD00000000000000000002 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
 		CF863393BB8C2B38A9EEE18A /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		D7D1BBB65020F61F7EFDDFD7 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
 		E635C54CA9F1A63D909CFCE6 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
@@ -519,6 +524,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ABCDEF020000000000000003 /* MarkdownView in Frameworks */,
 				A671EB6598B90BA03EF86CE7 /* TermindDomain.framework in Frameworks */,
 				38B690B07BB71C9BAA6B45B0 /* TermindApplication.framework in Frameworks */,
 			);
@@ -545,6 +551,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ABCDEF020000000000000002 /* AgentKitScrubber in Frameworks */,
 				0C77A0D7A810A78DA1F6CD93 /* CSSH2 in Frameworks */,
 				0D54DF6508C7918D7D5B9D5A /* OpenSSL in Frameworks */,
 				0861B3AA103F736DEE93983B /* TermindInfrastructure.framework in Frameworks */,
@@ -557,6 +564,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C4AD00000000000000000002 /* MarkdownView in Frameworks */,
+				C4AD00000000000000000001 /* ZIPFoundation in Frameworks */,
 				5310B1DD3FA3FE77185B3F4A /* TermindRemoteInfrastructure.framework in Frameworks */,
 				8F73CAE12C350F5FDB033EE0 /* GhosttyKit in Frameworks */,
 				AB2210ABB10F707CBFB01C78 /* GhosttyTheme in Frameworks */,
@@ -574,6 +583,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ABCDEF020000000000000001 /* ZIPFoundation in Frameworks */,
 				ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */,
 				7DE0BDBF5E7A76602DDD443D /* TermindDomain.framework in Frameworks */,
 				6DF0C216374DA144B1FC2030 /* TermindApplication.framework in Frameworks */,
@@ -750,6 +760,8 @@
 			);
 			name = TFI;
 			packageProductDependencies = (
+				TRMD00000000000000100017 /* MarkdownView */,
+				TRMD00000000000000100015 /* ZIPFoundation */,
 				TRMD00000000000000100016 /* GhosttyKit */,
 				TRMD00000000000000100013 /* GhosttyTheme */,
 				TRMD00000000000000100012 /* GhosttyTerminal */,
@@ -806,6 +818,7 @@
 			);
 			name = TermindPresentation;
 			packageProductDependencies = (
+				TRMD00000000000000100017 /* MarkdownView */,
 			);
 			productName = TermindPresentation;
 			productReference = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */;
@@ -855,6 +868,7 @@
 			);
 			name = TermindInfrastructure;
 			packageProductDependencies = (
+				TRMD00000000000000100015 /* ZIPFoundation */,
 			);
 			productName = TermindInfrastructure;
 			productReference = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */;
@@ -928,6 +942,7 @@
 			);
 			name = TermindRemoteInfrastructure;
 			packageProductDependencies = (
+				TRMD0000000000000010001C /* AgentKitScrubber */,
 				TRMD00000000000000100011 /* CSSH2 */,
 				TRMD00000000000000100014 /* OpenSSL */,
 			);

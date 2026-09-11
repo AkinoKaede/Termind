@@ -86,6 +86,14 @@ struct SkillEditorPage: View {
                 }
             }
 
+            Toggle(
+                "Enabled",
+                isOn: Binding(
+                    get: { skill.isEnabled && skill.isComplete },
+                    set: { app.skills.setEnabled($0, for: skillID) }
+                )
+            ).disabled(!skill.isComplete)
+
             if let nameProblem, !derivedName.isEmpty || !skill.title.isEmpty {
                 Label(nameProblem.message, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)

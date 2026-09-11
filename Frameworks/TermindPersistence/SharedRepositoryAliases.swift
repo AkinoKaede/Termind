@@ -11,5 +11,6 @@ public typealias SharedSettingsSyncPersistence = SettingsSyncPersistence
 public typealias SharedSettingsSyncSnapshot = SettingsSyncSnapshot
 public typealias SharedSkillPersistence = SkillPersistence
 public typealias SharedSwiftDataCommandHistoryRepository = SwiftDataCommandHistoryRepository
+public typealias SharedSwiftDataConnectionHistoryRepository = SwiftDataConnectionHistoryRepository
 public typealias SharedSyncedAIConfigurationPersistence = SyncedAIConfigurationPersistence
 public typealias SharedSyncedSkillLibraryPersistence = SyncedSkillLibraryPersistence

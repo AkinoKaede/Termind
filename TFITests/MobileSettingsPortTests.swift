@@ -11,6 +11,43 @@ import Testing
 
 @Suite @MainActor
 struct MobileSettingsPortTests {
+    @Test func sftpSettingsDefaultsAndNormalizationMatchDesktop() {
+        #expect(SharedSettingsKey.sftpGlobalTransferLimit == "sftp.transfers.globalLimit")
+        #expect(SharedSettingsKey.sftpPerHostTransferLimit == "sftp.transfers.perHostLimit")
+        #expect(SharedSettingsKey.defaultSFTPGlobalTransferLimit == 3)
+        #expect(SharedSettingsKey.defaultSFTPPerHostTransferLimit == 2)
+        #expect(SharedSettingsKey.sftpTransferLimitRange == 1...8)
+
+        let defaults = MobileSFTPTransferLimits(global: 3, perHost: 2)
+        #expect(defaults.global == 3)
+        #expect(defaults.perHost == 2)
+        let belowRange = MobileSFTPTransferLimits(global: 0, perHost: 0)
+        #expect(belowRange.global == 1)
+        #expect(belowRange.perHost == 1)
+        let aboveRange = MobileSFTPTransferLimits(global: 20, perHost: 20)
+        #expect(aboveRange.global == 8)
+        #expect(aboveRange.perHost == 8)
+        let aboveGlobal = MobileSFTPTransferLimits(global: 3, perHost: 7)
+        #expect(aboveGlobal.global == 3)
+        #expect(aboveGlobal.perHost == 3)
+    }
+
+    @Test func sftpCoordinatorAppliesNormalizedSettingsImmediately() {
+        let coordinator = SFTPTransferCoordinator(
+            store: HostLibraryModel(), clientFactory: { SFTPClient() }, globalLimit: 3, perHostLimit: 2)
+        let clampedAtInitialization = SFTPTransferCoordinator(
+            store: HostLibraryModel(), clientFactory: { SFTPClient() }, globalLimit: 1, perHostLimit: 7)
+
+        #expect(coordinator.globalLimit == 3)
+        #expect(coordinator.perHostLimit == 2)
+        #expect(clampedAtInitialization.globalLimit == 1)
+        #expect(clampedAtInitialization.perHostLimit == 1)
+        coordinator.updateLimits(global: 0, perHost: 7)
+
+        #expect(coordinator.globalLimit == 1)
+        #expect(coordinator.perHostLimit == 1)
+    }
+
     @Test func testsNeverStartCloudEngines() throws {
         let app = try MobileAppModel(inMemory: true)
         app.sceneChanged(UUID(), phase: .active)
@@ -25,10 +62,12 @@ struct MobileSettingsPortTests {
         let editor = MobileProviderEditorModel(ai: ai, provider: ModelProvider(name: "Gateway"))
         editor.endpoint.url = "https://example.invalid/v1"
         editor.endpoint.apiType = .responses
+        editor.secret = "test-key"
         try editor.save()
         let saved = try #require(ai.modelProvider(editor.original.id))
         #expect(saved.models.isEmpty)
         #expect(saved.inferenceURL == "https://example.invalid/v1/responses")
+        #expect(!saved.credentialRef.isEmpty)
         #expect(ai.lastSelectedModel == chosen)
     }
 
@@ -139,7 +178,7 @@ struct MobileSettingsPortTests {
         #expect(app.commandHistory.entries(for: host.id).first?.exitStatus == nil)
     }
 
-    @Test func findQuerySurvivesDismissalAndRemoteDeletionClearsHistory() throws {
+    @Test func findQuerySurvivesDismissalAndNavigationReopensSearch() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
@@ -151,6 +190,17 @@ struct MobileSettingsPortTests {
         workspace.presentFind()
         #expect(workspace.findQuery == "retained")
         #expect(workspace.isFindPresented)
+
+        workspace.dismissFind()
+        workspace.navigateFind(previous: false)
+        #expect(workspace.findQuery == "retained")
+        #expect(workspace.isFindPresented)
+    }
+
+    @Test func remoteHostDeletionClearsCommandHistory() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
         app.commandHistory.record("test", for: host.id)
         app.applyRemoteVault(.init(), keys: [VaultRecordKey(kind: .host, id: host.id)])
         #expect(app.library.host(host.id) == nil)

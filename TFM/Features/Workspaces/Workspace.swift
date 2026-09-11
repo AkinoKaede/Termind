@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host
@@ -7,14 +8,6 @@ protocol WorkspaceLifecycleRouting: AnyObject {
     func workspace(_ workspace: Workspace, closePaneAfterSSHSessionExit paneID: Pane.ID)
     func workspaceContextDidChange(_ workspace: Workspace)
     func workspaceRemoteWindowTitleDidChange(_ workspace: Workspace)
-}
-
-nonisolated enum CommandGeneratorState: Equatable, Sendable {
-    case idle
-    case readingDraft
-    case generating
-    case inserted(targetCount: Int)
-    case failed(String)
 }
 
 /// One workspace in the workspace bar: a tree of panes.

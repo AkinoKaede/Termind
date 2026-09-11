@@ -1,16 +1,5 @@
-@preconcurrency import AVFoundation
+import TermindInfrastructure
 
-typealias SpeechAudioBufferHandler = @Sendable (AVAudioPCMBuffer) -> Void
-typealias SpeechAudioLevelHandler = @Sendable (Float) -> Void
-
-/// Apple Speech consumes PCM buffers, while each supported OS owns the
-/// permission and audio-device lifecycle used to produce them.
-@MainActor
-protocol SpeechAudioInput: AnyObject {
-    func requestAuthorization() async -> Bool
-    func start(
-        bufferHandler: @escaping SpeechAudioBufferHandler,
-        levelHandler: @escaping SpeechAudioLevelHandler
-    ) throws
-    func stop()
-}
+typealias SpeechAudioBufferHandler = TermindInfrastructure.SpeechAudioBufferHandler
+typealias SpeechAudioLevelHandler = TermindInfrastructure.SpeechAudioLevelHandler
+typealias SpeechAudioInput = TermindInfrastructure.SpeechAudioInput

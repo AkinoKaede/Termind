@@ -10,6 +10,7 @@ public struct UnixPermissionFields: View {
             TextField("Octal permissions", text: Binding(get: { draft.text }, set: { _ = draft.accept($0) }))
                 .font(.body.monospaced())
                 #if os(iOS)
+                    .multilineTextAlignment(.leading)
                     .keyboardType(.numberPad)
                 #endif
         }
