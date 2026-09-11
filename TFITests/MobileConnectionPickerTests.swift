@@ -12,32 +12,60 @@ struct MobileConnectionPickerTests {
     @Test func pickerDefaultsToSSHFiltersHostsAndReturnsTheSelectedProtocol() throws {
         let app = try MobileAppModel(inMemory: true)
         var selections: [(Host.ID, MobileWorkspaceDescriptor.Kind)] = []
-        let model = MobileConnectionPickerModel(library: app.library) { selections.append(($0, $1)) }
+        let hostModel = MobileHostPickerModel(library: app.library)
+        let connectionModel = MobileConnectionPickerModel { selections.append(($0, $1)) }
 
-        #expect(model.kind == .ssh)
-        #expect(model.isLibraryEmpty)
+        #expect(connectionModel.kind == .ssh)
+        #expect(hostModel.isLibraryEmpty)
 
         let production = Host(name: "Production", host: "production.example.invalid")
         let staging = Host(name: "Staging", host: "staging.example.invalid")
         app.library.upsert(production)
         app.library.upsert(staging)
 
-        #expect(!model.isLibraryEmpty)
-        #expect(Set(model.hosts.map(\.id)) == Set([production.id, staging.id]))
+        #expect(!hostModel.isLibraryEmpty)
+        #expect(Set(hostModel.hosts.map(\.id)) == Set([production.id, staging.id]))
 
-        model.query = "prod"
-        #expect(model.hosts.map(\.id) == [production.id])
+        hostModel.query = "prod"
+        #expect(hostModel.hosts.map(\.id) == [production.id])
 
-        model.select(production)
+        connectionModel.select(production)
         #expect(selections.count == 1)
         #expect(selections.first?.0 == production.id)
         #expect(selections.first?.1 == .ssh)
 
-        model.kind = .sftp
-        model.select(staging)
+        connectionModel.kind = .sftp
+        connectionModel.select(staging)
         #expect(selections.count == 2)
         #expect(selections.last?.0 == staging.id)
         #expect(selections.last?.1 == .sftp)
+    }
+
+    @Test func sharedHostPickerUsesConfiguredTitleWithoutHostsHeaderOrProtocolControl() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        app.library.upsert(Host(name: "Production", host: "production.example.invalid"))
+
+        try await withNavigation(
+            MobileHostPicker(
+                library: app.library,
+                title: "Add Server",
+                emptyDescription: "Add a saved Linux server to start monitoring.",
+                cancel: {},
+                select: { _ in }),
+            language: "en"
+        ) { navigation in
+            #expect(navigation.topViewController?.navigationItem.title == "Add Server")
+            #expect(descendant(of: UISegmentedControl.self, in: navigation) == nil)
+            #expect(!labels(in: navigation.view).contains("Hosts"))
+        }
+
+        try await withNavigation(
+            MobileConnectionPicker(library: app.library, connect: { _, _ in }, cancel: {}),
+            language: "en"
+        ) { navigation in
+            #expect(descendant(of: UISegmentedControl.self, in: navigation) != nil)
+            #expect(!labels(in: navigation.view).contains("Hosts"))
+        }
     }
 
     @Test(
@@ -123,6 +151,24 @@ struct MobileConnectionPickerTests {
             if let presented = next.presentedViewController { pending.append(presented) }
         }
         return nil
+    }
+
+    private func descendant<T: UIView>(of type: T.Type, in viewController: UIViewController) -> T? {
+        descendant(of: type, in: viewController.view)
+    }
+
+    private func descendant<T: UIView>(of type: T.Type, in view: UIView) -> T? {
+        if let result = view as? T { return result }
+        for child in view.subviews {
+            if let result = descendant(of: type, in: child) { return result }
+        }
+        return nil
+    }
+
+    private func labels(in view: UIView) -> [String] {
+        var result = (view as? UILabel).flatMap(\.text).map { [$0] } ?? []
+        for child in view.subviews { result.append(contentsOf: labels(in: child)) }
+        return result
     }
 }
 

@@ -28,8 +28,8 @@ struct MobileWorkspaceToolbar: ToolbarContent {
 }
 
 struct MobileConnectionPicker: View {
-    @Environment(\.colorScheme) private var colorScheme
     @State private var model: MobileConnectionPickerModel
+    let library: HostLibraryModel
     let cancel: () -> Void
 
     init(
@@ -37,12 +37,19 @@ struct MobileConnectionPicker: View {
         connect: @escaping (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void,
         cancel: @escaping () -> Void
     ) {
-        _model = State(initialValue: MobileConnectionPickerModel(library: library, connect: connect))
+        self.library = library
+        _model = State(initialValue: MobileConnectionPickerModel(connect: connect))
         self.cancel = cancel
     }
 
     var body: some View {
-        List {
+        MobileHostPicker(
+            library: library,
+            title: "Connect",
+            emptyDescription: "Add a host to connect to it.",
+            cancel: cancel,
+            select: model.select
+        ) {
             Section {
                 Picker("Connection Protocol", selection: $model.kind) {
                     Text("SSH").tag(MobileWorkspaceDescriptor.Kind.ssh)
@@ -50,11 +57,43 @@ struct MobileConnectionPicker: View {
                 }
                 .pickerStyle(.segmented)
             }
+        }
+    }
+}
+
+struct MobileHostPicker<Header: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var model: MobileHostPickerModel
+    let title: LocalizedStringKey
+    let emptyDescription: LocalizedStringKey
+    let cancel: () -> Void
+    let select: (Host) -> Void
+    let header: Header
+
+    init(
+        library: HostLibraryModel,
+        title: LocalizedStringKey,
+        emptyDescription: LocalizedStringKey,
+        cancel: @escaping () -> Void,
+        select: @escaping (Host) -> Void,
+        @ViewBuilder header: () -> Header
+    ) {
+        _model = State(initialValue: MobileHostPickerModel(library: library))
+        self.title = title
+        self.emptyDescription = emptyDescription
+        self.cancel = cancel
+        self.select = select
+        self.header = header()
+    }
+
+    var body: some View {
+        List {
+            header
 
             if model.isLibraryEmpty {
                 ContentUnavailableView(
                     "No Hosts", systemImage: "server.rack",
-                    description: Text("Add a host to connect to it.")
+                    description: Text(emptyDescription)
                 )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -63,10 +102,10 @@ struct MobileConnectionPicker: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             } else {
-                Section("Hosts") {
+                Section {
                     ForEach(model.hosts) { host in
                         Button {
-                            model.select(host)
+                            select(host)
                         } label: {
                             HStack(spacing: 12) {
                                 HostSystemIcon(asset: distributionEntry(for: host)?.asset, size: 32)
@@ -90,7 +129,7 @@ struct MobileConnectionPicker: View {
             }
         }
         .searchable(text: $model.query, prompt: "Search hosts")
-        .navigationTitle("Connect")
+        .navigationTitle(Text(title))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -113,28 +152,48 @@ struct MobileConnectionPicker: View {
     }
 }
 
+extension MobileHostPicker where Header == EmptyView {
+    init(
+        library: HostLibraryModel,
+        title: LocalizedStringKey,
+        emptyDescription: LocalizedStringKey,
+        cancel: @escaping () -> Void,
+        select: @escaping (Host) -> Void
+    ) {
+        self.init(
+            library: library,
+            title: title,
+            emptyDescription: emptyDescription,
+            cancel: cancel,
+            select: select,
+            header: { EmptyView() })
+    }
+}
+
 @MainActor
 @Observable
-final class MobileConnectionPickerModel {
-    var kind = MobileWorkspaceDescriptor.Kind.ssh
+final class MobileHostPickerModel {
     var query = ""
 
     private let library: HostLibraryModel
-    private let connect: (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void
 
-    init(
-        library: HostLibraryModel,
-        connect: @escaping (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void
-    ) {
-        self.library = library
-        self.connect = connect
-    }
+    init(library: HostLibraryModel) { self.library = library }
 
     var isLibraryEmpty: Bool { library.hosts.isEmpty }
 
     var hosts: [Host] { library.searchHosts(query) }
 
     func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
+}
+
+@MainActor
+@Observable
+final class MobileConnectionPickerModel {
+    var kind = MobileWorkspaceDescriptor.Kind.ssh
+
+    private let connect: (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void
+
+    init(connect: @escaping (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void) { self.connect = connect }
 
     func select(_ host: Host) { connect(host.id, kind) }
 }

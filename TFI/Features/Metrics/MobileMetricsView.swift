@@ -49,16 +49,17 @@ struct MobileMetricsView: View {
         }
         .sheet(isPresented: $selecting) {
             NavigationStack {
-                List(app.library.hosts) { host in
-                    Button(host.name, systemImage: "server.rack") {
+                MobileHostPicker(
+                    library: app.library,
+                    title: "Add Server",
+                    emptyDescription: "Add a saved Linux server to start monitoring.",
+                    cancel: { selecting = false },
+                    select: { host in
                         selecting = false
                         if !app.metrics.add(host.id, pro: app.pro.hasProAccess) {
                             app.pro.presentPaywall(for: .unlimitedMetrics)
                         }
-                    }
-                }
-                .navigationTitle("Hosts")
-                .toolbar { Button("Cancel", systemImage: "xmark") { selecting = false }.labelStyle(.iconOnly) }
+                    })
             }.mobileSheetPresentation(compact: true)
         }
         .task { app.metrics.start() }

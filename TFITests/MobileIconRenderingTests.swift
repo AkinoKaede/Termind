@@ -102,6 +102,17 @@ struct MobileIconRenderingTests {
                 }
                 .environment(\.locale, locale)
             }
+            try await capture("metrics-host-picker-\(suffix)", language: language, scheme: scheme) {
+                NavigationStack {
+                    MobileHostPicker(
+                        library: connectionApp.library,
+                        title: "Add Server",
+                        emptyDescription: "Add a saved Linux server to start monitoring.",
+                        cancel: {},
+                        select: { _ in })
+                }
+                .environment(\.locale, locale)
+            }
             try await capture("sftp-settings-\(suffix)", language: language, scheme: scheme) {
                 NavigationStack { MobileSFTPSettingsView(transfers: app.transfers) }.environment(\.locale, locale)
             }
