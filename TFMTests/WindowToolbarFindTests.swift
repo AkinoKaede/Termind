@@ -114,7 +114,7 @@ struct WindowToolbarFindTests {
         window.focusToolbarFind()
         await Task.yield()
 
-        #expect(window.focusedSSHSession?.isFindPresented == true)
+        #expect(window.focusedSSHSession?.find.isPresented == true)
         #expect(window.findFocusRequest == 1)
         #expect(window.isToolbarFindFocused)
         #expect(directFocusRequests == 1)

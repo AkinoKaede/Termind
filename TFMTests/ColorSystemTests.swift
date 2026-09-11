@@ -74,10 +74,7 @@ struct ColorSystemTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "TFM", directoryHint: .isDirectory)
-        let exemptPaths = [
-            "Design/TerminalTheme.swift",
-            "DesignSystem/TagColor+Presentation.swift",
-        ]
+        let exemptPaths = ["DesignSystem/TagColor+Presentation.swift"]
         let forbidden = [
             "Color.white", "Color.black", "NSColor.white", "NSColor.gray",
             "foregroundStyle(.white)", "AnyShapeStyle(.white)",

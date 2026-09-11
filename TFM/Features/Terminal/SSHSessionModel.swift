@@ -141,8 +141,10 @@ final class SSHSessionModel: Identifiable {
     /// whether the search was *open* — which is `WorkspaceContentView`, and
     /// which rebuilt every pane in the Workspace and remounted every Ghostty
     /// surface, once per keystroke.
-    private(set) var findQuery = ""
-    private(set) var isFindPresented = false
+    @ObservationIgnored lazy var find = TerminalFindController(
+        perform: { [weak self] in self?.performFindBinding($0) },
+        focus: { [weak self] in self?.requestTerminalFocus() }
+    )
 
     /// Whether the remote shell accepted Termind's authenticated OSC integration.
     var shellIntegrationAvailable: Bool = false
@@ -341,42 +343,6 @@ final class SSHSessionModel: Identifiable {
         #else
             terminalState.requestFocus()
         #endif
-    }
-
-    /// Opens or refocuses the find bar. Reopening a dismissed query starts the
-    /// Ghostty search again; pressing ⌘F while it is already open only refocuses
-    /// the field and does not reset the current match.
-    func presentFind() {
-        let wasPresented = isFindPresented
-        isFindPresented = true
-        if !wasPresented, !findQuery.isEmpty {
-            performFindBinding(TerminalFindBinding.search(findQuery))
-        }
-    }
-
-    func updateFindQuery(_ query: String) {
-        guard findQuery != query else { return }
-        findQuery = query
-        performFindBinding(TerminalFindBinding.search(query))
-    }
-
-    func navigateFind(_ direction: TerminalFindDirection) {
-        guard isFindPresented, !findQuery.isEmpty else { return }
-        performFindBinding(TerminalFindBinding.navigate(direction))
-    }
-
-    /// Used by ⌘G/F3: VS Code reveals the find widget when navigation is invoked
-    /// from the terminal, then moves only when there is a retained query.
-    func presentFindAndNavigate(_ direction: TerminalFindDirection) {
-        presentFind()
-        navigateFind(direction)
-    }
-
-    func dismissFind() {
-        guard isFindPresented else { return }
-        performFindBinding(TerminalFindBinding.end)
-        isFindPresented = false
-        requestTerminalFocus()
     }
 
     private func performFindBinding(_ action: String) {

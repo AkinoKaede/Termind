@@ -27,7 +27,7 @@ struct TerminalPlaceholderView: View {
     @State private var pendingUploadSession: SFTPSessionModel?
     @State private var pendingUploadItemCount = 0
     @State private var uploadConflictPresented = false
-    @State private var uploadNotice: TerminalUploadNotice?
+    @State private var uploadNotice: WorkspaceUploadNotice?
     @State private var uploadNoticeTask: Task<Void, Never>?
     @State private var uploadPreparationTask: Task<Void, Never>?
     @State private var uploadError: String?
@@ -57,7 +57,7 @@ struct TerminalPlaceholderView: View {
                 sshSession.inputRouter = workspace
                 sshSession.terminalState.isSurfaceVisible = isVisible
                 terminalFocused = requestsFocus
-                sshSession.terminalState.applyAppearance(terminalAppearance.preferences)
+                sshSession.terminalState.applyPreferences(terminalAppearance.preferences)
                 if sshSession.status == .connecting { sshSession.connect(using: app.hostLibrary) }
                 if requestsFocus { sshSession.requestTerminalFocus() }
             }
@@ -80,7 +80,7 @@ struct TerminalPlaceholderView: View {
                 cancelPendingUpload()
             }
             .onChange(of: terminalAppearance.preferences) { _, preferences in
-                sshSession.terminalState.applyAppearance(preferences)
+                sshSession.terminalState.applyPreferences(preferences)
             }
             .confirmationDialog(
                 uploadConflictTitle,
@@ -156,7 +156,12 @@ struct TerminalPlaceholderView: View {
     }
 
     private var uploadTargetProblem: String? {
-        TerminalUploadTarget.problem(for: sshSession)
+        TerminalUploadAvailability.problem(
+            isConnected: sshSession.status == .connected,
+            hasTransferConfiguration: sshSession.transferConfiguration != nil,
+            isWorkingDirectoryPending: sshSession.homeResolution.isPending,
+            workingDirectory: sshSession.workingDirectory
+        )
     }
 
     private var uploadConflictTitle: String {
@@ -278,7 +283,7 @@ struct TerminalPlaceholderView: View {
         uploadNotice = nil
     }
 
-    private func showUploadNotice(_ notice: TerminalUploadNotice) {
+    private func showUploadNotice(_ notice: WorkspaceUploadNotice) {
         uploadNoticeTask?.cancel()
         uploadNotice = notice
         uploadNoticeTask = Task {
@@ -329,39 +334,14 @@ struct TerminalPlaceholderView: View {
     }
 }
 
-enum TerminalUploadTarget {
-    static func problem(for sshSession: SSHSessionModel) -> String? {
-        guard sshSession.status == .connected,
-            sshSession.transferConfiguration != nil
-        else {
-            return String(localized: "The SSH session is not ready for file transfer.")
-        }
-        guard !sshSession.homeResolution.isPending else {
-            return String(localized: "Wait for the shell prompt to report its current directory.")
-        }
-        guard let directory = sshSession.workingDirectory, !directory.isEmpty else {
-            return String(
-                localized: "Wait for the shell prompt to report its current directory."
-            )
-        }
-        return nil
-    }
-}
-
-private enum TerminalUploadNotice: Equatable {
-    case preparing(String)
-    case queued(Int, String)
-    case rejected(String)
-}
-
 private struct TerminalUploadOverlay: View {
-    let notice: TerminalUploadNotice
+    let notice: WorkspaceUploadNotice
 
     var body: some View {
         VStack(spacing: Metrics.Space.s) {
             symbol
-            Text(title).font(.headline)
-            Text(detail)
+            Text(notice.title).font(.headline)
+            Text(notice.detail)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
@@ -378,32 +358,10 @@ private struct TerminalUploadOverlay: View {
         switch notice {
         case .preparing:
             ProgressView().controlSize(.small)
-        case .queued:
-            Image(systemName: "checkmark.circle.fill")
+        case .queued, .rejected:
+            Image(systemName: notice.symbol ?? "")
                 .font(.title2)
-                .foregroundStyle(.green)
-        case .rejected:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.title2)
-                .foregroundStyle(.orange)
-        }
-    }
-
-    private var title: String {
-        switch notice {
-        case .preparing: String(localized: "Preparing upload…")
-        case .queued(let count, _):
-            count == 1
-                ? String(localized: "Added 1 item to Transfers")
-                : String(localized: "Added \(count) items to Transfers")
-        case .rejected: String(localized: "Can't upload here")
-        }
-    }
-
-    private var detail: String {
-        switch notice {
-        case .preparing(let path), .queued(_, let path): path
-        case .rejected(let reason): reason
+                .foregroundStyle(notice.isRejected ? .orange : .green)
         }
     }
 }

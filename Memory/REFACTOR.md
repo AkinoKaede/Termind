@@ -1108,3 +1108,177 @@ Evidence: MobileAssistantModel registers no tools, while TFM/App/AppModel builds
 - Action: extract `TerminalCommandDraftController` and `CommandGenerationCoordinator` into Application and make both terminal implementations supply only context, validity and insertion closures.
 - Estimated reduction: approximately 190 duplicated lifecycle lines and one duplicate protocol constant set.
 - Status: implemented. Mobile Command Generator, desktop Broadcast Input, Terminal Find, and direct draft-controller tests pass.
+
+## 2026-09-12 — Separate remote-directory policy from the SFTP transport
+
+**Status:** Completed on 2026-09-12; both app builds, architecture guards, and focused desktop/mobile SFTP tests pass.
+
+**Evidence:** `RemoteFile` and the complete directory-operation interface are declared beside the libssh2-backed
+`SFTPClient`, so feature state cannot express its dependency without importing Remote Infrastructure. TFM and TFI
+also independently validate remote entry names, mask permission bits, construct rename/create paths, and order
+directory snapshots with folders first. `MobileWorkspace` additionally owns the SFTP path, listing, and stale-request
+token even though those values have no SSH-shell or Activity lifecycle responsibility.
+
+**Action:** Move the remote-file value to Domain, introduce a narrow `RemoteFileSystem` Application port with the
+shared name/path/permission rules, and make `SFTPClientProtocol` refine that port. Extract mobile directory state into
+`MobileSFTPSessionModel`; keep connection/recovery and concrete client construction in Workspace Infrastructure.
+Reuse the same port helpers from the desktop SFTP model without merging the distinct desktop selection, history,
+recursive-transfer, and automatic-refresh behavior.
+
+**Estimated reduction:** Approximately 35–55 duplicated production lines, plus about 90 lines removed from the
+mobile Workspace coordinator. The extracted mobile model is counted as moved responsibility, not code reduction.
+
+**Result:** `MobileWorkspace` dropped from 1,203 to 1,109 lines and no longer owns a directory path, directory
+snapshot, or stale listing token. The complete structural pass (including the Domain value move, Presentation
+extensions, Application port, and extracted mobile model) adds 101 net production lines. This does not meet the
+initial line-reduction estimate; it is retained as an explicit dependency-boundary migration, like Item 46, because
+it removes the libssh2 module from mobile directory state and gives both apps one enforceable directory-policy seam.
+No compatibility facade or forwarding alias was added.
+
+## 2026-09-12 — Finish mobile adoption of shared connection policy
+
+**Status:** Completed on 2026-09-12; focused connection, Journey, Metrics, and mobile recovery tests pass.
+
+**Evidence:** After `RemoteSessionConnectionController` moved to Application, `MobileWorkspace` still retained its
+own pending Host Key observation/host id, persistent and temporary acceptance, Journey pause/resume, and ordered
+progress-handler filtering. Mobile Metrics and Workspace also repeated the same loop that injects temporary Host Keys
+into an `SSHConnectionPreparation` route.
+
+**Action:** Make the shared controller the only owner of a mobile session's Host Key decision and route progress.
+Add one `RemoteSessionHostStore` preparation overload for temporary route keys and reuse it from mobile Workspace and
+Metrics. Keep authentication forms, concrete transport creation, terminal teardown, and SFTP teardown in their
+existing owners.
+
+**Estimated reduction:** Approximately 30–45 production lines while deleting a second Host Key state vocabulary.
+
+**Result:** Mobile Workspace now uses the shared pending Host Key, trust scope, Journey pause/resume, and ordered
+progress handler directly. The temporary-key preparation loop has one Application implementation used by mobile
+Workspace and Metrics. Authentication and transport-specific teardown remain separate, as required by Item 7.
+
+## 2026-09-12 — Share terminal Find state across desktop and mobile
+
+**Status:** Completed on 2026-09-12; desktop SSH/Serial, mobile Find, and direct controller tests pass.
+
+**Evidence:** TFM SSH, TFM Serial, and TFI SSH each own the same query/presentation pair and repeat the open,
+re-search, query update, next/previous, end-search, and focus-return transitions. Only the closure that sends a
+Ghostty binding differs. Domain already owns `TerminalFindBinding` and `TerminalFindDirection`, so leaving the state
+machines in the app targets preserves three sources of behavioral drift.
+
+**Action:** Add a small Application `TerminalFindController` driven by binding and focus closures. Make all three
+sessions expose that controller directly and delete their forwarding methods and duplicated state.
+
+**Estimated reduction:** Approximately 35–50 production lines with one tested transition model.
+
+**Result:** The three session models now expose one controller and no longer own query/presentation properties or
+forwarding methods. The controller preserves the deliberate retained-query behavior and returns focus only after an
+active search is dismissed.
+
+## 2026-09-12 — Derive remote distributions once in Domain
+
+**Status:** Completed on 2026-09-12; Domain detection, Host projection, and mobile Workspace tests pass.
+
+**Evidence:** `HostLibraryModel.recordRemoteSystemInfo` and the mobile Workspace Activity projection repeat the same
+case-insensitive Linux check, required distribution id, normalized like-id construction, and non-Linux reset rule.
+
+**Action:** Make `RemoteSystemInfo.detectedDistribution` the single Domain derivation and let persistence and Activity
+projection consume it.
+
+**Estimated reduction:** Approximately 10–14 production lines while keeping icon selection in Presentation.
+
+**Result:** `RemoteDistributionDetection` explicitly represents unavailable metadata versus a conclusive optional
+distribution, so incomplete Linux reports cannot accidentally clear a persisted value while non-Linux reports can.
+
+## 2026-09-12 — Share the platform-neutral Connection Journey sections
+
+**Status:** Completed on 2026-09-12; both app builds and Connection Journey rendering/behavior tests pass.
+
+**Evidence:** Exact eight-line cross-target scanning finds repeated blocks throughout desktop and mobile Connection
+Journey pages. The 52-point destination header, protocol/address label, ready/waiting status, and reconnect countdown
+are platform-neutral SwiftUI. The logs, failure actions, background, and keyboard bridge are not: desktop uses
+ListViewKit/AppKit and offers Ask AI/compact actions, while mobile uses an adaptive scroll layout.
+
+**Action:** Move only header, ordinary status, and reconnect status to Presentation. Inject the platform-selected
+foreground/accent/danger colors and the log-toggle action; retain logs, failures, form wrappers, backgrounds, and
+AppKit event handling in each app target.
+
+**Estimated reduction:** Approximately 110–150 production lines without merging platform-specific UI boundaries.
+
+**Result:** The app-target Journey files remove 288 lines and add 22; the shared sections contain 168 lines, for a net
+reduction of 98 production lines. Platform-native logs, failure actions, keyboard handling, and backgrounds remain
+separate.
+
+## 2026-09-12 — Own the Ghostty theme bridge in Presentation
+
+**Status:** Completed on 2026-09-12; both app builds and terminal theme tests pass.
+
+**Evidence:** `TFM/Design/TerminalTheme.swift` and `TFI/Platform/MobileTerminalAppearance.swift` contain the same
+palette-to-Ghostty conversion, theme catalog, custom-configuration merge, background lookup, and terminal preference
+application. The only desktop-only concern is its `@AppStorage` property wrapper; SSH transport is not involved.
+
+**Action:** Move the Ghostty-facing appearance bridge to Presentation, compile that framework against the already
+pinned GhosttyTerminal/GhosttyTheme products, and retain only desktop preference reading in TFM. Both apps apply the
+same Domain `TerminalPreferences` value.
+
+**Estimated reduction:** Approximately 100–130 production lines and one complete mobile compatibility file.
+
+**Result:** The 112-line mobile duplicate was deleted, desktop theme code dropped 131 lines, and the 119-line shared
+bridge replaced both. The Presentation target now declares its existing pinned Ghostty products directly; no package
+version changed. TFITests declares the Ghostty products it imports directly, and FrameworkTests now explicitly links
+the Presentation target it has always imported instead of relying on host-app build order.
+
+## 2026-09-12 — Share terminal-upload availability and notice semantics
+
+**Status:** Completed on 2026-09-12; direct policy tests and both app builds pass.
+
+**Evidence:** Desktop Terminal upload and mobile Workspace upload independently define the same
+Preparing/Queued/Rejected value, localized title/detail/icon mapping, and SSH readiness/current-directory failure
+messages. Their execution differs and must remain separate.
+
+**Action:** Put the upload notice and terminal readiness policy in Application and its icon/title/detail projection in
+Presentation. Keep desktop SFTP-session staging and mobile batch-planner execution in their current owners.
+
+**Estimated reduction:** Approximately 35–50 production lines without coupling the two upload executors.
+
+**Result:** Both terminals consume `WorkspaceUploadNotice` and `TerminalUploadAvailability`; the duplicated enum and
+title/detail mapping were removed. The desktop and mobile task/client ownership code remains intentionally distinct.
+
+## 2026-09-12 — Share the Known Host presentation title
+
+**Status:** Completed on 2026-09-12; direct Presentation tests and both app builds pass.
+
+**Evidence:** Desktop and mobile Known Host cards independently choose the localized `Hashed Address` label versus
+the endpoint address.
+
+**Action:** Move this display-only projection to Presentation and keep card layout, icons, selection, and platform
+interaction in each app.
+
+**Estimated reduction:** Approximately 6–8 production lines.
+
+**Result:** Both cards now consume `KnownHostEntry.presentationTitle`; platform card composition is unchanged.
+
+## 2026-09-12 — Remaining exact cross-platform duplicates reviewed
+
+`RuntimeVersions` and `MobileRuntimeVersions` remain intentionally separate. Sharing their identical decoder would
+force Application or Remote Infrastructure to depend on GhosttyKit, or require a common-source group outside the
+framework ownership model, for fewer than 20 lines saved. Snippet target summaries also remain separate: desktop
+counts stored targets, while mobile deliberately counts only targets still valid in the current Vault. The remaining
+Connection Journey matches are the expected outer layout and log header around deliberately different native log
+renderers. Other scan matches are incidental SwiftUI structure, not shared behavior.
+
+## Cross-platform session and presentation pass verification — 2026-09-12
+
+The production diff for this pass adds 660 new lines and removes a net 811 tracked lines, for **net -151 production
+lines**. Tests and architecture documentation are excluded. `MobileWorkspace` is 1,072 lines, down from 1,203; its
+directory state and Find state now have dedicated Application owners. Assistant execution and UI were explicitly out
+of scope and unchanged.
+
+The complete iOS action passes 257 tests in 43 suites. The complete macOS action executes 1,197 tests in 126 suites;
+all refactored SFTP, connection, Journey, theme, Find, upload, Vault presentation, architecture, and shared framework
+tests pass. Nine issues remain outside this change: five Data Protection Keychain cases fail with OSStatus -25308,
+two Metrics popover focus assertions depend on the current native window environment, and two Agent cancellation /
+approval timing cases are intermittent. The 25 Agent tests pass on immediate focused rerun; the Keychain and Metrics
+issues also reproduce in focused isolation.
+
+Both app builds pass with pinned package versions. Strict Swift formatting, Simplified Chinese localization,
+`git diff --check`, forwarding-alias scans, and retired-name scans pass. No persistence schema, remote protocol,
+dependency version, localization catalog, or Assistant behavior changed.

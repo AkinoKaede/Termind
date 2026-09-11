@@ -3,6 +3,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
+import TermindPresentation
 import TermindRemoteInfrastructure
 import UIKit
 import UniformTypeIdentifiers
@@ -46,7 +47,7 @@ struct MobileWorkspaceView: View {
                 connectionJourney
             } else {
                 List {
-                    ForEach(workspace.files) { file in
+                    ForEach(workspace.sftpSession.files) { file in
                         Button {
                             open(file)
                         } label: {
@@ -64,7 +65,7 @@ struct MobileWorkspaceView: View {
                         .swipeActions { Button("Delete", systemImage: "trash", role: .destructive) { deleting = file } }
                     }
                 }
-                .refreshable { await workspace.openDirectory(workspace.path) }
+                .refreshable { await workspace.sftpSession.openDirectory(workspace.sftpSession.path) }
             }
         }
         .overlay(alignment: .bottom) {
@@ -124,11 +125,11 @@ struct MobileWorkspaceView: View {
                     .keyboardShortcut("i", modifiers: .command)
                     Divider()
                     Button("Next Match", systemImage: "chevron.down") {
-                        workspace.navigateFind(.next)
+                        workspace.find.presentAndNavigate(.next)
                     }
                     .keyboardShortcut("g", modifiers: .command)
                     Button("Previous Match", systemImage: "chevron.up") {
-                        workspace.navigateFind(.previous)
+                        workspace.find.presentAndNavigate(.previous)
                     }
                     .keyboardShortcut("g", modifiers: [.command, .shift])
                     Divider()
@@ -144,7 +145,9 @@ struct MobileWorkspaceView: View {
                     Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                     Divider()
                     Button("Parent Directory", systemImage: "arrow.up") {
-                        Task { await workspace.openDirectory(RemotePath.parent(of: workspace.path)) }
+                        Task {
+                            await workspace.sftpSession.openDirectory(RemotePath.parent(of: workspace.sftpSession.path))
+                        }
                     }
                     .disabled(!workspace.connected)
                     Divider()
@@ -208,7 +211,7 @@ struct MobileWorkspaceView: View {
             TextField("Name", text: $directoryName)
             Button("Create") {
                 Task {
-                    await workspace.createDirectory(directoryName)
+                    await workspace.sftpSession.createDirectory(directoryName)
                     directoryName = ""
                 }
             }
@@ -219,7 +222,7 @@ struct MobileWorkspaceView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                if let file = deleting { Task { await workspace.delete(file) } }
+                if let file = deleting { Task { await workspace.sftpSession.delete(file) } }
                 deleting = nil
             }
         }
@@ -228,18 +231,26 @@ struct MobileWorkspaceView: View {
                 ? String(localized: "Upload Failed")
                 : String(localized: "SFTP Error"),
             isPresented: Binding(
-                get: { workspace.operationError != nil },
-                set: { if !$0 { workspace.operationError = nil } })
+                get: { presentedOperationError != nil },
+                set: {
+                    if !$0 {
+                        workspace.operationError = nil
+                        workspace.sftpSession.operationError = nil
+                    }
+                })
         ) {
-            Button("OK", role: .cancel) { workspace.operationError = nil }
+            Button("OK", role: .cancel) {
+                workspace.operationError = nil
+                workspace.sftpSession.operationError = nil
+            }
         } message: {
-            Text(workspace.operationError ?? "")
+            Text(presentedOperationError ?? "")
         }
     }
 
     private func open(_ file: RemoteFile) {
         if file.isDirectory {
-            Task { await workspace.openDirectory(file.path) }
+            Task { await workspace.sftpSession.openDirectory(file.path) }
         } else {
             workspace.download(file)
             showingTransfers = true
@@ -280,8 +291,12 @@ struct MobileWorkspaceView: View {
         uploadConflictPresented = false
     }
 
+    private var presentedOperationError: String? {
+        workspace.operationError ?? workspace.sftpSession.operationError
+    }
+
     private var showsJourney: Bool {
-        workspace.journey.isPresented || workspace.authenticationRequired || workspace.pendingHostKey != nil
+        workspace.journey.isPresented || workspace.authenticationRequired || workspace.hostKeyPrompt != nil
     }
 
     private var connectionJourney: some View {
@@ -349,14 +364,14 @@ private struct MobileCommandGeneratorOverlay: View {
 }
 
 private struct MobileUploadNoticeOverlay: View {
-    let notice: MobileUploadNotice
+    let notice: WorkspaceUploadNotice
 
     var body: some View {
         MobileTransientOverlay {
             symbol
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.headline)
-                Text(detail)
+                Text(notice.title).font(.headline)
+                Text(notice.detail)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -371,28 +386,9 @@ private struct MobileUploadNoticeOverlay: View {
         switch notice {
         case .preparing:
             ProgressView().controlSize(.small)
-        case .queued:
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-        case .rejected:
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-        }
-    }
-
-    private var title: String {
-        switch notice {
-        case .preparing: String(localized: "Preparing upload…")
-        case .queued(let count, _):
-            count == 1
-                ? String(localized: "Added 1 item to Transfers")
-                : String(localized: "Added \(count) items to Transfers")
-        case .rejected: String(localized: "Can't upload here")
-        }
-    }
-
-    private var detail: String {
-        switch notice {
-        case .preparing(let path), .queued(_, let path): path
-        case .rejected(let reason): reason
+        case .queued, .rejected:
+            Image(systemName: notice.symbol ?? "")
+                .foregroundStyle(notice.isRejected ? .orange : .green)
         }
     }
 }
@@ -459,17 +455,17 @@ private struct MobileTerminalSearchModifier: ViewModifier {
             )
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
-            .onSubmit(of: .search) { workspace.navigateFind(.previous) }
+            .onSubmit(of: .search) { workspace.find.presentAndNavigate(.previous) }
     }
 
     private var query: Binding<String> {
         Binding(
-            get: { workspace.findQuery },
+            get: { workspace.find.query },
             set: { query in
                 queryRevision &+= 1
                 let revision = queryRevision
                 guard query.isEmpty else {
-                    workspace.updateFindQuery(query)
+                    workspace.find.updateQuery(query)
                     return
                 }
 
@@ -478,8 +474,8 @@ private struct MobileTerminalSearchModifier: ViewModifier {
                 // genuine clear is still sent to Ghostty while dismissal keeps
                 // the retained query for the next presentation.
                 DispatchQueue.main.async {
-                    guard revision == queryRevision, workspace.isFindPresented else { return }
-                    workspace.updateFindQuery("")
+                    guard revision == queryRevision, workspace.find.isPresented else { return }
+                    workspace.find.updateQuery("")
                 }
             }
         )
@@ -487,13 +483,13 @@ private struct MobileTerminalSearchModifier: ViewModifier {
 
     private var presentation: Binding<Bool> {
         Binding(
-            get: { workspace.isFindPresented },
+            get: { workspace.find.isPresented },
             set: { presented in
                 if presented {
                     queryRevision &+= 1
-                    workspace.presentFind()
-                } else if workspace.isFindPresented {
-                    workspace.dismissFind()
+                    workspace.find.present()
+                } else if workspace.find.isPresented {
+                    workspace.find.dismiss()
                 }
             }
         )

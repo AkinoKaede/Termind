@@ -74,21 +74,21 @@ struct WorkspaceContentView: View {
                 // F3 is ⌘G's twin and carries the same mapping: `.previous`
                 // walks toward older output, which is the direction that finds
                 // matches when a search starts at the bottom of the buffer.
-                Button("") { sshSession?.presentFindAndNavigate(.previous) }
+                Button("") { sshSession?.find.presentAndNavigate(.previous) }
                     .termindShortcut(.f3, modifiers: [])
                     .disabled(!isActive || sshSession == nil)
 
-                Button("") { sshSession?.presentFindAndNavigate(.next) }
+                Button("") { sshSession?.find.presentAndNavigate(.next) }
                     .termindShortcut(.f3, modifiers: .shift)
                     .disabled(!isActive || sshSession == nil)
 
-                Button("") { sshSession?.dismissFind() }
+                Button("") { sshSession?.find.dismiss() }
                     .termindShortcut(.escape, modifiers: [])
-                    .disabled(!isActive || sshSession?.isFindPresented != true)
+                    .disabled(!isActive || sshSession?.find.isPresented != true)
 
-                Button("") { sshSession?.dismissFind() }
+                Button("") { sshSession?.find.dismiss() }
                     .termindShortcut(.escape, modifiers: .shift)
-                    .disabled(!isActive || sshSession?.isFindPresented != true)
+                    .disabled(!isActive || sshSession?.find.isPresented != true)
             }
             .opacity(0)
             .frame(width: 0, height: 0)
@@ -533,7 +533,12 @@ private struct PaneView: View {
     private var paneDropPresentation: DropTargetPresentation? {
         switch pane.content {
         case .sshSession(let sshSession):
-            if let problem = TerminalUploadTarget.problem(for: sshSession) {
+            if let problem = TerminalUploadAvailability.problem(
+                isConnected: sshSession.status == .connected,
+                hasTransferConfiguration: sshSession.transferConfiguration != nil,
+                isWorkingDirectoryPending: sshSession.homeResolution.isPending,
+                workingDirectory: sshSession.workingDirectory
+            ) {
                 return DropTargetPresentation(
                     title: String(localized: "Can't Upload Here"),
                     detail: problem,

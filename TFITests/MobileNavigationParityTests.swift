@@ -78,7 +78,8 @@ struct MobileNavigationParityTests {
         let workspace = try String(
             contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"), encoding: .utf8)
         #expect(!workspace.contains("\"Connection Error\""))
-        #expect(workspace.contains("get: { workspace.operationError != nil }"))
+        #expect(workspace.contains("get: { presentedOperationError != nil }"))
+        #expect(workspace.contains("workspace.sftpSession.operationError = nil"))
         #expect(workspace.contains("cancel: { closeWorkspace(workspace.id) }"))
 
         let metrics = try String(

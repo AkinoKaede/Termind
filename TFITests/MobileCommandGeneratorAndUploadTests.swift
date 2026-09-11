@@ -427,7 +427,7 @@ struct MobileUploadBatchTests {
         defer { workspace.disconnect() }
         workspace.connect()
         #expect(await eventually { workspace.connected })
-        await workspace.openDirectory("/srv/incoming")
+        await workspace.sftpSession.openDirectory("/srv/incoming")
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         let folder = root.appending(path: "bundle", directoryHint: .isDirectory)
         let nested = folder.appending(path: "nested", directoryHint: .isDirectory)

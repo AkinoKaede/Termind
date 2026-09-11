@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 struct MobileTerminalSettingsView: View {
     let model: TerminalSettingsModel

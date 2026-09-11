@@ -23,8 +23,10 @@ final class SerialSessionModel: Identifiable {
     private(set) var configuration: SerialConnectionConfiguration
     var status: ConnectionStatus = .disconnected
     var hasUnreadOutput = false
-    private(set) var findQuery = ""
-    private(set) var isFindPresented = false
+    @ObservationIgnored lazy var find = TerminalFindController(
+        perform: { [weak self] in self?.performFind($0) },
+        focus: { [weak self] in self?.requestTerminalFocus() }
+    )
 
     let terminalState: TerminalViewState
     #if canImport(AppKit)
@@ -165,27 +167,6 @@ final class SerialSessionModel: Identifiable {
         #endif
     }
 
-    func presentFind() {
-        let wasPresented = isFindPresented
-        isFindPresented = true
-        if !wasPresented, !findQuery.isEmpty { performFind(TerminalFindBinding.search(findQuery)) }
-    }
-    func updateFindQuery(_ query: String) {
-        guard query != findQuery else { return }
-        findQuery = query
-        performFind(TerminalFindBinding.search(query))
-    }
-    func presentFindAndNavigate(_ direction: TerminalFindDirection) {
-        presentFind()
-        guard !findQuery.isEmpty else { return }
-        performFind(TerminalFindBinding.navigate(direction))
-    }
-    func dismissFind() {
-        guard isFindPresented else { return }
-        performFind(TerminalFindBinding.end)
-        isFindPresented = false
-        requestTerminalFocus()
-    }
     private func performFind(_ action: String) {
         #if canImport(AppKit)
             terminalViewOwner.performBindingAction(action)
@@ -215,7 +196,7 @@ struct SerialTerminalView: View {
         .focused($focused)
         .onAppear {
             session.terminalState.isSurfaceVisible = isVisible
-            session.terminalState.applyAppearance(terminalAppearance.preferences)
+            session.terminalState.applyPreferences(terminalAppearance.preferences)
             if session.status == .connecting { session.connect() }
             if requestsFocus { session.requestTerminalFocus() }
         }
@@ -228,7 +209,7 @@ struct SerialTerminalView: View {
             if !presented, requestsFocus { session.requestTerminalFocus() }
         }
         .onChange(of: terminalAppearance.preferences) { _, value in
-            session.terminalState.applyAppearance(value)
+            session.terminalState.applyPreferences(value)
         }
         .onDisappear { session.terminalState.isSurfaceVisible = false }
     }

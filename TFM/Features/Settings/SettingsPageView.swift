@@ -3,6 +3,7 @@ import GhosttyTheme
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 

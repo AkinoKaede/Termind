@@ -290,13 +290,11 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     private func preparation(for host: Host, server: ServerMetric) throws -> SSHConnectionPreparation {
-        var result = try hosts.prepareSSHConnection(for: host, submissions: submissions[server.id] ?? [:])
-        for index in result.nodes.indices {
-            if let key = temporaryKeys[server.id]?[result.nodes[index].host.id] {
-                result.nodes[index].trustedKeys.insert(key)
-            }
-        }
-        return result
+        try hosts.prepareSSHConnection(
+            for: host,
+            submissions: submissions[server.id] ?? [:],
+            temporaryHostKeys: temporaryKeys[server.id] ?? [:]
+        )
     }
 
     private func requestAuthentication(_ server: ServerMetric, hostID: UUID, error: TermindSSHError) {

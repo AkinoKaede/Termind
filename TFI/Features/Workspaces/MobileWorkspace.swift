@@ -21,12 +21,6 @@ private nonisolated enum MobileSSHSessionEvent: Sendable {
     case shellIntegration(SSHShellIntegrationEvent)
 }
 
-nonisolated enum MobileUploadNotice: Equatable, Sendable {
-    case preparing(String)
-    case queued(Int, String)
-    case rejected(String)
-}
-
 private struct MobilePendingUpload {
     var batch: SFTPLocalUploadBatch
     var destination: String
@@ -59,10 +53,8 @@ final class MobileWorkspace: Identifiable {
     var journey: ConnectionJourney { connection.journey }
     var operationError: String?
     private var connectionFailure: String?
-    private var pendingHostKeyHostID: UUID?
     private(set) var authenticationPrompt: SSHAuthenticationPrompt?
     private var authenticationMode = SSHAuthenticationPrompt.Mode.localIdentity
-    var pendingHostKey: SSHHostKeyObservation?
     var authenticationRequired = false
     var username = ""
     private var authenticationHostID: UUID?
@@ -71,20 +63,20 @@ final class MobileWorkspace: Identifiable {
         set { connection.temporaryHostKeys = newValue }
     }
     private var submissions: [UUID: SSHAuthenticationSubmission] = [:]
-    var path = "/"
-    private(set) var files: [RemoteFile] = []
+    let sftpSession = MobileSFTPSessionModel()
     let transfers: SFTPTransferCoordinator?
     private var transferConfiguration: SSHConnectionConfiguration?
-    private var directoryRequest = UUID()
-    private(set) var uploadNotice: MobileUploadNotice?
+    private(set) var uploadNotice: WorkspaceUploadNotice?
     private var pendingUpload: MobilePendingUpload?
     private var uploadPreparationTask: Task<Void, Never>?
     private var uploadEnqueueTask: Task<Void, Never>?
     private var uploadNoticeTask: Task<Void, Never>?
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
-    var isFindPresented = false
-    var findQuery = ""
+    @ObservationIgnored lazy var find = TerminalFindController(
+        perform: { [weak self] in _ = self?.terminal.performBindingAction($0) },
+        focus: { [weak self] in self?.terminal.requestFocus() }
+    )
     private var activeHistoryID: UUID?
     private var shellIntegrationAvailable = false
     private(set) var pendingInitialCommand: String?
@@ -121,25 +113,25 @@ final class MobileWorkspace: Identifiable {
             return RemotePath.normalized(workingDirectory)
         case .sftp:
             guard uploadTargetProblem == nil else { return nil }
-            return path
+            return sftpSession.path
         }
     }
 
     var uploadTargetProblem: String? {
-        guard connected, transferConfiguration != nil else {
-            return descriptor.kind == .ssh
-                ? String(localized: "The SSH session is not ready for file transfer.")
-                : String(localized: "The SFTP session is not connected.")
+        switch descriptor.kind {
+        case .ssh:
+            return TerminalUploadAvailability.problem(
+                isConnected: connected,
+                hasTransferConfiguration: transferConfiguration != nil,
+                isWorkingDirectoryPending: workingDirectory == nil,
+                workingDirectory: workingDirectory
+            )
+        case .sftp:
+            guard connected, transferConfiguration != nil, sftp != nil else {
+                return String(localized: "The SFTP session is not connected.")
+            }
+            return nil
         }
-        if descriptor.kind == .ssh,
-            workingDirectory == nil || workingDirectory?.isEmpty == true
-        {
-            return String(localized: "Wait for the shell prompt to report its current directory.")
-        }
-        if descriptor.kind == .sftp, sftp == nil {
-            return String(localized: "The SFTP session is not connected.")
-        }
-        return nil
     }
     private var connectionResumeIntent: MobileWorkspaceConnectionResumeIntent
 
@@ -205,19 +197,14 @@ final class MobileWorkspace: Identifiable {
             mode: authenticationMode)
     }
 
-    var hostKeyPrompt: SSHHostKeyPrompt? {
-        guard let observation = pendingHostKey else { return nil }
-        let count = pendingHostKeyHostID.flatMap { hosts.host($0) }.map { hosts.knownHosts(for: $0).count } ?? 0
-        return SSHHostKeyPrompt(
-            observation: observation, kind: count == 0 ? .firstUse : .additionalKey(trustedKeyCount: count))
-    }
+    var hostKeyPrompt: SSHHostKeyPrompt? { connection.pendingHostKey }
 
     private func preparation(for host: Host) throws -> SSHConnectionPreparation {
-        var result = try hosts.prepareSSHConnection(for: host, submissions: submissions)
-        for index in result.nodes.indices {
-            if let key = temporaryKeys[result.nodes[index].host.id] { result.nodes[index].trustedKeys.insert(key) }
-        }
-        return result
+        try hosts.prepareSSHConnection(
+            for: host,
+            submissions: submissions,
+            temporaryHostKeys: temporaryKeys
+        )
     }
 
     func submitAuthentication(
@@ -253,31 +240,6 @@ final class MobileWorkspace: Identifiable {
 
         journey.resume()
         connect()
-    }
-
-    func presentFind() {
-        let wasOpen = isFindPresented
-        isFindPresented = true
-        if !wasOpen && !findQuery.isEmpty {
-            _ = terminal.performBindingAction(TerminalFindBinding.search(findQuery))
-        }
-    }
-
-    func updateFindQuery(_ query: String) {
-        findQuery = query
-        _ = terminal.performBindingAction(TerminalFindBinding.search(query))
-    }
-
-    func navigateFind(_ direction: TerminalFindDirection) {
-        presentFind()
-        guard !findQuery.isEmpty else { return }
-        _ = terminal.performBindingAction(TerminalFindBinding.navigate(direction))
-    }
-
-    func dismissFind() {
-        _ = terminal.performBindingAction(TerminalFindBinding.end)
-        isFindPresented = false
-        terminal.requestFocus()
     }
 
     func insertHistory(_ command: String) {
@@ -484,7 +446,9 @@ final class MobileWorkspace: Identifiable {
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpSession,
             username: hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
-        let progressHandler = connectionProgressHandler(for: token)
+        let progressHandler = connection.progressHandler(attemptID: token) { [weak self] in
+            self?.generation == $0
+        }
         attempt = Task { [weak self] in
             guard let self else { return }
             defer { if generation == token { busy = false } }
@@ -509,10 +473,14 @@ final class MobileWorkspace: Identifiable {
                             throw TermindSSHError.hostKeyChanged(
                                 expected: trusted.map(\.fingerprint), received: observation.fingerprint)
                         }
-                        pendingHostKeyHostID = endpoint.id
-                        pendingHostKey = observation
-                        connection.pauseForUserInteraction()
-                        journey.waitForHostKey(at: endpoint.id, fingerprint: observation.fingerprint)
+                        connection.waitForHostKey(
+                            SSHHostKeyPrompt(
+                                observation: observation,
+                                kind: trusted.isEmpty ? .firstUse : .additionalKey(trustedKeyCount: trusted.count)
+                            ),
+                            hostID: endpoint.id,
+                            fingerprint: observation.fingerprint
+                        )
                         status = String(localized: "Waiting for approval")
                         return
                     }
@@ -551,12 +519,22 @@ final class MobileWorkspace: Identifiable {
                         return
                     }
                     sftp = client
-                    if !reconnecting {
-                        path =
-                            host.sftpSessionInitialPath.isEmpty
+                    let initialPath =
+                        reconnecting
+                        ? sftpSession.path
+                        : host.sftpSessionInitialPath.isEmpty
                             ? try await client.homeDirectory() : host.sftpSessionInitialPath
-                    }
-                    files = try await client.listDirectory(at: path)
+                    try await sftpSession.attach(
+                        fileSystem: client,
+                        path: initialPath,
+                        connectionGeneration: token,
+                        handlesConnectionError: { [weak self] error in
+                            self?.handleSFTPConnectionError(error, connection: token) == true
+                        },
+                        didChangePath: { [weak self] in
+                            self?.cancelPendingUpload()
+                        }
+                    )
                     journey.receive(.connected(host.id))
                 }
                 guard generation == token, !Task.isCancelled else { return }
@@ -632,6 +610,7 @@ final class MobileWorkspace: Identifiable {
                 await sftp?.disconnect()
                 ssh = nil
                 sftp = nil
+                sftpSession.detach()
             }
         }
     }
@@ -660,6 +639,7 @@ final class MobileWorkspace: Identifiable {
         let oldSFTP = sftp
         ssh = nil
         sftp = nil
+        sftpSession.detach()
         busy = false
         connected = false
         transferConfiguration = nil
@@ -692,14 +672,14 @@ final class MobileWorkspace: Identifiable {
         let oldSFTP = sftp
         ssh = nil
         sftp = nil
+        sftpSession.detach()
         busy = false
         connected = false
         transferConfiguration = nil
         activeHistoryID = nil
         authenticationRequired = false
         authenticationPrompt = nil
-        pendingHostKeyHostID = nil
-        pendingHostKey = nil
+        connection.clearHostKeyPrompt()
         temporaryKeys.removeAll()
         submissions.removeAll()
         connectionFailure = nil
@@ -758,6 +738,7 @@ final class MobileWorkspace: Identifiable {
         let oldSFTP = sftp
         ssh = nil
         sftp = nil
+        sftpSession.detach()
         busy = false
         connected = false
         transferConfiguration = nil
@@ -782,17 +763,12 @@ final class MobileWorkspace: Identifiable {
     }
 
     func trustHostKey(remember: Bool = true) {
-        guard let observation = pendingHostKey else { return }
+        guard let observation = connection.pendingHostKey?.observation else { return }
         if remember {
-            hosts.trust(
-                KnownHostEntry(
-                    hostname: observation.hostname, port: observation.port,
-                    algorithm: observation.algorithm, fingerprint: observation.fingerprint, addedAt: .now))
+            connection.trustHostKey(observation, using: hosts)
         } else {
-            temporaryKeys[pendingHostKeyHostID ?? descriptor.hostID] = observation.identity
+            guard connection.useTemporaryHostKey(observation) else { return }
         }
-        journey.resume()
-        pendingHostKey = nil
         connect()
     }
 
@@ -801,14 +777,11 @@ final class MobileWorkspace: Identifiable {
         stopSSHEventConsumer()
         resetCommandGeneratorShellState()
         connectionResumeIntent = .none
-        journey.hide()
-        connection.resetRecovery()
+        connection.disconnect()
         connectionFailure = nil
         operationError = nil
-        pendingHostKey = nil
         authenticationRequired = false
         authenticationPrompt = nil
-        temporaryKeys.removeAll()
         submissions.removeAll()
 
         activeHistoryID = nil
@@ -820,17 +793,13 @@ final class MobileWorkspace: Identifiable {
         let oldSFTP = sftp
         ssh = nil
         sftp = nil
+        sftpSession.detach()
         Task {
             await oldSSH?.disconnect()
             await oldSFTP?.disconnect()
         }
         busy = false
         connected = false
-
-        submissions.removeAll()
-        authenticationRequired = false
-        authenticationPrompt = nil
-        pendingHostKey = nil
         status = String(localized: "Disconnected")
     }
 
@@ -867,30 +836,11 @@ final class MobileWorkspace: Identifiable {
         )
     }
 
-    private func connectionProgressHandler(
-        for connectionGeneration: UUID
-    ) -> SSHRouteProgressHandler {
-        { [weak self] event in
-            Task { @MainActor in
-                guard let self, self.generation == connectionGeneration else { return }
-                self.journey.receive(event)
-            }
-        }
-    }
-
     private func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?) {
         hosts.recordRemoteSystemInfo(systemInfo, for: descriptor.hostID)
-        guard let systemInfo, let kernelName = systemInfo.kernelName else { return }
-        let distribution: DetectedDistribution?
-        if kernelName.caseInsensitiveCompare("Linux") == .orderedSame {
-            guard let id = systemInfo.distributionID,
-                let detected = DetectedDistribution(
-                    id: id, likeIDs: systemInfo.distributionLikeIDs)
-            else { return }
-            distribution = detected
-        } else {
-            distribution = nil
-        }
+        guard let systemInfo,
+            case .resolved(let distribution) = systemInfo.distributionDetection
+        else { return }
         let iconAsset = LinuxDistributionIconCatalog.entry(for: distribution)?.asset
         guard activitySession.iconAsset != iconAsset else { return }
         activitySession.iconAsset = iconAsset
@@ -905,7 +855,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     private var hasActiveConnectionFlow: Bool {
-        if connected || busy || connection.isRecovering || authenticationRequired || pendingHostKey != nil {
+        if connected || busy || connection.isRecovering || authenticationRequired || connection.pendingHostKey != nil {
             return true
         }
         switch journey.phase {
@@ -923,82 +873,6 @@ final class MobileWorkspace: Identifiable {
             host: host, route: hosts.route(for: host),
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpSession,
             username: hosts.identity(for: host)?.username, mode: mode)
-    }
-
-    func openDirectory(_ directory: String) async {
-        guard let sftp else { return }
-        let connection = generation
-        let request = UUID()
-        directoryRequest = request
-        do {
-            let entries = try await sftp.listDirectory(at: directory)
-            guard generation == connection, directoryRequest == request else { return }
-            if path != directory { cancelPendingUpload() }
-            path = directory
-            files = entries.sorted { ($0.isDirectory ? 0 : 1, $0.name) < ($1.isDirectory ? 0 : 1, $1.name) }
-        } catch {
-            guard generation == connection, directoryRequest == request else { return }
-            if handleSFTPConnectionError(error, connection: connection) { return }
-            operationError = error.localizedDescription
-        }
-    }
-
-    func rename(_ file: RemoteFile, to name: String) async throws {
-        guard validName(name) else { throw CocoaError(.fileWriteInvalidFileName) }
-        guard let sftp else { throw TermindSSHError.disconnected }
-        let connection = generation
-        do {
-            try await sftp.rename(
-                from: file.path, to: RemotePath.join(RemotePath.parent(of: file.path), name), overwrite: false)
-        } catch {
-            if handleSFTPConnectionError(error, connection: connection) { return }
-            throw error
-        }
-        guard connection == generation else { throw CancellationError() }
-        await openDirectory(path)
-    }
-
-    func setPermissions(_ file: RemoteFile, mode: UInt32) async throws {
-        guard let sftp else { throw TermindSSHError.disconnected }
-        let connection = generation
-        do {
-            try await sftp.setPermissions(at: file.path, to: mode & 0o7777)
-        } catch {
-            if handleSFTPConnectionError(error, connection: connection) { return }
-            throw error
-        }
-        guard connection == generation else { throw CancellationError() }
-        await openDirectory(path)
-    }
-
-    func createDirectory(_ name: String) async {
-        guard let sftp, validName(name) else { return }
-        let connection = generation
-        do {
-            try await sftp.createDirectory(at: RemotePath.join(path, name))
-            await openDirectory(path)
-        } catch {
-            if !handleSFTPConnectionError(error, connection: connection) {
-                operationError = error.localizedDescription
-            }
-        }
-    }
-
-    func delete(_ file: RemoteFile) async {
-        guard let sftp else { return }
-        let connection = generation
-        do {
-            if file.isDirectory {
-                try await sftp.removeDirectory(at: file.path)
-            } else {
-                try await sftp.removeFile(at: file.path)
-            }
-            await openDirectory(path)
-        } catch {
-            if !handleSFTPConnectionError(error, connection: connection) {
-                operationError = error.localizedDescription
-            }
-        }
     }
 
     @discardableResult
@@ -1101,13 +975,13 @@ final class MobileWorkspace: Identifiable {
                             self.descriptor.kind == .sftp,
                             self.generation == pendingUpload.connectionGeneration
                         else { return }
-                        await self.openDirectory(self.path)
+                        await self.sftpSession.openDirectory(self.sftpSession.path)
                     }
                 }
                 if pendingUpload.ownsClient { await pendingUpload.client.disconnect() }
                 guard generation == pendingUpload.connectionGeneration else { return }
                 if result.changedRemoteDirectories, descriptor.kind == .sftp {
-                    await openDirectory(path)
+                    await sftpSession.openDirectory(sftpSession.path)
                 }
                 showUploadNotice(
                     .queued(pendingUpload.batch.rootCount, pendingUpload.destination)
@@ -1141,7 +1015,7 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
-    private func showUploadNotice(_ notice: MobileUploadNotice) {
+    private func showUploadNotice(_ notice: WorkspaceUploadNotice) {
         uploadNoticeTask?.cancel()
         uploadNotice = notice
         uploadNoticeTask = Task { [weak self] in
@@ -1155,7 +1029,7 @@ final class MobileWorkspace: Identifiable {
     func download(_ file: RemoteFile) {
         guard let transfers, let configuration = transferConfiguration, connected, !file.isDirectory else { return }
         do {
-            guard validName(file.name) else { throw CocoaError(.fileWriteInvalidFileName) }
+            guard RemoteFileName.isValid(file.name) else { throw CocoaError(.fileWriteInvalidFileName) }
             let directory = FileManager.default.temporaryDirectory.appending(
                 path: "TermindDownloads", directoryHint: .isDirectory
             )
@@ -1166,11 +1040,6 @@ final class MobileWorkspace: Identifiable {
                 remotePath: file.path, byteCount: file.size, hostID: descriptor.hostID,
                 configuration: configuration, scopedRoot: directory, overwrite: false)
         } catch { operationError = error.localizedDescription }
-    }
-
-    private func validName(_ name: String) -> Bool {
-        !name.isEmpty && name != "." && name != ".." && !name.contains("/")
-            && !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
     }
 
     private func handleSFTPConnectionError(_ error: any Error, connection: UUID) -> Bool {

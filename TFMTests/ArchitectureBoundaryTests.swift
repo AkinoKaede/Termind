@@ -220,6 +220,80 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func remoteDirectoryStateDependsOnTheApplicationPort() throws {
+        let value = try String(
+            contentsOf: sourceRoot.appending(path: "../Frameworks/TermindDomain/Transfers/RemoteFile.swift"),
+            encoding: .utf8
+        )
+        #expect(value.contains("struct RemoteFile"))
+        #expect(!value.contains("symbol:"))
+        #expect(!value.contains("sftpKindDescription"))
+
+        let transport = try String(
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift"),
+            encoding: .utf8
+        )
+        #expect(transport.contains("SFTPClientProtocol: RemoteFileSystem"))
+        #expect(!transport.contains("struct RemoteFile"))
+
+        let mobile = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Application/Transfers/MobileSFTPSessionModel.swift"),
+            encoding: .utf8
+        )
+        #expect(mobile.contains("any RemoteFileSystem"))
+        #expect(!mobile.contains("TermindRemoteInfrastructure"))
+
+        let workspace = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Workspaces/MobileWorkspace.swift"),
+            encoding: .utf8
+        )
+        #expect(!workspace.contains("private(set) var files: [RemoteFile]"))
+        #expect(!workspace.contains("var path = \"/\""))
+    }
+
+    @Test
+    func terminalPresentationPolicyIsSharedAcrossApps() throws {
+        let presentation = try String(
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift"),
+            encoding: .utf8
+        )
+        #expect(presentation.contains("enum TermindTerminalThemeCatalog"))
+        #expect(presentation.contains("func applyPreferences"))
+        #expect(
+            !FileManager.default.fileExists(
+                atPath: sourceRoot.appending(path: "../TFI/Platform/MobileTerminalAppearance.swift").path
+            )
+        )
+
+        let desktopTheme = try String(
+            contentsOf: sourceRoot.appending(path: "Design/TerminalTheme.swift"), encoding: .utf8)
+        #expect(!desktopTheme.contains("enum TermindTerminalThemeCatalog"))
+        #expect(!desktopTheme.contains("func applyAppearance"))
+
+        for path in [
+            "Features/Terminal/SSHSessionModel.swift",
+            "Features/Terminal/SerialSessionModel.swift",
+            "../TFI/Features/Workspaces/MobileWorkspace.swift",
+        ] {
+            let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
+            #expect(source.contains("TerminalFindController("), "\(path) does not use shared Find state")
+            #expect(!source.contains("var findQuery ="), "\(path) owns a second Find query")
+        }
+
+        for path in [
+            "UI/Components/ConnectionJourneyView.swift",
+            "../TFI/UI/Components/MobileConnectionJourneyView.swift",
+        ] {
+            let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
+            #expect(source.contains("ConnectionJourneyHeader("))
+            #expect(source.contains("ConnectionJourneyReconnectStatus("))
+            #expect(!source.contains("private var headerSymbol"))
+        }
+    }
+
+    @Test
     func retiredContextPanelTypesAreGone() throws {
         for file in try swiftFiles(in: "Features") {
             let text = try String(contentsOf: file, encoding: .utf8)

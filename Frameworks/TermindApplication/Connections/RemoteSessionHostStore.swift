@@ -42,3 +42,19 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension HostLibraryModel: RemoteSessionHostStore {}
+
+extension RemoteSessionHostStore {
+    public func prepareSSHConnection(
+        for host: Host,
+        submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+    ) throws -> SSHConnectionPreparation {
+        var preparation = try prepareSSHConnection(for: host, submissions: submissions)
+        for index in preparation.nodes.indices {
+            if let key = temporaryHostKeys[preparation.nodes[index].host.id] {
+                preparation.nodes[index].trustedKeys.insert(key)
+            }
+        }
+        return preparation
+    }
+}

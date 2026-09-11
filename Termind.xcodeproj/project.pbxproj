@@ -42,6 +42,13 @@
 		A04F3C049C318FA491B42039 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		A671EB6598B90BA03EF86CE7 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		A9A947EA53E15BD04CE319C1 /* TermindPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */; };
+		AA1200000000000000000001 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
+		AA1200000000000000000002 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
+		AA1200000000000000000005 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
+		AA1200000000000000000006 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
+		AA1200000000000000000009 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
+		AA1200000000000000000010 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
+		AA1200000000000000000013 /* TermindPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */; };
 		AB2210ABB10F707CBFB01C78 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
 		ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
 		ABCDEF020000000000000001 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
@@ -77,6 +84,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		AA1200000000000000000011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 727F565FD44C8D180B283598;
+			remoteInfo = TermindPresentation;
+		};
 		0A35D3902E3320DBDB756D0B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = TRMD00000000000000000090 /* Project object */;
@@ -525,6 +539,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				ABCDEF020000000000000003 /* MarkdownView in Frameworks */,
+				AA1200000000000000000009 /* GhosttyKit in Frameworks */,
+				AA1200000000000000000002 /* GhosttyTheme in Frameworks */,
+				AA1200000000000000000001 /* GhosttyTerminal in Frameworks */,
 				A671EB6598B90BA03EF86CE7 /* TermindDomain.framework in Frameworks */,
 				38B690B07BB71C9BAA6B45B0 /* TermindApplication.framework in Frameworks */,
 			);
@@ -604,6 +621,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA1200000000000000000006 /* GhosttyTheme in Frameworks */,
+				AA1200000000000000000005 /* GhosttyTerminal in Frameworks */,
 				8BFD569E84CA09FDEFF87698 /* TermindPresentation.framework in Frameworks */,
 				76535271991F0D93E7277E6F /* TermindDomain.framework in Frameworks */,
 				B08DD88AB7C2444E5AEC19BC /* TermindApplication.framework in Frameworks */,
@@ -617,6 +636,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA1200000000000000000010 /* MarkdownView in Frameworks */,
+				AA1200000000000000000013 /* TermindPresentation.framework in Frameworks */,
 				0202B16D630CC57432748F0C /* TermindDomain.framework in Frameworks */,
 				6995A68F3132E9C67B0DA01E /* TermindApplication.framework in Frameworks */,
 				B616FF213FC31346E6BB3817 /* TermindInfrastructure.framework in Frameworks */,
@@ -782,6 +803,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA1200000000000000000012 /* PBXTargetDependency */,
 				1DD69C71517BBB3B34BBBA0C /* PBXTargetDependency */,
 				C81555991C1262931C1ED5A3 /* PBXTargetDependency */,
 				BAFE3F1B3AA7972D0C429218 /* PBXTargetDependency */,
@@ -794,6 +816,7 @@
 			name = FrameworkTests;
 			packageProductDependencies = (
 				TRMD0000000000000010001B /* AgentKit */,
+				TRMD00000000000000100017 /* MarkdownView */,
 			);
 			productName = FrameworkTests;
 			productReference = 8C9A1D5C026A485801BF7908 /* FrameworkTests.xctest */;
@@ -819,6 +842,9 @@
 			name = TermindPresentation;
 			packageProductDependencies = (
 				TRMD00000000000000100017 /* MarkdownView */,
+				TRMD00000000000000100016 /* GhosttyKit */,
+				TRMD00000000000000100012 /* GhosttyTerminal */,
+				TRMD00000000000000100013 /* GhosttyTheme */,
 			);
 			productName = TermindPresentation;
 			productReference = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */;
@@ -1000,6 +1026,8 @@
 			name = TFITests;
 			packageProductDependencies = (
 				TRMD0000000000000010001B /* AgentKit */,
+				TRMD00000000000000100012 /* GhosttyTerminal */,
+				TRMD00000000000000100013 /* GhosttyTheme */,
 			);
 			productName = TFITests;
 			productReference = 13753997381D54B4D92FDDD5 /* TFITests.xctest */;
@@ -1367,6 +1395,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AA1200000000000000000012 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 727F565FD44C8D180B283598 /* TermindPresentation */;
+			targetProxy = AA1200000000000000000011 /* PBXContainerItemProxy */;
+		};
 		00758A789ECB9643122A60EC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = B243FDB536F5111B356353DA /* TermindDomain */;

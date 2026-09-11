@@ -408,8 +408,8 @@ final class WindowModel {
         guard findKind != nil else { return }
         isToolbarFindFocused = true
         if findKind == .terminal {
-            focusedSSHSession?.presentFind()
-            focusedSerialSession?.presentFind()
+            focusedSSHSession?.find.present()
+            focusedSerialSession?.find.present()
         }
         findFocusRequest &+= 1
         // On the next turn, so the update the two lines above set off has
@@ -424,8 +424,8 @@ final class WindowModel {
     /// a reader means by "next". Return in the Find field is bound the same way;
     /// the two used to disagree.
     func navigateTerminalFind(_ direction: TerminalFindDirection) {
-        focusedSSHSession?.presentFindAndNavigate(direction)
-        focusedSerialSession?.presentFindAndNavigate(direction)
+        focusedSSHSession?.find.presentAndNavigate(direction)
+        focusedSerialSession?.find.presentAndNavigate(direction)
     }
 
     /// The workspace whose content the detail column shows.

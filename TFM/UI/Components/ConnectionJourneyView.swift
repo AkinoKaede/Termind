@@ -163,7 +163,15 @@ struct ConnectionJourneyView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            ConnectionJourneyHeader(
+                journey: journey,
+                selectedForeground: TermindColor.selectedForeground,
+                adaptsLogButtonForAccessibility: false
+            ) {
+                withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
+                    journey.showsLogs.toggle()
+                }
+            }
 
             ConnectionJourneyRouteView(journey: journey)
 
@@ -177,43 +185,6 @@ struct ConnectionJourneyView: View {
         .background { ConnectionJourneyBackground() }
         .transition(.opacity)
         .accessibilityElement(children: .contain)
-    }
-
-    private var header: some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(Color.accentColor.gradient)
-                .frame(width: 52, height: 52)
-                .overlay {
-                    Image(systemName: headerSymbol)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(TermindColor.selectedForeground)
-                }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(journey.destination?.name ?? String(localized: "SSH Connection"))
-                    .font(.title3.weight(.semibold))
-                    .lineLimit(1)
-                Text(
-                    headerDetail
-                )
-                .font(.callout.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            }
-
-            Spacer()
-
-            Button(journey.showsLogs ? "Hide Logs" : "Show Logs") {
-                withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
-                    journey.showsLogs.toggle()
-                }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-        }
-        .padding(.top, 30)
-        .padding(.horizontal, 34)
     }
 
     @ViewBuilder
@@ -243,19 +214,18 @@ struct ConnectionJourneyView: View {
                 compactActions: compactFailureActions
             )
         } else if journey.mode == .reconnection, let reconnectState {
-            JourneyReconnectStatus(
+            ConnectionJourneyReconnectStatus(
                 state: reconnectState,
+                accent: TermindColor.accent,
                 retryNow: retryReconnectNow ?? retry,
                 stop: stopReconnecting ?? cancel
             )
         } else {
-            HStack(spacing: 9) {
-                Image(systemName: statusSymbol)
-                    .foregroundStyle(statusTint)
-                Text(statusText)
-                    .font(.headline)
-            }
-            .padding(.top, 8)
+            ConnectionJourneyStatus(
+                journey: journey,
+                accent: TermindColor.accent,
+                danger: TermindColor.danger
+            )
         }
     }
 
@@ -291,60 +261,6 @@ struct ConnectionJourneyView: View {
             ConnectionLogListItem(
                 id: $0.id, date: $0.date, endpoint: $0.endpoint, message: $0.message
             )
-        }
-    }
-
-    private var statusText: String {
-        switch journey.phase {
-        case .connecting: String(localized: "Establishing connection…")
-        case .waiting: String(localized: "Waiting for you…")
-        case .succeeded:
-            switch journey.purpose {
-            case .sshSession, .serialSession: String(localized: "Terminal ready")
-            case .sftpSession: String(localized: "File browser ready")
-            case .metrics: String(localized: "Metrics ready")
-            }
-        case .failed(let message): message
-        case .hidden: ""
-        }
-    }
-
-    private var headerDetail: String {
-        let protocolName: String =
-            switch journey.purpose {
-            case .sshSession, .metrics: "SSH"
-            case .sftpSession: "SFTP"
-            case .serialSession: String(localized: "Serial")
-            }
-        let address = journey.destination?.address ?? ""
-        if journey.mode == .reconnection {
-            return String(localized: "Reconnecting \(protocolName) · \(address)")
-        }
-        return "\(protocolName) \(address)"
-    }
-
-    private var headerSymbol: String {
-        switch journey.purpose {
-        case .sshSession: "apple.terminal.fill"
-        case .sftpSession: "folder.fill.badge.gearshape"
-        case .serialSession: "cable.connector"
-        case .metrics: "waveform.path.ecg"
-        }
-    }
-
-    private var statusSymbol: String {
-        switch journey.phase {
-        case .succeeded: "checkmark.circle.fill"
-        case .failed: "exclamationmark.triangle.fill"
-        default: "lock.shield"
-        }
-    }
-
-    private var statusTint: Color {
-        switch journey.phase {
-        case .succeeded: TermindColor.accent
-        case .failed: TermindColor.danger
-        default: .secondary
         }
     }
 
@@ -449,51 +365,6 @@ private struct ConnectionLogNativeList: NSViewRepresentable {
         private func configure(_ row: HostingListRow, item: ConnectionLogListItem) {
             content.configure(row, item: item)
         }
-    }
-}
-
-private struct JourneyReconnectStatus: View {
-    let state: ReconnectState
-    let retryNow: () -> Void
-    let stop: () -> Void
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            VStack(spacing: 12) {
-                HStack(spacing: 9) {
-                    Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
-                        .foregroundStyle(TermindColor.accent)
-                    Text(statusText(at: context.date))
-                        .font(.headline)
-                }
-
-                Text(state.lastError)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .textSelection(.enabled)
-
-                HStack(spacing: 10) {
-                    Button("Retry Now", action: retryNow)
-                        .buttonStyle(.borderedProminent)
-                    Button("Stop Reconnecting", role: .cancel, action: stop)
-                        .buttonStyle(.bordered)
-                }
-                .controlSize(.large)
-            }
-            .padding(.top, 4)
-        }
-    }
-
-    private func statusText(at date: Date) -> String {
-        let seconds = max(0, Int(ceil(state.nextRetry.timeIntervalSince(date))))
-        if seconds == 0 {
-            return String(localized: "Reconnect attempt \(state.attempt)…")
-        }
-        return String(
-            localized: "Reconnect attempt \(state.attempt) · retrying in \(seconds)s"
-        )
     }
 }
 

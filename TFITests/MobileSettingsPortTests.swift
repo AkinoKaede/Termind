@@ -184,17 +184,17 @@ struct MobileSettingsPortTests {
         app.library.upsert(host)
         let workspace = MobileWorkspace(
             descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: app.library)
-        workspace.presentFind()
-        workspace.updateFindQuery("retained")
-        workspace.dismissFind()
-        workspace.presentFind()
-        #expect(workspace.findQuery == "retained")
-        #expect(workspace.isFindPresented)
+        workspace.find.present()
+        workspace.find.updateQuery("retained")
+        workspace.find.dismiss()
+        workspace.find.present()
+        #expect(workspace.find.query == "retained")
+        #expect(workspace.find.isPresented)
 
-        workspace.dismissFind()
-        workspace.navigateFind(.next)
-        #expect(workspace.findQuery == "retained")
-        #expect(workspace.isFindPresented)
+        workspace.find.dismiss()
+        workspace.find.presentAndNavigate(.next)
+        #expect(workspace.find.query == "retained")
+        #expect(workspace.find.isPresented)
     }
 
     @Test func remoteHostDeletionClearsCommandHistory() throws {

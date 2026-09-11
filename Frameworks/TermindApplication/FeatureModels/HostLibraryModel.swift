@@ -733,20 +733,9 @@ public final class HostLibraryModel {
     /// overwrite editor changes made while the connection was starting.
     public func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID) {
         guard let index = hosts.firstIndex(where: { $0.id == hostID }),
-            let systemInfo, let kernelName = systemInfo.kernelName
+            let systemInfo,
+            case .resolved(let next) = systemInfo.distributionDetection
         else { return }
-
-        let next: DetectedDistribution?
-        if kernelName.caseInsensitiveCompare("Linux") == .orderedSame {
-            guard let id = systemInfo.distributionID,
-                let detected = DetectedDistribution(
-                    id: id, likeIDs: systemInfo.distributionLikeIDs
-                )
-            else { return }
-            next = detected
-        } else {
-            next = nil
-        }
 
         guard hosts[index].detectedDistribution != next else { return }
         hosts[index].detectedDistribution = next

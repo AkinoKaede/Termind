@@ -9,7 +9,8 @@ remains a versioned remote SPM dependency developed in the sibling repository.
 - `Frameworks/TermindDomain` owns platform-independent values and rules. It may
   use AgentKit values, Foundation, and CryptoKit, never UI or concrete I/O.
 - `TermindApplication` owns repository ports, Vault/AI feature models, secret interfaces,
-  SSH configuration/preparation, SSH import preview, the outbox runner, and reconnect policy; it depends on Domain and AgentKit.
+  SSH configuration/preparation, SSH import preview, remote-file-system ports and policy, the outbox runner, and
+  reconnect policy; it depends on Domain and AgentKit.
 - `TermindInfrastructure` owns the memory repository, metrics parsers and StoreKit access.
   It depends on Application, Domain and Persistence. CloudKit Vault/Settings coordinators live here and share one implementation across both apps.
 - `TermindRemoteInfrastructure` owns SSH/SFTP, key material, Keychain and remote sampling.
@@ -18,7 +19,9 @@ remains a versioned remote SPM dependency developed in the sibling repository.
   FrameworkTests dependency graph avoids Xcode promoting OpenSSL to an empty dynamic
   package wrapper during multi-host testing. It depends on Infrastructure, Application and Domain.
 - `TermindPresentation` owns reusable SwiftUI content. It depends on Application and Domain,
-  never on app targets, platform UI frameworks, transports or persistence.
+  never on app targets, platform UI frameworks, transports or persistence. Ghostty's terminal/theme products are
+  presentation dependencies: the shared theme catalog and `TerminalPreferences` application bridge live here, while
+  terminal transport and native surface lifetime remain app-owned.
 - `TermindPersistence` owns every SwiftData model, frozen historical schema,
   migration plan, and the shared container factory. It depends on Domain,
   AgentKit, Application repository interfaces, and SwiftData, never an application target.
@@ -104,6 +107,8 @@ infrastructure, persistence, or presentation responsibility.
   cancellation and bracketed-paste payload. `CommandGenerationCoordinator` owns
   the shared model timeout, stale-snapshot gates and transient presentation state;
   platform sessions provide only their live context, validity check and insertion closure.
+- `TerminalFindController` owns the retained query, visibility, Ghostty search/navigation bindings, and focus return
+  for desktop SSH, desktop Serial, and mobile SSH sessions.
 - A mobile SSH session delivers Shell Integration and transport-exit callbacks through one session-scoped ordered
   consumer on MainActor. Reconnect, background expiration, and explicit close terminate that consumer; callbacks
   from an older connection generation cannot reorder prompt state or mutate its replacement session. Authenticated
@@ -113,6 +118,17 @@ infrastructure, persistence, or presentation responsibility.
   first-connect and recovery state, retry timing, Journey ownership, and host-key
   decisions. `SSHShellIntegrationEvent` is a Domain session value emitted by the
   Remote Infrastructure transport.
+- `RemoteFile` is a Domain value and `RemoteFileSystem` is the Application port for listing and mutating remote
+  entries. The libssh2-backed `SFTPClientProtocol` refines that port in Remote Infrastructure. File-kind symbols and
+  localized kind labels belong to Presentation. Mobile directory path, listing, and stale-request state live in
+  `MobileSFTPSessionModel`; `MobileWorkspace` only injects the connected file-system port and reacts to connection
+  loss.
+- Connection Journey's header, ordinary status, route graph, decision forms, and reconnect countdown live in
+  Presentation. Desktop and mobile retain their own log renderer, failure actions, background, and keyboard bridge.
+- `RemoteSystemInfo.distributionDetection` is the only mapping from untrusted remote metadata to a persisted
+  `DetectedDistribution`; it distinguishes incomplete Linux metadata from a conclusive non-Linux reset.
+- Terminal upload availability and notice semantics live in Application/Presentation. Desktop and mobile keep
+  separate upload executors because their staging and client-ownership lifecycles differ.
 - A clean mobile SSH shell exit closes its Workspace through the app-owned lifecycle, while transport failures keep
   the Workspace alive for automatic recovery. Removing the selected Workspace also clears the mobile navigation
   destination so the UI returns to the Workspace list instead of retaining an ended terminal surface.

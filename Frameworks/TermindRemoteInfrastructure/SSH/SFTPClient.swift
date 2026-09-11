@@ -4,80 +4,6 @@ import Foundation
 import TermindApplication
 import TermindDomain
 
-public nonisolated struct RemoteFile: Identifiable, Hashable, Sendable {
-    public nonisolated enum Kind: String, Hashable, Sendable {
-        case file, directory, symbolicLink, special, unknown
-
-        public var symbol: String {
-            switch self {
-            case .directory: "folder.fill"
-            case .symbolicLink: "link"
-            case .file: "doc"
-            case .special, .unknown: "questionmark.square.dashed"
-            }
-        }
-    }
-
-    public var path: String
-    public var name: String
-    public var kind: Kind
-    public var size: Int64
-    public var modifiedAt: Date?
-    public var permissions: UInt32
-    public var ownerUID: UInt32
-    public var ownerGID: UInt32
-
-    public var id: String { path }
-    public var isDirectory: Bool { kind == .directory }
-    public var isHidden: Bool { name.hasPrefix(".") }
-
-    public var permissionMode: UInt32 { permissions & 0o7777 }
-
-    public var sftpKindDescription: String {
-        switch kind {
-        case .directory: return String(localized: "Folder")
-        case .symbolicLink: return String(localized: "Symbolic Link")
-        case .special: return String(localized: "Special")
-        case .unknown: return String(localized: "Unknown")
-        case .file:
-            let fileExtension = (name as NSString).pathExtension
-            return fileExtension.isEmpty ? String(localized: "File") : fileExtension.lowercased()
-        }
-    }
-
-    public var octalPermissionDescription: String {
-        String(format: "%04o", permissionMode)
-    }
-
-    public var permissionDescription: String {
-        let type: Character =
-            switch kind {
-            case .file: "-"
-            case .directory: "d"
-            case .symbolicLink: "l"
-            case .special: "s"
-            case .unknown: "?"
-            }
-        let masks: [UInt32] = [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001]
-        let letters: [Character] = ["r", "w", "x", "r", "w", "x", "r", "w", "x"]
-        return String([type] + zip(masks, letters).map { permissions & $0.0 == 0 ? "-" : $0.1 })
-    }
-    public init(
-        path: String, name: String, kind: Kind, size: Int64, modifiedAt: Date? = nil, permissions: UInt32,
-        ownerUID: UInt32, ownerGID: UInt32
-    ) {
-        self.path = path
-        self.name = name
-        self.kind = kind
-        self.size = size
-        self.modifiedAt = modifiedAt
-        self.permissions = permissions
-        self.ownerUID = ownerUID
-        self.ownerGID = ownerGID
-    }
-
-}
-
 public nonisolated final class TransferCancellationToken: @unchecked Sendable {
     public init() {}
     private let lock = NSLock()
@@ -140,7 +66,7 @@ nonisolated private struct SFTPProgressMeter {
     }
 }
 
-public nonisolated protocol SFTPClientProtocol: Sendable {
+public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
     func connect(
         using configuration: SSHConnectionConfiguration,
         progress: SSHRouteProgressHandler?
@@ -152,15 +78,6 @@ public nonisolated protocol SFTPClientProtocol: Sendable {
     ) async throws
     func disconnect() async
     func homeDirectory() async throws -> String
-    func listDirectory(at path: String) async throws -> [RemoteFile]
-    func attributes(at path: String) async throws -> RemoteFile?
-    func readFile(at path: String, maximumBytes: Int) async throws -> Data
-    func writeFile(_ data: Data, at path: String, overwrite: Bool) async throws
-    func setPermissions(at path: String, to permissions: UInt32) async throws
-    func createDirectory(at path: String) async throws
-    func rename(from source: String, to destination: String, overwrite: Bool) async throws
-    func removeFile(at path: String) async throws
-    func removeDirectory(at path: String) async throws
     func uploadFile(
         from localURL: URL, to remotePath: String, overwrite: Bool,
         cancellation: TransferCancellationToken,

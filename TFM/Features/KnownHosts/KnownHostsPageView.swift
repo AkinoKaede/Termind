@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -101,14 +102,7 @@ private struct KnownHostCard: View {
                 HStack {
                     CardIcon(symbol: "touchid", tint: TermindColor.accent)
                     VStack(alignment: .leading) {
-                        Group {
-                            if entry.isHashed {
-                                Text("Hashed Address")
-                            } else {
-                                Text(entry.displayAddress)
-                            }
-                        }
-                        .font(.headline).lineLimit(1)
+                        Text(entry.presentationTitle).font(.headline).lineLimit(1)
                         Text(entry.algorithm.displayName).font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)

@@ -129,3 +129,19 @@ public nonisolated struct RemoteSystemInfo: Hashable, Codable, Sendable {
         RemoteSystemIdentifier.sanitized(proposed)
     }
 }
+
+public nonisolated enum RemoteDistributionDetection: Hashable, Sendable {
+    case unavailable
+    case resolved(DetectedDistribution?)
+}
+
+extension RemoteSystemInfo {
+    public var distributionDetection: RemoteDistributionDetection {
+        guard let kernelName else { return .unavailable }
+        guard kernelName.caseInsensitiveCompare("Linux") == .orderedSame else { return .resolved(nil) }
+        guard let distributionID,
+            let distribution = DetectedDistribution(id: distributionID, likeIDs: distributionLikeIDs)
+        else { return .unavailable }
+        return .resolved(distribution)
+    }
+}

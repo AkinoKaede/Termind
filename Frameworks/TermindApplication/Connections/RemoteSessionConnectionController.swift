@@ -128,7 +128,7 @@ public final class RemoteSessionConnectionController {
         )
     }
 
-    private func clearHostKeyPrompt() {
+    public func clearHostKeyPrompt() {
         pendingHostKey = nil
         pendingHostKeyHostID = nil
     }

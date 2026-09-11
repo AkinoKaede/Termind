@@ -5,7 +5,7 @@ import SwiftUI
 import TermindDomain
 
 nonisolated extension TermindTerminalPalette.RGB {
-    var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: 1) }
+    public var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: 1) }
 }
 nonisolated extension TermindTerminalPalette {
     /// The same palette expressed in the format consumed by libghostty. The
@@ -38,29 +38,29 @@ nonisolated extension TerminalCustomConfiguration {
 
 }
 
-nonisolated enum TermindTerminalThemeCatalog {
-    static let allThemes: [GhosttyThemeDefinition] = {
+public nonisolated enum TermindTerminalThemeCatalog {
+    public static let allThemes: [GhosttyThemeDefinition] = {
         let termindThemes = TermindTerminalPalette.all.map(\.ghosttyDefinition)
         let termindNames = Set(termindThemes.map(\.name))
         return termindThemes + GhosttyThemeCatalog.allThemes.filter { !termindNames.contains($0.name) }
     }()
 
-    static func theme(named name: String) -> GhosttyThemeDefinition? {
+    public static func theme(named name: String) -> GhosttyThemeDefinition? {
         allThemes.first { $0.name == name }
     }
 
-    static func darkTheme(named name: String) -> GhosttyThemeDefinition? {
+    public static func darkTheme(named name: String) -> GhosttyThemeDefinition? {
         theme(named: name).flatMap { $0.isDark ? $0 : nil }
     }
 
-    static func lightTheme(named name: String) -> GhosttyThemeDefinition? {
+    public static func lightTheme(named name: String) -> GhosttyThemeDefinition? {
         theme(named: name).flatMap { $0.isDark ? nil : $0 }
     }
 
-    static let defaultDark = TermindTerminalPalette.termindDark.ghosttyDefinition
-    static let defaultLight = TermindTerminalPalette.termindLight.ghosttyDefinition
+    public static let defaultDark = TermindTerminalPalette.termindDark.ghosttyDefinition
+    public static let defaultLight = TermindTerminalPalette.termindLight.ghosttyDefinition
 
-    static func terminalConfiguration(
+    public static func terminalConfiguration(
         themeName: String,
         customEnabled: Bool,
         customText: String,
@@ -73,7 +73,7 @@ nonisolated enum TermindTerminalThemeCatalog {
         return TerminalCustomConfiguration(customText).applying(to: base)
     }
 
-    static func background(
+    public static func background(
         themeName: String,
         customEnabled: Bool,
         customText: String,
@@ -94,7 +94,7 @@ nonisolated enum TermindTerminalThemeCatalog {
 
 @MainActor
 extension TerminalViewState {
-    func applyPreferences(_ value: TerminalPreferences) {
+    public func applyPreferences(_ value: TerminalPreferences) {
         let light = TermindTerminalThemeCatalog.terminalConfiguration(
             themeName: value.lightTheme,
             customEnabled: value.lightCustomEnabled, customText: value.lightCustomConfiguration, isDark: false)

@@ -197,3 +197,21 @@ ArchitectureBoundaryTests, and the complete iOS test action pass.
 Terminal draft reads and Command Generator execution now use the same Application controllers on both platforms,
 including cancellation, timeouts, stale-context rejection and bracketed-paste insertion. Focused mobile Command
 Generator and desktop Broadcast Input/Terminal Find tests pass after the extraction.
+
+## Cross-platform session and presentation follow-up — 2026-09-12
+
+Mobile SFTP directory state now depends on the Application `RemoteFileSystem` port. `RemoteFile` is a Domain value;
+the libssh2 client refines the port in Remote Infrastructure, while symbols and localized kind labels live in
+Presentation. Path, listing, mutation, stale-request, and operation-error state moved from `MobileWorkspace` into
+`MobileSFTPSessionModel`. The Workspace retains connection/recovery and injects the connected file-system port.
+
+Desktop SSH, desktop Serial, and mobile SSH use one `TerminalFindController`. Connection Journey header/status/retry
+sections and the Ghostty theme bridge are shared through Presentation; native logs, failure actions, keyboard
+handling, and surface lifetimes stay platform-owned. Terminal upload readiness/notices and Known Host titles also
+use common Application/Presentation policy. Assistant work was deliberately excluded from this pass.
+
+The complete iOS simulator action passes all 257 tests. Both app builds, 58 focused macOS architecture/theme/Journey/
+Find tests, and the new shared policy suites pass. The full macOS action retains the known Keychain environment,
+Metrics native-focus, and Agent timing failures documented in `REFACTOR.md`; the Agent failures pass in focused
+rerun. Strict formatting, Chinese localization, and `git diff --check` pass. No package version, schema, protocol, or
+localized catalog changed.

@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 import UIKit
 
 struct MobileKnownHostsView: View {
@@ -33,14 +34,7 @@ struct MobileKnownHostsView: View {
                             HStack(alignment: .top, spacing: 12) {
                                 MobileCardIcon(symbol: "touchid", tint: .accentColor)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Group {
-                                        if entry.isHashed {
-                                            Text("Hashed Address")
-                                        } else {
-                                            Text(entry.displayAddress)
-                                        }
-                                    }
-                                    .font(.headline).lineLimit(1)
+                                    Text(entry.presentationTitle).font(.headline).lineLimit(1)
                                     Text(entry.algorithm.displayName)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)

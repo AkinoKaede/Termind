@@ -770,23 +770,23 @@ extension WindowModel {
             if let serialSession = focusedSerialSession {
                 return WindowToolbarFindContext(
                     query: Binding(
-                        get: { serialSession.findQuery },
-                        set: { serialSession.updateFindQuery($0) }
+                        get: { serialSession.find.query },
+                        set: { serialSession.find.updateQuery($0) }
                     ),
                     focusRequest: findFocusRequest,
-                    navigate: { serialSession.presentFindAndNavigate($0) },
-                    cancel: { serialSession.dismissFind() }
+                    navigate: { serialSession.find.presentAndNavigate($0) },
+                    cancel: { serialSession.find.dismiss() }
                 )
             }
             guard let sshSession = focusedSSHSession else { return nil }
             return WindowToolbarFindContext(
                 query: Binding(
-                    get: { sshSession.findQuery },
-                    set: { sshSession.updateFindQuery($0) }
+                    get: { sshSession.find.query },
+                    set: { sshSession.find.updateQuery($0) }
                 ),
                 focusRequest: findFocusRequest,
-                navigate: { sshSession.presentFindAndNavigate($0) },
-                cancel: { sshSession.dismissFind() }
+                navigate: { sshSession.find.presentAndNavigate($0) },
+                cancel: { sshSession.find.dismiss() }
             )
         case .sftp:
             guard let sftpSession = focusedSFTPSession else { return nil }

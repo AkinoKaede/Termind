@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -812,17 +813,17 @@ final class SFTPSessionModel: Identifiable {
     }
 
     func createFolder(named name: String) async {
-        guard validFilename(name), let client else { return }
+        guard let client else { return }
         do {
-            try await client.createDirectory(at: RemotePath.join(path, name))
+            try await client.createDirectory(named: name, in: path)
             await reload()
         } catch { operationError = error.localizedDescription }
     }
 
     func rename(_ file: RemoteFile, to name: String) async {
-        guard validFilename(name), let client else { return }
+        guard let client else { return }
         do {
-            try await client.rename(from: file.path, to: RemotePath.join(path, name), overwrite: false)
+            try await client.rename(file, to: name)
             await reload()
         } catch { operationError = error.localizedDescription }
     }
@@ -834,7 +835,7 @@ final class SFTPSessionModel: Identifiable {
             return false
         }
         do {
-            try await client.setPermissions(at: file.path, to: permissions & 0o7777)
+            try await client.setPermissions(of: file, to: permissions)
             await reload()
             return true
         } catch {
@@ -1429,10 +1430,6 @@ final class SFTPSessionModel: Identifiable {
         } else {
             try await client.removeFile(at: file.path)
         }
-    }
-
-    private func validFilename(_ name: String) -> Bool {
-        !name.isEmpty && name != "." && name != ".." && !name.contains("/") && !name.contains("\0")
     }
 
     private func availableRemotePath(

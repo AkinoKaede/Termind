@@ -19,18 +19,18 @@ struct TerminalFindTests {
     func presentationRetainsTheQueryAcrossClosingAndReopening() {
         let sshSession = SSHSessionModel(hostID: UUID(), title: "web-01")
 
-        sshSession.updateFindQuery("deploy")
-        sshSession.presentFind()
-        #expect(sshSession.isFindPresented)
-        #expect(sshSession.findQuery == "deploy")
+        sshSession.find.updateQuery("deploy")
+        sshSession.find.present()
+        #expect(sshSession.find.isPresented)
+        #expect(sshSession.find.query == "deploy")
 
-        sshSession.dismissFind()
-        #expect(!sshSession.isFindPresented)
-        #expect(sshSession.findQuery == "deploy")
+        sshSession.find.dismiss()
+        #expect(!sshSession.find.isPresented)
+        #expect(sshSession.find.query == "deploy")
 
-        sshSession.presentFind()
-        #expect(sshSession.isFindPresented)
-        #expect(sshSession.findQuery == "deploy")
+        sshSession.find.present()
+        #expect(sshSession.find.isPresented)
+        #expect(sshSession.find.query == "deploy")
     }
 
     /// Typing narrows the search; it does not open or close the bar. The two are
@@ -41,13 +41,13 @@ struct TerminalFindTests {
     func typingDoesNotChangeWhetherTheBarIsOpen() {
         let sshSession = SSHSessionModel(hostID: UUID(), title: "web-01")
 
-        sshSession.updateFindQuery("error")
-        #expect(!sshSession.isFindPresented)
+        sshSession.find.updateQuery("error")
+        #expect(!sshSession.find.isPresented)
 
-        sshSession.presentFind()
-        sshSession.updateFindQuery("errors")
-        #expect(sshSession.isFindPresented)
-        #expect(sshSession.findQuery == "errors")
+        sshSession.find.present()
+        sshSession.find.updateQuery("errors")
+        #expect(sshSession.find.isPresented)
+        #expect(sshSession.find.query == "errors")
     }
 
     @Test
@@ -74,11 +74,11 @@ struct TerminalFindTests {
     func navigatingRevealsTheFindStateAndRetainsTheQuery() {
         let host = Host(name: "web-01", host: "web-01.example")
         let window = WindowModel(workspaces: [Workspace.sshSession(host: host)])
-        window.focusedSSHSession?.updateFindQuery("deploy")
+        window.focusedSSHSession?.find.updateQuery("deploy")
 
         window.navigateTerminalFind(.previous)
 
-        #expect(window.focusedSSHSession?.isFindPresented == true)
-        #expect(window.focusedSSHSession?.findQuery == "deploy")
+        #expect(window.focusedSSHSession?.find.isPresented == true)
+        #expect(window.focusedSSHSession?.find.query == "deploy")
     }
 }

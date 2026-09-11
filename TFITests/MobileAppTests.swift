@@ -326,9 +326,9 @@ struct MobileWorkspaceConnectionRecoveryTests {
 
         workspace.connect()
         #expect(await eventually { workspace.connected })
-        await workspace.openDirectory("/restricted")
+        await workspace.sftpSession.openDirectory("/restricted")
 
-        #expect(workspace.operationError == "Permission denied")
+        #expect(workspace.sftpSession.operationError == "Permission denied")
         if case .failed = workspace.journey.phase {
             Issue.record("An ordinary SFTP operation error must not fail the connection Journey")
         }
@@ -374,8 +374,8 @@ struct MobileWorkspaceConnectionRecoveryTests {
 
         workspace.connect()
         #expect(await eventually { workspace.connected })
-        await workspace.openDirectory("/srv/project")
-        #expect(workspace.path == "/srv/project")
+        await workspace.sftpSession.openDirectory("/srv/project")
+        #expect(workspace.sftpSession.path == "/srv/project")
 
         let retiredConnectionFailure = connections.connectionFailure
         retiredConnectionFailure?("offline")
@@ -386,7 +386,7 @@ struct MobileWorkspaceConnectionRecoveryTests {
         workspace.retryReconnectNow()
 
         #expect(await eventually { workspace.connected })
-        #expect(workspace.path == "/srv/project")
+        #expect(workspace.sftpSession.path == "/srv/project")
         #expect(connections.connectCount == 2)
 
         retiredConnectionFailure?("stale callback")
