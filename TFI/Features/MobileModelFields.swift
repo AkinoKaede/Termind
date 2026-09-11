@@ -73,44 +73,60 @@ struct MobileModelFields: View {
         Section("Reasoning Effort") {
             if model.reasoningProfile == nil {
                 Text("Automatic from model catalog").font(.caption)
+                Button("Customize", systemImage: "slider.horizontal.3") {
+                    model.reasoningProfile = ModelCapabilityResolver.customProfile(from: automatic)
+                }
                 ForEach(automatic.supported) { effort in
                     LabeledContent(
                         effort.displayName,
                         value: automatic.wireValue(for: effort) ?? String(localized: "Provider default"))
                 }
-                Button("Customize", systemImage: "slider.horizontal.3") {
-                    model.reasoningProfile = ModelCapabilityResolver.customProfile(from: automatic)
-                }
             } else {
                 Text("Custom mapping").font(.caption)
                 Button("Reset to Automatic", systemImage: "arrow.counterclockwise") { model.reasoningProfile = nil }
                 ForEach(ReasoningEffort.allCases) { effort in
-                    Toggle(
-                        effort.displayName,
-                        isOn: Binding(
-                            get: { model.reasoningProfile?.mapping(for: effort).isSupported ?? false },
-                            set: { enabled in
-                                let count = model.reasoningProfile?.levels.values.filter(\.isSupported).count ?? 0
-                                guard enabled || count > 1 else { return }
-                                update(effort) { $0.isSupported = enabled }
-                            }))
-                    if model.reasoningProfile?.mapping(for: effort).isSupported == true {
-                        TextField(
-                            "Provider default",
-                            text: Binding(
-                                get: { model.reasoningProfile?.mapping(for: effort).wireValue ?? "" },
-                                set: { value in
-                                    update(effort) {
-                                        $0.wireValue =
-                                            value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : value
-                                    }
-                                })
-                        )
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .multilineTextAlignment(.leading)
-                    }
+                    reasoningLevelRow(effort)
                 }
             }
+        }
+    }
+
+    private func reasoningLevelRow(_ effort: ReasoningEffort) -> some View {
+        let mapping = model.reasoningProfile?.mapping(for: effort) ?? ReasoningLevelMapping(isSupported: false)
+
+        return HStack(spacing: 12) {
+            Toggle(
+                effort.displayName,
+                isOn: Binding(
+                    get: { model.reasoningProfile?.mapping(for: effort).isSupported ?? false },
+                    set: { enabled in
+                        let count = model.reasoningProfile?.levels.values.filter(\.isSupported).count ?? 0
+                        guard enabled || count > 1 else { return }
+                        update(effort) { $0.isSupported = enabled }
+                    }
+                )
+            )
+            .toggleStyle(MobileCheckboxToggleStyle())
+            .frame(width: 120, alignment: .leading)
+
+            TextField(
+                "Provider default",
+                text: Binding(
+                    get: { model.reasoningProfile?.mapping(for: effort).wireValue ?? "" },
+                    set: { value in
+                        update(effort) {
+                            $0.wireValue =
+                                value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : value
+                        }
+                    }
+                )
+            )
+            .textFieldStyle(.roundedBorder)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .disabled(!mapping.isSupported)
+            .opacity(mapping.isSupported ? 1 : 0.55)
+            .accessibilityLabel(Text("\(effort.displayName) provider value"))
         }
     }
 
@@ -120,5 +136,35 @@ struct MobileModelFields: View {
         change(&mapping)
         profile.levels[effort] = mapping
         model.reasoningProfile = profile
+    }
+}
+
+private struct MobileCheckboxToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary)
+                configuration.label
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityRepresentation {
+            Toggle(
+                isOn: Binding(
+                    get: { configuration.isOn },
+                    set: { configuration.isOn = $0 }
+                )
+            ) {
+                configuration.label
+            }
+            .toggleStyle(.switch)
+        }
     }
 }

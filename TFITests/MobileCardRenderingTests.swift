@@ -40,11 +40,38 @@ struct MobileCardRenderingTests {
                         isMismatched: true))
             }
         }
-        _ = app.library.upsert(Identity(name: "Deployment / 部署", username: "deploy", colorTag: .purple))
+        let editableKnownHost = KnownHostEntry(
+            hostname: "known-host.production.example.invalid", algorithm: .rsa,
+            fingerprint: "SHA256:editable0123456789abcdefghijklmnopqrstuvwxyz",
+            addedAt: .now.addingTimeInterval(-86_400))
+        let hashedAddress =
+            "|1|" + Data(repeating: 7, count: 20).base64EncodedString()
+            + "|" + Data(repeating: 9, count: 20).base64EncodedString()
+        let hashedKnownHost = KnownHostEntry(
+            hostname: hashedAddress, algorithm: .ecdsa384,
+            fingerprint: "SHA256:hashed0123456789abcdefghijklmnopqrstuvwxyz",
+            addedAt: .now.addingTimeInterval(-604_800))
+        try app.library.commitSSHImport(SSHImportBatch(knownHosts: [editableKnownHost, hashedKnownHost]))
+        let key = SSHKeyRef(
+            label: "Production Key / 生产密钥", algorithm: .rsa,
+            fingerprint: "SHA256:0123456789abcdefghijklmnopqrstuvwxyzABCDE",
+            credentialRef: "termind.key.\(UUID())", storage: .thisDevice, keySize: 4096,
+            hasPassphrase: true, colorTag: .teal)
+        try app.credentials.upsert(
+            key, credential: .software(SSHPrivateKeySecret(privateKey: "rendering-fixture")))
+        try app.library.upsert(
+            Identity(
+                name: "Deployment / 部署", username: "deploy", keyID: key.id,
+                lastUsedAt: .now.addingTimeInterval(-3_600), colorTag: .purple),
+            passwordUpdate: .replace("rendering-fixture"))
+        _ = app.library.upsert(
+            Identity(name: "Missing Key / 密钥缺失", username: "missing", keyID: UUID(), colorTag: .orange))
+        _ = app.library.upsert(
+            Identity(name: "No Secret / 无凭据", username: "unfinished"))
         try app.credentials.upsert(
             SSHKeyRef(
-                label: "Production Key / 生产密钥", fingerprint: "SHA256:0123456789abcdefghijklmnopqrstuvwxyzABCDE",
-                colorTag: .teal))
+                label: "Missing Private Key / 私钥缺失", algorithm: .ecdsa384,
+                fingerprint: "SHA256:missing", credentialRef: "termind.key.\(UUID())", storage: .iCloud))
         app.snippets.upsert(Snippet(title: "Inspect disk usage / 检查磁盘", body: "df -h\ndu -sh /var/log"))
         let server = ServerMetric(selection: MetricsSelection(id: UUID()), name: "Production Gateway")
         server.isConnecting = false
@@ -101,6 +128,15 @@ struct MobileCardRenderingTests {
                             .navigationTitle(server.name)
                     }
                 }
+                try await capture("known-hosts", language: language, scheme: scheme) {
+                    NavigationStack { MobileKnownHostsView(app: app) }
+                }
+                try await capture("known-host-editor", language: language, scheme: scheme) {
+                    MobileKnownHostEditor(app: app, entry: editableKnownHost)
+                }
+                try await capture("known-host-editor-hashed", language: language, scheme: scheme) {
+                    MobileKnownHostEditor(app: app, entry: hashedKnownHost)
+                }
             }
             try await capture("large-type", language: language, scheme: .light) {
                 NavigationStack { MobileVaultView(app: app, open: { _, _ in }) }
@@ -119,8 +155,9 @@ struct MobileCardRenderingTests {
             try await capture("empty", language: language, scheme: .light) {
                 NavigationStack { MobileVaultView(app: try! MobileAppModel(inMemory: true), open: { _, _ in }) }
             }
-            try await capture("known-hosts", language: language, scheme: .light) {
+            try await capture("known-hosts-large-type", language: language, scheme: .light) {
                 NavigationStack { MobileKnownHostsView(app: app) }
+                    .environment(\.dynamicTypeSize, .accessibility3)
             }
         }
     }

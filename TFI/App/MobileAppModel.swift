@@ -36,6 +36,7 @@ final class MobileAppModel {
     let metrics: MobileMetricsModel
     let pro: ProAccessController
     let liveActivities: MobileLiveActivityController
+    @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
     private let defaults: UserDefaults?
     private let background: any MobileBackgroundTaskManaging
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
@@ -145,11 +146,9 @@ final class MobileAppModel {
                     commandHistory: commandHistory, connectionServices: workspaceConnectionServices,
                     connectsWhenOpened: true)
             }
+            workspaceActivitySessions = workspaces.map(\.activitySession)
             for workspace in workspaces {
-                workspace.didChangeState = { [weak self] in
-                    guard let self else { return }
-                    liveActivities.update(workspaces)
-                }
+                observeActivityState(of: workspace)
             }
         }
     }
@@ -176,9 +175,12 @@ final class MobileAppModel {
 
     func close(_ id: UUID) {
         guard let workspace = workspaces.first(where: { $0.id == id }) else { return }
+        workspace.didChangeState = nil
+        workspace.didRequestClose = nil
         workspace.disconnect()
         workspaces.removeAll { $0.id == id }
-        liveActivities.update(workspaces)
+        workspaceActivitySessions.removeAll { $0.id == id }
+        liveActivities.update(workspaceActivitySessions)
         persistWorkspaces()
     }
 
@@ -186,11 +188,13 @@ final class MobileAppModel {
         guard !workspaces.isEmpty else { return }
         let closing = workspaces
         workspaces.removeAll()
+        workspaceActivitySessions.removeAll()
         for workspace in closing {
             workspace.didChangeState = nil
+            workspace.didRequestClose = nil
             workspace.disconnect()
         }
-        liveActivities.update(workspaces)
+        liveActivities.update(workspaceActivitySessions)
         persistWorkspaces()
     }
 
@@ -227,17 +231,17 @@ final class MobileAppModel {
                 transfers.cancelAll()
                 assistant.expireBackground()
             }
-            liveActivities.update(workspaces)
+            liveActivities.update(workspaceActivitySessions)
         } else if phase == .active {
             background.finish()
             for workspace in workspaces { workspace.resumeAfterBackground() }
             reconcileSync()
             outbox.start()
             if hasActivated {
-                liveActivities.update(workspaces)
+                liveActivities.update(workspaceActivitySessions)
             } else {
                 hasActivated = true
-                liveActivities.start(workspaces)
+                liveActivities.start(workspaceActivitySessions)
             }
             metrics.start()
         }
@@ -285,12 +289,16 @@ final class MobileAppModel {
         }
         forwardings.stop(keys.filter { $0.kind == .portForwarding }.map(\.id))
         library.replacePersistedSnapshot(snapshot)
-        liveActivities.update(workspaces)
+        liveActivities.update(workspaceActivitySessions)
     }
 
     func removeScene(_ id: UUID) {
         scenePhases[id] = nil
         reconcileSync()
+    }
+
+    func focusWorkspaceActivity(_ id: UUID) {
+        liveActivities.focus(id, in: workspaceActivitySessions)
     }
 
     private func persistWorkspaces() {
@@ -312,16 +320,25 @@ final class MobileAppModel {
 
     private func addWorkspaces(_ added: [MobileWorkspace]) {
         guard !added.isEmpty else { return }
-        for workspace in added {
-            workspace.didChangeState = { [weak self] in
-                guard let self else { return }
-                liveActivities.update(workspaces)
-            }
-        }
+        for workspace in added { observeActivityState(of: workspace) }
         workspaces.append(contentsOf: added)
+        workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
         persistWorkspaces()
-        liveActivities.start(workspaces)
+        liveActivities.start(workspaceActivitySessions)
         for workspace in added { workspace.connect() }
+    }
+
+    private func observeActivityState(of workspace: MobileWorkspace) {
+        workspace.didRequestClose = { [weak self] id in
+            self?.close(id)
+        }
+        workspace.didChangeState = { [weak self] session in
+            guard let self,
+                let index = workspaceActivitySessions.firstIndex(where: { $0.id == session.id })
+            else { return }
+            workspaceActivitySessions[index] = session
+            liveActivities.update(workspaceActivitySessions)
+        }
     }
 }
 

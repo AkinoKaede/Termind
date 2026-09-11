@@ -16,6 +16,31 @@ struct MobileNavigationParityTests {
         #expect(MobileAISettingsDestination.allCases == [.models, .skills, .mcp])
     }
 
+    @Test func iPadSidebarOmitsBrandTitle() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let rootSource = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+        #expect(!rootSource.contains(".navigationTitle(\"Termind\")"))
+    }
+
+    @Test func vaultOnlyShowsMetricsWhenTheSidebarDoesNotProvideIt() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let rootSource = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+        let vaultSource = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileVaultView.swift"), encoding: .utf8)
+
+        #expect(rootSource.contains("NavigationStack { vault }"))
+        #expect(rootSource.contains("case .vault: sidebarVault"))
+        #expect(rootSource.contains("app: app, open: open, showsMetrics: false"))
+        #expect(vaultSource.contains("guard showsMetrics else { return [] }"))
+        #expect(vaultSource.contains("if showsMetrics {"))
+    }
+
     @Test func aiSettingsRowsUseDirectDestinationsInsideTheParentStack() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -33,6 +58,17 @@ struct MobileNavigationParityTests {
         #expect(!MobileMetricsDetailPage.showsBothColumns(width: 680))
         #expect(MobileMetricsDetailPage.showsBothColumns(width: 700))
         #expect(MobileMetricsDetailPage.showsBothColumns(width: 1024))
+    }
+
+    @Test func metricsProcessListRemovesItsAutomaticTopMargin() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileMetricsView.swift"), encoding: .utf8)
+        let processes = try #require(source.components(separatedBy: "struct MobileMetricsProcessesView").last)
+
+        #expect(processes.contains(".contentMargins(.top, 0, for: .scrollContent)"))
     }
 
     @Test func connectionFailuresStayInJourneyAndCancellationLeavesTheDetail() throws {
@@ -95,6 +131,79 @@ struct MobileNavigationParityTests {
         #expect(workspace.contains("allowsMultipleSelection: true"))
     }
 
+    @Test func knownHostsExposeAlignedCardActionsAndEditing() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileKnownHostsView.swift"), encoding: .utf8)
+
+        #expect(source.contains("MobileActionCard"))
+        #expect(source.contains("symbol: \"touchid\""))
+        #expect(source.contains("Button(\"Edit\", systemImage: \"pencil\")"))
+        #expect(source.contains("Button(\"Copy Fingerprint\", systemImage: \"doc.on.doc\")"))
+        #expect(source.contains("Button(\"Delete\", systemImage: \"trash\", role: .destructive)"))
+        #expect(source.contains("MobileKnownHostEditor(app: app, entry: $0)"))
+        #expect(source.contains(".relative(presentation: .numeric).locale(locale)"))
+        #expect(!source.contains("Fingerprint Mismatch"))
+        #expect(!source.contains("title: \"Host key changed\""))
+    }
+
+    @Test func mobileListsCardsAndPaywallKeepTheRefinedPresentation() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        let metrics = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileMetricsView.swift"), encoding: .utf8)
+        #expect(metrics.contains(".scrollContentBackground(.hidden)"))
+        #expect(metrics.contains(".background(Color(uiColor: .systemBackground))"))
+
+        let cards = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileCards.swift"), encoding: .utf8)
+        let actionCard = try #require(cards.components(separatedBy: "struct MobileActionCard").last)
+        #expect(actionCard.contains(".mobileCardSurface()"))
+        #expect(actionCard.contains(".contextMenu {"))
+        #expect(cards.contains(".contentShape([.interaction, .contextMenuPreview], shape)"))
+        #expect(cards.contains(".containerShape("))
+        #expect(!cards.contains(".contentShape(.rect)"))
+        #expect(cards.contains("} preview: {\n                    cardSurface"))
+        #expect(!cards.contains("sourceSize"))
+        #expect(!cards.contains(".frame(width: 320"))
+
+        let vault = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileVaultView.swift"), encoding: .utf8)
+        #expect(vault.contains("MobileCardPage {"))
+        #expect(!vault.contains("List {"))
+        #expect(vault.contains("app.library.setExpanded(!section.isExpanded, for: id)"))
+        #expect(vault.contains("app.library.setUngroupedExpanded(!section.isExpanded)"))
+
+        let rootView = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+        #expect(rootView.contains("ContentUnavailableView(\n                \"No Workspaces\""))
+        #expect(rootView.contains(".buttonStyle(.plain)"))
+
+        let pro = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileProView.swift"), encoding: .utf8)
+        #expect(!pro.contains("Arrange multiple panes and broadcast input"))
+        #expect(!pro.contains(".safeAreaInset(edge: .bottom)"))
+        #expect(pro.contains("featureList\n                    purchaseActions"))
+    }
+
+    @Test func workspaceCloseActionsStayAtTheBottomOfBothMenus() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let workspace = try String(
+            contentsOf: root.appending(path: "TFI/Features/MobileWorkspaceView.swift"), encoding: .utf8)
+        let segments = workspace.components(
+            separatedBy: "Button(\"Close\", systemImage: \"xmark\", role: .destructive)")
+
+        #expect(segments.count == 3)
+        #expect(segments[0].contains("Button(\"Previous Match\", systemImage: \"chevron.up\")"))
+        #expect(segments[1].contains("Button(\"New Folder\", systemImage: \"folder.badge.plus\")"))
+    }
+
     @Test func keyGenerationMatchesDesktopDefaultsAndRequiresMatchingPassphrases() throws {
         let app = try MobileAppModel(inMemory: true)
         let editor = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
@@ -152,4 +261,5 @@ struct MobileNavigationParityTests {
         certificate += field(Data("ca".utf8)) + field(Data("signature".utf8))
         return "\(method) \(certificate.base64EncodedString())"
     }
+
 }

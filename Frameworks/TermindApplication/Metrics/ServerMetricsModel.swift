@@ -42,6 +42,7 @@ public final class ServerMetric: Identifiable {
 }
 
 /// One application owner, independent of windows, with one serial worker per host.
+@MainActor
 @Observable
 public final class ServerMetricsModel: MetricsSnapshotReading {
     public static let freeCardLimit = 3
@@ -147,13 +148,13 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             return ServerMetric(selection: selection, name: host.name)
         }
         for server in servers { launch(server) }
-        // The clock is nonisolated and may resume on any executor. Run the timer
-        // outside MainActor, then make every model access an explicit actor hop.
+        // Keep the timer independent, but make the executor hop explicit at the
+        // boundary before touching Metrics or its MainActor host store.
         maintenance = Task.detached { [weak self, clock] in
             while !Task.isCancelled {
                 do { try await clock.sleep(2) } catch { return }
                 guard !Task.isCancelled else { return }
-                await self?.reconcile()
+                await MainActor.run { self?.reconcile() }
             }
         }
     }
@@ -397,14 +398,30 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             return
         }
         guard workers[server.id] == nil else { return }
+        guard let host = hosts.host(server.id) else {
+            let message = String(localized: "The host is no longer available.")
+            server.isConnecting = false
+            server.status = message
+            server.collectionState = .failed
+            server.journey.fail(message)
+            return
+        }
+        beginConnectionJourney(for: server, host: host)
         let token = UUID()
         generations[server.id] = token
         server.isConnecting = true
         server.status = String(localized: "Connecting…")
         server.collectionState = .connecting
         server.gpuState = .probing
-        if let host = hosts.host(server.id) { stamps[server.id] = connectionStamp(host) }
+        stamps[server.id] = connectionStamp(host)
         workers[server.id] = Task { [weak self] in await self?.run(server, token: token) }
+    }
+
+    private func beginConnectionJourney(for server: ServerMetric, host: Host) {
+        server.journey.begin(
+            host: host, route: hosts.route(for: host), purpose: .metrics,
+            username: submissions[server.id]?[host.id]?.username ?? hosts.identity(for: host)?.username
+        )
     }
 
     private func current(_ server: ServerMetric, _ token: UUID) -> Bool {
@@ -418,13 +435,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             samplers[server.id] = sampler
             do {
                 guard let host = hosts.host(server.id) else { return }
+                if server.journey.phase != .connecting {
+                    beginConnectionJourney(for: server, host: host)
+                }
                 server.status = String(localized: "Connecting…")
                 server.collectionState = .connecting
                 server.isConnecting = true
-                server.journey.begin(
-                    host: host, route: hosts.route(for: host), purpose: .metrics,
-                    username: submissions[server.id]?[host.id]?.username ?? hosts.identity(for: host)?.username
-                )
                 let configuration = try await preparation(for: host, server: server).resolve()
                 guard current(server, token) else { return }
                 try await sampler.connect(configuration)

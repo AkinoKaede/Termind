@@ -30,7 +30,11 @@ private final class MobileCommandGeneratorStub: CommandGenerating {
 private final class MobileSSHCommandConnectionBox {
     var draft = "list files"
     private(set) var writes: [Data] = []
-    private var shellIntegration: SSHSessionActor.ShellIntegrationHandler?
+    private(set) var shellIntegrationPreferences: [Bool] = []
+    private var exits: [SSHSessionActor.ExitHandler] = []
+    private var shellIntegrations: [SSHSessionActor.ShellIntegrationHandler] = []
+
+    var sessionCount: Int { shellIntegrations.count }
 
     var services: MobileWorkspaceConnectionServices {
         MobileWorkspaceConnectionServices(
@@ -43,23 +47,45 @@ private final class MobileSSHCommandConnectionBox {
                 )
             },
             makeSSHSession: { [weak self] output, exit, shellIntegration in
-                self?.shellIntegration = shellIntegration
+                self?.exits.append(exit)
+                self?.shellIntegrations.append(shellIntegration)
                 return SSHSessionActor(
                     output: output,
                     exit: exit,
                     shellIntegration: shellIntegration
                 )
             },
-            connectSSH: { _, _, _, _, _, _ in },
+            connectSSH: { [weak self] _, _, shellIntegrationEnabled, _, _, _ in
+                self?.shellIntegrationPreferences.append(shellIntegrationEnabled)
+            },
             connectSFTP: { _, _, _ in throw SFTPError.notConnected },
             writeSSH: { [weak self] _, data in
                 guard let self else { return }
                 writes.append(data)
                 if data == Data("\u{1B}[777;1~".utf8) {
-                    shellIntegration?(.draft(draft))
+                    shellIntegrations.last?(.draft(draft))
                 }
             }
         )
+    }
+
+    func sendShellEvents(
+        _ events: [SSHShellIntegrationEvent],
+        session index: Int? = nil
+    ) async {
+        let index = index ?? shellIntegrations.index(before: shellIntegrations.endIndex)
+        let handler = shellIntegrations[index]
+        await Task.detached {
+            for event in events { handler(event) }
+        }.value
+    }
+
+    func finishSession(
+        _ result: Result<Int32, TermindSSHError>,
+        session index: Int
+    ) async {
+        let handler = exits[index]
+        await Task.detached { handler(result) }.value
     }
 }
 
@@ -85,8 +111,10 @@ struct MobileCommandGeneratorTests {
             architecture: "arm64"
         )
         workspace.receiveWorkingDirectory("/srv/app")
-        workspace.receiveShellEvent(.available(shell: "zsh", systemInfo: systemInfo, homeDirectory: "/home/test"))
-        workspace.receiveShellEvent(.promptReady)
+        await connections.sendShellEvents([
+            .available(shell: "zsh", systemInfo: systemInfo, homeDirectory: "/home/test")
+        ])
+        #expect(await eventually { workspace.canGenerateFromCurrentDraft })
         let generator = MobileCommandGeneratorStub(command: "ls -la")
 
         workspace.generateCommand(using: generator)
@@ -146,8 +174,11 @@ struct MobileCommandGeneratorTests {
         workspace.connect()
         #expect(await eventually { workspace.connected })
         workspace.receiveWorkingDirectory("/tmp")
-        workspace.receiveShellEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test"))
-        workspace.receiveShellEvent(.promptReady)
+        await connections.sendShellEvents([
+            .available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test"),
+            .promptReady,
+        ])
+        #expect(await eventually { workspace.canGenerateFromCurrentDraft })
         let generator = MobileCommandGeneratorStub(command: "ls", delay: .seconds(30))
         workspace.generateCommand(using: generator)
         #expect(await eventually { workspace.commandGeneratorState == .generating })
@@ -156,6 +187,114 @@ struct MobileCommandGeneratorTests {
 
         #expect(await eventually { workspace.commandGeneratorState == .idle })
         #expect(!connections.writes.contains(Data("\u{1B}[777;2~\u{1B}[200~ls\u{1B}[201~".utf8)))
+    }
+
+    @Test func productionCallbacksStayOrderedAndIgnoreAnOldSession() async throws {
+        let (host, library) = try commandFixture()
+        let connections = MobileSSHCommandConnectionBox()
+        let history = CommandHistoryModel()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library,
+            commandHistory: history,
+            connectionServices: connections.services
+        )
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected && connections.sessionCount == 1 })
+        workspace.receiveWorkingDirectory("/srv/app")
+
+        await connections.sendShellEvents([
+            .available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/test"),
+            .promptReady,
+            .commandStarted("pwd"),
+        ])
+
+        #expect(await eventually { history.entries(for: host.id).count == 1 })
+        #expect(!workspace.canGenerateFromCurrentDraft)
+
+        await connections.sendShellEvents([
+            .commandFinished(0, duration: 0.25)
+        ])
+
+        #expect(await eventually { workspace.canGenerateFromCurrentDraft })
+        let entry = try #require(history.entries(for: host.id).first)
+        #expect(entry.command == "pwd")
+        #expect(entry.exitStatus == 0)
+        #expect(entry.duration == 0.25)
+
+        await connections.finishSession(.success(0), session: 0)
+        #expect(await eventually { !workspace.connected })
+        workspace.connect()
+        #expect(await eventually { workspace.connected && connections.sessionCount == 2 })
+        workspace.receiveWorkingDirectory("/srv/next")
+        await connections.sendShellEvents([.commandStarted("stale")], session: 0)
+        await connections.sendShellEvents(
+            [
+                .available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test"),
+                .promptReady,
+            ], session: 1)
+
+        #expect(await eventually { workspace.canGenerateFromCurrentDraft })
+        #expect(!history.entries(for: host.id).contains { $0.command == "stale" })
+    }
+
+    @Test func disabledIntegrationIsPassedToTheTransportAndRemainsUnavailable() async throws {
+        let (host, library) = try commandFixture()
+        let connections = MobileSSHCommandConnectionBox()
+        let settings = TerminalSettingsModel()
+        #expect(settings.set(false, for: \.shellIntegration))
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library,
+            terminalSettings: settings,
+            connectionServices: connections.services
+        )
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+
+        await connections.sendShellEvents([
+            .available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test"),
+            .promptReady,
+        ])
+
+        #expect(await eventually { connections.shellIntegrationPreferences == [false] })
+        #expect(!workspace.canGenerateFromCurrentDraft)
+    }
+
+    @Test func unsupportedShellRemainsUnavailableAfterOrderedPromptEvents() async throws {
+        let (host, library) = try commandFixture()
+        let connections = MobileSSHCommandConnectionBox()
+        let history = CommandHistoryModel()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library,
+            commandHistory: history,
+            connectionServices: connections.services
+        )
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        workspace.receiveWorkingDirectory("/srv/app")
+
+        await connections.sendShellEvents([
+            .available(shell: "tcsh", systemInfo: nil, homeDirectory: "/home/test"),
+            .promptReady,
+            .commandStarted("echo marker"),
+            .promptReady,
+        ])
+
+        #expect(await eventually { history.entries(for: host.id).count == 1 })
+        #expect(!workspace.canGenerateFromCurrentDraft)
+        let generator = MobileCommandGeneratorStub(command: "echo generated")
+        workspace.generateCommand(using: generator)
+        guard case .failed = workspace.commandGeneratorState else {
+            Issue.record("Expected an unsupported-shell failure")
+            return
+        }
+        #expect(generator.contexts.isEmpty)
+        #expect(connections.writes.isEmpty)
     }
 
     private func commandFixture() throws -> (Host, HostLibraryModel) {

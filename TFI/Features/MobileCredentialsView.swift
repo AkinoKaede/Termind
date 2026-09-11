@@ -35,15 +35,7 @@ struct MobileCredentialsView: View {
                             MobileActionCard {
                                 keyEditor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
                             } content: {
-                                HStack(alignment: .top, spacing: 12) {
-                                    MobileCardIcon(symbol: "key", tint: key.colorTag.color ?? .accentColor)
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(key.label).font(.headline).lineLimit(1)
-                                        Text(key.fingerprint).font(.caption.monospaced()).foregroundStyle(.secondary)
-                                            .lineLimit(1).truncationMode(.middle)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                }
+                                MobileKeyCredentialCard(key: key, credentials: app.credentials)
                             } actions: {
                                 Button("Edit", systemImage: "pencil") {
                                     keyEditor = MobileKeyEditorModel(
@@ -65,15 +57,7 @@ struct MobileCredentialsView: View {
                             MobileActionCard {
                                 editing = identity
                             } content: {
-                                HStack(alignment: .top, spacing: 12) {
-                                    MobileCardIcon(
-                                        symbol: "person.crop.square", tint: identity.colorTag.color ?? .accentColor)
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(identity.name).font(.headline).lineLimit(1)
-                                        Text(identity.username).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                }
+                                MobileIdentityCredentialCard(identity: identity, credentials: app.credentials)
                             } actions: {
                                 Button("Edit", systemImage: "pencil") { editing = identity }
                                 Button("Delete", systemImage: "trash", role: .destructive) {
@@ -136,6 +120,156 @@ struct MobileCredentialsView: View {
             Button("OK", role: .cancel) { error = nil }
         } message: {
             Text(error ?? "")
+        }
+    }
+}
+
+private struct MobileKeyCredentialCard: View {
+    let key: SSHKeyRef
+    let credentials: CredentialLibraryModel
+
+    private var dependents: Int { credentials.identities(using: key.id).count }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                MobileCardIcon(symbol: "key.fill", tint: key.colorTag.color ?? .accentColor)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(key.label).font(.headline).lineLimit(1)
+                    Text(key.fingerprint).font(.caption.monospaced()).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack(spacing: 6) {
+                primaryChips
+                secondaryChips
+                Spacer(minLength: 6)
+                dependentLabel
+            }
+            .frame(maxWidth: .infinity)
+            .clipped()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var primaryChips: some View {
+        MobileCardChip(text: keyDisplayName)
+        if key.hasPassphrase {
+            MobileCardChip(title: "Passphrase Required", symbol: "lock.fill")
+        }
+    }
+
+    @ViewBuilder private var secondaryChips: some View {
+        MobileCardChip(text: key.storage.mobileDisplayName, symbol: key.storage.mobileSymbol)
+        switch credentials.keyAvailability(for: key) {
+        case .missing:
+            MobileCardChip(title: "Private key missing", symbol: "exclamationmark.triangle.fill", tint: .orange)
+        case .failed:
+            MobileCardChip(title: "Keychain unavailable", symbol: "exclamationmark.triangle.fill", tint: .orange)
+        case .available, .notConfigured:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder private var dependentLabel: some View {
+        if dependents > 0 {
+            Text("\(dependents) identities")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .layoutPriority(1)
+        }
+    }
+
+    private var keyDisplayName: String {
+        if key.algorithm == .rsa, let bits = key.keySize { return "RSA \(bits)" }
+        return key.algorithm.displayName
+    }
+}
+
+private struct MobileIdentityCredentialCard: View {
+    let identity: Identity
+    let credentials: CredentialLibraryModel
+
+    private var key: SSHKeyRef? { identity.keyID.flatMap(credentials.key) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                MobileCardIcon(
+                    symbol: "person.badge.key.fill", tint: identity.colorTag.color ?? .accentColor)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(identity.name).font(.headline).lineLimit(1)
+                    Text(identity.username).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack(spacing: 6) {
+                secretChips
+                Spacer(minLength: 6)
+                lastUsedLabel
+            }
+            .frame(maxWidth: .infinity)
+            .clipped()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var secretChips: some View {
+        if identity.usesPassword {
+            switch credentials.passwordAvailability(for: identity) {
+            case .available:
+                MobileCardChip(title: "Password", symbol: "lock.fill")
+            case .missing:
+                MobileCardChip(title: "Password missing", symbol: "exclamationmark.triangle.fill", tint: .orange)
+            case .failed:
+                MobileCardChip(
+                    title: "Password unavailable", symbol: "exclamationmark.triangle.fill", tint: .orange)
+            case .notConfigured:
+                EmptyView()
+            }
+        }
+        if identity.usesKey {
+            if let key {
+                MobileCardChip(text: key.label, symbol: "key.fill", tint: key.colorTag.color ?? .accentColor)
+            } else {
+                MobileCardChip(title: "Key missing", symbol: "exclamationmark.triangle.fill", tint: .orange)
+            }
+        }
+        if !identity.hasSecret {
+            MobileCardChip(title: "No secret", symbol: "questionmark.circle")
+        }
+    }
+
+    private var lastUsedLabel: some View {
+        Text(
+            identity.lastUsedAt?.formatted(.relative(presentation: .numeric))
+                ?? String(localized: "Never")
+        )
+        .font(.caption2)
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .layoutPriority(1)
+    }
+}
+
+extension KeyStorage {
+    fileprivate var mobileDisplayName: String {
+        switch self {
+        case .thisDevice: String(localized: "This Device")
+        case .iCloud: String(localized: "iCloud")
+        case .secureEnclave: String(localized: "Secure Enclave")
+        }
+    }
+
+    fileprivate var mobileSymbol: String {
+        switch self {
+        case .thisDevice: "lock.fill"
+        case .iCloud: "icloud.fill"
+        case .secureEnclave: "checkmark.shield.fill"
         }
     }
 }

@@ -36,16 +36,16 @@ struct MobileRootView: View {
                                 Label(destination.title, systemImage: destination.symbol)
                             }
                         }
-                    }.navigationTitle("Termind")
+                    }
                 } detail: {
                     NavigationStack {
                         switch selection {
-                        case .vault: vault
+                        case .vault: sidebarVault
                         case .assistant: assistant
                         case .settings: settings
                         case .metrics: metrics
                         case .workspaces: workspaceList
-                        default: vault
+                        default: sidebarVault
                         }
                     }
                 }
@@ -56,6 +56,10 @@ struct MobileRootView: View {
         }
         .onChange(of: scenePhase, initial: true) { _, phase in app.sceneChanged(sceneID, phase: phase) }
         .onChange(of: app.pro.hasProAccess) { _, _ in app.reconcileSync() }
+        .onChange(of: app.workspaces.map(\.id)) { _, workspaceIDs in
+            guard let workspaceID, !workspaceIDs.contains(workspaceID) else { return }
+            self.workspaceID = nil
+        }
         .onDisappear { app.removeScene(sceneID) }
         .onOpenURL { url in
             if WorkspaceActivityAttributes.accepts(url) {
@@ -70,7 +74,7 @@ struct MobileRootView: View {
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
                 workspace.activateWhenOpened()
                 workspaceID = id
-                app.liveActivities.focus(id, in: app.workspaces)
+                app.focusWorkspaceActivity(id)
                 workspace.terminal.requestFocus()
             } else {
                 unavailable = true
@@ -93,13 +97,20 @@ struct MobileRootView: View {
             }
         } message: {
             Text(
-                unavailable ? String(localized: "This workspace was closed or its host was removed.") : app.error ?? "")
+                unavailable
+                    ? String(localized: "This workspace was closed or its host was removed.") : app.error ?? "")
         }
 
     }
 
     private var vault: some View {
         MobileVaultView(app: app, open: open, executeSnippet: executeSnippet)
+    }
+
+    private var sidebarVault: some View {
+        MobileVaultView(
+            app: app, open: open, showsMetrics: false,
+            executeSnippet: executeSnippet)
     }
 
     private var workspaceList: some View {
@@ -146,21 +157,37 @@ struct MobileRootView: View {
 
     @ViewBuilder private var workspaceRows: some View {
         if app.workspaces.isEmpty {
-            Text("Open a host from Vault to start a workspace.").foregroundStyle(.secondary)
+            ContentUnavailableView(
+                "No Workspaces", systemImage: "terminal",
+                description: Text("Open a host from Vault to start a workspace.")
+            )
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
         ForEach(app.workspaces) { workspace in
             Button {
                 selectWorkspace(workspace.id)
             } label: {
-                Label {
-                    VStack(alignment: .leading) {
-                        Text(workspace.descriptor.title)
-                        Text(workspace.status).font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    ZStack(alignment: .bottomTrailing) {
+                        Image(systemName: workspace.descriptor.kind.symbol)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: 28)
+                        Circle()
+                            .fill(workspaceStatusTint(workspace))
+                            .frame(width: 8, height: 8)
+                            .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
                     }
-                } icon: {
-                    Image(systemName: workspace.descriptor.kind.symbol)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(workspace.descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                        Text(workspace.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
             }
+            .buttonStyle(.plain)
             .swipeActions {
                 Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
             }
@@ -168,6 +195,12 @@ struct MobileRootView: View {
                 Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
             }
         }
+    }
+
+    private func workspaceStatusTint(_ workspace: MobileWorkspace) -> Color {
+        if workspace.connected { return .green }
+        if workspace.busy || workspace.reconnectState != nil { return .orange }
+        return .secondary
     }
 
     private var assistant: some View {
@@ -193,14 +226,14 @@ struct MobileRootView: View {
         workspaceID = first
         tab = .workspaces
         selection = .workspaces
-        app.liveActivities.focus(first, in: app.workspaces)
+        app.focusWorkspaceActivity(first)
     }
 
     private func selectWorkspace(_ id: UUID) {
         guard let workspace = app.workspaces.first(where: { $0.id == id }) else { return }
         workspace.activateWhenOpened()
         workspaceID = id
-        app.liveActivities.focus(id, in: app.workspaces)
+        app.focusWorkspaceActivity(id)
     }
 
     private func closeWorkspace(_ id: UUID) {

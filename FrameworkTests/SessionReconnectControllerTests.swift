@@ -63,6 +63,28 @@ struct SessionReconnectControllerTests {
         try? await Task.sleep(for: .milliseconds(10))
         #expect(retryCount == 1)
     }
+
+    @Test
+    func scheduledRetryReturnsToMainActorAfterDetachedSleep() async {
+        let controller = SessionReconnectController(
+            policy: ReconnectPolicy(delays: [.zero]),
+            sleep: { _ in await Task.detached(priority: .userInitiated) {}.value }
+        )
+        var ran = false
+        var ranOnMainThread = false
+
+        controller.schedule(after: "offline") {
+            ranOnMainThread = Thread.isMainThread
+            ran = true
+        }
+        for _ in 0..<100 where !ran {
+            await Task.yield()
+        }
+
+        #expect(ran)
+        #expect(ranOnMainThread)
+        controller.stop()
+    }
 }
 
 private nonisolated final class ReconnectTestClock: @unchecked Sendable {

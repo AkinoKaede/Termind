@@ -93,6 +93,17 @@ infrastructure, persistence, or presentation responsibility.
   both apps. Each platform session model owns prompt/draft capture, stale-generation cancellation, and command
   insertion because those operations belong to its live terminal. Generated commands are bracketed-pasted into the
   current edit buffer and are never submitted automatically.
+- A mobile SSH session delivers Shell Integration and transport-exit callbacks through one session-scoped ordered
+  consumer on MainActor. Reconnect, background expiration, and explicit close terminate that consumer; callbacks
+  from an older connection generation cannot reorder prompt state or mutate its replacement session. Authenticated
+  integration installation and command-finished events are prompt-boundary readiness evidence on mobile; the
+  following prompt marker is idempotent, so losing or duplicating it cannot strand or cancel Command Generator.
+- A clean mobile SSH shell exit closes its Workspace through the app-owned lifecycle, while transport failures keep
+  the Workspace alive for automatic recovery. Removing the selected Workspace also clears the mobile navigation
+  destination so the UI returns to the Workspace list instead of retaining an ended terminal surface.
+- Bash's DEBUG fallback passes the pending `BASH_COMMAND` into the history hook and ignores Termind's own
+  `__termind_*` helpers. In particular, the command-generator draft/clear key bindings are protocol traffic, not
+  executed user commands: they neither create History rows nor transition the prompt to busy.
 - Settings uses app-wide preference storage but window-scoped navigation. It opens as a
   top-level window destination, remembers the content it replaced, and restores that
   destination when its index page goes back.
@@ -586,6 +597,13 @@ key strip remains visible while the software keyboard is dismissed, uses a borde
 keys. SSH and SFTP Workspace detail hides the iPhone root tab bar; returning to the
 Workspace list restores the root navigation.
 
+Every mobile SSH-backed connection initializes its Journey route before publishing
+connecting or failed state. Route rendering accepts zero, one, or many endpoints, and
+generation-scoped progress and failure callbacks from a retired transport cannot mutate
+the Journey or retry state owned by its replacement.
+Reconnect timers sleep in detached work, then enter an explicit MainActor-isolated
+method before invoking the session retry action; inherited Task isolation is not relied on.
+
 Shared form content is mounted in the desktop work column and in mobile SwiftUI
 sheets. Short mobile forms offer medium/large detents; complex forms use large.
 Dirty drafts prevent interactive dismissal and survive size changes.
@@ -606,6 +624,9 @@ stops sampling and Assistant runs, and closes transports when that time expires.
 Opening a session link restores its page and reconnects if necessary using normal
 credential and trust gates; commands and tool actions are never replayed. Restoration
 persists only descriptor IDs, host references, titles and session kinds.
+Workspace property observers publish immutable Activity session values. The app keeps
+their ordered snapshot separately from live Workspace and Vault models, so Activity
+updates never re-read observable session or Host state. ActivityKit writes remain serialized.
 
 Mobile transfer queues use the same coordinator as desktop and own dedicated connection
 configurations. Closing a browser does not cancel those transfers. Deleting a host or
@@ -661,7 +682,8 @@ still controls availability.
 
 The mobile navigation shell uses device idiom: iPhone keeps its four tabs even in landscape,
 while iPad uses NavigationSplitView's own width adaptation. Metrics' two-column breakpoint uses
-the actual detail content width. An SSH terminal surface remains attached underneath the Journey,
+the actual detail content width. The iPad sidebar has no application-name title. An SSH terminal
+surface remains attached underneath the Journey,
 so early output and viewport changes are retained while credentials or trust are presented.
 
 ### Mobile AI settings (2026-09-11)

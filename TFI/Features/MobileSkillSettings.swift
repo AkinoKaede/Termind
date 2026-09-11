@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 struct MobileSkillSettings: View {
     let skills: SkillLibraryModel
     @State private var editing: AgentSkill?
+    @State private var deleting: AgentSkill?
     @State private var importing = false
     @State private var reset = false
     @State private var warnings: [String] = []
@@ -41,7 +42,15 @@ struct MobileSkillSettings: View {
                             Image(systemName: "chevron.right").accessibilityHidden(true)
                                 .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                         }.contentShape(.rect)
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Edit", systemImage: "pencil") { editing = skill }
+                        Button("Delete", systemImage: "trash", role: .destructive) { deleting = skill }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button("Delete", systemImage: "trash", role: .destructive) { deleting = skill }
+                    }
                 }
             } footer: {
                 Text(
@@ -76,6 +85,19 @@ struct MobileSkillSettings: View {
                 warnings = outcome.document.warnings + outcome.warnings
                 editing = installed
             } catch { self.error = error.localizedDescription }
+        }
+        .confirmationDialog(
+            "Delete Skill",
+            isPresented: Binding(
+                get: { deleting != nil },
+                set: { if !$0 { deleting = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Skill", role: .destructive) {
+                if let deleting { skills.delete(id: deleting.id) }
+                deleting = nil
+            }
         }
         .confirmationDialog(
             "Replace every skill with the ones Termind ships with?", isPresented: $reset, titleVisibility: .visible

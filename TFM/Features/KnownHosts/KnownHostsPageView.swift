@@ -44,11 +44,15 @@ struct KnownHostsPageView: ManagedCardPage {
         )
         .contextMenu {
             if context.actionItems.count == 1 {
-                Button("Edit") { window.openVaultWork(.knownHostEditor(item.id), on: .knownHosts) }
-                Button("Copy Fingerprint") { copyToPasteboard(item.fingerprint) }
+                Button("Edit", systemImage: MenuSymbol.edit) {
+                    window.openVaultWork(.knownHostEditor(item.id), on: .knownHosts)
+                }
+                Button("Copy Fingerprint", systemImage: MenuSymbol.copy) { copyToPasteboard(item.fingerprint) }
                 Divider()
             }
-            Button("Delete", role: .destructive) { state.deleting = Set(context.actionItems.map(\.id)) }
+            Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+                state.deleting = Set(context.actionItems.map(\.id))
+            }
         }
         .onTapGesture(count: 2) { window.openVaultWork(.knownHostEditor(item.id), on: .knownHosts) }
     }
@@ -82,6 +86,8 @@ struct KnownHostsPageView: ManagedCardPage {
 }
 
 private struct KnownHostCard: View {
+    @Environment(\.locale) private var locale
+
     let entry: KnownHostEntry
     let selected: Bool
     let select: () -> Void
@@ -93,21 +99,27 @@ private struct KnownHostCard: View {
         ) {
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 HStack {
-                    CardIcon(symbol: "touchid", tint: entry.isMismatched ? .orange : TermindColor.accent)
+                    CardIcon(symbol: "touchid", tint: TermindColor.accent)
                     VStack(alignment: .leading) {
-                        Text(entry.isHashed ? String(localized: "Hashed Address") : entry.displayAddress)
-                            .font(.headline).lineLimit(1)
+                        Group {
+                            if entry.isHashed {
+                                Text("Hashed Address")
+                            } else {
+                                Text(entry.displayAddress)
+                            }
+                        }
+                        .font(.headline).lineLimit(1)
                         Text(entry.algorithm.displayName).font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)
                 }
                 HStack {
-                    if entry.isMismatched {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                            .help("Previously marked as mismatched")
-                    }
-                    Text(entry.addedAt, style: .date).font(.caption2).foregroundStyle(.secondary)
-                    Spacer()
+                    Spacer(minLength: Metrics.Space.xs)
+                    Text(entry.addedAt.formatted(.relative(presentation: .numeric).locale(locale)))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
         }
@@ -163,10 +175,6 @@ struct KnownHostEditorView: View {
                 if draft.isHashed {
                     Text("The original address and port cannot be recovered from this hash.").font(.caption)
                         .foregroundStyle(.secondary)
-                }
-                if draft.isMismatched {
-                    Label("Previously marked as mismatched", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
                 }
                 if let error { Text(error).foregroundStyle(.red) }
             }.formStyle(.grouped)

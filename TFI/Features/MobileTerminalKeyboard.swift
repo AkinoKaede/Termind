@@ -9,6 +9,11 @@ struct MobileTerminalKeyboard: View {
     @State private var alt: TerminalPublicStickyActivation = .inactive
     @State private var shift = MobileTerminalShiftState()
 
+    init(state: TerminalViewState, initialShift: MobileTerminalShiftState = MobileTerminalShiftState()) {
+        self.state = state
+        _shift = State(initialValue: initialShift)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -53,8 +58,8 @@ struct MobileTerminalKeyboard: View {
         } label: {
             modifierLabel("Shift", systemImage: "shift", activation: shift.activation)
         }
-        .tint(shift.activation == .inactive ? .secondary : .accentColor)
         .accessibilityValue(accessibilityValue(for: shift.activation))
+        .accessibilityAddTraits(shift.activation == .inactive ? [] : .isSelected)
     }
 
     private var keyboardToggle: some View {
@@ -89,8 +94,8 @@ struct MobileTerminalKeyboard: View {
         } label: {
             modifierLabel(title, systemImage: systemImage, activation: activation)
         }
-        .tint(activation == .inactive ? .secondary : .accentColor)
         .accessibilityValue(accessibilityValue(for: activation))
+        .accessibilityAddTraits(activation == .inactive ? [] : .isSelected)
     }
 
     private func modifierLabel(
@@ -98,7 +103,16 @@ struct MobileTerminalKeyboard: View {
     ) -> some View {
         Label(title, systemImage: systemImage)
             .labelStyle(.iconOnly)
+            .foregroundStyle(
+                activation == .inactive
+                    ? AnyShapeStyle(.secondary)
+                    : AnyShapeStyle(Color.accentColor)
+            )
             .frame(width: 44, height: 44)
+            .background(
+                activation == .inactive ? Color.clear : Color.accentColor.opacity(0.18),
+                in: .rect(cornerRadius: 8)
+            )
             .contentShape(.rect)
             .overlay(alignment: .topTrailing) {
                 if activation == .locked {
@@ -134,6 +148,10 @@ nonisolated struct MobileTerminalShiftState: Equatable {
     private(set) var activation: TerminalPublicStickyActivation = .inactive
     private var lastTap = Date.distantPast
     private let doubleTapInterval: TimeInterval = 0.3
+
+    init(activation: TerminalPublicStickyActivation = .inactive) {
+        self.activation = activation
+    }
 
     mutating func toggle(at date: Date = .now) {
         switch activation {

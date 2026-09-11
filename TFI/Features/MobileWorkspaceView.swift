@@ -118,10 +118,6 @@ struct MobileWorkspaceView: View {
                 Button("History", systemImage: "clock") { showingHistory = true }
                     .labelStyle(.iconOnly)
                 Menu {
-                    Button("Close", systemImage: "xmark", role: .destructive) {
-                        closeWorkspace(workspace.id)
-                    }
-                    Divider()
                     Button("Generate Command", systemImage: "sparkles") {
                         workspace.generateCommand(using: commandGenerator)
                     }
@@ -135,16 +131,16 @@ struct MobileWorkspaceView: View {
                         workspace.navigateFind(previous: true)
                     }
                     .keyboardShortcut("g", modifiers: [.command, .shift])
+                    Divider()
+                    Button("Close", systemImage: "xmark", role: .destructive) {
+                        closeWorkspace(workspace.id)
+                    }
                 } label: {
                     MobileOverflowMenuLabel("More")
                 }
             }
             if workspace.descriptor.kind == .sftp {
                 Menu {
-                    Button("Close", systemImage: "xmark", role: .destructive) {
-                        closeWorkspace(workspace.id)
-                    }
-                    Divider()
                     Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                     Divider()
                     Button("Parent Directory", systemImage: "arrow.up") {
@@ -156,6 +152,10 @@ struct MobileWorkspaceView: View {
                         .disabled(!workspace.connected)
                     Button("New Folder", systemImage: "folder.badge.plus") { creatingDirectory = true }
                         .disabled(!workspace.connected)
+                    Divider()
+                    Button("Close", systemImage: "xmark", role: .destructive) {
+                        closeWorkspace(workspace.id)
+                    }
                 } label: {
                     MobileOverflowMenuLabel("More")
                 }

@@ -1350,6 +1350,16 @@
         }
       }
     },
+    "Add an MCP server to connect remote tools." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加MCP服务器以连接远程工具。"
+          }
+        }
+      }
+    },
     "Add and connect to a host before exporting a key to it." : {
       "localizations" : {
         "zh-Hans" : {
@@ -2716,6 +2726,16 @@
         }
       }
     },
+    "Choose Replacement" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择替换文件"
+          }
+        }
+      }
+    },
     "Choose SSH Files" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3268,6 +3288,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确认密码短语"
+          }
+        }
+      }
+    },
+    "Conflict" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冲突"
           }
         }
       }
@@ -8882,6 +8912,16 @@
         }
       }
     },
+    "No MCP Servers" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无MCP服务器"
+          }
+        }
+      }
+    },
     "No model" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10451,6 +10491,7 @@
       }
     },
     "Previously marked as mismatched" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -13821,6 +13862,7 @@
       }
     },
     "System" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -14661,6 +14703,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "私钥已加密。Termind不会保存其密码短语，需要时会再次询问。"
+          }
+        }
+      }
+    },
+    "The private key is unavailable on this device." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备上没有该私钥"
           }
         }
       }

@@ -9,6 +9,23 @@ import UIKit
 /// Opt-in native screenshots cover the connection states without opening a transport.
 @Suite(.serialized) @MainActor
 struct MobileConnectionJourneyRenderingTests {
+    @Test func failedJourneyWithoutEndpointsRenders() throws {
+        let journey = ConnectionJourney()
+        journey.fail("Network unavailable")
+        let view = MobileConnectionJourneyView(
+            journey: journey, library: HostLibraryModel(), authenticationPrompt: nil, hostKey: nil,
+            reconnectState: nil, submit: { _, _, _, _, _, _ in }, accept: { _ in }, retry: {},
+            retryReconnectNow: {}, stopReconnecting: {}, cancel: {}
+        )
+        .frame(width: 390, height: 844)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 1
+
+        let image = try #require(renderer.uiImage)
+
+        #expect(image.size == CGSize(width: 390, height: 844))
+    }
+
     @Test func renderConnectionJourneyStates() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_JOURNEY_SCREENSHOTS"] == "1" else { return }
         let host = TermindDomain.Host(name: "Production Gateway", host: "gateway.example.invalid")

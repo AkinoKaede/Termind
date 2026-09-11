@@ -119,6 +119,15 @@ struct MobileIconRenderingTests {
                 }
                 .environment(\.locale, locale)
             }
+            try await capture("terminal-keyboard-selected-\(suffix)", language: language, scheme: scheme) {
+                VStack(spacing: 0) {
+                    Spacer()
+                    MobileTerminalKeyboard(
+                        state: TerminalViewState(),
+                        initialShift: MobileTerminalShiftState(activation: .locked))
+                }
+                .environment(\.locale, locale)
+            }
         }
         try await capture("settings-large-type", language: language, scheme: .light) {
             NavigationStack { MobileSettingsView(app: app) }

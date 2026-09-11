@@ -32,6 +32,11 @@ final class MobileKeyEditorModel: Identifiable {
     var passphrase = ""
     var certificate: String
     var requiresUserPresence = false
+    private(set) var isLoadingPrivateKey: Bool
+    private(set) var privateKeyLoadError: String?
+    private(set) var inspectedMaterial: SSHKeyMaterial?
+    private var originalPrivateKey = ""
+    private var didLoadPrivateKey: Bool
 
     init(mode: Mode, credentials: CredentialLibraryModel, key: SSHKeyRef? = nil) {
         self.mode = mode
@@ -41,11 +46,14 @@ final class MobileKeyEditorModel: Identifiable {
         storage = key?.storage ?? .iCloud
         certificate = key?.certificate ?? ""
         colorTag = key?.colorTag ?? .none
+        let loadsPrivateKey = mode == .edit && key?.storage != .secureEnclave
+        isLoadingPrivateKey = loadsPrivateKey
+        didLoadPrivateKey = !loadsPrivateKey
     }
 
     var isDirty: Bool {
         label != (original?.label ?? "") || storage != (original?.storage ?? .iCloud)
-            || certificate != (original?.certificate ?? "") || !privateKey.isEmpty || !passphrase.isEmpty
+            || certificate != (original?.certificate ?? "") || privateKey != originalPrivateKey || !passphrase.isEmpty
             || algorithm != .ed25519 || requiresUserPresence || colorTag != (original?.colorTag ?? .none)
             || curveBits != 256 || rsaBits != 3072 || cipher != .aes256 || rounds != 100 || !confirmation.isEmpty
     }
@@ -54,17 +62,27 @@ final class MobileKeyEditorModel: Identifiable {
         let encryptionIsValid =
             mode != .generate || storage == .secureEnclave || passphrase.isEmpty
             || (passphrase == confirmation && rounds > 0)
-        return nameIsValid && encryptionIsValid && (mode != .importKey || !privateKey.isEmpty)
+        let privateKeyIsValid =
+            mode == .generate || storage == .secureEnclave
+            || (!privateKey.isEmpty && (mode != .edit || didLoadPrivateKey))
+        return nameIsValid && encryptionIsValid && privateKeyIsValid && !isLoadingPrivateKey
             && (storage != .secureEnclave || canUseEnclave)
     }
-    var defaultName: String { storage == .secureEnclave ? "Secure Enclave" : algorithm.rawValue }
+    var defaultName: String {
+        if storage == .secureEnclave { return "Secure Enclave" }
+        return original?.algorithm.typeName ?? inspectedMaterial?.algorithm.typeName ?? algorithm.rawValue
+    }
     var resolvedLabel: String {
         label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? defaultName : label.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     var certificateWarning: String? {
         guard !certificate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        do { return try SSHUserCertificate.parse(certificate, matching: original?.publicKey).validityWarning } catch {
+        do {
+            return try SSHUserCertificate.parse(
+                certificate, matching: inspectedMaterial?.publicKey ?? original?.publicKey
+            ).validityWarning
+        } catch {
             return error.localizedDescription
         }
     }
@@ -75,10 +93,62 @@ final class MobileKeyEditorModel: Identifiable {
         case .rsa: .rsa(bits: rsaBits)
         }
     }
-    var publicKey: String? { original?.publicKey }
-    var fingerprint: String? { original?.fingerprint }
+    var publicKey: String? { inspectedMaterial?.publicKey ?? original?.publicKey }
+    var fingerprint: String? { inspectedMaterial?.fingerprint ?? original?.fingerprint }
     var isEnclave: Bool { original?.storage == .secureEnclave }
     var canUseEnclave: Bool { SecureEnclaveKey.isAvailable }
+    var replacesPublicKey: Bool {
+        guard let original, let inspectedMaterial else { return false }
+        return inspectedMaterial.publicKey != original.publicKey
+    }
+    var validationToken: String { privateKey + "\u{0}" + passphrase }
+
+    func loadPrivateKey() async {
+        guard mode == .edit, let original, original.storage != .secureEnclave, !didLoadPrivateKey else { return }
+        isLoadingPrivateKey = true
+        privateKeyLoadError = nil
+        defer { isLoadingPrivateKey = false }
+        do {
+            guard case .software(let secret)? = try credentials.keyCredential(for: original) else {
+                throw TermindSSHError.library(
+                    String(localized: "The private key is unavailable on this device.")
+                )
+            }
+            privateKey = secret.privateKey
+            originalPrivateKey = secret.privateKey
+            didLoadPrivateKey = true
+        } catch {
+            privateKeyLoadError = error.localizedDescription
+        }
+    }
+
+    func derivePublicMaterial() async {
+        guard storage != .secureEnclave, !privateKey.isEmpty else {
+            inspectedMaterial = nil
+            return
+        }
+        if mode == .edit, privateKey == originalPrivateKey, passphrase.isEmpty, let original {
+            inspectedMaterial = SSHKeyMaterial(
+                privateKey: privateKey, publicKey: original.publicKey, algorithm: original.algorithm,
+                fingerprint: original.fingerprint, keySize: original.keySize
+            )
+            return
+        }
+        do {
+            try await Task.sleep(for: .milliseconds(250))
+            let privateKey = privateKey
+            let passphrase = passphrase.isEmpty ? nil : passphrase
+            let comment = resolvedLabel
+            let material = try await Task.detached(priority: .utility) {
+                try SSHKeyMaterial.inspect(privateKey: privateKey, passphrase: passphrase, comment: comment)
+            }.value
+            try Task.checkCancellation()
+            inspectedMaterial = material
+        } catch is CancellationError {
+        } catch {
+            inspectedMaterial = nil
+        }
+    }
 
     func loadFile(_ url: URL) async throws {
         let infersName = SoftwareKeyFileImporter.shouldInferName(from: label)
@@ -94,18 +164,57 @@ final class MobileKeyEditorModel: Identifiable {
         let result = try await Task.detached { try SoftwareKeyFileImporter.read(urls: [url], infersName: false) }.value
         try Task.checkCancellation()
         guard let certificate = result.certificate else { throw SoftwareKeyFileImporter.unexpectedFileError() }
-        _ = try SSHUserCertificate.parse(certificate, matching: original?.publicKey)
+        _ = try SSHUserCertificate.parse(
+            certificate, matching: inspectedMaterial?.publicKey ?? original?.publicKey)
         self.certificate = certificate
     }
 
     func save() async throws {
         guard canSave else { throw CocoaError(.coderInvalidValue) }
         if var key = original {
-            key.label = resolvedLabel
+            if key.storage == .secureEnclave {
+                key.label = resolvedLabel
+                key.colorTag = colorTag
+                try credentials.upsert(key)
+                return
+            }
+            let input = privateKey
+            let enteredPassphrase = passphrase.isEmpty ? nil : passphrase
+            let keepsOriginalPrivateKey = input == originalPrivateKey
+            let material: SSHKeyMaterial
+            if keepsOriginalPrivateKey {
+                material = SSHKeyMaterial(
+                    privateKey: input, publicKey: key.publicKey, algorithm: key.algorithm,
+                    fingerprint: key.fingerprint, keySize: key.keySize
+                )
+            } else {
+                let comment = resolvedLabel
+                material = try await Task.detached(priority: .userInitiated) {
+                    try SSHKeyMaterial.inspect(
+                        privateKey: input, passphrase: enteredPassphrase, comment: comment
+                    )
+                }.value
+                try Task.checkCancellation()
+            }
+            let normalizedCertificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalizedCertificate.isEmpty {
+                _ = try SSHUserCertificate.parse(normalizedCertificate, matching: material.publicKey)
+            }
+            key.label =
+                label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? material.algorithm.typeName : resolvedLabel
             key.colorTag = colorTag
             key.storage = storage
-            key.certificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
-            try credentials.upsert(key)
+            key.algorithm = material.algorithm
+            key.publicKey = material.publicKey
+            key.certificate = normalizedCertificate
+            key.fingerprint = material.fingerprint
+            key.keySize = material.keySize
+            key.hasPassphrase = enteredPassphrase != nil || (keepsOriginalPrivateKey && key.hasPassphrase)
+            try credentials.upsert(
+                key, credential: .software(SSHPrivateKeySecret(privateKey: input))
+            )
+            clearSensitiveDrafts()
             return
         }
         let comment = "termind"
@@ -137,16 +246,28 @@ final class MobileKeyEditorModel: Identifiable {
                 return try SSHKeyMaterial.inspect(privateKey: input, passphrase: passphrase, comment: comment)
             }.value
             try Task.checkCancellation()
+            let normalizedCertificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalizedCertificate.isEmpty {
+                _ = try SSHUserCertificate.parse(normalizedCertificate, matching: material.publicKey)
+            }
             key = SSHKeyRef(
-                label: resolvedLabel, algorithm: material.algorithm, publicKey: material.publicKey,
-                certificate: certificate, fingerprint: material.fingerprint, credentialRef: "termind.key.\(UUID())",
-                storage: storage, keySize: material.keySize, hasPassphrase: passphrase != nil, createdAt: .now,
-                colorTag: colorTag)
+                label: label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? material.algorithm.typeName : resolvedLabel,
+                algorithm: material.algorithm, publicKey: material.publicKey,
+                certificate: normalizedCertificate, fingerprint: material.fingerprint,
+                credentialRef: "termind.key.\(UUID())", storage: storage, keySize: material.keySize,
+                hasPassphrase: passphrase != nil, createdAt: .now, colorTag: colorTag)
             secret = .software(SSHPrivateKeySecret(privateKey: material.privateKey))
         }
         try credentials.upsert(key, credential: secret)
+        clearSensitiveDrafts()
+    }
+
+    private func clearSensitiveDrafts() {
         privateKey = ""
+        originalPrivateKey = ""
         passphrase = ""
         confirmation = ""
+        inspectedMaterial = nil
     }
 }

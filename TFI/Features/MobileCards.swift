@@ -81,14 +81,19 @@ private struct MobileCardSurface: ViewModifier {
         if #available(iOS 26, *) {
             surface(
                 content,
-                shape: ConcentricRectangle(corners: .concentric(minimum: 20), isUniform: true)
+                shape: ConcentricRectangle(corners: .concentric(minimum: 20), isUniform: true),
+                containerRadius: 20
             )
         } else {
-            surface(content, shape: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            surface(
+                content, shape: RoundedRectangle(cornerRadius: 10, style: .continuous),
+                containerRadius: 10)
         }
     }
 
-    private func surface<S: Shape>(_ content: Content, shape: S) -> some View {
+    private func surface<S: Shape>(
+        _ content: Content, shape: S, containerRadius: CGFloat
+    ) -> some View {
         filledSurface(content, shape: shape)
             .overlay {
                 // The final clip keeps the inner half, preserving the existing one-point border.
@@ -97,8 +102,10 @@ private struct MobileCardSurface: ViewModifier {
                     .allowsHitTesting(false)
             }
             .clipShape(shape)
-            .contentShape(.interaction, shape)
-            .contentShape(.contextMenuPreview, shape)
+            .containerShape(
+                RoundedRectangle(cornerRadius: containerRadius, style: .continuous)
+            )
+            .contentShape([.interaction, .contextMenuPreview], shape)
     }
 
     @ViewBuilder private func filledSurface<S: Shape>(_ content: Content, shape: S) -> some View {
@@ -145,19 +152,26 @@ struct MobileActionCard<Content: View, Actions: View>: View {
         self.actions = actions()
     }
 
+    private var cardSurface: some View {
+        content.frame(maxWidth: .infinity, alignment: .leading).multilineTextAlignment(.leading)
+            .padding(16)
+            .frame(
+                maxWidth: .infinity, minHeight: MobileCardLayout.minimumHeight,
+                alignment: .topLeading
+            )
+            .mobileCardSurface()
+    }
+
     var body: some View {
         Button(action: action) {
-            content.frame(maxWidth: .infinity, alignment: .leading).multilineTextAlignment(.leading)
-                .padding(16)
-                .frame(
-                    maxWidth: .infinity, minHeight: MobileCardLayout.minimumHeight,
-                    alignment: .topLeading
-                )
-                .contentShape(.rect)
+            cardSurface
+                .contextMenu {
+                    actions
+                } preview: {
+                    cardSurface
+                }
         }
         .buttonStyle(.plain)
-        .mobileCardSurface()
-        .contextMenu { actions }
         .accessibilityElement(children: .contain)
     }
 }

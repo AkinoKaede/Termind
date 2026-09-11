@@ -197,6 +197,38 @@ struct ShellIntegrationBootstrapTests {
         #expect(result.output.contains("TermindCommandFinished=RUNTIME;1;0\u{7}"))
     }
 
+    @Test
+    func bashIgnoresItsDraftBindingWithoutLeavingThePrompt() throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "DRAFT")
+        let update = bootstrap.receive(
+            Data("__TRMD_DRAFT_SHELL__/bin/bash__\r\n".utf8)
+        )
+        var script = Data(
+            """
+            __termind_test_internal() {
+                __termind_report_command '__termind_compose_draft'
+                builtin printf '\nREADY_AFTER_INTERNAL=%s\n' "$__termind_command_ready"
+            }
+
+            """.utf8
+        )
+        script.append(try #require(update.command))
+        script.append(
+            Data(
+                "__termind_test_internal\n"
+                    .appending("false\n__termind_report_prompt\nexit 0\n")
+                    .utf8
+            ))
+
+        let result = try runShell(executable: "/bin/bash", arguments: [], input: script)
+
+        #expect(result.status == 0, Comment(rawValue: result.errors))
+        #expect(result.output.contains("READY_AFTER_INTERNAL=1\n"))
+        #expect(!result.output.contains("TermindCommand=DRAFT;__termind_"))
+        #expect(result.output.contains("TermindCommand=DRAFT;false\u{7}"))
+        #expect(result.output.contains("TermindCommandFinished=DRAFT;1;0\u{7}"))
+    }
+
     @Test(arguments: [0, 1, 42], [false, true])
     func zshRunsPromptHooksAndPreservesCommandOutput(exitStatus: Int, capturesStartupOutput: Bool) throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

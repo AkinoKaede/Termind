@@ -45,6 +45,43 @@ struct MobileCardTests {
         #expect(Array(MobileCardLayout.visibleTags(["one", "two", "three"])) == ["one", "two"])
     }
 
+    @Test func hostSectionsFoldNestedGroupsKeepEmptyGroupsAndLeaveSearchAvailable() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let root = HostGroup(name: "Production")
+        let child = HostGroup(name: "Edge", parentID: root.id)
+        let empty = HostGroup(name: "Empty")
+        let rootHost = TermindDomain.Host(name: "Gateway", host: "gateway.example", groupID: root.id)
+        let childHost = TermindDomain.Host(name: "Child Node", host: "edge.example", groupID: child.id)
+        let ungroupedHost = TermindDomain.Host(name: "Loose", host: "loose.example")
+
+        app.library.upsert(root)
+        app.library.upsert(child)
+        app.library.upsert(empty)
+        app.library.upsert(rootHost)
+        app.library.upsert(childHost)
+        app.library.upsert(ungroupedHost)
+
+        let expanded = MobileHostSectionLayout.sections(library: app.library)
+        #expect(
+            expanded.map(\.id)
+                == [.group(root.id), .group(child.id), .group(empty.id), .ungrouped])
+        #expect(expanded.map(\.title) == ["Production", "Production / Edge", "Empty", "Ungrouped"])
+        #expect(expanded.first(where: { $0.id == .group(empty.id) })?.hosts.isEmpty == true)
+
+        app.library.setExpanded(false, for: root.id)
+        let collapsed = MobileHostSectionLayout.sections(library: app.library)
+        #expect(collapsed.map(\.id) == [.group(root.id), .group(empty.id), .ungrouped])
+        #expect(app.library.searchHosts("Child Node").map(\.id) == [childHost.id])
+
+        app.library.setUngroupedExpanded(false)
+        #expect(
+            MobileHostSectionLayout.sections(library: app.library)
+                .first(where: { $0.id == .ungrouped })?.isExpanded == false)
+
+        let stored = try HostPersistence(context: ModelContext(app.container)).load()
+        #expect(stored.groups.first(where: { $0.id == root.id })?.isExpanded == false)
+    }
+
     @Test func distributionBrandColorsAreValidAndReadableOnHostIconSurfaces() throws {
         #expect(LinuxDistributionBrandColor.color(hex: "not-a-color", colorScheme: .light) == nil)
 
@@ -124,6 +161,7 @@ struct MobileCardTests {
         #expect(app.credentials.keys.first(where: { $0.label == "Imported Color" })?.colorTag == .blue)
 
         let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
+        await editor.loadPrivateKey()
         #expect(editor.colorTag == .green && !editor.isDirty)
         editor.colorTag = .red
         #expect(editor.isDirty)
@@ -132,6 +170,7 @@ struct MobileCardTests {
         try await editor.save()
         let updated = try #require(app.credentials.key(key.id))
         let reopened = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: updated)
+        await reopened.loadPrivateKey()
         #expect(reopened.colorTag == .none && !reopened.isDirty)
         #expect(updated.fingerprint == key.fingerprint)
     }

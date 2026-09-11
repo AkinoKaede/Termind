@@ -1,8 +1,12 @@
 import SwiftUI
 import TermindDomain
+import UIKit
 
 struct MobileKnownHostsView: View {
+    @Environment(\.locale) private var locale
+
     let app: MobileAppModel
+    @State private var editing: KnownHostEntry?
     @State private var removing: KnownHostEntry?
     @State private var query = ""
 
@@ -22,23 +26,43 @@ struct MobileKnownHostsView: View {
             }
             MobileCardGrid {
                 ForEach(entries) { entry in
-                    MobileCard {
+                    MobileActionCard {
+                        editing = entry
+                    } content: {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .top, spacing: 12) {
-                                MobileCardIcon(
-                                    symbol: entry.isMismatched ? "exclamationmark.shield" : "checkmark.shield",
-                                    tint: entry.isMismatched ? .orange : .green)
-                                Text(entry.displayAddress).font(.headline).frame(
-                                    maxWidth: .infinity, alignment: .leading)
+                                MobileCardIcon(symbol: "touchid", tint: .accentColor)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Group {
+                                        if entry.isHashed {
+                                            Text("Hashed Address")
+                                        } else {
+                                            Text(entry.displayAddress)
+                                        }
+                                    }
+                                    .font(.headline).lineLimit(1)
+                                    Text(entry.algorithm.displayName)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            if entry.isMismatched {
-                                MobileCardChip(
-                                    title: "Host key changed", symbol: "exclamationmark.triangle",
-                                    tint: .orange)
+                            HStack(spacing: 6) {
+                                Spacer(minLength: 6)
+                                Text(entry.addedAt.formatted(.relative(presentation: .numeric).locale(locale)))
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
                             }
                         }
-                    }
-                    .contextMenu {
+                        .accessibilityElement(children: .combine)
+                    } actions: {
+                        Button("Edit", systemImage: "pencil") { editing = entry }
+                        Button("Copy Fingerprint", systemImage: "doc.on.doc") {
+                            UIPasteboard.general.string = entry.fingerprint
+                        }
+                        Divider()
                         Button("Delete", systemImage: "trash", role: .destructive) { removing = entry }
                     }
                 }
@@ -46,6 +70,7 @@ struct MobileKnownHostsView: View {
         }
         .searchable(text: $query)
         .navigationTitle("Known Hosts")
+        .sheet(item: $editing) { MobileKnownHostEditor(app: app, entry: $0) }
         .confirmationDialog(
             "Delete Known Host?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
@@ -55,5 +80,63 @@ struct MobileKnownHostsView: View {
                 removing = nil
             }
         }
+    }
+}
+
+struct MobileKnownHostEditor: View {
+    let app: MobileAppModel
+    let original: KnownHostEntry
+    @State private var draft: KnownHostEntry
+
+    init(app: MobileAppModel, entry: KnownHostEntry) {
+        self.app = app
+        original = entry
+        _draft = State(initialValue: entry)
+    }
+
+    var body: some View {
+        MobileEditorSheet(
+            title: String(localized: "Host Key"), isDirty: draft != original,
+            canSave: draft.isValid,
+            save: {
+                guard app.knownHosts.save(draft) else {
+                    throw MobileEditorError.message(
+                        app.knownHosts.storageError ?? String(localized: "Unable to Save"))
+                }
+            },
+            content: {
+                Section {
+                    LabeledContent("Hostname") {
+                        TextField("Hostname", text: $draft.hostname)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    if !draft.isHashed {
+                        LabeledContent("Port") {
+                            TextField("Port", value: $draft.port, format: .number.grouping(.never))
+                                .multilineTextAlignment(.trailing)
+                                .keyboardType(.numberPad)
+                        }
+                    }
+                    Picker("Key Type", selection: $draft.algorithm) {
+                        ForEach(SSHKeyAlgorithm.allCases) { Text($0.displayName).tag($0) }
+                    }
+                    LabeledContent("Fingerprint") {
+                        TextField("Fingerprint", text: $draft.fingerprint)
+                            .multilineTextAlignment(.trailing)
+                            .font(.body.monospaced())
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                }
+                if draft.isHashed {
+                    Section {
+                        Text("The original address and port cannot be recovered from this hash.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            })
     }
 }

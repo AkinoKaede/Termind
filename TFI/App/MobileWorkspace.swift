@@ -5,6 +5,7 @@ import Observation
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -70,6 +71,11 @@ private enum MobileWorkspaceConnectionResumeIntent: Equatable {
     case foreground
 }
 
+private nonisolated enum MobileSSHSessionEvent: Sendable {
+    case exit(Result<Int32, TermindSSHError>)
+    case shellIntegration(SSHShellIntegrationEvent)
+}
+
 private struct MobilePendingDraftRequest {
     var id: UUID
     var continuation: CheckedContinuation<String, any Error>
@@ -97,10 +103,17 @@ final class MobileWorkspace: Identifiable {
 
     let descriptor: MobileWorkspaceDescriptor
     var id: UUID { descriptor.id }
-    var detectedDistribution: DetectedDistribution? { hosts.host(descriptor.hostID)?.detectedDistribution }
-    var didChangeState: (() -> Void)?
-    private(set) var status = String(localized: "Disconnected") { didSet { didChangeState?() } }
-    private(set) var connected = false { didSet { didChangeState?() } }
+    @ObservationIgnored private(set) var activitySession: WorkspaceActivityAttributes.Session
+    @ObservationIgnored var didChangeState: ((WorkspaceActivityAttributes.Session) -> Void)?
+    @ObservationIgnored var didRequestClose: ((ID) -> Void)?
+    private(set) var status = String(localized: "Disconnected")
+    private(set) var connected = false {
+        didSet {
+            guard activitySession.connected != connected else { return }
+            activitySession.connected = connected
+            didChangeState?(activitySession)
+        }
+    }
     private(set) var busy = false
     var reconnectState: ReconnectState? { reconnect.state }
     let journey = ConnectionJourney()
@@ -149,6 +162,8 @@ final class MobileWorkspace: Identifiable {
     private let backend: InMemoryTerminalSession
     private var ssh: SSHSessionActor?
     private var sftp: (any SFTPClientProtocol)?
+    private var sshEventContinuation: AsyncStream<MobileSSHSessionEvent>.Continuation?
+    private var sshEventTask: Task<Void, Never>?
     private var attempt: Task<Void, Never>?
     private var generation = UUID()
     private let hosts: any RemoteSessionHostStore
@@ -203,6 +218,11 @@ final class MobileWorkspace: Identifiable {
         self.transfers = transfers
         self.descriptor = descriptor
         self.hosts = hosts
+        activitySession = WorkspaceActivityAttributes.Session(
+            id: descriptor.id, title: descriptor.title, kind: descriptor.kind.rawValue,
+            connected: false,
+            iconAsset: LinuxDistributionIconCatalog.entry(
+                for: hosts.host(descriptor.hostID)?.detectedDistribution)?.asset)
         pendingInitialCommand = initialCommand
         self.connectionServices = connectionServices
         reconnect = MobileWorkspaceReconnectState(controller: reconnectController)
@@ -430,7 +450,7 @@ final class MobileWorkspace: Identifiable {
         invalidateCommandGeneration()
     }
 
-    private var canGenerateFromCurrentDraft: Bool {
+    var canGenerateFromCurrentDraft: Bool {
         connected && shellIntegrationAvailable && isShellPromptReady
             && Self.supportedGeneratorShells.contains(integratedShell ?? "")
     }
@@ -587,17 +607,21 @@ final class MobileWorkspace: Identifiable {
         case .available(let shell, let systemInfo, _):
             integratedShell = shell
             remoteSystemInfo = systemInfo
-            isShellPromptReady = false
             shellIntegrationAvailable = true
+            // Installation completes by entering the shell's prompt hook. Treat
+            // that authenticated boundary as ready even if the following
+            // TermindPrompt OSC is swallowed by the UIKit terminal path.
+            isShellPromptReady = true
             invalidateCommandGeneration()
-            hosts.recordRemoteSystemInfo(systemInfo, for: descriptor.hostID)
+            recordRemoteSystemInfo(systemInfo)
         case .systemInfo(let systemInfo):
             remoteSystemInfo = systemInfo
             invalidateCommandGeneration()
-            hosts.recordRemoteSystemInfo(systemInfo, for: descriptor.hostID)
+            recordRemoteSystemInfo(systemInfo)
         case .homeResolutionUnavailable:
             break
         case .promptReady:
+            guard !isShellPromptReady else { return }
             isShellPromptReady = true
             invalidateCommandGeneration()
         case .commandStarted(let command):
@@ -606,8 +630,16 @@ final class MobileWorkspace: Identifiable {
             invalidateCommandGeneration()
             activeHistoryID = commandHistory.record(command, for: descriptor.hostID)?.id
         case .commandFinished(let status, let duration):
+            // CommandFinished is emitted from the prompt hook immediately before
+            // cwd and prompt reporting, so it is also a trustworthy recovery
+            // point when the separate prompt marker never reaches mobile state.
+            if !isShellPromptReady, shellIntegrationAvailable {
+                isShellPromptReady = true
+                invalidateCommandGeneration()
+            }
             guard let id = activeHistoryID else { return }
-            commandHistory.recordCompletion(for: id, hostID: descriptor.hostID, exitStatus: status, duration: duration)
+            commandHistory.recordCompletion(
+                for: id, hostID: descriptor.hostID, exitStatus: status, duration: duration)
             activeHistoryID = nil
         case .draft(let draft):
             completeDraftRequest(with: draft)
@@ -617,6 +649,7 @@ final class MobileWorkspace: Identifiable {
     func connect() {
         guard !busy, !connected else { return }
         cancelPendingUpload()
+        stopSSHEventConsumer()
         let reconnecting = reconnect.isRecovering
         let token = UUID()
         generation = token
@@ -640,6 +673,7 @@ final class MobileWorkspace: Identifiable {
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpSession,
             username: hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
+        let progressHandler = connectionProgressHandler(for: token)
         attempt = Task { [weak self] in
             guard let self else { return }
             defer { if generation == token { busy = false } }
@@ -678,21 +712,11 @@ final class MobileWorkspace: Identifiable {
 
                 if descriptor.kind == .ssh {
                     let backend = backend
+                    let handlers = startSSHEventConsumer(for: token)
                     let session = connectionServices.makeSSHSession(
                         { backend.receive($0) },
-                        { [weak self] result in
-                            Task { @MainActor in
-                                guard let self, self.generation == token else { return }
-                                self.handleRemoteExit(result)
-                            }
-                        },
-                        { [weak self] event in
-                            Task { @MainActor in
-                                guard let self, self.generation == token else { return }
-                                self.receiveShellEvent(event)
-                                self.didChangeState?()
-                            }
-                        })
+                        handlers.exit,
+                        handlers.shellIntegration)
                     ssh = session
                     try await connectionServices.connectSSH(
                         session,
@@ -700,16 +724,11 @@ final class MobileWorkspace: Identifiable {
                         terminalSettings.preferences.shellIntegration,
                         UInt16(clamping: viewport.columns),
                         UInt16(clamping: viewport.rows),
-                        { [weak self] event in
-                            Task { @MainActor in
-                                guard let self, self.generation == token else { return }
-                                self.journey.receive(event)
-                            }
-                        }
+                        progressHandler
                     )
                 } else {
                     let client = try await connectionServices.connectSFTP(
-                        config, nil,
+                        config, progressHandler,
                         { [weak self] message in
                             Task { @MainActor in
                                 guard let self, self.generation == token else { return }
@@ -727,6 +746,7 @@ final class MobileWorkspace: Identifiable {
                             ? try await client.homeDirectory() : host.sftpSessionInitialPath
                     }
                     files = try await client.listDirectory(at: path)
+                    journey.receive(.connected(host.id))
                 }
                 guard generation == token, !Task.isCancelled else { return }
                 transferConfiguration = config
@@ -745,6 +765,7 @@ final class MobileWorkspace: Identifiable {
                 }
             } catch {
                 guard generation == token else { return }
+                stopSSHEventConsumer()
                 connectionFailure = error.localizedDescription
                 var requiresUserInteraction = false
                 var preventsAutomaticReconnect = false
@@ -818,6 +839,7 @@ final class MobileWorkspace: Identifiable {
     func stopReconnecting() {
         guard let reconnectState = reconnect.stopReconnecting() else { return }
         cancelPendingUpload()
+        stopSSHEventConsumer()
         resetCommandGeneratorShellState()
         connectionResumeIntent = .none
         generation = UUID()
@@ -848,6 +870,7 @@ final class MobileWorkspace: Identifiable {
     func suspendForBackgroundExpiration() {
         guard connectionResumeIntent != .foreground, hasActiveConnectionFlow else { return }
         cancelPendingUpload()
+        stopSSHEventConsumer()
         resetCommandGeneratorShellState()
         let reconnecting = reconnect.hasConnectedOnce
         connectionResumeIntent = .foreground
@@ -887,6 +910,7 @@ final class MobileWorkspace: Identifiable {
 
     private func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
         cancelPendingUpload()
+        stopSSHEventConsumer()
         resetCommandGeneratorShellState()
         generation = UUID()
         attempt?.cancel()
@@ -900,6 +924,7 @@ final class MobileWorkspace: Identifiable {
             connectionResumeIntent = .none
             reconnect.reset()
             status = String(localized: "Disconnected")
+            didRequestClose?(id)
         case .failure(let failure):
             handleConnectionFailure(failure.localizedDescription)
         }
@@ -912,6 +937,7 @@ final class MobileWorkspace: Identifiable {
 
     private func scheduleReconnect(after message: String) {
         cancelPendingUpload()
+        stopSSHEventConsumer()
         resetCommandGeneratorShellState()
         let announcesLoss = reconnect.schedule(after: message) { [weak self] in self?.connect() }
         generation = UUID()
@@ -961,6 +987,7 @@ final class MobileWorkspace: Identifiable {
 
     func disconnect() {
         cancelPendingUpload()
+        stopSSHEventConsumer()
         resetCommandGeneratorShellState()
         connectionResumeIntent = .none
         journey.hide()
@@ -994,6 +1021,76 @@ final class MobileWorkspace: Identifiable {
         authenticationPrompt = nil
         pendingHostKey = nil
         status = String(localized: "Disconnected")
+    }
+
+    private func startSSHEventConsumer(
+        for connectionGeneration: UUID
+    ) -> (
+        exit: SSHSessionActor.ExitHandler,
+        shellIntegration: SSHSessionActor.ShellIntegrationHandler
+    ) {
+        stopSSHEventConsumer()
+        let (events, continuation) = AsyncStream<MobileSSHSessionEvent>.makeStream()
+        sshEventContinuation = continuation
+        sshEventTask = Task { @MainActor [weak self] in
+            for await event in events {
+                guard !Task.isCancelled, let self,
+                    self.generation == connectionGeneration
+                else { break }
+                switch event {
+                case .exit(let result):
+                    self.handleRemoteExit(result)
+                case .shellIntegration(let event):
+                    self.receiveShellEvent(event)
+                }
+            }
+        }
+        return (
+            exit: { result in
+                continuation.yield(.exit(result))
+                continuation.finish()
+            },
+            shellIntegration: { event in
+                continuation.yield(.shellIntegration(event))
+            }
+        )
+    }
+
+    private func connectionProgressHandler(
+        for connectionGeneration: UUID
+    ) -> SSHRouteProgressHandler {
+        { [weak self] event in
+            Task { @MainActor in
+                guard let self, self.generation == connectionGeneration else { return }
+                self.journey.receive(event)
+            }
+        }
+    }
+
+    private func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?) {
+        hosts.recordRemoteSystemInfo(systemInfo, for: descriptor.hostID)
+        guard let systemInfo, let kernelName = systemInfo.kernelName else { return }
+        let distribution: DetectedDistribution?
+        if kernelName.caseInsensitiveCompare("Linux") == .orderedSame {
+            guard let id = systemInfo.distributionID,
+                let detected = DetectedDistribution(
+                    id: id, likeIDs: systemInfo.distributionLikeIDs)
+            else { return }
+            distribution = detected
+        } else {
+            distribution = nil
+        }
+        let iconAsset = LinuxDistributionIconCatalog.entry(for: distribution)?.asset
+        guard activitySession.iconAsset != iconAsset else { return }
+        activitySession.iconAsset = iconAsset
+        didChangeState?(activitySession)
+    }
+
+    private func stopSSHEventConsumer() {
+        sshEventContinuation?.finish()
+        sshEventContinuation = nil
+        sshEventTask?.cancel()
+        sshEventTask = nil
     }
 
     private var hasActiveConnectionFlow: Bool {

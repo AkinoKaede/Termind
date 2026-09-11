@@ -75,13 +75,36 @@ struct MobileKeyEditor: View {
                         }
                     }
                 }
-                if model.mode == .importKey {
+                if model.mode != .generate && model.storage != .secureEnclave {
                     Section("Private Key") {
-                        Button("Choose File", systemImage: "folder") { choosingFile = true }
-                        TextEditor(text: $model.privateKey).multilineTextAlignment(.leading).font(.body.monospaced())
-                            .frame(minHeight: 150)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        SecureField("Passphrase", text: $model.passphrase).multilineTextAlignment(.leading)
+                        if model.isLoadingPrivateKey {
+                            ProgressView("Loading private key…")
+                        } else {
+                            if let error = model.privateKeyLoadError {
+                                Label(error, systemImage: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                            Button(model.mode == .edit ? "Choose Replacement" : "Choose File", systemImage: "folder") {
+                                choosingFile = true
+                            }
+                            TextEditor(text: $model.privateKey)
+                                .multilineTextAlignment(.leading)
+                                .font(.body.monospaced())
+                                .frame(minHeight: 150)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                            if model.replacesPublicKey {
+                                Label(
+                                    "Replacing this private key changes its public key. Hosts using the old key may reject the next connection.",
+                                    systemImage: "arrow.triangle.2.circlepath"
+                                )
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                            }
+                            SecureField("Passphrase", text: $model.passphrase)
+                                .multilineTextAlignment(.leading)
+                        }
                     }
                 }
                 if model.mode != .generate && model.storage != .secureEnclave {
@@ -102,12 +125,12 @@ struct MobileKeyEditor: View {
                 }
             }
         )
-        .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.data]) { result in
+        .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.data, .plainText]) { result in
             Task {
                 do { try await model.loadFile(result.get()) } catch { fileError = error.localizedDescription }
             }
         }
-        .fileImporter(isPresented: $choosingCertificate, allowedContentTypes: [.data]) { result in
+        .fileImporter(isPresented: $choosingCertificate, allowedContentTypes: [.data, .plainText]) { result in
             Task {
                 do { try await model.loadCertificateFile(result.get()) } catch {
                     fileError = error.localizedDescription
@@ -121,6 +144,8 @@ struct MobileKeyEditor: View {
         } message: {
             Text(fileError ?? "")
         }
+        .task { await model.loadPrivateKey() }
+        .task(id: model.validationToken) { await model.derivePublicMaterial() }
     }
 
     private var title: String {

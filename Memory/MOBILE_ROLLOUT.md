@@ -158,3 +158,27 @@ The full macOS run executed 1,176 tests and reported three unrelated failures: t
 immediate focused rerun, while the existing ArchitectureBoundary source assertion still expects the App icon `app`
 despite the current uncommitted mobile settings source using `app.badge`. Both app builds, strict Swift formatting,
 Simplified Chinese localization checks, and `git diff --check` passed.
+
+## Ordered mobile Shell Integration delivery — 2026-09-11
+
+The original mobile Command Generator tests invoked `receiveShellEvent` directly and therefore did not verify the
+production callback hop from the SSH worker to MainActor. Mobile SSH now places Shell Integration and transport-exit
+callbacks in one session-scoped ordered stream. Closing, reconnecting, or expiring a session terminates its consumer,
+so a late callback cannot reorder prompt readiness or mutate a replacement session.
+
+Six focused mobile Command Generator tests passed, including background callback delivery, command completion,
+disabled-integration transport configuration, and stale-event isolation across an exit and replacement connection.
+The 43 focused macOS Shell Integration, Command History, and Broadcast Input tests also passed. The full iOS run
+passed 232 of 233 tests; the remaining failure is in the concurrently edited MobileCard key-color test and is
+unrelated to SSH or Command Generator. Simulator, macOS, and signed physical-iPad target builds passed. Live SSH
+verification on the device remains pending.
+
+Physical-device diagnosis then confirmed that the affected bash host had Shell Integration enabled, a detected
+remote distribution, and authenticated command history. After the first readiness correction, tapping Generate
+Command produced an unfinished History row containing the draft itself. This identified the actual cancellation:
+bash's DEBUG fallback treated the internal draft-reading `bind -x` helper as a user command, emitted command-start,
+and immediately marked the prompt busy. The fallback now passes `BASH_COMMAND` into the hook and ignores Termind's
+own `__termind_*` helpers. Mobile also treats authenticated installation and command completion as prompt boundaries;
+duplicate prompt markers are idempotent. Seventeen shared bootstrap tests, including a real bash runtime regression,
+and all six focused mobile Command Generator tests passed. The root-cause build was installed and launched on the
+connected iPad at 22:30. The affected live bash host then completed Command Generator successfully on that iPad.

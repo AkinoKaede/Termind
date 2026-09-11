@@ -351,24 +351,6 @@ struct MobileModelFetchSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Filter", text: $query)
-                        .textFieldStyle(.plain).multilineTextAlignment(.leading)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    if !query.isEmpty {
-                        Button {
-                            query = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill").frame(minWidth: 44, minHeight: 44).contentShape(
-                                .rect)
-                        }
-                        .foregroundStyle(.secondary).accessibilityLabel(Text("Clear filter"))
-                    }
-                }
-                .padding(10)
-                .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 10))
-                .padding(.horizontal).padding(.top, 8)
                 if discovery.running {
                     Spacer()
                     ProgressView()
@@ -429,6 +411,9 @@ struct MobileModelFetchSheet: View {
                     }
                 }
             }
+            .searchable(text: $query, prompt: "Filter")
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
             .background(Color(uiColor: .systemBackground))
             .toolbarBackground(Color(uiColor: .systemBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)

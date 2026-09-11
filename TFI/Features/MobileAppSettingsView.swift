@@ -10,7 +10,7 @@ struct MobileAppSettingsView: View {
         Form {
             Section("Appearance") {
                 Picker("Theme", selection: $appearance) {
-                    Text("System").tag("system")
+                    Text("Follow System").tag("system")
                     Text("Light").tag("light")
                     Text("Dark").tag("dark")
                 }

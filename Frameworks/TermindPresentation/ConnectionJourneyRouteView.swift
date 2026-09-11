@@ -6,25 +6,28 @@ public struct ConnectionJourneyRouteView: View {
     let journey: ConnectionJourney
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     public init(journey: ConnectionJourney) { self.journey = journey }
+    @ViewBuilder
     public var body: some View {
-        GeometryReader { geometry in
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    route(viewportWidth: geometry.size.width)
-                        .padding(.vertical, 30)
-                }
-                .scrollIndicators(.hidden)
-                .onChange(of: journey.activeEndpointIndex) { _, _ in
-                    scrollToActivity(proxy)
-                }
-                .onChange(of: journey.checkpoint) { _, _ in
-                    scrollToActivity(proxy)
+        if !journey.endpoints.isEmpty {
+            GeometryReader { geometry in
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        route(viewportWidth: geometry.size.width)
+                            .padding(.vertical, 30)
+                    }
+                    .scrollIndicators(.hidden)
+                    .onChange(of: journey.activeEndpointIndex) { _, _ in
+                        scrollToActivity(proxy)
+                    }
+                    .onChange(of: journey.checkpoint) { _, _ in
+                        scrollToActivity(proxy)
+                    }
                 }
             }
+            .frame(height: 152)
         }
-        .frame(height: 152)
-
     }
+
     private func route(viewportWidth: CGFloat) -> some View {
         let nodeLaneHeight: CGFloat = 56
         let endpointSpacing: CGFloat = 190
@@ -35,7 +38,7 @@ public struct ConnectionJourneyRouteView: View {
 
         return ZStack(alignment: .topLeading) {
             HStack(spacing: 0) {
-                ForEach(1..<journey.endpoints.count, id: \.self) { index in
+                ForEach(journey.endpoints.indices.dropFirst(), id: \.self) { index in
                     JourneySegmentView(
                         state: segmentState(for: index),
                         checkpoint: journey.checkpoint?.endpointIndex == index
@@ -69,11 +72,16 @@ public struct ConnectionJourneyRouteView: View {
     }
 
     private var activityEndpointIndex: Int? {
-        guard journey.phase == .connecting, journey.checkpoint == nil else { return nil }
+        guard journey.phase == .connecting, journey.checkpoint == nil,
+            let lastIndex = journey.endpoints.indices.last
+        else { return nil }
+        let candidate: Int
         if journey.activeEndpointIndex > journey.completedEndpointIndex {
-            return max(0, journey.activeEndpointIndex - 1)
+            candidate = journey.activeEndpointIndex - 1
+        } else {
+            candidate = journey.completedEndpointIndex
         }
-        return journey.completedEndpointIndex
+        return min(max(journey.endpoints.startIndex, candidate), lastIndex)
     }
 
     private func endpointState(for index: Int) -> JourneyVisualState {
@@ -90,13 +98,14 @@ public struct ConnectionJourneyRouteView: View {
     }
 
     private func scrollToActivity(_ proxy: ScrollViewProxy) {
-        guard !reduceMotion else { return }
-        let index = journey.checkpoint?.endpointIndex ?? journey.activeEndpointIndex
+        guard !reduceMotion, let lastIndex = journey.endpoints.indices.last else { return }
+        let candidate = journey.checkpoint?.endpointIndex ?? journey.activeEndpointIndex
+        let index = min(max(journey.endpoints.startIndex, candidate), lastIndex)
+        let target =
+            journey.checkpoint != nil && index > journey.endpoints.startIndex
+            ? "segment-\(index)" : "endpoint-\(index)"
         withAnimation(.easeInOut(duration: 0.24)) {
-            proxy.scrollTo(
-                journey.checkpoint == nil ? "endpoint-\(index)" : "segment-\(index)",
-                anchor: .center
-            )
+            proxy.scrollTo(target, anchor: .center)
         }
     }
 

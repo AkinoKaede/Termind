@@ -7,6 +7,8 @@ struct MobileMCPSettings: View {
     let ai: AIConfigurationModel
     let pro: ProAccessController
     @State private var editing: MCPServer?
+    @State private var deleting: MCPServer?
+
     var body: some View {
         List {
             Section {
@@ -16,29 +18,52 @@ struct MobileMCPSettings: View {
                     )
                     .foregroundStyle(.orange)
                 }
+                if ai.mcpServers.isEmpty {
+                    ContentUnavailableView(
+                        "No MCP Servers", systemImage: "network",
+                        description: Text("Add an MCP server to connect remote tools.")
+                    )
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                }
                 ForEach(ai.mcpServers) { server in
                     Button {
-                        if pro.require(.remoteMCP) { editing = server }
+                        edit(server)
                     } label: {
-                        HStack {
-                            Image(systemName: "network").foregroundStyle(.secondary).accessibilityHidden(true)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(server.name)
+                        HStack(spacing: 12) {
+                            Image(systemName: "network")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 28)
+                                .background(.quaternary, in: .rect(cornerRadius: 7))
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(server.name).foregroundStyle(.primary).lineLimit(1)
                                 Text(server.url.isEmpty ? String(localized: "No URL") : server.url)
-                                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                                Text(server.transport.displayName).font(.caption)
-                                if server.lastConnectedAt == nil {
-                                    Text("Not Connected").font(.caption)
-                                } else {
-                                    Text("\(server.enabledTools.count)/\(server.tools.count) tools").font(.caption)
-                                }
-                                if !server.isEnabled { Text("Disabled").font(.caption).foregroundStyle(.secondary) }
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            Image(systemName: "chevron.right").accessibilityHidden(true)
-                                .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                            HStack(spacing: 8) {
+                                MobileMCPStatusBadge(
+                                    server: server,
+                                    hasNamespaceConflict: ai.conflictingMCPServerIDs.contains(server.id))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                                    .accessibilityHidden(true)
+                            }
                         }.contentShape(.rect)
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Edit", systemImage: "pencil") { edit(server) }
+                        Button("Delete", systemImage: "trash", role: .destructive) { deleting = server }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button("Delete", systemImage: "trash", role: .destructive) { deleting = server }
+                    }
                 }
             } footer: {
                 Text("Connect to remote MCP servers over HTTP. New tools always ask for approval by default.")
@@ -54,6 +79,82 @@ struct MobileMCPSettings: View {
             }
         }
         .sheet(item: $editing) { MobileMCPEditor(ai: ai, pro: pro, server: $0) }
+        .confirmationDialog(
+            "Delete Server",
+            isPresented: Binding(
+                get: { deleting != nil },
+                set: { if !$0 { deleting = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Server", role: .destructive) {
+                if let deleting { ai.delete(serverID: deleting.id) }
+                deleting = nil
+            }
+        }
+    }
+
+    private func edit(_ server: MCPServer) {
+        if pro.require(.remoteMCP) { editing = server }
+    }
+}
+
+private struct MobileMCPStatusBadge: View {
+    let status: MobileMCPServerStatus
+
+    init(server: MCPServer, hasNamespaceConflict: Bool) {
+        status = MobileMCPServerStatus(server: server, hasNamespaceConflict: hasNamespaceConflict)
+    }
+
+    var body: some View {
+        label
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(tint.opacity(0.12), in: .capsule)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder private var label: some View {
+        switch status {
+        case .conflict:
+            Text("Conflict")
+        case .disabled:
+            Text("Disabled")
+        case .notConnected:
+            Text("Not Connected")
+        case .tools(let enabled, let total):
+            Text("\(enabled)/\(total) tools")
+        }
+    }
+
+    private var tint: Color {
+        switch status {
+        case .conflict: .orange
+        case .disabled, .notConnected: .secondary
+        case .tools: .accentColor
+        }
+    }
+}
+
+nonisolated enum MobileMCPServerStatus: Equatable {
+    case conflict
+    case disabled
+    case notConnected
+    case tools(enabled: Int, total: Int)
+
+    init(server: MCPServer, hasNamespaceConflict: Bool) {
+        if hasNamespaceConflict {
+            self = .conflict
+        } else if !server.isEnabled {
+            self = .disabled
+        } else if server.lastConnectedAt == nil {
+            self = .notConnected
+        } else {
+            self = .tools(enabled: server.enabledTools.count, total: server.tools.count)
+        }
     }
 }
 

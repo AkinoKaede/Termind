@@ -35,6 +35,7 @@ public nonisolated struct ReconnectState: Equatable, Sendable {
 
 /// Owns only retry timing and stale-callback rejection. The session models keep
 /// transport construction because they also own authentication and host-key UI.
+@MainActor
 @Observable
 public final class SessionReconnectController {
     public typealias RetryAction = @MainActor @Sendable () -> Void
@@ -93,11 +94,7 @@ public final class SessionReconnectController {
         guard let retryAction else { return }
         cancelScheduledRetry()
         generation &+= 1
-        let expectedGeneration = generation
-        retryTask = Task { [weak self] in
-            guard let self, self.generation == expectedGeneration else { return }
-            retryAction()
-        }
+        retryAction()
     }
 
     public func stop() {
@@ -122,13 +119,15 @@ public final class SessionReconnectController {
         generation &+= 1
         let expectedGeneration = generation
         let sleep = sleep
-        retryTask = Task { [weak self] in
+        retryTask = Task.detached { [weak self, sleep] in
             do { try await sleep(delay) } catch { return }
-            guard let self, self.generation == expectedGeneration,
-                let retryAction = self.retryAction
-            else { return }
-            retryAction()
+            await self?.runScheduledRetry(expectedGeneration: expectedGeneration)
         }
+    }
+
+    private func runScheduledRetry(expectedGeneration: UInt64) {
+        guard generation == expectedGeneration, let retryAction else { return }
+        retryAction()
     }
 
     private func cancelScheduledRetry() {

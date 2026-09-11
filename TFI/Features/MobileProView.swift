@@ -12,13 +12,13 @@ struct MobileProView: View {
                     hero
                     accessStatus
                     featureList
+                    purchaseActions
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .safeAreaInset(edge: .bottom) { purchaseActions }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
@@ -71,8 +71,6 @@ struct MobileProView: View {
 
     private var featureList: some View {
         VStack(spacing: 0) {
-            feature("Arrange multiple panes and broadcast input", symbol: "rectangle.split.2x1")
-            Divider().padding(.leading, 52)
             feature("Use the AI Assistant", symbol: "sparkles")
             Divider().padding(.leading, 52)
             feature("Monitor more than 3 servers", symbol: "waveform.path.ecg")
@@ -105,9 +103,13 @@ struct MobileProView: View {
                     Text("Start 14-Day Free Trial").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent).controlSize(.large)
-                Button(purchaseTitle) { Task { await pro.purchase() } }
-                    .buttonStyle(.bordered).controlSize(.large)
-                    .disabled(!pro.canPurchase)
+                Button {
+                    Task { await pro.purchase() }
+                } label: {
+                    Text(purchaseTitle).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered).controlSize(.large)
+                .disabled(!pro.canPurchase)
             } else if showsPurchase {
                 Button {
                     Task { await pro.purchase() }
@@ -122,10 +124,9 @@ struct MobileProView: View {
             Text("Permanent unlock · Supports Apple Family Sharing · AI provider charges are separate")
                 .font(.caption2).foregroundStyle(.tertiary).multilineTextAlignment(.center)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 14)
-        .padding(.bottom, 8)
-        .background(.ultraThinMaterial)
+        .padding(16)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
+        .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(.quaternary, lineWidth: 1) }
     }
 
     private var showsPurchase: Bool {

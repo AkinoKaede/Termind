@@ -1,7 +1,6 @@
 @preconcurrency import ActivityKit
 import Foundation
 import Observation
-import TermindPresentation
 import UIKit
 
 @MainActor
@@ -26,24 +25,20 @@ final class MobileLiveActivityController {
         }
     }
 
-    func focus(_ id: UUID, in workspaces: [MobileWorkspace]) {
-        guard workspaces.contains(where: { $0.id == id }) else { return }
+    func focus(_ id: UUID, in sessions: [WorkspaceActivityAttributes.Session]) {
+        guard sessions.contains(where: { $0.id == id }) else { return }
         focusedWorkspaceID = id
-        update(workspaces)
+        update(sessions)
     }
 
     /// All starts, updates and ends share a serial queue, including close-last/open-new races.
-    func start(_ workspaces: [MobileWorkspace]) { schedule(workspaces, mayStart: true) }
-    func update(_ workspaces: [MobileWorkspace]) { schedule(workspaces, mayStart: false) }
+    func start(_ sessions: [WorkspaceActivityAttributes.Session]) { schedule(sessions, mayStart: true) }
+    func update(_ sessions: [WorkspaceActivityAttributes.Session]) { schedule(sessions, mayStart: false) }
 
-    private func schedule(_ workspaces: [MobileWorkspace], mayStart: Bool) {
+    private func schedule(_ sessions: [WorkspaceActivityAttributes.Session], mayStart: Bool) {
         guard enabled else { return }
         let state = WorkspaceActivityAttributes.ContentState.snapshot(
-            workspaces.map {
-                .init(
-                    id: $0.id, title: $0.descriptor.title, kind: $0.descriptor.kind.rawValue, connected: $0.connected,
-                    iconAsset: LinuxDistributionIconCatalog.entry(for: $0.detectedDistribution)?.asset)
-            }, focusedID: focusedWorkspaceID)
+            sessions, focusedID: focusedWorkspaceID)
         let previous = updates
         updates = Task { [weak self] in
             await previous?.value

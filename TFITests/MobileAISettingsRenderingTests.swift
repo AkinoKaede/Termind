@@ -31,8 +31,15 @@ struct MobileAISettingsRenderingTests {
         var tool = MCPTool(id: "search_documentation")
         tool.summary =
             "Find relevant documentation across every connected source and return the most useful matching sections."
-        let server = MCPServer(name: "Documentation", url: "https://example.invalid/mcp", tools: [tool])
+        let server = MCPServer(
+            name: "Documentation",
+            url: "https://example.invalid/teams/platform/documentation/model-context-protocol", tools: [tool])
         app.ai.upsert(server)
+        var disabledServer = MCPServer(
+            name: "Disabled Documentation Mirror",
+            url: "https://backup.example.invalid/teams/platform/documentation/model-context-protocol")
+        disabledServer.isEnabled = false
+        app.ai.upsert(disabledServer)
         let locale = Locale(identifier: language)
         try await capture(
             "ai", language: language,
@@ -100,6 +107,26 @@ struct MobileAISettingsRenderingTests {
             view: MobileModelEditorSheet(model: model, provider: provider, save: { _ in })
                 .environment(\.locale, locale))
         try await capture(
+            "model-automatic-reasoning", language: language,
+            view: MobileModelEditorSheet(model: model, provider: provider, save: { _ in })
+                .environment(\.locale, locale), scrollToBottom: true)
+        var customReasoningModel = model
+        customReasoningModel.reasoningProfile = ReasoningProfile(levels: [
+            .off: ReasoningLevelMapping(isSupported: false, wireValue: "none"),
+            .minimal: ReasoningLevelMapping(isSupported: true),
+            .low: ReasoningLevelMapping(isSupported: true, wireValue: "low"),
+            .medium: ReasoningLevelMapping(isSupported: true, wireValue: "balanced"),
+            .high: ReasoningLevelMapping(isSupported: false),
+        ])
+        try await capture(
+            "model-custom-reasoning", language: language,
+            view: MobileModelEditorSheet(model: customReasoningModel, provider: provider, save: { _ in })
+                .environment(\.locale, locale), scrollToBottom: true)
+        try await capture(
+            "model-custom-reasoning-large-type", language: language,
+            view: MobileModelEditorSheet(model: customReasoningModel, provider: provider, save: { _ in })
+                .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3), scrollToBottom: true)
+        try await capture(
             "large-type", language: language,
             view: MobileProviderEditor(ai: app.ai, provider: provider)
                 .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3))
@@ -123,7 +150,12 @@ struct MobileAISettingsRenderingTests {
         )
     }
 
-    private func capture<V: View>(_ name: String, language: String, view: V) async throws {
+    private func capture<V: View>(
+        _ name: String,
+        language: String,
+        view: V,
+        scrollToBottom: Bool = false
+    ) async throws {
         if let filter = ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOT_NAMES"],
             !filter.split(separator: ",").contains(Substring(name))
         {
@@ -142,6 +174,14 @@ struct MobileAISettingsRenderingTests {
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(700))
+        if scrollToBottom, let scrollView = firstSubview(of: UIScrollView.self, in: controller.view) {
+            let offset = max(
+                -scrollView.adjustedContentInset.top,
+                scrollView.contentSize.height - scrollView.bounds.height)
+            scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: offset), animated: false)
+            scrollView.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(300))
+        }
         if UIDevice.current.userInterfaceIdiom == .pad, ["fetch", "host-modal", "pro-modal"].contains(name) {
             let presented = try #require(controller.presentedViewController)
             let frame = presented.view.convert(presented.view.bounds, to: window)
@@ -159,5 +199,13 @@ struct MobileAISettingsRenderingTests {
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
         try data.write(to: directory.appending(path: "\(device)-\(language)-\(name).png"))
         print("AI settings snapshot: \(directory.path)/\(device)-\(language)-\(name).png")
+    }
+
+    private func firstSubview<T: UIView>(of type: T.Type, in view: UIView) -> T? {
+        if let match = view as? T { return match }
+        for subview in view.subviews {
+            if let match = firstSubview(of: type, in: subview) { return match }
+        }
+        return nil
     }
 }

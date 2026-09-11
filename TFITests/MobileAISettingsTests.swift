@@ -304,6 +304,24 @@ struct MobileAISettingsTests {
         let editor = MobileMCPEditorModel(ai: ai, server: MCPServer(name: "Test", url: "https://other.invalid/mcp"))
         #expect(!editor.canSave)
     }
+
+    @Test func mcpListStatusUsesConflictDisabledConnectionAndToolPriority() {
+        var server = MCPServer(name: "Test", url: "https://example.invalid/mcp")
+        #expect(MobileMCPServerStatus(server: server, hasNamespaceConflict: false) == .notConnected)
+
+        server.isEnabled = false
+        #expect(MobileMCPServerStatus(server: server, hasNamespaceConflict: false) == .disabled)
+        #expect(MobileMCPServerStatus(server: server, hasNamespaceConflict: true) == .conflict)
+
+        server.isEnabled = true
+        server.lastConnectedAt = Date(timeIntervalSince1970: 1)
+        var disabled = MCPTool(id: "disabled")
+        disabled.accessPolicy = .disabled
+        server.tools = [MCPTool(id: "active"), disabled]
+        #expect(
+            MobileMCPServerStatus(server: server, hasNamespaceConflict: false)
+                == .tools(enabled: 1, total: 2))
+    }
 }
 
 private actor ProbeCalls {

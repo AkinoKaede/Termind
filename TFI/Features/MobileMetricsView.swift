@@ -196,5 +196,8 @@ private struct MobileMetricsProcessesView: View {
                 }
             }
         }
+        .contentMargins(.top, 0, for: .scrollContent)
+        .scrollContentBackground(.hidden)
+        .background(Color(uiColor: .systemBackground))
     }
 }

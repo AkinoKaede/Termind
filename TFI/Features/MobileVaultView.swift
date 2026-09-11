@@ -5,12 +5,130 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
+enum MobileHostSectionID: Hashable {
+    case group(HostGroup.ID)
+    case ungrouped
+}
+
+struct MobileHostSection: Identifiable {
+    let id: MobileHostSectionID
+    let title: String
+    let hosts: [Host]
+    let isExpanded: Bool
+}
+
+enum MobileHostSectionLayout {
+    static func sections(library: HostLibraryModel) -> [MobileHostSection] {
+        var result: [MobileHostSection] = []
+
+        func append(_ group: HostGroup, prefix: String) {
+            let title = prefix.isEmpty ? group.name : "\(prefix) / \(group.name)"
+            result.append(
+                MobileHostSection(
+                    id: .group(group.id), title: title, hosts: library.hosts(in: group.id),
+                    isExpanded: group.isExpanded))
+            guard group.isExpanded else { return }
+            for child in library.childGroups(of: group.id) {
+                append(child, prefix: title)
+            }
+        }
+
+        for group in library.rootGroups {
+            append(group, prefix: "")
+        }
+
+        let ungrouped = library.hosts(in: nil)
+        if !ungrouped.isEmpty || !library.groups.isEmpty {
+            result.append(
+                MobileHostSection(
+                    id: .ungrouped, title: String(localized: "Ungrouped"), hosts: ungrouped,
+                    isExpanded: library.isUngroupedExpanded))
+        }
+        return result
+    }
+}
+
+private struct MobileVaultLinkGroup<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        if #available(iOS 26, *) {
+            surface(
+                shape: ConcentricRectangle(corners: .concentric(minimum: 20), isUniform: true),
+                containerRadius: 20)
+        } else {
+            surface(
+                shape: RoundedRectangle(cornerRadius: 10, style: .continuous),
+                containerRadius: 10)
+        }
+    }
+
+    private func surface<S: Shape>(shape: S, containerRadius: CGFloat) -> some View {
+        VStack(spacing: 0) { content }
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: shape)
+            .clipShape(shape)
+            .containerShape(
+                RoundedRectangle(cornerRadius: containerRadius, style: .continuous)
+            )
+    }
+}
+
+private struct MobileVaultLinkLabel: View {
+    let title: Text
+    let detail: Text?
+    let symbol: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.tint)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                title.foregroundStyle(.primary).lineLimit(1)
+                if let detail {
+                    detail.font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 16)
+        .frame(minHeight: 52)
+        .contentShape(.rect)
+    }
+}
+
+private struct MobileVaultLinkDivider: View {
+    var body: some View {
+        Divider().padding(.leading, 52)
+    }
+}
+
 struct MobileVaultView: View {
+    private enum SearchDestination {
+        case keychain(useQuery: Bool)
+        case snippets(useQuery: Bool)
+        case knownHosts(useQuery: Bool)
+        case metrics
+    }
+
+    private struct SearchLink: Identifiable {
+        let id: String
+        let title: String
+        let detail: String?
+        let symbol: String
+        let destination: SearchDestination
+    }
+
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
 
     let app: MobileAppModel
     let open: (UUID, MobileWorkspaceDescriptor.Kind) -> Void
+    let showsMetrics: Bool
     let executeSnippet: (Snippet, [Host.ID]) -> Void
     @State private var query = ""
     @State private var editingHost: Host?
@@ -21,10 +139,12 @@ struct MobileVaultView: View {
     init(
         app: MobileAppModel,
         open: @escaping (UUID, MobileWorkspaceDescriptor.Kind) -> Void,
+        showsMetrics: Bool = true,
         executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in }
     ) {
         self.app = app
         self.open = open
+        self.showsMetrics = showsMetrics
         self.executeSnippet = executeSnippet
     }
 
@@ -40,75 +160,101 @@ struct MobileVaultView: View {
     private var matchesKeychainPage: Bool { pageTitle("Keychain").localizedCaseInsensitiveContains(query) }
     private var matchesSnippetsPage: Bool { pageTitle("Snippets").localizedCaseInsensitiveContains(query) }
     private var matchesKnownHostsPage: Bool { pageTitle("Known Hosts").localizedCaseInsensitiveContains(query) }
+    private var hostSections: [MobileHostSection] { MobileHostSectionLayout.sections(library: app.library) }
+
+    private var keychainSearchLinks: [SearchLink] {
+        var result: [SearchLink] = []
+        if matchesKeychainPage {
+            result.append(
+                SearchLink(
+                    id: "keychain-page", title: pageTitle("Keychain"), detail: nil,
+                    symbol: "key", destination: .keychain(useQuery: false)))
+        }
+        result += matchingKeys.map {
+            SearchLink(
+                id: "key-\($0.id)", title: $0.label, detail: $0.fingerprint,
+                symbol: "key", destination: .keychain(useQuery: true))
+        }
+        result += matchingIdentities.map {
+            SearchLink(
+                id: "identity-\($0.id)", title: $0.name.isEmpty ? $0.username : $0.name,
+                detail: $0.username, symbol: "person.crop.square", destination: .keychain(useQuery: true))
+        }
+        return result
+    }
+
+    private var snippetSearchLinks: [SearchLink] {
+        var result: [SearchLink] = []
+        if matchesSnippetsPage {
+            result.append(
+                SearchLink(
+                    id: "snippets-page", title: pageTitle("Snippets"), detail: nil,
+                    symbol: "curlybraces", destination: .snippets(useQuery: false)))
+        }
+        result += matchingSnippets.map {
+            SearchLink(
+                id: "snippet-\($0.id)", title: $0.title, detail: $0.body,
+                symbol: "curlybraces", destination: .snippets(useQuery: true))
+        }
+        return result
+    }
+
+    private var knownHostSearchLinks: [SearchLink] {
+        var result: [SearchLink] = []
+        if matchesKnownHostsPage {
+            result.append(
+                SearchLink(
+                    id: "known-hosts-page", title: pageTitle("Known Hosts"), detail: nil,
+                    symbol: "touchid", destination: .knownHosts(useQuery: false)))
+        }
+        result += matchingKnownHosts.map {
+            SearchLink(
+                id: "known-host-\($0.id)", title: $0.displayAddress, detail: nil,
+                symbol: "touchid", destination: .knownHosts(useQuery: true))
+        }
+        return result
+    }
+
+    private var metricSearchLinks: [SearchLink] {
+        guard showsMetrics else { return [] }
+        var result: [SearchLink] = []
+        if matchesMetricsPage {
+            result.append(
+                SearchLink(
+                    id: "metrics-page", title: pageTitle("Metrics"), detail: nil,
+                    symbol: "gauge.with.dots.needle.33percent", destination: .metrics))
+        }
+        result += matchingMetricServers.map {
+            SearchLink(
+                id: "metric-\($0.id)", title: $0.name, detail: nil,
+                symbol: "gauge.with.dots.needle.33percent", destination: .metrics)
+        }
+        return result
+    }
 
     private var hasSearchResults: Bool {
-        !matchingHosts.isEmpty || !matchingKeys.isEmpty || !matchingIdentities.isEmpty
-            || !matchingSnippets.isEmpty || !matchingKnownHosts.isEmpty || !matchingMetricServers.isEmpty
-            || matchesMetricsPage || matchesKeychainPage || matchesSnippetsPage || matchesKnownHostsPage
+        !matchingHosts.isEmpty || !keychainSearchLinks.isEmpty || !snippetSearchLinks.isEmpty
+            || !knownHostSearchLinks.isEmpty || !metricSearchLinks.isEmpty
     }
 
     var body: some View {
-        List {
+        MobileCardPage {
             if query.isEmpty {
-                Section {
-                    NavigationLink {
-                        MobileMetricsView(app: app)
-                    } label: {
-                        Label("Metrics", systemImage: "gauge.with.dots.needle.33percent")
-                    }
-                }
-                Section {
-                    NavigationLink {
-                        MobileCredentialsView(app: app)
-                    } label: {
-                        Label("Keychain", systemImage: "key")
-                    }
-                    NavigationLink {
-                        MobileSnippetsView(app: app, execute: executeSnippet)
-                    } label: {
-                        Label("Snippets", systemImage: "curlybraces")
-                    }
-                    NavigationLink {
-                        MobileKnownHostsView(app: app)
-                    } label: {
-                        Label("Known Hosts", systemImage: "touchid")
-                    }
-                }
-                if app.library.hosts.isEmpty {
+                vaultLinks
+                if app.library.hosts.isEmpty && app.library.groups.isEmpty {
                     ContentUnavailableView(
                         "No Hosts", systemImage: "server.rack",
                         description: Text("Add a host to connect with SSH or SFTP.")
                     )
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+                    .frame(maxWidth: .infinity, minHeight: 280)
                 }
-                ForEach(app.library.groups) { group in
-                    let hosts = matchingHosts.filter { $0.groupID == group.id }
-                    Section {
-                        MobileCardGrid { ForEach(hosts) { row($0) } }
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    } header: {
-                        HStack(spacing: 8) {
-                            Text(group.name)
-                            Text(hosts.count, format: .number).font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                let ungrouped = matchingHosts.filter { $0.groupID == nil }
-                if !ungrouped.isEmpty {
-                    Section {
-                        MobileCardGrid { ForEach(ungrouped) { row($0) } }
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    } header: {
-                        HStack(spacing: 8) {
-                            Text("Hosts")
-                            Text(ungrouped.count, format: .number).font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                ForEach(hostSections) { section in
+                    VStack(alignment: .leading, spacing: 12) {
+                        hostSectionHeader(section)
+                        if section.isExpanded {
+                            MobileCardGrid {
+                                ForEach(section.hosts) { row($0) }
+                            }
                         }
                     }
                 }
@@ -157,110 +303,133 @@ struct MobileVaultView: View {
     private var searchResults: some View {
         if !hasSearchResults {
             ContentUnavailableView.search(text: query)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
         }
         if !matchingHosts.isEmpty {
-            Section("Hosts") {
+            MobileCardSection(title: "Hosts", count: matchingHosts.count) {
                 MobileCardGrid { ForEach(matchingHosts) { row($0) } }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
             }
         }
-        if matchesKeychainPage || !matchingKeys.isEmpty || !matchingIdentities.isEmpty {
-            Section("Keychain") {
-                if matchesKeychainPage {
-                    NavigationLink {
-                        MobileCredentialsView(app: app)
-                    } label: {
-                        Label("Keychain", systemImage: "key")
-                    }
-                }
-                ForEach(matchingKeys) { key in
-                    NavigationLink {
-                        MobileCredentialsView(app: app, initialQuery: query)
-                    } label: {
-                        searchResultLabel(key.label, detail: key.fingerprint, symbol: "key")
-                    }
-                }
-                ForEach(matchingIdentities) { identity in
-                    NavigationLink {
-                        MobileCredentialsView(app: app, initialQuery: query)
-                    } label: {
-                        searchResultLabel(
-                            identity.name.isEmpty ? identity.username : identity.name,
-                            detail: identity.username,
-                            symbol: "person.crop.square"
-                        )
-                    }
+        if !keychainSearchLinks.isEmpty {
+            MobileCardSection(title: "Keychain") {
+                MobileVaultLinkGroup {
+                    searchLinkRows(keychainSearchLinks)
                 }
             }
         }
-        if matchesSnippetsPage || !matchingSnippets.isEmpty {
-            Section("Snippets") {
-                if matchesSnippetsPage {
-                    NavigationLink {
-                        MobileSnippetsView(app: app, execute: executeSnippet)
-                    } label: {
-                        Label("Snippets", systemImage: "curlybraces")
-                    }
-                }
-                ForEach(matchingSnippets) { snippet in
-                    NavigationLink {
-                        MobileSnippetsView(app: app, initialQuery: query, execute: executeSnippet)
-                    } label: {
-                        searchResultLabel(snippet.title, detail: snippet.body, symbol: "curlybraces")
-                    }
+        if !snippetSearchLinks.isEmpty {
+            MobileCardSection(title: "Snippets") {
+                MobileVaultLinkGroup {
+                    searchLinkRows(snippetSearchLinks)
                 }
             }
         }
-        if matchesKnownHostsPage || !matchingKnownHosts.isEmpty {
-            Section("Known Hosts") {
-                if matchesKnownHostsPage {
-                    NavigationLink {
-                        MobileKnownHostsView(app: app)
-                    } label: {
-                        Label("Known Hosts", systemImage: "touchid")
-                    }
-                }
-                ForEach(matchingKnownHosts) { entry in
-                    NavigationLink {
-                        MobileKnownHostsView(app: app, initialQuery: query)
-                    } label: {
-                        Label(entry.displayAddress, systemImage: "touchid")
-                    }
+        if !knownHostSearchLinks.isEmpty {
+            MobileCardSection(title: "Known Hosts") {
+                MobileVaultLinkGroup {
+                    searchLinkRows(knownHostSearchLinks)
                 }
             }
         }
-        if matchesMetricsPage || !matchingMetricServers.isEmpty {
-            Section("Metrics") {
-                if matchesMetricsPage {
-                    NavigationLink {
-                        MobileMetricsView(app: app)
-                    } label: {
-                        Label("Metrics", systemImage: "gauge.with.dots.needle.33percent")
-                    }
-                }
-                ForEach(matchingMetricServers) { server in
-                    NavigationLink {
-                        MobileMetricsView(app: app)
-                    } label: {
-                        Label(server.name, systemImage: "gauge.with.dots.needle.33percent")
-                    }
+        if !metricSearchLinks.isEmpty {
+            MobileCardSection(title: "Metrics") {
+                MobileVaultLinkGroup {
+                    searchLinkRows(metricSearchLinks)
                 }
             }
         }
     }
 
-    private func searchResultLabel(_ title: String, detail: String, symbol: String) -> some View {
-        Label {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+    @ViewBuilder
+    private var vaultLinks: some View {
+        if showsMetrics {
+            MobileVaultLinkGroup {
+                vaultLink("Metrics", symbol: "gauge.with.dots.needle.33percent") {
+                    MobileMetricsView(app: app)
+                }
             }
-        } icon: {
-            Image(systemName: symbol)
+        }
+        MobileVaultLinkGroup {
+            vaultLink("Keychain", symbol: "key") {
+                MobileCredentialsView(app: app)
+            }
+            MobileVaultLinkDivider()
+            vaultLink("Snippets", symbol: "curlybraces") {
+                MobileSnippetsView(app: app, execute: executeSnippet)
+            }
+            MobileVaultLinkDivider()
+            vaultLink("Known Hosts", symbol: "touchid") {
+                MobileKnownHostsView(app: app)
+            }
+        }
+    }
+
+    private func vaultLink<Destination: View>(
+        _ title: LocalizedStringKey, symbol: String,
+        @ViewBuilder destination: () -> Destination
+    ) -> some View {
+        NavigationLink(destination: destination) {
+            MobileVaultLinkLabel(title: Text(title), detail: nil, symbol: symbol)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func searchLinkRows(_ links: [SearchLink]) -> some View {
+        ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
+            NavigationLink {
+                searchDestination(link.destination)
+            } label: {
+                MobileVaultLinkLabel(
+                    title: Text(verbatim: link.title),
+                    detail: link.detail.map { Text(verbatim: $0) }, symbol: link.symbol)
+            }
+            .buttonStyle(.plain)
+            if index < links.count - 1 {
+                MobileVaultLinkDivider()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func searchDestination(_ destination: SearchDestination) -> some View {
+        switch destination {
+        case .keychain(let useQuery):
+            MobileCredentialsView(app: app, initialQuery: useQuery ? query : "")
+        case .snippets(let useQuery):
+            MobileSnippetsView(
+                app: app, initialQuery: useQuery ? query : "", execute: executeSnippet)
+        case .knownHosts(let useQuery):
+            MobileKnownHostsView(app: app, initialQuery: useQuery ? query : "")
+        case .metrics:
+            MobileMetricsView(app: app)
+        }
+    }
+
+    private func hostSectionHeader(_ section: MobileHostSection) -> some View {
+        HStack(spacing: 8) {
+            Button {
+                toggle(section)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(section.isExpanded ? 90 : 0))
+                    Text(section.title).font(.headline)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            Text(section.hosts.count, format: .number)
+                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            Spacer()
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func toggle(_ section: MobileHostSection) {
+        switch section.id {
+        case .group(let id): app.library.setExpanded(!section.isExpanded, for: id)
+        case .ungrouped: app.library.setUngroupedExpanded(!section.isExpanded)
         }
     }
 

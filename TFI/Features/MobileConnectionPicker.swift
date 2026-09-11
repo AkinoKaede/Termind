@@ -2,6 +2,7 @@ import Observation
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -27,6 +28,7 @@ struct MobileWorkspaceToolbar: ToolbarContent {
 }
 
 struct MobileConnectionPicker: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var model: MobileConnectionPickerModel
     let cancel: () -> Void
 
@@ -66,19 +68,23 @@ struct MobileConnectionPicker: View {
                         Button {
                             model.select(host)
                         } label: {
-                            Label {
+                            HStack(spacing: 12) {
+                                HostSystemIcon(asset: distributionEntry(for: host)?.asset, size: 32)
+                                    .tint(tint(for: host))
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(host.name)
+                                    Text(host.name).foregroundStyle(.primary).lineLimit(1)
                                     Text(model.loginAddress(for: host))
                                         .font(.caption.monospaced())
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                         .truncationMode(.middle)
                                 }
-                            } icon: {
-                                Image(systemName: "server.rack")
+                                Spacer(minLength: 0)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(.rect)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -92,6 +98,18 @@ struct MobileConnectionPicker: View {
                     .labelStyle(.iconOnly)
             }
         }
+    }
+
+    private func distributionEntry(for host: Host) -> LinuxDistributionIconEntry? {
+        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
+    }
+
+    private func tint(for host: Host) -> Color {
+        host.colorTag.color
+            ?? distributionEntry(for: host).flatMap {
+                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
+            }
+            ?? .accentColor
     }
 }
 

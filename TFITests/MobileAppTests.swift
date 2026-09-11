@@ -377,7 +377,9 @@ struct MobileWorkspaceReconnectStateTests {
         await workspace.openDirectory("/srv/project")
         #expect(workspace.path == "/srv/project")
 
-        connections.connectionFailure?("offline")
+        let retiredConnectionFailure = connections.connectionFailure
+        retiredConnectionFailure?("offline")
+        retiredConnectionFailure?("duplicate offline callback")
         #expect(await eventually { workspace.reconnectState?.attempt == 1 })
         #expect(workspace.journey.mode == .reconnection)
         #expect(workspace.operationError == nil)
@@ -386,6 +388,97 @@ struct MobileWorkspaceReconnectStateTests {
         #expect(await eventually { workspace.connected })
         #expect(workspace.path == "/srv/project")
         #expect(connections.connectCount == 2)
+
+        retiredConnectionFailure?("stale callback")
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(workspace.connected)
+        #expect(workspace.reconnectState == nil)
+    }
+
+    @Test func sftpConnectionPublishesRouteProgressToJourney() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(
+            clients: [MobileTestSFTPClient()],
+            progressEvents: [
+                .connecting(host.id), .authenticating(host.id), .authenticated(host.id),
+            ])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library, connectionServices: connections.services)
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+
+        #expect(await eventually { workspace.connected })
+        #expect(await eventually { workspace.journey.logs.count >= 8 })
+        #expect(connections.didReceiveProgressHandler)
+        #expect(workspace.journey.purpose == .sftpSession)
+    }
+
+    @Test func sshUnexpectedExitReconnectsOnceAndRejectsRetiredCallbacks() async throws {
+        let (host, library) = try connectionFixture()
+        let connections = MobileSFTPConnectionBox(clients: [])
+        let reconnectController = SessionReconnectController(
+            sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library, connectionServices: connections.services,
+            reconnectController: reconnectController)
+        var closeRequest: MobileWorkspace.ID?
+        workspace.didRequestClose = { closeRequest = $0 }
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let retiredExit = try #require(connections.sshExitHandlers.first)
+
+        retiredExit(.failure(.socket("offline")))
+        #expect(await eventually { workspace.reconnectState?.attempt == 1 })
+        #expect(closeRequest == nil)
+        workspace.retryReconnectNow()
+
+        #expect(await eventually { workspace.connected })
+        #expect(connections.sshConnectCount == 2)
+        retiredExit(.success(0))
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(workspace.connected)
+        #expect(workspace.reconnectState == nil)
+        #expect(closeRequest == nil)
+    }
+
+    @Test func successfulSSHExitClosesOnlyItsWorkspaceAndAcceptsAnyExitStatus() async throws {
+        let connections = MobileSFTPConnectionBox(clients: [])
+        let app = try MobileAppModel(
+            inMemory: true, workspaceConnectionServices: connections.services)
+        let host = try configureConnectionFixture(in: app)
+        let firstID = try #require(app.open(hostID: host.id, kind: .ssh))
+        #expect(
+            await eventually {
+                app.workspaces.first(where: { $0.id == firstID })?.connected == true
+                    && connections.sshExitHandlers.count == 1
+            })
+
+        let secondID = try #require(app.open(hostID: host.id, kind: .ssh))
+        defer { app.closeAll() }
+        #expect(
+            await eventually {
+                app.workspaces.first(where: { $0.id == secondID })?.connected == true
+                    && connections.sshExitHandlers.count == 2
+            })
+
+        connections.sshExitHandlers[0](.success(0))
+        #expect(
+            await eventually {
+                !app.workspaces.contains(where: { $0.id == firstID })
+                    && app.workspaces.contains(where: { $0.id == secondID })
+            })
+
+        connections.sshExitHandlers[0](.success(0))
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(app.workspaces.map(\.id) == [secondID])
+
+        connections.sshExitHandlers[1](.success(23))
+        #expect(await eventually { app.workspaces.isEmpty })
     }
 
     @Test func onlySuccessfulSessionsEnterAutomaticRecovery() {
@@ -468,14 +561,65 @@ struct MobileWorkspaceReconnectStateTests {
     }
 }
 
+@Suite @MainActor
+struct MobileLiveActivitySchedulingTests {
+    @Test func workspaceStateChangePublishesAValueSnapshot() async throws {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        let library = HostLibraryModel(
+            hosts: [host], identities: [identity],
+            knownHosts: [
+                KnownHostEntry(
+                    hostname: host.host, port: host.port, algorithm: .ed25519,
+                    fingerprint: "SHA256:test")
+            ])
+        try library.upsert(identity, passwordUpdate: .replace("test-only"))
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library, connectionServices: connections.services)
+        let activities = MobileLiveActivityController(enabled: true)
+        var receivedID: UUID?
+        var receivedConnected = false
+        workspace.didChangeState = {
+            receivedID = $0.id
+            receivedConnected = $0.connected
+            activities.update([$0])
+        }
+        defer {
+            workspace.didChangeState = nil
+            workspace.disconnect()
+            activities.update([])
+        }
+
+        workspace.connect()
+        for _ in 0..<100 where !workspace.connected {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(workspace.connected)
+        #expect(receivedID == workspace.id)
+        #expect(receivedConnected)
+    }
+}
+
 @MainActor
 private final class MobileSFTPConnectionBox {
     var connectionFailure: (@Sendable (String) -> Void)?
     private var clients: [any SFTPClientProtocol]
+    private let progressEvents: [SSHRouteEvent]
     private(set) var connectCount = 0
+    private(set) var didReceiveProgressHandler = false
+    private(set) var sshConnectCount = 0
+    private(set) var sshExitHandlers: [SSHSessionActor.ExitHandler] = []
 
-    init(clients: [any SFTPClientProtocol]) {
+    init(
+        clients: [any SFTPClientProtocol],
+        progressEvents: [SSHRouteEvent] = []
+    ) {
         self.clients = clients
+        self.progressEvents = progressEvents
     }
 
     var services: MobileWorkspaceConnectionServices {
@@ -484,14 +628,17 @@ private final class MobileSFTPConnectionBox {
                 SSHHostKeyObservation(
                     hostname: host, port: port, algorithm: .ed25519, fingerprint: "SHA256:test")
             },
-            makeSSHSession: { output, exit, shellIntegration in
-                SSHSessionActor(output: output, exit: exit, shellIntegration: shellIntegration)
+            makeSSHSession: { [self] output, exit, shellIntegration in
+                sshExitHandlers.append(exit)
+                return SSHSessionActor(output: output, exit: exit, shellIntegration: shellIntegration)
             },
-            connectSSH: { _, _, _, _, _, _ in },
-            connectSFTP: { [self] _, _, connectionFailure in
+            connectSSH: { [self] _, _, _, _, _, _ in sshConnectCount += 1 },
+            connectSFTP: { [self] _, progress, connectionFailure in
                 guard !clients.isEmpty else { throw SFTPError.notConnected }
                 self.connectionFailure = connectionFailure
                 self.connectCount += 1
+                self.didReceiveProgressHandler = progress != nil
+                for event in progressEvents { progress?(event) }
                 return self.clients.removeFirst()
             },
             writeSSH: { session, data in await session.write(data) })
