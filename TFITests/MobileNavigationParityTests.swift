@@ -21,7 +21,7 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let rootSource = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         #expect(!rootSource.contains(".navigationTitle(\"Termind\")"))
     }
 
@@ -30,9 +30,9 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let rootSource = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         let vaultSource = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileVaultView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Vault/MobileVaultView.swift"), encoding: .utf8)
 
         #expect(rootSource.contains("NavigationStack { vault }"))
         #expect(rootSource.contains("case .vault: sidebarVault"))
@@ -46,7 +46,7 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let source = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileAISettingsView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Settings/MobileAISettingsView.swift"), encoding: .utf8)
         let index = try #require(source.components(separatedBy: "enum MobileAISettingsDestination").first)
         #expect(index.contains("NavigationLink {"))
         #expect(!index.contains("NavigationLink(value:"))
@@ -65,7 +65,7 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let source = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileMetricsView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Metrics/MobileMetricsView.swift"), encoding: .utf8)
         let processes = try #require(source.components(separatedBy: "struct MobileMetricsProcessesView").last)
 
         #expect(processes.contains(".contentMargins(.top, 0, for: .scrollContent)"))
@@ -76,18 +76,18 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let workspace = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileWorkspaceView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"), encoding: .utf8)
         #expect(!workspace.contains("\"Connection Error\""))
         #expect(workspace.contains("get: { workspace.operationError != nil }"))
         #expect(workspace.contains("cancel: { closeWorkspace(workspace.id) }"))
 
         let metrics = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileMetricsView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Metrics/MobileMetricsView.swift"), encoding: .utf8)
         #expect(metrics.contains("app.metrics.core.setEnabled(false, for: server)"))
         #expect(metrics.contains("dismiss()"))
 
         let rootView = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         #expect(rootView.contains("workspace.activateWhenOpened()"))
         let appModel = try String(
             contentsOf: root.appending(path: "TFI/App/MobileAppModel.swift"), encoding: .utf8)
@@ -100,14 +100,14 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let workspaceList = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         #expect(workspaceList.contains(".contextMenu {"))
         #expect(
             workspaceList.contains(
                 "Button(\"Close\", systemImage: \"xmark\", role: .destructive) { closeWorkspace(workspace.id) }"))
 
         let toolbar = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileConnectionPicker.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/HostChooser/MobileConnectionPicker.swift"), encoding: .utf8)
         #expect(toolbar.contains("Menu {"))
         #expect(toolbar.contains("Button(\"Close All Workspaces\""))
         #expect(toolbar.contains("systemImage: \"rectangle.stack.badge.minus\", role: .destructive"))
@@ -120,7 +120,7 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let workspace = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileWorkspaceView.swift"),
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"),
             encoding: .utf8
         )
 
@@ -136,7 +136,7 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let source = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileKnownHostsView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/KnownHosts/MobileKnownHostsView.swift"), encoding: .utf8)
 
         #expect(source.contains("MobileActionCard"))
         #expect(source.contains("symbol: \"touchid\""))
@@ -155,12 +155,12 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
 
         let metrics = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileMetricsView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Metrics/MobileMetricsView.swift"), encoding: .utf8)
         #expect(metrics.contains(".scrollContentBackground(.hidden)"))
         #expect(metrics.contains(".background(Color(uiColor: .systemBackground))"))
 
         let cards = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileCards.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/UI/Managed/MobileCards.swift"), encoding: .utf8)
         let actionCard = try #require(cards.components(separatedBy: "struct MobileActionCard").last)
         #expect(actionCard.contains(".mobileCardSurface()"))
         #expect(actionCard.contains(".contextMenu {"))
@@ -172,19 +172,19 @@ struct MobileNavigationParityTests {
         #expect(!cards.contains(".frame(width: 320"))
 
         let vault = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileVaultView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Vault/MobileVaultView.swift"), encoding: .utf8)
         #expect(vault.contains("MobileCardPage {"))
         #expect(!vault.contains("List {"))
         #expect(vault.contains("app.library.setExpanded(!section.isExpanded, for: id)"))
         #expect(vault.contains("app.library.setUngroupedExpanded(!section.isExpanded)"))
 
         let rootView = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileRootView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         #expect(rootView.contains("ContentUnavailableView(\n                \"No Workspaces\""))
         #expect(rootView.contains(".buttonStyle(.plain)"))
 
         let pro = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileProView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Commerce/MobileProView.swift"), encoding: .utf8)
         #expect(!pro.contains("Arrange multiple panes and broadcast input"))
         #expect(!pro.contains(".safeAreaInset(edge: .bottom)"))
         #expect(pro.contains("featureList\n                    purchaseActions"))
@@ -195,7 +195,7 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let workspace = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileWorkspaceView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"), encoding: .utf8)
         let segments = workspace.components(
             separatedBy: "Button(\"Close\", systemImage: \"xmark\", role: .destructive)")
 

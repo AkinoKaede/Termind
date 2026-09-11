@@ -1,6 +1,0 @@
-import TermindApplication
-
-typealias SpeechTranscriptionEvent = TermindApplication.SpeechTranscriptionEvent
-typealias SpeechTranscriptionFailure = TermindApplication.SpeechTranscriptionFailure
-typealias SpeechTranscriptionService = TermindApplication.SpeechTranscriptionService
-typealias SpeechTranscriptionCoordinator = TermindApplication.SpeechTranscriptionCoordinator

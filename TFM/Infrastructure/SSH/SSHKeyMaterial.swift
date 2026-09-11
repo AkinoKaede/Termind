@@ -1,5 +1,0 @@
-import TermindInfrastructure
-import TermindRemoteInfrastructure
-
-typealias SSHKeyMaterialError = TermindRemoteInfrastructure.SSHKeyMaterialError
-typealias SSHKeyMaterial = TermindRemoteInfrastructure.SSHKeyMaterial

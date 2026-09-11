@@ -61,7 +61,7 @@ public final class SettingsSyncPersistence {
     }
 
     public func prepare() throws {
-        let seeded = defaults.integer(forKey: SharedSettingsKey.seededSkillGeneration)
+        let seeded = defaults.integer(forKey: SettingsKey.seededSkillGeneration)
         var mutations = SettingsMutationSet.empty
         try context.commit {
             if try !journal.state().bootstrapCompleted {
@@ -96,7 +96,7 @@ public final class SettingsSyncPersistence {
                 mutations.keys.insert(terminal.key)
             }
         }
-        defaults.set(AgentSkillLibrary.currentGeneration, forKey: SharedSettingsKey.seededSkillGeneration)
+        defaults.set(AgentSkillLibrary.currentGeneration, forKey: SettingsKey.seededSkillGeneration)
         let snapshot = try load()
         mirror(snapshot.webSearch)
         snapshot.terminal.mirror(to: defaults)
@@ -243,17 +243,17 @@ public final class SettingsSyncPersistence {
         if let row = try context.fetch(FetchDescriptor<PersistentAIWebSearchPreferences>()).first { return row }
         let row = PersistentAIWebSearchPreferences(
             AIWebSearchPreferences(
-                isEnabled: defaults.object(forKey: SharedSettingsKey.webSearchEnabled) as? Bool
-                    ?? SharedSettingsKey.defaultWebSearchEnabled,
-                prefersBuiltIn: defaults.object(forKey: SharedSettingsKey.webSearchBuiltIn) as? Bool
-                    ?? SharedSettingsKey.defaultWebSearchBuiltIn))
+                isEnabled: defaults.object(forKey: SettingsKey.webSearchEnabled) as? Bool
+                    ?? SettingsKey.defaultWebSearchEnabled,
+                prefersBuiltIn: defaults.object(forKey: SettingsKey.webSearchBuiltIn) as? Bool
+                    ?? SettingsKey.defaultWebSearchBuiltIn))
         context.insert(row)
         return row
     }
 
     private func mirror(_ value: AIWebSearchPreferences) {
-        defaults.set(value.isEnabled, forKey: SharedSettingsKey.webSearchEnabled)
-        defaults.set(value.prefersBuiltIn, forKey: SharedSettingsKey.webSearchBuiltIn)
+        defaults.set(value.isEnabled, forKey: SettingsKey.webSearchEnabled)
+        defaults.set(value.prefersBuiltIn, forKey: SettingsKey.webSearchBuiltIn)
     }
 }
 

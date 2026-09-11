@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 
 /// What the titlebar calls whatever is in front.
 ///

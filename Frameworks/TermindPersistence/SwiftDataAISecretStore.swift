@@ -99,5 +99,3 @@ public final class AISecretStore: AISecretStoring {
         return row
     }
 }
-
-public typealias SharedAISecretStore = AISecretStore

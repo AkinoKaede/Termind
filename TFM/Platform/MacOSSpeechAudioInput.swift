@@ -1,5 +1,7 @@
 @preconcurrency import AVFoundation
 import Foundation
+import TermindApplication
+import TermindInfrastructure
 
 /// macOS microphone permission and AVAudioEngine lifecycle for Apple Speech.
 @MainActor

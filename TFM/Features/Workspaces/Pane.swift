@@ -1,5 +1,7 @@
 import Foundation
+import TermindApplication
 import TermindDomain
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
@@ -256,7 +258,7 @@ final class Pane: Identifiable {
     }
 
     var remoteSystemInfo: RemoteSystemInfo? {
-        guard SettingsKey.isShellIntegrationEnabled else { return nil }
+        guard DesktopSettingsKey.isShellIntegrationEnabled else { return nil }
         guard case .sshSession(let sshSession) = content else { return nil }
         return sshSession.remoteSystemInfo
     }

@@ -1,4 +1,6 @@
 import SwiftUI
+import TermindApplication
+import TermindInfrastructure
 
 struct ProPaywallView: View {
     @Environment(AppModel.self) private var app

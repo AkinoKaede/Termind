@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 /// The one fenced block Termind owns instead of MarkdownView: a shell command

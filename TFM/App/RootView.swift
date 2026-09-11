@@ -1,5 +1,6 @@
 @preconcurrency import AppKit
 import SwiftUI
+import TermindApplication
 
 /// One window with one native Navigator column and one persistent detail deck.
 ///
@@ -15,9 +16,9 @@ struct RootView: View {
     @State private var window: WindowModel
     @State private var layoutWidth = Metrics.Window.defaultWidth
     @State private var automaticQuickOpenReady = false
-    @AppStorage(SettingsKey.statusBarExpanded) private var isStatusBarExpanded = true
+    @AppStorage(DesktopSettingsKey.statusBarExpanded) private var isStatusBarExpanded = true
     @AppStorage(SettingsKey.remoteWindowTitleInMenuBar) private var showsRemoteWindowTitle =
-        SettingsKey.defaultRemoteWindowTitleInMenuBarEnabled
+        DesktopSettingsKey.defaultRemoteWindowTitleInMenuBarEnabled
 
     init(window: WindowModel = WindowModel()) {
         _window = State(initialValue: window)

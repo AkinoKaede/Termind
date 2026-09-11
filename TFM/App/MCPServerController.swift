@@ -1,5 +1,7 @@
 import Foundation
 import Security
+import TermindApplication
+import TermindRemoteInfrastructure
 
 @MainActor
 @Observable
@@ -64,11 +66,11 @@ final class MCPServerController {
         self.canUsePro = canUsePro
         self.requestPro = requestPro
         isEnabled =
-            defaults.object(forKey: SettingsKey.mcpServerEnabled) as? Bool
-            ?? SettingsKey.defaultMCPServerEnabled
+            defaults.object(forKey: DesktopSettingsKey.mcpServerEnabled) as? Bool
+            ?? DesktopSettingsKey.defaultMCPServerEnabled
         port =
-            defaults.object(forKey: SettingsKey.mcpServerPort) as? Int
-            ?? SettingsKey.defaultMCPServerPort
+            defaults.object(forKey: DesktopSettingsKey.mcpServerPort) as? Int
+            ?? DesktopSettingsKey.defaultMCPServerPort
         let initialDisabledTools = Self.readDisabledTools(defaults)
         disabledTools = initialDisabledTools
         tools = MCPServerTools(
@@ -92,7 +94,7 @@ final class MCPServerController {
     func setEnabled(_ enabled: Bool) {
         if enabled, !requestPro() { return }
         isEnabled = enabled
-        defaults.set(enabled, forKey: SettingsKey.mcpServerEnabled)
+        defaults.set(enabled, forKey: DesktopSettingsKey.mcpServerEnabled)
         Task { [weak self] in
             if enabled { await self?.start() } else { await self?.stop() }
         }
@@ -112,7 +114,7 @@ final class MCPServerController {
         let clamped = min(max(value, 1_024), 65_535)
         guard clamped != port else { return }
         port = clamped
-        defaults.set(clamped, forKey: SettingsKey.mcpServerPort)
+        defaults.set(clamped, forKey: DesktopSettingsKey.mcpServerPort)
         if isEnabled { Task { [weak self] in await self?.restart() } }
     }
 
@@ -120,7 +122,7 @@ final class MCPServerController {
         guard requestPro() else { return }
         guard MCPServerTools.exportedNames.contains(name) else { return }
         if enabled { disabledTools.remove(name) } else { disabledTools.insert(name) }
-        defaults.set(Array(disabledTools).sorted(), forKey: SettingsKey.mcpServerDisabledTools)
+        defaults.set(Array(disabledTools).sorted(), forKey: DesktopSettingsKey.mcpServerDisabledTools)
         tools.replaceDisabledTools(
             disabledTools, hosts: hosts, metrics: metrics, connections: connections,
             authentication: authentication, background: background
@@ -163,7 +165,7 @@ final class MCPServerController {
         guard isEnabled, canUsePro() else { return }
         guard let token = ensureToken(), let validPort = UInt16(exactly: port) else {
             isEnabled = false
-            defaults.set(false, forKey: SettingsKey.mcpServerEnabled)
+            defaults.set(false, forKey: DesktopSettingsKey.mcpServerEnabled)
             return
         }
         status = .starting
@@ -198,7 +200,7 @@ final class MCPServerController {
     }
 
     private static func readDisabledTools(_ defaults: UserDefaults) -> Set<String> {
-        Set((defaults.array(forKey: SettingsKey.mcpServerDisabledTools) as? [String]) ?? [])
+        Set((defaults.array(forKey: DesktopSettingsKey.mcpServerDisabledTools) as? [String]) ?? [])
             .intersection(MCPServerTools.exportedNames)
     }
 

@@ -1,4 +1,10 @@
 import Foundation
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
@@ -17,8 +23,8 @@ struct LoopbackHTTPServerTests {
 
     @Test
     func mcpServerIsOffByDefault() {
-        #expect(SettingsKey.defaultMCPServerEnabled == false)
-        #expect(SettingsKey.defaultMCPServerPort == 7_391)
+        #expect(DesktopSettingsKey.defaultMCPServerEnabled == false)
+        #expect(DesktopSettingsKey.defaultMCPServerPort == 7_391)
     }
 
     @Test

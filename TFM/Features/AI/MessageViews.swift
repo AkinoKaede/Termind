@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 
 nonisolated enum ChatMessageTimestampFormatter {
     static func string(

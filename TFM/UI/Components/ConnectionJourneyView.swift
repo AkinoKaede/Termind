@@ -221,14 +221,14 @@ struct ConnectionJourneyView: View {
         if journey.showsLogs {
             logs
         } else if let prompt = authenticationPrompt {
-            SSHAuthenticationForm(
+            DesktopSSHAuthenticationForm(
                 prompt: prompt,
                 submit: submitAuthentication,
                 cancel: cancel
             )
             .id(prompt.id)
         } else if let hostKey {
-            SSHHostKeyConfirmationForm(
+            DesktopSSHHostKeyConfirmationForm(
                 prompt: hostKey,
                 proceed: { continueHostKey(hostKey.observation) },
                 trust: { trustHostKey(hostKey.observation) },
@@ -500,14 +500,14 @@ private struct JourneyReconnectStatus: View {
 /// Shared SSH credential form used by both the connection Journey and Agent.
 /// The containing surface owns placement and queue state; this view owns the
 /// established Custom/Identity choices, button language, and submission flow.
-struct SSHAuthenticationForm: View {
+struct DesktopSSHAuthenticationForm: View {
     let prompt: SSHAuthenticationPrompt
     let submit: (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void
     let cancel: () -> Void
     var usesContainerChrome = true
     @Environment(AppModel.self) private var app
     var body: some View {
-        SharedSSHAuthenticationForm(
+        TermindPresentation.SSHAuthenticationForm(
             prompt: prompt, submit: submit, cancel: cancel, usesContainerChrome: false,
             library: app.hostLibrary, keyboard: DesktopConnectionFormKeyboard()
         )
@@ -515,7 +515,7 @@ struct SSHAuthenticationForm: View {
     }
 }
 
-struct SSHHostKeyConfirmationForm: View {
+struct DesktopSSHHostKeyConfirmationForm: View {
     let prompt: SSHHostKeyPrompt
     var displayAddress: String? = nil
     let proceed: () -> Void
@@ -523,7 +523,7 @@ struct SSHHostKeyConfirmationForm: View {
     let deny: () -> Void
     var usesContainerChrome = true
     var body: some View {
-        SharedSSHHostKeyConfirmationForm(
+        TermindPresentation.SSHHostKeyConfirmationForm(
             prompt: prompt, displayAddress: displayAddress, proceed: proceed,
             trust: trust, deny: deny, usesContainerChrome: false, keyboard: DesktopConnectionFormKeyboard()
         )

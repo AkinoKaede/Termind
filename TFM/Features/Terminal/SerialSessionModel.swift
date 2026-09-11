@@ -1,6 +1,7 @@
 import Combine
 import GhosttyTerminal
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 @MainActor

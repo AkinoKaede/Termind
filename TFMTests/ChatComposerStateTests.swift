@@ -1,6 +1,11 @@
 import AgentKit
 import Foundation
+import TermindApplication
+import TermindDomain
 import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
@@ -327,7 +332,7 @@ struct ChatComposerStateTests {
         let suiteName = "AgentPermissionMode-Invalid-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        defaults.set("unknown-mode", forKey: SettingsKey.agentPermissionMode)
+        defaults.set("unknown-mode", forKey: DesktopSettingsKey.agentPermissionMode)
 
         let store = AIConfigurationModel(persistsSecrets: false, permissionDefaults: defaults)
 

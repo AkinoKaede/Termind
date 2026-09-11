@@ -1,9 +1,0 @@
-import TermindInfrastructure
-import TermindRemoteInfrastructure
-
-typealias RemoteFile = TermindRemoteInfrastructure.RemoteFile
-typealias TransferCancellationToken = TermindRemoteInfrastructure.TransferCancellationToken
-typealias SFTPProgress = TermindRemoteInfrastructure.SFTPProgress
-typealias SFTPClientProtocol = TermindRemoteInfrastructure.SFTPClientProtocol
-typealias SFTPError = TermindRemoteInfrastructure.SFTPError
-typealias SFTPClient = TermindRemoteInfrastructure.SFTPClient

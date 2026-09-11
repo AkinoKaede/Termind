@@ -3082,6 +3082,7 @@
       }
     },
     "Command Generator is already reading the current input." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -14794,6 +14795,7 @@
       }
     },
     "The remote shell did not return its current input." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -15774,6 +15776,7 @@
       }
     },
     "Type something at the shell prompt before generating a command." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

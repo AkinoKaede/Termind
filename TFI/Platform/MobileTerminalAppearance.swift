@@ -4,9 +4,6 @@ import GhosttyTheme
 import SwiftUI
 import TermindDomain
 
-typealias TerminalTheme = TermindTerminalPalette
-typealias GhosttyCustomConfiguration = TerminalCustomConfiguration
-
 nonisolated extension TermindTerminalPalette.RGB {
     var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: 1) }
 }
@@ -43,7 +40,7 @@ nonisolated extension TerminalCustomConfiguration {
 
 nonisolated enum TermindTerminalThemeCatalog {
     static let allThemes: [GhosttyThemeDefinition] = {
-        let termindThemes = TerminalTheme.all.map(\.ghosttyDefinition)
+        let termindThemes = TermindTerminalPalette.all.map(\.ghosttyDefinition)
         let termindNames = Set(termindThemes.map(\.name))
         return termindThemes + GhosttyThemeCatalog.allThemes.filter { !termindNames.contains($0.name) }
     }()
@@ -60,8 +57,8 @@ nonisolated enum TermindTerminalThemeCatalog {
         theme(named: name).flatMap { $0.isDark ? nil : $0 }
     }
 
-    static let defaultDark = TerminalTheme.termindDark.ghosttyDefinition
-    static let defaultLight = TerminalTheme.termindLight.ghosttyDefinition
+    static let defaultDark = TermindTerminalPalette.termindDark.ghosttyDefinition
+    static let defaultLight = TermindTerminalPalette.termindLight.ghosttyDefinition
 
     static func terminalConfiguration(
         themeName: String,
@@ -73,7 +70,7 @@ nonisolated enum TermindTerminalThemeCatalog {
         let selected = theme(named: themeName).flatMap { $0.isDark == isDark ? $0 : nil } ?? fallback
         let base = selected.toTerminalConfiguration()
         guard customEnabled else { return base }
-        return GhosttyCustomConfiguration(customText).applying(to: base)
+        return TerminalCustomConfiguration(customText).applying(to: base)
     }
 
     static func background(
@@ -81,17 +78,17 @@ nonisolated enum TermindTerminalThemeCatalog {
         customEnabled: Bool,
         customText: String,
         isDark: Bool
-    ) -> TerminalTheme.RGB {
+    ) -> TermindTerminalPalette.RGB {
         let fallback = isDark ? defaultDark : defaultLight
         let selected = theme(named: themeName).flatMap { $0.isDark == isDark ? $0 : nil } ?? fallback
         if customEnabled,
-            let value = GhosttyCustomConfiguration(customText).lastValue(for: "background"),
-            let customBackground = TerminalTheme.RGB(hex: value)
+            let value = TerminalCustomConfiguration(customText).lastValue(for: "background"),
+            let customBackground = TermindTerminalPalette.RGB(hex: value)
         {
             return customBackground
         }
-        return TerminalTheme.RGB(hex: selected.background)
-            ?? (isDark ? TerminalTheme.termindDark.background : TerminalTheme.termindLight.background)
+        return TermindTerminalPalette.RGB(hex: selected.background)
+            ?? (isDark ? TermindTerminalPalette.termindDark.background : TermindTerminalPalette.termindLight.background)
     }
 }
 

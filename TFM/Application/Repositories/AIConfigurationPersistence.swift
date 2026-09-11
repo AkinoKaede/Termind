@@ -1,5 +1,0 @@
-import TermindApplication
-
-typealias AIConfigurationSnapshot = TermindApplication.AIConfigurationSnapshot
-typealias AIConfigurationPersisting = TermindApplication.AIConfigurationPersisting
-typealias AIWebSearchPersisting = TermindApplication.AIWebSearchPersisting

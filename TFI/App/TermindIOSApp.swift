@@ -11,7 +11,8 @@ struct TermindIOSApp: App {
 
     init() {
         startup = Result {
-            try MobileAppModel(inMemory: ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
+            let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            return try MobileAppModel(dependencies: isTesting ? .testing() : .live())
         }
     }
 
@@ -21,6 +22,7 @@ struct TermindIOSApp: App {
             case .success(let app):
                 MobileRootView(app: app)
                     .modelContainer(app.container)
+                    .environment(\.mobileInterfaceIdiom, MobileInterfaceIdiom.current)
                     .environment(\.locale, launchLanguage.locale)
                     .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
             case .failure:

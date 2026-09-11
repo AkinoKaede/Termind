@@ -1,4 +1,10 @@
 import Foundation
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
@@ -89,8 +95,8 @@ struct AppReviewControllerTests {
         #expect(h.requests == 0)
         h.advance(0.001)
         h.controller.requestIfReady(windowID: h.windowID) {
-            #expect(h.defaults.stringArray(forKey: SettingsKey.reviewRequestedVersions) == ["1.0"])
-            #expect(h.defaults.object(forKey: SettingsKey.reviewLastAttempt) as? Date == h.date)
+            #expect(h.defaults.stringArray(forKey: DesktopSettingsKey.reviewRequestedVersions) == ["1.0"])
+            #expect(h.defaults.object(forKey: DesktopSettingsKey.reviewLastAttempt) as? Date == h.date)
             h.requests += 1
         }
         h.request()
@@ -220,7 +226,7 @@ struct AppReviewControllerTests {
         h.advance(3)
         h.request()
         #expect(h.requests == 0)
-        #expect(h.defaults.object(forKey: SettingsKey.reviewRequestedVersions) == nil)
+        #expect(h.defaults.object(forKey: DesktopSettingsKey.reviewRequestedVersions) == nil)
         h.work(for: 0)
         h.finish()
         #expect(h.requests == 0)
@@ -258,7 +264,7 @@ struct AppReviewControllerTests {
         h.work(for: 300)
         h.finish()
         #expect(h.requests == 0)
-        #expect(h.defaults.object(forKey: SettingsKey.reviewFirstUse) == nil)
+        #expect(h.defaults.object(forKey: DesktopSettingsKey.reviewFirstUse) == nil)
         #expect(h.activeDays == 0)
         #expect(AppModel(hosts: HostLibraryModel()).appReview.isEnabled == false)
     }
@@ -289,7 +295,7 @@ struct AppReviewControllerTests {
             )
         }
 
-        var activeDays: Int { defaults.stringArray(forKey: SettingsKey.reviewActiveDays)?.count ?? 0 }
+        var activeDays: Int { defaults.stringArray(forKey: DesktopSettingsKey.reviewActiveDays)?.count ?? 0 }
 
         func clear() { defaults.removePersistentDomain(forName: suite) }
 

@@ -1,5 +1,0 @@
-import TermindApplication
-
-typealias ConnectionPurpose = TermindApplication.ConnectionPurpose
-typealias ConnectionEndpoint = TermindApplication.ConnectionEndpoint
-typealias ConnectionJourney = TermindApplication.ConnectionJourney

@@ -1,5 +1,0 @@
-import TermindPersistence
-
-typealias SettingsRemoteMerge = SharedSettingsRemoteMerge
-typealias SettingsOutgoingEntry = SharedSettingsOutgoingEntry
-typealias SettingsSyncJournal = SharedSettingsSyncJournal

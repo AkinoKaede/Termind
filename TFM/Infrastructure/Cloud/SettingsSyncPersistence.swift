@@ -1,6 +1,0 @@
-import TermindPersistence
-
-typealias SettingsSyncSnapshot = SharedSettingsSyncSnapshot
-typealias SettingsSyncPersistence = SharedSettingsSyncPersistence
-typealias SyncedAIConfigurationPersistence = SharedSyncedAIConfigurationPersistence
-typealias SyncedSkillLibraryPersistence = SharedSyncedSkillLibraryPersistence

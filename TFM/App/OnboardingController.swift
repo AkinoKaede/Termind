@@ -20,9 +20,9 @@ nonisolated enum OnboardingStep: String, CaseIterable, Identifiable, Sendable {
 
     var completionKey: String {
         switch self {
-        case .quickOpen: SettingsKey.onboardingQuickOpenCompleted
-        case .statusBarPath: SettingsKey.onboardingStatusBarPathCompleted
-        case .commandGenerator: SettingsKey.onboardingCommandGeneratorCompleted
+        case .quickOpen: DesktopSettingsKey.onboardingQuickOpenCompleted
+        case .statusBarPath: DesktopSettingsKey.onboardingStatusBarPathCompleted
+        case .commandGenerator: DesktopSettingsKey.onboardingCommandGeneratorCompleted
         }
     }
 }

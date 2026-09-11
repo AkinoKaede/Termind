@@ -1,4 +1,0 @@
-import TermindApplication
-
-typealias CommandHistoryRepository = TermindApplication.CommandHistoryRepository
-typealias InMemoryCommandHistoryRepository = TermindApplication.InMemoryCommandHistoryRepository

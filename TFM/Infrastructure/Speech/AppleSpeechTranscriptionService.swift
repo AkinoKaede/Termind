@@ -1,3 +1,0 @@
-import TermindInfrastructure
-
-typealias AppleSpeechTranscriptionService = TermindInfrastructure.AppleSpeechTranscriptionService

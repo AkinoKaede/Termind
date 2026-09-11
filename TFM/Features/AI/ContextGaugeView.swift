@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindApplication
 
 /// How full the model's context window is, as a ring.
 ///

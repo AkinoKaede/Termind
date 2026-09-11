@@ -80,5 +80,3 @@ public final class SwiftDataOutboxStore: OutboxStore {
         try context.savePendingChanges()
     }
 }
-
-public typealias SharedOutboxStore = SwiftDataOutboxStore

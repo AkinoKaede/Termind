@@ -1,5 +1,10 @@
 import Foundation
+import TermindApplication
 import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
@@ -60,8 +65,8 @@ struct TerminalFindTests {
     /// agree on that; ⌘G used to be wired the other way round.
     @Test
     func findNextWalksTowardOlderOutput() {
-        #expect(TerminalFindDirection.previous.bindingAction == "navigate_search:previous")
-        #expect(TerminalFindDirection.next.bindingAction == "navigate_search:next")
+        #expect(TerminalFindBinding.navigate(.previous) == "navigate_search:previous")
+        #expect(TerminalFindBinding.navigate(.next) == "navigate_search:next")
     }
 
     @MainActor

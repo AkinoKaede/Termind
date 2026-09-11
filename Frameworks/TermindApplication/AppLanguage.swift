@@ -42,7 +42,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
     }
 
     public nonisolated static func stored(in defaults: UserDefaults = .standard) -> AppLanguage {
-        guard let rawValue = defaults.string(forKey: SharedSettingsKey.appLanguage) else {
+        guard let rawValue = defaults.string(forKey: SettingsKey.appLanguage) else {
             return .system
         }
         return AppLanguage(rawValue: rawValue) ?? .system
@@ -54,7 +54,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
     public nonisolated static func store(
         _ language: AppLanguage, in defaults: UserDefaults = .standard
     ) {
-        defaults.set(language.rawValue, forKey: SharedSettingsKey.appLanguage)
+        defaults.set(language.rawValue, forKey: SettingsKey.appLanguage)
         switch language {
         case .system:
             defaults.removeObject(forKey: "AppleLanguages")

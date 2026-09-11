@@ -12,11 +12,11 @@ import Testing
 @Suite @MainActor
 struct MobileSettingsPortTests {
     @Test func sftpSettingsDefaultsAndNormalizationMatchDesktop() {
-        #expect(SharedSettingsKey.sftpGlobalTransferLimit == "sftp.transfers.globalLimit")
-        #expect(SharedSettingsKey.sftpPerHostTransferLimit == "sftp.transfers.perHostLimit")
-        #expect(SharedSettingsKey.defaultSFTPGlobalTransferLimit == 3)
-        #expect(SharedSettingsKey.defaultSFTPPerHostTransferLimit == 2)
-        #expect(SharedSettingsKey.sftpTransferLimitRange == 1...8)
+        #expect(SettingsKey.sftpGlobalTransferLimit == "sftp.transfers.globalLimit")
+        #expect(SettingsKey.sftpPerHostTransferLimit == "sftp.transfers.perHostLimit")
+        #expect(SettingsKey.defaultSFTPGlobalTransferLimit == 3)
+        #expect(SettingsKey.defaultSFTPPerHostTransferLimit == 2)
+        #expect(SettingsKey.sftpTransferLimitRange == 1...8)
 
         let defaults = MobileSFTPTransferLimits(global: 3, perHost: 2)
         #expect(defaults.global == 3)
@@ -192,7 +192,7 @@ struct MobileSettingsPortTests {
         #expect(workspace.isFindPresented)
 
         workspace.dismissFind()
-        workspace.navigateFind(previous: false)
+        workspace.navigateFind(.next)
         #expect(workspace.findQuery == "retained")
         #expect(workspace.isFindPresented)
     }

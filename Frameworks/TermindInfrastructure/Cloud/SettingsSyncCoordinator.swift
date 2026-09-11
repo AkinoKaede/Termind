@@ -37,11 +37,11 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
 
     public var isEnabled: Bool {
         guard
-            defaults.object(forKey: SharedSettingsKey.iCloudSyncEnabled) as? Bool
-                ?? SharedSettingsKey.defaultICloudSyncEnabled
+            defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
+                ?? SettingsKey.defaultICloudSyncEnabled
         else { return false }
-        return defaults.object(forKey: SharedSettingsKey.settingsSyncEnabled) as? Bool
-            ?? SharedSettingsKey.defaultSettingsSyncEnabled
+        return defaults.object(forKey: SettingsKey.settingsSyncEnabled) as? Bool
+            ?? SettingsKey.defaultSettingsSyncEnabled
     }
 
     public init(
@@ -78,7 +78,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     public func setEnabled(_ enabled: Bool) {
-        defaults.set(enabled, forKey: SharedSettingsKey.settingsSyncEnabled)
+        defaults.set(enabled, forKey: SettingsKey.settingsSyncEnabled)
         if enabled { start() } else { pause() }
     }
 
@@ -487,13 +487,13 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
 
     private func prepareForCurrentEnvironment() throws {
         guard
-            defaults.string(forKey: SharedSettingsKey.settingsSyncEnvironment)
+            defaults.string(forKey: SettingsKey.settingsSyncEnvironment)
                 != environmentIdentifier
         else { return }
 
         try journal.markAllEntriesNeedsUploadAfterEnvironmentChange()
         try context.save()
-        defaults.set(environmentIdentifier, forKey: SharedSettingsKey.settingsSyncEnvironment)
+        defaults.set(environmentIdentifier, forKey: SettingsKey.settingsSyncEnvironment)
         terminalError = nil
     }
 

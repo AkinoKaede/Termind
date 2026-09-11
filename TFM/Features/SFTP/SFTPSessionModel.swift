@@ -261,8 +261,6 @@ final class SFTPSessionModel: Identifiable {
     }
     private var connectionAttemptID: UUID?
     private var reconnectController: SessionReconnectController { connection.reconnect }
-    private var hasConnectedOnce = false
-    private var isRecoveringConnection = false
     private var operationCancellation: TransferCancellationToken?
     weak var navigationRouter: (any SFTPSessionNavigationRouting)?
     private weak var statusStore: (any RemoteSessionHostStore)?
@@ -291,7 +289,7 @@ final class SFTPSessionModel: Identifiable {
         self.homeResolution = homeResolution
         self.automaticRefreshInterval = automaticRefreshInterval
         if client != nil { status = .connected }
-        if client != nil { hasConnectedOnce = true }
+        if client != nil { _ = connection.markConnected() }
     }
 
     var reconnectState: ReconnectState? { connection.reconnectState }
@@ -359,14 +357,13 @@ final class SFTPSessionModel: Identifiable {
     }
 
     private func startConnection(using store: any RemoteSessionHostStore) {
-        let reconnecting = hasConnectedOnce && isRecoveringConnection
+        let reconnecting = connection.hasConnectedOnce && connection.isRecovering
         homeResolution = .pending
         didResolveHomeForConnection = false
         bindStatus(to: store)
         connectionTask?.cancel()
         guard let host = store.host(hostID) else {
-            reconnectController.stop()
-            isRecoveringConnection = false
+            connection.stopRecovery()
             let message = String(localized: "The host is no longer available.")
             status = .failed(message)
             homeResolution = .unavailable
@@ -459,11 +456,8 @@ final class SFTPSessionModel: Identifiable {
                 self.suppliedAuthentications.removeAll()
                 self.temporaryHostKeys.removeAll()
                 self.pendingAuthentication = nil
-                let initialConnection = !self.hasConnectedOnce
                 let presentsConnectionJourney = self.connectionJourney.isPresented
-                self.hasConnectedOnce = true
-                self.isRecoveringConnection = false
-                self.reconnectController.markConnected(initial: initialConnection)
+                _ = self.connection.markConnected()
                 self.status = .connected
                 if presentsConnectionJourney {
                     self.connectionJourney.succeed()
@@ -517,7 +511,7 @@ final class SFTPSessionModel: Identifiable {
                     preserveSubmission: retryNeedsPassphrase && submitted != nil
                 )
             } catch {
-                if self.hasConnectedOnce || reconnecting {
+                if self.connection.hasConnectedOnce || reconnecting {
                     self.scheduleReconnect(after: error.localizedDescription, using: store)
                 } else {
                     self.status = .failed(error.localizedDescription)
@@ -549,8 +543,6 @@ final class SFTPSessionModel: Identifiable {
         connectionTask = nil
         connectionAttemptID = nil
         connection.disconnect()
-        hasConnectedOnce = false
-        isRecoveringConnection = false
         automaticRefreshTask?.cancel()
         automaticRefreshTask = nil
         uploadRefreshTask?.cancel()
@@ -575,8 +567,7 @@ final class SFTPSessionModel: Identifiable {
 
     func stopReconnecting() {
         guard let reconnectState else { return }
-        reconnectController.stop()
-        isRecoveringConnection = false
+        connection.stopRecovery()
         connectionAttemptID = nil
         connectionTask?.cancel()
         connectionTask = nil
@@ -1340,7 +1331,7 @@ final class SFTPSessionModel: Identifiable {
                 hostID: host.id, fingerprint: observation.fingerprint
             )
         } catch {
-            if hasConnectedOnce {
+            if connection.hasConnectedOnce {
                 scheduleReconnect(after: error.localizedDescription, using: store)
             } else {
                 status = .failed(error.localizedDescription)
@@ -1354,7 +1345,7 @@ final class SFTPSessionModel: Identifiable {
         requiresPassphrase: Bool? = nil,
         preserveSubmission: Bool = false
     ) {
-        reconnectController.pauseForUserInteraction()
+        connection.pauseForUserInteraction()
         if !preserveSubmission { suppliedAuthentications[host.id] = nil }
         let identity = store.identity(for: host)
         let submission = suppliedAuthentications[host.id]
@@ -1392,14 +1383,13 @@ final class SFTPSessionModel: Identifiable {
     }
 
     private func handleConnectionFailure(_ message: String, attemptID: UUID?) {
-        guard hasConnectedOnce, connectionAttemptID == attemptID,
+        guard connection.hasConnectedOnce, connectionAttemptID == attemptID,
             let store = statusStore
         else { return }
         scheduleReconnect(after: message, using: store)
     }
 
     private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
-        isRecoveringConnection = true
         connectionAttemptID = nil
         connectionTask?.cancel()
         connectionTask = nil
@@ -1417,7 +1407,7 @@ final class SFTPSessionModel: Identifiable {
             host: host, using: store, purpose: .sftpSession,
             username: host.flatMap { store.identity(for: $0)?.username }
         )
-        reconnectController.schedule(after: message) { [weak self, weak store] in
+        connection.scheduleRecovery(after: message) { [weak self, weak store] in
             guard let self, let store else { return }
             self.startConnection(using: store)
         }

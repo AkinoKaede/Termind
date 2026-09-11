@@ -1,6 +1,7 @@
 import AgentKit
 import GhosttyTheme
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host
@@ -352,8 +353,8 @@ struct SettingsFormPage<Content: View>: View {
 }
 
 private struct AppSettings: View {
-    @AppStorage(SettingsKey.showMetricsInMenuBar) private var showMetricsInMenuBar = true
-    @AppStorage(SettingsKey.appAppearance) private var appearanceID = AppAppearance.system.rawValue
+    @AppStorage(DesktopSettingsKey.showMetricsInMenuBar) private var showMetricsInMenuBar = true
+    @AppStorage(DesktopSettingsKey.appAppearance) private var appearanceID = AppAppearance.system.rawValue
     @AppStorage(SettingsKey.appLanguage) private var languageID = AppLanguage.system.rawValue
     @State private var launchLanguage = AppLanguage.stored()
 
@@ -517,9 +518,9 @@ private struct ProSettings: View {
 private struct StartupSettings: View {
     @Environment(\.appearsActive) private var appearsActive
     @State private var loginItem = LoginItemController()
-    @AppStorage(SettingsKey.openAtLoginQuietly) private var opensQuietly =
-        SettingsKey.defaultOpenAtLoginQuietly
-    @AppStorage(SettingsKey.restoreWorkspaces) private var restoreWorkspaces = true
+    @AppStorage(DesktopSettingsKey.openAtLoginQuietly) private var opensQuietly =
+        DesktopSettingsKey.defaultOpenAtLoginQuietly
+    @AppStorage(DesktopSettingsKey.restoreWorkspaces) private var restoreWorkspaces = true
 
     var body: some View {
         Section("Startup") {

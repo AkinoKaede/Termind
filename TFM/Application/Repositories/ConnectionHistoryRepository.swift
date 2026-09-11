@@ -1,4 +1,0 @@
-import TermindApplication
-
-typealias ConnectionHistoryRepository = TermindApplication.ConnectionHistoryRepository
-typealias InMemoryConnectionHistoryRepository = TermindApplication.InMemoryConnectionHistoryRepository

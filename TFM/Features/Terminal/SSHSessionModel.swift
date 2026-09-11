@@ -4,6 +4,7 @@ import GhosttyTerminal
 import GhosttyTheme
 import TermindApplication
 import TermindDomain
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
@@ -83,42 +84,6 @@ protocol SSHSessionInputRouting: AnyObject {
     func sshSessionDidChangeRemoteSystemInfo(_ sshSession: SSHSessionModel)
     func sshSessionDidChangeRemoteWindowTitle(_ sshSession: SSHSessionModel)
     func closeSSHSessionPane(afterExit sshSession: SSHSessionModel)
-}
-
-/// Search order follows Ghostty and VS Code's terminal find widget. A search
-/// starts at the bottom of the buffer, so "previous" moves toward older output
-/// and is the operation bound to Return and the upward arrow.
-nonisolated enum TerminalFindDirection: String, Sendable {
-    case previous
-    case next
-
-    var bindingAction: String { "navigate_search:\(rawValue)" }
-}
-
-nonisolated enum TerminalFindBinding {
-    static func search(_ query: String) -> String { "search:\(query)" }
-    static func navigate(_ direction: TerminalFindDirection) -> String {
-        direction.bindingAction
-    }
-    static let end = "end_search"
-}
-
-nonisolated enum TerminalDraftError: LocalizedError, Sendable {
-    case unavailable, alreadyPending, timedOut
-
-    var errorDescription: String? {
-        switch self {
-        case .unavailable:
-            String(
-                localized:
-                    "Command Generator requires a supported shell prompt with Shell Integration enabled."
-            )
-        case .alreadyPending:
-            String(localized: "Command Generator is already reading the current input.")
-        case .timedOut:
-            String(localized: "The remote shell did not return its current input.")
-        }
-    }
 }
 
 /// One terminal sshSession inside a pane.
@@ -208,12 +173,7 @@ final class SSHSessionModel: Identifiable {
     }
     private var activeShellCommand: ActiveShellCommand?
     private(set) var commandGeneratorRevision: UInt64 = 0
-    private struct PendingDraftRequest {
-        var id: UUID
-        var continuation: CheckedContinuation<String, any Error>
-    }
-    private var pendingDraftRequest: PendingDraftRequest?
-    private var draftRequestTimeoutTask: Task<Void, Never>?
+    private let commandDraft = TerminalCommandDraftController()
 
     /// Non-nil while a connection is waiting for the user to approve a first or
     /// additional server fingerprint. No credential is sent before this clears.
@@ -241,8 +201,6 @@ final class SSHSessionModel: Identifiable {
     private var connectionTask: Task<Void, Never>?
     private var connectionAttemptID: UUID?
     private var reconnectController: SessionReconnectController { connection.reconnect }
-    private var hasConnectedOnce = false
-    private var isRecoveringConnection = false
     private var workingDirectoryObservation: AnyCancellable?
     private var remoteWindowTitleObservation: AnyCancellable?
     /// The exact authenticated route used by the live terminal, retained only
@@ -441,31 +399,12 @@ final class SSHSessionModel: Identifiable {
 
     var canGenerateFromCurrentDraft: Bool {
         status.isLive && shellIntegrationAvailable && isShellPromptReady
-            && Self.supportedGeneratorShells.contains(integratedShell ?? "")
+            && TerminalCommandDraftController.supportedShells.contains(integratedShell ?? "")
     }
 
     func requestCurrentDraft() async throws -> String {
-        guard canGenerateFromCurrentDraft else { throw TerminalDraftError.unavailable }
-        guard pendingDraftRequest == nil else { throw TerminalDraftError.alreadyPending }
-        let requestID = UUID()
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation {
-                (continuation: CheckedContinuation<String, any Error>) in
-                pendingDraftRequest = PendingDraftRequest(
-                    id: requestID, continuation: continuation
-                )
-                writeInputDirectly(Self.commandGeneratorDraftRequest)
-                draftRequestTimeoutTask?.cancel()
-                draftRequestTimeoutTask = Task { [weak self] in
-                    try? await Task.sleep(for: .seconds(2))
-                    guard !Task.isCancelled else { return }
-                    self?.failDraftRequest(id: requestID, with: TerminalDraftError.timedOut)
-                }
-            }
-        } onCancel: {
-            Task { @MainActor [weak self] in
-                self?.failDraftRequest(id: requestID, with: CancellationError())
-            }
+        try await commandDraft.read(isAvailable: canGenerateFromCurrentDraft) { [weak self] data in
+            self?.writeInputDirectly(data)
         }
     }
 
@@ -473,27 +412,7 @@ final class SSHSessionModel: Identifiable {
     /// then inserts one literal command as a bracketed paste. There is
     /// intentionally no carriage return in this payload.
     func replaceCurrentDraft(with command: String) {
-        var data = Self.commandGeneratorDraftClear
-        data.append(Self.bracketedPasteStart)
-        data.append(Data(command.utf8))
-        data.append(Self.bracketedPasteEnd)
-        writeInputDirectly(data)
-    }
-
-    private func failDraftRequest(id: UUID, with error: any Error) {
-        guard pendingDraftRequest?.id == id, let request = pendingDraftRequest else { return }
-        pendingDraftRequest = nil
-        draftRequestTimeoutTask?.cancel()
-        draftRequestTimeoutTask = nil
-        request.continuation.resume(throwing: error)
-    }
-
-    private func completeDraftRequest(with draft: String) {
-        guard let request = pendingDraftRequest else { return }
-        pendingDraftRequest = nil
-        draftRequestTimeoutTask?.cancel()
-        draftRequestTimeoutTask = nil
-        request.continuation.resume(returning: draft)
+        writeInputDirectly(commandDraft.replacementPayload(for: command))
     }
 
     private func invalidateCommandGeneration() {
@@ -507,9 +426,7 @@ final class SSHSessionModel: Identifiable {
         isShellPromptReady = false
         shellIntegrationAvailable = false
         activeShellCommand = nil
-        if let request = pendingDraftRequest {
-            failDraftRequest(id: request.id, with: TerminalDraftError.unavailable)
-        }
+        commandDraft.cancel()
         invalidateCommandGeneration()
     }
 
@@ -519,12 +436,6 @@ final class SSHSessionModel: Identifiable {
         homeResolution = .unavailable
     }
 
-    private static let supportedGeneratorShells: Set<String> = ["bash", "zsh", "fish"]
-    private static let commandGeneratorDraftRequest = Data("\u{1B}[777;1~".utf8)
-    private static let commandGeneratorDraftClear = Data("\u{1B}[777;2~".utf8)
-    private static let bracketedPasteStart = Data("\u{1B}[200~".utf8)
-    private static let bracketedPasteEnd = Data("\u{1B}[201~".utf8)
-
     func connect(using store: any RemoteSessionHostStore) {
         startConnection(using: store)
     }
@@ -532,8 +443,8 @@ final class SSHSessionModel: Identifiable {
     private func startConnection(using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
         remoteWindowTitle = nil
-        homeResolution = SettingsKey.isShellIntegrationEnabled ? .pending : .unavailable
-        let reconnecting = hasConnectedOnce && isRecoveringConnection
+        homeResolution = DesktopSettingsKey.isShellIntegrationEnabled ? .pending : .unavailable
+        let reconnecting = connection.hasConnectedOnce && connection.isRecovering
         workingDirectory = nil
         transferConfiguration = nil
         commandExcludedFromHistory = nil
@@ -543,8 +454,7 @@ final class SSHSessionModel: Identifiable {
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
         guard let host = store.host(hostID) ?? transientHost else {
-            reconnectController.stop()
-            isRecoveringConnection = false
+            connection.stopRecovery()
             pendingInitialCommand = nil
             connectionAttemptID = nil
             status = .failed(String(localized: "The host is no longer available."))
@@ -937,8 +847,6 @@ final class SSHSessionModel: Identifiable {
         suppliedAuthentications.removeAll()
         connectionAttemptID = nil
         connection.disconnect()
-        hasConnectedOnce = false
-        isRecoveringConnection = false
         connectionTask?.cancel()
         connectionTask = nil
         if let ssh { Task { await ssh.disconnect() } }
@@ -953,8 +861,7 @@ final class SSHSessionModel: Identifiable {
     func stopReconnecting() {
         guard let reconnectState else { return }
         remoteWindowTitle = nil
-        reconnectController.stop()
-        isRecoveringConnection = false
+        connection.stopRecovery()
         connectionAttemptID = nil
         connectionTask?.cancel()
         connectionTask = nil
@@ -970,7 +877,7 @@ final class SSHSessionModel: Identifiable {
         proxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
         attemptID: UUID
     ) async throws {
-        let wasReconnecting = isRecoveringConnection
+        let wasReconnecting = connection.isRecovering
         let presentsConnectionJourney = connectionJourney.isPresented
         let configuration = SSHConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.port, username: username,
@@ -1001,7 +908,7 @@ final class SSHSessionModel: Identifiable {
                 credentials: configuration.credentials,
                 expectedHostKeys: configuration.expectedHostKeys,
                 proxy: configuration.proxy, jumps: configuration.jumps,
-                shellIntegrationEnabled: SettingsKey.isShellIntegrationEnabled,
+                shellIntegrationEnabled: DesktopSettingsKey.isShellIntegrationEnabled,
                 columns: latestViewport.columns, rows: latestViewport.rows,
                 progress: progressHandler(attemptID: attemptID)
             )
@@ -1010,10 +917,7 @@ final class SSHSessionModel: Identifiable {
             transferConfiguration = configuration
             suppliedAuthentications.removeAll()
             temporaryHostKeys.removeAll()
-            let initialConnection = !hasConnectedOnce
-            hasConnectedOnce = true
-            isRecoveringConnection = false
-            reconnectController.markConnected(initial: initialConnection)
+            _ = connection.markConnected()
             status = .connected
             if presentsConnectionJourney {
                 connectionJourney.succeed()
@@ -1048,9 +952,7 @@ final class SSHSessionModel: Identifiable {
         ssh = nil
         switch result {
         case .success:
-            reconnectController.stop()
-            hasConnectedOnce = false
-            isRecoveringConnection = false
+            connection.resetRecovery()
             status = .disconnected
             inputRouter?.closeSSHSessionPane(afterExit: self)
         case .failure(let error):
@@ -1062,7 +964,7 @@ final class SSHSessionModel: Identifiable {
         _ error: any Error, store: any RemoteSessionHostStore, reconnecting: Bool
     ) {
         connectionAttemptID = nil
-        if hasConnectedOnce || reconnecting {
+        if connection.hasConnectedOnce || reconnecting {
             scheduleReconnect(after: error.localizedDescription, using: store)
         } else {
             pendingInitialCommand = nil
@@ -1074,19 +976,17 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func beginAutomaticReconnect(after message: String) {
-        guard hasConnectedOnce, let store = statusStore else {
+        guard connection.hasConnectedOnce, let store = statusStore else {
             status = .failed(message)
             return
         }
         appendTerminalNotice(String(localized: "Connection lost; reconnecting…"))
-        isRecoveringConnection = true
         scheduleReconnect(after: message, using: store)
     }
 
     private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
         remoteWindowTitle = nil
-        isRecoveringConnection = true
         connectionAttemptID = nil
         connectionTask?.cancel()
         connectionTask = nil
@@ -1099,7 +999,7 @@ final class SSHSessionModel: Identifiable {
             host: host, using: store, purpose: .sshSession,
             username: host.flatMap { store.identity(for: $0)?.username } ?? usernameHint
         )
-        reconnectController.schedule(after: message) { [weak self, weak store] in
+        connection.scheduleRecovery(after: message) { [weak self, weak store] in
             guard let self, let store else { return }
             self.startConnection(using: store)
         }
@@ -1116,7 +1016,7 @@ final class SSHSessionModel: Identifiable {
         mode: SSHAuthenticationPrompt.Mode = .localIdentity,
         preserveSubmission: Bool = false
     ) {
-        reconnectController.pauseForUserInteraction()
+        connection.pauseForUserInteraction()
         if !preserveSubmission { suppliedAuthentications[host.id] = nil }
         pendingAuthentication = SSHAuthenticationPrompt(
             host: host,
@@ -1180,7 +1080,7 @@ final class SSHSessionModel: Identifiable {
         } catch {
             guard connectionAttemptID == attemptID else { return }
             connectionAttemptID = nil
-            if hasConnectedOnce {
+            if connection.hasConnectedOnce {
                 scheduleReconnect(after: error.localizedDescription, using: store)
             } else {
                 status = .failed(error.localizedDescription)
@@ -1304,7 +1204,7 @@ final class SSHSessionModel: Identifiable {
         case .commandFinished(let status, let duration):
             recordCommandCompletion(exitStatus: status, reportedDuration: duration)
         case .draft(let draft):
-            completeDraftRequest(with: draft)
+            commandDraft.receive(draft)
         }
     }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 
 /// Uses the same native selection, hover, marquee and drag renderer as Hosts.
 struct MetricsManagedCardPage: ManagedCardPage {

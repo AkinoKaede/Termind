@@ -1,3 +1,0 @@
-import TermindApplication
-
-typealias SSHAuthenticationPrompt = TermindApplication.SSHAuthenticationPrompt

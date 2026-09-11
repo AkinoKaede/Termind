@@ -1,3 +1,4 @@
+import TermindApplication
 import TermindDomain
 
 extension SessionContext {

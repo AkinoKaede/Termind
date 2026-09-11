@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host

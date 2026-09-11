@@ -1,3 +1,5 @@
+import TermindApplication
+
 #if DEBUG
     import Foundation
 

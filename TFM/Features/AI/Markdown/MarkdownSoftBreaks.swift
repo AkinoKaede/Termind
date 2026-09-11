@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 
 /// Turns paragraph-internal newlines into hard breaks before parsing.
 ///

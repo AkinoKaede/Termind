@@ -1,5 +1,8 @@
 import GhosttyTerminal
 import SwiftUI
+import TermindApplication
+import TermindDomain
+import TermindRemoteInfrastructure
 
 /// A libghostty terminal surface with Termind's connection and suggestion chrome.
 struct TerminalPlaceholderView: View {

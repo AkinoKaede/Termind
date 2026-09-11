@@ -3,6 +3,7 @@ import AppKit
 import ListViewKit
 import Observation
 import SwiftUI
+import TermindApplication
 
 nonisolated struct TranscriptEntry: Identifiable, Hashable, Sendable {
     enum Kind: Hashable, Sendable {

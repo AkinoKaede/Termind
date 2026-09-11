@@ -1,4 +1,0 @@
-import TermindInfrastructure
-
-typealias ProAccessController = TermindInfrastructure.ProAccessController
-typealias ProAccessControllerError = TermindInfrastructure.ProAccessControllerError

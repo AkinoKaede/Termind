@@ -1,3 +1,0 @@
-import TermindApplication
-
-typealias AIConfigurationModel = TermindApplication.AIConfigurationModel

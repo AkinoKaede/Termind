@@ -1,4 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias ScratchPullTool = TermindRemoteInfrastructure.ScratchPullTool
-typealias ScratchPushTool = TermindRemoteInfrastructure.ScratchPushTool

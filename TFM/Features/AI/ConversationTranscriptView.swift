@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host
@@ -591,7 +592,7 @@ private struct AgentSSHAuthenticationCard: View {
                 .padding(.bottom, Metrics.Space.s)
             }
 
-            SSHAuthenticationForm(
+            DesktopSSHAuthenticationForm(
                 prompt: request.journeyPrompt,
                 submit: submit,
                 cancel: {
@@ -635,7 +636,7 @@ private struct AgentSSHHostKeyCard: View {
                 }
                 .padding(.bottom, Metrics.Space.s)
             }
-            SSHHostKeyConfirmationForm(
+            DesktopSSHHostKeyConfirmationForm(
                 prompt: request.prompt,
                 displayAddress: request.address,
                 proceed: { conversation.respondToSSHHostKey(.continueOnce) },

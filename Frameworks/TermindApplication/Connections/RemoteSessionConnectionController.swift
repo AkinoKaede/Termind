@@ -1,0 +1,135 @@
+import Foundation
+import TermindDomain
+
+import struct TermindDomain.Host
+
+/// Shared connection-state composition for interactive sessions.
+/// Transport-specific models own their I/O, while this object owns the common
+/// connection journey and retry lifecycle shown by both Terminal and SFTP.
+@Observable
+public final class RemoteSessionConnectionController {
+    public let journey = ConnectionJourney()
+    public let reconnect: SessionReconnectController
+    public var pendingHostKey: SSHHostKeyPrompt?
+    public var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
+    public private(set) var hasConnectedOnce = false
+    public private(set) var isRecovering = false
+    private var pendingHostKeyHostID: Host.ID?
+
+    public var reconnectState: ReconnectState? { reconnect.state }
+
+    public init(reconnect: SessionReconnectController = SessionReconnectController()) {
+        self.reconnect = reconnect
+    }
+
+    public func disconnect() {
+        clearHostKeyPrompt()
+        temporaryHostKeys.removeAll()
+        reconnect.stop()
+        hasConnectedOnce = false
+        isRecovering = false
+        journey.hide()
+    }
+
+    @discardableResult
+    public func markConnected() -> Bool {
+        let wasRecovering = isRecovering
+        let initial = !hasConnectedOnce
+        hasConnectedOnce = true
+        isRecovering = false
+        reconnect.markConnected(initial: initial)
+        return wasRecovering
+    }
+
+    @discardableResult
+    public func scheduleRecovery(
+        after error: String, retry: @escaping SessionReconnectController.RetryAction
+    ) -> Bool {
+        guard hasConnectedOnce else { return false }
+        let announcesLoss = !isRecovering
+        isRecovering = true
+        reconnect.schedule(after: error, retry: retry)
+        return announcesLoss
+    }
+
+    public func pauseForUserInteraction() {
+        reconnect.pauseForUserInteraction()
+    }
+
+    @discardableResult
+    public func stopRecovery() -> ReconnectState? {
+        let state = reconnect.state
+        reconnect.stop()
+        isRecovering = false
+        return state
+    }
+
+    public func suspendForForegroundResume(reconnecting: Bool) {
+        reconnect.stop()
+        isRecovering = reconnecting && hasConnectedOnce
+    }
+
+    public func resetRecovery() {
+        reconnect.stop()
+        hasConnectedOnce = false
+        isRecovering = false
+    }
+
+    public func trustHostKey(
+        _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
+    ) {
+        store.trust(
+            KnownHostEntry(
+                hostname: observation.hostname, port: observation.port,
+                algorithm: observation.algorithm, fingerprint: observation.fingerprint,
+                addedAt: Date()
+            ))
+        if let pendingHostKeyHostID { temporaryHostKeys[pendingHostKeyHostID] = nil }
+        clearHostKeyPrompt()
+        journey.resume()
+    }
+
+    public func useTemporaryHostKey(_ observation: SSHHostKeyObservation) -> Bool {
+        guard let pendingHostKeyHostID else { return false }
+        temporaryHostKeys[pendingHostKeyHostID] = observation.identity
+        clearHostKeyPrompt()
+        journey.resume()
+        return true
+    }
+
+    public func waitForHostKey(
+        _ prompt: SSHHostKeyPrompt, hostID: Host.ID, fingerprint: String
+    ) {
+        pendingHostKey = prompt
+        pendingHostKeyHostID = hostID
+        reconnect.pauseForUserInteraction()
+        journey.waitForHostKey(at: hostID, fingerprint: fingerprint)
+    }
+
+    public func progressHandler(
+        attemptID: UUID, isCurrent: @escaping @MainActor @Sendable (UUID) -> Bool
+    ) -> SSHRouteProgressHandler {
+        { [weak self] event in
+            Task { @MainActor in
+                guard isCurrent(attemptID) else { return }
+                self?.journey.receive(event)
+            }
+        }
+    }
+
+    public func presentReconnectJourney(
+        host: Host?, using store: any RemoteSessionHostStore,
+        purpose: ConnectionPurpose, username: String?
+    ) {
+        guard let host else { return }
+        journey.begin(
+            host: host, route: store.route(for: host), purpose: purpose,
+            username: username, mode: .reconnection
+        )
+    }
+
+    private func clearHostKeyPrompt() {
+        pendingHostKey = nil
+        pendingHostKeyHostID = nil
+    }
+}

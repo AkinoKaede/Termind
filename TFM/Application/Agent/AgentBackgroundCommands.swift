@@ -1,9 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias AgentCommandOutcome = TermindRemoteInfrastructure.AgentCommandOutcome
-typealias AgentIdleSweeper = TermindRemoteInfrastructure.AgentIdleSweeper
-typealias AgentBackgroundCommands = TermindRemoteInfrastructure.AgentBackgroundCommands
-typealias AgentCommandHandover = TermindRemoteInfrastructure.AgentCommandHandover
-typealias AgentCommandNotStarted = TermindRemoteInfrastructure.AgentCommandNotStarted
-typealias AgentCompletionSignal = TermindRemoteInfrastructure.AgentCompletionSignal
-typealias AgentBackgroundCommandError = TermindRemoteInfrastructure.AgentBackgroundCommandError

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindApplication
 import UniformTypeIdentifiers
 
 /// The native source list for Vault and Workspaces.
@@ -9,8 +10,8 @@ struct WorkspaceNavigatorView: View {
     @Environment(WindowModel.self) private var window
     @Environment(\.locale) private var locale
 
-    @AppStorage(SettingsKey.vaultSectionExpanded) private var vaultExpanded = true
-    @AppStorage(SettingsKey.workspaceSectionExpanded) private var workspaceExpanded = true
+    @AppStorage(DesktopSettingsKey.vaultSectionExpanded) private var vaultExpanded = true
+    @AppStorage(DesktopSettingsKey.workspaceSectionExpanded) private var workspaceExpanded = true
 
     @State private var workspaceDropTarget: WorkspaceSidebarDropTarget?
     @State private var workspaceFrames: [Workspace.ID: CGRect] = [:]

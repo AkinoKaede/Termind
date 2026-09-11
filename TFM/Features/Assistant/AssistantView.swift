@@ -1,6 +1,7 @@
 import AppKit
 import ListViewKit
 import SwiftUI
+import TermindApplication
 
 /// Assistant's conversation navigator inside the window's shared sidebar: the
 /// chat list, over a bar holding the two things you do to the list itself.
@@ -277,8 +278,8 @@ private struct AssistantConversationList: View {
 
     @Environment(WindowModel.self) private var window
     @Environment(\.locale) private var locale
-    @AppStorage(SettingsKey.pinnedChatsSectionExpanded) private var pinnedExpanded = true
-    @AppStorage(SettingsKey.chatsSectionExpanded) private var chatsExpanded = true
+    @AppStorage(DesktopSettingsKey.pinnedChatsSectionExpanded) private var pinnedExpanded = true
+    @AppStorage(DesktopSettingsKey.chatsSectionExpanded) private var chatsExpanded = true
     @State private var deleteTarget: ConversationModel?
     @State private var renamingID: ConversationModel.ID?
     @State private var renameTitle = ""
@@ -568,8 +569,8 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
         /// see `AssistantSectionHeaderRow`.
         var expansionKey: String {
             switch self {
-            case .pinned: SettingsKey.pinnedChatsSectionExpanded
-            case .chats: SettingsKey.chatsSectionExpanded
+            case .pinned: DesktopSettingsKey.pinnedChatsSectionExpanded
+            case .chats: DesktopSettingsKey.chatsSectionExpanded
             }
         }
     }

@@ -1,5 +1,11 @@
 import Foundation
 import SwiftData
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 
 /// Tests run inside the signed app host. Once that host has an iCloud
 /// entitlement SwiftData's `.automatic` default would incorrectly attempt to

@@ -1,7 +1,9 @@
 import AppKit
 import ListViewKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
@@ -47,7 +49,7 @@ struct StatusBarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage(SettingsKey.statusBarExpanded) private var isExpanded = true
+    @AppStorage(DesktopSettingsKey.statusBarExpanded) private var isExpanded = true
 
     private var pane: Pane? { window.selectedWorkspace?.focusedPane }
     private var showsSessionContext: Bool { pane?.kind.showsStatusBar == true }

@@ -1,5 +1,0 @@
-import TermindApplication
-
-typealias SSHPrivateKeySecret = TermindApplication.SSHPrivateKeySecret
-typealias SecretStoring = TermindApplication.SecretStoring
-typealias InMemorySecretStore = TermindApplication.InMemorySecretStore

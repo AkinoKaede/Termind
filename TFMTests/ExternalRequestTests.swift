@@ -2,7 +2,12 @@ import AgentKit
 import AppKit
 import Foundation
 import Observation
+import TermindApplication
 import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host

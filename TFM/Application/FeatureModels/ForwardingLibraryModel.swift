@@ -1,3 +1,0 @@
-import TermindApplication
-
-typealias ForwardingLibraryModel = TermindApplication.ForwardingLibraryModel

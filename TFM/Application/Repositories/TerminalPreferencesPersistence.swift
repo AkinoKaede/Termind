@@ -1,3 +1,0 @@
-import TermindApplication
-
-typealias TerminalPreferencesPersisting = TermindApplication.TerminalPreferencesPersisting

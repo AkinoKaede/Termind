@@ -1,8 +1,0 @@
-import TermindApplication
-
-typealias AgentSSHAuthenticationRequest = TermindApplication.AgentSSHAuthenticationRequest
-typealias AgentSSHAuthenticationAnswer = TermindApplication.AgentSSHAuthenticationAnswer
-typealias AgentSSHAuthenticationResponse = TermindApplication.AgentSSHAuthenticationResponse
-typealias AgentSSHHostKeyRequest = TermindApplication.AgentSSHHostKeyRequest
-typealias AgentSSHHostKeyResponse = TermindApplication.AgentSSHHostKeyResponse
-typealias AgentSSHInteraction = TermindApplication.AgentSSHInteraction

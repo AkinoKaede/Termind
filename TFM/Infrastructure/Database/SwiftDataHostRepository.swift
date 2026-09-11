@@ -1,3 +1,0 @@
-import TermindPersistence
-
-typealias SwiftDataHostRepository = SharedSwiftDataHostRepository

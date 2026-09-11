@@ -1,4 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias TermindAgentToolEnvironment = TermindRemoteInfrastructure.TermindAgentToolEnvironment
-typealias TermindAgentTools = TermindRemoteInfrastructure.TermindAgentTools

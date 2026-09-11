@@ -34,11 +34,11 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
 
     public var isEnabled: Bool {
         guard
-            defaults.object(forKey: SharedSettingsKey.iCloudSyncEnabled) as? Bool
-                ?? SharedSettingsKey.defaultICloudSyncEnabled
+            defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
+                ?? SettingsKey.defaultICloudSyncEnabled
         else { return false }
-        return defaults.object(forKey: SharedSettingsKey.vaultSyncEnabled) as? Bool
-            ?? SharedSettingsKey.defaultVaultSyncEnabled
+        return defaults.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool
+            ?? SettingsKey.defaultVaultSyncEnabled
     }
 
     public init(
@@ -72,7 +72,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     }
 
     public func setEnabled(_ enabled: Bool) {
-        defaults.set(enabled, forKey: SharedSettingsKey.vaultSyncEnabled)
+        defaults.set(enabled, forKey: SettingsKey.vaultSyncEnabled)
         if enabled { start() } else { pause() }
     }
 
@@ -460,13 +460,13 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     /// retaining every local envelope and its conflict-resolution version.
     private func prepareForCurrentEnvironment() throws {
         guard
-            defaults.string(forKey: SharedSettingsKey.vaultSyncEnvironment)
+            defaults.string(forKey: SettingsKey.vaultSyncEnvironment)
                 != environmentIdentifier
         else { return }
 
         try journal.markAllEntriesNeedsUploadAfterEnvironmentChange()
         try context.save()
-        defaults.set(environmentIdentifier, forKey: SharedSettingsKey.vaultSyncEnvironment)
+        defaults.set(environmentIdentifier, forKey: SettingsKey.vaultSyncEnvironment)
         terminalError = nil
     }
 

@@ -1,4 +1,0 @@
-import TermindDomain
-
-typealias SSHUserCertificateError = TermindDomain.SSHUserCertificateError
-typealias SSHUserCertificate = TermindDomain.SSHUserCertificate

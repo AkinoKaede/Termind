@@ -9,7 +9,7 @@ public protocol ConnectionFormKeyboardAdapting {
 
 extension View {
     @ViewBuilder
-    fileprivate func sharedConnectionFormChrome(isEnabled: Bool) -> some View {
+    fileprivate func connectionFormChrome(isEnabled: Bool) -> some View {
         if isEnabled {
             padding(18).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
                 .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.quaternary) }
@@ -19,7 +19,7 @@ extension View {
     }
 }
 
-public struct SharedSSHAuthenticationForm: View {
+public struct SSHAuthenticationForm: View {
     let prompt: SSHAuthenticationPrompt
     let submit: (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void
     let cancel: () -> Void
@@ -71,7 +71,7 @@ public struct SharedSSHAuthenticationForm: View {
 
     public var body: some View {
         form
-            .sharedConnectionFormChrome(isEnabled: usesContainerChrome)
+            .connectionFormChrome(isEnabled: usesContainerChrome)
             .background {
                 if let keyboard {
                     keyboard.bridge(canSubmit: canContinue, submit: { commit(save: !needsPassphrase) }, cancel: cancel)
@@ -325,7 +325,7 @@ public struct SharedSSHAuthenticationForm: View {
     }
 }
 
-public struct SharedSSHHostKeyConfirmationForm: View {
+public struct SSHHostKeyConfirmationForm: View {
     let prompt: SSHHostKeyPrompt
     var displayAddress: String? = nil
     let proceed: () -> Void
@@ -357,7 +357,7 @@ public struct SharedSSHHostKeyConfirmationForm: View {
 
     public var body: some View {
         form
-            .sharedConnectionFormChrome(isEnabled: usesContainerChrome)
+            .connectionFormChrome(isEnabled: usesContainerChrome)
             .background {
                 if let keyboard { keyboard.bridge(canSubmit: true, submit: { trust?() ?? proceed() }, cancel: deny) }
             }

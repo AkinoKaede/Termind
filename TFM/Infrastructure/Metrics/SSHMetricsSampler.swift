@@ -1,4 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias SSHMetricsSampler = TermindRemoteInfrastructure.SSHMetricsSampler
-typealias MetricsPreferences = TermindRemoteInfrastructure.MetricsPreferences

@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import TermindApplication
 
 #if canImport(AppKit)
     import AppKit

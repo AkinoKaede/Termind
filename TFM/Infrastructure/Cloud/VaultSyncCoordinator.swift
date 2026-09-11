@@ -1,3 +1,0 @@
-import TermindInfrastructure
-
-typealias VaultSyncCoordinator = TermindInfrastructure.VaultSyncCoordinator

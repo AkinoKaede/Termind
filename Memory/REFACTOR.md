@@ -1087,3 +1087,24 @@ and chat content. Strict formatting and Chinese localization checks passed.
 ## 2026-09-11 — Shared Assistant execution (in progress)
 
 Evidence: MobileAssistantModel registers no tools, while TFM/App/AppModel builds the complete runtime and ConversationModel owns its event and interaction queues. Move the existing model, tool adapters, import and speech services into their owning frameworks, then share runtime composition and conversation commands. Expected reduction: remove the mobile duplicate chat loop and avoid a second implementation of approximately 5,000 lines of Agent state/tool behavior. Verification pending macOS/iOS builds and regression suites.
+
+## 2026-09-12 — Remove app-target framework forwarding aliases
+
+- Evidence: `rg '^typealias ' TFM -g '*.swift'` found 224 module-level aliases in 96 files; 86 files contained no behavior beyond imports and aliases. Persistence also exported a second `Shared*` alias vocabulary solely for that forwarding layer.
+- Action: delete the pure forwarders, migrate the six desktop convenience extensions to responsibility-named adapter files, use canonical framework types directly, and add an architecture guard that rejects forwarding aliases and public `Shared` namespaces.
+- Estimated reduction: 86 source files and 224 app-target alias declarations, plus 20 Persistence compatibility aliases.
+- Status: implemented. TFM and TFI builds pass, ArchitectureBoundaryTests pass, and the complete TFI test action passes.
+
+## 2026-09-12 — Align the mobile target with desktop layers
+
+- Evidence: TFI placed application models beside its entry point and all presentation in one flat Features directory; transport factories were embedded in `MobileWorkspace` and device-idiom checks were repeated in four views.
+- Action: organize TFI under the eight desktop layers, move the workspace connection port and production implementation to Application/Infrastructure, extract mobile design tokens and an injectable interface-idiom environment, and move navigation metadata into Shell.
+- Estimated reduction: no intentional feature reduction; the change removes one duplicate reconnect state machine and centralizes four device-idiom branches.
+- Status: implemented. Both app builds, ArchitectureBoundaryTests, and the complete TFI test action pass.
+
+## 2026-09-12 — Share terminal draft and generation lifecycles
+
+- Evidence: desktop and mobile separately defined the same shell allowlist, draft request/clear escape payloads, two-second draft timeout, thirty-second model timeout, cancellation token and transient success/failure state.
+- Action: extract `TerminalCommandDraftController` and `CommandGenerationCoordinator` into Application and make both terminal implementations supply only context, validity and insertion closures.
+- Estimated reduction: approximately 190 duplicated lifecycle lines and one duplicate protocol constant set.
+- Status: implemented. Mobile Command Generator, desktop Broadcast Input, Terminal Find, and direct draft-controller tests pass.

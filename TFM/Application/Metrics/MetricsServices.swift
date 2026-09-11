@@ -1,8 +1,0 @@
-import Foundation
-import TermindApplication
-import TermindDomain
-
-typealias MetricsClock = TermindApplication.MetricsClock
-
-typealias MetricsSampling = TermindApplication.MetricsSampling
-typealias MetricsConfigurationStoring = TermindApplication.MetricsConfigurationStoring

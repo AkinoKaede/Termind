@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 import TermindDomain
 
 /// One injected command surface for durable Assistant conversation mutations.

@@ -518,16 +518,6 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
     }
 }
 
-public nonisolated enum SSHShellIntegrationEvent: Sendable {
-    case available(shell: String, systemInfo: RemoteSystemInfo?, homeDirectory: String?)
-    case systemInfo(RemoteSystemInfo)
-    case homeResolutionUnavailable
-    case promptReady
-    case commandStarted(String)
-    case commandFinished(Int32, duration: TimeInterval?)
-    case draft(String)
-}
-
 public actor SSHSessionActor {
     public typealias OutputHandler = @Sendable (Data) -> Void
     public typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void

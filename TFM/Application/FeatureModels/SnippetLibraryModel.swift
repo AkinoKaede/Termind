@@ -1,3 +1,0 @@
-import TermindApplication
-
-typealias SnippetLibraryModel = TermindApplication.SnippetLibraryModel

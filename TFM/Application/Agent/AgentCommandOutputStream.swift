@@ -1,3 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias AgentCommandOutputStream = TermindRemoteInfrastructure.AgentCommandOutputStream

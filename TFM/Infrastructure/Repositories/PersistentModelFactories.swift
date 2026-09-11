@@ -1,5 +1,8 @@
 import Foundation
 import SwiftData
+import TermindApplication
+import TermindPersistence
+import TermindRemoteInfrastructure
 
 extension HostLibraryModel {
     convenience init(

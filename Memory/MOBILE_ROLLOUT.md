@@ -182,3 +182,18 @@ own `__termind_*` helpers. Mobile also treats authenticated installation and com
 duplicate prompt markers are idempotent. Seventeen shared bootstrap tests, including a real bash runtime regression,
 and all six focused mobile Command Generator tests passed. The root-cause build was installed and launched on the
 connected iPad at 22:30. The affected live bash host then completed Command Generator successfully on that iPad.
+
+## Layered mobile source and canonical framework names — 2026-09-12
+
+TFI now uses the same App/Application/Design/DesignSystem/Features/Infrastructure/Platform/UI layer vocabulary as
+TFM. Workspace transport construction moved from the feature model into Infrastructure, mobile layout constants
+and interface idiom are centralized, and navigation metadata lives in Shell. The shared connection controller now
+owns recovery state for desktop SSH, desktop SFTP, and mobile Workspaces.
+
+The desktop compatibility forwarding layer was removed. Both apps import canonical framework types directly;
+temporary `Shared` names were restored to responsibility-specific names. macOS and iOS simulator builds,
+ArchitectureBoundaryTests, and the complete iOS test action pass.
+
+Terminal draft reads and Command Generator execution now use the same Application controllers on both platforms,
+including cancellation, timeouts, stale-context rejection and bracketed-paste insertion. Focused mobile Command
+Generator and desktop Broadcast Input/Terminal Find tests pass after the extraction.

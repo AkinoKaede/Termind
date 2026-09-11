@@ -1,5 +1,0 @@
-import TermindApplication
-
-typealias MetricsSnapshotReading = TermindApplication.MetricsSnapshotReading
-typealias MetricsMonitorState = TermindApplication.MetricsMonitorState
-typealias MetricsSnapshot = TermindApplication.MetricsSnapshot

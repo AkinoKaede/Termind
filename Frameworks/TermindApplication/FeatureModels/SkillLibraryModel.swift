@@ -48,7 +48,7 @@ public final class SkillLibraryModel {
     /// screenshot build get the library they were handed and nothing else.
     private func seedBuiltInSkills() {
         guard let seedDefaults else { return }
-        let seeded = seedDefaults.integer(forKey: SharedSettingsKey.seededSkillGeneration)
+        let seeded = seedDefaults.integer(forKey: SettingsKey.seededSkillGeneration)
         guard seeded < AgentSkillLibrary.currentGeneration else { return }
         for skill in AgentSkillLibrary.builtIns(after: seeded) {
             var installed = skill
@@ -59,7 +59,7 @@ public final class SkillLibraryModel {
         // thing that can make this run twice.
         guard storageError == nil else { return }
         seedDefaults.set(
-            AgentSkillLibrary.currentGeneration, forKey: SharedSettingsKey.seededSkillGeneration
+            AgentSkillLibrary.currentGeneration, forKey: SettingsKey.seededSkillGeneration
         )
     }
 
@@ -166,7 +166,7 @@ public final class SkillLibraryModel {
         // Nothing left for seeding to add, whatever generation this store was
         // written by.
         seedDefaults?.set(
-            AgentSkillLibrary.currentGeneration, forKey: SharedSettingsKey.seededSkillGeneration
+            AgentSkillLibrary.currentGeneration, forKey: SettingsKey.seededSkillGeneration
         )
         return shipped.count
     }

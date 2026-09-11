@@ -1,6 +1,7 @@
 import AppKit
 import ListViewKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 import TermindRemoteInfrastructure
@@ -351,9 +352,6 @@ struct KeychainImportDetail: View {
         return key
     }
 }
-
-typealias SoftwareKeyFileImportResult = TermindRemoteInfrastructure.SoftwareKeyFileImportResult
-typealias SoftwareKeyFileImporter = TermindRemoteInfrastructure.SoftwareKeyFileImporter
 
 private struct SoftwareKeyEditor: View {
     private enum FileChoice {

@@ -1,4 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias PortForwardingRuntimeState = TermindRemoteInfrastructure.PortForwardingRuntimeState
-typealias PortForwardingController = TermindRemoteInfrastructure.PortForwardingController

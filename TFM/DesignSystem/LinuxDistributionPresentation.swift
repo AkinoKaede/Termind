@@ -1,5 +1,0 @@
-import TermindPresentation
-
-typealias LinuxDistributionIconEntry = TermindPresentation.LinuxDistributionIconEntry
-typealias LinuxDistributionIconCatalog = TermindPresentation.LinuxDistributionIconCatalog
-typealias LinuxDistributionBrandColor = TermindPresentation.LinuxDistributionBrandColor

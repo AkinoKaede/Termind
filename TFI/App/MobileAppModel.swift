@@ -44,11 +44,27 @@ final class MobileAppModel {
     private var hasActivated = false
     private var scenePhases: [UUID: ScenePhase] = [:]
 
-    init(
+    convenience init(
         hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
         workspaceConnectionServices: MobileWorkspaceConnectionServices = .live
     ) throws {
+        try self.init(
+            dependencies: MobileAppDependencies(
+                hosts: hosts,
+                inMemory: inMemory,
+                defaults: defaults,
+                background: background,
+                workspaceConnections: workspaceConnectionServices
+            ))
+    }
+
+    init(dependencies: MobileAppDependencies) throws {
+        let hosts = dependencies.hosts
+        let inMemory = dependencies.inMemory
+        let defaults = dependencies.defaults
+        let background = dependencies.background
+        let workspaceConnectionServices = dependencies.workspaceConnections
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
         let memoryOnly = inMemory || hosts != nil
@@ -74,7 +90,7 @@ final class MobileAppModel {
                     ?? "F6SUNDBBN9.com.akinokaede.termind")
         let settingsDefaults =
             memoryOnly ? UserDefaults(suiteName: "termind.tests.\(UUID().uuidString)")! : defaults ?? .standard
-        SharedSettingsKey.migrateSyncPreferences(in: settingsDefaults)
+        SettingsKey.migrateSyncPreferences(in: settingsDefaults)
         let settingsPersistence = SettingsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
         try settingsPersistence.prepare()
         let aiSecrets = AISecretStore(context: settingsPersistence.context, keychain: secrets)
@@ -338,29 +354,6 @@ final class MobileAppModel {
             else { return }
             workspaceActivitySessions[index] = session
             liveActivities.update(workspaceActivitySessions)
-        }
-    }
-}
-
-nonisolated enum MobileDestination: String, CaseIterable, Identifiable {
-    case vault, metrics, workspaces, assistant, settings
-    var id: Self { self }
-    var title: String {
-        switch self {
-        case .vault: String(localized: "Vault")
-        case .assistant: String(localized: "Assistant")
-        case .workspaces: String(localized: "Workspaces")
-        case .metrics: String(localized: "Metrics")
-        case .settings: String(localized: "Settings")
-        }
-    }
-    var symbol: String {
-        switch self {
-        case .vault: "server.rack"
-        case .assistant: "sparkles"
-        case .workspaces: "terminal"
-        case .metrics: "gauge.with.dots.needle.33percent"
-        case .settings: "gearshape"
         }
     }
 }

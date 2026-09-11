@@ -26,7 +26,15 @@ remains a versioned remote SPM dependency developed in the sibling repository.
   orchestration. `TFI` owns its native mobile entry point and scene navigation.
   Platform code can consume frameworks; frameworks cannot consume either app.
 
+Both app targets use the same top-level layer vocabulary: `App`, `Application`,
+`Design`, `DesignSystem`, `Features`, `Infrastructure`, `Platform`, and `UI`.
+TFI feature code is grouped by capability inside that structure; production SSH
+construction lives in Infrastructure and reusable mobile chrome lives in UI.
+
 The frameworks have explicit public boundaries and do not re-export imports.
+App targets import framework owners directly. They do not recreate framework
+names with forwarding type aliases, and framework types do not use `Shared` as
+a namespace: the module and responsibility-specific name express ownership.
 `Host` is explicitly imported from Domain where Foundation's same-named type
 would otherwise make lookup ambiguous. Presentation of session-context chips
 belongs to the desktop feature extension, not the domain value.
@@ -89,15 +97,22 @@ infrastructure, persistence, or presentation responsibility.
 - A workspace owns SSH/SFTP/serial panes plus its session-scoped assistant
   conversation. Workspace content is full width and has no left sidebar.
 - Session models own live SSH/SFTP/serial resources and terminal/file-browser state.
-- Command Generator's tool-free model request service and validated context live in Application and are shared by
-  both apps. Each platform session model owns prompt/draft capture, stale-generation cancellation, and command
-  insertion because those operations belong to its live terminal. Generated commands are bracketed-pasted into the
-  current edit buffer and are never submitted automatically.
+- Command Generator's tool-free model request service, draft protocol and stale-generation lifecycle live in
+  Application and are shared by both apps. Each platform session supplies its live terminal context and insertion
+  closure. Generated commands are bracketed-pasted into the current edit buffer and are never submitted automatically.
+- `TerminalCommandDraftController` owns the shared draft request protocol, timeout,
+  cancellation and bracketed-paste payload. `CommandGenerationCoordinator` owns
+  the shared model timeout, stale-snapshot gates and transient presentation state;
+  platform sessions provide only their live context, validity check and insertion closure.
 - A mobile SSH session delivers Shell Integration and transport-exit callbacks through one session-scoped ordered
   consumer on MainActor. Reconnect, background expiration, and explicit close terminate that consumer; callbacks
   from an older connection generation cannot reorder prompt state or mutate its replacement session. Authenticated
   integration installation and command-finished events are prompt-boundary readiness evidence on mobile; the
   following prompt marker is idempotent, so losing or duplicating it cannot strand or cancel Command Generator.
+- SSH, SFTP, and mobile Workspaces share `RemoteSessionConnectionController` for
+  first-connect and recovery state, retry timing, Journey ownership, and host-key
+  decisions. `SSHShellIntegrationEvent` is a Domain session value emitted by the
+  Remote Infrastructure transport.
 - A clean mobile SSH shell exit closes its Workspace through the app-owned lifecycle, while transport failures keep
   the Workspace alive for automatic recovery. Removing the selected Workspace also clears the mobile navigation
   destination so the UI returns to the Workspace list instead of retaining an ended terminal surface.

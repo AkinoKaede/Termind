@@ -1,6 +1,7 @@
 import AppKit
 import ListViewKit
 import SwiftUI
+import TermindApplication
 
 /// The palette that opens when a draft starts with `/`.
 ///

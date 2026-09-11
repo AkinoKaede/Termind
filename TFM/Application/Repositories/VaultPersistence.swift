@@ -1,6 +1,0 @@
-import TermindApplication
-import TermindDomain
-
-typealias VaultSnapshot = TermindDomain.VaultSnapshot
-typealias VaultRemoteApplyResult = TermindDomain.VaultRemoteApplyResult
-typealias VaultPersisting = TermindApplication.VaultPersisting

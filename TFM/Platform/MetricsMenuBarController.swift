@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindApplication
 
 /// Owns the status item and popover independently of window and SwiftUI scene lifetimes.
 @MainActor
@@ -33,7 +34,7 @@ final class MetricsMenuBarController: NSObject, NSPopoverDelegate {
     }
 
     func refresh() {
-        let enabled = defaults.object(forKey: SettingsKey.showMetricsInMenuBar) as? Bool ?? true
+        let enabled = defaults.object(forKey: DesktopSettingsKey.showMetricsInMenuBar) as? Bool ?? true
         guard enabled else {
             popover.close()
             if let item { NSStatusBar.system.removeStatusItem(item) }

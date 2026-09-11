@@ -1,5 +1,6 @@
 import Foundation
 import TermindDomain
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 

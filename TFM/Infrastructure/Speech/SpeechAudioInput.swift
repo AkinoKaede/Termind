@@ -1,5 +1,0 @@
-import TermindInfrastructure
-
-typealias SpeechAudioBufferHandler = TermindInfrastructure.SpeechAudioBufferHandler
-typealias SpeechAudioLevelHandler = TermindInfrastructure.SpeechAudioLevelHandler
-typealias SpeechAudioInput = TermindInfrastructure.SpeechAudioInput

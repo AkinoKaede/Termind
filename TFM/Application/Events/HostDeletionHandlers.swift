@@ -1,4 +1,0 @@
-import TermindApplication
-
-typealias RepositoryHostDeletionHandler = TermindApplication.RepositoryHostDeletionHandler
-typealias RuntimeHostDeletionHandler = TermindApplication.RuntimeHostDeletionHandler

@@ -1,4 +1,0 @@
-import TermindInfrastructure
-import TermindRemoteInfrastructure
-
-typealias SSHRoutedSocket = TermindRemoteInfrastructure.SSHRoutedSocket

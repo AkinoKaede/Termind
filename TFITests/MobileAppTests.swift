@@ -122,7 +122,7 @@ struct MobileTerminalShiftStateTests {
 }
 
 @Suite @MainActor
-struct MobileWorkspaceReconnectStateTests {
+struct MobileWorkspaceConnectionRecoveryTests {
     @Test func backgroundExpirationResumesEveryAffectedWorkspaceOnForeground() async throws {
         let background = MobileTestBackgroundTaskManager()
         let connections = MobileSFTPConnectionBox(
@@ -483,43 +483,43 @@ struct MobileWorkspaceReconnectStateTests {
 
     @Test func onlySuccessfulSessionsEnterAutomaticRecovery() {
         let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
-        let state = MobileWorkspaceReconnectState(controller: controller)
-        defer { state.reset() }
+        let state = RemoteSessionConnectionController(reconnect: controller)
+        defer { state.resetRecovery() }
 
-        #expect(!state.schedule(after: "initial failure") {})
-        #expect(state.state == nil)
+        #expect(!state.scheduleRecovery(after: "initial failure") {})
+        #expect(state.reconnectState == nil)
         #expect(!state.markConnected())
-        #expect(state.schedule(after: "connection lost") {})
+        #expect(state.scheduleRecovery(after: "connection lost") {})
         #expect(state.isRecovering)
-        #expect(state.state?.attempt == 1)
-        #expect(!state.schedule(after: "still offline") {})
-        #expect(state.state?.attempt == 2)
+        #expect(state.reconnectState?.attempt == 1)
+        #expect(!state.scheduleRecovery(after: "still offline") {})
+        #expect(state.reconnectState?.attempt == 2)
     }
 
     @Test func stoppingRecoveryKeepsManualReconnectAvailableAndResetClearsHistory() {
         let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
-        let state = MobileWorkspaceReconnectState(controller: controller)
+        let state = RemoteSessionConnectionController(reconnect: controller)
         _ = state.markConnected()
-        _ = state.schedule(after: "offline") {}
+        _ = state.scheduleRecovery(after: "offline") {}
 
-        #expect(state.stopReconnecting()?.lastError == "offline")
-        #expect(state.state == nil)
+        #expect(state.stopRecovery()?.lastError == "offline")
+        #expect(state.reconnectState == nil)
         #expect(state.hasConnectedOnce)
         #expect(!state.isRecovering)
 
-        state.reset()
+        state.resetRecovery()
         #expect(!state.hasConnectedOnce)
         #expect(!state.isRecovering)
     }
 
     @Test func aRecoveredConnectionReportsRecoveryAndClearsRetryState() {
         let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
-        let state = MobileWorkspaceReconnectState(controller: controller)
+        let state = RemoteSessionConnectionController(reconnect: controller)
         _ = state.markConnected()
-        _ = state.schedule(after: "offline") {}
+        _ = state.scheduleRecovery(after: "offline") {}
 
         #expect(state.markConnected())
-        #expect(state.state == nil)
+        #expect(state.reconnectState == nil)
         #expect(state.hasConnectedOnce)
         #expect(!state.isRecovering)
     }

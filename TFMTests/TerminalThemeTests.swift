@@ -1,3 +1,9 @@
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
@@ -5,8 +11,8 @@ import Testing
 struct TerminalThemeTests {
     @Test
     func defaultThemeBackgroundsMatchMacOSWindowBackgrounds() {
-        #expect(TerminalTheme.termindLight.background.hex == "FFFFFF")
-        #expect(TerminalTheme.termindDark.background.hex == "1E1E1E")
+        #expect(TermindTerminalPalette.termindLight.background.hex == "FFFFFF")
+        #expect(TermindTerminalPalette.termindDark.background.hex == "1E1E1E")
     }
 
     @Test
@@ -24,13 +30,13 @@ struct TerminalThemeTests {
             isDark: true
         )
 
-        #expect(light == TerminalTheme.termindLight.background)
-        #expect(dark == TerminalTheme.termindDark.background)
+        #expect(light == TermindTerminalPalette.termindLight.background)
+        #expect(dark == TermindTerminalPalette.termindDark.background)
     }
 
     @Test
     func customConfigurationParsesGhosttyLinesInOrder() {
-        let configuration = GhosttyCustomConfiguration(
+        let configuration = TerminalCustomConfiguration(
             """
             # comment
 
@@ -75,7 +81,7 @@ struct TerminalThemeTests {
             isDark: false
         )
 
-        #expect(background == TerminalTheme.termindLight.background)
+        #expect(background == TermindTerminalPalette.termindLight.background)
     }
 
     @Test
@@ -87,6 +93,6 @@ struct TerminalThemeTests {
             isDark: true
         )
 
-        #expect(background == TerminalTheme.termindDark.background)
+        #expect(background == TermindTerminalPalette.termindDark.background)
     }
 }

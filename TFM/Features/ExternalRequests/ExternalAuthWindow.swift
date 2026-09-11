@@ -1,6 +1,7 @@
 import AgentKit
 import AppKit
 import SwiftUI
+import TermindApplication
 
 struct ExternalAuthWindowPresenter: View {
     static let sceneID = "external-ssh-authentication"
@@ -102,7 +103,7 @@ struct ExternalAuthWindow: View {
     private func requestView(_ pending: ExternalAuthCoordinator.Pending) -> some View {
         switch pending.request {
         case .ssh(let request):
-            SSHAuthenticationForm(
+            DesktopSSHAuthenticationForm(
                 prompt: request.journeyPrompt,
                 submit: { identityID, username, password, passphrase, keyID, save in
                     app.externalAuthentication.respondSSH(
@@ -133,7 +134,7 @@ struct ExternalAuthWindow: View {
             )
             .id(pending.id)
         case .hostKey(let request):
-            SSHHostKeyConfirmationForm(
+            DesktopSSHHostKeyConfirmationForm(
                 prompt: request.prompt,
                 displayAddress: request.address,
                 proceed: {

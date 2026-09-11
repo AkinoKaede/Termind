@@ -1,7 +1,10 @@
 import AgentKitScrubber
 import SwiftData
 import SwiftUI
+import TermindApplication
+import TermindInfrastructure
 import TermindPersistence
+import TermindRemoteInfrastructure
 
 #if canImport(AppKit)
     import AppKit
@@ -245,7 +248,8 @@ struct TermindApp: App {
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-            let menuEnabled = UserDefaults.standard.object(forKey: SettingsKey.showMetricsInMenuBar) as? Bool ?? true
+            let menuEnabled =
+                UserDefaults.standard.object(forKey: DesktopSettingsKey.showMetricsInMenuBar) as? Bool ?? true
             return !menuEnabled && app?.serverMetrics.keepsRunning != true
         }
 
@@ -265,7 +269,7 @@ struct TermindApp: App {
         /// happens first wins, and the observer is torn down either way so a
         /// window the user opens later is never hidden out from under them.
         private func openHiddenIfLaunchedAtLogin() {
-            guard LoginLaunch.wasLaunchedAtLogin, SettingsKey.opensAtLoginQuietly else { return }
+            guard LoginLaunch.wasLaunchedAtLogin, DesktopSettingsKey.opensAtLoginQuietly else { return }
             NSApp.hide(nil)
             quietLaunchObserver = NotificationCenter.default.addObserver(
                 forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main

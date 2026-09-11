@@ -1,6 +1,7 @@
 import AppKit
 import ListViewKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host
@@ -301,7 +302,7 @@ private struct SnippetSidebarSectionHeaderRow: View {
     let title: String
     let count: Int
 
-    @AppStorage(SettingsKey.snippetsSidebarCollapsedSections)
+    @AppStorage(DesktopSettingsKey.snippetsSidebarCollapsedSections)
     private var collapsedSections = ""
 
     private var isExpanded: Bool {
@@ -464,7 +465,7 @@ private struct SnippetsSidebarView: View {
     @State private var query = ""
     @State private var destructiveSnippet: Snippet?
     @State private var selectedSnippetID: Snippet.ID?
-    @AppStorage(SettingsKey.snippetsSidebarCollapsedSections)
+    @AppStorage(DesktopSettingsKey.snippetsSidebarCollapsedSections)
     private var collapsedSections = ""
 
     var body: some View {

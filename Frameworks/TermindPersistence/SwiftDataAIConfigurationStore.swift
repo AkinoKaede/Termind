@@ -114,5 +114,3 @@ public final class AIPersistence {
 }
 
 extension AIPersistence: AIConfigurationPersisting {}
-
-public typealias SharedAIPersistence = AIPersistence

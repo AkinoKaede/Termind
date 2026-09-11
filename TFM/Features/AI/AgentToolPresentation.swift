@@ -1,6 +1,7 @@
 import AgentKit
 import Foundation
 import TermindApplication
+import TermindRemoteInfrastructure
 
 /// Turns tool protocol data into the small amount of language the transcript needs.
 /// Execution, approval and replay continue to use the original call and result unchanged.

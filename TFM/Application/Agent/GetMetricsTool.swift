@@ -1,3 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias GetMetricsTool = TermindRemoteInfrastructure.GetMetricsTool

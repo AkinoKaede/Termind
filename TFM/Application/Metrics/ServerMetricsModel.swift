@@ -1,4 +1,0 @@
-import TermindApplication
-
-typealias ServerMetric = TermindApplication.ServerMetric
-typealias ServerMetricsModel = TermindApplication.ServerMetricsModel

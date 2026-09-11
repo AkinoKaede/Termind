@@ -1,5 +1,0 @@
-import TermindApplication
-
-typealias ChatSlashCommand = TermindApplication.ChatSlashCommand
-typealias ChatSlashCommandInput = TermindApplication.ChatSlashCommandInput
-typealias ChatSlashCommandCompletion = TermindApplication.ChatSlashCommandCompletion

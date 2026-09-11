@@ -1,4 +1,0 @@
-import TermindApplication
-
-typealias AssistantConversationStore = TermindApplication.AssistantConversationStore
-typealias AssistantLibraryModel = TermindApplication.AssistantLibraryModel

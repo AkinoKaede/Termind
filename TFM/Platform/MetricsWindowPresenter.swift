@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindApplication
 
 /// Native window discovery stays outside the application monitoring service.
 @MainActor

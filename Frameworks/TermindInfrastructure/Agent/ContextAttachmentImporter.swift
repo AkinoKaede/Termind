@@ -182,7 +182,7 @@ nonisolated public enum ContextAttachmentImporter {
         let archive = try officeArchive(data)
         let shared: [String]
         if let xml = try archiveData(archive, path: "xl/sharedStrings.xml") {
-            shared = try SharedStringsParser().parse(xml)
+            shared = try SpreadsheetSharedStringsParser().parse(xml)
         } else {
             shared = []
         }
@@ -361,7 +361,7 @@ nonisolated private final class ParagraphTextParser: NSObject, XMLParserDelegate
     }
 }
 
-nonisolated private final class SharedStringsParser: NSObject, XMLParserDelegate {
+nonisolated private final class SpreadsheetSharedStringsParser: NSObject, XMLParserDelegate {
     public var strings: [String] = []
     public var value = ""
     public var text = ""

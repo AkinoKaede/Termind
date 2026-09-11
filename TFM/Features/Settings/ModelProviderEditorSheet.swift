@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 

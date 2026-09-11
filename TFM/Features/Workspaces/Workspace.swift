@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
@@ -58,10 +59,11 @@ final class Workspace: Identifiable {
             cancelCommandGeneration()
         }
     }
-    var commandGeneratorState: CommandGeneratorState = .idle
-    private var commandGeneratorTask: Task<Void, Never>?
-    private var commandGeneratorDismissTask: Task<Void, Never>?
-    private var commandGenerationSequence: UInt64 = 0
+    var commandGeneratorState: CommandGeneratorState {
+        get { commandGeneration.state }
+        set { commandGeneration.replaceStateForPresentation(newValue) }
+    }
+    private let commandGeneration = CommandGenerationCoordinator()
 
     init(pane: Pane) {
         self.layout = .leaf(pane)
@@ -238,7 +240,7 @@ final class Workspace: Identifiable {
     }
 
     func generateFocusedCommand(using controller: any CommandGenerating) {
-        if commandGeneratorTask != nil {
+        if commandGeneration.isRunning {
             cancelCommandGeneration()
             return
         }
@@ -262,9 +264,6 @@ final class Workspace: Identifiable {
             return
         }
 
-        commandGeneratorDismissTask?.cancel()
-        commandGenerationSequence &+= 1
-        let generation = commandGenerationSequence
         let targetIDs = targets.map(\.id)
         let revisions = Dictionary(
             uniqueKeysWithValues: targets.map {
@@ -272,75 +271,41 @@ final class Workspace: Identifiable {
             })
         let focusedID = focusedPaneID
         let wasBroadcasting = broadcastsInput && canBroadcast
-        commandGeneratorState = .readingDraft
-
-        commandGeneratorTask = Task { [weak self, controller] in
-            do {
+        let includesSystemInfo = DesktopSettingsKey.isShellIntegrationEnabled
+        commandGeneration.start(
+            targetCount: targets.count,
+            readContext: {
                 let draft = try await origin.requestCurrentDraft()
-                try Task.checkCancellation()
-                guard !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                    throw WorkspaceCommandGenerationError.emptyDraft
-                }
-                guard
-                    self?.commandGenerationSnapshotIsCurrent(
-                        generation: generation, focusedID: focusedID,
-                        wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
-                        revisions: revisions
-                    ) == true
-                else { throw CancellationError() }
-
-                self?.commandGeneratorState = .generating
-                let context = CommandGeneratorContext(
+                return CommandGeneratorContext(
                     draft: draft, shell: shell, cwd: cwd,
-                    remoteSystemInfo: SettingsKey.isShellIntegrationEnabled
-                        ? origin.remoteSystemInfo : nil
+                    remoteSystemInfo: includesSystemInfo ? origin.remoteSystemInfo : nil
                 )
-                let command = try await commandGenerationWithTimeout {
-                    try await controller.generate(context)
-                }
-                try Task.checkCancellation()
-                guard
-                    self?.commandGenerationSnapshotIsCurrent(
-                        generation: generation, focusedID: focusedID,
-                        wasBroadcasting: wasBroadcasting, targetIDs: targetIDs,
-                        revisions: revisions
-                    ) == true
-                else { throw CancellationError() }
-
-                for target in targets {
-                    target.replaceCurrentDraft(with: command)
-                }
-                self?.finishCommandGeneration(
-                    generation: generation,
-                    state: .inserted(targetCount: targets.count), dismissAfter: .seconds(2)
-                )
-            } catch is CancellationError {
-                self?.finishCancelledCommandGeneration(generation: generation)
-            } catch {
-                self?.finishCommandGeneration(
-                    generation: generation,
-                    state: .failed(error.localizedDescription), dismissAfter: .seconds(3)
-                )
+            },
+            isCurrent: { [weak self] in
+                self?.commandGenerationSnapshotIsCurrent(
+                    focusedID: focusedID,
+                    wasBroadcasting: wasBroadcasting,
+                    targetIDs: targetIDs,
+                    revisions: revisions
+                ) == true
+            },
+            generate: { try await controller.generate($0) },
+            insert: { command in
+                for target in targets { target.replaceCurrentDraft(with: command) }
             }
-        }
+        )
     }
 
     func cancelCommandGeneration() {
-        guard commandGeneratorTask != nil else { return }
-        commandGenerationSequence &+= 1
-        commandGeneratorTask?.cancel()
-        commandGeneratorTask = nil
-        commandGeneratorDismissTask?.cancel()
-        commandGeneratorDismissTask = nil
-        commandGeneratorState = .idle
+        guard commandGeneration.isRunning else { return }
+        commandGeneration.cancel()
     }
 
     private func commandGenerationSnapshotIsCurrent(
-        generation: UInt64, focusedID: Pane.ID, wasBroadcasting: Bool,
+        focusedID: Pane.ID, wasBroadcasting: Bool,
         targetIDs: [SSHSessionModel.ID], revisions: [SSHSessionModel.ID: UInt64]
     ) -> Bool {
-        guard commandGenerationSequence == generation,
-            focusedPaneID == focusedID,
+        guard focusedPaneID == focusedID,
             (broadcastsInput && canBroadcast) == wasBroadcasting
         else { return false }
         let targets = wasBroadcasting ? broadcastTargets : focusedPane.sshSession.map { [$0] } ?? []
@@ -350,40 +315,8 @@ final class Workspace: Identifiable {
         }
     }
 
-    private func finishCancelledCommandGeneration(generation: UInt64) {
-        guard commandGenerationSequence == generation else { return }
-        commandGeneratorTask = nil
-        commandGeneratorState = .idle
-    }
-
-    private func finishCommandGeneration(
-        generation: UInt64, state: CommandGeneratorState, dismissAfter: Duration
-    ) {
-        guard commandGenerationSequence == generation else { return }
-        commandGeneratorTask = nil
-        commandGeneratorState = state
-        scheduleCommandGenerationDismiss(generation: generation, after: dismissAfter)
-    }
-
     private func showCommandGenerationFailure(_ message: String) {
-        commandGenerationSequence &+= 1
-        commandGeneratorTask?.cancel()
-        commandGeneratorTask = nil
-        commandGeneratorDismissTask?.cancel()
-        commandGeneratorState = .failed(message)
-        scheduleCommandGenerationDismiss(
-            generation: commandGenerationSequence, after: .seconds(3)
-        )
-    }
-
-    private func scheduleCommandGenerationDismiss(generation: UInt64, after delay: Duration) {
-        commandGeneratorDismissTask?.cancel()
-        commandGeneratorDismissTask = Task { [weak self] in
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled, self?.commandGenerationSequence == generation else { return }
-            self?.commandGeneratorState = .idle
-            self?.commandGeneratorDismissTask = nil
-        }
+        commandGeneration.fail(message)
     }
 
     /// Keeps each session-to-Workspace relationship correct as panes are merged,
@@ -480,31 +413,6 @@ extension Workspace: SSHSessionInputRouting {
         } else {
             _ = closePane(pane.id)
         }
-    }
-}
-
-nonisolated private enum WorkspaceCommandGenerationError: LocalizedError {
-    case emptyDraft
-
-    var errorDescription: String? {
-        String(localized: "Type something at the shell prompt before generating a command.")
-    }
-}
-
-nonisolated private func commandGenerationWithTimeout(
-    _ operation: @escaping @Sendable () async throws -> String
-) async throws -> String {
-    try await withThrowingTaskGroup(of: String.self) { group in
-        group.addTask { try await operation() }
-        group.addTask {
-            try await Task.sleep(for: .seconds(30))
-            throw CommandGeneratorError.timedOut
-        }
-        guard let result = try await group.next() else {
-            throw CommandGeneratorError.invalidResponse
-        }
-        group.cancelAll()
-        return result
     }
 }
 

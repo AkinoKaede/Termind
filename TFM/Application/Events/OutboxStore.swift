@@ -1,4 +1,0 @@
-import TermindApplication
-
-typealias OutboxStore = TermindApplication.OutboxStore
-typealias OutboxEventHandler = TermindApplication.OutboxEventHandler

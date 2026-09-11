@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 
 /// Connection failures stay actionable even though healthy metrics need no status footer.
 struct MetricsConnectionNotice: View {

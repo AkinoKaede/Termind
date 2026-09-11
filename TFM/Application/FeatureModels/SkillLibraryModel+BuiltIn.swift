@@ -1,3 +1,0 @@
-import TermindApplication
-
-typealias AgentSkillLibrary = TermindApplication.AgentSkillLibrary

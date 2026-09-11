@@ -118,26 +118,26 @@ final class AppReviewController {
             contexts[windowID]?.canRequest == true, isEligible
         else { return }
         self.pending = nil
-        var versions = defaults?.stringArray(forKey: SettingsKey.reviewRequestedVersions) ?? []
+        var versions = defaults?.stringArray(forKey: DesktopSettingsKey.reviewRequestedVersions) ?? []
         versions.append(version)
-        defaults?.set(versions, forKey: SettingsKey.reviewRequestedVersions)
-        defaults?.set(now(), forKey: SettingsKey.reviewLastAttempt)
+        defaults?.set(versions, forKey: DesktopSettingsKey.reviewRequestedVersions)
+        defaults?.set(now(), forKey: DesktopSettingsKey.reviewLastAttempt)
         request()
     }
 
     func recordManualReview() {
         pending = nil
-        defaults?.set(now(), forKey: SettingsKey.reviewLastAttempt)
+        defaults?.set(now(), forKey: DesktopSettingsKey.reviewLastAttempt)
     }
 
     private var isEligible: Bool {
         guard isEnabled, !version.isEmpty, workspaceSeconds >= 300,
-            let firstUse = defaults?.object(forKey: SettingsKey.reviewFirstUse) as? Date,
+            let firstUse = defaults?.object(forKey: DesktopSettingsKey.reviewFirstUse) as? Date,
             now().timeIntervalSince(firstUse) >= 7 * 86_400,
-            (defaults?.stringArray(forKey: SettingsKey.reviewActiveDays)?.count ?? 0) >= 3,
-            !(defaults?.stringArray(forKey: SettingsKey.reviewRequestedVersions) ?? []).contains(version)
+            (defaults?.stringArray(forKey: DesktopSettingsKey.reviewActiveDays)?.count ?? 0) >= 3,
+            !(defaults?.stringArray(forKey: DesktopSettingsKey.reviewRequestedVersions) ?? []).contains(version)
         else { return false }
-        if let lastAttempt = defaults?.object(forKey: SettingsKey.reviewLastAttempt) as? Date {
+        if let lastAttempt = defaults?.object(forKey: DesktopSettingsKey.reviewLastAttempt) as? Date {
             return now().timeIntervalSince(lastAttempt) >= 120 * 86_400
         }
         return true
@@ -154,16 +154,16 @@ final class AppReviewController {
 
     private func recordActiveDay() {
         let date = now()
-        if defaults?.object(forKey: SettingsKey.reviewFirstUse) == nil {
-            defaults?.set(date, forKey: SettingsKey.reviewFirstUse)
+        if defaults?.object(forKey: DesktopSettingsKey.reviewFirstUse) == nil {
+            defaults?.set(date, forKey: DesktopSettingsKey.reviewFirstUse)
         }
-        var days = defaults?.stringArray(forKey: SettingsKey.reviewActiveDays) ?? []
+        var days = defaults?.stringArray(forKey: DesktopSettingsKey.reviewActiveDays) ?? []
         // Three distinct local dates prove eligibility; no growing usage log.
         guard days.count < 3 else { return }
         let parts = calendar.dateComponents([.era, .year, .month, .day], from: date)
         let key = "\(parts.era ?? 0)-\(parts.year ?? 0)-\(parts.month ?? 0)-\(parts.day ?? 0)"
         guard !days.contains(key) else { return }
         days.append(key)
-        defaults?.set(days, forKey: SettingsKey.reviewActiveDays)
+        defaults?.set(days, forKey: DesktopSettingsKey.reviewActiveDays)
     }
 }

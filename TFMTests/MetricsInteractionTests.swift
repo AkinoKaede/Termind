@@ -1,7 +1,12 @@
 import AppKit
 import Foundation
 import SwiftUI
+import TermindApplication
 import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
@@ -102,7 +107,7 @@ struct MetricsInteractionTests {
             app.shutdownForTermination()
             defaults.removePersistentDomain(forName: suite)
         }
-        defaults.set(true, forKey: SettingsKey.showMetricsInMenuBar)
+        defaults.set(true, forKey: DesktopSettingsKey.showMetricsInMenuBar)
         menu.start(app.serverMetrics)
         #expect(menu.isVisible)
         // Status-item hosting and popover presentation cross an asynchronous AppKit scene boundary.
@@ -125,10 +130,10 @@ struct MetricsInteractionTests {
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(!menu.isPopoverShown)
-        defaults.set(false, forKey: SettingsKey.showMetricsInMenuBar)
+        defaults.set(false, forKey: DesktopSettingsKey.showMetricsInMenuBar)
         menu.refresh()
         #expect(!menu.isVisible)
-        defaults.set(true, forKey: SettingsKey.showMetricsInMenuBar)
+        defaults.set(true, forKey: DesktopSettingsKey.showMetricsInMenuBar)
         menu.refresh()
         #expect(menu.isVisible)
     }

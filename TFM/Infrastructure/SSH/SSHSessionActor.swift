@@ -1,8 +1,0 @@
-import TermindInfrastructure
-import TermindRemoteInfrastructure
-
-typealias RemoteShellIntegrationBootstrap = TermindRemoteInfrastructure.RemoteShellIntegrationBootstrap
-typealias RemoteCommandEventFilter = TermindRemoteInfrastructure.RemoteCommandEventFilter
-typealias SSHShellIntegrationEvent = TermindRemoteInfrastructure.SSHShellIntegrationEvent
-typealias SSHSessionActor = TermindRemoteInfrastructure.SSHSessionActor
-typealias SSHSessionWorker = TermindRemoteInfrastructure.SSHSessionWorker

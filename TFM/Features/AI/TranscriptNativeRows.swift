@@ -3,6 +3,7 @@ import AppKit
 import ListViewKit
 import MarkdownView
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 @MainActor

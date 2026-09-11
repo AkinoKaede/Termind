@@ -655,5 +655,3 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         } catch { context.rollback() }
     }
 }
-
-public typealias SharedAgentRunRepository = SwiftDataAgentRunRepository

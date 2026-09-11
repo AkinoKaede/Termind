@@ -1,5 +1,0 @@
-import TermindApplication
-
-typealias SecureEnclaveKeyCredential = TermindApplication.SecureEnclaveKeyCredential
-typealias StoredSSHKeyCredential = TermindApplication.StoredSSHKeyCredential
-typealias SecureEnclaveKeyMaterial = TermindApplication.SecureEnclaveKeyMaterial

@@ -1,6 +1,0 @@
-import TermindPersistence
-
-typealias VaultSyncPersistenceError = SharedVaultSyncPersistenceError
-typealias VaultRemoteMerge = SharedVaultRemoteMerge
-typealias VaultOutgoingEntry = SharedVaultOutgoingEntry
-typealias VaultSyncJournal = SharedVaultSyncJournal

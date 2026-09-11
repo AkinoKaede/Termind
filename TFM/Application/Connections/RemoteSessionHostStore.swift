@@ -1,3 +1,0 @@
-import TermindApplication
-
-typealias RemoteSessionHostStore = TermindApplication.RemoteSessionHostStore

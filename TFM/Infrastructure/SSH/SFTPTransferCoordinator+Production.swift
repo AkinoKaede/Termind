@@ -1,4 +1,6 @@
 import Foundation
+import TermindApplication
+import TermindRemoteInfrastructure
 
 extension SFTPTransferCoordinator {
     convenience init(

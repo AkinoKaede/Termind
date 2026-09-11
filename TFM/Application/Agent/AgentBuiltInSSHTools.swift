@@ -1,7 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias ListHostsTool = TermindRemoteInfrastructure.ListHostsTool
-typealias SSHWaitTool = TermindRemoteInfrastructure.SSHWaitTool
-typealias TerminalSuggestTool = TermindRemoteInfrastructure.TerminalSuggestTool
-typealias SSHExecTool = TermindRemoteInfrastructure.SSHExecTool
-typealias SSHCommandPresentation = TermindRemoteInfrastructure.SSHCommandPresentation

@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 /// Window-scoped ownership for the dynamic workspace collection and its

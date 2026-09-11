@@ -1,8 +1,0 @@
-import TermindInfrastructure
-import TermindRemoteInfrastructure
-
-typealias SSHExecResult = TermindRemoteInfrastructure.SSHExecResult
-typealias SSHExecSessionError = TermindRemoteInfrastructure.SSHExecSessionError
-typealias SSHExecSessionProtocol = TermindRemoteInfrastructure.SSHExecSessionProtocol
-typealias SSHExecOutputHandler = TermindRemoteInfrastructure.SSHExecOutputHandler
-typealias SSHExecSession = TermindRemoteInfrastructure.SSHExecSession

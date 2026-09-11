@@ -1,3 +1,0 @@
-import TermindPresentation
-
-typealias MetricsInstrumentBody = TermindPresentation.MetricsInstrumentBody

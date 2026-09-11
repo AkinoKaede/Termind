@@ -1,9 +1,0 @@
-import TermindRemoteInfrastructure
-
-typealias SFTPRemoteItemsPayload = TermindRemoteInfrastructure.SFTPRemoteItemsPayload
-typealias SFTPTransferConnection = TermindRemoteInfrastructure.SFTPTransferConnection
-typealias SFTPRemoteCopySource = TermindRemoteInfrastructure.SFTPRemoteCopySource
-typealias SFTPRemoteManifestEntry = TermindRemoteInfrastructure.SFTPRemoteManifestEntry
-typealias TransferConflictPolicy = TermindRemoteInfrastructure.TransferConflictPolicy
-typealias SFTPTransferSummary = TermindRemoteInfrastructure.SFTPTransferSummary
-typealias SFTPTransferCoordinator = TermindRemoteInfrastructure.SFTPTransferCoordinator

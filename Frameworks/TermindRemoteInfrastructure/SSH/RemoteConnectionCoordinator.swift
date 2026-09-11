@@ -1,5 +1,6 @@
 import Foundation
 import TermindApplication
+import TermindDomain
 
 /// Application-owned construction and one-shot operation boundary for all
 /// SSH/SFTP transports. Features receive this service instead of constructing

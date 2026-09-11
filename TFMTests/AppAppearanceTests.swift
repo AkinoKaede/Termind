@@ -1,4 +1,10 @@
 import AppKit
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
@@ -9,9 +15,9 @@ struct AppAppearanceTests {
     func missingAndInvalidPreferencesFollowSystem() throws {
         try withDefaults { defaults in
             #expect(AppAppearance.stored(in: defaults) == .system)
-            defaults.set("unsupported", forKey: SettingsKey.appAppearance)
+            defaults.set("unsupported", forKey: DesktopSettingsKey.appAppearance)
             #expect(AppAppearance.stored(in: defaults) == .system)
-            defaults.set(42, forKey: SettingsKey.appAppearance)
+            defaults.set(42, forKey: DesktopSettingsKey.appAppearance)
             #expect(AppAppearance.stored(in: defaults) == .system)
         }
     }
@@ -32,7 +38,7 @@ struct AppAppearanceTests {
             #expect(parent.appearance == nil)
 
             for (selection, name) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
-                defaults.set(selection, forKey: SettingsKey.appAppearance)
+                defaults.set(selection, forKey: DesktopSettingsKey.appAppearance)
                 notifications.post(name: UserDefaults.didChangeNotification, object: defaults)
                 #expect(parent.appearance?.name == name)
                 #expect(child.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == name)
@@ -41,7 +47,7 @@ struct AppAppearanceTests {
                 #expect(newChild.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == name)
             }
 
-            defaults.set("system", forKey: SettingsKey.appAppearance)
+            defaults.set("system", forKey: DesktopSettingsKey.appAppearance)
             notifications.post(name: UserDefaults.didChangeNotification, object: defaults)
             #expect(parent.appearance == nil)
             #expect(child.effectiveAppearance == parent.effectiveAppearance)
@@ -57,7 +63,7 @@ struct AppAppearanceTests {
                 defaults: defaults, notifications: notifications,
                 apply: { applied.append($0?.name) }
             )
-            defaults.set("dark", forKey: SettingsKey.appAppearance)
+            defaults.set("dark", forKey: DesktopSettingsKey.appAppearance)
             controller.start()
             controller.start()
             defaults.set(true, forKey: "unrelated.preference")
@@ -65,7 +71,7 @@ struct AppAppearanceTests {
             #expect(applied == [.darkAqua])
 
             controller.stop()
-            defaults.set("light", forKey: SettingsKey.appAppearance)
+            defaults.set("light", forKey: DesktopSettingsKey.appAppearance)
             notifications.post(name: UserDefaults.didChangeNotification, object: defaults)
             #expect(applied == [.darkAqua])
 
@@ -75,7 +81,7 @@ struct AppAppearanceTests {
             )
             relaunched.start()
             #expect(applied == [.darkAqua, .aqua])
-            defaults.set("invalid", forKey: SettingsKey.appAppearance)
+            defaults.set("invalid", forKey: DesktopSettingsKey.appAppearance)
             notifications.post(name: UserDefaults.didChangeNotification, object: defaults)
             #expect(applied == [.darkAqua, .aqua, nil])
             relaunched.stop()
@@ -92,7 +98,7 @@ struct AppAppearanceTests {
         controller.start()
         defer { controller.stop() }
 
-        defaults.set("dark", forKey: SettingsKey.appAppearance)
+        defaults.set("dark", forKey: DesktopSettingsKey.appAppearance)
         for _ in 0..<100 where applied != .darkAqua {
             try await Task.sleep(for: .milliseconds(10))
         }

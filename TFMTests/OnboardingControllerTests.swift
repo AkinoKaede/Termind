@@ -1,4 +1,10 @@
 import Foundation
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
@@ -42,7 +48,7 @@ struct OnboardingControllerTests {
     func statusBarPathWinsWhenBothContextualStepsAreEligible() throws {
         let defaults = try makeDefaults()
         defer { clear(defaults) }
-        defaults.set(true, forKey: SettingsKey.onboardingQuickOpenCompleted)
+        defaults.set(true, forKey: DesktopSettingsKey.onboardingQuickOpenCompleted)
         let controller = OnboardingController(defaults: defaults)
         let window = WindowModel()
         controller.windowBecameActive(window)
@@ -64,8 +70,8 @@ struct OnboardingControllerTests {
     func commandGeneratorWaitsForItsRealContext() throws {
         let defaults = try makeDefaults()
         defer { clear(defaults) }
-        defaults.set(true, forKey: SettingsKey.onboardingQuickOpenCompleted)
-        defaults.set(true, forKey: SettingsKey.onboardingStatusBarPathCompleted)
+        defaults.set(true, forKey: DesktopSettingsKey.onboardingQuickOpenCompleted)
+        defaults.set(true, forKey: DesktopSettingsKey.onboardingStatusBarPathCompleted)
         let controller = OnboardingController(defaults: defaults)
         let window = WindowModel()
         controller.windowBecameActive(window)

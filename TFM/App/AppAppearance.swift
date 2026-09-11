@@ -15,7 +15,7 @@ nonisolated enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
     }
 
     static func stored(in defaults: UserDefaults = .standard) -> AppAppearance {
-        defaults.string(forKey: SettingsKey.appAppearance)
+        defaults.string(forKey: DesktopSettingsKey.appAppearance)
             .flatMap(Self.init(rawValue:)) ?? .system
     }
 }

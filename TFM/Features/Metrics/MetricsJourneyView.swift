@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 
 /// Metrics uses the same authentication and host-key decisions as SSH/SFTP,
 /// without creating an interactive terminal or a second transport owner.

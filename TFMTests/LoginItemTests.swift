@@ -1,6 +1,12 @@
 import AppKit
 import Foundation
 import ServiceManagement
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
@@ -156,13 +162,13 @@ struct LoginItemTests {
     @Test
     func openingHiddenIsOffUntilTheUserAsksForIt() {
         let defaults = UserDefaults.standard
-        let original = defaults.object(forKey: SettingsKey.openAtLoginQuietly)
-        defer { defaults.set(original, forKey: SettingsKey.openAtLoginQuietly) }
+        let original = defaults.object(forKey: DesktopSettingsKey.openAtLoginQuietly)
+        defer { defaults.set(original, forKey: DesktopSettingsKey.openAtLoginQuietly) }
 
-        defaults.removeObject(forKey: SettingsKey.openAtLoginQuietly)
-        #expect(!SettingsKey.opensAtLoginQuietly)
+        defaults.removeObject(forKey: DesktopSettingsKey.openAtLoginQuietly)
+        #expect(!DesktopSettingsKey.opensAtLoginQuietly)
 
-        defaults.set(true, forKey: SettingsKey.openAtLoginQuietly)
-        #expect(SettingsKey.opensAtLoginQuietly)
+        defaults.set(true, forKey: DesktopSettingsKey.openAtLoginQuietly)
+        #expect(DesktopSettingsKey.opensAtLoginQuietly)
     }
 }

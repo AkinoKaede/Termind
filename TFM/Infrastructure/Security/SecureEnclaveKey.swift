@@ -1,5 +1,0 @@
-import TermindInfrastructure
-import TermindRemoteInfrastructure
-
-typealias SecureEnclaveKeyError = TermindRemoteInfrastructure.SecureEnclaveKeyError
-typealias SecureEnclaveKey = TermindRemoteInfrastructure.SecureEnclaveKey

@@ -2,6 +2,7 @@ import AgentKit
 import AppKit
 import ListViewKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import UniformTypeIdentifiers

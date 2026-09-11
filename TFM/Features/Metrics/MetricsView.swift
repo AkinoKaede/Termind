@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 
@@ -174,8 +175,6 @@ struct ServerMetricsCard: View {
 
 }
 
-typealias MetricsRing = TermindPresentation.MetricsRing
-
 struct MetricsProcessList: View {
     let server: ServerMetric
     @Environment(WindowModel.self) private var window
@@ -240,8 +239,6 @@ struct MetricsProcessList: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
-
-typealias MetricsFormat = TermindPresentation.MetricsFormat
 
 struct MetricsDevicePicker: View {
     let server: ServerMetric

@@ -1,5 +1,10 @@
 import Foundation
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
 import TermindPersistence
+import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @Suite
@@ -21,7 +26,7 @@ struct ArchitectureBoundaryTests {
         #expect(mobile.contains("SyncedSkillLibraryPersistence"))
         #expect(mobile.contains("skills.applyRemoteSnapshot"))
         let settings = try String(
-            contentsOf: root.appending(path: "TFI/Features/MobileAISettingsView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Settings/MobileAISettingsView.swift"), encoding: .utf8)
         #expect(!settings.contains("AgentRuntime("))
     }
 
@@ -53,14 +58,15 @@ struct ArchitectureBoundaryTests {
     @Test
     func assistantCompositionIsSharedAndMobileInputRemainsSwiftUI() throws {
         let mobile = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileAssistantModel.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/Application/Agent/MobileAssistantModel.swift"),
+            encoding: .utf8)
         let desktop = try String(contentsOf: sourceRoot.appending(path: "App/AppModel.swift"), encoding: .utf8)
         for source in [mobile, desktop] {
             #expect(source.contains("AssistantExecutionController("))
             #expect(!source.contains("AgentRuntime("))
         }
         let composer = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileAssistantComposer.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
         #expect(composer.contains("axis: .vertical"))
         #expect(!composer.contains("UITextView"))
         #expect(!composer.contains("UIViewRepresentable"))
@@ -143,6 +149,64 @@ struct ArchitectureBoundaryTests {
             let url = sourceRoot.appending(path: "Features/\(directory)", directoryHint: .isDirectory)
             #expect(!FileManager.default.fileExists(atPath: url.path))
         }
+    }
+
+    @Test
+    func appTargetsDoNotReintroduceFrameworkForwardingAliases() throws {
+        let forwarding = try Regex(
+            #"(?m)^typealias\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(?:Termind|Shared)[A-Za-z0-9_.]*"#
+        )
+        for directory in ["", "../TFI"] {
+            for file in try swiftFiles(in: directory) {
+                let source = try String(contentsOf: file, encoding: .utf8)
+                #expect(
+                    source.firstMatch(of: forwarding) == nil,
+                    "\(file.path) forwards a framework type instead of importing its owner"
+                )
+            }
+        }
+
+        for file in try swiftFiles(in: "../Frameworks/TermindPersistence") {
+            #expect(!file.lastPathComponent.hasPrefix("Shared"))
+        }
+
+        let sharedDeclaration = try Regex(
+            #"(?m)^public\s+(?:nonisolated\s+)?(?:final\s+)?(?:struct|class|enum|actor|protocol|typealias)\s+Shared[A-Z]"#
+        )
+        for module in [
+            "TermindDomain", "TermindApplication", "TermindInfrastructure",
+            "TermindRemoteInfrastructure", "TermindPresentation", "TermindPersistence",
+        ] {
+            for file in try swiftFiles(in: "../Frameworks/\(module)") {
+                let source = try String(contentsOf: file, encoding: .utf8)
+                #expect(
+                    source.firstMatch(of: sharedDeclaration) == nil,
+                    "\(file.path) uses Shared as a framework namespace"
+                )
+            }
+        }
+    }
+
+    @Test
+    func mobileTargetUsesTheDesktopLayerVocabulary() throws {
+        let mobile = sourceRoot.appending(path: "../TFI", directoryHint: .isDirectory)
+        for name in [
+            "App", "Application", "Design", "DesignSystem", "Features", "Infrastructure", "Platform", "UI",
+        ] {
+            let directory = mobile.appending(path: name, directoryHint: .isDirectory)
+            var isDirectory: ObjCBool = false
+            #expect(FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory))
+            #expect(isDirectory.boolValue)
+            #expect(!(try swiftFiles(in: "../TFI/\(name)")).isEmpty)
+        }
+
+        try assertNoImports(
+            in: "../TFI/Application",
+            forbidden: ["SwiftUI", "UIKit", "SwiftData", "TermindPersistence"])
+        try assertNoImports(
+            in: "../TFI/UI",
+            forbidden: ["SwiftData", "TermindPersistence", "TermindRemoteInfrastructure"])
+        try assertNoConcreteImplementations(in: "../TFI/Features")
     }
 
     @Test
@@ -300,33 +364,40 @@ struct ArchitectureBoundaryTests {
     @Test
     func mobileNavigationAndMetricsShareTheDesktopDesign() throws {
         let root = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileRootView.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileRootView.swift"), encoding: .utf8)
         #expect(!root.contains("Welcome"))
         #expect(root.contains("Label(\"Transfers\", systemImage: \"arrow.up.arrow.down\")"))
         let vault = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileVaultView.swift"), encoding: .utf8)
-        #expect(vault.contains("Label(\"Metrics\", systemImage:"))
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Vault/MobileVaultView.swift"), encoding: .utf8)
+        let navigation = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Shell/MobileNavigation.swift"), encoding: .utf8)
+        #expect(navigation.contains("case vault, metrics, workspaces, assistant, settings"))
         #expect(!vault.contains("Label(\"Port Forwarding\", systemImage:"))
         #expect(vault.contains("open(host.id, .ssh)"))
         let cards = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileCards.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/UI/Managed/MobileCards.swift"), encoding: .utf8)
         #expect(vault.contains("MobileActionCard {"))
-        #expect(cards.contains(".contextMenu { actions }"))
+        #expect(cards.contains(".contextMenu {"))
+        #expect(cards.contains("actions"))
         #expect(!vault.contains("Import SSH Files"))
         let keys = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileCredentialsView.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Keychain/MobileCredentialsView.swift"),
+            encoding: .utf8)
         #expect(!keys.contains("draft.notes"))
         let settings = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileSettingsView.swift"), encoding: .utf8)
-        #expect(settings.contains("Label(\"App\", systemImage: \"app\")"))
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Settings/MobileSettingsView.swift"), encoding: .utf8
+        )
+        #expect(settings.contains("Label(\"App\", systemImage: \"app.badge\")"))
         #expect(settings.contains("Label(\"Sync\", systemImage: \"icloud\")"))
         #expect(!settings.contains("Live Activities"))
         let mobile = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileMetricsModel.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/Application/Metrics/MobileMetricsModel.swift"),
+            encoding: .utf8)
         #expect(mobile.contains("ServerMetricsModel("))
         #expect(!mobile.contains("while !Task.isCancelled"))
         let workspace = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileWorkspaceView.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Workspaces/MobileWorkspaceView.swift"),
+            encoding: .utf8)
         #expect(workspace.contains(".toolbarTitleMenu"))
         #expect(!workspace.contains("connectionMenuAction"))
         #expect(workspace.contains("let closeWorkspace: (UUID) -> Void"))
@@ -338,7 +409,8 @@ struct ArchitectureBoundaryTests {
         #expect(root.contains("private func closeWorkspace(_ id: UUID)"))
         #expect(!workspace.contains("Circle().fill(workspace.connected"))
         let keyboard = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileTerminalKeyboard.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Terminal/MobileTerminalKeyboard.swift"),
+            encoding: .utf8)
         #expect(keyboard.contains("ScrollView(.horizontal"))
         #expect(keyboard.contains("keyboardToggle.padding(.horizontal, 8)"))
         #expect(keyboard.contains("static let barHeight: CGFloat = 44"))
@@ -361,7 +433,8 @@ struct ArchitectureBoundaryTests {
         #expect(project.contains("TFM/TFM.entitlements"))
         #expect(!project.contains("Termind.entitlements"))
         let terminal = try String(
-            contentsOf: sourceRoot.appending(path: "../TFI/Features/MobileTerminalSettingsView.swift"), encoding: .utf8)
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Settings/MobileTerminalSettingsView.swift"),
+            encoding: .utf8)
         #expect(!terminal.contains("remoteWindowTitleInMenuBar"))
         let cloud = try swiftFiles(in: "../Frameworks/TermindInfrastructure/Cloud")
         #expect(cloud.count == 2)

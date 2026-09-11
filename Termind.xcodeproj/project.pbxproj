@@ -494,9 +494,9 @@
 			path = TermindRemoteInfrastructure;
 			sourceTree = "<group>";
 		};
-		FD8DC40513A4A80A71C41FCA /* TFIActivityShared */ = {
+		FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TFIActivityShared;
+			path = WorkspaceActivitySupport;
 			sourceTree = "<group>";
 		};
 		TRMD00000000000000000010 /* TFM */ = {
@@ -697,7 +697,7 @@
 			isa = PBXGroup;
 			children = (
 				CB622EAF077B1253532F1E18 /* TFIWidgets */,
-				FD8DC40513A4A80A71C41FCA /* TFIActivityShared */,
+				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
 				DBE378B130478CFB00B16AA1 /* Termind.storekit */,
 				CDDB75F14F753E46BB14D972 /* Frameworks */,
 				TRMD00000000000000000010 /* TFM */,
@@ -756,7 +756,7 @@
 			fileSystemSynchronizedGroups = (
 				0FE0DF713B1C0832D76696AF /* TFI */,
 				46E0A2AA823D19093256BE94 /* Resources */,
-				FD8DC40513A4A80A71C41FCA /* TFIActivityShared */,
+				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
 			);
 			name = TFI;
 			packageProductDependencies = (
@@ -913,7 +913,7 @@
 			fileSystemSynchronizedGroups = (
 				46E0A2AA823D19093256BE94 /* Resources */,
 				CB622EAF077B1253532F1E18 /* TFIWidgets */,
-				FD8DC40513A4A80A71C41FCA /* TFIActivityShared */,
+				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
 			);
 			name = TermindWidgets;
 			packageProductDependencies = (
@@ -995,7 +995,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				A102A7EA2C3532D7FA88B0A4 /* TFITests */,
-				FD8DC40513A4A80A71C41FCA /* TFIActivityShared */,
+				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
 			);
 			name = TFITests;
 			packageProductDependencies = (
