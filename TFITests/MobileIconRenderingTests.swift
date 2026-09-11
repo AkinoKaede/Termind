@@ -15,11 +15,12 @@ import struct TermindDomain.Host
 struct MobileIconRenderingTests {
     @Test func terminalKeyboardKeepsItsCompactHeight() {
         #expect(UIImage(systemName: "play.rectangle") != nil)
+        #expect(UIImage(systemName: "doc.on.clipboard") != nil)
         #expect(MobileTerminalKeyboard.barHeight == 44)
         for width in [CGFloat(320), 390, 430] {
             for dynamicTypeSize in [DynamicTypeSize.large, .accessibility3] {
                 let controller = UIHostingController(
-                    rootView: MobileTerminalKeyboard(state: TerminalViewState())
+                    rootView: MobileTerminalKeyboard(state: TerminalViewState(), paste: {})
                         .environment(\.dynamicTypeSize, dynamicTypeSize))
                 let size = controller.sizeThatFits(in: CGSize(width: width, height: 800))
                 #expect(abs(size.height - 44) < 0.5)
@@ -126,7 +127,7 @@ struct MobileIconRenderingTests {
             try await capture("terminal-keyboard-\(suffix)", language: language, scheme: scheme) {
                 VStack(spacing: 0) {
                     Spacer()
-                    MobileTerminalKeyboard(state: TerminalViewState())
+                    MobileTerminalKeyboard(state: TerminalViewState(), paste: {})
                 }
                 .environment(\.locale, locale)
             }
@@ -135,7 +136,8 @@ struct MobileIconRenderingTests {
                     Spacer()
                     MobileTerminalKeyboard(
                         state: TerminalViewState(),
-                        initialShift: MobileTerminalShiftState(activation: .locked))
+                        initialShift: MobileTerminalShiftState(activation: .locked),
+                        paste: {})
                 }
                 .environment(\.locale, locale)
             }
@@ -170,7 +172,7 @@ struct MobileIconRenderingTests {
         try await capture("terminal-keyboard-large-type", language: language, scheme: .light) {
             VStack(spacing: 0) {
                 Spacer()
-                MobileTerminalKeyboard(state: TerminalViewState())
+                MobileTerminalKeyboard(state: TerminalViewState(), paste: {})
             }
             .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }

@@ -45,7 +45,10 @@ struct MobileWorkspaceView: View {
                                 workspace.terminal.applyPreferences(value)
                             }
                             .onTapGesture { workspace.terminal.requestFocus() }
-                        MobileTerminalKeyboard(state: workspace.terminal)
+                        MobileTerminalKeyboard(state: workspace.terminal) {
+                            guard let text = UIPasteboard.general.string else { return }
+                            workspace.insertTerminalText(text)
+                        }
                     }.opacity(showsJourney ? 0 : 1)
                         .allowsHitTesting(!showsJourney).accessibilityHidden(showsJourney)
                     if showsJourney { connectionJourney.background(.background) }

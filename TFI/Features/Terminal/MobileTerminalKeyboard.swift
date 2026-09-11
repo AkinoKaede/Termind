@@ -5,12 +5,17 @@ struct MobileTerminalKeyboard: View {
     static let barHeight: CGFloat = 44
 
     @ObservedObject var state: TerminalViewState
+    let paste: () -> Void
     @State private var control: TerminalPublicStickyActivation = .inactive
     @State private var alt: TerminalPublicStickyActivation = .inactive
     @State private var shift = MobileTerminalShiftState()
 
-    init(state: TerminalViewState, initialShift: MobileTerminalShiftState = MobileTerminalShiftState()) {
+    init(
+        state: TerminalViewState, initialShift: MobileTerminalShiftState = MobileTerminalShiftState(),
+        paste: @escaping () -> Void
+    ) {
         self.state = state
+        self.paste = paste
         _shift = State(initialValue: initialShift)
     }
 
@@ -37,7 +42,11 @@ struct MobileTerminalKeyboard: View {
             .frame(maxWidth: .infinity)
 
             Divider().padding(.vertical, 8)
-            keyboardToggle.padding(.horizontal, 8)
+            HStack(spacing: 0) {
+                pasteButton
+                keyboardToggle
+            }
+            .padding(.horizontal, 8)
         }
         .buttonStyle(.plain)
         .font(.system(.callout, design: .monospaced))
@@ -60,6 +69,15 @@ struct MobileTerminalKeyboard: View {
         }
         .accessibilityValue(accessibilityValue(for: shift.activation))
         .accessibilityAddTraits(shift.activation == .inactive ? [] : .isSelected)
+    }
+
+    private var pasteButton: some View {
+        Button(action: paste) {
+            Label("Paste", systemImage: "doc.on.clipboard")
+                .labelStyle(.iconOnly)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+        }
     }
 
     private var keyboardToggle: some View {
