@@ -151,8 +151,6 @@ struct MobileActionCard<Content: View, Actions: View>: View {
             cardSurface
                 .contextMenu {
                     actions
-                } preview: {
-                    cardSurface
                 }
         }
         .buttonStyle(.plain)

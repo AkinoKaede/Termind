@@ -185,7 +185,7 @@ struct MobileNavigationParityTests {
         #expect(cards.contains(".contentShape([.interaction, .contextMenuPreview], shape)"))
         #expect(cards.contains(".containerShape("))
         #expect(!cards.contains(".contentShape(.rect)"))
-        #expect(cards.contains("} preview: {\n                    cardSurface"))
+        #expect(!cards.contains("} preview: {"))
         #expect(!cards.contains("sourceSize"))
         #expect(!cards.contains(".frame(width: 320"))
 
