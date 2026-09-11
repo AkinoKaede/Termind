@@ -5,6 +5,7 @@ import UIKit
 struct MobileCommandHistoryView: View {
     let workspace: MobileWorkspace
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @State private var query = ""
     @State private var clearing = false
 
@@ -25,14 +26,16 @@ struct MobileCommandHistoryView: View {
                 } else {
                     MobileNativeList(
                         items: entries,
-                        estimatedRowHeight: 96,
+                        estimatedRowHeight: 68,
                         refreshID: workspace.connected,
+                        onSelect: insert,
                         onDelete: { workspace.commandHistory.delete($0.id) }
                     ) { entry in
                         historyRow(entry)
                     }
                 }
             }
+            .background(Color(uiColor: .systemGroupedBackground))
             .safeAreaInset(edge: .bottom) {
                 if let error = workspace.commandHistory.storageError {
                     Text(error)
@@ -62,22 +65,19 @@ struct MobileCommandHistoryView: View {
     }
 
     private func historyRow(_ entry: CommandHistoryEntry) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(entry.command)
-                .font(.system(.body, design: .monospaced))
-                .textSelection(.enabled)
-            Text(entry.executedAt, format: .dateTime)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack {
-                if let code = entry.exitStatus {
-                    LabeledContent("Exit Status", value: code.formatted())
-                }
-                if let duration = entry.duration {
-                    Text(Duration.seconds(duration), format: .time(pattern: .minuteSecond))
-                }
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(entry.command)
+                    .font(.caption.monospaced())
+                    .lineLimit(2)
+                    .textSelection(.enabled)
+                Text(MobileTerminalHistoryPresentation.subtitle(for: entry, locale: locale))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .font(.caption)
+            Spacer(minLength: 8)
+            MobileTerminalRiskIndicator(assessment: CommandRiskClassifier.assess(entry.command))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
@@ -85,15 +85,18 @@ struct MobileCommandHistoryView: View {
         .contentShape(.rect)
         .contextMenu {
             Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = entry.command }
-            Button("Insert", systemImage: "text.insert") {
-                dismiss()
-                workspace.insertTerminalText(entry.command)
-            }
-            .disabled(!workspace.connected)
+            Button("Insert", systemImage: "text.insert") { insert(entry) }
+                .disabled(!workspace.connected)
             Button("Delete", systemImage: "trash", role: .destructive) {
                 workspace.commandHistory.delete(entry.id)
             }
         }
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func insert(_ entry: CommandHistoryEntry) {
+        guard workspace.connected else { return }
+        dismiss()
+        workspace.insertTerminalText(entry.command)
     }
 }

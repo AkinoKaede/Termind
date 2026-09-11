@@ -36,7 +36,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     func makeUIView(context: Context) -> ListView<Item> {
         let listView = ListView<Item>()
         let coordinator = context.coordinator
-        listView.backgroundColor = .clear
+        listView.backgroundColor = .systemGroupedBackground
         listView.estimatedRowHeight = estimatedRowHeight
         listView.keyboardDismissMode = .interactive
         listView.rows {
@@ -138,7 +138,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
 
 @MainActor
 final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
-    static let deleteWidth: CGFloat = 88
+    static let deleteWidth: CGFloat = 72
 
     private let contentContainer = UIView()
     private let deleteButton = UIButton(type: .system)
@@ -147,23 +147,23 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
     private var onDelete: (() -> Void)?
     private var revealOffset: CGFloat = 0
     private var panStartOffset: CGFloat = 0
+    private var pressOrigin: CGPoint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         clipsToBounds = true
+        backgroundColor = .secondarySystemGroupedBackground
 
         var configuration = UIButton.Configuration.filled()
-        configuration.title = String(localized: "Delete")
         configuration.image = UIImage(systemName: "trash")
-        configuration.imagePlacement = .top
-        configuration.imagePadding = 4
         configuration.baseBackgroundColor = .systemRed
         configuration.baseForegroundColor = .white
         deleteButton.configuration = configuration
+        deleteButton.accessibilityLabel = String(localized: "Delete")
         deleteButton.addTarget(self, action: #selector(deletePressed), for: .touchUpInside)
         addSubview(deleteButton)
 
-        contentContainer.backgroundColor = .systemBackground
+        contentContainer.backgroundColor = .secondarySystemGroupedBackground
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(contentContainer)
         NSLayoutConstraint.activate([
@@ -175,7 +175,14 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(rowTapped))
         tap.cancelsTouchesInView = false
+        tap.delegate = self
         contentContainer.addGestureRecognizer(tap)
+
+        let press = UILongPressGestureRecognizer(target: self, action: #selector(rowPressed(_:)))
+        press.minimumPressDuration = 0
+        press.cancelsTouchesInView = false
+        press.delegate = self
+        contentContainer.addGestureRecognizer(press)
 
         let pan = UIPanGestureRecognizer(target: self, action: #selector(rowPanned(_:)))
         pan.delegate = self
@@ -190,7 +197,9 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         onDelete = nil
         revealOffset = 0
         panStartOffset = 0
+        pressOrigin = nil
         contentContainer.transform = .identity
+        contentContainer.backgroundColor = .secondarySystemGroupedBackground
         deleteButton.isHidden = true
         deleteButton.accessibilityElementsHidden = true
         accessibilityCustomActions = nil
@@ -210,6 +219,7 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
             rootView
         }
         .margins(.all, 0)
+        .background(.clear)
         .makeContentView()
         hostedView.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.addSubview(hostedView)
@@ -237,10 +247,18 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
     }
 
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        if gestureRecognizer is UILongPressGestureRecognizer { return onSelect != nil }
         guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
         guard onDelete != nil else { return false }
         let velocity = pan.velocity(in: self)
         return abs(velocity.x) > abs(velocity.y) && (velocity.x < 0 || revealOffset < 0)
+    }
+
+    func gestureRecognizer(
+        _: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith _: UIGestureRecognizer
+    ) -> Bool {
+        true
     }
 
     @objc private func rowTapped() {
@@ -249,6 +267,30 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
             return
         }
         onSelect?()
+    }
+
+    @objc private func rowPressed(_ recognizer: UILongPressGestureRecognizer) {
+        let isPressed: Bool
+        switch recognizer.state {
+        case .began:
+            pressOrigin = recognizer.location(in: contentContainer)
+            isPressed = true
+        case .changed:
+            let location = recognizer.location(in: contentContainer)
+            let distance = pressOrigin.map { hypot(location.x - $0.x, location.y - $0.y) } ?? .infinity
+            isPressed = distance < 10 && contentContainer.bounds.insetBy(dx: -12, dy: -12).contains(location)
+        default:
+            pressOrigin = nil
+            isPressed = false
+        }
+        UIView.animate(
+            withDuration: 0.12,
+            delay: 0,
+            options: [.beginFromCurrentState, .allowUserInteraction]
+        ) {
+            self.contentContainer.backgroundColor =
+                isPressed ? .tertiarySystemFill : .secondarySystemGroupedBackground
+        }
     }
 
     @objc private func rowPanned(_ recognizer: UIPanGestureRecognizer) {

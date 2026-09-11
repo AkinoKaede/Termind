@@ -22,15 +22,52 @@ struct MobileTerminalListTests {
             let rows = descendants(of: MobileHostingListRow.self, in: root.view).filter { !$0.isHidden }
             #expect(rows.count == 1)
             #expect(rows.first?.accessibilityCustomActions == nil)
+            #expect(rows.first?.backgroundColor == .secondarySystemGroupedBackground)
+            let list = descendants(of: UIScrollView.self, in: root.view).first {
+                String(reflecting: type(of: $0)).contains("ListViewKit.ListView")
+            }
+            #expect(list?.backgroundColor == .systemGroupedBackground)
         }
 
         try await withHostedView(MobileCommandHistoryView(workspace: workspace)) { root in
             let row = try #require(
                 descendants(of: MobileHostingListRow.self, in: root.view).first { !$0.isHidden })
             #expect(row.accessibilityCustomActions?.map(\.name).contains(String(localized: "Delete")) == true)
+            #expect(row.backgroundColor == .secondarySystemGroupedBackground)
+            let deleteButton = try #require(
+                descendants(of: UIButton.self, in: row).first {
+                    $0.accessibilityLabel == String(localized: "Delete")
+                })
+            #expect(deleteButton.configuration?.title == nil)
+            #expect(deleteButton.configuration?.image != nil)
             row.prepareForReuse()
             #expect(row.accessibilityCustomActions == nil)
         }
+    }
+
+    @Test func terminalRiskIndicatorsShareTheCompactPalette() {
+        #expect(MobileTerminalRiskIndicator.color(for: .safe) == .systemGreen)
+        #expect(MobileTerminalRiskIndicator.color(for: .caution) == .systemOrange)
+        #expect(MobileTerminalRiskIndicator.color(for: .destructive) == .systemRed)
+        #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .safe) == "TerminalRisk.safe")
+        #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .caution) == "TerminalRisk.caution")
+        #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .destructive) == "TerminalRisk.destructive")
+    }
+
+    @Test func terminalHistoryUsesTheCompactSidebarContentAndSingleClickInsertion() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let history = try String(
+            contentsOf: root.appending(path: "TFI/Features/Terminal/MobileCommandHistoryView.swift"),
+            encoding: .utf8)
+        let snippets = try String(
+            contentsOf: root.appending(path: "TFI/Features/Terminal/MobileTerminalSnippetsView.swift"),
+            encoding: .utf8)
+
+        #expect(history.contains("onSelect: insert"))
+        #expect(history.contains(".lineLimit(2)"))
+        #expect(!history.contains("Exit Status"))
+        #expect(history.contains("MobileTerminalRiskIndicator"))
+        #expect(snippets.contains("MobileTerminalRiskIndicator"))
     }
 
     private func withHostedView<Content: View>(

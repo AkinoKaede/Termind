@@ -31,6 +31,7 @@ struct MobileTerminalSnippetsView: View {
                     }
                 }
             }
+            .background(Color(uiColor: .systemGroupedBackground))
             .searchable(text: $query)
             .navigationTitle("Snippets")
             .toolbar {
@@ -44,12 +45,16 @@ struct MobileTerminalSnippetsView: View {
     }
 
     private func snippetRow(_ snippet: Snippet) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(snippet.title).font(.body.weight(.medium)).lineLimit(1)
-            Text(snippet.body)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(snippet.title).font(.body.weight(.medium)).lineLimit(1)
+                Text(snippet.body)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            MobileTerminalRiskIndicator(assessment: CommandRiskClassifier.assess(snippet.body))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
