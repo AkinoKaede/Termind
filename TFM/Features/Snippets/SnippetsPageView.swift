@@ -1,5 +1,3 @@
-import AppKit
-import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -822,27 +820,33 @@ private struct SnippetTargetPickerSheet: View {
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
-            SnippetTargetNativeList(items: targetListItems) { item in
-                HostChooserRow(
-                    host: item.host,
-                    isSelected: item.isCursor,
-                    isChecked: item.isChecked
-                )
-                .onTapGesture { chooser.activate(item.id) }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(results) { host in
+                            HostChooserRow(
+                                host: host,
+                                isSelected: chooser.cursor == host.id,
+                                isChecked: chooser.selected.contains(host.id)
+                            )
+                            .frame(height: 52)
+                            .id(host.id)
+                            .onTapGesture { chooser.activate(host.id) }
+                        }
+                    }
+                }
+                .onAppear { scrollCursorIntoView(using: proxy) }
+                .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
+                .onChange(of: results.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
             }
             .padding(.horizontal, Metrics.Space.l)
             .padding(.bottom, Metrics.Space.s)
         }
     }
 
-    private var targetListItems: [SnippetTargetListItem] {
-        results.map {
-            SnippetTargetListItem(
-                host: $0,
-                isCursor: chooser.cursor == $0.id,
-                isChecked: chooser.selected.contains($0.id)
-            )
-        }
+    private func scrollCursorIntoView(using proxy: ScrollViewProxy) {
+        guard let cursor = chooser.cursor else { return }
+        proxy.scrollTo(cursor)
     }
 
     private var footer: some View {
@@ -891,15 +895,6 @@ private struct SnippetTargetPickerSheet: View {
         dismiss()
     }
 }
-
-nonisolated private struct SnippetTargetListItem: CursorHostingListItem, Sendable {
-    let host: Host
-    let isCursor: Bool
-    let isChecked: Bool
-    var id: Host.ID { host.id }
-}
-
-private typealias SnippetTargetNativeList = CursorHostingList<SnippetTargetListItem>
 
 struct SnippetPackageSheet: View {
     let existing: SnippetPackage?

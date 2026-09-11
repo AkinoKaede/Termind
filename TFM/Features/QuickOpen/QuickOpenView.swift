@@ -1,5 +1,3 @@
-import AppKit
-import ListViewKit
 import SwiftUI
 
 /// The window-level presentation for Command-P.
@@ -146,19 +144,37 @@ struct QuickOpenView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityElement(children: .combine)
         } else {
-            QuickOpenNativeList(items: listItems) { item in
-                switch item {
-                case .section(let section):
-                    quickOpenSection(section)
-                case .command(let command, let isSelected):
-                    quickOpenCommand(command, isSelected: isSelected)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(listItems) { item in
+                            Group {
+                                switch item {
+                                case .section(let section):
+                                    quickOpenSection(section)
+                                case .command(let command, let isSelected):
+                                    quickOpenCommand(command, isSelected: isSelected)
+                                }
+                            }
+                            .frame(height: item.height)
+                            .id(item.id)
+                        }
+                    }
+                    .padding(.vertical, Metrics.Space.xs)
                 }
+                .onAppear { scrollSelectionIntoView(using: proxy) }
+                .onChange(of: selectedID) { _, _ in scrollSelectionIntoView(using: proxy) }
             }
         }
     }
 
     private var listItems: [QuickOpenListItem] {
         results.listItems(selectedID: selectedID)
+    }
+
+    private func scrollSelectionIntoView(using proxy: ScrollViewProxy) {
+        guard let selectedID else { return }
+        proxy.scrollTo(QuickOpenListItem.ID.command(selectedID))
     }
 
     private func quickOpenSection(_ section: AppCommandSection) -> some View {
@@ -365,70 +381,5 @@ nonisolated enum QuickOpenListItem: Identifiable, Hashable, Sendable {
     var isSelected: Bool {
         guard case .command(_, let isSelected) = self else { return false }
         return isSelected
-    }
-}
-
-private struct QuickOpenNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<QuickOpenListItem>
-    typealias Renderer = @MainActor (QuickOpenListItem) -> AnyView
-
-    let items: [QuickOpenListItem]
-    let renderer: Renderer
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [QuickOpenListItem],
-        @ViewBuilder renderer: @escaping @MainActor (QuickOpenListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme, animated: !reduceMotion
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<QuickOpenListItem>()
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.topInset = Metrics.Space.xs
-            listView.bottomInset = Metrics.Space.xs
-            listView.estimatedRowHeight = Metrics.QuickOpen.rowHeight
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { item, _ in item.height }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [QuickOpenListItem], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme, animated: Bool
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: animated
-            )
-            if let selected = items.first(where: \.isSelected) {
-                listView.scrollToRow(with: selected.id, at: .nearest, animated: false)
-            }
-        }
-
-        private func configure(_ row: HostingListRow, item: QuickOpenListItem) {
-            content.configure(row, item: item)
-        }
     }
 }

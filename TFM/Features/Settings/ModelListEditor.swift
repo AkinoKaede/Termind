@@ -1,6 +1,4 @@
 import AgentKit
-import AppKit
-import ListViewKit
 import SwiftUI
 
 /// A provider's full-width models page: a checkable list and details for the
@@ -263,33 +261,25 @@ struct ModelListEditor: View {
             .padding(.horizontal, Metrics.Space.l)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ModelEditorNativeList(items: modelListItems, rowHeight: 56) { item in
-                let model = item.model
-                ModelRow(
-                    model: model,
-                    isSelected: item.isSelected,
-                    isChecked: item.isChecked,
-                    result: item.result,
-                    canTest: item.canTest,
-                    select: { state.selection = model.id },
-                    check: { toggleCheck(model.id) },
-                    edit: { state.selection = model.id },
-                    test: { testModels([model]) },
-                    delete: { deleteModels([model.id]) }
-                )
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(models) { model in
+                        ModelRow(
+                            model: model,
+                            isSelected: state.selection == model.id,
+                            isChecked: state.checked.contains(model.id),
+                            result: state.results[model.id],
+                            canTest: provider?.hasCredential == true && !state.isTesting,
+                            select: { state.selection = model.id },
+                            check: { toggleCheck(model.id) },
+                            edit: { state.selection = model.id },
+                            test: { testModels([model]) },
+                            delete: { deleteModels([model.id]) }
+                        )
+                        .frame(height: 56)
+                    }
+                }
             }
-        }
-    }
-
-    private var modelListItems: [SavedModelListItem] {
-        models.map {
-            SavedModelListItem(
-                model: $0,
-                isSelected: state.selection == $0.id,
-                isChecked: state.checked.contains($0.id),
-                result: state.results[$0.id],
-                canTest: provider?.hasCredential == true && !state.isTesting
-            )
         }
     }
 
@@ -837,27 +827,32 @@ private struct CandidatePicker: View {
     }
 
     private var list: some View {
-        ModelEditorNativeList(items: candidateListItems, rowHeight: 52) { item in
-            CandidateRow(
-                model: item.model,
-                isAlreadyAdded: item.isAlreadyAdded,
-                isCursor: item.isCursor,
-                isChosen: item.isChosen
-            ) {
-                chooser.activate(item.id)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(filtered) { model in
+                        CandidateRow(
+                            model: model,
+                            isAlreadyAdded: existing.contains(model.id),
+                            isCursor: chooser.cursor == model.id,
+                            isChosen: chooser.selected.contains(model.id)
+                        ) {
+                            chooser.activate(model.id)
+                        }
+                        .frame(height: 52)
+                        .id(model.id)
+                    }
+                }
             }
+            .onAppear { scrollCursorIntoView(using: proxy) }
+            .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
+            .onChange(of: filtered.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
         }
     }
 
-    private var candidateListItems: [CandidateModelListItem] {
-        filtered.map {
-            CandidateModelListItem(
-                model: $0,
-                isAlreadyAdded: existing.contains($0.id),
-                isCursor: chooser.cursor == $0.id,
-                isChosen: chooser.selected.contains($0.id)
-            )
-        }
+    private func scrollCursorIntoView(using proxy: ScrollViewProxy) {
+        guard let cursor = chooser.cursor else { return }
+        proxy.scrollTo(cursor)
     }
 
     private var footer: some View {
@@ -884,93 +879,6 @@ private struct CandidatePicker: View {
         guard let cursor = chooser.cursor else { return .ignored }
         chooser.toggle(cursor)
         return .handled
-    }
-}
-
-nonisolated private struct SavedModelListItem: Identifiable, Hashable, Sendable {
-    let model: AIModel
-    let isSelected: Bool
-    let isChecked: Bool
-    let result: ModelListEditor.TestResult?
-    let canTest: Bool
-    var id: AIModel.ID { model.id }
-}
-
-nonisolated private struct CandidateModelListItem: Identifiable, Hashable, Sendable {
-    let model: AIModel
-    let isAlreadyAdded: Bool
-    let isCursor: Bool
-    let isChosen: Bool
-    var id: AIModel.ID { model.id }
-}
-
-private struct ModelEditorNativeList<Item>: NSViewRepresentable
-where Item: Identifiable & Hashable & Sendable, Item.ID: Hashable {
-    typealias NSViewType = ListView<Item>
-    typealias Renderer = @MainActor (Item) -> AnyView
-
-    let items: [Item]
-    let rowHeight: CGFloat
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [Item],
-        rowHeight: CGFloat,
-        @ViewBuilder renderer: @escaping @MainActor (Item) -> some View
-    ) {
-        self.items = items
-        self.rowHeight = rowHeight
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator(rowHeight: rowHeight) }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let rowHeight: CGFloat
-        private let content = HostingListContent<Item>()
-
-        // Swift 6.3.3's optimizer can crash while synthesizing this generic deinit.
-        @_optimize(none) deinit {}
-
-        init(rowHeight: CGFloat) {
-            self.rowHeight = rowHeight
-        }
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.estimatedRowHeight = rowHeight
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { [rowHeight] _, _ in rowHeight }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [Item], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: true
-            )
-        }
-
-        private func configure(_ row: HostingListRow, item: Item) {
-            content.configure(row, item: item)
-        }
     }
 }
 

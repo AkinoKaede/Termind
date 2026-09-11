@@ -1,5 +1,3 @@
-import AppKit
-import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -1196,32 +1194,28 @@ struct ExportKeyToHostsSheet: View {
         } else if hosts.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
-            ExportHostNativeList(items: exportHostItems) { item in
-                row(for: item.host)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(hosts) { host in
+                            row(for: host)
+                                .frame(height: 52)
+                                .id(host.id)
+                        }
+                    }
+                }
+                .onAppear { scrollCursorIntoView(using: proxy) }
+                .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
+                .onChange(of: hosts.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
             }
             .padding(.horizontal, Metrics.Space.l)
             .padding(.vertical, Metrics.Space.s)
         }
     }
 
-    private var exportHostItems: [ExportHostListItem] {
-        hosts.map { host in
-            let stateKey: String
-            switch states[host.id] {
-            case .running: stateKey = "running"
-            case .succeeded: stateKey = "succeeded"
-            case .failed(let message): stateKey = "failed:\(message)"
-            case nil: stateKey = "idle"
-            }
-            return ExportHostListItem(
-                host: host,
-                isCursor: chooser.cursor == host.id,
-                isSelected: chooser.selected.contains(host.id),
-                unavailable: app.credentials.keyExportUnavailableReason(for: host),
-                stateKey: stateKey,
-                isDisabled: isExporting || isFinished
-            )
-        }
+    private func scrollCursorIntoView(using proxy: ScrollViewProxy) {
+        guard let cursor = chooser.cursor else { return }
+        proxy.scrollTo(cursor)
     }
 
     private func row(for host: Host) -> some View {
@@ -1420,18 +1414,6 @@ struct ExportKeyToHostsSheet: View {
         }
     }
 }
-
-nonisolated private struct ExportHostListItem: CursorHostingListItem, Sendable {
-    let host: Host
-    let isCursor: Bool
-    let isSelected: Bool
-    let unavailable: String?
-    let stateKey: String
-    let isDisabled: Bool
-    var id: Host.ID { host.id }
-}
-
-private typealias ExportHostNativeList = CursorHostingList<ExportHostListItem>
 
 // MARK: - Key card
 

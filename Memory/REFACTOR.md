@@ -1282,3 +1282,27 @@ issues also reproduce in focused isolation.
 Both app builds pass with pinned package versions. Strict Swift formatting, Simplified Chinese localization,
 `git diff --check`, forwarding-alias scans, and retired-name scans pass. No persistence schema, remote protocol,
 dependency version, localization catalog, or Assistant behavior changed.
+
+## 2026-09-12 — Restrict ListViewKit to native-list workloads
+
+**Status:** Completed on 2026-09-12; macOS build and focused ListView tests pass.
+
+**Evidence:** Production imported ListViewKit from 16 Swift files through 12 adapters and 19 mount sites. The package
+was originally introduced for the unbounded, streaming Assistant transcript, then one migration applied the same
+AppKit hosting, diff, reuse, and environment bridge to compact menus, bounded popovers, settings editors, and ordinary
+chooser sheets. Those lightweight surfaces received no capability that SwiftUI `LazyVStack` could not provide.
+
+**Action:** Keep ListViewKit only for the transcript, SFTP directory, Assistant conversation library, window tool
+sidebars, and their shared hosting row. Return Tag suggestions, Slash Commands, Quick Open, the model picker and model
+editors, Transfer Center, Connection Log, and the three Host chooser variants to local SwiftUI lazy stacks. Enforce
+the six-file production import boundary in `ArchitectureBoundaryTests`.
+
+**Estimated reduction:** Remove eight adapters and eleven mount sites while retaining the package for four proven
+native-list workloads.
+
+**Result:** Production imports fell from 16 files to a six-file allowlist. Eight adapters and eleven mount sites were
+removed; the TFM production diff adds 225 and removes 836 lines for a net reduction of 611 lines. The macOS build,
+85 focused Architecture/ListView/Quick Open/SFTP tests, strict formatting, Simplified Chinese localization check, and
+`git diff --check` pass. The complete TFM action ran 1,198 tests: all affected suites passed, while the same nine
+environment/timing issues already recorded by the preceding verification remain in Data Protection Keychain, Metrics
+popover focus, Agent cancellation, and approval timing.

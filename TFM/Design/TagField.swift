@@ -1,5 +1,3 @@
-import AppKit
-import ListViewKit
 import SwiftUI
 import TermindApplication
 
@@ -143,21 +141,33 @@ struct TagField: View {
     }
 
     private var list: some View {
-        TagSuggestionNativeList(items: tagListItems) { item in
-            TagRowView(row: item.row, isHighlighted: item.isHighlighted)
-                // Single click commits: this is a picker, not a list of objects
-                // to select and then act on.
-                .onTapGesture {
-                    commit(item.row)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.element) { index, row in
+                        TagRowView(row: row, isHighlighted: highlighted == index)
+                            .id(row)
+                            // Single click commits: this is a picker, not a list of objects
+                            // to select and then act on.
+                            .onTapGesture {
+                                commit(row)
+                            }
+                    }
                 }
+                .padding(.vertical, Metrics.Space.xxs)
+            }
+            .onAppear { scrollHighlightIntoView(using: proxy) }
+            .onChange(of: highlighted) { _, _ in scrollHighlightIntoView(using: proxy) }
+            .onChange(of: rows) { _, _ in scrollHighlightIntoView(using: proxy) }
         }
         .frame(maxHeight: listMaxHeight)
+        .scrollBounceBehavior(.basedOnSize)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var tagListItems: [TagSuggestionListItem] {
-        Array(rows.enumerated()).map { index, row in
-            TagSuggestionListItem(row: row, isHighlighted: highlighted == index)
-        }
+    private func scrollHighlightIntoView(using proxy: ScrollViewProxy) {
+        guard let highlighted, rows.indices.contains(highlighted) else { return }
+        proxy.scrollTo(rows[highlighted])
     }
 
     // MARK: - Rows
@@ -243,92 +253,6 @@ struct TagField: View {
     private func remove(_ tag: String) {
         tags.removeAll { $0 == tag }
         highlighted = rows.isEmpty ? nil : 0
-    }
-}
-
-nonisolated private struct TagSuggestionListItem: Identifiable, Hashable, Sendable {
-    let row: TagField.Row
-    let isHighlighted: Bool
-    var id: TagField.Row { row }
-}
-
-private struct TagSuggestionNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<TagSuggestionListItem>
-    typealias Renderer = @MainActor (TagSuggestionListItem) -> AnyView
-
-    let items: [TagSuggestionListItem]
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [TagSuggestionListItem],
-        @ViewBuilder renderer: @escaping @MainActor (TagSuggestionListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private var renderer: Renderer?
-        private var locale = Locale.current
-        private var colorScheme = ColorScheme.light
-        private var content: [TagSuggestionListItem] = []
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.topInset = Metrics.Space.xxs
-            listView.bottomInset = Metrics.Space.xxs
-            listView.estimatedRowHeight = 32
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { _, _ in 32 }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [TagSuggestionListItem], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme
-        ) {
-            self.renderer = renderer
-            let environmentChanged = self.locale != locale || self.colorScheme != colorScheme
-            self.locale = locale
-            self.colorScheme = colorScheme
-            if content.map(\.id) == items.map(\.id) {
-                for (old, new) in zip(content, items) where old != new {
-                    listView.update(new)
-                }
-                if environmentChanged { listView.reloadData() }
-            } else {
-                listView.apply(items, animated: !content.isEmpty)
-            }
-            content = items
-            if let highlighted = items.first(where: \.isHighlighted) {
-                listView.scrollToRow(with: highlighted.id, at: .nearest, animated: false)
-            }
-        }
-
-        private func configure(_ row: HostingListRow, item: TagSuggestionListItem) {
-            guard let renderer else { return }
-            let root = renderer(item)
-                .id(item.id)
-                .environment(\.locale, locale)
-                .environment(\.colorScheme, colorScheme)
-            row.configure(rootView: AnyView(root))
-        }
     }
 }
 

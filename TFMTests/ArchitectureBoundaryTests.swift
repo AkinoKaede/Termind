@@ -363,6 +363,29 @@ struct ArchitectureBoundaryTests {
         try assertNoConcreteImplementations(in: "Features")
     }
 
+    @Test
+    func listViewKitIsLimitedToNativeListWorkloads() throws {
+        let allowed: Set<String> = [
+            "Features/AI/TranscriptListView.swift",
+            "Features/AI/TranscriptNativeRows.swift",
+            "Features/Assistant/AssistantView.swift",
+            "Features/SFTP/SFTPBrowserView.swift",
+            "Features/Sidebar/WindowSidebarView.swift",
+            "UI/Components/HostingListRow.swift",
+        ]
+        let importers = try Set(
+            swiftFiles(in: "").compactMap { file -> String? in
+                let text = try String(contentsOf: file, encoding: .utf8)
+                guard text.split(separator: "\n").contains("import ListViewKit") else {
+                    return nil
+                }
+                return file.path.replacingOccurrences(of: sourceRoot.path + "/", with: "")
+            }
+        )
+
+        #expect(importers == allowed)
+    }
+
     private func assertNoImports(in directory: String, forbidden: Set<String>) throws {
         for file in try swiftFiles(in: directory) {
             let text = try String(contentsOf: file, encoding: .utf8)

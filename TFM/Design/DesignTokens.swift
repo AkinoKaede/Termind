@@ -37,7 +37,7 @@ nonisolated enum Metrics {
         /// Shared content inset for the leading glyph and trailing accessory.
         static let navigationRowInset: CGFloat = 6
         /// One shared breathing edge for every card in the left column.
-        /// Keeping it here makes SwiftUI List and ListViewKit rows line up.
+        /// Keeping it here makes list rows across the app line up.
         static let rowHorizontalMargin: CGFloat = 8
         static let rowBackgroundInset: CGFloat = 0
         static let rowBackgroundVerticalInset: CGFloat = 2

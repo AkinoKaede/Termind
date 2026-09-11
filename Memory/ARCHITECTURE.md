@@ -852,3 +852,13 @@ Mobile runs belong to the app, not the selected page. Switching conversations pr
 The mobile composer is a SwiftUI vertical TextField, with camera, photos, files and speech in its leading menu. UIKit is confined to camera/preview/audio adapters and system integration; no UIKit text editor replaces the composer. Speech appends text without sending, owns a conversation token, and cancels on interruption, conversation change or backgrounding.
 
 Agent runs may consume the finite background execution time already requested by the mobile shell. Expiration invalidates pending starts, drains cancellation events, closes Agent transports and prevents new starts until cleanup ends. Returning to the foreground never replays commands or approves waiting actions. Platform suspension still bounds execution; Live Activities do not keep Agent runs alive.
+
+### Desktop ListViewKit boundary (2026-09-12)
+
+ListViewKit is a macOS-only implementation detail reserved for lists with demonstrated native-list requirements:
+the streaming Assistant transcript, large SFTP directories, the Assistant conversation library, and the window tool
+sidebars. These surfaces depend on one or more of variable-height incremental refresh, imperative viewport control,
+native drag-and-drop, detached-row cleanup, or blank-area AppKit menus. Compact menus, bounded popovers, settings
+editors, and ordinary chooser sheets use SwiftUI `ScrollView` and `LazyVStack`; visual consistency or elastic
+animation alone is not sufficient reason to add another ListViewKit bridge. An architecture test owns the production
+import allowlist so this dependency cannot spread without an explicit boundary change.

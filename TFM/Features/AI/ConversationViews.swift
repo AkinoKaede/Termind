@@ -1,6 +1,5 @@
 import AgentKit
 import AppKit
-import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -1693,28 +1692,35 @@ struct ComposerView: View {
     }
 
     private var modelOptions: some View {
-        AssistantModelOptionNativeList(items: modelOptionItems) { item in
-            switch item.content {
-            case .empty:
-                Text("No models configured")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Metrics.Space.m)
-            case .provider(_, let name):
-                Text(name)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Metrics.Space.m)
-            case .model(let provider, let model, let selected):
-                Button {
-                    select(model, on: provider)
-                } label: {
-                    pickerOptionRow(model.label, isSelected: selected)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(modelOptionItems) { item in
+                    Group {
+                        switch item.content {
+                        case .empty:
+                            Text("No models configured")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, Metrics.Space.m)
+                        case .provider(_, let name):
+                            Text(name)
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.tertiary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, Metrics.Space.m)
+                        case .model(let provider, let model, let selected):
+                            Button {
+                                select(model, on: provider)
+                            } label: {
+                                pickerOptionRow(model.label, isSelected: selected)
+                            }
+                            .buttonStyle(.plain)
+                            .termindInputAwareFocusEffect()
+                        }
+                    }
+                    .frame(height: item.height)
                 }
-                .buttonStyle(.plain)
-                .termindInputAwareFocusEffect()
             }
         }
         // A max height alone has no intrinsic answer inside a newly presented
@@ -1889,67 +1895,6 @@ nonisolated private struct AssistantModelOptionListItem: Identifiable, Hashable,
         case .empty: 34
         case .provider: 18
         case .model: 25
-        }
-    }
-}
-
-private struct AssistantModelOptionNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<AssistantModelOptionListItem>
-    typealias Renderer = @MainActor (AssistantModelOptionListItem) -> AnyView
-
-    let items: [AssistantModelOptionListItem]
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [AssistantModelOptionListItem],
-        @ViewBuilder renderer: @escaping @MainActor (AssistantModelOptionListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<AssistantModelOptionListItem>()
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.estimatedRowHeight = 25
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .height { item, _ in item.height }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [AssistantModelOptionListItem],
-            renderer: @escaping Renderer, locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: true
-            )
-        }
-
-        private func configure(
-            _ row: HostingListRow,
-            item: AssistantModelOptionListItem
-        ) {
-            content.configure(row, item: item)
         }
     }
 }

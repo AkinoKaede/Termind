@@ -1,5 +1,4 @@
 import AppKit
-import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -238,29 +237,27 @@ struct ConnectionJourneyView: View {
             }
             .padding(14)
             Divider()
-            ConnectionLogNativeList(items: connectionLogItems) { entry in
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(entry.date, format: .dateTime.hour().minute().second())
-                        .foregroundStyle(.tertiary)
-                    Text(entry.endpoint).foregroundStyle(.secondary)
-                    Text(entry.message)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(journey.logs) { entry in
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Text(entry.date, format: .dateTime.hour().minute().second())
+                                .foregroundStyle(.tertiary)
+                            Text(entry.endpoint).foregroundStyle(.secondary)
+                            Text(entry.message)
+                        }
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                    }
                 }
-                .font(.caption.monospaced())
-                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
             }
             .frame(maxHeight: 210)
         }
         .termindGlassSurface(cornerRadius: 12)
         .overlay {
             RoundedRectangle(cornerRadius: 12).strokeBorder(.separator.opacity(0.7))
-        }
-    }
-
-    private var connectionLogItems: [ConnectionLogListItem] {
-        journey.logs.map {
-            ConnectionLogListItem(
-                id: $0.id, date: $0.date, endpoint: $0.endpoint, message: $0.message
-            )
         }
     }
 
@@ -272,99 +269,10 @@ struct ConnectionJourneyView: View {
     }
 }
 
-nonisolated private struct ConnectionLogListItem: Identifiable, Hashable, Sendable {
-    let id: UUID
-    let date: Date
-    let endpoint: String
-    let message: String
-}
-
 /// The system window surface shared by a connection journey and its pane header.
 struct ConnectionJourneyBackground: View {
     var body: some View {
         Color(nsColor: .windowBackgroundColor)
-    }
-}
-
-private struct ConnectionLogNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<ConnectionLogListItem>
-    typealias Renderer = @MainActor (ConnectionLogListItem) -> AnyView
-    let items: [ConnectionLogListItem]
-    let renderer: Renderer
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [ConnectionLogListItem],
-        @ViewBuilder renderer: @escaping @MainActor (ConnectionLogListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<ConnectionLogListItem>()
-        private let measurement = NSHostingController(rootView: AnyView(EmptyView()))
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.topInset = 14
-            listView.bottomInset = 14
-            listView.estimatedRowHeight = 26
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .estimatedHeight(26)
-                    .height { [weak self] item, context in
-                        self?.height(for: item, width: context.width) ?? 26
-                    }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [ConnectionLogListItem], renderer: @escaping Renderer,
-            locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items,
-                renderer: { item in
-                    AnyView(
-                        renderer(item)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 14))
-                },
-                locale: locale, colorScheme: colorScheme, animated: true
-            )
-        }
-
-        private func height(for item: ConnectionLogListItem, width: CGFloat) -> CGFloat {
-            guard width > 0, let root = content.rootView(for: item) else { return 26 }
-            measurement.rootView = root
-            return max(
-                26,
-                ceil(
-                    measurement.sizeThatFits(
-                        in: CGSize(
-                            width: width, height: .greatestFiniteMagnitude
-                        )
-                    ).height) + 8)
-        }
-
-        private func configure(_ row: HostingListRow, item: ConnectionLogListItem) {
-            content.configure(row, item: item)
-        }
     }
 }
 

@@ -1,6 +1,4 @@
-import AppKit
 import Darwin
-import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -313,26 +311,39 @@ struct HostChooserView: View {
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
-            HostChooserNativeList(items: hostListItems) { item in
-                HostChooserRow(
-                    host: item.host,
-                    isSelected: item.isCursor,
-                    isChecked: item.isChecked
-                )
-                // Each ListViewKit row has an independent NSHostingView root.
-                .environment(app)
-                .onTapGesture(count: 2) {
-                    if !purpose.allowsMultiple {
-                        open(item.host)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(results) { host in
+                            HostChooserRow(
+                                host: host,
+                                isSelected: chooser.cursor == host.id,
+                                isChecked: purpose.allowsMultiple
+                                    ? chooser.selected.contains(host.id) : nil
+                            )
+                            .frame(height: 52)
+                            .id(host.id)
+                            .onTapGesture(count: 2) {
+                                if !purpose.allowsMultiple { open(host) }
+                            }
+                            .onTapGesture {
+                                chooser.activate(host.id)
+                            }
+                        }
                     }
                 }
-                .onTapGesture {
-                    chooser.activate(item.id)
-                }
+                .onAppear { scrollCursorIntoView(using: proxy) }
+                .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
+                .onChange(of: results.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
             }
             .padding(.horizontal, Metrics.Space.l)
             .padding(.bottom, Metrics.Space.s)
         }
+    }
+
+    private func scrollCursorIntoView(using proxy: ScrollViewProxy) {
+        guard let cursor = chooser.cursor else { return }
+        proxy.scrollTo(cursor)
     }
 
     private var serialForm: some View {
@@ -398,17 +409,6 @@ struct HostChooserView: View {
                 serialConfiguration.baudRate = rate
                 serialError = nil
             }
-        }
-    }
-
-    private var hostListItems: [HostChooserListItem] {
-        results.map { host in
-            HostChooserListItem(
-                host: host,
-                isCursor: chooser.cursor == host.id,
-                isChecked: purpose.allowsMultiple
-                    ? chooser.selected.contains(host.id) : nil
-            )
         }
     }
 
@@ -630,15 +630,6 @@ struct HostChooserView: View {
 ///
 /// `isChecked` is nil outside batch mode, and then nothing is drawn — a single
 /// pick has one visual channel and does not need two.
-nonisolated struct HostChooserListItem: CursorHostingListItem, Sendable {
-    let host: Host
-    let isCursor: Bool
-    let isChecked: Bool?
-    var id: Host.ID { host.id }
-}
-
-private typealias HostChooserNativeList = CursorHostingList<HostChooserListItem>
-
 struct HostChooserRow: View {
     let host: Host
     let isSelected: Bool

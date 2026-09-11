@@ -1,5 +1,3 @@
-import AppKit
-import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -495,14 +493,18 @@ private struct TransferCenterPopover: View {
 
             Divider()
 
-            TransferCenterNativeList(items: transferItems) { item in
-                VStack(spacing: 0) {
-                    TransferCenterRow(
-                        transfer: item.transfer,
-                        route: item.route,
-                        cancel: { coordinator.cancel(item.id) }
-                    )
-                    if item.id != transferItems.last?.id { Divider() }
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(transferItems) { item in
+                        VStack(spacing: 0) {
+                            TransferCenterRow(
+                                transfer: item.transfer,
+                                route: item.route,
+                                cancel: { coordinator.cancel(item.id) }
+                            )
+                            if item.id != transferItems.last?.id { Divider() }
+                        }
+                    }
                 }
             }
             .frame(height: Metrics.TransferCenter.listHeight(itemCount: transferItems.count))
@@ -553,84 +555,6 @@ nonisolated struct TransferCenterListItem: Identifiable, Hashable, Sendable {
     let transfer: SFTPTransfer
     let route: String
     var id: SFTPTransfer.ID { transfer.id }
-}
-
-private struct TransferCenterNativeList: NSViewRepresentable {
-    typealias NSViewType = ListView<TransferCenterListItem>
-    typealias Renderer = @MainActor (TransferCenterListItem) -> AnyView
-
-    let items: [TransferCenterListItem]
-    let renderer: Renderer
-
-    @Environment(\.locale) private var locale
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(
-        items: [TransferCenterListItem],
-        @ViewBuilder renderer: @escaping @MainActor (TransferCenterListItem) -> some View
-    ) {
-        self.items = items
-        self.renderer = { AnyView(renderer($0)) }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeNSView(context: Context) -> NSViewType { context.coordinator.makeListView() }
-
-    func updateNSView(_ listView: NSViewType, context: Context) {
-        context.coordinator.update(
-            listView: listView, items: items, renderer: renderer,
-            locale: locale, colorScheme: colorScheme
-        )
-    }
-
-    @MainActor
-    final class Coordinator {
-        private let content = HostingListContent<TransferCenterListItem>()
-        private let measurement = NSHostingController(rootView: AnyView(EmptyView()))
-
-        func makeListView() -> NSViewType {
-            let listView = NSViewType()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
-            listView.estimatedRowHeight = Metrics.TransferCenter.estimatedRowHeight
-            listView.rows {
-                ListRow(HostingListRow.self)
-                    .estimatedHeight(Metrics.TransferCenter.estimatedRowHeight)
-                    .height { [weak self] item, context in
-                        self?.height(for: item, width: context.width)
-                            ?? Metrics.TransferCenter.estimatedRowHeight
-                    }
-                    .configure { [weak self] row, item, _ in self?.configure(row, item: item) }
-            }
-            return listView
-        }
-
-        func update(
-            listView: NSViewType, items: [TransferCenterListItem],
-            renderer: @escaping Renderer, locale: Locale, colorScheme: ColorScheme
-        ) {
-            content.update(
-                listView, items: items, renderer: renderer, locale: locale,
-                colorScheme: colorScheme, animated: true
-            )
-        }
-
-        private func height(for item: TransferCenterListItem, width: CGFloat) -> CGFloat {
-            guard width > 0, let root = content.rootView(for: item) else {
-                return Metrics.TransferCenter.estimatedRowHeight
-            }
-            measurement.rootView = root
-            return ceil(
-                measurement.sizeThatFits(
-                    in: CGSize(
-                        width: width, height: .greatestFiniteMagnitude
-                    )
-                ).height)
-        }
-
-        private func configure(_ row: HostingListRow, item: TransferCenterListItem) {
-            content.configure(row, item: item)
-        }
-    }
 }
 
 private struct TransferCenterRow: View {
