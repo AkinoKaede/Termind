@@ -23,7 +23,7 @@ struct MobileTerminalSnippetsView: View {
                 } else {
                     MobileNativeList(
                         items: snippets,
-                        estimatedRowHeight: 76,
+                        estimatedRowHeight: 60,
                         refreshID: workspace.connected,
                         onSelect: insert
                     ) { snippet in
@@ -51,7 +51,8 @@ struct MobileTerminalSnippetsView: View {
                 Text(snippet.body)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             Spacer(minLength: 8)
             MobileTerminalRiskIndicator(assessment: CommandRiskClassifier.assess(snippet.body))

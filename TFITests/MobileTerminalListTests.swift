@@ -11,7 +11,7 @@ struct MobileTerminalListTests {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        app.library.upsert(Snippet(title: "List files", body: "ls -la"))
+        app.library.upsert(Snippet(title: "List files", body: "ls -la\npwd"))
         app.commandHistory.record("pwd", for: host.id)
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
@@ -54,7 +54,7 @@ struct MobileTerminalListTests {
         #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .destructive) == "TerminalRisk.destructive")
     }
 
-    @Test func terminalHistoryUsesTheCompactSidebarContentAndSingleClickInsertion() throws {
+    @Test func terminalListsUseCompactSidebarContentAndSingleClickInsertion() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         let history = try String(
             contentsOf: root.appending(path: "TFI/Features/Terminal/MobileCommandHistoryView.swift"),
@@ -67,6 +67,12 @@ struct MobileTerminalListTests {
         #expect(history.contains(".lineLimit(2)"))
         #expect(!history.contains("Exit Status"))
         #expect(history.contains("MobileTerminalRiskIndicator"))
+        let bodyStart = try #require(snippets.range(of: "Text(snippet.body)"))
+        let bodyEnd = try #require(snippets[bodyStart.upperBound...].range(of: "Spacer(minLength: 8)"))
+        let bodyPreview = snippets[bodyStart.lowerBound..<bodyEnd.lowerBound]
+        #expect(bodyPreview.contains(".lineLimit(1)"))
+        #expect(bodyPreview.contains(".truncationMode(.tail)"))
+        #expect(snippets.contains("estimatedRowHeight: 60"))
         #expect(snippets.contains("MobileTerminalRiskIndicator"))
     }
 
