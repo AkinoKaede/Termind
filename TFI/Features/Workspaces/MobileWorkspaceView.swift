@@ -165,6 +165,16 @@ struct MobileWorkspaceView: View {
             }
         }
         .sheet(isPresented: $showingHistory) { MobileCommandHistoryView(workspace: workspace) }
+        .sheet(
+            item: Binding(
+                get: { workspace.terminalTextSelection },
+                set: { if $0 == nil { workspace.dismissTerminalTextSelection() } }
+            ),
+            onDismiss: { workspace.terminal.requestFocus() }
+        ) { selection in
+            MobileTerminalTextSelectionView(selection: selection)
+                .mobileSheetPresentation(compact: true)
+        }
         .sheet(item: $renaming) { MobileRemoteFileEditor(workspace: workspace, file: $0, mode: .rename) }
         .sheet(item: $editingPermissions) { MobileRemoteFileEditor(workspace: workspace, file: $0, mode: .permissions) }
         .sheet(isPresented: $showingTransfers) {

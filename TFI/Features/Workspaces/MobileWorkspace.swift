@@ -73,6 +73,7 @@ final class MobileWorkspace: Identifiable {
     private var uploadNoticeTask: Task<Void, Never>?
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
+    var terminalTextSelection: MobileTerminalTextSelection?
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in _ = self?.terminal.performBindingAction($0) },
         focus: { [weak self] in self?.terminal.requestFocus() }
@@ -175,11 +176,18 @@ final class MobileWorkspace: Identifiable {
         terminal.makePlatformView = { owner.view }
         terminal.inputAccessoryItems = []
         relay.owner = self
+        terminal.onTextSelectionRequest = { [weak relay] request in
+            relay?.owner?.terminalTextSelection = MobileTerminalTextSelection(request)
+        }
         workingDirectoryObservation = terminal.$workingDirectory.sink { [weak relay] path in
             Task { @MainActor in
                 relay?.owner?.receiveWorkingDirectory(path)
             }
         }
+    }
+
+    func dismissTerminalTextSelection() {
+        terminalTextSelection = nil
     }
 
     private func makeAuthenticationPrompt() -> SSHAuthenticationPrompt? {

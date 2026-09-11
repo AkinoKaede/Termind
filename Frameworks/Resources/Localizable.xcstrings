@@ -12340,6 +12340,16 @@
         }
       }
     },
+    "Select Text" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择文本"
+          }
+        }
+      }
+    },
     "Select at least two hosts. A Workspace can contain one or more hosts." : {
       "localizations" : {
         "zh-Hans" : {
