@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindPresentation
 
 /// Central layout constants. Kept as plain numbers rather than a theme object
 /// because none of these need to vary at runtime — only the terminal palette does.
@@ -170,8 +171,8 @@ nonisolated enum Metrics {
         /// Compact Assistant surfaces continue to use all available width.
         static let contentMaxWidth: CGFloat = 840
         static let turnSpacing: CGFloat = 20
-        static let blockSpacing: CGFloat = 10
-        static let bubbleRadius: CGFloat = 14
+        static let blockSpacing = AssistantTranscriptStyle.blockSpacing
+        static let bubbleRadius = AssistantTranscriptStyle.bubbleRadius
         /// Sent images are center-cropped thumbnails rather than variable-height
         /// rows, so a batch reads as one compact grid.
         static let imageTile: CGFloat = 160
@@ -213,14 +214,15 @@ nonisolated enum Metrics {
         /// of what is waiting, not a second transcript to read.
         static let steeringQueueMaxHeight: CGFloat = 88
 
-        /// How tall the slash palette may grow before it scrolls.
-        ///
-        /// Also a ceiling rather than a height: the palette is measured from the
-        /// commands that match, so it shrinks to one row as the name is typed
-        /// and closes when nothing matches. With today's three commands it never
-        /// reaches this — it exists so a longer list later cannot cover the
-        /// conversation it was opened over.
-        static let slashMenuMaxHeight: CGFloat = 220
+        /// The Slash palette keeps the compact native-list density it had before
+        /// moving to SwiftUI. It is exactly as tall as its rows until ten are
+        /// visible; longer command and option lists scroll in place.
+        static let slashMenuRowHeight: CGFloat = 34
+        static let slashMenuVisibleRows = 10
+
+        static func slashMenuHeight(rowCount: Int) -> CGFloat {
+            CGFloat(min(max(0, rowCount), slashMenuVisibleRows)) * slashMenuRowHeight
+        }
 
         /// How much of a collapsed plan is shown before it fades out.
         ///

@@ -2,6 +2,7 @@ import GlyphixTextFx
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import UniformTypeIdentifiers
 
 import struct TermindDomain.Host

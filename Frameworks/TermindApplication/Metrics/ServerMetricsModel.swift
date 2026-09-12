@@ -69,7 +69,19 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private var stamps: [UUID: Data] = [:]
     private struct PendingHostKeyAuthorization {
         var id: UUID
-        var continuation: CheckedContinuation<SSHHostKeyDecision, Never>
+        var continuation: AsyncStream<SSHHostKeyDecision>.Continuation
+    }
+    private nonisolated struct RunAttempt: Sendable {
+        var host: Host
+        var preparation: SSHConnectionPreparation
+        var sampler: any MetricsSampling
+    }
+    private nonisolated struct HostKeyAuthorization: Sendable {
+        var id: UUID
+        var decisions: AsyncStream<SSHHostKeyDecision>
+    }
+    private nonisolated enum RunCycleDisposition: Sendable {
+        case stop, attention, retry
     }
     private var pendingHostKeyAuthorizations: [UUID: PendingHostKeyAuthorization] = [:]
 
@@ -476,7 +488,11 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         server.collectionState = .connecting
         server.gpuState = .probing
         stamps[server.id] = connectionStamp(host)
-        workers[server.id] = Task { [weak self] in await self?.run(server, token: token) }
+        let serverID = server.id
+        let clock = clock
+        workers[server.id] = Task.detached { [weak self] in
+            await self?.run(serverID, token: token, clock: clock)
+        }
     }
 
     private func beginConnectionJourney(for server: ServerMetric, host: Host) {
@@ -486,156 +502,282 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         )
     }
 
-    private func current(_ server: ServerMetric, _ token: UUID) -> Bool {
-        !Task.isCancelled && generations[server.id] == token && !stopped && !sleeping
+    private func current(_ serverID: UUID, _ token: UUID) -> Bool {
+        !Task.isCancelled && generations[serverID] == token && !stopped && !sleeping
     }
 
-    private func run(_ server: ServerMetric, token: UUID) async {
+    private nonisolated func run(_ serverID: UUID, token: UUID, clock: MetricsClock) async {
         var delay = 2.0
-        while current(server, token) {
-            let sampler = makeSampler()
-            samplers[server.id] = sampler
+        while await isCurrent(serverID, token: token) {
+            let attempt: RunAttempt
             do {
-                guard let host = hosts.host(server.id) else { return }
-                if server.journey.phase != .connecting {
-                    beginConnectionJourney(for: server, host: host)
-                }
-                server.status = String(localized: "Connecting…")
-                server.collectionState = .connecting
-                server.isConnecting = true
-                let configuration = try await preparation(for: host, server: server).resolve(
+                guard let next = try await beginRunAttempt(serverID, token: token) else { return }
+                attempt = next
+            } catch {
+                guard await handleRunFailure(error, serverID: serverID, token: token) else { return }
+                guard await finishRunCycle(serverID, token: token) == .retry else { return }
+                do { try await clock.sleep(delay) } catch { return }
+                delay = min(60, delay * 2)
+                continue
+            }
+
+            let sampler = attempt.sampler
+            do {
+                let configuration = try await attempt.preparation.resolve(
                     trustPolicy: .allowChallenge
                 )
-                guard current(server, token) else { return }
+                guard await isCurrent(serverID, token: token) else {
+                    await sampler.disconnect()
+                    return
+                }
                 try await sampler.connect(
                     SSHConnectionRequest(
                         configuration: configuration,
-                        authorizeHostKey: { [weak self, weak server] challenge in
-                            guard let self, let server else { throw CancellationError() }
-                            return await self.authorizeHostKey(
-                                server, challenge: challenge, token: token
+                        authorizeHostKey: { [weak self] challenge in
+                            guard let self else { throw CancellationError() }
+                            return await self.authorizeHostKeyFromWorker(
+                                serverID, challenge: challenge, token: token
                             )
                         }
                     )
                 )
-                guard current(server, token) else {
+                guard await publishConnected(serverID, token: token, hostID: attempt.host.id) else {
                     await sampler.disconnect()
                     return
                 }
-                server.isConnecting = false
-                server.journey.receive(.connected(host.id))
-                server.status = String(localized: "Connected — collecting metrics…")
-                server.collectionState = .collecting
                 var previous: MetricsSample?
                 var previousProcesses: MetricsProcessSample?
                 var nextFilesystemRefresh = Date.distantPast
                 var probeGPU = true
-                while current(server, token) {
+                sampleLoop: while await isCurrent(serverID, token: token) {
                     let began = clock.now()
                     let sample = try await sampler.sample()
-                    guard current(server, token) else { break }
-                    var point = MetricsCalculation.point(
-                        previous: previous, current: sample, selection: server.selection, date: clock.now()
-                    )
+                    guard
+                        var point = await publishBaseSample(
+                            sample, previous: previous, serverID: serverID, token: token)
+                    else { break }
                     previous = sample
-                    server.disks = sample.disks.map { $0.keys.sorted() } ?? server.disks
-                    server.interfaces = sample.interfaces.map { $0.keys.sorted() } ?? server.interfaces
-                    server.status = String(localized: "Live")
-                    server.collectionState = .live
-                    if server.journey.phase == .connecting { server.journey.succeed() }
-                    // Publish base metrics before the optional, bounded GPU command.
-                    server.point = point
                     delay = 2
                     if probeGPU {
                         do {
                             let gpu = try await sampler.gpu()
-                            guard current(server, token) else { break }
-                            server.gpuSnapshot = gpu
-                            server.gpuDate = clock.now()
+                            guard
+                                let updated = await publishGPU(
+                                    gpu, point: point, serverID: serverID, token: token)
+                            else { break sampleLoop }
+                            point = updated
                             let devices = gpu?.devices ?? []
                             probeGPU = !devices.isEmpty
-                            server.gpuState = devices.isEmpty ? .unavailable : .available
-                            let ids = Set(devices.map(\.id))
-                            for index in server.history.indices {
-                                server.history[index].gpus.removeAll { !ids.contains($0.id) }
-                            }
-                            point.gpus = devices
                         } catch {
-                            guard current(server, token) else { break }
-                            server.gpuState = .failed
+                            guard await markGPUFailed(serverID, token: token) else { break sampleLoop }
                             // Unknown GPU values create a gap, not a false zero or a repeated stale sample.
                         }
                     }
-                    if detailObservers.values.contains(server.id) {
+                    if await observesDetails(serverID, token: token) {
                         if clock.now() >= nextFilesystemRefresh {
                             do {
                                 if let filesystems = try await sampler.filesystems() {
-                                    guard current(server, token) else { break }
-                                    server.filesystems = filesystems
-                                    server.filesystemsDate = clock.now()
-                                    server.filesystemsFailed = false
+                                    guard
+                                        await publishFilesystems(
+                                            filesystems, serverID: serverID, token: token)
+                                    else { break sampleLoop }
                                 }
                             } catch {
-                                guard current(server, token) else { break }
-                                server.filesystemsFailed = true
+                                guard await markFilesystemsFailed(serverID, token: token) else {
+                                    break sampleLoop
+                                }
                             }
                             nextFilesystemRefresh = clock.now().addingTimeInterval(30)
                         }
                         do {
                             if let processes = try await sampler.processes() {
-                                guard current(server, token) else { break }
-                                server.processes = MetricsProcess.rows(previous: previousProcesses, current: processes)
+                                guard
+                                    await publishProcesses(
+                                        processes, previous: previousProcesses,
+                                        serverID: serverID, token: token)
+                                else { break sampleLoop }
                                 previousProcesses = processes
-                                server.processesDate = clock.now()
-                                server.processesFailed = false
                             }
                         } catch {
-                            guard current(server, token) else { break }
-                            server.processesFailed = true
+                            guard await markProcessesFailed(serverID, token: token) else { break sampleLoop }
                             previousProcesses = nil
                         }
                     } else {
                         previousProcesses = nil
                     }
-                    server.point = point
-                    server.history.append(point)
-                    server.history.removeAll { $0.date < clock.now().addingTimeInterval(-300) }
+                    guard await finishSample(point, serverID: serverID, token: token) else { break }
                     try await clock.sleep(min(2, max(0.05, 2 - clock.now().timeIntervalSince(began))))
                 }
             } catch {
-                guard current(server, token) else {
+                guard await handleRunFailure(error, serverID: serverID, token: token) else {
                     await sampler.disconnect()
                     return
                 }
-                server.isConnecting = false
-                server.status = error.localizedDescription
-                server.collectionState = .failed
-                if let ssh = error as? TermindSSHError {
-                    let targetID = ssh.routeHostID ?? server.id
-                    if ssh.isLocalAuthenticationRequirement || ssh.shouldRequestAuthentication {
-                        requestAuthentication(server, hostID: targetID, error: ssh)
-                    }
-                }
-                if case MetricsReadError.unsupported = error { server.needsAttention = true }
-                if !server.requiresAuthentication { server.journey.fail(error.localizedDescription) }
             }
             await sampler.disconnect()
-            guard current(server, token) else { return }
-            if server.needsAttention {
-                workers[server.id] = nil
-                samplers[server.id] = nil
-                return
-            }
+            guard await finishRunCycle(serverID, token: token) == .retry else { return }
             do { try await clock.sleep(delay) } catch { return }
             delay = min(60, delay * 2)
         }
     }
 
-    private func authorizeHostKey(
-        _ server: ServerMetric, challenge: SSHHostKeyChallenge, token: UUID
+    private func beginRunAttempt(_ serverID: UUID, token: UUID) throws -> RunAttempt? {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return nil }
+        guard let host = hosts.host(serverID) else { return nil }
+        if server.journey.phase != .connecting {
+            beginConnectionJourney(for: server, host: host)
+        }
+        server.status = String(localized: "Connecting…")
+        server.collectionState = .connecting
+        server.isConnecting = true
+        let preparation = try preparation(for: host, server: server)
+        let sampler = makeSampler()
+        samplers[serverID] = sampler
+        return RunAttempt(host: host, preparation: preparation, sampler: sampler)
+    }
+
+    private func isCurrent(_ serverID: UUID, token: UUID) -> Bool {
+        current(serverID, token)
+    }
+
+    private func publishConnected(_ serverID: UUID, token: UUID, hostID: UUID) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.isConnecting = false
+        server.journey.receive(.connected(hostID))
+        server.status = String(localized: "Connected — collecting metrics…")
+        server.collectionState = .collecting
+        return true
+    }
+
+    private func publishBaseSample(
+        _ sample: MetricsSample, previous: MetricsSample?, serverID: UUID, token: UUID
+    ) -> MetricsPoint? {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return nil }
+        let point = MetricsCalculation.point(
+            previous: previous, current: sample, selection: server.selection, date: clock.now()
+        )
+        server.disks = sample.disks.map { $0.keys.sorted() } ?? server.disks
+        server.interfaces = sample.interfaces.map { $0.keys.sorted() } ?? server.interfaces
+        server.status = String(localized: "Live")
+        server.collectionState = .live
+        if server.journey.phase == .connecting { server.journey.succeed() }
+        // Publish base metrics before the optional, bounded GPU command.
+        server.point = point
+        return point
+    }
+
+    private func publishGPU(
+        _ gpu: NvidiaSnapshot?, point: MetricsPoint, serverID: UUID, token: UUID
+    ) -> MetricsPoint? {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return nil }
+        server.gpuSnapshot = gpu
+        server.gpuDate = clock.now()
+        let devices = gpu?.devices ?? []
+        server.gpuState = devices.isEmpty ? .unavailable : .available
+        let ids = Set(devices.map(\.id))
+        for index in server.history.indices {
+            server.history[index].gpus.removeAll { !ids.contains($0.id) }
+        }
+        var point = point
+        point.gpus = devices
+        return point
+    }
+
+    private func markGPUFailed(_ serverID: UUID, token: UUID) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.gpuState = .failed
+        return true
+    }
+
+    private func observesDetails(_ serverID: UUID, token: UUID) -> Bool {
+        current(serverID, token) && detailObservers.values.contains(serverID)
+    }
+
+    private func publishFilesystems(_ values: [MetricsFilesystem], serverID: UUID, token: UUID) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.filesystems = values
+        server.filesystemsDate = clock.now()
+        server.filesystemsFailed = false
+        return true
+    }
+
+    private func markFilesystemsFailed(_ serverID: UUID, token: UUID) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.filesystemsFailed = true
+        return true
+    }
+
+    private func publishProcesses(
+        _ values: MetricsProcessSample, previous: MetricsProcessSample?, serverID: UUID, token: UUID
+    ) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.processes = MetricsProcess.rows(previous: previous, current: values)
+        server.processesDate = clock.now()
+        server.processesFailed = false
+        return true
+    }
+
+    private func markProcessesFailed(_ serverID: UUID, token: UUID) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.processesFailed = true
+        return true
+    }
+
+    private func finishSample(_ point: MetricsPoint, serverID: UUID, token: UUID) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.point = point
+        server.history.append(point)
+        server.history.removeAll { $0.date < clock.now().addingTimeInterval(-300) }
+        return true
+    }
+
+    private func handleRunFailure(_ error: any Error, serverID: UUID, token: UUID) -> Bool {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        server.isConnecting = false
+        server.status = error.localizedDescription
+        server.collectionState = .failed
+        if let ssh = error as? TermindSSHError {
+            let targetID = ssh.routeHostID ?? serverID
+            if ssh.isLocalAuthenticationRequirement || ssh.shouldRequestAuthentication {
+                requestAuthentication(server, hostID: targetID, error: ssh)
+            }
+        }
+        if case MetricsReadError.unsupported = error { server.needsAttention = true }
+        if !server.requiresAuthentication { server.journey.fail(error.localizedDescription) }
+        return true
+    }
+
+    private func finishRunCycle(_ serverID: UUID, token: UUID) -> RunCycleDisposition {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return .stop }
+        if server.needsAttention {
+            workers[serverID] = nil
+            samplers[serverID] = nil
+            return .attention
+        }
+        return .retry
+    }
+
+    private nonisolated func authorizeHostKeyFromWorker(
+        _ serverID: UUID, challenge: SSHHostKeyChallenge, token: UUID
     ) async -> SSHHostKeyDecision {
-        guard current(server, token) else { return .reject }
-        finishHostKeyAuthorization(for: server.id, decision: .reject)
+        guard let authorization = await beginHostKeyAuthorization(serverID, challenge: challenge, token: token) else {
+            return .reject
+        }
+        return await withTaskCancellationHandler {
+            for await decision in authorization.decisions { return decision }
+            return .reject
+        } onCancel: {
+            Task.detached { [weak self] in
+                await self?.cancelHostKeyAuthorization(for: serverID, id: authorization.id)
+            }
+        }
+    }
+
+    private func beginHostKeyAuthorization(
+        _ serverID: UUID, challenge: SSHHostKeyChallenge, token: UUID
+    ) -> HostKeyAuthorization? {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return nil }
+        finishHostKeyAuthorization(for: serverID, decision: .reject)
         if !challenge.expectedHostKeys.isEmpty {
             hosts.markKnownHostMismatched(
                 hostname: challenge.observation.hostname,
@@ -657,19 +799,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             fingerprint: challenge.observation.fingerprint
         )
         let authorizationID = UUID()
-        return await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
-                pendingHostKeyAuthorizations[server.id] = PendingHostKeyAuthorization(
-                    id: authorizationID, continuation: continuation
-                )
-            }
-        } onCancel: {
-            Task { @MainActor [weak self] in
-                self?.cancelHostKeyAuthorization(
-                    for: server.id, id: authorizationID
-                )
-            }
+        let decisions = AsyncStream<SSHHostKeyDecision> { continuation in
+            pendingHostKeyAuthorizations[serverID] = PendingHostKeyAuthorization(
+                id: authorizationID, continuation: continuation
+            )
         }
+        return HostKeyAuthorization(id: authorizationID, decisions: decisions)
     }
 
     private func cancelHostKeyAuthorization(for serverID: UUID, id: UUID) {
@@ -680,8 +815,9 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private func finishHostKeyAuthorization(
         for serverID: UUID, decision: SSHHostKeyDecision
     ) {
-        pendingHostKeyAuthorizations.removeValue(forKey: serverID)?
-            .continuation.resume(returning: decision)
+        guard let pending = pendingHostKeyAuthorizations.removeValue(forKey: serverID) else { return }
+        pending.continuation.yield(decision)
+        pending.continuation.finish()
     }
 }
 

@@ -3,14 +3,31 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 
+enum MobileAssistantLibraryRoute: String, Identifiable, Hashable {
+    case conversations
+    case archived
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .conversations: "Conversations"
+        case .archived: "Archived"
+        }
+    }
+}
+
 struct MobileAssistantView: View {
     let app: MobileAppModel
     @Bindable var model: MobileAssistantModel
-    @State private var history = false
-    @State private var archive = false
-    @State private var renaming = false
+    @State private var libraryRoute: MobileAssistantLibraryRoute?
+    @State private var restoreComposerFocusAfterLibrary = false
+    @State private var nextComposerFocusRequest = 0
+    @State private var composerFocusRequest: Int?
+    @State private var renaming: ConversationModel?
     @State private var title = ""
-    @State private var deleting = false
+    @State private var deleting: ConversationModel?
+    @FocusState private var composerFocused: Bool
 
     var body: some View {
         detail
@@ -20,46 +37,72 @@ struct MobileAssistantView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarTitleMenu { conversationTitleMenu }
             .toolbar {
-                Button("New Conversation", systemImage: "square.and.pencil") { model.newConversation() }.labelStyle(
-                    .iconOnly)
+                Button("New Conversation", systemImage: "plus.bubble", action: newConversation)
+                    .labelStyle(.iconOnly)
                 Menu {
+                    Button("Conversations", systemImage: "clock") { showLibrary(.conversations) }
+                    Button("Archived", systemImage: "archivebox") { showLibrary(.archived) }
+                    Divider()
                     Button("Rename", systemImage: "pencil") {
                         title = model.conversation.derivedTitle
-                        renaming = true
+                        renaming = model.conversation
                     }
                     .disabled(model.conversation.isEmpty)
                     Button(model.conversation.isPinned ? "Unpin" : "Pin", systemImage: "pin") {
-                        Task { await model.move(model.conversation, pinned: !model.conversation.isPinned) }
+                        let conversation = model.conversation
+                        Task { await model.move(conversation, pinned: !conversation.isPinned) }
                     }
                     .disabled(model.conversation.isEmpty || model.conversation.isArchived)
                     Button(
                         model.conversation.isArchived ? "Unarchive" : "Archive",
-                        systemImage: model.conversation.isArchived ? "tray.and.arrow.up" : "archivebox"
+                        systemImage: model.conversation.isArchived ? "arrow.uturn.backward" : "archivebox"
                     ) {
-                        Task { await model.archive(model.conversation, archived: !model.conversation.isArchived) }
+                        let conversation = model.conversation
+                        Task { await model.archive(conversation, archived: !conversation.isArchived) }
                     }
                     .disabled(!canChangeHistory)
-                    Button("Delete", systemImage: "trash", role: .destructive) { deleting = true }
-                        .disabled(!canChangeHistory)
+                    Button("Delete", systemImage: "trash", role: .destructive) {
+                        deleting = model.conversation
+                    }
+                    .disabled(!canChangeHistory)
                 } label: {
                     MobileOverflowMenuLabel("More")
                 }
             }
-            .navigationDestination(isPresented: $history) {
-                MobileAssistantLibrary(model: model) { history = false }
-                    .navigationTitle("Conversations")
+            .navigationDestination(item: $libraryRoute) { route in
+                MobileAssistantLibrary(
+                    model: model,
+                    route: route,
+                    selected: { libraryRoute = nil },
+                    showArchived: { libraryRoute = .archived }
+                )
+                .navigationTitle(route.title)
             }
-            .navigationDestination(isPresented: $archive) {
-                MobileAssistantLibrary(model: model, archived: true) { archive = false }
-                    .navigationTitle("Archived")
+            .onChange(of: libraryRoute) { previous, current in
+                guard previous != nil, current == nil else { return }
+                requestComposerFocusIfNeeded(restoreComposerFocusAfterLibrary)
+                restoreComposerFocusAfterLibrary = false
             }
-            .alert("Rename", isPresented: $renaming) {
+            .alert(
+                "Rename",
+                isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
+            ) {
                 TextField("Conversation Name", text: $title)
-                Button("Cancel", role: .cancel) {}
-                Button("Save") { Task { await model.rename(model.conversation, title: title) } }
+                Button("Cancel", role: .cancel) { renaming = nil }
+                Button("Save") {
+                    if let renaming { Task { await model.rename(renaming, title: title) } }
+                    renaming = nil
+                }
             }
-            .confirmationDialog("Delete Conversation", isPresented: $deleting, titleVisibility: .visible) {
-                Button("Delete", role: .destructive) { Task { await model.delete(model.conversation) } }
+            .confirmationDialog(
+                "Delete Conversation",
+                isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let deleting { Task { await model.delete(deleting) } }
+                    deleting = nil
+                }
             } message: {
                 Text("Permanently delete this conversation and its staged files?")
             }
@@ -75,14 +118,18 @@ struct MobileAssistantView: View {
     }
 
     private var detail: some View {
-        MobileAssistantConversation(app: app, model: model, conversation: model.conversation)
-            .id(model.conversation.id)
+        MobileAssistantConversation(
+            app: app,
+            model: model,
+            conversation: model.conversation,
+            composerFocus: $composerFocused,
+            composerFocusRequest: composerFocusRequest,
+            composerFocusRequestHandled: composerFocusRequestHandled
+        )
+        .id(model.conversation.id)
     }
 
     @ViewBuilder private var conversationTitleMenu: some View {
-        Button("New Conversation", systemImage: model.conversation.isEmpty ? "checkmark" : "square.and.pencil") {
-            model.newConversation()
-        }
         if !model.library.pinnedConversations.isEmpty {
             Section("Pinned") {
                 ForEach(model.library.pinnedConversations) { conversation in titleMenuButton(conversation) }
@@ -93,9 +140,6 @@ struct MobileAssistantView: View {
                 ForEach(model.library.activeConversations) { conversation in titleMenuButton(conversation) }
             }
         }
-        Divider()
-        Button("Conversations", systemImage: "clock") { history = true }
-        Button("Archived", systemImage: "archivebox") { archive = true }
     }
 
     private func titleMenuButton(_ conversation: ConversationModel) -> some View {
@@ -105,14 +149,51 @@ struct MobileAssistantView: View {
             Label(
                 conversation.derivedTitle,
                 systemImage: model.conversation.id == conversation.id
-                    ? "checkmark" : (conversation.isStreaming ? "ellipsis.circle" : "bubble.left")
+                    ? "checkmark" : (conversation.isStreaming ? "ellipsis.circle" : "sparkles")
             )
         }
     }
 
+    private func newConversation() {
+        libraryRoute = nil
+        replaceConversation(preservingComposerFocus: model.newConversation)
+    }
+
     private func select(_ conversation: ConversationModel) {
         guard model.conversation.id != conversation.id else { return }
-        model.select(conversation)
+        replaceConversation { model.select(conversation) }
+    }
+
+    private func showLibrary(_ route: MobileAssistantLibraryRoute) {
+        if libraryRoute == nil { restoreComposerFocusAfterLibrary = composerFocused }
+        libraryRoute = route
+    }
+
+    private func replaceConversation(preservingComposerFocus action: () -> Void) {
+        let shouldRestoreFocus = composerFocused
+        action()
+        requestComposerFocusIfNeeded(shouldRestoreFocus)
+    }
+
+    private func requestComposerFocusIfNeeded(_ requested: Bool) {
+        guard requested, canFocusComposer else { return }
+        let conversationID = model.conversation.id
+        Task { @MainActor in
+            await Task.yield()
+            guard model.conversation.id == conversationID, canFocusComposer else { return }
+            nextComposerFocusRequest += 1
+            composerFocusRequest = nextComposerFocusRequest
+        }
+    }
+
+    private func composerFocusRequestHandled(_ request: Int) {
+        if composerFocusRequest == request { composerFocusRequest = nil }
+    }
+
+    private var canFocusComposer: Bool {
+        !model.conversation.isArchived
+            && model.conversation.pendingApproval == nil
+            && model.conversation.pendingUserInteraction == nil
     }
 
     private var canChangeHistory: Bool {
@@ -123,13 +204,15 @@ struct MobileAssistantView: View {
 
 struct MobileAssistantLibrary: View {
     @Bindable var model: MobileAssistantModel
-    var archived = false
+    let route: MobileAssistantLibraryRoute
     let selected: () -> Void
+    let showArchived: () -> Void
     @State private var query = ""
     @State private var renaming: ConversationModel?
     @State private var title = ""
     @State private var deleting: ConversationModel?
-    @State private var showingArchive = false
+
+    private var archived: Bool { route == .archived }
 
     var body: some View {
         List {
@@ -139,13 +222,13 @@ struct MobileAssistantLibrary: View {
                         model.newConversation()
                         selected()
                     } label: {
-                        Label("New Conversation", systemImage: "square.and.pencil")
-                            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                        Label("New Conversation", systemImage: "plus.bubble")
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .foregroundStyle(.primary)
 
                     Button {
-                        showingArchive = true
+                        showArchived()
                     } label: {
                         HStack {
                             Label("Archived", systemImage: "archivebox")
@@ -157,7 +240,6 @@ struct MobileAssistantLibrary: View {
                                 .foregroundStyle(.tertiary)
                                 .accessibilityHidden(true)
                         }
-                        .frame(minHeight: 48)
                     }
                     .foregroundStyle(.primary)
                 }
@@ -169,8 +251,10 @@ struct MobileAssistantLibrary: View {
                 }
             }
 
-            if !ordinaryConversations.isEmpty {
-                Section(archived ? "" : String(localized: "Conversations")) {
+            if archived {
+                ForEach(ordinaryConversations) { conversationRow($0) }
+            } else if !ordinaryConversations.isEmpty {
+                Section(String(localized: "Conversations")) {
                     ForEach(ordinaryConversations) { conversationRow($0) }
                 }
             }
@@ -178,17 +262,14 @@ struct MobileAssistantLibrary: View {
             if values.isEmpty {
                 ContentUnavailableView(
                     archived ? "No Archived Chats" : "No Conversations",
-                    systemImage: archived ? "archivebox" : "bubble.left"
+                    systemImage: archived ? "archivebox" : "sparkles"
                 )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
         }
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: "Search")
-        .navigationDestination(isPresented: $showingArchive) {
-            MobileAssistantLibrary(model: model, archived: true, selected: selected)
-                .navigationTitle("Archived")
-        }
         .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Conversation Name", text: $title)
             Button("Cancel", role: .cancel) { renaming = nil }
@@ -218,29 +299,29 @@ struct MobileAssistantLibrary: View {
         Button {
             select(conversation)
         } label: {
-            HStack(alignment: .center, spacing: 12) {
-                Image(systemName: conversation.isArchived ? "archivebox" : "bubble.left")
+            HStack(spacing: 12) {
+                Image(systemName: conversation.isArchived ? "archivebox" : "sparkles")
                     .foregroundStyle(.secondary)
                     .frame(width: 28, height: 28)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(conversation.derivedTitle).font(.headline).foregroundStyle(.primary).lineLimit(2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(conversation.derivedTitle).foregroundStyle(.primary).lineLimit(1)
                     if conversation.isStreaming {
                         Text("Working…").font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: 0)
                 if model.conversation.id == conversation.id {
                     Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityHidden(true)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if conversation.isArchived {
-                Button("Unarchive", systemImage: "tray.and.arrow.up") {
+                Button("Unarchive", systemImage: "arrow.uturn.backward") {
                     Task { await model.archive(conversation, archived: false) }
                 }
                 .tint(.accentColor)
@@ -274,7 +355,7 @@ struct MobileAssistantLibrary: View {
         }
         Button(
             conversation.isArchived ? "Unarchive" : "Archive",
-            systemImage: conversation.isArchived ? "tray.and.arrow.up" : "archivebox"
+            systemImage: conversation.isArchived ? "arrow.uturn.backward" : "archivebox"
         ) {
             Task { await model.archive(conversation, archived: !conversation.isArchived) }
         }.disabled(conversation.isStreaming || conversation.isCompacting || conversation.isHistoryChanging)

@@ -5,6 +5,33 @@ import Testing
 
 @Suite @MainActor
 struct MetricsJourneyTests {
+    @Test func metricsWorkerReturnsToMainActorAfterBackgroundSamplerCallbacks() async throws {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = TermindDomain.Host(name: "Monitor", host: "example.invalid")
+        host.identityID = identity.id
+        let hosts = HostLibraryModel(
+            hosts: [host], identities: [identity],
+            knownHosts: [
+                KnownHostEntry(
+                    hostname: host.host, port: host.port, algorithm: .ed25519,
+                    fingerprint: "SHA256:test")
+            ])
+        try hosts.upsert(identity, passwordUpdate: .replace("test-only"))
+        let sampler = BackgroundResumingMetricsSampler()
+        let model = ServerMetricsModel(
+            hosts: hosts, preferences: PortMetricsPreferences(),
+            makeSampler: { sampler })
+        defer { model.shutdown() }
+
+        #expect(model.add(host))
+        let server = try #require(model.servers.first)
+        try await wait { server.point != nil }
+
+        #expect(server.collectionState == .live)
+        #expect(sampler.snapshot().connections == 1)
+        #expect(sampler.snapshot().samples >= 1)
+    }
+
     @Test func offlineRestoredMetricsReconcileOnMainActor() async throws {
         let identity = Identity(name: "Deploy", username: "deploy")
         var host = TermindDomain.Host(name: "Monitor", host: "example.invalid")
@@ -187,6 +214,42 @@ private actor FailingMetricsSampler: MetricsSampling {
     func sample() async throws -> MetricsSample { throw TermindSSHError.disconnected }
     func gpu() async throws -> NvidiaSnapshot? { nil }
     func disconnect() async {}
+}
+
+private nonisolated final class BackgroundResumingMetricsSampler: MetricsSampling, @unchecked Sendable {
+    private let lock = NSLock()
+    private var connections = 0
+    private var samples = 0
+
+    func connect(_ configuration: SSHConnectionConfiguration) async throws {
+        await resumeFromBackground()
+        lock.withLock { connections += 1 }
+    }
+
+    func sample() async throws -> MetricsSample {
+        await resumeFromBackground()
+        lock.withLock { samples += 1 }
+        return MetricsSample(uptime: 1, cpu: [10, 0, 10, 80], memoryUsed: 50, memoryTotal: 100)
+    }
+
+    func gpu() async throws -> NvidiaSnapshot? {
+        await resumeFromBackground()
+        return nil
+    }
+
+    func disconnect() async {}
+
+    func snapshot() -> (connections: Int, samples: Int) {
+        lock.withLock { (connections, samples) }
+    }
+
+    private func resumeFromBackground() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                continuation.resume()
+            }
+        }
+    }
 }
 
 private nonisolated final class PortMetricsClock: @unchecked Sendable {

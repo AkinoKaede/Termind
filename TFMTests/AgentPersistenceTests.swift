@@ -71,8 +71,10 @@ struct AgentPersistenceTests {
         )
         let locale = Locale(identifier: "en")
         #expect(
-            AgentToolPresentation.detail(for: restored, locale: locale)
-                == AgentToolPresentation.detail(for: live, locale: locale)
+            AgentToolPresentation.detail(
+                for: restored, presenter: TermindAgentTools.presenter(for: restored.descriptor), locale: locale)
+                == AgentToolPresentation.detail(
+                    for: live, presenter: TermindAgentTools.presenter(for: live.descriptor), locale: locale)
         )
         #expect(restored.descriptor.presentation?.presenterID == "builtin.web_search")
     }

@@ -140,6 +140,14 @@ struct ListViewMigrationTests {
     }
 
     @Test
+    func slashMenuUsesExactCompactRowsAndScrollsAfterTen() {
+        #expect(Metrics.Chat.slashMenuHeight(rowCount: 0) == 0)
+        #expect(Metrics.Chat.slashMenuHeight(rowCount: 3) == 102)
+        #expect(Metrics.Chat.slashMenuHeight(rowCount: 10) == 340)
+        #expect(Metrics.Chat.slashMenuHeight(rowCount: 20) == 340)
+    }
+
+    @Test
     func sidebarHistoryKeepsIdentityWhileInlineEditingChanges() {
         let entry = CommandHistoryEntry(hostID: UUID(), command: "pwd")
         let normal = SidebarListItem.history(entry, isNaming: false)

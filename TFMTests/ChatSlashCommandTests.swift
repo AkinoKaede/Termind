@@ -28,6 +28,17 @@ struct ChatSlashCommandTests {
         ),
     ]
 
+    @Test
+    func commandsCanOptOutOfTheMobileCatalog() {
+        let archive = ChatSlashCommand(
+            id: "archive", displayName: "Archive", summary: "Archive this chat",
+            icon: .symbol("archivebox"), isShownOnMobile: false
+        )
+
+        #expect(!archive.isShownOnMobile)
+        #expect(!commands.contains { !$0.isShownOnMobile })
+    }
+
     private func options(_ command: ChatSlashCommand) -> [ChatSlashCommand.Option] {
         guard command.id == "reasoning" else { return [] }
         return [
@@ -41,26 +52,40 @@ struct ChatSlashCommandTests {
 
     @Test
     func aBareSlashIsACommandBeingNamed() {
-        #expect(ChatSlashCommandInput.parse("/") == .naming(""))
-        #expect(ChatSlashCommandInput.parse("/comp") == .naming("comp"))
+        #expect(ChatSlashCommandInput.parse("/") == .naming(leadingText: "", partial: ""))
+        #expect(ChatSlashCommandInput.parse("/comp") == .naming(leadingText: "", partial: "comp"))
     }
 
     @Test
     func aSpaceSeparatesTheNameFromItsArgument() {
         #expect(
             ChatSlashCommandInput.parse("/compact keep the nginx findings")
-                == .argument(name: "compact", text: "keep the nginx findings")
+                == .argument(leadingText: "", name: "compact", text: "keep the nginx findings")
         )
         // The trailing space is what advances the palette to the options, so an
         // empty argument has to be distinguishable from no argument at all.
-        #expect(ChatSlashCommandInput.parse("/reasoning ") == .argument(name: "reasoning", text: ""))
+        #expect(
+            ChatSlashCommandInput.parse("/reasoning ")
+                == .argument(leadingText: "", name: "reasoning", text: "")
+        )
     }
 
     @Test
-    func proseIsNotACommand() {
-        #expect(ChatSlashCommandInput.parse("check /etc/nginx for the include") == nil)
+    func textWithoutASlashIsNotACommand() {
         #expect(ChatSlashCommandInput.parse("what does df say") == nil)
         #expect(ChatSlashCommandInput.parse("") == nil)
+    }
+
+    @Test
+    func theLastSlashCanOpenCommandsAnywhereInTheDraft() {
+        #expect(
+            ChatSlashCommandInput.parse("check the service /comp")
+                == .naming(leadingText: "check the service ", partial: "comp")
+        )
+        #expect(
+            ChatSlashCommandInput.parse("first /plan then /reasoning hi")
+                == .argument(leadingText: "first /plan then ", name: "reasoning", text: "hi")
+        )
     }
 
     /// A path pasted as the whole draft still parses as a name — it is one
@@ -75,11 +100,13 @@ struct ChatSlashCommandTests {
         #expect(completion.isEmpty)
     }
 
-    /// Once a draft has a second line it is prose that happened to start with a
-    /// slash, and losing it to a command would be the worst outcome available.
     @Test
-    func aMultiLineDraftIsNeverACommand() {
+    func aCommandFragmentCannotCrossALineButCanStartOnTheLastLine() {
         #expect(ChatSlashCommandInput.parse("/compact\nand also check disk") == nil)
+        #expect(
+            ChatSlashCommandInput.parse("check disk\nthen /comp")
+                == .naming(leadingText: "check disk\nthen ", partial: "comp")
+        )
     }
 
     // MARK: - Completion
@@ -89,7 +116,7 @@ struct ChatSlashCommandTests {
         #expect(commands[1].name == "/plan")
         #expect(
             ChatSlashCommandCompletion.accepted(
-                .command(commands[1]), takesArgument: false
+                .command(commands[1]), takesArgument: false, in: "/pl"
             ) == "/plan"
         )
     }
@@ -174,6 +201,18 @@ struct ChatSlashCommandTests {
     }
 
     @Test
+    func opaqueArgumentsDoNotIntroduceANewerSlashForPathLikeModelIDs() {
+        let argument = ChatSlashCommand.argumentID(
+            scope: UUID().uuidString.lowercased(), value: "vendor/model-preview"
+        )
+
+        #expect(!argument.contains("/"))
+        #expect(
+            ChatSlashCommandInput.parse("draft /model \(argument)")?.name == "model"
+        )
+    }
+
+    @Test
     func anUnavailableOrFilteredPreferredOptionFallsBackToTheFirstRow() {
         let completion = ChatSlashCommandCompletion.rows(
             draft: "/reasoning hi", commands: commands, options: options
@@ -200,8 +239,8 @@ struct ChatSlashCommandTests {
     func acceptingANameThatTakesAnArgumentLeavesATrailingSpace() {
         let row = ChatSlashCommandCompletion.Row.command(commands[2])
 
-        #expect(ChatSlashCommandCompletion.accepted(row, takesArgument: true) == "/reasoning ")
-        #expect(ChatSlashCommandCompletion.accepted(row, takesArgument: false) == "/reasoning")
+        #expect(ChatSlashCommandCompletion.accepted(row, takesArgument: true, in: "/rea") == "/reasoning ")
+        #expect(ChatSlashCommandCompletion.accepted(row, takesArgument: false, in: "/rea") == "/reasoning")
     }
 
     @Test
@@ -211,8 +250,23 @@ struct ChatSlashCommandTests {
         )
 
         #expect(
-            ChatSlashCommandCompletion.accepted(row, takesArgument: false) == "/reasoning high"
+            ChatSlashCommandCompletion.accepted(row, takesArgument: false, in: "/reasoning h")
+                == "/reasoning high"
         )
+    }
+
+    @Test
+    func acceptingACompletionOnlyReplacesTheTrailingSlashFragment() {
+        let row = ChatSlashCommandCompletion.Row.option(
+            commands[2], ChatSlashCommand.Option(id: "high", label: "High")
+        )
+
+        #expect(
+            ChatSlashCommandCompletion.accepted(
+                row, takesArgument: false, in: "keep this prompt /reasoning h"
+            ) == "keep this prompt /reasoning high"
+        )
+        #expect(ChatSlashCommandInput.parse("keep this prompt /reasoning high")?.leadingText == "keep this prompt ")
     }
 
     // MARK: - Named arguments

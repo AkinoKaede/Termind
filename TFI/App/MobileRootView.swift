@@ -181,7 +181,7 @@ struct MobileRootView: View {
                 HStack(spacing: 12) {
                     ZStack(alignment: .bottomTrailing) {
                         Image(systemName: workspace.descriptor.kind.symbol)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tint)
                             .frame(width: 28, height: 28)
                         Circle()
                             .fill(workspaceStatusTint(workspace))

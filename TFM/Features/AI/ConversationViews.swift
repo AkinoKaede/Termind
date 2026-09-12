@@ -971,6 +971,14 @@ struct ComposerView: View {
     /// confirm what is already true is a row that wastes the reader's time.
     private var slashCommands: [ChatSlashCommand] {
         var commands: [ChatSlashCommand] = []
+        if !conversation.isEmpty {
+            commands.append(
+                ChatSlashCommand(
+                    id: "archive", displayName: String(localized: "Archive"),
+                    summary: String(localized: "Move this conversation to Archive"), icon: .symbol("archivebox"),
+                    isShownOnMobile: false
+                ))
+        }
         if !conversation.isEmpty, onNewChat != nil {
             commands.append(
                 ChatSlashCommand(
@@ -1088,7 +1096,9 @@ struct ComposerView: View {
         modelProviders.flatMap { provider in
             provider.assistantModels.map { model in
                 (
-                    argument: "\(provider.id.uuidString.lowercased()):\(model.id)",
+                    argument: ChatSlashCommand.argumentID(
+                        scope: provider.id.uuidString.lowercased(), value: model.id
+                    ),
                     provider: provider,
                     model: model
                 )
@@ -1129,7 +1139,9 @@ struct ComposerView: View {
         case "model":
             guard let resolved else { return 0 }
             let optionID =
-                "\(resolved.provider.id.uuidString.lowercased()):\(resolved.model.id)"
+                ChatSlashCommand.argumentID(
+                    scope: resolved.provider.id.uuidString.lowercased(), value: resolved.model.id
+                )
             return completion.selectionIndex(commandID: command.id, optionID: optionID)
         default:
             return 0
@@ -1198,8 +1210,8 @@ struct ComposerView: View {
         }
     }
 
-    /// Completing a name leaves the draft in the field; running a command clears
-    /// it. The difference is whether there is anything left to choose.
+    /// Completing a name leaves the command in the field; running it consumes
+    /// only the trailing slash fragment and preserves any prompt before it.
     private func acceptSlashRow(_ row: ChatSlashCommandCompletion.Row) {
         switch row {
         case .command(let command):
@@ -1209,7 +1221,7 @@ struct ComposerView: View {
             // argument is for whoever wants to type one.
             let hasOptions = !slashOptions(command).isEmpty
             let acceptedDraft = ChatSlashCommandCompletion.accepted(
-                row, takesArgument: hasOptions
+                row, takesArgument: hasOptions, in: conversation.composer.draft
             )
             conversation.composer.draft = acceptedDraft
             if hasOptions {
@@ -1223,7 +1235,9 @@ struct ComposerView: View {
             }
             if !hasOptions { runSlashCommand() }
         case .option:
-            conversation.composer.draft = ChatSlashCommandCompletion.accepted(row, takesArgument: false)
+            conversation.composer.draft = ChatSlashCommandCompletion.accepted(
+                row, takesArgument: false, in: conversation.composer.draft
+            )
             slashSelection = 0
             runSlashCommand()
         }
@@ -1241,9 +1255,16 @@ struct ComposerView: View {
         else { return false }
 
         switch command.id {
+        case "archive":
+            guard !conversation.isEmpty, !conversation.isStreaming, !conversation.isCompacting else {
+                return false
+            }
+            clearSlashDraft(input)
+            window.setAssistantArchived(conversation.id, archived: true)
+            return true
         case "new":
             guard !conversation.isEmpty, let onNewChat else { return false }
-            clearSlashDraft()
+            clearSlashDraft(input)
             onNewChat()
             return true
         case "plan":
@@ -1253,30 +1274,29 @@ struct ComposerView: View {
             let question = argumentText(of: input)
             guard question.isEmpty else {
                 conversation.isPlanning = true
-                clearSlashDraft()
-                conversation.composer.draft = question
-                sendDraft()
+                conversation.composer.draft = input.leadingText + question
+                if input.leadingText.isEmpty { sendDraft() }
                 return true
             }
             conversation.isPlanning.toggle()
         case "compact":
             let instructions = argumentText(of: input)
-            clearSlashDraft()
+            clearSlashDraft(input)
             Task { await app.compact(conversation, instructions: instructions) }
             return true
         case "reasoning":
-            guard case .argument(_, let argument) = input else { return false }
+            guard case .argument(_, _, let argument) = input else { return false }
             guard let effort = ReasoningEffort(rawValue: argument.lowercased()),
                 reasoningResolution?.supported.contains(effort) == true
             else { return false }
             conversation.reasoningEffort = effort
         case "model":
-            guard case .argument(_, let argument) = input,
+            guard case .argument(_, _, let argument) = input,
                 let choice = slashModelChoice(for: argument)
             else { return false }
             select(choice.model, on: choice.provider)
         case "mcp":
-            guard case .argument(_, let argument) = input,
+            guard case .argument(_, _, let argument) = input,
                 let id = UUID(uuidString: argument),
                 let server = app.aiConfiguration.mcpServer(id)
             else { return false }
@@ -1290,28 +1310,27 @@ struct ComposerView: View {
             guard let selection = input.selection,
                 app.skills.enabledSkills.contains(where: { $0.effectiveName == selection.name })
             else { return false }
-            clearSlashDraft()
             conversation.composer.armedSkillName = selection.name
+            conversation.composer.draft = input.leadingText + selection.remainder
             guard selection.remainder.isEmpty else {
-                conversation.composer.draft = selection.remainder
-                sendDraft()
+                if input.leadingText.isEmpty { sendDraft() }
                 return true
             }
             return true
         default:
             return false
         }
-        clearSlashDraft()
+        clearSlashDraft(input)
         return true
     }
 
     private func argumentText(of input: ChatSlashCommandInput) -> String {
-        guard case .argument(_, let text) = input else { return "" }
+        guard case .argument(_, _, let text) = input else { return "" }
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func clearSlashDraft() {
-        conversation.composer.draft = ""
+    private func clearSlashDraft(_ input: ChatSlashCommandInput) {
+        conversation.composer.draft = input.leadingText
         isSlashMenuDismissed = false
         slashSelection = 0
     }

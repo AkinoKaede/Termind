@@ -30,14 +30,10 @@ final class IOSSpeechAudioInput: SpeechAudioInput {
             stop()
             throw SpeechTranscriptionFailure(.audioInputUnavailable)
         }
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-            bufferHandler(buffer)
-            if let values = buffer.floatChannelData?[0], buffer.frameLength > 0 {
-                var square: Float = 0
-                for i in 0..<Int(buffer.frameLength) { square += values[i] * values[i] }
-                levelHandler(min(1, sqrt(square / Float(buffer.frameLength)) * 8))
-            }
-        }
+        input.installTap(
+            onBus: 0, bufferSize: 1024, format: format,
+            block: Self.makeTapHandler(bufferHandler: bufferHandler, levelHandler: levelHandler)
+        )
         do {
             engine.prepare()
             try engine.start()
@@ -51,6 +47,23 @@ final class IOSSpeechAudioInput: SpeechAudioInput {
             Task { @MainActor in
                 self?.stop()
                 self?.onInterruption?()
+            }
+        }
+    }
+
+    /// Audio taps run on Core Audio's realtime queue. Constructing this block
+    /// outside MainActor prevents Swift 6 from inheriting the caller's actor and
+    /// trapping before the Sendable handlers can dispatch their own work.
+    nonisolated static func makeTapHandler(
+        bufferHandler: @escaping SpeechAudioBufferHandler,
+        levelHandler: @escaping SpeechAudioLevelHandler
+    ) -> AVAudioNodeTapBlock {
+        { buffer, _ in
+            bufferHandler(buffer)
+            if let values = buffer.floatChannelData?[0], buffer.frameLength > 0 {
+                var square: Float = 0
+                for i in 0..<Int(buffer.frameLength) { square += values[i] * values[i] }
+                levelHandler(min(1, sqrt(square / Float(buffer.frameLength)) * 8))
             }
         }
     }

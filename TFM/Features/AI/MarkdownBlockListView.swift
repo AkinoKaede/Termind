@@ -4,6 +4,7 @@ import MarkdownParser
 import MarkdownView
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 /// The Markdown entry point used by the transcript.
 ///
@@ -171,93 +172,7 @@ enum MarkdownTypography {
 
 // MARK: - Parsing policy
 
-nonisolated enum TermindMarkdownParser {
-    static let allowedLinkSchemes: Set<String> = ["http", "https", "mailto"]
-    static let shellLanguages: Set<String> = [
-        "bash", "sh", "zsh", "shell", "console", "terminal",
-    ]
-
-    static func parse(_ source: String) -> [MarkdownBlockNode] {
-        let parsed = MarkdownParser().parse(MarkdownSoftBreaks.hardened(source))
-        return sanitize(parsed.document)
-    }
-
-    static func sanitize(_ blocks: [MarkdownBlockNode]) -> [MarkdownBlockNode] {
-        blocks.rewrite { (inline: MarkdownInlineNode) -> [MarkdownInlineNode] in
-            switch inline {
-            case .link(let destination, let children):
-                guard isAllowedLink(destination) else { return children }
-                return [.link(destination: destination, children: children)]
-            case .image(_, let children):
-                // Never fetch a model-chosen URL while rendering a transcript.
-                // The image's alt text remains readable ordinary prose.
-                return children
-            default:
-                return [inline]
-            }
-        }
-    }
-
-    static func isAllowedLink(_ destination: String) -> Bool {
-        guard let scheme = URL(string: destination)?.scheme?.lowercased() else {
-            return false
-        }
-        return allowedLinkSchemes.contains(scheme)
-    }
-
-    static func isActionableShell(language: String?, code: String) -> Bool {
-        guard let language else { return false }
-        return shellLanguages.contains(language.lowercased())
-            && !normalizedFenceCode(code).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    static func segments(
-        from blocks: [MarkdownBlockNode],
-        allowsShellActions: Bool
-    ) -> [TermindMarkdownBlockSegment] {
-        var result: [TermindMarkdownBlockSegment] = []
-        var markdown: [MarkdownBlockNode] = []
-
-        func flushMarkdown() {
-            guard !markdown.isEmpty else { return }
-            result.append(.markdown(markdown))
-            markdown.removeAll(keepingCapacity: true)
-        }
-
-        for block in blocks {
-            if allowsShellActions,
-                case .codeBlock(let language, let code) = block,
-                isActionableShell(language: language, code: code)
-            {
-                flushMarkdown()
-                result.append(
-                    .shell(
-                        language: language ?? "",
-                        command: normalizedFenceCode(code)
-                    ))
-            } else {
-                markdown.append(block)
-            }
-        }
-        flushMarkdown()
-        return result
-    }
-
-    /// cmark includes the structural newline immediately before a closing
-    /// fence. It is not part of the command and must not make a one-line shell
-    /// suggestion look like a multi-line script to the execution guard.
-    private static func normalizedFenceCode(_ code: String) -> String {
-        code.hasSuffix("\n") ? String(code.dropLast()) : code
-    }
-
-    static func plainText(_ source: String) -> String {
-        parse(source)
-            .flatMap(plainText)
-            .joined(separator: " ")
-            .split(whereSeparator: \.isWhitespace)
-            .joined(separator: " ")
-    }
-
+extension TermindMarkdownParser {
     /// A one-line AppKit projection for transient tool titles. It applies the
     /// same sanitization as the full transcript renderer, preserves inline
     /// emphasis/code/strikethrough/safe links, and flattens block structure
@@ -392,44 +307,6 @@ nonisolated enum TermindMarkdownParser {
         return result
     }
 
-    private static func plainText(_ block: MarkdownBlockNode) -> [String] {
-        switch block {
-        case .paragraph(let content), .heading(_, let content):
-            [plainText(content)]
-        case .codeBlock(_, let content):
-            [content]
-        case .blockquote(let children):
-            children.flatMap(plainText)
-        case .bulletedList(_, let items), .numberedList(_, _, let items):
-            items.flatMap { $0.children.flatMap(plainText) }
-        case .taskList(_, let items):
-            items.flatMap { $0.children.flatMap(plainText) }
-        case .table(_, let rows):
-            rows.flatMap { row in row.cells.map { plainText($0.content) } }
-        case .thematicBreak:
-            []
-        }
-    }
-
-    private static func plainText(_ inlines: [MarkdownInlineNode]) -> String {
-        inlines.map { inline in
-            switch inline {
-            case .text(let text), .code(let text), .html(let text), .math(let text, _):
-                text
-            case .softBreak, .lineBreak:
-                " "
-            case .emphasis(let children), .strong(let children),
-                .strikethrough(let children), .link(_, let children),
-                .image(_, let children):
-                plainText(children)
-            }
-        }.joined()
-    }
-}
-
-nonisolated enum TermindMarkdownBlockSegment: Equatable, Sendable {
-    case markdown([MarkdownBlockNode])
-    case shell(language: String, command: String)
 }
 
 // MARK: - Rendered document

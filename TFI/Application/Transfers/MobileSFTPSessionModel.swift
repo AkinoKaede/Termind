@@ -19,14 +19,16 @@ final class MobileSFTPSessionModel {
     private(set) var isRefreshing = false
     var sortField: RemoteFileSortField = .name
     var sortDirection: RemoteFileSortDirection = .ascending
+    var showsHiddenFiles = false
 
     var canGoBack: Bool { !backHistory.isEmpty }
     var canGoForward: Bool { !forwardHistory.isEmpty }
     var visibleFiles: [RemoteFile] {
+        let displayable = showsHiddenFiles ? files : files.filter { !$0.isHidden }
         let matches =
             query.isEmpty
-            ? files
-            : files.filter { $0.name.localizedCaseInsensitiveContains(query) }
+            ? displayable
+            : displayable.filter { $0.name.localizedCaseInsensitiveContains(query) }
         let descriptor = RemoteFileSortDescriptor(field: sortField, direction: sortDirection)
         return matches.sorted { descriptor.precedes($0, $1) }
     }

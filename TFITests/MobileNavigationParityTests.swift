@@ -15,25 +15,156 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/Assistant/MobileAssistantView.swift"), encoding: .utf8)
         let transcript = try String(
             contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"), encoding: .utf8)
+        let workRows = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantWorkRow.swift"), encoding: .utf8)
+        let mobileRoot = try String(
+            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         let currentConversationMenu = try #require(
             assistant.components(separatedBy: ".toolbar {").dropFirst().first?
                 .components(separatedBy: ".navigationDestination").first)
+        let titleMenu = try #require(
+            assistant.components(separatedBy: "@ViewBuilder private var conversationTitleMenu").last?
+                .components(separatedBy: "private func titleMenuButton").first)
+        let bottomSurface = try #require(
+            transcript.components(separatedBy: "@ViewBuilder private var bottomSurface").last?
+                .components(separatedBy: "private var archivedNotice").first)
+        let assistantRows = try #require(
+            assistant.components(separatedBy: "private func conversationRow").last?
+                .components(separatedBy: "private func select").first)
+        let workspaceRows = try #require(
+            mobileRoot.components(separatedBy: "@ViewBuilder private var workspaceRows").last?
+                .components(separatedBy: "private func workspaceStatusTint").first)
 
         #expect(assistant.contains(".toolbarTitleMenu"))
+        #expect(assistant.contains("@State private var libraryRoute: MobileAssistantLibraryRoute?"))
+        #expect(assistant.contains(".navigationDestination(item: $libraryRoute)"))
         #expect(assistant.contains("List {"))
         #expect(!assistant.contains("MobileNativeList("))
+        #expect(!assistant.contains(".listStyle(.plain)"))
+        #expect(!assistant.contains(".scrollContentBackground(.hidden)"))
+        #expect(!assistant.contains(".background(Color(uiColor: .systemBackground))"))
+        #expect(!assistant.contains("minHeight: 48"))
+        #expect(!assistantRows.contains("minHeight: 60"))
+        #expect(!assistantRows.contains(".font(.headline)"))
+        #expect(!assistantRows.contains(".lineLimit(2)"))
+        #expect(assistantRows.contains("Text(conversation.derivedTitle).foregroundStyle(.primary).lineLimit(1)"))
+        for layout in [
+            "HStack(spacing: 12)",
+            ".frame(width: 28, height: 28)",
+            "VStack(alignment: .leading, spacing: 2)",
+            "Spacer(minLength: 0)",
+            ".frame(maxWidth: .infinity, alignment: .leading)",
+        ] {
+            #expect(assistantRows.contains(layout))
+            #expect(workspaceRows.contains(layout))
+        }
         #expect(!assistant.contains("geometry.size.width >= 760"))
         #expect(!assistant.contains("MobileAssistantLibrary(model: model, selected: {})"))
         #expect(assistant.contains(".swipeActions(edge: .trailing, allowsFullSwipe: true)"))
         #expect(assistant.contains("Button(\"Archive\", systemImage: \"archivebox\")"))
-        #expect(assistant.contains("Button(\"Unarchive\", systemImage: \"tray.and.arrow.up\")"))
+        #expect(assistant.contains("Button(\"Unarchive\", systemImage: \"arrow.uturn.backward\")"))
         #expect(!assistant.contains("MobileCardIcon(symbol: conversation.isArchived"))
         #expect(assistant.contains(".foregroundStyle(.secondary)"))
-        #expect(!currentConversationMenu.contains("Button(\"Conversations\""))
-        #expect(!currentConversationMenu.contains("Button(\"Archived\""))
+        let conversations = try #require(currentConversationMenu.range(of: "Button(\"Conversations\""))
+        let archived = try #require(currentConversationMenu.range(of: "Button(\"Archived\""))
+        let divider = try #require(currentConversationMenu.range(of: "Divider()"))
+        #expect(conversations.lowerBound < archived.lowerBound)
+        #expect(archived.lowerBound < divider.lowerBound)
+        #expect(!titleMenu.contains("\"New Conversation\""))
+        #expect(!titleMenu.contains("Button(\"Conversations\""))
+        #expect(!titleMenu.contains("Button(\"Archived\""))
         #expect(transcript.contains("MobileNativeList("))
+        #expect(transcript.contains("surface: .plain"))
         #expect(transcript.contains("AssistantTranscriptEntry.items("))
+        #expect(transcript.contains("messageAction(\"Edit\""))
+        #expect(transcript.contains("messageAction(\"Copy\""))
+        #expect(transcript.contains("messageAction(\"Fork\""))
+        #expect(!transcript.contains("Text(\"Assistant\")"))
+        #expect(transcript.contains("AssistantTranscriptPresentationState()"))
+        #expect(transcript.contains("DisclosureGroup(isExpanded: disclosureBinding"))
         #expect(!transcript.contains("LazyVStack"))
+        #expect(workRows.contains("if batch.cards.count == 1, let card = batch.cards.first"))
+        #expect(workRows.contains("defaultExpanded: true"))
+        #expect(workRows.contains("presentation.isExpanded(.toolBatch(batch.id))"))
+        #expect(workRows.contains("presentation.isExpanded(.tool(card.id), default: defaultExpanded)"))
+        #expect(bottomSurface.contains(".background(Color(uiColor: .systemBackground))"))
+        #expect(!bottomSurface.contains(".background(.bar)"))
+    }
+
+    @Test func assistantBlockingInteractionsReplaceTheComposerAndSingleOptionsAdvance() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let conversation = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"), encoding: .utf8)
+        let interaction = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantInteraction.swift"), encoding: .utf8)
+        let bottomSurface = try #require(
+            conversation.components(separatedBy: "@ViewBuilder private var bottomSurface").last?
+                .components(separatedBy: "private var archivedNotice").first)
+        let blockingSurface = try #require(
+            bottomSurface.components(separatedBy: "conversation.pendingUserInteraction != nil {").last?
+                .components(separatedBy: "} else {").first)
+        let composerSurface = try #require(bottomSurface.components(separatedBy: "} else {").last)
+
+        #expect(
+            bottomSurface.contains(
+                "conversation.pendingApproval != nil || conversation.pendingUserInteraction != nil"))
+        #expect(blockingSurface.contains("MobileAssistantInteraction("))
+        #expect(!blockingSurface.contains("MobileAssistantComposer("))
+        #expect(!blockingSurface.contains("taskList"))
+        #expect(blockingSurface.contains(".background(Color(uiColor: .systemBackground))"))
+        #expect(composerSurface.contains("MobileAssistantComposer("))
+        #expect(composerSurface.contains("taskList"))
+        #expect(!composerSurface.contains("MobileAssistantInteraction("))
+        #expect(composerSurface.contains(".background(Color(uiColor: .systemBackground))"))
+        #expect(interaction.contains("conversation.answerUserInputOption(option.id, in: question.id)"))
+        #expect(!interaction.contains("conversation.toggleUserInputOption(option.id, in: question.id)"))
+        #expect(interaction.components(separatedBy: "MobileAssistantAdaptiveHeight {").count == 3)
+        #expect(interaction.contains("ViewThatFits(in: .vertical)"))
+        #expect(interaction.contains(".scrollBounceBehavior(.basedOnSize)"))
+        #expect(interaction.contains(".frame(maxWidth: .infinity, maxHeight: 300, alignment: .topLeading)"))
+        #expect(!interaction.contains(".frame(maxHeight: 160)"))
+    }
+
+    @Test func assistantHoistsComposerFocusAndRestoresItOnlyAcrossRequestedNavigation() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let assistant = try String(
+            contentsOf: root.appending(path: "TFI/Features/Assistant/MobileAssistantView.swift"), encoding: .utf8)
+        let conversation = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"), encoding: .utf8)
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+
+        #expect(assistant.contains("@FocusState private var composerFocused: Bool"))
+        #expect(assistant.contains("restoreComposerFocusAfterLibrary = composerFocused"))
+        #expect(assistant.contains("replaceConversation(preservingComposerFocus: model.newConversation)"))
+        #expect(assistant.contains("replaceConversation { model.select(conversation) }"))
+        #expect(assistant.contains("guard requested, canFocusComposer else { return }"))
+        #expect(assistant.contains("await Task.yield()"))
+        #expect(assistant.contains("composerFocusRequest = nextComposerFocusRequest"))
+        #expect(assistant.contains("composerFocusRequestHandled: composerFocusRequestHandled"))
+        #expect(conversation.contains("onTap: { composerFocus.wrappedValue = false }"))
+        #expect(conversation.contains("focus: composerFocus"))
+        #expect(composer.contains(".focused(activeFocus)"))
+        #expect(composer.contains(".task(id: focusRequest)"))
+        #expect(composer.contains("await Task.yield()"))
+        #expect(composer.contains("guard !Task.isCancelled else { return }"))
+        #expect(composer.contains("activeFocus.wrappedValue = true"))
+        #expect(composer.contains("focusRequestHandled(focusRequest)"))
+    }
+
+    @Test func speechAudioTapDoesNotInheritMainActorIsolation() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFI/Platform/IOSSpeechAudioInput.swift"), encoding: .utf8)
+
+        #expect(source.contains("nonisolated static func makeTapHandler"))
+        #expect(source.contains("block: Self.makeTapHandler"))
     }
 
     @Test func nativeListOmitsSwipeDeletionAndSFTPRowsKeepAlignedMetadataWithoutSeparators() throws {
@@ -62,18 +193,126 @@ struct MobileNavigationParityTests {
         #expect(sftp.contains(".accessibilityHidden(true)"))
     }
 
-    @Test func assistantSlashRowsUseTwoTouchSizedLines() throws {
+    @Test func assistantSlashRowsUseThreeCompactTouchSizedLinesWithEvenVerticalPadding() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let slash = try String(
             contentsOf: root.appending(path: "TFI/Features/AI/MobileSlashCommandPanel.swift"), encoding: .utf8)
 
-        #expect(slash.contains("rowHeight = 88.0"))
-        #expect(slash.contains("headerHeight = 56.0"))
+        #expect(slash.contains("rowHeight = 64.0"))
+        #expect(!slash.contains("headerHeight"))
+        #expect(!slash.contains("private var header"))
+        #expect(!slash.contains("onBack"))
+        #expect(!slash.contains("onClose"))
+        #expect(slash.contains("min(completion.rows.count, 3)"))
+        #expect(slash.contains("HStack(alignment: .center, spacing: 12)"))
+        #expect(!slash.contains("HStack(alignment: .top, spacing: 12)"))
+        #expect(slash.contains(".padding(.vertical, 8)"))
+        #expect(!slash.contains("minHeight: 54"))
+        #expect(!slash.contains("maxHeight: 54"))
         #expect(slash.contains("Text(verbatim: command.summary)"))
         #expect(slash.contains("Text(verbatim: option.detail.isEmpty ? \" \" : option.detail)"))
         #expect(slash.contains(".lineLimit(1).truncationMode(.tail)"))
+    }
+
+    @Test func assistantCompactionMatchesDesktopAndComposerShowsNoInlineErrors() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+        let conversation = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"), encoding: .utf8)
+
+        #expect(composer.contains("\"Attachment Error\""))
+        #expect(composer.contains("get: { composer.attachmentImportError != nil }"))
+        #expect(!composer.contains("if let error = composer.attachmentImportError"))
+        #expect(!composer.contains("conversation.isCompacting { ProgressView"))
+        #expect(!composer.contains("conversation.compactionActivity?.state"))
+
+        #expect(conversation.contains("case .compactionActivity(let activity): compactionActivityRow(activity)"))
+        #expect(conversation.contains("Text(\"Compacting context\")"))
+        #expect(conversation.contains("Text(\"Couldn’t compact context\")"))
+        #expect(
+            conversation.contains(
+                "DisclosureGroup(isExpanded: disclosureBinding(for: .compactionActivity(activity.id)))"))
+        #expect(conversation.contains(".tint(.secondary)"))
+        #expect(conversation.contains("Text(reason)"))
+        #expect(conversation.contains(".font(.caption.monospaced())"))
+        #expect(conversation.contains("ContextBreakdownView.compact(mark.summarizedTokens)"))
+        #expect(conversation.contains("ContextBreakdownView.compact(mark.keptTokens)"))
+        #expect(conversation.contains("systemImage: \"doc.text\""))
+        #expect(conversation.contains("Earlier turns are summarized for the model. Nothing was deleted."))
+    }
+
+    @Test func assistantSeparatesEffectiveModelFromEffortWithoutAnAutomaticChoice() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+
+        #expect(composer.contains("Section(\"Context\")"))
+        #expect(composer.contains("showsTitle: false"))
+        #expect(composer.contains("Section(\"Model\") {\n                    assistantModelPicker"))
+        #expect(composer.contains("Picker(\"Effort\""))
+        #expect(!composer.contains(".pickerStyle(.inline)"))
+        #expect(composer.contains(".navigationTitle(\"Model\")"))
+        #expect(composer.contains("Button(\"Done\", systemImage: \"checkmark\")"))
+        #expect(composer.contains("get: { resolvedModelRef }"))
+        #expect(!composer.contains("Text(\"Automatic\")"))
+        #expect(!composer.contains("private var controls:"))
+        #expect(composer.contains("commands.filter(\\.isShownOnMobile).sorted"))
+        #expect(composer.contains(".onSubmit(submitFromKeyboard)"))
+        #expect(composer.contains(".onKeyPress(.escape"))
+        let badges = try #require(
+            composer.components(separatedBy: "private var badges").last?
+                .components(separatedBy: "private var modelProviders").first)
+        #expect(badges.contains("armedSkillName"))
+        #expect(badges.components(separatedBy: ".labelStyle(.iconOnly)").count == 3)
+        #expect(composer.contains(".symbolRenderingMode(.monochrome)"))
+    }
+
+    @Test func assistantPermissionMenuUsesLeadingCheckmarkAndKeepsItsTriggerVisible() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+        let permissionMenu = try #require(
+            composer.components(separatedBy: "private var permissionMenu").last?
+                .components(separatedBy: "private var resolvedPermissionMode").first)
+
+        #expect(!permissionMenu.contains("Picker("))
+        #expect(permissionMenu.contains("Button(role: mode == .fullAccess ? .destructive : nil)"))
+        #expect(permissionMenu.contains("mode == resolvedPermissionMode ? \"checkmark\" : mode.symbol"))
+        #expect(permissionMenu.contains("Label(\"Permissions\", systemImage: resolvedPermissionMode.symbol)"))
+        #expect(permissionMenu.contains("? AnyShapeStyle(.red) : AnyShapeStyle(.primary)"))
+        #expect(permissionMenu.contains(".labelStyle(.iconOnly)"))
+        #expect(permissionMenu.contains(".fixedSize()"))
+        #expect(permissionMenu.contains(".layoutPriority(1)"))
+        #expect(permissionMenu.contains("conversation.permissionMode = mode"))
+        #expect(permissionMenu.contains("model.configuration.select(mode)"))
+    }
+
+    @Test func assistantAddMenuContainsOnlyOrderedAttachmentSources() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+        let addMenu = try #require(
+            composer.components(separatedBy: "private var addMenu").last?
+                .components(separatedBy: "private var permissionMenu").first)
+
+        let camera = try #require(addMenu.range(of: "Button(\"Camera\""))
+        let photos = try #require(addMenu.range(of: "Button(\"Photos\""))
+        let files = try #require(addMenu.range(of: "Button(\"Files\""))
+        #expect(camera.lowerBound < photos.lowerBound)
+        #expect(photos.lowerBound < files.lowerBound)
+        #expect(!addMenu.contains("Voice Input"))
+        #expect(!addMenu.contains("Divider()"))
     }
 
     @Test func vaultReplacesWelcomeAndMetricsRemainsBelowItOnIPad() {
@@ -213,12 +452,39 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"),
             encoding: .utf8
         )
+        let workspaceView = try #require(
+            workspace.components(separatedBy: "struct MobileWorkspaceView: View").last
+        )
+        let rootSurface = try #require(
+            workspaceView.components(separatedBy: "var body: some View").dropFirst().first?
+                .components(separatedBy: "private var workspaceChrome").first
+        )
 
         #expect(workspace.contains("Button(\"Generate Command\", systemImage: \"sparkles\")"))
         #expect(workspace.contains(".keyboardShortcut(\"i\", modifiers: .command)"))
-        #expect(workspace.contains(".dropDestination(for: URL.self)"))
+        #expect(rootSurface.contains("of: [.fileURL]"))
+        #expect(rootSurface.contains("perform: receiveUploadProviders"))
+        #expect(rootSurface.contains("DropTargetOverlay(presentation: uploadDropPresentation)"))
         #expect(workspace.contains("allowedContentTypes: [.data, .folder]"))
         #expect(workspace.contains("allowsMultipleSelection: true"))
+    }
+
+    @Test func assistantConversationAcceptsFilesAndImagesAcrossItsWholeSurface() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let conversation = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"),
+            encoding: .utf8
+        )
+
+        #expect(conversation.contains(".mobileConversationAttachmentDropTarget("))
+        #expect(conversation.contains("of: [.fileURL, .image]"))
+        #expect(conversation.contains("MobileDropPayloadLoader.load"))
+        #expect(conversation.contains("DropTargetOverlay("))
+        #expect(conversation.contains("!conversation.isArchived"))
+        #expect(conversation.contains("conversation.pendingApproval == nil"))
+        #expect(conversation.contains("conversation.pendingUserInteraction == nil"))
     }
 
     @Test func knownHostsExposeAlignedCardActionsAndEditing() throws {
@@ -321,12 +587,17 @@ struct MobileNavigationParityTests {
         let newFolder = try #require(sftpGroups[1].range(of: "Button(\"New Folder\""))
         let paste = try #require(sftpGroups[1].range(of: "Button(\"Paste\""))
         let sort = try #require(sftpGroups[1].range(of: "sortMenu"))
+        let hiddenFiles = try #require(
+            sftpGroups[1].range(of: "if workspace.sftpSession.showsHiddenFiles"))
         let refresh = try #require(sftpGroups[1].range(of: "Button(\"Refresh\""))
         #expect(!sftpGroups[1].contains("Parent Directory"))
+        #expect(sftpGroups[1].contains("Button(\"Hide Hidden Files\", systemImage: \"eye.slash\")"))
+        #expect(sftpGroups[1].contains("Button(\"Show Hidden Files\", systemImage: \"eye\")"))
         #expect(upload.lowerBound < newFolder.lowerBound)
         #expect(newFolder.lowerBound < paste.lowerBound)
         #expect(paste.lowerBound < sort.lowerBound)
-        #expect(sort.lowerBound < refresh.lowerBound)
+        #expect(sort.lowerBound < hiddenFiles.lowerBound)
+        #expect(hiddenFiles.lowerBound < refresh.lowerBound)
         let sftpSameDirectory = try #require(sftpGroups[2].range(of: "sameDirectoryMenuAction"))
         let sftpRename = try #require(sftpGroups[2].range(of: "Button(\"Rename\""))
         let sftpClose = try #require(sftpGroups[2].range(of: "Button(\"Close\""))

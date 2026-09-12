@@ -107,67 +107,6 @@ struct TranscriptListUpdatePlanTests {
 @Suite
 struct TranscriptPresentationStateTests {
     @Test
-    func aReaderToggleSurvivesDefaultStateTransitions() {
-        let id = UUID()
-        let state = TranscriptPresentationState()
-
-        #expect(state.isExpanded(id, default: true))
-        state.toggleDisclosure(id, default: true)
-        #expect(!state.isExpanded(id, default: true))
-        #expect(state.readerDidToggle(id))
-
-        state.followDefault(true, for: id)
-        #expect(!state.isExpanded(id, default: true))
-    }
-
-    @Test
-    func untouchedDisclosureFollowsItsRuntimeDefault() {
-        let id = UUID()
-        let state = TranscriptPresentationState()
-
-        state.followDefault(true, for: id)
-        #expect(state.isExpanded(id))
-        #expect(!state.readerDidToggle(id))
-    }
-
-    @Test
-    func deferredAutoCollapseWaitsForTheCoordinatorAndRespectsReaderOverride() {
-        let id = UUID()
-        let state = TranscriptPresentationState()
-
-        state.deferAutoCollapse(id)
-        #expect(state.isExpanded(id))
-        #expect(state.hasPendingAutoCollapse(id))
-        #expect(state.completeAutoCollapse(id))
-        #expect(!state.isExpanded(id))
-
-        state.deferAutoCollapse(id)
-        state.toggleDisclosure(id, default: true)
-        #expect(!state.hasPendingAutoCollapse(id))
-        #expect(!state.completeAutoCollapse(id))
-    }
-
-    @Test
-    func reasoningDeadlineIsAbsoluteAndNewMarkdownResetsIt() {
-        let id = UUID()
-        let state = TranscriptPresentationState()
-        let start = Date(timeIntervalSince1970: 1_000)
-
-        let first = state.reasoningTitleDeadline(
-            for: id, revision: "first", now: start
-        )
-        #expect(first == start.addingTimeInterval(3))
-        #expect(
-            state.reasoningTitleDeadline(
-                for: id, revision: "first", now: start.addingTimeInterval(2)
-            ) == first)
-        #expect(
-            state.reasoningTitleDeadline(
-                for: id, revision: "second", now: start.addingTimeInterval(2)
-            ) == start.addingTimeInterval(5))
-    }
-
-    @Test
     func messageDraftSurvivesRowRecyclingAndCanBePruned() {
         let id = UUID()
         let state = TranscriptPresentationState()
@@ -390,8 +329,8 @@ struct TranscriptListViewBridgeTests {
             presentation: presentation
         )
 
-        #expect(presentation.isExpanded(id))
-        #expect(presentation.hasPendingAutoCollapse(id))
+        #expect(presentation.disclosures.isExpanded(.work(id)))
+        #expect(presentation.disclosures.hasPendingAutoCollapse(id))
 
         let expandedFrame = listView.rectForRow(with: id)
         listView.setContentOffset(
@@ -400,7 +339,7 @@ struct TranscriptListViewBridgeTests {
         )
         listView.layoutSubtreeIfNeeded()
         await Task.yield()
-        #expect(presentation.isExpanded(id), "one visible point must defer collapse")
+        #expect(presentation.disclosures.isExpanded(.work(id)), "one visible point must defer collapse")
 
         listView.setContentOffset(
             CGPoint(x: 0, y: listView.maximumContentOffset.y),
@@ -409,8 +348,8 @@ struct TranscriptListViewBridgeTests {
         listView.layoutSubtreeIfNeeded()
         await Task.yield()
 
-        #expect(!presentation.isExpanded(id))
-        #expect(!presentation.hasPendingAutoCollapse(id))
+        #expect(!presentation.disclosures.isExpanded(.work(id)))
+        #expect(!presentation.disclosures.hasPendingAutoCollapse(id))
     }
 
     @Test
@@ -1085,7 +1024,7 @@ struct TranscriptListViewBridgeTests {
         listView.layoutSubtreeIfNeeded()
         let collapsedHeight = listView.rectForRow(with: plan.id).height
 
-        presentation.toggleDisclosure(plan.id)
+        presentation.disclosures.toggleDisclosure(.plan(plan.id))
         coordinator.refreshDisplayedRow(plan.id, in: listView)
         listView.layoutSubtreeIfNeeded()
 

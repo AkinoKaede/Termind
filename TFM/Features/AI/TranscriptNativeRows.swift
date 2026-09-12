@@ -6,6 +6,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
+import TermindRemoteInfrastructure
 
 @MainActor
 final class TranscriptMarkdownCache {
@@ -746,9 +747,14 @@ private enum NativeTranscriptFactory {
         return view
     }
 
-    private static func tool(_ card: AgentToolCard, context: NativeTranscriptContext) -> NSView {
+    private static func tool(
+        _ card: AgentToolCard,
+        defaultExpanded: Bool = false,
+        context: NativeTranscriptContext
+    ) -> NSView {
         let stack = NativeStack.vertical()
-        let expanded = context.presentation.isExpanded(card.id)
+        let disclosureID = AssistantTranscriptDisclosureID.tool(card.id)
+        let expanded = context.presentation.disclosures.isExpanded(disclosureID, default: defaultExpanded)
         let host = card.invocation.targetHostID.flatMap(context.actions.hostName)
         let title = AgentToolPresentation.summary(
             for: card,
@@ -770,7 +776,7 @@ private enum NativeTranscriptFactory {
         header.alphaValue = card.state == .interrupted ? 0.5 : 1
         header.toolTip = expanded ? String(localized: "Hide details") : String(localized: "Show details")
         header.handler = {
-            context.presentation.toggleDisclosure(card.id)
+            context.presentation.disclosures.toggleDisclosure(disclosureID, default: defaultExpanded)
             context.invalidate(context.entryID, false)
         }
         stack.addArrangedSubview(header)
@@ -792,7 +798,7 @@ private enum NativeTranscriptFactory {
                     ))
             }
             if let projected = AgentToolPresentation.detail(
-                for: card,
+                for: card, presenter: TermindAgentTools.presenter(for: card.descriptor),
                 locale: context.configuration.locale
             ) {
                 for item in projected.items {
@@ -821,7 +827,7 @@ private enum NativeTranscriptFactory {
             appearsAfterAnswer: group.appearsAfterAnswer,
             isCompact: context.configuration.isCompact
         )
-        let expanded = context.presentation.isExpanded(group.id, default: defaultExpanded)
+        let expanded = context.presentation.disclosures.isExpanded(.work(group.id), default: defaultExpanded)
         let titleProvider = {
             AgentWorkPresentation.title(
                 for: group.run.state,
@@ -842,7 +848,7 @@ private enum NativeTranscriptFactory {
         )
         header.toolTip = expanded ? String(localized: "Hide work") : String(localized: "Show work")
         header.handler = {
-            context.presentation.toggleDisclosure(group.id, default: defaultExpanded)
+            context.presentation.disclosures.toggleDisclosure(.work(group.id), default: defaultExpanded)
             context.invalidate(context.entryID, false)
         }
         stack.addArrangedSubview(header)
@@ -900,8 +906,12 @@ private enum NativeTranscriptFactory {
         _ batch: AgentToolBatch,
         context: NativeTranscriptContext
     ) -> NSView {
+        if batch.cards.count == 1, let card = batch.cards.first {
+            return tool(card, defaultExpanded: true, context: context)
+        }
         let stack = NativeStack.vertical(spacing: Metrics.Space.s)
-        let expanded = context.presentation.isExpanded(batch.id)
+        let disclosureID = AssistantTranscriptDisclosureID.toolBatch(batch.id)
+        let expanded = context.presentation.disclosures.isExpanded(disclosureID)
         let unfinished = batch.cards.filter { !$0.state.isTerminal }
         let fallbackTitle: String
         if unfinished.isEmpty {
@@ -922,7 +932,7 @@ private enum NativeTranscriptFactory {
         let reasoningDeadline = transientReasoning.flatMap { reasoning in
             context.measurement
                 ? nil
-                : context.presentation.reasoningTitleDeadline(
+                : context.presentation.disclosures.reasoningTitleDeadline(
                     for: batch.id,
                     revision: reasoning.revision
                 )
@@ -942,7 +952,7 @@ private enum NativeTranscriptFactory {
         )
         header.toolTip = expanded ? String(localized: "Hide tools") : String(localized: "Show tools")
         header.handler = {
-            context.presentation.toggleDisclosure(batch.id)
+            context.presentation.disclosures.toggleDisclosure(disclosureID)
             context.invalidate(context.entryID, false)
         }
         stack.addArrangedSubview(header)
@@ -973,7 +983,7 @@ private enum NativeTranscriptFactory {
             right: Metrics.Space.l
         )
         container.setContent(stack)
-        let expanded = context.presentation.isExpanded(card.id)
+        let expanded = context.presentation.disclosures.isExpanded(.plan(card.id))
         let symbol: String
         let tint: NSColor
         let outcome: String?
@@ -1005,7 +1015,7 @@ private enum NativeTranscriptFactory {
         )
         header.toolTip = expanded ? String(localized: "Hide the plan") : String(localized: "Show the plan")
         header.handler = {
-            context.presentation.toggleDisclosure(card.id)
+            context.presentation.disclosures.toggleDisclosure(.plan(card.id))
             context.invalidate(context.entryID, false)
         }
         stack.addArrangedSubview(header)
@@ -1027,7 +1037,7 @@ private enum NativeTranscriptFactory {
         let preview = NativePlanPreview(content: body, expanded: expanded)
         preview.handler = {
             guard !expanded else { return }
-            context.presentation.toggleDisclosure(card.id)
+            context.presentation.disclosures.toggleDisclosure(.plan(card.id))
             context.invalidate(context.entryID, false)
         }
         indented.addArrangedSubview(preview)
@@ -1087,7 +1097,7 @@ private enum NativeTranscriptFactory {
             failure == nil
             ? String(localized: "Compacting context")
             : String(localized: "Couldn’t compact context")
-        let expanded = context.presentation.isExpanded(activity.id)
+        let expanded = context.presentation.disclosures.isExpanded(.compactionActivity(activity.id))
         let header = NativeDisclosureHeader(
             symbol: failure == nil ? "doc.text.magnifyingglass" : "exclamationmark.triangle",
             title: title,
@@ -1105,7 +1115,7 @@ private enum NativeTranscriptFactory {
             : String(localized: "Show failure details")
         header.handler = {
             guard failure != nil else { return }
-            context.presentation.toggleDisclosure(activity.id)
+            context.presentation.disclosures.toggleDisclosure(.compactionActivity(activity.id))
             context.invalidate(context.entryID, false)
         }
         stack.addArrangedSubview(header)
@@ -1485,12 +1495,7 @@ private enum NativeTranscriptFactory {
     }
 
     private static func toolColor(_ state: AgentToolCard.State) -> NSColor {
-        switch state {
-        case .denied, .failed: .systemRed
-        case .reviewing, .waitingForApproval, .waitingForUser: .systemOrange
-        case .completed: .systemGreen
-        default: .secondaryLabelColor
-        }
+        batchColor(AgentToolPresentation.tint(for: state))
     }
 
     private static func batchColor(_ tint: AgentToolPresentation.BatchTint) -> NSColor {
@@ -2551,7 +2556,7 @@ private final class NativeActivityLabel: NativeLabel {
         guard !measurement, !reduceMotion else { return }
         if alternatives.count > 1 {
             timer = Timer.scheduledTimer(
-                timeInterval: 2.8,
+                timeInterval: AssistantTranscriptStyle.activityTextDuration,
                 target: self,
                 selector: #selector(advanceText),
                 userInfo: nil,
@@ -2609,9 +2614,9 @@ private nonisolated final class NativeScanningMaskLayer: CALayer {
         context.setFillColor(CGColor(gray: 1, alpha: 1))
         context.fill(bounds)
 
-        let bandWidth = min(max(bounds.width * 0.32, 40), 96)
+        let bandWidth = AssistantTranscriptStyle.scanBandWidth(for: bounds.width)
         let origin = -bandWidth + (bounds.width + bandWidth) * progress
-        let alphas: [CGFloat] = [0, 0.34, 0.82, 1, 0.82, 0.34, 0]
+        let alphas = AssistantTranscriptStyle.scanAlphas.map { CGFloat($0) }
         guard
             let gradient = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
@@ -2643,7 +2648,7 @@ private func installNativeScanningMask(on view: NSView) {
     let animation = CABasicAnimation(keyPath: #keyPath(NativeScanningMaskLayer.progress))
     animation.fromValue = 0
     animation.toValue = 1
-    animation.duration = 1.55
+    animation.duration = AssistantTranscriptStyle.scanDuration
     animation.repeatCount = .infinity
     animation.timingFunction = CAMediaTimingFunction(name: .linear)
     mask.add(animation, forKey: "scan")

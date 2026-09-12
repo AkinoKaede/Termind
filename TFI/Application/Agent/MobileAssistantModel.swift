@@ -102,7 +102,7 @@ final class MobileAssistantModel {
 
     func newConversation() {
         speech.cancelAll()
-        _ = library.selectNewConversation()
+        _ = library.resetDraftConversation()
         configure(conversation)
     }
 
@@ -116,8 +116,13 @@ final class MobileAssistantModel {
             return
         }
         guard conversation.canSendDraft else { return }
-        _ = library.startConversation(conversation)
-        execution.sendAgentDraft(conversation)
+        if library.selectedConversation == nil {
+            guard let started = library.startDraftConversation() else { return }
+            configure(library.draftConversation)
+            execution.startAgentRun(started)
+        } else {
+            execution.sendAgentDraft(conversation)
+        }
     }
 
     func stop() { for conversation in store.conversations { conversation.stop() } }
@@ -141,9 +146,13 @@ final class MobileAssistantModel {
 
     func waitForSuspension() async { await suspensionTask?.value }
 
-    func selectModel(_ value: AIModelRef?) {
+    func selectModel(_ value: AIModelRef) {
+        guard let resolved = configuration.lookup(value) else { return }
         conversation.model = value
-        if let value { configuration.select(value) }
+        configuration.select(value)
+        conversation.reasoningEffort = ModelCapabilityResolver.reasoning(
+            model: resolved.model, provider: resolved.provider
+        ).clamp(conversation.reasoningEffort)
     }
 
     func archive(_ conversation: ConversationModel, archived: Bool) async {
@@ -167,6 +176,7 @@ final class MobileAssistantModel {
             let result = try await operations.delete(conversation)
             guard result.deleted else { return }
             library.delete(conversation.id)
+            if library.selectedConversation == nil { _ = library.resetDraftConversation() }
             configure(self.conversation)
             if let cleanupError = result.cleanupError { error = cleanupError }
         }

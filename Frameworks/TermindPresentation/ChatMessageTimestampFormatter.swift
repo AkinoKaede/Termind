@@ -1,8 +1,8 @@
 import Foundation
 import TermindApplication
 
-nonisolated enum ChatMessageTimestampFormatter {
-    static func string(
+nonisolated public enum ChatMessageTimestampFormatter {
+    public static func string(
         for date: Date,
         now: Date = .now,
         calendar: Calendar = .autoupdatingCurrent,

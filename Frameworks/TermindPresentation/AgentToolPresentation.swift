@@ -1,33 +1,32 @@
 import AgentKit
 import Foundation
 import TermindApplication
-import TermindRemoteInfrastructure
 
 /// Turns tool protocol data into the small amount of language the transcript needs.
 /// Execution, approval and replay continue to use the original call and result unchanged.
-nonisolated enum AgentToolPresentation {
-    enum BatchTint: Equatable {
+nonisolated public enum AgentToolPresentation {
+    public enum BatchTint: Equatable, Sendable {
         case secondary, warning, success, failure
     }
 
-    static let displayCharacterLimit = 8_192
-    static let displayLineLimit = 120
+    public static let displayCharacterLimit = 8_192
+    public static let displayLineLimit = 120
 
-    nonisolated struct OutputPreview: Equatable, Sendable {
-        let displayed: String
-        let full: String
-        let isShortened: Bool
-        let omittedCharacters: Int
+    nonisolated public struct OutputPreview: Equatable, Sendable {
+        public let displayed: String
+        public let full: String
+        public let isShortened: Bool
+        public let omittedCharacters: Int
     }
 
-    static func symbol(for card: AgentToolCard) -> String {
+    public static func symbol(for card: AgentToolCard) -> String {
         return card.descriptor.presentation?.symbol ?? "wrench.and.screwdriver"
     }
 
     /// While work is live, use the icon of the tool(s) still in flight. After
     /// completion, a homogeneous batch keeps its tool icon; mixed batches use
     /// the generic tools symbol.
-    static func batchSymbol(for cards: [AgentToolCard]) -> String {
+    public static func batchSymbol(for cards: [AgentToolCard]) -> String {
         let unfinished = cards.filter { !$0.state.isTerminal }
         if let live = unfinished.first { return symbol(for: live) }
         guard let first = cards.first else { return "wrench.and.screwdriver" }
@@ -36,7 +35,7 @@ nonisolated enum AgentToolPresentation {
             ? symbol(for: first) : "wrench.and.screwdriver"
     }
 
-    static func batchTint(for cards: [AgentToolCard]) -> BatchTint {
+    public static func batchTint(for cards: [AgentToolCard]) -> BatchTint {
         if let live = cards.first(where: { !$0.state.isTerminal }) {
             return tint(for: live.state)
         }
@@ -52,11 +51,11 @@ nonisolated enum AgentToolPresentation {
     /// Converts provider-authored Markdown into the one-line prose a tool
     /// batch header can accommodate. Structure and emphasis remain available
     /// in the live reasoning row; here only the visible words are reused.
-    static func reasoningTitle(from markdown: String) -> String {
+    public static func reasoningTitle(from markdown: String) -> String {
         TermindMarkdownParser.plainText(markdown)
     }
 
-    static func summary(
+    public static func summary(
         for card: AgentToolCard,
         hostName: String? = nil,
         locale: Locale = .current
@@ -123,7 +122,7 @@ nonisolated enum AgentToolPresentation {
     /// metadata as its individual rows but with repeated activities counted.
     /// Calls in different terminal states stay separate, so one failure can
     /// never be rewritten as a successful action by the batch title.
-    static func batchSummary(
+    public static func batchSummary(
         for cards: [AgentToolCard], locale: Locale = .current
     ) -> String {
         struct Key: Hashable {
@@ -149,7 +148,7 @@ nonisolated enum AgentToolPresentation {
             .joined(separator: ", ")
     }
 
-    static func output(from result: AgentToolResult, presentation: AgentToolDescriptor.Presentation?) -> String {
+    public static func output(from result: AgentToolResult, presentation: AgentToolDescriptor.Presentation?) -> String {
         let raw = result.untrustedPayload ?? result.content
         return output(raw, policy: presentation?.output ?? .automatic)
     }
@@ -158,7 +157,7 @@ nonisolated enum AgentToolPresentation {
     /// in the tool result: people need the former and the model must receive
     /// the latter. The transcript, however, should not print identical text
     /// twice. Distinct execution failures remain visible below the review.
-    static func detailOutput(
+    public static func detailOutput(
         from result: AgentToolResult,
         presentation: AgentToolDescriptor.Presentation?,
         review: SecurityReviewDecision?
@@ -173,8 +172,8 @@ nonisolated enum AgentToolPresentation {
     /// Projects protocol-shaped tool results into transcript-shaped content.
     /// The model and persistence keep the original JSON; only this projection
     /// is allowed to decide what a person sees.
-    static func detail(
-        for card: AgentToolCard, locale: Locale = .current
+    public static func detail(
+        for card: AgentToolCard, presenter: AgentToolDetailPresenter? = nil, locale: Locale = .current
     ) -> AgentToolDetail? {
         guard let result = card.result else { return nil }
 
@@ -206,14 +205,6 @@ nonisolated enum AgentToolPresentation {
             ])
         }
 
-        let presenter: AgentToolDetailPresenter?
-        if let id = card.descriptor.presentation?.presenterID {
-            presenter = TermindAgentTools.presenter(id: id)
-        } else {
-            presenter = TermindAgentTools.legacyPresenter(
-                forToolNamed: card.descriptor.name
-            )
-        }
         guard let presenter else {
             return AgentToolDetail(
                 items: AgentToolDetailFormatting.genericItems(value, locale: locale)
@@ -230,7 +221,7 @@ nonisolated enum AgentToolPresentation {
 
     /// A bounded rendering projection. The full transformed output stays beside
     /// it for Copy, while the Text view only receives the small preview.
-    static func preview(
+    public static func preview(
         _ full: String,
         characterLimit: Int = displayCharacterLimit,
         lineLimit: Int = displayLineLimit
@@ -1058,7 +1049,7 @@ nonisolated enum AgentToolPresentation {
         return first.lowercased() + String(text.dropFirst())
     }
 
-    private static func tint(for state: AgentToolCard.State) -> BatchTint {
+    public static func tint(for state: AgentToolCard.State) -> BatchTint {
         switch state {
         case .denied, .failed: .failure
         case .reviewing, .waitingForApproval, .waitingForUser: .warning

@@ -14,29 +14,22 @@ struct MobileSlashCommandPanel: View {
     var hasOptions: (ChatSlashCommand) -> Bool
     var trailingText: (ChatSlashCommandCompletion.Row) -> String?
     var isCurrent: (ChatSlashCommandCompletion.Row) -> Bool
-    var onBack: () -> Void
-    var onClose: () -> Void
     var onSelect: (ChatSlashCommandCompletion.Row) -> Void
 
-    @ScaledMetric(relativeTo: .body) private var rowHeight = 88.0
-    @ScaledMetric(relativeTo: .callout) private var headerHeight = 56.0
+    @ScaledMetric(relativeTo: .body) private var rowHeight = 64.0
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(completion.rows.enumerated()), id: \.element.id) { index, row in
-                        rowButton(row)
-                        if index < completion.rows.count - 1 {
-                            Divider().padding(.leading, 52)
-                        }
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(completion.rows.enumerated()), id: \.element.id) { index, row in
+                    rowButton(row)
+                    if index < completion.rows.count - 1 {
+                        Divider().padding(.leading, 52)
                     }
                 }
             }
-            .scrollIndicators(.visible)
         }
+        .scrollIndicators(.visible)
         .frame(height: panelHeight)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
@@ -48,55 +41,15 @@ struct MobileSlashCommandPanel: View {
         .accessibilityLabel(Text("Commands"))
     }
 
-    private var optionCommand: ChatSlashCommand? {
-        guard case .option(let command, _) = completion.rows.first else { return nil }
-        return command
-    }
-
     private var panelHeight: CGFloat {
-        min(440, headerHeight + rowHeight * CGFloat(completion.rows.count))
-    }
-
-    private var header: some View {
-        HStack(spacing: 8) {
-            if let optionCommand {
-                Button(action: onBack) {
-                    Label("Back", systemImage: "chevron.left")
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 48, height: 48)
-                        .contentShape(.rect)
-                }
-                .accessibilityLabel(Text("Back"))
-
-                Text(optionCommand.displayName)
-                    .font(.headline)
-                    .lineLimit(1)
-            } else {
-                Label("Commands", systemImage: "slash.circle")
-                    .font(.headline)
-            }
-
-            Spacer(minLength: 8)
-
-            Button(action: onClose) {
-                Label("Close", systemImage: "xmark")
-                    .labelStyle(.iconOnly)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 48, height: 48)
-                    .contentShape(.rect)
-            }
-            .accessibilityLabel(Text("Close"))
-        }
-        .padding(.horizontal, 8)
-        .frame(minHeight: headerHeight)
+        rowHeight * CGFloat(min(completion.rows.count, 3))
     }
 
     private func rowButton(_ row: ChatSlashCommandCompletion.Row) -> some View {
         Button {
             onSelect(row)
         } label: {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 commandIcon(for: row)
                     .frame(width: 28, height: 28)
 
@@ -139,7 +92,7 @@ struct MobileSlashCommandPanel: View {
                     .font(.subheadline).foregroundStyle(Color.primary.opacity(0.62))
                     .lineLimit(1).truncationMode(.tail)
             }
-            .frame(maxWidth: .infinity, minHeight: 54, maxHeight: 54, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         case .option(_, let option):
             VStack(alignment: .leading, spacing: 5) {
                 Text(verbatim: option.label).font(.callout.weight(.medium)).lineLimit(1)
@@ -147,7 +100,7 @@ struct MobileSlashCommandPanel: View {
                     .font(.subheadline).foregroundStyle(Color.primary.opacity(0.62))
                     .lineLimit(1).truncationMode(.tail)
             }
-            .frame(maxWidth: .infinity, minHeight: 54, maxHeight: 54, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

@@ -94,18 +94,25 @@ public struct ContextBreakdownView: View {
     /// providers. The parts still mean something; the share does not.
     public let contextWindow: Int?
     public let cachedInputTokens: Int
+    public let showsTitle: Bool
 
-    public init(estimate: AgentContextEstimate, contextWindow: Int?, cachedInputTokens: Int) {
+    public init(
+        estimate: AgentContextEstimate, contextWindow: Int?, cachedInputTokens: Int,
+        showsTitle: Bool = true
+    ) {
         self.estimate = estimate
         self.contextWindow = contextWindow
         self.cachedInputTokens = cachedInputTokens
+        self.showsTitle = showsTitle
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Context")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+            if showsTitle {
+                Text("Context")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
 
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 HStack(alignment: .firstTextBaseline, spacing: 16) {

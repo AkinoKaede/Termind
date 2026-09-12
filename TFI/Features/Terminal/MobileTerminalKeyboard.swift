@@ -36,6 +36,9 @@ struct MobileTerminalKeyboard: View {
                     key("End", systemImage: "arrow.down.to.line.compact", .end)
                     key("Page Up", systemImage: "arrowtriangle.up.square", .pageUp)
                     key("Page Down", systemImage: "arrowtriangle.down.square", .pageDown)
+                    ForEach(MobileTerminalControlShortcut.allCases) { shortcut in
+                        controlShortcut(shortcut)
+                    }
                 }
                 .padding(.leading, 8)
             }
@@ -158,6 +161,41 @@ struct MobileTerminalKeyboard: View {
                 .labelStyle(.iconOnly)
                 .frame(width: 44, height: 44)
                 .contentShape(.rect)
+        }
+    }
+
+    private func controlShortcut(_ shortcut: MobileTerminalControlShortcut) -> some View {
+        Button {
+            _ = state.attachedPlatformView?.sendKey(shortcut.keyPress)
+        } label: {
+            Text(verbatim: shortcut.label)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+        }
+        .accessibilityLabel(Text("Control") + Text(verbatim: " \(shortcut.letter)"))
+    }
+}
+
+nonisolated enum MobileTerminalControlShortcut: String, CaseIterable, Identifiable {
+    case c = "C"
+    case i = "I"
+    case s = "S"
+    case z = "Z"
+
+    var id: Self { self }
+    var letter: String { rawValue }
+    var label: String { "^\(letter)" }
+
+    var keyPress: TerminalKeyPress {
+        TerminalKeyPress(key, modifiers: .ctrl)
+    }
+
+    private var key: TerminalKey {
+        switch self {
+        case .c: .c
+        case .i: .i
+        case .s: .s
+        case .z: .z
         }
     }
 }

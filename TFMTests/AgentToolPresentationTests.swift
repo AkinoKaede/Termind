@@ -52,7 +52,8 @@ struct AgentToolPresentationTests {
             ]).encodedString
         )
 
-        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let detail = try #require(
+            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
         #expect(
             detail.items == [
                 .field(.init(label: "Question", value: "Storage — Which format should we use?")),
@@ -103,7 +104,8 @@ struct AgentToolPresentationTests {
         card.state = .completed
         card.result = AgentToolResult(callID: "call", content: result.encodedString)
 
-        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let detail = try #require(
+            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
         guard case .groupedList(let listing) = try #require(detail.items.first) else {
             Issue.record("Expected a grouped host listing")
             return
@@ -142,7 +144,8 @@ struct AgentToolPresentationTests {
             ]).encodedString
         )
 
-        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let detail = try #require(
+            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
         guard case .groupedList(let listing) = try #require(detail.items.first) else {
             Issue.record("Expected a grouped host listing")
             return
@@ -158,7 +161,8 @@ struct AgentToolPresentationTests {
         ]).encodedString
         var builtIn = makeCard(name: "future_tool", target: .local)
         builtIn.result = AgentToolResult(callID: "call", content: payload)
-        let builtInDetail = try #require(AgentToolPresentation.detail(for: builtIn))
+        let builtInDetail = try #require(
+            AgentToolPresentation.detail(for: builtIn, presenter: TermindAgentTools.presenter(for: builtIn.descriptor)))
         #expect(
             builtInDetail.items == [
                 .field(.init(label: "Count", value: "2")),
@@ -173,7 +177,8 @@ struct AgentToolPresentationTests {
             )
         )
         mcp.result = AgentToolResult(callID: "call", content: payload)
-        let mcpDetail = try #require(AgentToolPresentation.detail(for: mcp))
+        let mcpDetail = try #require(
+            AgentToolPresentation.detail(for: mcp, presenter: TermindAgentTools.presenter(for: mcp.descriptor)))
         guard case .text(let block) = try #require(mcpDetail.items.first) else {
             Issue.record("Expected MCP JSON text")
             return
@@ -198,7 +203,8 @@ struct AgentToolPresentationTests {
             ]).encodedString
         )
 
-        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let detail = try #require(
+            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
         #expect(
             detail.items == [
                 .field(.init(label: "Status", value: "200")),
@@ -390,7 +396,9 @@ struct AgentToolPresentationTests {
         for (name, target, arguments, result) in cases {
             var card = makeCard(name: name, target: target, arguments: arguments)
             card.result = AgentToolResult(callID: "call", content: result.encodedString)
-            let detail = try #require(AgentToolPresentation.detail(for: card), "Missing \(name)")
+            let detail = try #require(
+                AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)),
+                "Missing \(name)")
             let rendered = String(describing: detail)
             #expect(!rendered.contains("{"), "\(name) exposed JSON")
             #expect(!rendered.contains("}"), "\(name) exposed JSON")
@@ -422,7 +430,8 @@ struct AgentToolPresentationTests {
             ]).encodedString
         )
 
-        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let detail = try #require(
+            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
         let rendered = String(describing: detail)
         #expect(!rendered.contains("{"))
         #expect(!rendered.contains("}"))
@@ -458,7 +467,8 @@ struct AgentToolPresentationTests {
             ]).encodedString
         )
 
-        let detail = try #require(AgentToolPresentation.detail(for: card))
+        let detail = try #require(
+            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
         let rendered = String(describing: detail)
         #expect(rendered.contains("nginx.conf:12"))
         #expect(rendered.contains("listen 443 ssl;"))
@@ -622,11 +632,10 @@ struct AgentToolPresentationTests {
         let full = "one\ntwo\nthree"
         let preview = AgentToolPresentation.preview(full)
 
-        #expect(
-            preview
-                == .init(
-                    displayed: full, full: full, isShortened: false, omittedCharacters: 0
-                ))
+        #expect(preview.displayed == full)
+        #expect(preview.full == full)
+        #expect(!preview.isShortened)
+        #expect(preview.omittedCharacters == 0)
     }
 
     @Test
@@ -693,8 +702,12 @@ struct AgentToolPresentationTests {
         legacy.descriptor.presentation = nil
 
         #expect(
-            AgentToolPresentation.detail(for: restored, locale: Locale(identifier: "en"))
-                == AgentToolPresentation.detail(for: legacy, locale: Locale(identifier: "en"))
+            AgentToolPresentation.detail(
+                for: restored, presenter: TermindAgentTools.presenter(for: restored.descriptor),
+                locale: Locale(identifier: "en"))
+                == AgentToolPresentation.detail(
+                    for: legacy, presenter: TermindAgentTools.presenter(for: legacy.descriptor),
+                    locale: Locale(identifier: "en"))
         )
     }
 

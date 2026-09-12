@@ -130,6 +130,18 @@ struct MobileWorkspaceTests {
 
 @Suite
 struct MobileTerminalShiftStateTests {
+    @Test func controlShortcutsPreserveOrderAndKeyPresses() {
+        #expect(MobileTerminalControlShortcut.allCases.map(\.label) == ["^C", "^I", "^S", "^Z"])
+        #expect(
+            MobileTerminalControlShortcut.allCases.map(\.keyPress)
+                == [
+                    TerminalKeyPress(.c, modifiers: .ctrl),
+                    TerminalKeyPress(.i, modifiers: .ctrl),
+                    TerminalKeyPress(.s, modifiers: .ctrl),
+                    TerminalKeyPress(.z, modifiers: .ctrl),
+                ])
+    }
+
     @Test func armedShiftAppliesOnce() {
         var state = MobileTerminalShiftState()
         state.toggle(at: Date(timeIntervalSince1970: 1))

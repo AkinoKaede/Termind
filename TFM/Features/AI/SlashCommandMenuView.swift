@@ -54,7 +54,7 @@ struct SlashCommandMenuView: View {
     }
 
     private var listHeight: CGFloat {
-        min(Metrics.Chat.slashMenuMaxHeight, CGFloat(completion.rows.count) * 34)
+        Metrics.Chat.slashMenuHeight(rowCount: completion.rows.count)
     }
 
     private func scrollSelectionIntoView(using proxy: ScrollViewProxy) {
@@ -93,7 +93,12 @@ struct SlashCommandMenuView: View {
             }
             .padding(.horizontal, Metrics.Space.s)
             .padding(.vertical, Metrics.Space.xs)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: Metrics.Chat.slashMenuRowHeight,
+                maxHeight: Metrics.Chat.slashMenuRowHeight,
+                alignment: .leading
+            )
             .background(
                 isSelected ? AnyShapeStyle(.tint.opacity(0.16)) : AnyShapeStyle(.clear),
                 in: .rect(cornerRadius: Metrics.Radius.medium)

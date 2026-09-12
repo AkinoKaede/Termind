@@ -66,6 +66,11 @@ nonisolated public enum TermindAgentTools {
         presenterRegistry.presenter(id: id)
     }
 
+    public static func presenter(for descriptor: AgentToolDescriptor) -> AgentToolDetailPresenter? {
+        if let id = descriptor.presentation?.presenterID { return presenter(id: id) }
+        return legacyPresenter(forToolNamed: descriptor.name)
+    }
+
     /// Cards written before presenter IDs were persisted carry only a tool name.
     ///
     /// Every built-in of that era used the `builtin.` namespace, so the name is

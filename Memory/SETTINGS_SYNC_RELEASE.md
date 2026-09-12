@@ -1,46 +1,45 @@
 # Settings sync release verification
 
-Settings sync ships disabled by default under the Settings checkbox. Vault and Metrics are
-selected by default. Vault keeps
-its existing zone and record type. Settings retains the first AI-sync zone and
-record identifiers for compatibility. No AgentKit dependency update is required.
+Settings sync ships off by default; Vault and Metrics are selected, Settings is
+opt-in. Vault keeps its existing protocol, Settings keeps its original AI-sync
+identifiers, and no AgentKit bump is required. V13 names/defaults are frozen; V14
+adds Terminal preferences. Migration of a copied installed V13 store preserved row
+counts and SQLite integrity, and the live store was observed healthy at V14.
 
-V13 entity names/defaults are frozen. V14 adds Terminal preferences. The repair
-was verified against an isolated copy of the installed V13 database: migration
-to V14 succeeded, SQLite integrity was valid, and every preexisting table kept
-its row count. The live database was subsequently observed at V14 with valid
-integrity.
+## CloudKit deployment
 
-Before shipping the app and privacy policy 1.5 together:
+In private container `iCloud.com.akinokaede.termind`, create/validate Development
+schemas and deploy them to Production:
 
-- In `iCloud.com.akinokaede.termind`, create/validate the Development
-  `AIConfigurationItem` record type, then deploy its schema to Production. Use the same
-  field types as `VaultItem`: `formatVersion`, `counter`, and `isDeleted` are
-  integers; `kind`, `entityID`, `writerID`, and `payloadHash` are strings;
-  `modifiedAt` is a date; `payload` is bytes; `payloadAsset` is an asset.
-  The private custom zone is `TermindAIConfigurationV1`; subscription ID is
-  `termind-ai-configuration-v1-changes`. No public database access is needed.
-- Test two signed Macs using the same Apple account: add/edit/delete a provider,
-  role, MCP client, skill and Terminal configuration; exercise offline edits,
-  master/category pause and resume, delayed Keychain arrival and key rotation.
-- Switch one Mac's iCloud account and confirm that settings upload waits for the
-  merge action. Verify that the other category's selection and account state are
-  independent. Repeat with the master disabled and after Pro expiration.
-- Check light/dark themes, fonts, custom terminal text and shell-integration
-  changes on existing windows; ensure conversations and approval mode stay local.
-- With different built-in MCP listener settings on both Macs, verify that enabled
-  state, port, exposed tools and bearer token remain independent. An older synchronized
-  listener token must be verified locally before its iCloud Keychain copy is removed.
-- Match the privacy policy effective date to the actual release date before
-  publishing the website. The prepared date is September 12, 2026.
+| Category | Zone | Record type | Subscription |
+| --- | --- | --- | --- |
+| Settings | `TermindAIConfigurationV1` | `AIConfigurationItem` | `termind-ai-configuration-v1-changes` |
+| Metrics | `TermindMetricsV1` | `MetricsItem` | `termind-metrics-v1-changes` |
 
-The implementation environment did not have a CloudKit management token
-(`cktool get-teams` reported that none was available). Production schema
-validation/deployment and two-Mac delivery verification require that environment
-access; local tests do not establish real iCloud delivery.
+Both record types use the Vault envelope: integer `formatVersion`, `counter`,
+`isDeleted`; string `kind`, `entityID`, `writerID`, `payloadHash`; date
+`modifiedAt`; bytes `payload`; asset `payloadAsset`. No public database access
+is needed.
 
-Metrics adds private zone `TermindMetricsV1`, record type `MetricsItem`, and subscription
-`termind-metrics-v1-changes`. Before release, create and deploy that schema with the same
-envelope field types as Vault and Settings, then verify ordered selections, pause state and
-disk/network filters between signed macOS and iOS devices. Confirm a Metrics record received
-before its Vault host remains hidden and appears after the host arrives.
+The implementation environment had no CloudKit management token
+(`cktool get-teams` found none), so local tests do not establish production schema
+deployment or real delivery.
+
+## Signed-device release checks
+
+- On two Macs with one Apple account, add/edit/delete providers, roles, MCP clients,
+  skills, and Terminal configuration; include offline edits, category/master pause
+  and resume, delayed Keychain delivery, and key rotation.
+- Switch one Mac's iCloud account and ensure upload waits for merge. Confirm each
+  category's selection/account state is independent; repeat with master sync off and
+  after Pro expiration.
+- Confirm theme/font/custom terminal/shell-integration changes reach existing
+  windows, while conversations and approval mode remain local.
+- Give each Mac different local MCP listener enablement, port, tools, and token.
+  Verify independence and verify an old synchronized token locally before removing
+  its iCloud Keychain copy.
+- Across signed macOS/iOS devices, verify Metrics order, pause state, and disk/network
+  filters. A Metrics record received before its Vault Host must stay hidden until the
+  Host arrives.
+- Release privacy policy 1.5 with the app and replace its prepared September 12,
+  2026 effective date with the actual publication date.

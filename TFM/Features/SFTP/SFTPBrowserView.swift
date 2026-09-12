@@ -622,7 +622,6 @@ struct SFTPBrowserView: View {
             .disabled(sftpSession.status != .connected)
         Button("Upload", systemImage: MenuSymbol.upload) { chooseUploadItems() }
             .disabled(sftpSession.status != .connected)
-        Divider()
         Button("Refresh", systemImage: MenuSymbol.refresh) { sftpSession.reloadNow() }
             .disabled(sftpSession.status != .connected || sftpSession.isLoading)
     }
@@ -977,11 +976,11 @@ struct SFTPBrowserView: View {
         }
         .disabled(!sftpSession.allowsRemoteMutations)
         Divider()
-        Button("New Folder") { newFolderPresented = true }
+        Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
             .disabled(sftpSession.status != .connected)
-        Button("Upload") { chooseUploadItems() }
+        Button("Upload", systemImage: MenuSymbol.upload) { chooseUploadItems() }
             .disabled(sftpSession.status != .connected)
-        Button("Refresh") { sftpSession.reloadNow() }
+        Button("Refresh", systemImage: MenuSymbol.refresh) { sftpSession.reloadNow() }
             .disabled(sftpSession.status != .connected || sftpSession.isLoading)
     }
 

@@ -112,6 +112,9 @@ struct ArchitectureBoundaryTests {
             contentsOf: sourceRoot.appending(path: "../Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift"),
             encoding: .utf8)
         #expect(!model.contains("hosts.sshConnectionConfiguration("))
+        #expect(model.contains("workers[server.id] = Task.detached"))
+        #expect(model.contains("private nonisolated func run("))
+        #expect(model.contains("try await beginRunAttempt("))
         let preparation = try String(
             contentsOf: sourceRoot.appending(
                 path: "../Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift"),
@@ -664,6 +667,54 @@ struct ArchitectureBoundaryTests {
                 "Termind", "TermindIOS", "UIKit", "AppKit", "SwiftData", "TermindPersistence",
                 "TermindRemoteInfrastructure",
             ])
+    }
+
+    @Test
+    func fullSurfaceDropOverlayHasOneSharedPresentationOwner() throws {
+        let sharedPath = sourceRoot.appending(
+            path: "../Frameworks/TermindPresentation/DropTargetOverlay.swift")
+        let shared = try String(contentsOf: sharedPath, encoding: .utf8)
+
+        #expect(shared.contains("public struct DropTargetOverlay"))
+        #expect(shared.contains("public nonisolated struct DropTargetPresentation"))
+        #expect(
+            !FileManager.default.fileExists(
+                atPath: sourceRoot.appending(path: "UI/Components/DropTargetOverlay.swift").path
+            )
+        )
+
+        for path in [
+            "Features/AI/ConversationTranscriptView.swift",
+            "../TFI/Features/AI/MobileAssistantConversation.swift",
+            "../TFI/Features/Workspaces/MobileWorkspaceView.swift",
+        ] {
+            let consumer = try String(
+                contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
+            #expect(consumer.contains("DropTargetOverlay("), "\(path) does not reuse the shared overlay")
+        }
+    }
+
+    @Test
+    func sftpUploadTargetsTheCurrentOpenDirectoryAcrossPlatforms() throws {
+        let desktop = try String(
+            contentsOf: sourceRoot.appending(path: "Features/SFTP/SFTPSessionModel.swift"),
+            encoding: .utf8
+        )
+        let mobile = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Workspaces/MobileWorkspace.swift"),
+            encoding: .utf8
+        )
+        let desktopUpload = try #require(
+            desktop.components(separatedBy: "func prepareUpload").last?
+                .components(separatedBy: "func prepareDownload").first
+        )
+        let mobileDestination = try #require(
+            mobile.components(separatedBy: "var uploadDestination").last?
+                .components(separatedBy: "var uploadTargetProblem").first
+        )
+
+        #expect(desktopUpload.contains("destination: path"))
+        #expect(mobileDestination.contains("return sftpSession.path"))
     }
 
     @Test

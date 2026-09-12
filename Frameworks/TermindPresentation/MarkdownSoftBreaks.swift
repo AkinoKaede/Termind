@@ -1,5 +1,4 @@
 import Foundation
-import TermindApplication
 
 /// Turns paragraph-internal newlines into hard breaks before parsing.
 ///
@@ -29,9 +28,9 @@ import TermindApplication
 /// is not: **HTML blocks carry composed attachments verbatim** in the
 /// model-facing transcript. Editing a byte inside one would alter the context
 /// sent to the provider, so they are skipped wholesale.
-nonisolated enum MarkdownSoftBreaks {
+nonisolated public enum MarkdownSoftBreaks {
 
-    static func hardened(_ source: String) -> String {
+    public static func hardened(_ source: String) -> String {
         let lines = source.components(separatedBy: "\n")
         guard lines.count > 1 else { return source }
 

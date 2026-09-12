@@ -35,59 +35,89 @@ nonisolated public struct ChatSlashCommand: Identifiable, Hashable, Sendable {
     public var displayName: String
     public var summary: String
     public var icon: Icon
+    /// Whether touch-first Assistant surfaces should include this command in
+    /// their Slash catalog. Desktop remains the complete command surface.
+    public var isShownOnMobile: Bool
     /// Shown after the name when the command takes free text. Empty for a
     /// command that takes none.
     public var argumentHint: String = ""
 
     public var name: String { "/\(id)" }
 
-    public init(id: String, displayName: String, summary: String, icon: Icon, argumentHint: String = "") {
+    /// A stable slash-free argument for an option whose source identifier may
+    /// itself contain `/` (model IDs commonly do). The parser deliberately uses
+    /// the last slash in the draft, so raw path-like IDs cannot be written into
+    /// an accepted command.
+    public static func argumentID(scope: String, value: String) -> String {
+        Data("\(scope)\u{0}\(value)".utf8).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    public init(
+        id: String, displayName: String, summary: String, icon: Icon,
+        argumentHint: String = "", isShownOnMobile: Bool = true
+    ) {
         self.id = id
         self.displayName = displayName
         self.summary = summary
         self.icon = icon
         self.argumentHint = argumentHint
+        self.isShownOnMobile = isShownOnMobile
     }
 }
 
-/// What a draft beginning with `/` currently means.
+/// What the trailing slash fragment in a draft currently means.
 nonisolated public enum ChatSlashCommandInput: Hashable, Sendable {
-    /// Still naming the command; carries what follows the slash.
-    case naming(String)
+    /// Still naming the command; carries the draft before the slash and what
+    /// follows it.
+    case naming(leadingText: String, partial: String)
     /// Named, with everything after the first run of spaces.
-    case argument(name: String, text: String)
+    case argument(leadingText: String, name: String, text: String)
 
     /// `nil` for a draft that is not a command.
     ///
-    /// Only the **first** line is considered, and it must start at the very
-    /// first character. A `/` inside prose, a path pasted into a longer message,
-    /// and a code block that happens to open with a slash are all ordinary
-    /// messages — the cost of getting this wrong is a message silently not sent.
+    /// Only the text after the **last** slash is considered. This lets someone
+    /// choose a mode or model after writing part of a prompt without turning an
+    /// earlier path into a command. A command fragment cannot span a newline.
     public static func parse(_ draft: String) -> ChatSlashCommandInput? {
-        guard draft.hasPrefix("/") else { return nil }
-        let firstLine = draft.prefix { !$0.isNewline }
-        // A draft with a second line has already committed to being a message:
-        // the palette closes on the newline, so anything multi-line reaching
-        // here is prose that began with a slash.
-        guard firstLine.count == draft.count else { return nil }
-
-        let body = firstLine.dropFirst()
+        guard let slash = draft.lastIndex(of: "/") else { return nil }
+        let leadingText = String(draft[..<slash])
+        let body = draft[draft.index(after: slash)...]
+        guard !body.contains(where: \.isNewline) else { return nil }
         guard let space = body.firstIndex(where: \.isWhitespace) else {
-            return .naming(String(body))
+            return .naming(leadingText: leadingText, partial: String(body))
         }
         let name = String(body[..<space])
         guard !name.isEmpty else { return nil }
         return .argument(
+            leadingText: leadingText,
             name: name,
             text: String(body[space...].drop(while: \.isWhitespace))
         )
     }
 
+    /// The exact draft before the last slash. Command execution restores this
+    /// instead of clearing user-authored text that preceded the palette.
+    public var leadingText: String {
+        switch self {
+        case .naming(let leadingText, _), .argument(let leadingText, _, _):
+            leadingText
+        }
+    }
+
+    /// Replaces only the trailing slash fragment and preserves everything the
+    /// user wrote before it.
+    public func replacingCommand(with replacement: String) -> String {
+        leadingText + replacement
+    }
+
     /// The command name typed so far, whether or not it is complete.
     public var name: String {
         switch self {
-        case .naming(let partial): partial
-        case .argument(let name, _): name
+        case .naming(_, let partial): partial
+        case .argument(_, let name, _): name
         }
     }
 
@@ -98,7 +128,7 @@ nonisolated public enum ChatSlashCommandInput: Hashable, Sendable {
     /// rest of this file exists: what Return does with a draft should be
     /// testable without a window. `nil` when nothing was named at all.
     public var selection: (name: String, remainder: String)? {
-        guard case .argument(_, let text) = self else { return nil }
+        guard case .argument(_, _, let text) = self else { return nil }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let name = String(trimmed.prefix { !$0.isWhitespace })
         guard !name.isEmpty else { return nil }
@@ -158,12 +188,12 @@ nonisolated public struct ChatSlashCommandCompletion: Hashable, Sendable {
             return ChatSlashCommandCompletion(rows: [])
         }
         switch input {
-        case .naming(let partial):
+        case .naming(_, let partial):
             let matched = commands.filter {
                 partial.isEmpty || $0.id.hasPrefix(partial.lowercased())
             }
             return ChatSlashCommandCompletion(rows: matched.map(Row.command))
-        case .argument(let name, let text):
+        case .argument(_, let name, let text):
             guard let command = commands.first(where: { $0.id == name.lowercased() }) else {
                 return ChatSlashCommandCompletion(rows: [])
             }
@@ -181,13 +211,15 @@ nonisolated public struct ChatSlashCommandCompletion: Hashable, Sendable {
     ///
     /// Completing a name that takes an argument leaves a trailing space, so the
     /// palette advances to that command's options in the same keystroke.
-    public static func accepted(_ row: Row, takesArgument: Bool) -> String {
-        switch row {
-        case .command(let command):
-            takesArgument ? "\(command.name) " : command.name
-        case .option(let command, let option):
-            "\(command.name) \(option.id)"
-        }
+    public static func accepted(_ row: Row, takesArgument: Bool, in draft: String) -> String {
+        let replacement =
+            switch row {
+            case .command(let command):
+                takesArgument ? "\(command.name) " : command.name
+            case .option(let command, let option):
+                "\(command.name) \(option.id)"
+            }
+        return ChatSlashCommandInput.parse(draft)?.replacingCommand(with: replacement) ?? replacement
     }
 
     public init(rows: [Row]) {

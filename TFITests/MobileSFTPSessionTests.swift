@@ -80,6 +80,45 @@ struct MobileSFTPSessionTests {
         #expect(session.visibleFiles == [folder, notes, report])
     }
 
+    @Test func hiddenFilesAreExcludedByDefaultAndCanBeShownWithinTheSession() async throws {
+        let hiddenFolder = remoteFile("/home/.cache", kind: .directory)
+        let visibleFolder = remoteFile("/home/Reports", kind: .directory)
+        let hiddenFile = remoteFile("/home/.env")
+        let hiddenLink = remoteFile("/home/.current", kind: .symbolicLink)
+        let visibleFile = remoteFile("/home/report.txt")
+        let fileSystem = MobileBrowserFileSystem(
+            listings: [
+                "/home": [visibleFile, hiddenFile, visibleFolder, hiddenFolder, hiddenLink],
+                "/srv": [remoteFile("/srv/.ssh", kind: .directory)],
+            ])
+        let session = MobileSFTPSessionModel()
+        try await attach(session, to: fileSystem, path: "/home")
+
+        #expect(!session.showsHiddenFiles)
+        #expect(session.visibleFiles == [visibleFolder, visibleFile])
+
+        session.query = "ENV"
+        #expect(session.visibleFiles.isEmpty)
+        session.showsHiddenFiles = true
+        #expect(session.visibleFiles == [hiddenFile])
+
+        session.query = ""
+        #expect(Set(session.visibleFiles) == Set([hiddenFolder, visibleFolder, hiddenFile, hiddenLink, visibleFile]))
+        #expect(session.visibleFiles.prefix(2).allSatisfy { $0.isDirectory })
+
+        await session.openDirectory("/srv")
+        await session.reload()
+        #expect(session.showsHiddenFiles)
+        #expect(session.visibleFiles.map(\.name) == [".ssh"])
+
+        session.detach()
+        try await attach(session, to: fileSystem, path: "/home")
+        #expect(session.showsHiddenFiles)
+
+        session.showsHiddenFiles = false
+        #expect(session.visibleFiles == [visibleFolder, visibleFile])
+    }
+
     @Test func sortMatchesDesktopDefaultsAndKeepsDirectoriesBeforeFiles() async throws {
         let older = RemoteFile(
             path: "/home/older.txt", name: "older.txt", kind: .file, size: 1_000,

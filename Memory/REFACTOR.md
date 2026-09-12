@@ -1314,3 +1314,14 @@ popover focus, Agent cancellation, and approval timing.
 management rows benefit from system swipe actions and navigation behavior, while the unbounded streaming transcript
 continues to use ListViewKit. Active rows swipe to Archive and archived rows swipe to Unarchive; permanent deletion
 remains behind the context menu and confirmation dialog.
+
+
+## 2026-09-12 — Share Assistant transcript presentation
+
+**Status:** In progress.
+
+**Evidence:** `rg` confirms mobile renders literal Worked/tool names and duplicates result projection, while desktop owns AgentToolPresentation (1,087 lines), disclosure/deadline state, timestamps and Markdown policy.
+
+**Action:** Move platform-neutral presentation into TermindPresentation, inject tool presenters from the existing registry, and retain native platform rendering and viewport ownership. Replace mobile disclosure and detail branches with shared policy consumers. Estimated duplicate-policy reduction: 150–250 lines, with desktop presentation code moved rather than copied.
+
+**Verification:** Pending shared, desktop, mobile and bilingual rendering checks.

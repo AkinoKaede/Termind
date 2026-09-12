@@ -10,34 +10,43 @@ struct MobileAssistantComposer: View {
     let pro: ProAccessController
     let model: MobileAssistantModel
     @Bindable var conversation: ConversationModel
+    let focus: FocusState<Bool>.Binding?
+    let focusRequest: Int?
+    let focusRequestHandled: (Int) -> Void
     @State private var files = false
     @State private var photos = false
     @State private var camera = false
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var photoTask: Task<Void, Never>?
     @State private var speechDraft = ""
-    @State private var mcp = false
     @State private var contextDetails = false
     @State private var isSlashPanelDismissed = false
     @State private var slashPanelHeight: CGFloat = 0
-    @FocusState private var focused: Bool
+    @FocusState private var localFocus: Bool
     @Environment(\.locale) private var locale
     private var composer: ConversationComposerState { conversation.composer }
     private var recording: Bool { model.speech.isOwned(by: conversation.id) }
+    private var activeFocus: FocusState<Bool>.Binding { focus ?? $localFocus }
+
+    init(
+        pro: ProAccessController,
+        model: MobileAssistantModel,
+        conversation: ConversationModel,
+        focus: FocusState<Bool>.Binding? = nil,
+        focusRequest: Int? = nil,
+        focusRequestHandled: @escaping (Int) -> Void = { _ in }
+    ) {
+        self.pro = pro
+        self.model = model
+        self.conversation = conversation
+        self.focus = focus
+        self.focusRequest = focusRequest
+        self.focusRequestHandled = focusRequestHandled
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             composerSurface
-            if let error = composer.attachmentImportError {
-                HStack(alignment: .top) {
-                    Text(error).font(.caption).foregroundStyle(.red)
-                    Button("Dismiss", systemImage: "xmark") { composer.attachmentImportError = nil }
-                }
-            }
-            if conversation.isCompacting { ProgressView("Compacting…") }
-            if case .failed(let error) = conversation.compactionActivity?.state {
-                Text(error).font(.caption).foregroundStyle(.red)
-            }
             ForEach(conversation.pendingSteering) { pending in
                 HStack {
                     Text(pending.draft).font(.caption).lineLimit(2)
@@ -56,6 +65,17 @@ struct MobileAssistantComposer: View {
             case .failure(let error): composer.attachmentImportError = error.localizedDescription
             }
         }
+        .alert(
+            "Attachment Error",
+            isPresented: Binding(
+                get: { composer.attachmentImportError != nil },
+                set: { if !$0 { composer.attachmentImportError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(composer.attachmentImportError ?? "")
+        }
         .photosPicker(
             isPresented: $photos, selection: $photoItems,
             maxSelectionCount: max(1, 20 - composer.attachments.count - composer.pendingAttachments.count),
@@ -70,16 +90,6 @@ struct MobileAssistantComposer: View {
                 camera = false
                 if let data { conversation.importAttachmentImages([data], label: String(localized: "Photo")) }
             }.ignoresSafeArea()
-        }
-        .sheet(isPresented: $mcp) {
-            NavigationStack {
-                MobileMCPSettings(ai: model.configuration, pro: pro)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Done", systemImage: "checkmark") { mcp = false }.labelStyle(.iconOnly)
-                        }
-                    }
-            }.mobileSheetPresentation(compact: true)
         }
         .alert(
             model.speech.error?.title ?? "Transcription Failed",
@@ -100,6 +110,15 @@ struct MobileAssistantComposer: View {
             photoTask?.cancel()
             model.speech.cancel(ownerID: conversation.id)
         }
+        .task(id: focusRequest) {
+            guard let focusRequest else { return }
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            activeFocus.wrappedValue = true
+            focusRequestHandled(focusRequest)
+        }
+        .onAppear(perform: normalizeReasoningEffort)
+        .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
     }
 
     private var composerSurface: some View {
@@ -113,10 +132,17 @@ struct MobileAssistantComposer: View {
                 axis: .vertical
             )
             .lineLimit(1...6)
-            .focused($focused)
+            .focused(activeFocus)
             .disabled(recording)
             .padding(.horizontal, 4)
             .padding(.top, 4)
+            .submitLabel(.send)
+            .onSubmit(submitFromKeyboard)
+            .onKeyPress(.escape, phases: .down) { _ in
+                guard !slashCompletion.isEmpty, !isSlashPanelDismissed else { return .ignored }
+                isSlashPanelDismissed = true
+                return .handled
+            }
 
             if recording { recordingControls } else { standardControls }
         }
@@ -136,14 +162,6 @@ struct MobileAssistantComposer: View {
                     hasOptions: { !slashOptions($0).isEmpty },
                     trailingText: slashTrailingText,
                     isCurrent: isCurrentSlashOption,
-                    onBack: {
-                        composer.draft = "/"
-                        focused = true
-                    },
-                    onClose: {
-                        isSlashPanelDismissed = true
-                        focused = true
-                    },
                     onSelect: acceptSlashRow
                 )
                 .onGeometryChange(for: CGFloat.self) { proxy in
@@ -178,7 +196,7 @@ struct MobileAssistantComposer: View {
             Button {
                 composer.draft = speechDraft
                 model.speech.cancel(ownerID: conversation.id)
-                focused = true
+                activeFocus.wrappedValue = true
             } label: {
                 Label("Cancel", systemImage: "xmark").labelStyle(.iconOnly)
                     .frame(width: 48, height: 48).contentShape(.circle)
@@ -208,39 +226,47 @@ struct MobileAssistantComposer: View {
                 .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
             Button("Photos", systemImage: "photo") { photos = true }
             Button("Files", systemImage: "doc") { files = true }
-            Divider()
-            Button("Voice Input", systemImage: "mic") { startSpeech() }.disabled(recording)
         } label: {
             Image(systemName: "plus").font(.title3.weight(.medium))
                 .foregroundStyle(.primary)
                 .frame(width: 48, height: 48).contentShape(.circle)
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("Add Attachment")
     }
 
     private var permissionMenu: some View {
         Menu {
-            Picker(
-                "Permissions",
-                selection: Binding(
-                    get: { model.configuration.resolve(conversation: conversation.permissionMode) },
-                    set: {
-                        conversation.permissionMode = $0
-                        model.configuration.select($0)
-                    })
-            ) {
-                ForEach(AgentPermissionMode.allCases) { mode in Text(mode.displayName).tag(mode) }
+            ForEach(AgentPermissionMode.allCases) { mode in
+                Button(role: mode == .fullAccess ? .destructive : nil) {
+                    conversation.permissionMode = mode
+                    model.configuration.select(mode)
+                } label: {
+                    Label(
+                        mode.displayName,
+                        systemImage: mode == resolvedPermissionMode ? "checkmark" : mode.symbol
+                    )
+                }
             }
         } label: {
-            Image(systemName: model.configuration.resolve(conversation: conversation.permissionMode).symbol)
+            Label("Permissions", systemImage: resolvedPermissionMode.symbol)
+                .labelStyle(.iconOnly)
                 .font(.title3)
+                .symbolRenderingMode(.monochrome)
                 .foregroundStyle(
-                    model.configuration.resolve(conversation: conversation.permissionMode) == .fullAccess
-                        ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary)
+                    resolvedPermissionMode == .fullAccess
+                        ? AnyShapeStyle(.red) : AnyShapeStyle(.primary)
                 )
                 .frame(width: 48, height: 48).contentShape(.circle)
         }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .layoutPriority(1)
         .accessibilityLabel("Permissions")
+    }
+
+    private var resolvedPermissionMode: AgentPermissionMode {
+        model.configuration.resolve(conversation: conversation.permissionMode)
     }
 
     private var contextButton: some View {
@@ -250,7 +276,8 @@ struct MobileAssistantComposer: View {
             ContextRing(share: contextShare ?? 0, diameter: 28, lineWidth: 4)
                 .frame(width: 48, height: 48).contentShape(.circle)
         }
-        .accessibilityLabel("Context Tokens")
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(modelAndEffortAccessibilityLabel))
         .accessibilityValue(Text(conversation.contextEstimate.total, format: .number))
     }
 
@@ -260,6 +287,7 @@ struct MobileAssistantComposer: View {
                 .font(.system(size: 25, weight: .medium)).foregroundStyle(.primary)
                 .frame(width: 48, height: 48).contentShape(.circle)
         }
+        .buttonStyle(.plain)
         .disabled(!model.speech.canStart(for: conversation.id))
     }
 
@@ -283,31 +311,34 @@ struct MobileAssistantComposer: View {
         NavigationStack {
             Form {
                 if conversation.contextEstimate.total > 0 {
-                    Section {
+                    Section("Context") {
                         ContextBreakdownView(
                             estimate: conversation.contextEstimate,
                             contextWindow: resolved?.model.contextLength,
-                            cachedInputTokens: conversation.usage?.cachedInputTokens ?? 0
+                            cachedInputTokens: conversation.usage?.cachedInputTokens ?? 0,
+                            showsTitle: false
                         )
                     }
                 }
-                Section("Model") { modelPicker }
-                if let reasoningResolution {
-                    Section("Reasoning") {
-                        Picker("Reasoning", selection: $conversation.reasoningEffort) {
+                Section("Model") {
+                    assistantModelPicker
+                    if supportsThinking, let reasoningResolution {
+                        Picker("Effort", selection: $conversation.reasoningEffort) {
                             ForEach(reasoningResolution.supported, id: \.self) { effort in
                                 Text(effort.displayName).tag(effort)
                             }
                         }
-                        .pickerStyle(.inline)
                     }
                 }
             }
-            .navigationTitle("Context")
+            .navigationTitle("Model")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { contextDetails = false }
+                    Button("Done", systemImage: "checkmark") { contextDetails = false }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.primary)
                 }
             }
         }
@@ -370,108 +401,63 @@ struct MobileAssistantComposer: View {
         }.scrollIndicators(.hidden).fixedSize(horizontal: false, vertical: true)
     }
 
-    private var controls: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack {
-                modelPicker
-                options
-                badges
-                Spacer()
-                usage
-            }
-            VStack(alignment: .leading) {
-                HStack {
-                    modelPicker
-                    options
-                    Spacer()
-                    usage
-                }
-                badges
-            }
-        }.font(.caption)
-    }
-
-    private var modelPicker: some View {
-        Menu {
-            Picker("Model", selection: Binding(get: { conversation.model }, set: { model.selectModel($0) })) {
-                Text("Automatic").tag(nil as AIModelRef?)
-                ForEach(model.configuration.enabledModelProviders) { provider in
-                    ForEach(provider.assistantModels) { item in
-                        Text("\(provider.name) · \(item.label)").tag(
-                            AIModelRef(modelProviderID: provider.id, modelID: item.id) as AIModelRef?)
-                    }
-                }
-            }
-            if let resolved = model.configuration.resolve(conversation: conversation.model) {
-                Picker("Reasoning", selection: $conversation.reasoningEffort) {
-                    ForEach(
-                        ModelCapabilityResolver.reasoning(model: resolved.model, provider: resolved.provider).supported,
-                        id: \.self
-                    ) { effort in
-                        Text(effort.rawValue).tag(effort)
-                    }
-                }
-            }
-        } label: {
-            if let resolved = model.configuration.resolve(conversation: conversation.model) {
-                Label(resolved.model.label, systemImage: "cube").lineLimit(1)
-            } else {
-                Label("Model", systemImage: "cube")
-            }
-        }
-    }
-
-    private var options: some View {
-        Menu {
+    @ViewBuilder private var assistantModelPicker: some View {
+        if modelProviders.isEmpty {
+            Text("No models configured").foregroundStyle(.secondary)
+        } else {
             Picker(
-                "Permissions",
+                "Model",
                 selection: Binding(
-                    get: { model.configuration.resolve(conversation: conversation.permissionMode) },
-                    set: {
-                        conversation.permissionMode = $0
-                        model.configuration.select($0)
-                    })
+                    get: { resolvedModelRef },
+                    set: { if let value = $0 { model.selectModel(value) } })
             ) {
-                ForEach(AgentPermissionMode.allCases) { mode in Text(mode.displayName).tag(mode) }
-            }
-            Toggle("Plan", isOn: $conversation.isPlanning)
-            Menu("Skills", systemImage: "book.closed") {
-                ForEach(model.skills.enabledSkills) { skill in
-                    Button(skill.name, systemImage: "book.closed") { composer.armedSkillName = skill.effectiveName }
+                ForEach(modelProviders) { provider in
+                    Section(provider.name) {
+                        ForEach(provider.assistantModels) { item in
+                            Text(item.label).tag(
+                                AIModelRef(modelProviderID: provider.id, modelID: item.id) as AIModelRef?)
+                        }
+                    }
                 }
             }
-            Button("Compact", systemImage: "arrow.triangle.2.circlepath") { Task { await model.compact(conversation) } }
-                .disabled(conversation.isStreaming)
-            Button("MCP", systemImage: "network") { mcp = true }
-        } label: {
-            Image(systemName: model.configuration.resolve(conversation: conversation.permissionMode).symbol).frame(
-                minWidth: 44, minHeight: 44
-            ).contentShape(.rect)
         }
-        .accessibilityLabel("Permissions")
     }
 
     @ViewBuilder private var badges: some View {
         if conversation.isPlanning {
-            Button("Plan", systemImage: "lightbulb.max") { conversation.isPlanning = false }
-                .buttonStyle(.plain).foregroundStyle(.secondary)
+            Button {
+                conversation.isPlanning = false
+            } label: {
+                Label("Plan", systemImage: "lightbulb.max")
+                    .labelStyle(.iconOnly)
+                    .frame(width: 48, height: 48)
+                    .contentShape(.circle)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
         }
         if let skill = composer.armedSkillName {
-            Button(skill, systemImage: "book.closed") { composer.armedSkillName = nil }
-                .buttonStyle(.plain).foregroundStyle(.secondary)
+            Button {
+                composer.armedSkillName = nil
+            } label: {
+                Label(skill, systemImage: "book.closed")
+                    .labelStyle(.iconOnly)
+                    .frame(width: 48, height: 48)
+                    .contentShape(.circle)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel(Text("Skill \(skill) armed, remove"))
         }
     }
 
-    private var usage: some View {
-        Menu {
-            Text("Context Tokens")
-            Text(conversation.contextEstimate.total, format: .number)
-            Button("Compact") { Task { await model.compact(conversation) } }
-                .disabled(conversation.isStreaming || conversation.isCompacting)
-        } label: {
-            Label(conversation.contextEstimate.total.formatted(), systemImage: "chart.pie")
-                .monospacedDigit().foregroundStyle(.secondary)
-        }.accessibilityLabel("Context Tokens")
+    private var modelProviders: [ModelProvider] {
+        model.configuration.enabledModelProviders.filter { !$0.assistantModels.isEmpty }
+    }
+
+    private var resolvedModelRef: AIModelRef? {
+        guard let resolved else { return nil }
+        return AIModelRef(modelProviderID: resolved.provider.id, modelID: resolved.model.id)
     }
 
     private var resolved: (provider: ModelProvider, model: AIModel)? {
@@ -487,10 +473,28 @@ struct MobileAssistantComposer: View {
         reasoningResolution?.clamp(conversation.reasoningEffort) ?? .off
     }
 
+    private var supportsThinking: Bool {
+        reasoningResolution?.supported.contains(where: { $0 != .off }) == true
+    }
+
+    private var modelAndEffortAccessibilityLabel: String {
+        guard let resolved else { return String(localized: "Model, no model configured") }
+        guard supportsThinking else { return String(localized: "Model \(resolved.model.label)") }
+        return String(
+            localized: "Model \(resolved.model.label), effort \(effectiveReasoningEffort.displayName)"
+        )
+    }
+
     private var slashModelChoices: [(argument: String, provider: ModelProvider, model: AIModel)] {
         model.configuration.enabledModelProviders.flatMap { provider in
             provider.assistantModels.map { item in
-                ("\(provider.id.uuidString.lowercased()):\(item.id)", provider, item)
+                (
+                    ChatSlashCommand.argumentID(
+                        scope: provider.id.uuidString.lowercased(), value: item.id
+                    ),
+                    provider,
+                    item
+                )
             }
         }
     }
@@ -501,7 +505,8 @@ struct MobileAssistantComposer: View {
             commands.append(
                 ChatSlashCommand(
                     id: "new", displayName: localized("New chat"),
-                    summary: localized("Start a new conversation"), icon: .symbol("plus.bubble")
+                    summary: localized("Start a new conversation"), icon: .symbol("plus.bubble"),
+                    isShownOnMobile: false
                 ))
         }
         commands.append(
@@ -517,7 +522,7 @@ struct MobileAssistantComposer: View {
                 ChatSlashCommand(
                     id: "compact", displayName: localized("Compact"),
                     summary: localized("Summarize older turns to free context"), icon: .contextRing,
-                    argumentHint: localized("what to emphasize")
+                    argumentHint: localized("what to emphasize"), isShownOnMobile: true
                 ))
         }
         if reasoningResolution?.supported.contains(where: { $0 != .off }) == true {
@@ -525,7 +530,7 @@ struct MobileAssistantComposer: View {
                 ChatSlashCommand(
                     id: "reasoning", displayName: localized("Reasoning"),
                     summary: localized("How hard the model thinks"), icon: .symbol("brain"),
-                    argumentHint: localized("effort")
+                    argumentHint: localized("effort"), isShownOnMobile: false
                 ))
         }
         if !slashModelChoices.isEmpty {
@@ -533,7 +538,7 @@ struct MobileAssistantComposer: View {
                 ChatSlashCommand(
                     id: "model", displayName: localized("Model"),
                     summary: localized("Switch the model for this conversation"), icon: .symbol("sparkles"),
-                    argumentHint: localized("model")
+                    argumentHint: localized("model"), isShownOnMobile: false
                 ))
         }
         if !model.configuration.mcpServers.isEmpty {
@@ -541,7 +546,7 @@ struct MobileAssistantComposer: View {
                 ChatSlashCommand(
                     id: "mcp", displayName: localized("MCP"),
                     summary: localized("Enable or disable MCP servers"), icon: .symbol("server.rack"),
-                    argumentHint: localized("server")
+                    argumentHint: localized("server"), isShownOnMobile: false
                 ))
         }
         if !model.skills.enabledSkills.isEmpty {
@@ -552,7 +557,7 @@ struct MobileAssistantComposer: View {
                     argumentHint: localized("skill")
                 ))
         }
-        return commands.sorted { lhs, rhs in
+        return commands.filter(\.isShownOnMobile).sorted { lhs, rhs in
             let order = lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName)
             return order == .orderedSame ? lhs.id < rhs.id : order == .orderedAscending
         }
@@ -615,7 +620,10 @@ struct MobileAssistantComposer: View {
             return option.id == effectiveReasoningEffort.rawValue
         case "model":
             guard let resolved else { return false }
-            return option.id == "\(resolved.provider.id.uuidString.lowercased()):\(resolved.model.id)"
+            return option.id
+                == ChatSlashCommand.argumentID(
+                    scope: resolved.provider.id.uuidString.lowercased(), value: resolved.model.id
+                )
         case "skill":
             return option.id == composer.armedSkillName
         default:
@@ -636,13 +644,17 @@ struct MobileAssistantComposer: View {
         switch row {
         case .command(let command):
             let hasOptions = !slashOptions(command).isEmpty
-            composer.draft = ChatSlashCommandCompletion.accepted(row, takesArgument: hasOptions)
+            composer.draft = ChatSlashCommandCompletion.accepted(
+                row, takesArgument: hasOptions, in: composer.draft
+            )
             if !hasOptions { _ = executeSlash() }
         case .option:
-            composer.draft = ChatSlashCommandCompletion.accepted(row, takesArgument: false)
+            composer.draft = ChatSlashCommandCompletion.accepted(
+                row, takesArgument: false, in: composer.draft
+            )
             _ = executeSlash()
         }
-        focused = true
+        activeFocus.wrappedValue = true
     }
 
     private func send() {
@@ -650,36 +662,45 @@ struct MobileAssistantComposer: View {
         model.send()
     }
 
+    private func submitFromKeyboard() {
+        if !isSlashPanelDismissed, let first = slashCompletion.rows.first {
+            acceptSlashRow(first)
+        } else {
+            send()
+        }
+    }
+
     @discardableResult private func executeSlash() -> Bool {
         guard let command = ChatSlashCommandInput.parse(composer.draft),
             availableCommands.contains(where: { $0.id == command.name.lowercased() })
         else { return false }
         let argument: String
-        if case .argument(_, let text) = command { argument = text } else { argument = "" }
+        if case .argument(_, _, let text) = command { argument = text } else { argument = "" }
         switch command.name.lowercased() {
         case "new":
-            composer.draft = ""
+            composer.draft = command.leadingText
             model.newConversation()
         case "plan":
-            composer.draft = argument
             if argument.isEmpty {
                 conversation.isPlanning.toggle()
+                composer.draft = command.leadingText
             } else {
                 conversation.isPlanning = true
-                model.send()
+                composer.draft = command.leadingText + argument
+                if command.leadingText.isEmpty { model.send() }
             }
         case "compact":
             guard !conversation.isStreaming, !conversation.isCompacting else { return true }
-            composer.draft = ""
+            composer.draft = command.leadingText
             Task { await model.compact(conversation, instructions: argument) }
         case "mcp":
             if let id = UUID(uuidString: argument), let server = model.configuration.mcpServer(id),
                 pro.require(.remoteMCP)
             {
                 model.configuration.setServerEnabled(!server.isEnabled, for: id)
-                composer.draft = ""
+                composer.draft = command.leadingText
             } else if argument.isEmpty {
-                composer.draft = "/mcp "
+                composer.draft = command.replacingCommand(with: "/mcp ")
             }
         case "reasoning":
             if let effort = ReasoningEffort(rawValue: argument.lowercased()),
@@ -688,34 +709,43 @@ struct MobileAssistantComposer: View {
                     .contains(effort)
             {
                 conversation.reasoningEffort = effort
-                composer.draft = ""
+                composer.draft = command.leadingText
             } else if argument.isEmpty {
-                composer.draft = "/reasoning "
+                composer.draft = command.replacingCommand(with: "/reasoning ")
             }
         case "model":
             for provider in model.configuration.enabledModelProviders {
                 if let item = provider.assistantModels.first(where: {
-                    "\(provider.id.uuidString.lowercased()):\($0.id)" == argument
+                    ChatSlashCommand.argumentID(
+                        scope: provider.id.uuidString.lowercased(), value: $0.id
+                    ) == argument
                 }) {
                     model.selectModel(.init(modelProviderID: provider.id, modelID: item.id))
-                    composer.draft = ""
+                    composer.draft = command.leadingText
                     return true
                 }
             }
-            if argument.isEmpty { composer.draft = "/model " }
+            if argument.isEmpty { composer.draft = command.replacingCommand(with: "/model ") }
         case "skill":
             if let choice = command.selection,
                 model.skills.enabledSkills.contains(where: { $0.effectiveName == choice.name })
             {
                 composer.armedSkillName = choice.name
-                composer.draft = choice.remainder
-                if !choice.remainder.isEmpty { model.send() }
+                composer.draft = command.leadingText + choice.remainder
+                if command.leadingText.isEmpty, !choice.remainder.isEmpty { model.send() }
             } else if argument.isEmpty {
-                composer.draft = "/skill "
+                composer.draft = command.replacingCommand(with: "/skill ")
             }
         default: break
         }
         return true
+    }
+
+    private func normalizeReasoningEffort() {
+        let normalized = effectiveReasoningEffort
+        if conversation.reasoningEffort != normalized {
+            conversation.reasoningEffort = normalized
+        }
     }
 
     private func importPhotos(_ items: [PhotosPickerItem]) async {
@@ -739,7 +769,7 @@ struct MobileAssistantComposer: View {
 
     private func startSpeech() {
         speechDraft = composer.draft
-        focused = false
+        activeFocus.wrappedValue = false
         Task {
             await model.speech.start(ownerID: conversation.id) { text, _ in
                 guard model.conversation.id == conversation.id else { return }

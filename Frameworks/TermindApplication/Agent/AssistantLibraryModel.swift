@@ -272,6 +272,16 @@ public final class AssistantLibraryModel {
         return draftConversation
     }
 
+    /// Starts a deliberately fresh New Chat surface. Platform navigation can
+    /// use this for an explicit New action, while `selectNewConversation()`
+    /// continues to preserve a draft when merely navigating away and back.
+    @discardableResult
+    public func resetDraftConversation() -> ConversationModel {
+        selectedConversationID = nil
+        draftConversation = ConversationModel()
+        return draftConversation
+    }
+
     /// Promotes the New Chat scratch model on its first send, then prepares a
     /// fresh scratch model for the next visit to New Chat.
     @discardableResult
@@ -286,8 +296,7 @@ public final class AssistantLibraryModel {
     /// real send. Empty drafts remain ephemeral and never create blank rows.
     @discardableResult
     public func startConversation(_ conversation: ConversationModel) -> ConversationModel? {
-        let text = conversation.composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return nil }
+        guard conversation.canSendDraft else { return nil }
         guard !conversations.contains(where: { $0.id == conversation.id }) else { return nil }
 
         conversation.sendDraft()

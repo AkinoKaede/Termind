@@ -989,7 +989,7 @@ private func hangingTool(_ gate: AsyncGate, onCancel: Recorder? = nil) -> AnyAge
     ) { invocation, _ in
         await gate.begin()
         do {
-            try await Task.sleep(for: .seconds(5))
+            try await Task.sleep(for: .seconds(30))
         } catch {
             await onCancel?.append("hang")
             throw error

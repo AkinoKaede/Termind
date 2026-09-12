@@ -42,6 +42,17 @@ struct MobileWorkspaceView: View {
 
     var body: some View {
         workspaceAlerts
+            .overlay {
+                if uploadDropTargeted {
+                    DropTargetOverlay(presentation: uploadDropPresentation)
+                }
+            }
+            .contentShape(.rect)
+            .onDrop(
+                of: [.fileURL],
+                isTargeted: $uploadDropTargeted,
+                perform: receiveUploadProviders
+            )
     }
 
     private var workspaceChrome: some View {
@@ -57,21 +68,6 @@ struct MobileWorkspaceView: View {
                 }
                 .padding()
                 .allowsHitTesting(false)
-            }
-            .overlay {
-                if uploadDropTargeted {
-                    MobileUploadDropOverlay(
-                        title: uploadDropTitle,
-                        detail: uploadDropDetail,
-                        available: workspace.uploadTargetProblem == nil
-                    )
-                    .allowsHitTesting(false)
-                }
-            }
-            .dropDestination(for: URL.self) { urls, _ in
-                receiveUpload(urls)
-            } isTargeted: { targeted in
-                uploadDropTargeted = targeted
             }
             .navigationTitle(workspace.descriptor.title)
             .navigationBarTitleDisplayMode(.inline)
@@ -148,6 +144,15 @@ struct MobileWorkspaceView: View {
                     Button("Paste", systemImage: "doc.on.clipboard", action: pasteRemoteItems)
                         .disabled(!workspace.connected)
                     sortMenu
+                    if workspace.sftpSession.showsHiddenFiles {
+                        Button("Hide Hidden Files", systemImage: "eye.slash") {
+                            workspace.sftpSession.showsHiddenFiles = false
+                        }
+                    } else {
+                        Button("Show Hidden Files", systemImage: "eye") {
+                            workspace.sftpSession.showsHiddenFiles = true
+                        }
+                    }
                     Button("Refresh", systemImage: "arrow.clockwise") {
                         Task { await workspace.sftpSession.reload() }
                     }
@@ -358,18 +363,22 @@ struct MobileWorkspaceView: View {
             : String(localized: "\(workspace.transferConflictCount) items already exist")
     }
 
-    private var uploadDropTitle: String {
-        if workspace.uploadTargetProblem != nil {
-            return String(localized: "Can't Upload Here")
+    private var uploadDropPresentation: DropTargetPresentation {
+        if let problem = workspace.uploadTargetProblem {
+            return DropTargetPresentation(
+                title: String(localized: "Can't Upload Here"),
+                detail: problem,
+                systemImage: "exclamationmark.triangle.fill",
+                tone: .unavailable
+            )
         }
         let hostName = library.host(workspace.descriptor.hostID)?.name ?? workspace.descriptor.title
-        return String(localized: "Upload to \(hostName)")
-    }
-
-    private var uploadDropDetail: String {
-        workspace.uploadTargetProblem
-            ?? workspace.uploadDestination
-            ?? String(localized: "The upload destination is unavailable.")
+        return DropTargetPresentation(
+            title: String(localized: "Upload to \(hostName)"),
+            detail: workspace.uploadDestination
+                ?? String(localized: "The upload destination is unavailable."),
+            systemImage: "arrow.up.doc.fill"
+        )
     }
 
     private func receiveUpload(_ urls: [URL]) -> Bool {
@@ -379,6 +388,27 @@ struct MobileWorkspaceView: View {
             return false
         }
         return workspace.prepareUpload(urls)
+    }
+
+    private func receiveUploadProviders(_ providers: [NSItemProvider]) -> Bool {
+        let kinds: Set<MobileDropKind> = [.files]
+        guard MobileDropPayloadLoader.accepts(providers, kinds: kinds) else { return false }
+        Task {
+            let payload = await MobileDropPayloadLoader.load(
+                providers,
+                kinds: kinds,
+                fileMode: .staged
+            )
+            if !payload.fileURLs.isEmpty {
+                let accepted = receiveUpload(payload.fileURLs)
+                if !accepted, let stagedRoot = payload.stagedRoot {
+                    try? FileManager.default.removeItem(at: stagedRoot)
+                }
+            } else if let error = payload.failures.first {
+                workspace.operationError = error
+            }
+        }
+        return true
     }
 
     private func enqueuePendingUpload(_ policy: TransferConflictPolicy) {
@@ -602,30 +632,6 @@ private struct MobileUploadNoticeOverlay: View {
             Image(systemName: notice.symbol ?? "")
                 .foregroundStyle(notice.isRejected ? .orange : .green)
         }
-    }
-}
-
-private struct MobileUploadDropOverlay: View {
-    let title: String
-    let detail: String
-    let available: Bool
-
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: available ? "arrow.up.doc.fill" : "exclamationmark.triangle.fill")
-                .font(.largeTitle)
-                .foregroundStyle(available ? Color.accentColor : .orange)
-            Text(title).font(.headline)
-            Text(detail)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .truncationMode(.middle)
-        }
-        .multilineTextAlignment(.center)
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.regularMaterial)
     }
 }
 

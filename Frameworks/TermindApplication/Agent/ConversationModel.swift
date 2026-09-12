@@ -1924,6 +1924,9 @@ public final class ConversationModel: Identifiable {
     /// moves the card's state, and enqueueing happens here — on the path that
     /// holds the continuation and can therefore actually answer.
     public func requestApproval(_ request: AgentApprovalRequest) async -> AgentApprovalDecision {
+        // The approval callback can arrive before the channel drains toolProposed.
+        // Stage the same identity now so a direct user response has a card to update.
+        stageTool(request.invocation, descriptor: request.descriptor)
         // Inserted by when the call was *planned*, not by when it got here. A
         // parallel batch races to this queue, so appending put the cards in
         // whichever order the scheduler happened to resolve — the same two
@@ -2459,7 +2462,11 @@ public final class ConversationModel: Identifiable {
         // The card only. The queue belongs to `requestApproval`, which is the
         // path that also holds the continuation — see its comment.
         case .approvalRequested(let request):
-            setToolState(request.invocation.id, .waitingForApproval)
+            // The direct user reply can beat this queued channel event to the UI.
+            // A late notification must not erase a denial already shown on the card.
+            updateToolCard(request.invocation.id) { card in
+                if !card.state.isTerminal { card.state = .waitingForApproval }
+            }
         case .reviewStarted(let request):
             reviewing.insert(request.invocation.id)
             setToolState(request.invocation.id, .reviewing)
@@ -2493,6 +2500,17 @@ public final class ConversationModel: Identifiable {
         _ invocation: AgentToolInvocation,
         descriptor: AgentToolDescriptor
     ) {
+        // A direct interaction may have staged this call before its queued event.
+        // Refresh metadata without losing its state or creating a duplicate row.
+        if updateToolCard(
+            invocation.id,
+            { card in
+                card.invocation = invocation
+                card.descriptor = descriptor
+            })
+        {
+            return
+        }
         let card = AgentToolCard(invocation: invocation, descriptor: descriptor)
         guard let sourceMessageID = invocation.sourceMessageID else {
             toolCards.append(card)

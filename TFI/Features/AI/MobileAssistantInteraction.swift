@@ -12,25 +12,27 @@ struct MobileAssistantInteraction: View {
         if let approval = conversation.pendingApproval,
             conversation.pendingUserInteraction.map({ approval.invocation.createdAt <= $0.createdAt }) ?? true
         {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Approval Required").font(.headline)
-                Text(approval.descriptor.name).font(.callout.monospaced())
-                ScrollView {
+            MobileAssistantAdaptiveHeight {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Approval Required").font(.headline)
+                    Text(approval.descriptor.name).font(.callout.monospaced())
                     Text(approval.invocation.call.arguments.displayText).font(.caption.monospaced()).textSelection(
                         .enabled
                     )
                     .frame(maxWidth: .infinity, alignment: .leading)
-                }.frame(maxHeight: 160)
-                ForEach(approval.localReasons, id: \.self) { Text($0).font(.caption) }
-                HStack {
-                    Button("Deny", systemImage: "xmark", role: .cancel) { conversation.respondToApproval(allow: false) }
-                    Spacer()
-                    Button("Allow", systemImage: "checkmark") { conversation.respondToApproval(allow: true) }
-                        .buttonStyle(.borderedProminent)
+                    ForEach(approval.localReasons, id: \.self) { Text($0).font(.caption) }
+                    HStack {
+                        Button("Deny", systemImage: "xmark", role: .cancel) {
+                            conversation.respondToApproval(allow: false)
+                        }
+                        Spacer()
+                        Button("Allow", systemImage: "checkmark") { conversation.respondToApproval(allow: true) }
+                            .buttonStyle(.borderedProminent)
+                    }
                 }
             }
         } else if let interaction = conversation.pendingUserInteraction {
-            ScrollView {
+            MobileAssistantAdaptiveHeight {
                 switch interaction {
                 case .sshAuthentication(let request):
                     MobileAssistantAuthenticationForm(request: request, conversation: conversation, hosts: hosts)
@@ -39,7 +41,7 @@ struct MobileAssistantInteraction: View {
                 case .questions:
                     questions
                 }
-            }.frame(maxHeight: 300)
+            }
         }
     }
 
@@ -57,7 +59,7 @@ struct MobileAssistantInteraction: View {
                 case .choice(let choice):
                     ForEach(choice.options) { option in
                         Button {
-                            conversation.toggleUserInputOption(option.id, in: question.id)
+                            conversation.answerUserInputOption(option.id, in: question.id)
                         } label: {
                             HStack(alignment: .top) {
                                 Image(
@@ -101,6 +103,28 @@ struct MobileAssistantInteraction: View {
         Binding(
             get: { conversation.userInputDraft(for: id).text },
             set: { conversation.setUserInputCustomAnswer($0, for: id) })
+    }
+}
+
+private struct MobileAssistantAdaptiveHeight<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ViewThatFits(in: .vertical) {
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                content.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .frame(maxWidth: .infinity, maxHeight: 300, alignment: .topLeading)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
