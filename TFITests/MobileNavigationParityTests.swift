@@ -415,12 +415,9 @@ struct MobileNavigationParityTests {
         #expect(metrics.contains("app.metrics.core.setEnabled(false, for: server)"))
         #expect(metrics.contains("dismiss()"))
 
-        let rootView = try String(
-            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
-        #expect(rootView.contains("workspace.activateWhenOpened()"))
         let appModel = try String(
             contentsOf: root.appending(path: "TFI/App/MobileAppModel.swift"), encoding: .utf8)
-        #expect(appModel.contains("connectsWhenOpened: true"))
+        #expect(!appModel.contains("mobile.workspaces.v1"))
         #expect(appModel.contains("workspace.resumeAfterBackground()"))
     }
 

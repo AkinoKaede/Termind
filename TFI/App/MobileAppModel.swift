@@ -195,20 +195,6 @@ final class MobileAppModel {
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
-        if let data = self.defaults?.data(forKey: "mobile.workspaces.v1") {
-            let descriptors = try JSONDecoder().decode([MobileWorkspaceDescriptor].self, from: data)
-            workspaces = descriptors.filter { library.host($0.hostID) != nil }.map {
-                MobileWorkspace(
-                    descriptor: $0, hosts: library, transfers: transfers, terminalSettings: terminalSettings,
-                    commandHistory: commandHistory, sftpHistory: sftpHistory,
-                    connectionServices: workspaceConnectionServices,
-                    connectsWhenOpened: true)
-            }
-            workspaceActivitySessions = workspaces.map(\.activitySession)
-            for workspace in workspaces {
-                observeActivityState(of: workspace)
-            }
-        }
     }
 
     func open(
@@ -244,7 +230,6 @@ final class MobileAppModel {
         guard let workspace = workspaces.first(where: { $0.id == id }), workspace.rename(to: title) else {
             return false
         }
-        persistWorkspaces()
         return true
     }
 
@@ -256,7 +241,6 @@ final class MobileAppModel {
         workspaces.removeAll { $0.id == id }
         workspaceActivitySessions.removeAll { $0.id == id }
         liveActivities.update(workspaceActivitySessions)
-        persistWorkspaces()
     }
 
     func closeAll() {
@@ -270,7 +254,6 @@ final class MobileAppModel {
             workspace.disconnect()
         }
         liveActivities.update(workspaceActivitySessions)
-        persistWorkspaces()
     }
 
     func deleteHost(_ id: UUID) {
@@ -387,12 +370,6 @@ final class MobileAppModel {
         liveActivities.focus(id, in: workspaceActivitySessions)
     }
 
-    private func persistWorkspaces() {
-        do {
-            defaults?.set(try JSONEncoder().encode(workspaces.map(\.descriptor)), forKey: "mobile.workspaces.v1")
-        } catch { self.error = error.localizedDescription }
-    }
-
     private func makeWorkspace(
         host: Host, kind: MobileWorkspaceDescriptor.Kind, startup: MobileWorkspaceStartup = .none
     ) -> MobileWorkspace {
@@ -433,7 +410,6 @@ final class MobileAppModel {
         for workspace in added { observeActivityState(of: workspace) }
         workspaces.append(contentsOf: added)
         workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
-        persistWorkspaces()
         liveActivities.start(workspaceActivitySessions)
         for workspace in added { workspace.connect() }
     }

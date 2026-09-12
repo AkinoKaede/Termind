@@ -92,8 +92,7 @@ final class MobileSceneModel {
     }
 
     func selectWorkspace(_ id: MobileWorkspace.ID) {
-        guard let workspace = app.workspaces.first(where: { $0.id == id }) else { return }
-        workspace.activateWhenOpened()
+        guard app.workspaces.contains(where: { $0.id == id }) else { return }
         selectedDestination = .workspaces
         workspaceID = id
         app.focusWorkspaceActivity(id)

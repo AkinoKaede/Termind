@@ -49,14 +49,6 @@ struct MobileAppTests {
 
 @Suite @MainActor
 struct MobileWorkspaceTests {
-    @Test func descriptorRoundTripContainsOnlyRestorationMetadata() throws {
-        let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "Production", kind: .ssh)
-        let data = try JSONEncoder().encode(descriptor)
-        #expect(try JSONDecoder().decode(MobileWorkspaceDescriptor.self, from: data) == descriptor)
-        let keys = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        #expect(Set(keys.keys) == ["id", "hostID", "title", "kind"])
-    }
-
     @Test func liveActivitiesUseStableDistinctWorkspaceDestinations() {
         let first = MobileWorkspaceDescriptor(hostID: UUID(), title: "Server", kind: .ssh)
         var renamed = first
@@ -66,7 +58,7 @@ struct MobileWorkspaceTests {
         #expect(first.destinationURL != second.destinationURL)
     }
 
-    @Test func renamingUpdatesRestorationAndActivityStateWithoutChangingIdentity() throws {
+    @Test func renamingUpdatesActivityStateWithoutChangingIdentity() throws {
         let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "Production", kind: .ssh)
         let workspace = MobileWorkspace(descriptor: descriptor, hosts: HostLibraryModel())
         var activityTitle: String?
@@ -79,11 +71,6 @@ struct MobileWorkspaceTests {
         #expect(workspace.activitySession.title == "Release Shell")
         #expect(activityTitle == "Release Shell")
         #expect(!workspace.rename(to: "Release Shell"))
-
-        let data = try JSONEncoder().encode(workspace.descriptor)
-        let restored = try JSONDecoder().decode(MobileWorkspaceDescriptor.self, from: data)
-        #expect(restored.title == "Release Shell")
-        #expect(restored.id == descriptor.id)
     }
 
     @Test func closeAllDisconnectsAndRemovesEveryWorkspaceAndIsRepeatable() throws {
@@ -270,33 +257,6 @@ struct MobileWorkspaceConnectionRecoveryTests {
         #expect(workspace.operationError == nil)
     }
 
-    @Test func restoredWorkspaceConnectsOnlyWhenFirstOpened() async throws {
-        let (host, library) = try connectionFixture()
-        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient(), MobileTestSFTPClient()])
-        let first = MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: "First", kind: .sftp),
-            hosts: library, connectionServices: connections.services, connectsWhenOpened: true)
-        let second = MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: "Second", kind: .sftp),
-            hosts: library, connectionServices: connections.services, connectsWhenOpened: true)
-        defer {
-            first.disconnect()
-            second.disconnect()
-        }
-
-        #expect(connections.connectCount == 0)
-        #expect(!first.journey.isPresented && !second.journey.isPresented)
-
-        first.activateWhenOpened()
-
-        #expect(first.journey.isPresented)
-        #expect(!second.journey.isPresented)
-        #expect(await eventually { first.connected })
-        #expect(connections.connectCount == 1)
-        first.activateWhenOpened()
-        #expect(connections.connectCount == 1)
-    }
-
     @Test func explicitDisconnectDoesNotCreateAResumeIntent() async throws {
         let (host, library) = try connectionFixture()
         let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient(), MobileTestSFTPClient()])
@@ -308,7 +268,6 @@ struct MobileWorkspaceConnectionRecoveryTests {
 
         workspace.disconnect()
         workspace.resumeAfterBackground()
-        workspace.activateWhenOpened()
 
         #expect(!workspace.connected)
         #expect(!workspace.journey.isPresented)

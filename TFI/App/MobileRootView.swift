@@ -130,7 +130,6 @@ struct MobileRootView: View {
                     openSameDirectory: scene.openSameDirectory,
                     closeWorkspace: scene.closeWorkspace
                 )
-                .onAppear { workspace.activateWhenOpened() }
             }
         }
         .sheet(isPresented: $scene.isConnectionPickerPresented) {

@@ -525,7 +525,6 @@ private struct StartupSettings: View {
     @State private var loginItem = LoginItemController()
     @AppStorage(DesktopSettingsKey.openAtLoginQuietly) private var opensQuietly =
         DesktopSettingsKey.defaultOpenAtLoginQuietly
-    @AppStorage(DesktopSettingsKey.restoreWorkspaces) private var restoreWorkspaces = true
 
     var body: some View {
         Section("Startup") {
@@ -567,8 +566,6 @@ private struct StartupSettings: View {
             if let message = loginItem.errorMessage {
                 Text(message).font(.caption).foregroundStyle(.orange)
             }
-
-            Toggle("Restore Workspaces from Last Session", isOn: $restoreWorkspaces)
         }
         // The registration lives in System Settings, where it can be revoked
         // without telling us. Re-read it whenever this window is looked at.

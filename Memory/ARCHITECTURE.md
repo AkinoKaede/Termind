@@ -309,10 +309,9 @@ live path exists. Explicit close never retries.
 
 Initial connection failure and recovery stay in Connection Journey. Background-task
 expiration closes transports but retains intent; foreground resumes existing
-workspaces, while cold restoration connects only when opened. Restoration stores only
-descriptor ID, host reference, title, and kind—never commands, paths, credentials, or
-actions. Host deletion hides pending records before restoration, runs the shared
-outbox saga, and cancels sessions, transfers, forwarding, and local history.
+workspaces. Workspaces exist only for the current app process and are never restored
+after relaunch. Host deletion runs the shared outbox saga and cancels sessions,
+transfers, forwarding, and local history.
 
 One serialized Live Activity represents all Workspaces with counts and up to six
 distribution icons. Validated links open a Workspace or list and carry no secrets or
@@ -332,8 +331,8 @@ Each mobile scene owns one navigation/command model and publishes it as a focuse
 scene value, so hardware-keyboard commands never operate another iPad window. Mobile
 uses the macOS shortcuts for capabilities that exist on both platforms: navigation,
 connection/creation, terminal Find and Command Generator, Workspace close/switch,
-and Assistant send/stop. Workspace switching activates lazy restoration but never
-claims terminal focus. The UIKit terminal surface owns F3/Shift-F3 and replaces
+and Assistant send/stop. Workspace switching never reconnects the session or claims
+terminal focus. The UIKit terminal surface owns F3/Shift-F3 and replaces
 Ghostty's bare/Shift-Escape commands only while Find is presented; otherwise Escape
 continues to the terminal unchanged.
 

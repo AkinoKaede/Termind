@@ -162,9 +162,7 @@ struct MobileSnippetTests {
         #expect(workspace.consumePendingInitialCommand() == "uname -a")
         #expect(workspace.consumePendingInitialCommand() == nil)
 
-        let restoredDescriptor = try JSONDecoder().decode(
-            MobileWorkspaceDescriptor.self, from: JSONEncoder().encode(descriptor))
-        let restored = MobileWorkspace(descriptor: restoredDescriptor, hosts: HostLibraryModel())
-        #expect(restored.pendingInitialCommand == nil)
+        let separateWorkspace = MobileWorkspace(descriptor: descriptor, hosts: HostLibraryModel())
+        #expect(separateWorkspace.pendingInitialCommand == nil)
     }
 }

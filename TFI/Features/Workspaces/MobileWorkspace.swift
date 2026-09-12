@@ -13,7 +13,6 @@ import struct TermindDomain.Host
 
 private enum MobileWorkspaceConnectionResumeIntent: Equatable {
     case none
-    case whenOpened
     case foreground
 }
 
@@ -202,8 +201,7 @@ final class MobileWorkspace: Identifiable {
         reconnectController: SessionReconnectController = SessionReconnectController(),
         initialCommand: String? = nil,
         recordsInitialCommandInHistory: Bool = true,
-        initialSFTPPath: String? = nil,
-        connectsWhenOpened: Bool = false
+        initialSFTPPath: String? = nil
     ) {
         self.terminalSettings = terminalSettings
         self.commandHistory = commandHistory
@@ -225,7 +223,7 @@ final class MobileWorkspace: Identifiable {
         }
         self.connectionServices = connectionServices
         connection = RemoteSessionConnectionController(reconnect: reconnectController)
-        connectionResumeIntent = connectsWhenOpened ? .whenOpened : .none
+        connectionResumeIntent = .none
         let relay = MobileTerminalRelay()
         backend = InMemoryTerminalSession(
             write: { data in
@@ -732,12 +730,6 @@ final class MobileWorkspace: Identifiable {
             await oldSSH?.disconnect()
             await oldSFTP?.disconnect()
         }
-    }
-
-    func activateWhenOpened() {
-        guard connectionResumeIntent == .whenOpened else { return }
-        connectionResumeIntent = .none
-        connect()
     }
 
     func suspendForBackgroundExpiration() {
