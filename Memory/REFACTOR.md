@@ -1309,3 +1309,8 @@ removed; the TFM production diff adds 225 and removes 836 lines for a net reduct
 `git diff --check` pass. The complete TFM action ran 1,198 tests: all affected suites passed, while the same nine
 environment/timing issues already recorded by the preceding verification remain in Data Protection Keychain, Metrics
 popover focus, Agent cancellation, and approval timing.
+
+**Second follow-up:** TFI Assistant conversation and Archive lists returned to native SwiftUI `List`. Their bounded
+management rows benefit from system swipe actions and navigation behavior, while the unbounded streaming transcript
+continues to use ListViewKit. Active rows swipe to Archive and archived rows swipe to Unarchive; permanent deletion
+remains behind the context menu and confirmation dialog.

@@ -432,7 +432,6 @@ struct ArchitectureBoundaryTests {
         #expect(
             mobileConsumers == [
                 "TFI/Features/AI/MobileAssistantConversation.swift",
-                "TFI/Features/Assistant/MobileAssistantView.swift",
                 "TFI/Features/SFTP/MobileSFTPBrowser.swift",
             ])
     }

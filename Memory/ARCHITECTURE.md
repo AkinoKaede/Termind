@@ -910,6 +910,7 @@ Agent runs may consume the finite background execution time already requested by
 ListViewKit is a platform-independent implementation detail for native lists whose interaction or update behavior
 benefits from explicit row reuse and viewport ownership. TFM uses it for the streaming Assistant transcript, large
 SFTP directories, the Assistant conversation library, and window tool sidebars. TFI uses one UIKit bridge for the
-Terminal Snippets and History sheets, including variable-height rows and History swipe deletion. Each app target
-owns its native bridge; shared frameworks do not import ListViewKit. An architecture test owns the production import
-and bridge-consumer allowlists so the dependency cannot spread without an explicit boundary change.
+streaming Assistant transcript and large SFTP directories. Bounded Assistant conversation and Archive management
+pages use native SwiftUI `List` for system swipe actions and navigation behavior. Each app target owns its native
+bridge; shared frameworks do not import ListViewKit. An architecture test owns the production import and
+bridge-consumer allowlists so the dependency cannot spread without an explicit boundary change.

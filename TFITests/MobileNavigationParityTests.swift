@@ -7,7 +7,7 @@ import Testing
 
 @Suite @MainActor
 struct MobileNavigationParityTests {
-    @Test func assistantUsesTopTitleSwitchingAndListViewKitWithoutAnIPadConversationSidebar() throws {
+    @Test func assistantUsesTopTitleSwitchingAndNativeConversationListsWithoutAnIPadSidebar() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -15,11 +15,22 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/Assistant/MobileAssistantView.swift"), encoding: .utf8)
         let transcript = try String(
             contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"), encoding: .utf8)
+        let currentConversationMenu = try #require(
+            assistant.components(separatedBy: ".toolbar {").dropFirst().first?
+                .components(separatedBy: ".navigationDestination").first)
 
         #expect(assistant.contains(".toolbarTitleMenu"))
-        #expect(assistant.contains("MobileNativeList("))
+        #expect(assistant.contains("List {"))
+        #expect(!assistant.contains("MobileNativeList("))
         #expect(!assistant.contains("geometry.size.width >= 760"))
         #expect(!assistant.contains("MobileAssistantLibrary(model: model, selected: {})"))
+        #expect(assistant.contains(".swipeActions(edge: .trailing, allowsFullSwipe: true)"))
+        #expect(assistant.contains("Button(\"Archive\", systemImage: \"archivebox\")"))
+        #expect(assistant.contains("Button(\"Unarchive\", systemImage: \"tray.and.arrow.up\")"))
+        #expect(!assistant.contains("MobileCardIcon(symbol: conversation.isArchived"))
+        #expect(assistant.contains(".foregroundStyle(.secondary)"))
+        #expect(!currentConversationMenu.contains("Button(\"Conversations\""))
+        #expect(!currentConversationMenu.contains("Button(\"Archived\""))
         #expect(transcript.contains("MobileNativeList("))
         #expect(transcript.contains("AssistantTranscriptEntry.items("))
         #expect(!transcript.contains("LazyVStack"))

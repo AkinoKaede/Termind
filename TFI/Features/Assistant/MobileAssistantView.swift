@@ -23,19 +23,20 @@ struct MobileAssistantView: View {
                 Button("New Conversation", systemImage: "square.and.pencil") { model.newConversation() }.labelStyle(
                     .iconOnly)
                 Menu {
-                    Button("Conversations", systemImage: "clock") { history = true }
-                    Button("Archived", systemImage: "archivebox") { archive = true }
-                    Divider()
                     Button("Rename", systemImage: "pencil") {
                         title = model.conversation.derivedTitle
                         renaming = true
                     }
+                    .disabled(model.conversation.isEmpty)
                     Button(model.conversation.isPinned ? "Unpin" : "Pin", systemImage: "pin") {
                         Task { await model.move(model.conversation, pinned: !model.conversation.isPinned) }
                     }
                     .disabled(model.conversation.isEmpty || model.conversation.isArchived)
-                    Button("Archive", systemImage: "archivebox") {
-                        Task { await model.archive(model.conversation, archived: true) }
+                    Button(
+                        model.conversation.isArchived ? "Unarchive" : "Archive",
+                        systemImage: model.conversation.isArchived ? "tray.and.arrow.up" : "archivebox"
+                    ) {
+                        Task { await model.archive(model.conversation, archived: !model.conversation.isArchived) }
                     }
                     .disabled(!canChangeHistory)
                     Button("Delete", systemImage: "trash", role: .destructive) { deleting = true }
@@ -99,7 +100,7 @@ struct MobileAssistantView: View {
 
     private func titleMenuButton(_ conversation: ConversationModel) -> some View {
         Button {
-            model.select(conversation)
+            select(conversation)
         } label: {
             Label(
                 conversation.derivedTitle,
@@ -107,6 +108,11 @@ struct MobileAssistantView: View {
                     ? "checkmark" : (conversation.isStreaming ? "ellipsis.circle" : "bubble.left")
             )
         }
+    }
+
+    private func select(_ conversation: ConversationModel) {
+        guard model.conversation.id != conversation.id else { return }
+        model.select(conversation)
     }
 
     private var canChangeHistory: Bool {
@@ -119,7 +125,6 @@ struct MobileAssistantLibrary: View {
     @Bindable var model: MobileAssistantModel
     var archived = false
     let selected: () -> Void
-    @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var renaming: ConversationModel?
     @State private var title = ""
@@ -127,12 +132,57 @@ struct MobileAssistantLibrary: View {
     @State private var showingArchive = false
 
     var body: some View {
-        MobileNativeList(
-            items: listItems, estimatedRowHeight: 84,
-            refreshID: libraryRefreshID,
-            onSelect: selectItem
-        ) { item in
-            listRow(item)
+        List {
+            if !archived && query.isEmpty {
+                Section {
+                    Button {
+                        model.newConversation()
+                        selected()
+                    } label: {
+                        Label("New Conversation", systemImage: "square.and.pencil")
+                            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                    }
+                    .foregroundStyle(.primary)
+
+                    Button {
+                        showingArchive = true
+                    } label: {
+                        HStack {
+                            Label("Archived", systemImage: "archivebox")
+                            Spacer()
+                            Text(model.library.archivedConversations.count, format: .number)
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .accessibilityHidden(true)
+                        }
+                        .frame(minHeight: 48)
+                    }
+                    .foregroundStyle(.primary)
+                }
+            }
+
+            if !pinnedConversations.isEmpty {
+                Section("Pinned") {
+                    ForEach(pinnedConversations) { conversationRow($0) }
+                }
+            }
+
+            if !ordinaryConversations.isEmpty {
+                Section(archived ? "" : String(localized: "Conversations")) {
+                    ForEach(ordinaryConversations) { conversationRow($0) }
+                }
+            }
+
+            if values.isEmpty {
+                ContentUnavailableView(
+                    archived ? "No Archived Chats" : "No Conversations",
+                    systemImage: archived ? "archivebox" : "bubble.left"
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
         }
         .searchable(text: $query, prompt: "Search")
         .navigationDestination(isPresented: $showingArchive) {
@@ -161,97 +211,55 @@ struct MobileAssistantLibrary: View {
     }
 
     private var values: [ConversationModel] { model.library.search(query, scope: archived ? .archived : .active) }
+    private var pinnedConversations: [ConversationModel] { values.filter(\.isPinned) }
+    private var ordinaryConversations: [ConversationModel] { values.filter { !$0.isPinned } }
 
-    private var libraryRefreshID: String {
-        values.map {
-            "\($0.id.uuidString):\($0.derivedTitle):\($0.isPinned):\($0.isStreaming):\($0.updatedAt.timeIntervalSince1970)"
-        }.joined(separator: "|") + ":\(model.conversation.id.uuidString):\(query)"
-    }
-
-    private var listItems: [MobileConversationListItem] {
-        var items: [MobileConversationListItem] = []
-        if !archived && query.isEmpty {
-            items.append(.action(.new))
-            items.append(.action(.archive(count: model.library.archivedConversations.count)))
-        }
-        let pinned = values.filter(\.isPinned)
-        let conversations = values.filter { !$0.isPinned }
-        if !pinned.isEmpty {
-            items.append(.section(id: "pinned", title: String(localized: "Pinned")))
-            items.append(contentsOf: pinned.map(MobileConversationListItem.conversation))
-        }
-        if !conversations.isEmpty {
-            if !archived {
-                items.append(.section(id: "conversations", title: String(localized: "Conversations")))
-            }
-            items.append(contentsOf: conversations.map(MobileConversationListItem.conversation))
-        }
-        if values.isEmpty {
-            items.append(
-                .empty(archived ? String(localized: "No Archived Chats") : String(localized: "No Conversations")))
-        }
-        return items
-    }
-
-    @ViewBuilder private func listRow(_ item: MobileConversationListItem) -> some View {
-        switch item.kind {
-        case .new:
-            Label("New Conversation", systemImage: "square.and.pencil")
-                .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading).padding(.horizontal, 16)
-        case .archive(let count):
-            HStack {
-                Label("Archived", systemImage: "archivebox")
-                Spacer()
-                Text(count, format: .number).foregroundStyle(.secondary)
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
-            }
-            .frame(minHeight: 64).padding(.horizontal, 16)
-        case .section(let title):
-            Text(verbatim: title).font(.headline).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 52, alignment: .bottomLeading)
-                .padding(.horizontal, 16).padding(.bottom, 6)
-        case .conversation(let id):
-            if let conversation = model.library.conversation(id: id) {
-                HStack(alignment: .center, spacing: 12) {
-                    MobileCardIcon(symbol: conversation.isArchived ? "archivebox" : "bubble.left")
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(conversation.derivedTitle).font(.headline).foregroundStyle(.primary).lineLimit(2)
-                        if conversation.isStreaming {
-                            Text("Working…").font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    if model.conversation.id == conversation.id {
-                        Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityHidden(true)
+    private func conversationRow(_ conversation: ConversationModel) -> some View {
+        Button {
+            select(conversation)
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: conversation.isArchived ? "archivebox" : "bubble.left")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(conversation.derivedTitle).font(.headline).foregroundStyle(.primary).lineLimit(2)
+                    if conversation.isStreaming {
+                        Text("Working…").font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
-                .padding(.horizontal, 16)
-                .contentShape(.rect)
-                .contextMenu { actions(conversation) }
-                .accessibilityAddTraits(model.conversation.id == conversation.id ? .isSelected : [])
+                Spacer(minLength: 8)
+                if model.conversation.id == conversation.id {
+                    Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityHidden(true)
+                }
             }
-        case .empty(let title):
-            ContentUnavailableView(title, systemImage: archived ? "archivebox" : "bubble.left")
-                .frame(maxWidth: .infinity, minHeight: 180)
+            .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+            .contentShape(.rect)
         }
+        .buttonStyle(.plain)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if conversation.isArchived {
+                Button("Unarchive", systemImage: "tray.and.arrow.up") {
+                    Task { await model.archive(conversation, archived: false) }
+                }
+                .tint(.accentColor)
+                .disabled(!canChangeHistory(conversation))
+            } else {
+                Button("Archive", systemImage: "archivebox") {
+                    Task { await model.archive(conversation, archived: true) }
+                }
+                .tint(.orange)
+                .disabled(!canChangeHistory(conversation))
+            }
+        }
+        .contextMenu { actions(conversation) }
+        .accessibilityAddTraits(model.conversation.id == conversation.id ? .isSelected : [])
     }
 
-    private func selectItem(_ item: MobileConversationListItem) {
-        switch item.kind {
-        case .new:
-            model.newConversation()
-            selected()
-        case .archive:
-            showingArchive = true
-        case .conversation(let id):
-            guard let conversation = model.library.conversation(id: id) else { return }
-            model.select(conversation)
-            if archived { dismiss() }
-            selected()
-        case .section, .empty:
-            break
-        }
+    private func select(_ conversation: ConversationModel) {
+        model.select(conversation)
+        selected()
     }
 
     @ViewBuilder private func actions(_ conversation: ConversationModel) -> some View {
@@ -271,37 +279,10 @@ struct MobileAssistantLibrary: View {
             Task { await model.archive(conversation, archived: !conversation.isArchived) }
         }.disabled(conversation.isStreaming || conversation.isCompacting || conversation.isHistoryChanging)
         Button("Delete", systemImage: "trash", role: .destructive) { deleting = conversation }
-            .disabled(conversation.isStreaming || conversation.isCompacting || conversation.isHistoryChanging)
-    }
-}
-
-nonisolated private struct MobileConversationListItem: Identifiable, Hashable, Sendable {
-    nonisolated enum Kind: Hashable, Sendable {
-        case new
-        case archive(count: Int)
-        case section(String)
-        case conversation(UUID)
-        case empty(String)
+            .disabled(!canChangeHistory(conversation))
     }
 
-    let id: String
-    let kind: Kind
-
-    static func action(_ action: Kind) -> Self {
-        switch action {
-        case .new: Self(id: "action-new", kind: action)
-        case .archive: Self(id: "action-archive", kind: action)
-        default: preconditionFailure("Only action rows can use action(_:)")
-        }
+    private func canChangeHistory(_ conversation: ConversationModel) -> Bool {
+        !conversation.isStreaming && !conversation.isCompacting && !conversation.isHistoryChanging
     }
-
-    static func section(id: String, title: String) -> Self {
-        Self(id: "section-\(id)", kind: .section(title))
-    }
-
-    @MainActor static func conversation(_ conversation: ConversationModel) -> Self {
-        Self(id: "conversation-\(conversation.id.uuidString)", kind: .conversation(conversation.id))
-    }
-
-    static func empty(_ title: String) -> Self { Self(id: "empty", kind: .empty(title)) }
 }
