@@ -2458,7 +2458,7 @@
 			repositoryURL = "https://github.com/Lakr233/libghostty-spm";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.5.1;
+				minimumVersion = 1.6.20260909;
 			};
 		};
 		TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */ = {
@@ -2474,7 +2474,7 @@
 			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.19;
+				minimumVersion = 0.9.20;
 			};
 		};
 		TRMD00000000000000100025 /* XCRemoteSwiftPackageReference "MarkdownView" */ = {
@@ -2482,7 +2482,7 @@
 			repositoryURL = "https://github.com/Lakr233/MarkdownView";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.3.1;
+				minimumVersion = 4.3.2;
 			};
 		};
 		TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */ = {
@@ -2498,7 +2498,7 @@
 			repositoryURL = "https://github.com/Lakr233/GlyphixTextFx.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.0;
+				minimumVersion = 2.3.6;
 			};
 		};
 		TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */ = {
