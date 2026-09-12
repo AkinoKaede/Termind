@@ -16,6 +16,7 @@ struct AppDependencies {
     let agentRunRepository: (any AgentRunPersisting)?
     let settingsSync: SettingsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
+    let forwardingDefaults: UserDefaults?
 
     init(
         hostRepository: any HostRepository, outboxRunner: OutboxRunner?,
@@ -23,7 +24,8 @@ struct AppDependencies {
         serialPortService: any SerialPortServing = SystemSerialPortService(),
         agentRunRepository: (any AgentRunPersisting)? = nil,
         vaultSync: VaultSyncCoordinator? = nil,
-        settingsSync: SettingsSyncCoordinator? = nil
+        settingsSync: SettingsSyncCoordinator? = nil,
+        forwardingDefaults: UserDefaults? = nil
     ) {
         self.hostRepository = hostRepository
         self.outboxRunner = outboxRunner
@@ -32,6 +34,7 @@ struct AppDependencies {
         self.agentRunRepository = agentRunRepository
         self.vaultSync = vaultSync
         self.settingsSync = settingsSync
+        self.forwardingDefaults = forwardingDefaults
     }
 
     static func inMemory(hosts: [Host], groups: [HostGroup]) -> Self {

@@ -186,7 +186,7 @@ final class AppModel {
         hostRepository = dependencies.hostRepository
         vaultSync = dependencies.vaultSync
         settingsSync = dependencies.settingsSync
-        forwarding = PortForwardingController(hosts: hosts)
+        forwarding = PortForwardingController(hosts: hosts, defaults: dependencies.forwardingDefaults)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() }
@@ -217,14 +217,17 @@ final class AppModel {
         )
         hosts.willDeleteHost = { [weak forwarding, weak serverMetrics, agentConnections] hostID, ruleIDs in
             serverMetrics?.remove(hostID)
-            forwarding?.stop(ruleIDs)
+            forwarding?.suspend(ruleIDs)
             // Not a `HostDeletionOutbox` step like the others: a live socket
             // cannot outlive the process, so there is nothing to replay after a
             // crash and nothing to make durable.
             Task { await agentConnections.disconnect(hostID: hostID) }
         }
         hosts.willDeletePortForwardings = { [weak forwarding] ruleIDs in
-            forwarding?.stop(ruleIDs)
+            forwarding?.suspend(ruleIDs)
+        }
+        hosts.didReplacePortForwardings = { [weak forwarding] ruleIDs in
+            forwarding?.resumeEnabled(ruleIDs)
         }
         hosts.didPersistCore = { [weak repository = dependencies.hostRepository] in
             try? repository?.refresh()
@@ -253,7 +256,7 @@ final class AppModel {
             outboxRunner.register(
                 RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.stopForwardings) {
                     [weak self] deletion in
-                    self?.forwarding.stop(deletion.forwardingRuleIDs)
+                    self?.forwarding.remove(deletion.forwardingRuleIDs)
                 }
             )
             outboxRunner.register(
@@ -330,8 +333,9 @@ final class AppModel {
                 connectionHistory.clear(for: hostID)
             }
         }
-        if !changedRuleIDs.isEmpty { forwarding.stop(Array(changedRuleIDs)) }
+        if !changedRuleIDs.isEmpty { forwarding.suspend(Array(changedRuleIDs)) }
         hosts.replacePersistedSnapshot(snapshot)
+        forwarding.resumeEnabled()
     }
 
     @ObservationIgnored private lazy var assistantOperations = AssistantConversationOperations(
@@ -616,7 +620,7 @@ final class AppModel {
         windows.removeAll()
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
-        forwarding.stopAll()
+        forwarding.suspendAll()
         Task { [mcpServer, agentConnections, agentBackgroundCommands] in
             await mcpServer.stop()
             await agentBackgroundCommands.closeAll()

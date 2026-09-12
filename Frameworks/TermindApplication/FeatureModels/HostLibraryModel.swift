@@ -28,6 +28,8 @@ public final class HostLibraryModel {
     /// references are removed and the controller can stop listeners cleanly.
     public var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
     public var willDeletePortForwardings: (([PortForwardingRule.ID]) -> Void)?
+    /// Restarts locally enabled rules after their saved configuration has been replaced or rolled back.
+    public var didReplacePortForwardings: (([PortForwardingRule.ID]) -> Void)?
     public var didPersistCore: (() -> Void)? {
         get { vault.didPersist }
         set { vault.didPersist = newValue }
@@ -671,7 +673,11 @@ public final class HostLibraryModel {
         if let existingHost, existingHost.sshConnectionFields != host.sshConnectionFields {
             rulesToStop.formUnion(existingRules.map(\.id))
         }
-        if !rulesToStop.isEmpty { willDeletePortForwardings?(Array(rulesToStop)) }
+        let affectedRuleIDs = Array(rulesToStop)
+        if !affectedRuleIDs.isEmpty { willDeletePortForwardings?(affectedRuleIDs) }
+        defer {
+            if !affectedRuleIDs.isEmpty { didReplacePortForwardings?(affectedRuleIDs) }
+        }
 
         if let index = hosts.firstIndex(where: { $0.id == host.id }) {
             var updated = host

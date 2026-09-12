@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 import TermindDomain
 import TermindRemoteInfrastructure
 
@@ -19,9 +20,11 @@ struct PortForwardingEditorState {
         savedRule: PortForwardingRule?, savedHost: Host?,
         isEnabled: Bool, runtime: PortForwardingRuntimeState
     ) {
-        hasSavedConfiguration =
-            rule != nil && rule?.isValid == true && rule == savedRule && host == savedHost
-        self.isEnabled = isEnabled
+        let shared = PortForwardingEditorPolicy(
+            rule: rule, host: host, savedRule: savedRule, savedHost: savedHost,
+            isEnabled: isEnabled, isRuntimeActive: runtime.isActive)
+        hasSavedConfiguration = shared.hasSavedConfiguration
+        self.isEnabled = shared.isEnabled
         self.runtime = runtime
     }
 
@@ -33,9 +36,7 @@ struct PortForwardingEditorState {
     }
 
     static func normalized(_ rule: PortForwardingRule) -> PortForwardingRule? {
-        normalized(
-            rule, hostID: rule.hostID, bindPort: String(rule.bindPort),
-            targetHost: rule.targetHost ?? "", targetPort: rule.targetPort.map(String.init) ?? "")
+        PortForwardingEditorPolicy.normalized(rule)
     }
 
     /// Use the exact save candidate for validation and start eligibility, including hidden dynamic targets.
@@ -43,14 +44,8 @@ struct PortForwardingEditorState {
         _ rule: PortForwardingRule, hostID: Host.ID,
         bindPort: String, targetHost: String, targetPort: String
     ) -> PortForwardingRule? {
-        guard let port = Int(bindPort.trimmingCharacters(in: .whitespacesAndNewlines)) else { return nil }
-        var value = rule
-        value.hostID = hostID
-        value.bindHost = value.bindHost.trimmingCharacters(in: .whitespacesAndNewlines)
-        value.bindPort = port
-        value.targetHost = rule.kind == .dynamic ? nil : targetHost.trimmingCharacters(in: .whitespacesAndNewlines)
-        value.targetPort =
-            rule.kind == .dynamic ? nil : Int(targetPort.trimmingCharacters(in: .whitespacesAndNewlines))
-        return value.isValid ? value : nil
+        PortForwardingEditorPolicy.normalized(
+            rule, hostID: hostID, bindPort: bindPort,
+            targetHost: targetHost, targetPort: targetPort)
     }
 }

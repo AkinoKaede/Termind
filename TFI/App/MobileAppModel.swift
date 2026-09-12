@@ -70,13 +70,15 @@ final class MobileAppModel {
     convenience init(
         hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
-        workspaceConnectionServices: MobileWorkspaceConnectionServices = .live
+        workspaceConnectionServices: MobileWorkspaceConnectionServices = .live,
+        forwardingDefaults: UserDefaults? = nil
     ) throws {
         try self.init(
             dependencies: MobileAppDependencies(
                 hosts: hosts,
                 inMemory: inMemory,
                 defaults: defaults,
+                forwardingDefaults: forwardingDefaults ?? (inMemory || hosts != nil ? nil : defaults),
                 background: background,
                 workspaceConnections: workspaceConnectionServices
             ))
@@ -144,9 +146,10 @@ final class MobileAppModel {
         snippets = SnippetLibraryModel(library: library)
         knownHosts = KnownHostsLibraryModel(library: library)
         forwardingLibrary = ForwardingLibraryModel(library: library)
-        forwardings = PortForwardingController(hosts: library)
+        forwardings = PortForwardingController(hosts: library, defaults: dependencies.forwardingDefaults)
         transfers = SFTPTransferCoordinator(store: library, clientFactory: { SFTPClient() })
-        library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.stop(ids) }
+        library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.suspend(ids) }
+        library.didReplacePortForwardings = { [weak forwardings] ids in forwardings?.resumeEnabled(ids) }
         let visibleHostIDs = Set(try self.hosts.snapshot().value.hosts.map(\.id))
         for host in library.hosts where !visibleHostIDs.contains(host.id) { library.projectHostDeletion(host.id) }
         outbox.register(
@@ -163,7 +166,7 @@ final class MobileAppModel {
             })
         outbox.register(
             RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.stopForwardings) { [weak forwardings] payload in
-                forwardings?.stop(payload.forwardingRuleIDs)
+                forwardings?.remove(payload.forwardingRuleIDs)
             })
         outbox.register(
             RepositoryHostDeletionHandler(handlerID: HostDeletionOutbox.clearReferences, repository: self.hosts))
@@ -259,7 +262,7 @@ final class MobileAppModel {
         do {
             for workspace in workspaces.filter({ $0.descriptor.hostID == id }) { close(workspace.id) }
             transfers.cancelAll(for: id)
-            forwardings.stop(library.portForwardings(for: id).map(\.id))
+            forwardings.remove(library.portForwardings(for: id).map(\.id))
             metrics.remove(id)
             try hosts.requestHostDeletion(id)
             library.projectHostDeletion(id)
@@ -289,7 +292,7 @@ final class MobileAppModel {
             background.begin { [weak self] in
                 guard let self else { return }
                 for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
-                forwardings.stopAll()
+                forwardings.suspendAll()
                 transfers.cancelAll()
                 assistant.expireBackground()
             }
@@ -297,6 +300,7 @@ final class MobileAppModel {
         } else if phase == .active {
             background.finish()
             for workspace in workspaces { workspace.resumeAfterBackground() }
+            forwardings.resumeEnabled()
             reconcileSync()
             outbox.start()
             if hasActivated {
@@ -342,15 +346,16 @@ final class MobileAppModel {
                     if removed { close(workspace.id) } else { workspace.disconnect() }
                 }
                 transfers.cancelAll(for: id)
-                forwardings.stop(library.portForwardings(for: id).map(\.id))
+                forwardings.suspend(library.portForwardings(for: id).map(\.id))
             }
             if removed {
                 commandHistory.clear(for: id)
                 metrics.remove(id)
             }
         }
-        forwardings.stop(keys.filter { $0.kind == .portForwarding }.map(\.id))
+        forwardings.suspend(keys.filter { $0.kind == .portForwarding }.map(\.id))
         library.replacePersistedSnapshot(snapshot)
+        forwardings.resumeEnabled()
         liveActivities.update(workspaceActivitySessions)
     }
 

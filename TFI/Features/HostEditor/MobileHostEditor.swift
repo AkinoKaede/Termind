@@ -49,6 +49,9 @@ struct MobileHostEditor: View {
                 }
                 Section("Port Forwarding") {
                     ForEach(draftForwardings) { rule in
+                        let runtime = app.forwardings.state(for: rule.id)
+                        let state = forwardingState(for: rule, runtimeIsActive: runtime.isActive)
+                        let isRunning = state.isEnabled || state.isRuntimeActive
                         HStack {
                             Button {
                                 editingForwarding = rule
@@ -56,8 +59,7 @@ struct MobileHostEditor: View {
                                 Label {
                                     VStack(alignment: .leading) {
                                         Text(rule.label.isEmpty ? rule.bindAddress : rule.label)
-                                        Text(app.forwardings.state(for: rule.id).label).font(.caption).foregroundStyle(
-                                            .secondary)
+                                        Text(runtime.label).font(.caption).foregroundStyle(.secondary)
                                     }
                                 } icon: {
                                     Image(systemName: "arrow.left.arrow.right").accessibilityHidden(true)
@@ -65,16 +67,11 @@ struct MobileHostEditor: View {
                             }
                             Spacer()
                             Button(
-                                app.forwardings.isEnabled(rule.id)
-                                    ? String(localized: "Stop") : String(localized: "Start"),
-                                systemImage: app.forwardings.isEnabled(rule.id) ? "stop" : "play"
+                                isRunning ? String(localized: "Stop") : String(localized: "Start"),
+                                systemImage: isRunning ? "stop" : "play"
                             ) {
-                                if app.forwardings.isEnabled(rule.id) {
-                                    app.forwardings.stop(rule.id)
-                                } else {
-                                    app.forwardings.start(rule.id)
-                                }
-                            }.disabled(app.forwardingLibrary.portForwarding(rule.id) != rule)
+                                app.forwardings.setEnabled(!isRunning, for: rule.id)
+                            }.disabled(!state.canToggle)
                         }
                         .contextMenu {
                             Button("Duplicate", systemImage: "plus.square.on.square") {
@@ -82,9 +79,11 @@ struct MobileHostEditor: View {
                                 copy.id = UUID()
                                 draftForwardings.append(copy)
                             }
+                            .disabled(!state.canEdit)
                             Button("Delete", systemImage: "trash", role: .destructive) {
                                 draftForwardings.removeAll { $0.id == rule.id }
                             }
+                            .disabled(!state.canEdit)
                         }
                     }
                     Button("Add Port Forward", systemImage: "plus") {
@@ -107,7 +106,7 @@ struct MobileHostEditor: View {
             }
         )
         .sheet(item: $editingForwarding) { rule in
-            MobileForwardingEditor(rule: rule) { updated in
+            MobileForwardingEditor(app: app, host: draft, rule: rule) { updated in
                 if let index = draftForwardings.firstIndex(where: { $0.id == updated.id }) {
                     draftForwardings[index] = updated
                 } else {
@@ -115,6 +114,15 @@ struct MobileHostEditor: View {
                 }
             }
         }
+    }
+
+    private func forwardingState(
+        for rule: PortForwardingRule, runtimeIsActive: Bool
+    ) -> PortForwardingEditorPolicy {
+        PortForwardingEditorPolicy(
+            rule: rule, host: draft,
+            savedRule: app.forwardingLibrary.portForwarding(rule.id), savedHost: library.host(draft.id),
+            isEnabled: app.forwardings.isEnabled(rule.id), isRuntimeActive: runtimeIsActive)
     }
 }
 

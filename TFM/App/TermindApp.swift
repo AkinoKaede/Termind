@@ -103,7 +103,8 @@ struct TermindApp: App {
                         agentRunRepository: SwiftDataAgentRunRepository(
                             context: container.mainContext
                         ),
-                        vaultSync: vaultSync, settingsSync: settingsSync
+                        vaultSync: vaultSync, settingsSync: settingsSync,
+                        forwardingDefaults: .standard
                     ),
                     proAccess: proAccess,
                     appReview: .live()
@@ -170,6 +171,10 @@ struct TermindApp: App {
             didSet {
                 guard let app else { return }
                 guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+                if !didRestoreForwardings {
+                    didRestoreForwardings = true
+                    app.forwarding.resumeEnabled()
+                }
                 app.serverMetrics.start()
                 metricsSleep.start(app.serverMetrics)
                 metricsMenu.start(app.serverMetrics)
@@ -177,6 +182,7 @@ struct TermindApp: App {
         }
         private let metricsSleep = MetricsSleepObserver()
         private let metricsMenu = MetricsMenuBarController()
+        private var didRestoreForwardings = false
         private var quietLaunchObserver: (any NSObjectProtocol)?
         private let appearanceController = AppAppearanceController()
 

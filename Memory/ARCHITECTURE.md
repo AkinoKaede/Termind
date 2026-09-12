@@ -150,7 +150,10 @@ infrastructure, persistence, or presentation responsibility.
   suppressing its window, because a quiet login launch must not present an empty foreground window.
 
 Repository data is persistent truth. Runtime connection state is kept in a
-connection registry and is never persisted onto domain records.
+connection registry and is never persisted onto domain records. Port forwarding's
+Enabled choice is a device-local `UserDefaults` intent rather than runtime state:
+it is not included in Vault/Settings sync, while macOS restores it at launch and
+iOS restores it whenever the app becomes active after background suspension.
 
 SSH command history is created only after an authenticated shell-integration
 start event. A matching completion event enriches that row with exit status and
@@ -685,6 +688,8 @@ Mobile host deletion records the existing deletion saga and starts the shared ou
 runner. Restored pending deletions are hidden before workspace restoration. The runner's
 start/stop generation prevents a cancelled background loop from clearing a replacement
 foreground loop. New port forwarding rules never start merely because they were saved.
+Rules explicitly marked Enabled keep that device-local intent through background expiration
+and resume when the app next becomes active.
 
 Mobile Snippets retain the shared Vault records, nested packages, ordering and target
 host references. A card opens a read-only detail; execution is always an explicit action.
@@ -708,8 +713,9 @@ commands retain unknown completion. App-wide history is bounded to 1,000 rows pe
 Mobile sync runs while a scene is active and Pro access permits it. Backgrounding pauses
 both engines, retaining upload journals; foregrounding fetches again. Entitlement changes
 reconcile the same gate. Remote host deletion closes its workspaces, cancels transfers and
-forwardings, and clears local command history. Modified connections are disconnected rather
-than automatically replayed. Mobile AI/Terminal edits preserve all other Settings record kinds,
+forwardings, and clears local command history. Modified workspaces are disconnected rather
+than automatically replayed; locally Enabled forwarding rules restart with the accepted configuration.
+Mobile AI/Terminal edits preserve all other Settings record kinds,
 including Skills and MCP configurations. Skills use the shared Application library and the synchronized persistence adapter on both platforms. Active chat requests retain
 the provider/model/credential captured at start. Assistant now registers the same tools as the desktop independent Assistant through the shared registry.
 
@@ -717,7 +723,7 @@ Mobile navigation and Metrics reuse (2026-09-11):
 
 - Transfers belongs to Workspaces. Host cards connect to SSH on a single activation and expose SFTP/edit/delete through a visible More menu and a long-press context menu. SSH folder import is desktop-only; mobile retains private-key and certificate file import.
 - Port forwarding rules belong to the host draft and commit with it. Only unchanged, saved rules can start; the
-  mobile host editor exposes runtime start/stop per rule and has no bulk controls.
+  mobile host editor exposes a persistent, device-local Enabled switch per rule and has no bulk controls.
 - Keychain lists Keys before Identities. Identity notes remain preserved data without an editor field. Generation defaults match macOS: iCloud, Ed25519, ECDSA P-256, RSA 3072, AES-256 and 100 rounds; encrypted generation requires a matching confirmation. The shared bounded/scoped key-file reader accepts explicit private-key and certificate files.
 - ServerMetricsModel, ServerMetric, MetricsClock and ConnectionJourney live in Application. Their samplers/discovery functions remain injected. Mobile delegates its collector to this shared model, including authentication, temporary trust, process/filesystem sampling and detail observer lifetimes.
 - Metrics instruments/system panels, Journey route/checkpoint animations, and SSH decision forms live in Presentation. AppKit's keyboard monitor stays in TFM and is injected through ConnectionFormKeyboardAdapting; Presentation has no native UI imports.

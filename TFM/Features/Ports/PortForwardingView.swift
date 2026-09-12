@@ -72,11 +72,11 @@ struct PortForwardingEditorSection: View {
     }
 
     private func startAll() {
-        app.forwarding.start(startableRules.map(\.id))
+        app.forwarding.setEnabled(true, for: startableRules.map(\.id))
     }
 
     private func stopAll() {
-        app.forwarding.stop(runningRules.map(\.id))
+        app.forwarding.setEnabled(false, for: runningRules.map(\.id))
     }
 }
 
@@ -155,9 +155,9 @@ private struct HostForwardingRow: View {
             set: { value in
                 if value {
                     guard state.canStart else { return }
-                    app.forwarding.start(rule.id)
+                    app.forwarding.setEnabled(true, for: rule.id)
                 } else {
-                    app.forwarding.stop(rule.id)
+                    app.forwarding.setEnabled(false, for: rule.id)
                 }
             }
         )
@@ -203,9 +203,9 @@ private struct HostForwardingContextMenu: View {
 
     private func toggle() {
         if state.isEnabled || state.runtime.isActive {
-            app.forwarding.stop(rule.id)
+            app.forwarding.setEnabled(false, for: rule.id)
         } else if state.canStart {
-            app.forwarding.start(rule.id)
+            app.forwarding.setEnabled(true, for: rule.id)
         }
     }
 
@@ -368,9 +368,9 @@ struct PortForwardingEditorSheet: View {
             set: { value in
                 if value {
                     guard state.canStart else { return }
-                    app.forwarding.start(draft.id)
+                    app.forwarding.setEnabled(true, for: draft.id)
                 } else {
-                    app.forwarding.stop(draft.id)
+                    app.forwarding.setEnabled(false, for: draft.id)
                 }
             })
     }

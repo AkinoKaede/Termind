@@ -31,6 +31,9 @@ struct MobileIconRenderingTests {
     @Test func renderIconNavigationAndForms() async throws {
         guard let language = ProcessInfo.processInfo.environment["TERMIND_ICON_SCREENSHOTS"] else { return }
         let app = try MobileAppModel(inMemory: true)
+        let forwardingHost = Host(name: "Example", host: "example.invalid")
+        let forwardingRule = PortForwardingRule(hostID: forwardingHost.id, label: "Web")
+        #expect(app.library.upsert(forwardingHost, replacingPortForwardings: [forwardingRule]))
         let snippetApp = try MobileAppModel(inMemory: true)
         let snippetHost = Host(name: "Production", host: "production.example.invalid")
         let snippetPackage = SnippetPackage(name: "Operations")
@@ -119,6 +122,10 @@ struct MobileIconRenderingTests {
             }
             try await capture("editor-\(suffix)", language: language, scheme: scheme) {
                 MobileHostEditor(app: app, host: Host(name: "Example", host: "example.invalid"))
+                    .environment(\.locale, locale)
+            }
+            try await capture("forwarding-editor-\(suffix)", language: language, scheme: scheme) {
+                MobileForwardingEditor(app: app, host: forwardingHost, rule: forwardingRule) { _ in }
                     .environment(\.locale, locale)
             }
             try await capture("add-\(suffix)", language: language, scheme: scheme) {

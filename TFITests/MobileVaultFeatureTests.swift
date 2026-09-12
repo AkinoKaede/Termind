@@ -10,6 +10,24 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test func forwardingEnabledIntentUsesInjectedDevicePreferences() throws {
+        let suite = "MobileForwardingIntentTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let app = try MobileAppModel(inMemory: true, forwardingDefaults: defaults)
+        let host = TermindDomain.Host(name: "Remote", host: "example.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+        #expect(app.library.upsert(host, replacingPortForwardings: [rule]))
+
+        app.forwardings.setEnabled(true, for: rule.id)
+        #expect(app.forwardings.isEnabled(rule.id))
+        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs) == [rule.id.uuidString])
+        app.forwardings.suspendAll()
+        #expect(app.forwardings.isEnabled(rule.id))
+        app.forwardings.setEnabled(false, for: rule.id)
+        #expect(!app.forwardings.isEnabled(rule.id))
+    }
+
     @Test func encryptedKeyGenerationImportAndMetadataEditingKeepTheSecretOutOfRecords() async throws {
         let app = try MobileAppModel(inMemory: true)
         let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)

@@ -44,50 +44,112 @@ public nonisolated enum PortForwardingRuntimeState: Hashable, Sendable {
     }
 }
 
-/// Process-local intent and live resources. No state in this type is persisted,
-/// which guarantees that launching Termind never silently exposes a saved port.
+/// Keeps device-local enabled intent separate from process-local SSH resources.
+/// Enabled rule IDs are not part of Vault or Settings sync.
 @Observable
 public final class PortForwardingController {
     private let hosts: HostLibraryModel
+    private let defaults: UserDefaults?
+    private let enabledDefaultsKey: String
     public private(set) var states: [PortForwardingRule.ID: PortForwardingRuntimeState] = [:]
+    private var enabled: Set<PortForwardingRule.ID>
     private var desired: Set<PortForwardingRule.ID> = []
     private var sessions: [Host.ID: SSHForwardingSession] = [:]
     private var connectionTasks: [Host.ID: Task<Void, any Error>] = [:]
     private var reconnectTasks: [Host.ID: Task<Void, Never>] = [:]
     private var reconnectAttempts: [Host.ID: Int] = [:]
     private var connectedAt: [Host.ID: Date] = [:]
+    private var ruleHostIDs: [PortForwardingRule.ID: Host.ID]
+    private var stoppingTasks: [PortForwardingRule.ID: Task<Void, Never>] = [:]
+    private var stoppingGenerations: [PortForwardingRule.ID: UUID] = [:]
 
-    public init(hosts: HostLibraryModel) { self.hosts = hosts }
+    public init(
+        hosts: HostLibraryModel, defaults: UserDefaults? = nil,
+        enabledDefaultsKey: String = SettingsKey.portForwardingEnabledRuleIDs
+    ) {
+        self.hosts = hosts
+        self.defaults = defaults
+        self.enabledDefaultsKey = enabledDefaultsKey
+        enabled = Set(
+            defaults?.stringArray(forKey: enabledDefaultsKey)?.compactMap(UUID.init(uuidString:)) ?? [])
+        ruleHostIDs = Dictionary(uniqueKeysWithValues: hosts.portForwardings.map { ($0.id, $0.hostID) })
+    }
 
     public func state(for id: PortForwardingRule.ID) -> PortForwardingRuntimeState {
         states[id] ?? .stopped
     }
 
-    public func isEnabled(_ id: PortForwardingRule.ID) -> Bool { desired.contains(id) }
+    public func isEnabled(_ id: PortForwardingRule.ID) -> Bool { enabled.contains(id) }
 
-    public func start(_ id: PortForwardingRule.ID) {
-        guard let rule = hosts.portForwarding(id), !desired.contains(id) else { return }
-        desired.insert(id)
-        states[id] = .preparing
-        Task { await start(rule) }
-    }
-
-    public func start(_ ids: [PortForwardingRule.ID]) { ids.forEach(start) }
-
-    public func stop(_ id: PortForwardingRule.ID) {
-        desired.remove(id)
-        states[id] = .stopped
-        guard let rule = hosts.portForwarding(id), let session = sessions[rule.hostID] else { return }
-        Task {
-            await session.stop(id)
-            await disconnectHostIfIdle(rule.hostID)
+    public func setEnabled(_ value: Bool, for id: PortForwardingRule.ID) {
+        if value {
+            guard hosts.portForwarding(id)?.isValid == true else { return }
+            enabled.insert(id)
+            persistEnabled()
+            activate(id)
+        } else {
+            enabled.remove(id)
+            persistEnabled()
+            suspend(id)
         }
     }
 
-    public func stop(_ ids: [PortForwardingRule.ID]) { ids.forEach(stop) }
+    public func setEnabled(_ value: Bool, for ids: [PortForwardingRule.ID]) {
+        for id in ids { setEnabled(value, for: id) }
+    }
 
-    public func stopAll() {
-        let all = Array(desired)
+    /// Restores all, or a changed subset, after launch, foregrounding, or a saved configuration replacement.
+    public func resumeEnabled(_ ids: [PortForwardingRule.ID]? = nil) {
+        var valid: Set<PortForwardingRule.ID> = []
+        for id in enabled {
+            guard let rule = hosts.portForwarding(id), rule.isValid, hosts.host(rule.hostID) != nil else { continue }
+            ruleHostIDs[rule.id] = rule.hostID
+            valid.insert(id)
+        }
+        if valid != enabled {
+            enabled = valid
+            persistEnabled()
+        }
+        let targets = ids.map { valid.intersection($0) } ?? valid
+        targets.forEach(activate)
+    }
+
+    /// Stops live resources while preserving the device-local enabled intent.
+    public func suspend(_ id: PortForwardingRule.ID) {
+        let hostID = hosts.portForwarding(id)?.hostID ?? ruleHostIDs[id]
+        let session = hostID.flatMap { sessions[$0] }
+        desired.remove(id)
+        states[id] = .stopped
+        let previous = stoppingTasks[id]
+        let generation = UUID()
+        stoppingGenerations[id] = generation
+        let task = Task {
+            if let previous { await previous.value }
+            if let session { await session.stop(id) }
+        }
+        stoppingTasks[id] = task
+        Task { [weak self] in
+            await task.value
+            guard let self, self.stoppingGenerations[id] == generation else { return }
+            self.stoppingTasks[id] = nil
+            self.stoppingGenerations[id] = nil
+            if let hostID { await self.disconnectHostIfIdle(hostID) }
+        }
+    }
+
+    public func suspend(_ ids: [PortForwardingRule.ID]) { ids.forEach(suspend) }
+
+    public func remove(_ ids: [PortForwardingRule.ID]) {
+        for id in ids {
+            enabled.remove(id)
+            suspend(id)
+            ruleHostIDs[id] = nil
+        }
+        persistEnabled()
+    }
+
+    public func suspendAll() {
+        let all = Array(enabled.union(desired))
         desired.removeAll()
         for id in all { states[id] = .stopped }
         let active = sessions
@@ -98,7 +160,29 @@ public final class PortForwardingController {
         reconnectTasks.removeAll()
         reconnectAttempts.removeAll()
         connectedAt.removeAll()
+        for task in stoppingTasks.values { task.cancel() }
+        stoppingTasks.removeAll()
+        stoppingGenerations.removeAll()
         Task { for session in active.values { await session.disconnect() } }
+    }
+
+    private func activate(_ id: PortForwardingRule.ID) {
+        guard enabled.contains(id), !desired.contains(id) else { return }
+        if let rule = hosts.portForwarding(id) { ruleHostIDs[id] = rule.hostID }
+        desired.insert(id)
+        states[id] = .preparing
+        let stopping = stoppingTasks[id]
+        Task { [weak self] in
+            if let stopping { await stopping.value }
+            guard let self, self.desired.contains(id), self.enabled.contains(id),
+                let rule = self.hosts.portForwarding(id)
+            else { return }
+            await self.start(rule)
+        }
+    }
+
+    private func persistEnabled() {
+        defaults?.set(enabled.map(\.uuidString).sorted(), forKey: enabledDefaultsKey)
     }
 
     private func start(_ rule: PortForwardingRule) async {
@@ -140,8 +224,12 @@ public final class PortForwardingController {
             }
             states[rule.id] = .running(activeConnections: 0)
         } catch {
-            if desired.contains(rule.id),
-                let sshError = error as? TermindSSHError,
+            guard desired.contains(rule.id) else {
+                states[rule.id] = .stopped
+                await disconnectHostIfIdle(rule.hostID)
+                return
+            }
+            if let sshError = error as? TermindSSHError,
                 sshError.isRetryableForwardingFailure
             {
                 if let session = sessions.removeValue(forKey: rule.hostID) {
