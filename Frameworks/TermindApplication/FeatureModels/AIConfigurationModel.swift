@@ -38,7 +38,8 @@ public final class AIConfigurationModel {
     /// a model once, in the place you were already looking, quietly becomes the
     /// default for every conversation that has not chosen. It sits below an
     /// explicit Chat assignment and above first-available in `resolve`, so it
-    /// never overrides a decision the user made in Settings.
+    /// never overrides a decision the user made in Settings. It is persisted on
+    /// this device but deliberately excluded from Settings sync.
     public private(set) var lastSelectedModel: AIModelRef?
 
     /// The approval posture new and otherwise-unset conversations follow.
@@ -270,11 +271,12 @@ public final class AIConfigurationModel {
 
     /// Applies an already committed replica. It never calls the local write path.
     public func applyRemoteSnapshot(_ snapshot: AIConfigurationSnapshot, webSearch: AIWebSearchPreferences) {
+        let localSelection = lastSelectedModel
         let previousServers = Dictionary(uniqueKeysWithValues: mcpServers.map { ($0.id, $0) })
         modelProviders = snapshot.providers
         endpoints = snapshot.endpoints
         roles = snapshot.roles
-        lastSelectedModel = snapshot.lastSelectedModel
+        lastSelectedModel = localSelection.flatMap { lookup($0) == nil ? nil : $0 }
         mcpServers = snapshot.mcpServers
         mcpStatuses = mcpStatuses.filter { id, _ in
             previousServers[id] == mcpServers.first { $0.id == id }

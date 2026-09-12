@@ -133,6 +133,10 @@ public nonisolated struct AIWebSearchPreferences: Codable, Hashable, Sendable {
 
 public nonisolated enum SettingsRecordKind: String, Codable, CaseIterable, Sendable {
     case provider, mcpServer, skill, role, selection, webSearch, terminal
+
+    /// `selection` remains decodable for compatibility with existing CloudKit
+    /// records, but the conversation model picker is a device-local preference.
+    public var participatesInSync: Bool { self != .selection }
 }
 
 public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {

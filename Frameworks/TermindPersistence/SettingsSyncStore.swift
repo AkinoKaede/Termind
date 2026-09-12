@@ -35,7 +35,6 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         }
         for (index, skill) in skills.enumerated() { payloads.append(.skill(skill, sortIndex: index)) }
         for role in AIRole.allCases { payloads.append(.role(role, configuration.roles[role])) }
-        payloads.append(.selection(configuration.lastSelectedModel))
         payloads.append(.webSearch(webSearch))
         payloads.append(.terminal(terminal))
         return Dictionary(uniqueKeysWithValues: payloads.map { ($0.key, $0) })
@@ -64,6 +63,7 @@ public final class SettingsSyncPersistence {
         let seeded = defaults.integer(forKey: SettingsKey.seededSkillGeneration)
         var mutations = SettingsMutationSet.empty
         try context.commit {
+            try journal.discardInactiveEntries()
             if try !journal.state().bootstrapCompleted {
                 let installed = try skills.load()
                 let normalized = Self.normalizeBuiltIns(installed, seededGeneration: seeded)
@@ -165,8 +165,9 @@ public final class SettingsSyncPersistence {
     {
         var merge = SettingsRemoteMerge()
         var snapshot = try load()
+        let activeEnvelopes = envelopes.filter { $0.key.kind.participatesInSync }
         try context.commit {
-            merge = try journal.mergeDecision(for: envelopes)
+            merge = try journal.mergeDecision(for: activeEnvelopes)
             guard !merge.accepted.isEmpty else {
                 try journal.markNeedsUpload(merge.needsUpload)
                 return
@@ -186,20 +187,24 @@ public final class SettingsSyncPersistence {
     }
 
     private func materialize() throws -> SettingsSyncSnapshot {
-        let envelopes = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).compactMap(\.envelope)
+        let envelopes = try context.fetch(
+            FetchDescriptor<PersistentAIConfigurationSyncEntry>()
+        ).compactMap(\.envelope)
+        let localSelection = try ai.load(preservingUnresolvedReferences: true).lastSelectedModel
         var providers: [SyncedModelProvider] = []
         var servers: [SyncedMCPServer] = []
         var skillRows: [(AgentSkill, Int)] = []
-        var configuration = AIConfigurationSnapshot(providers: [], roles: [:])
+        var configuration = AIConfigurationSnapshot(
+            providers: [], roles: [:], lastSelectedModel: localSelection)
         var webSearch = try preferences().value
         var terminal = try terminalPreferences().load()
-        for envelope in envelopes where !envelope.isDeleted {
+        for envelope in envelopes where !envelope.isDeleted && envelope.key.kind.participatesInSync {
             switch envelope.payload {
             case .provider(let value): providers.append(value)
             case .mcpServer(let value): servers.append(value)
             case .skill(let value, let index): skillRows.append((value, index))
             case .role(let role, let ref): configuration.roles[role] = ref
-            case .selection(let ref): configuration.lastSelectedModel = ref
+            case .selection: break
             case .webSearch(let value): webSearch = value
             case .terminal(let value): terminal = value
             case nil: break
@@ -220,7 +225,11 @@ public final class SettingsSyncPersistence {
             return provider.model(ref.modelID) == nil
         }
         configuration.roles = configuration.roles.filter { !wasRemoved($0.value) }
-        if let ref = configuration.lastSelectedModel, wasRemoved(ref) { configuration.lastSelectedModel = nil }
+        if let ref = configuration.lastSelectedModel,
+            configuration.providers.first(where: { $0.id == ref.modelProviderID })?.model(ref.modelID) == nil
+        {
+            configuration.lastSelectedModel = nil
+        }
         return SettingsSyncSnapshot(
             configuration: configuration, skills: skillRows.map(\.0), webSearch: webSearch, terminal: terminal)
     }

@@ -4,7 +4,7 @@ public nonisolated enum SettingsKey {
     public static let appLanguage = "app.language"
     public static let defaultICloudSyncEnabled = true
     public static let defaultMetricsSyncEnabled = true
-    public static let defaultSettingsSyncEnabled = false
+    public static let defaultSettingsSyncEnabled = true
     public static let defaultTerminalThemeDark = "Termind Dark"
     public static let defaultTerminalThemeLight = "Termind Light"
     public static let defaultVaultSyncEnabled = true

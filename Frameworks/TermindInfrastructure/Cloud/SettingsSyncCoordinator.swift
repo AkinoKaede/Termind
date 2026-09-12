@@ -223,7 +223,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     private func addPendingChanges(_ keys: Set<SettingsRecordKey>) {
         guard let engine else { return }
         engine.state.add(
-            pendingRecordZoneChanges: keys.map {
+            pendingRecordZoneChanges: keys.filter { $0.kind.participatesInSync }.map {
                 .saveRecord(CKRecord.ID(recordName: $0.recordName, zoneID: zoneID))
             })
     }
@@ -397,6 +397,12 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         for modification in changes.modifications {
             let record = modification.record
             guard record.recordType == Self.recordType, record.recordID.zoneID == zoneID else {
+                continue
+            }
+            if let key = SettingsRecordKey(recordName: record.recordID.recordName),
+                !key.kind.participatesInSync
+            {
+                try journal.clearQuarantine(recordName: record.recordID.recordName)
                 continue
             }
             do {

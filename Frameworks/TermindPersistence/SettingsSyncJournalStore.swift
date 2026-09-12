@@ -22,6 +22,24 @@ public final class SettingsSyncJournal {
 
     public init(context: ModelContext) { self.context = context }
 
+    /// Removes records that are retained only for wire compatibility. Resetting
+    /// the engine state also drops any pending save for those records without
+    /// creating a CloudKit deletion.
+    public func discardInactiveEntries() throws {
+        let rows = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).filter {
+            $0.envelope?.key.kind.participatesInSync == false
+        }
+        let quarantines = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncQuarantine>()).filter {
+            SettingsRecordKey(recordName: $0.recordName)?.kind.participatesInSync == false
+        }
+        for row in quarantines { context.delete(row) }
+        if !rows.isEmpty {
+            for row in rows { context.delete(row) }
+            let syncState = try state()
+            syncState.engineStateData = nil
+        }
+    }
+
     public func state() throws -> PersistentAIConfigurationSyncState {
         var descriptor = FetchDescriptor<PersistentAIConfigurationSyncState>()
         descriptor.fetchLimit = 1
@@ -89,10 +107,11 @@ public final class SettingsSyncJournal {
             FetchDescriptor<PersistentAIConfigurationSyncEntry>(
                 predicate: #Predicate { $0.needsUpload }
             )
-        ).compactMap(\.envelope)
+        ).compactMap(\.envelope).filter { $0.key.kind.participatesInSync }
     }
 
     public func outgoingEntry(for key: SettingsRecordKey) throws -> SettingsOutgoingEntry? {
+        guard key.kind.participatesInSync else { return nil }
         guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else {
             return nil
         }
@@ -110,6 +129,7 @@ public final class SettingsSyncJournal {
         // newest candidate once, independently of delivery order.
         var candidates: [SettingsRecordKey: SettingsEnvelope] = [:]
         for envelope in remote {
+            guard envelope.key.kind.participatesInSync else { continue }
             guard envelope.isValid else {
                 throw SettingsSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
             }
@@ -164,7 +184,9 @@ public final class SettingsSyncJournal {
 
     public func markNeedsUpload(_ keys: Set<SettingsRecordKey>) throws {
         let entries = try entriesByName()
-        for key in keys { entries[key.recordName]?.needsUpload = true }
+        for key in keys where key.kind.participatesInSync {
+            entries[key.recordName]?.needsUpload = true
+        }
     }
 
     public func markUploaded(_ key: SettingsRecordKey, version: VaultVersion) throws {
@@ -234,6 +256,7 @@ public final class SettingsSyncJournal {
 
         for row in entries.values {
             guard let envelope = row.envelope, !envelope.isDeleted,
+                envelope.key.kind.participatesInSync,
                 current[envelope.key] == nil
             else { continue }
             let tombstone = SettingsEnvelope(
@@ -250,6 +273,10 @@ public final class SettingsSyncJournal {
     public func markAllLiveRecordsNeedsUploadForNewAccount() throws {
         for row in try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()) {
             guard let envelope = row.envelope else { continue }
+            guard envelope.key.kind.participatesInSync else {
+                row.needsUpload = false
+                continue
+            }
             if envelope.isDeleted {
                 context.delete(row)
             } else {
@@ -264,7 +291,7 @@ public final class SettingsSyncJournal {
 
     public func markAllEntriesNeedsUploadAfterZoneReset() throws {
         for row in try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()) {
-            row.needsUpload = true
+            row.needsUpload = row.envelope?.key.kind.participatesInSync == true
             row.systemFieldsData = nil
         }
         let state = try state()
