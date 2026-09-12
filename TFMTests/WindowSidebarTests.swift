@@ -9,6 +9,26 @@ import Testing
 
 @testable import Termind
 
+nonisolated private struct SidebarTestSerialConnection: SerialPortConnection {
+    func write(_: Data) async throws {}
+    func close() async {}
+}
+
+nonisolated private struct SidebarTestSerialService: SerialPortServing {
+    func availablePorts() async -> [SerialPortDescriptor] { [] }
+    func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
+        AsyncStream { $0.finish() }
+    }
+    func open(
+        _: SerialConnectionConfiguration,
+        receive _: @escaping @Sendable (Data) -> Void,
+        disconnected _: @escaping @Sendable (String) -> Void,
+        progress _: @escaping @Sendable (SerialPortOpenStage) -> Void
+    ) async throws -> any SerialPortConnection {
+        SidebarTestSerialConnection()
+    }
+}
+
 @Suite
 @MainActor
 struct WindowSidebarTests {
@@ -50,6 +70,57 @@ struct WindowSidebarTests {
         #expect(!first.showsSidebar)
         #expect(second.sidebarMode == .navigation)
         #expect(second.showsSidebar)
+    }
+
+    @Test
+    func focusedSerialPaneDisablesHistoryAndFallsBackToSnippets() {
+        let sshPane = Pane.sshSession(host: Host(name: "Server", host: "server.example"))
+        let workspace = Workspace(pane: sshPane)
+        let window = WindowModel(workspaces: [workspace])
+        let serialPane = Pane.serialSession(
+            configuration: SerialConnectionConfiguration(devicePath: "/dev/ttyUSB0"),
+            service: SidebarTestSerialService()
+        )
+
+        window.sidebarMode = .history
+        workspace.splitFocusedPane(axis: .horizontal, with: serialPane)
+
+        #expect(window.sidebarMode == .snippets)
+        #expect(window.availableSidebarModes == [.navigation, .assistant, .snippets])
+        #expect(!window.isSidebarModeEnabled(.history))
+        #expect(window.isSidebarModeEnabled(.navigation))
+        #expect(window.isSidebarModeEnabled(.assistant))
+        #expect(window.isSidebarModeEnabled(.snippets))
+
+        window.sidebarMode = .history
+        window.activateSidebarMode(.history)
+        #expect(window.sidebarMode == .snippets)
+
+        workspace.focus(sshPane.id)
+        #expect(window.isSidebarModeEnabled(.history))
+        #expect(window.sidebarMode == .snippets)
+    }
+
+    @Test
+    func selectingSerialWorkspaceReconcilesHistoryImmediately() {
+        let sshWorkspace = Workspace.sshSession(
+            host: Host(name: "Server", host: "server.example")
+        )
+        let window = WindowModel(workspaces: [sshWorkspace])
+        window.sidebarMode = .history
+
+        let serialWorkspace = window.openSerialSession(
+            configuration: SerialConnectionConfiguration(devicePath: "/dev/ttyUSB0"),
+            service: SidebarTestSerialService()
+        )
+
+        #expect(window.selectedDestination == .workspace(serialWorkspace.id))
+        #expect(window.sidebarMode == .snippets)
+        #expect(!window.isSidebarModeEnabled(.history))
+
+        window.select(sshWorkspace.id)
+        #expect(window.isSidebarModeEnabled(.history))
+        #expect(window.sidebarMode == .snippets)
     }
 
     @Test

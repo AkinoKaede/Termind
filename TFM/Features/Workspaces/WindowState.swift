@@ -62,19 +62,6 @@ final class WindowSidebarState {
     var sessionContext: SessionContext = .none
 
     var mode: Mode = .navigation
-
-    var availableModes: [Mode] {
-        Mode.allCases
-    }
-
-    func isModeEnabled(_ mode: Mode) -> Bool {
-        availableModes.contains(mode)
-    }
-
-    func reconcileMode() {
-        // Every mode has a useful global or focus-sensitive presentation.
-    }
-
 }
 
 @Observable

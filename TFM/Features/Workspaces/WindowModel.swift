@@ -38,6 +38,7 @@ final class WindowModel {
             if selectedDestination != .assistant {
                 assistantReturnDestination = selectedDestination
             }
+            reconcileSidebarMode()
         }
     }
     @ObservationIgnored weak var remoteWindowTitleSink: (any WindowRemoteTitleSink)?
@@ -174,23 +175,25 @@ final class WindowModel {
     }
 
     var availableSidebarModes: [SidebarMode] {
-        sidebar.availableModes
+        SidebarMode.allCases.filter(isSidebarModeEnabled)
     }
 
     var sidebarMode: SidebarMode {
         get { sidebar.mode }
         set {
-            guard sidebar.isModeEnabled(newValue) else { return }
+            guard isSidebarModeEnabled(newValue) else { return }
             sidebar.mode = newValue
         }
     }
 
     func isSidebarModeEnabled(_ mode: SidebarMode) -> Bool {
-        sidebar.isModeEnabled(mode)
+        mode != .history || focusedSerialSession == nil
     }
 
     func reconcileSidebarMode() {
-        sidebar.reconcileMode()
+        if !isSidebarModeEnabled(sidebarMode) {
+            sidebar.mode = .snippets
+        }
     }
 
     /// Applies a Sidebar mode chosen by the user, including the two mode-rail
@@ -199,7 +202,7 @@ final class WindowModel {
     /// Direct `sidebarMode` assignment deliberately remains presentation-only
     /// for restoration, screenshots, and other programmatic configuration.
     func activateSidebarMode(_ mode: SidebarMode) {
-        guard sidebar.isModeEnabled(mode) else { return }
+        guard isSidebarModeEnabled(mode) else { return }
         sidebarMode = mode
 
         switch mode {
@@ -1388,6 +1391,7 @@ extension WindowModel: WorkspaceLifecycleRouting {
     func workspaceContextDidChange(_ workspace: Workspace) {
         guard selectedWorkspace === workspace else { return }
         refreshSessionContext()
+        reconcileSidebarMode()
     }
 
     func workspaceRemoteWindowTitleDidChange(_ workspace: Workspace) {

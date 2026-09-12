@@ -188,9 +188,11 @@ stay in Infrastructure, parameters live only with the open pane, and no serial
 path is persisted or exposed as an Agent host.
 
 Window navigation has one Navigator plus three tool sidebars: Assistant,
-Snippets, and History. Dynamic SSH/SFTP containers are consistently named
-Workspaces; “tab” is reserved for keyboard or native UI tab semantics. Vault
-selection belongs to `VaultPageStates`, not to sidebar state.
+Snippets, and History. History is unavailable while a serial pane is focused,
+because serial sessions have no command, file, or connection history; entering
+serial focus from History falls back to Snippets. Dynamic SSH/SFTP containers
+are consistently named Workspaces; “tab” is reserved for keyboard or native UI
+tab semantics. Vault selection belongs to `VaultPageStates`, not to sidebar state.
 
 ## Speech authorization and callbacks
 
