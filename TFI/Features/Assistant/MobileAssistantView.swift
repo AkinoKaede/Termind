@@ -20,7 +20,7 @@ enum MobileAssistantLibraryRoute: String, Identifiable, Hashable {
 struct MobileAssistantView: View {
     let app: MobileAppModel
     @Bindable var model: MobileAssistantModel
-    @State private var libraryRoute: MobileAssistantLibraryRoute?
+    @Binding var libraryRoute: MobileAssistantLibraryRoute?
     @State private var restoreComposerFocusAfterLibrary = false
     @State private var nextComposerFocusRequest = 0
     @State private var composerFocusRequest: Int?
@@ -28,6 +28,16 @@ struct MobileAssistantView: View {
     @State private var title = ""
     @State private var deleting: ConversationModel?
     @FocusState private var composerFocused: Bool
+
+    init(
+        app: MobileAppModel,
+        model: MobileAssistantModel,
+        libraryRoute: Binding<MobileAssistantLibraryRoute?>
+    ) {
+        self.app = app
+        self.model = model
+        _libraryRoute = libraryRoute
+    }
 
     var body: some View {
         detail

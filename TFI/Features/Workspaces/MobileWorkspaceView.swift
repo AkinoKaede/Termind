@@ -37,6 +37,9 @@ struct MobileWorkspaceView: View {
     @State private var showingTransfers = false
     @State private var uploadConflictPresented = false
     @State private var uploadDropTargeted = false
+    @State private var workspaceIsVisible = false
+    @State private var uploadDropTask: Task<Void, Never>?
+    @Environment(\.scenePhase) private var scenePhase
     @State private var downloadTarget: RemoteFile?
     @State private var previewURL: URL?
 
@@ -47,12 +50,26 @@ struct MobileWorkspaceView: View {
                     DropTargetOverlay(presentation: uploadDropPresentation)
                 }
             }
-            .contentShape(.rect)
-            .onDrop(
-                of: [.fileURL],
-                isTargeted: $uploadDropTargeted,
-                perform: receiveUploadProviders
-            )
+            .background {
+                MobileWindowDropTarget(
+                    isTargeted: $uploadDropTargeted,
+                    isEnabled: workspaceIsVisible && scenePhase == .active,
+                    terminalView: workspace.uploadTerminalView,
+                    receive: receiveUploadProviders
+                )
+                .id(workspace.id)
+            }
+            .onAppear { workspaceIsVisible = true }
+            .onDisappear {
+                workspaceIsVisible = false
+                uploadDropTargeted = false
+                cancelDropLoading()
+            }
+            .onChange(of: workspace.id) { _, _ in
+                uploadDropTargeted = false
+                cancelDropLoading()
+            }
+            .onChange(of: workspace.uploadDestination) { _, _ in cancelDropLoading() }
     }
 
     private var workspaceChrome: some View {
@@ -95,19 +112,16 @@ struct MobileWorkspaceView: View {
                     Button("Generate Command", systemImage: "sparkles") {
                         workspace.generateCommand(using: commandGenerator)
                     }
-                    .keyboardShortcut("i", modifiers: .command)
                     Divider()
                     Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
                     Button("History", systemImage: "clock") { terminalSheet = .commandHistory }
                     Divider()
                     Button("Next Match", systemImage: "chevron.down") {
-                        workspace.find.presentAndNavigate(.next)
-                    }
-                    .keyboardShortcut("g", modifiers: .command)
-                    Button("Previous Match", systemImage: "chevron.up") {
                         workspace.find.presentAndNavigate(.previous)
                     }
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                    Button("Previous Match", systemImage: "chevron.up") {
+                        workspace.find.presentAndNavigate(.next)
+                    }
                     Divider()
                     sameDirectoryMenuAction
                     Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
@@ -391,24 +405,35 @@ struct MobileWorkspaceView: View {
     }
 
     private func receiveUploadProviders(_ providers: [NSItemProvider]) -> Bool {
-        let kinds: Set<MobileDropKind> = [.files]
-        guard MobileDropPayloadLoader.accepts(providers, kinds: kinds) else { return false }
-        Task {
+        guard MobileDropPayloadLoader.acceptsUpload(providers) else { return false }
+        uploadDropTask?.cancel()
+        let destination = workspace.uploadDestination
+        uploadDropTask = Task {
             let payload = await MobileDropPayloadLoader.load(
                 providers,
-                kinds: kinds,
+                kinds: [.files],
                 fileMode: .staged
             )
+            guard !Task.isCancelled, workspace.uploadDestination == destination else {
+                if let stagedRoot = payload.stagedRoot { try? FileManager.default.removeItem(at: stagedRoot) }
+                return
+            }
             if !payload.fileURLs.isEmpty {
                 let accepted = receiveUpload(payload.fileURLs)
                 if !accepted, let stagedRoot = payload.stagedRoot {
                     try? FileManager.default.removeItem(at: stagedRoot)
                 }
-            } else if let error = payload.failures.first {
+            }
+            if let error = payload.failures.first {
                 workspace.operationError = error
             }
         }
         return true
+    }
+
+    private func cancelDropLoading() {
+        uploadDropTask?.cancel()
+        uploadDropTask = nil
     }
 
     private func enqueuePendingUpload(_ policy: TransferConflictPolicy) {

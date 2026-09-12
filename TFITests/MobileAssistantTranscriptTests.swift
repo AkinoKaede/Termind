@@ -23,6 +23,13 @@ struct MobileAssistantTranscriptTests {
         #expect(long <= 320)
     }
 
+    @Test func activityUsesTheAvailableWidthToKeepItsTitleLeading() {
+        let controller = UIHostingController(rootView: MobileAssistantActivity())
+        let size = controller.sizeThatFits(in: CGSize(width: 320, height: 1_000))
+
+        #expect(size.width == 320)
+    }
+
     @Test func imageFlowKeepsEveryUserRowTrailingAndAssistantRowsLeading() {
         let tile = CGSize(width: 104, height: 104)
         let sizes = Array(repeating: tile, count: 5)

@@ -36,7 +36,7 @@ struct MobileNavigationParityTests {
                 .components(separatedBy: "private func workspaceStatusTint").first)
 
         #expect(assistant.contains(".toolbarTitleMenu"))
-        #expect(assistant.contains("@State private var libraryRoute: MobileAssistantLibraryRoute?"))
+        #expect(assistant.contains("@Binding var libraryRoute: MobileAssistantLibraryRoute?"))
         #expect(assistant.contains(".navigationDestination(item: $libraryRoute)"))
         #expect(assistant.contains("List {"))
         #expect(!assistant.contains("MobileNativeList("))
@@ -344,7 +344,7 @@ struct MobileNavigationParityTests {
 
         #expect(rootSource.contains("NavigationStack { vault }"))
         #expect(rootSource.contains("case .vault: sidebarVault"))
-        #expect(rootSource.contains("app: app, open: open, showsMetrics: false"))
+        #expect(rootSource.contains("open: scene.open, showsMetrics: false"))
         #expect(vaultSource.contains("guard showsMetrics else { return [] }"))
         #expect(vaultSource.contains("if showsMetrics {"))
     }
@@ -433,7 +433,7 @@ struct MobileNavigationParityTests {
         #expect(workspaceList.contains(".contextMenu {"))
         #expect(
             workspaceList.contains(
-                "Button(\"Close\", systemImage: \"xmark\", role: .destructive) { closeWorkspace(workspace.id) }"))
+                "Button(\"Close\", systemImage: \"xmark\", role: .destructive) { scene.closeWorkspace(workspace.id) }"))
 
         let toolbar = try String(
             contentsOf: root.appending(path: "TFI/Features/HostChooser/MobileConnectionPicker.swift"), encoding: .utf8)
@@ -461,9 +461,11 @@ struct MobileNavigationParityTests {
         )
 
         #expect(workspace.contains("Button(\"Generate Command\", systemImage: \"sparkles\")"))
-        #expect(workspace.contains(".keyboardShortcut(\"i\", modifiers: .command)"))
-        #expect(rootSurface.contains("of: [.fileURL]"))
-        #expect(rootSurface.contains("perform: receiveUploadProviders"))
+        #expect(!workspace.contains(".keyboardShortcut("))
+        #expect(rootSurface.contains("MobileWindowDropTarget("))
+        #expect(rootSurface.contains("terminalView: workspace.uploadTerminalView"))
+        #expect(!rootSurface.contains(".frame(width: 0, height: 0)"))
+        #expect(rootSurface.contains("receive: receiveUploadProviders"))
         #expect(rootSurface.contains("DropTargetOverlay(presentation: uploadDropPresentation)"))
         #expect(workspace.contains("allowedContentTypes: [.data, .folder]"))
         #expect(workspace.contains("allowsMultipleSelection: true"))

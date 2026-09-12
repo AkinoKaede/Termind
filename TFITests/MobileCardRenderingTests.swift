@@ -96,7 +96,9 @@ struct MobileCardRenderingTests {
         for language in ["en", "zh-Hans"] {
             for scheme in [ColorScheme.light, .dark] {
                 try await capture("vault", language: language, scheme: scheme) {
-                    NavigationStack { MobileVaultView(app: app, open: { _, _ in }) }
+                    NavigationStack {
+                        MobileVaultView(app: app, editingHost: .constant(nil), open: { _, _ in })
+                    }
                 }
                 try await capture("snippets", language: language, scheme: scheme) {
                     NavigationStack { MobileSnippetsView(app: app) }
@@ -150,8 +152,10 @@ struct MobileCardRenderingTests {
                 }
             }
             try await capture("large-type", language: language, scheme: .light) {
-                NavigationStack { MobileVaultView(app: app, open: { _, _ in }) }
-                    .environment(\.dynamicTypeSize, .accessibility3)
+                NavigationStack {
+                    MobileVaultView(app: app, editingHost: .constant(nil), open: { _, _ in })
+                }
+                .environment(\.dynamicTypeSize, .accessibility3)
             }
             try await capture("metrics-large-type", language: language, scheme: .light) {
                 MobileCardPage {
@@ -164,7 +168,11 @@ struct MobileCardRenderingTests {
                 )
             }
             try await capture("empty", language: language, scheme: .light) {
-                NavigationStack { MobileVaultView(app: try! MobileAppModel(inMemory: true), open: { _, _ in }) }
+                NavigationStack {
+                    MobileVaultView(
+                        app: try! MobileAppModel(inMemory: true), editingHost: .constant(nil),
+                        open: { _, _ in })
+                }
             }
             try await capture("known-hosts-large-type", language: language, scheme: .light) {
                 NavigationStack { MobileKnownHostsView(app: app) }

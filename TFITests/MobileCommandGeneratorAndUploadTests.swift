@@ -3,6 +3,7 @@ import TermindApplication
 import TermindDomain
 import TermindRemoteInfrastructure
 import Testing
+import UniformTypeIdentifiers
 
 import struct TermindDomain.Host
 
@@ -481,7 +482,21 @@ struct MobileUploadBatchTests {
         let looseFile = root.appending(path: "README.md")
         try Data("readme".utf8).write(to: looseFile)
 
-        #expect(workspace.prepareUpload([folder, looseFile]))
+        let providers = [(folder, UTType.folder), (looseFile, UTType.plainText)].map { url, type in
+            let provider = NSItemProvider()
+            provider.suggestedName = url.lastPathComponent
+            provider.registerFileRepresentation(forTypeIdentifier: type.identifier, fileOptions: [], visibility: .all) {
+                @Sendable completion in
+                completion(url, false, nil)
+                return nil
+            }
+            return provider
+        }
+        let payload = await MobileDropPayloadLoader.load(providers, kinds: [.files], fileMode: .staged)
+        defer { if let root = payload.stagedRoot { try? FileManager.default.removeItem(at: root) } }
+        #expect(payload.failures.isEmpty)
+        try FileManager.default.removeItem(at: root)
+        #expect(workspace.prepareUpload(payload.fileURLs))
 
         #expect(await eventually { transfers.sftpTransfers.count == 2 })
         #expect(
@@ -491,6 +506,12 @@ struct MobileUploadBatchTests {
             ]
         )
         #expect(Set(transfers.sftpTransfers.map(\.batchID)).count == 1)
+        #expect(await eventuallyAsync { await client.uploadedData.count == 2 })
+        #expect(
+            await client.uploadedData == [
+                "/srv/incoming/README.md": Data("readme".utf8),
+                "/srv/incoming/bundle/nested/payload.txt": Data("payload".utf8),
+            ])
         #expect(workspace.uploadNotice == .queued(2, "/srv/incoming"))
         #expect(
             await client.createdDirectories == [
@@ -654,6 +675,7 @@ struct MobileUploadBatchTests {
 }
 
 private actor MobileUploadSFTPClient: SFTPClientProtocol {
+    private(set) var uploadedData: [String: Data] = [:]
     private(set) var createdDirectories: [String] = []
     private(set) var disconnectCount = 0
     private let attributes: [String: RemoteFile]
@@ -683,7 +705,9 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         overwrite: Bool,
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
-    ) async throws {}
+    ) async throws {
+        uploadedData[remotePath] = try Data(contentsOf: localURL)
+    }
     func downloadFile(
         from remotePath: String,
         to localURL: URL,

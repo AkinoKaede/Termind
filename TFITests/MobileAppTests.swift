@@ -8,6 +8,7 @@ import TermindPersistence
 import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
+import UIKit
 
 @testable import TermindIOS
 
@@ -904,6 +905,26 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
         ] {
             #expect(WorkspaceActivityAttributes.workspaceID(from: try #require(URL(string: value))) == nil)
         }
+    }
+
+    @Test func workspaceDropTargetInstallsItsNativeInteractionOnTheWindow() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 1_024, height: 768))
+        var targeted: [Bool] = []
+        let coordinator = MobileWindowDropTarget.Coordinator(
+            isEnabled: true,
+            targeted: { targeted.append($0) },
+            receive: { !$0.isEmpty }
+        )
+
+        let region = UIView(frame: window.bounds)
+        window.addSubview(region)
+        coordinator.install(in: region)
+
+        #expect(window.interactions.contains { $0 is UIDropInteraction })
+        coordinator.isEnabled = false
+        #expect(!targeted.contains(true))
+        coordinator.uninstall()
+        #expect(!window.interactions.contains { $0 is UIDropInteraction })
     }
 }
 

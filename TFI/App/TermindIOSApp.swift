@@ -31,5 +31,6 @@ struct TermindIOSApp: App {
                     description: Text("The local data store could not be opened. Please restart the app."))
             }
         }
+        .commands { MobileCommands() }
     }
 }

@@ -37,7 +37,7 @@ struct MobileProView: View {
                 .foregroundStyle(.tint)
                 .symbolRenderingMode(.hierarchical)
             Text("Termind Pro").font(.largeTitle.bold())
-            Text("One purchase for advanced workspaces, AI, MCP, and iCloud sync.")
+            Text("One purchase for AI, more monitored servers, remote MCP tools, and iCloud sync.")
                 .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -78,7 +78,7 @@ struct MobileProView: View {
             Divider().padding(.leading, 52)
             feature("Upload files by dropping them on a terminal", symbol: "arrow.up.doc")
             Divider().padding(.leading, 52)
-            feature("Connect MCP tools and run the built-in MCP Server", symbol: "server.rack")
+            feature("Connect remote MCP tools", symbol: "server.rack")
             Divider().padding(.leading, 52)
             feature("Sync Vault, Metrics, and Settings across devices", symbol: "icloud")
         }

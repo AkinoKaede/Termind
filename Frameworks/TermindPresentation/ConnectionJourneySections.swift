@@ -49,6 +49,8 @@ public struct ConnectionJourneyHeader: View {
                         .accessibilityLabel(journey.showsLogs ? Text("Hide Logs") : Text("Show Logs"))
                 } else {
                     Text(journey.showsLogs ? "Hide Logs" : "Show Logs")
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
             .buttonStyle(.bordered)
@@ -165,14 +167,34 @@ public struct ConnectionJourneyReconnectStatus: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .textSelection(.enabled)
-                HStack(spacing: 10) {
-                    Button("Retry Now", action: retryNow).buttonStyle(.borderedProminent)
-                    Button("Stop Reconnecting", role: .cancel, action: stop).buttonStyle(.bordered)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        retryButton
+                        stopButton
+                    }
+                    VStack(spacing: 10) {
+                        retryButton
+                        stopButton
+                    }
                 }
                 .controlSize(.large)
             }
             .padding(.top, 4)
         }
+    }
+
+    private var retryButton: some View {
+        Button("Retry Now", action: retryNow)
+            .buttonStyle(.borderedProminent)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var stopButton: some View {
+        Button("Stop Reconnecting", role: .cancel, action: stop)
+            .buttonStyle(.bordered)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     private func statusText(at date: Date) -> String {

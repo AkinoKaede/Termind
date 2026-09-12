@@ -130,19 +130,21 @@ struct MobileVaultView: View {
     let open: (UUID, MobileWorkspaceDescriptor.Kind) -> Void
     let showsMetrics: Bool
     let executeSnippet: (Snippet, [Host.ID]) -> Void
+    @Binding var editingHost: Host?
     @State private var query = ""
-    @State private var editingHost: Host?
     @State private var deletingHost: Host?
     @State private var groupName = ""
     @State private var addingGroup = false
 
     init(
         app: MobileAppModel,
+        editingHost: Binding<Host?>,
         open: @escaping (UUID, MobileWorkspaceDescriptor.Kind) -> Void,
         showsMetrics: Bool = true,
         executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in }
     ) {
         self.app = app
+        _editingHost = editingHost
         self.open = open
         self.showsMetrics = showsMetrics
         self.executeSnippet = executeSnippet

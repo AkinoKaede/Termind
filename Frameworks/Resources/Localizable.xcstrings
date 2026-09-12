@@ -2996,6 +2996,16 @@
         }
       }
     },
+    "Close Find" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭查找"
+          }
+        }
+      }
+    },
     "Close model details" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3390,6 +3400,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "连接到此主机"
+          }
+        }
+      }
+    },
+    "Connect remote MCP tools" : {
+      "comment" : "A feature of Termind Pro on iOS.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接远程MCP工具"
           }
         }
       }
@@ -9735,6 +9757,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一次买断，解锁高级工作区、AI、MCP与iCloud同步。"
+          }
+        }
+      }
+    },
+    "One purchase for AI, more monitored servers, remote MCP tools, and iCloud sync." : {
+      "comment" : "A summary of Termind Pro features available on iOS.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一次买断，解锁AI、更多服务器监控、远程MCP工具与iCloud同步。"
           }
         }
       }

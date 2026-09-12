@@ -71,7 +71,10 @@ struct MobileConnectionJourneyView: View {
             HStack {
                 Text("Connection Log").font(.headline)
                 Spacer()
-                Button("Copy", action: copyLogs).controlSize(.small)
+                Button("Copy", action: copyLogs)
+                    .controlSize(.small)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .padding(14)
             Divider()
@@ -138,20 +141,32 @@ private struct MobileJourneyFailureCard: View {
             VStack(spacing: 10) {
                 HStack {
                     Button("Cancel", action: cancel)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                     Button("Copy Logs", action: copyLogs)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                     Spacer()
                 }
                 Button("Retry", action: retry)
                     .buttonStyle(.borderedProminent)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
         } else {
             HStack {
                 Button("Cancel", action: cancel)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 Button("Copy Logs", action: copyLogs)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 Spacer()
                 Button("Retry", action: retry)
                     .buttonStyle(.borderedProminent)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
     }

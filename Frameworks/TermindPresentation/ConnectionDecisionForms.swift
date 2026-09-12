@@ -172,41 +172,78 @@ public struct SSHAuthenticationForm: View {
             .frame(maxWidth: .infinity)
             .textFieldStyle(.roundedBorder)
             #if os(iOS)
-                .multilineTextAlignment(.trailing)
+                .multilineTextAlignment(.leading)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             #endif
 
-            HStack {
-                Button(action: cancel) { ConnectionActionLabel(title: "Cancel", symbol: "xmark") }.keyboardShortcut(
-                    .cancelAction)
-                Spacer()
-                if needsPassphrase {
-                    Button {
-                        commit(save: false)
-                    } label: {
-                        ConnectionActionLabel(title: "Continue", symbol: "arrow.right")
+            actions
+        }
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        if needsPassphrase {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    cancelButton
+                    Spacer()
+                    passphraseContinueButton
+                }
+                VStack(spacing: 10) {
+                    cancelButton.frame(maxWidth: .infinity, alignment: .leading)
+                    passphraseContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    cancelButton
+                    Spacer()
+                    continueButton
+                    saveAndContinueButton
+                }
+                VStack(spacing: 10) {
+                    HStack {
+                        cancelButton
+                        Spacer()
+                        continueButton
                     }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!canContinue)
-                } else {
-                    Button {
-                        commit(save: false)
-                    } label: {
-                        ConnectionActionLabel(title: "Continue", symbol: "arrow.right")
-                    }.disabled(!canContinue)
-                    Button {
-                        commit(save: true)
-                    } label: {
-                        ConnectionActionLabel(title: "Save and Continue", symbol: "checkmark")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!canContinue)
+                    saveAndContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
         }
+    }
+
+    private var cancelButton: some View {
+        Button(action: cancel) { ConnectionActionLabel(title: "Cancel", symbol: "xmark") }
+            .keyboardShortcut(.cancelAction)
+    }
+
+    private var continueButton: some View {
+        Button {
+            commit(save: false)
+        } label: {
+            ConnectionActionLabel(title: "Continue", symbol: "arrow.right")
+        }
+        .disabled(!canContinue)
+    }
+
+    private var passphraseContinueButton: some View {
+        continueButton
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut(.defaultAction)
+    }
+
+    private var saveAndContinueButton: some View {
+        Button {
+            commit(save: true)
+        } label: {
+            ConnectionActionLabel(title: "Save and Continue", symbol: "checkmark")
+        }
+        .buttonStyle(.borderedProminent)
+        .keyboardShortcut(.defaultAction)
+        .disabled(!canContinue)
     }
 
     private func updateFocusForRequirement() {
@@ -397,24 +434,73 @@ public struct SSHHostKeyConfirmationForm: View {
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.background.opacity(0.65), in: .rect(cornerRadius: 8))
-            HStack {
-                Button(role: .destructive, action: deny) { ConnectionActionLabel(title: "Deny", symbol: "xmark") }
-                    .keyboardShortcut(.cancelAction)
-                Spacer()
-                if let trust {
-                    Button(action: proceed) { ConnectionActionLabel(title: "Continue", symbol: "arrow.right") }
-                        .help("Continue once without saving this host key")
-                    Button(action: trust) {
-                        ConnectionActionLabel(title: "Trust and Continue", symbol: "checkmark.shield")
+            actions
+        }
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        if trust != nil {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    denyButton
+                    Spacer()
+                    continueButton
+                    trustButton
+                }
+                VStack(spacing: 10) {
+                    HStack {
+                        denyButton
+                        Spacer()
+                        continueButton
                     }
-                    .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
-                } else {
-                    Button(action: proceed) { ConnectionActionLabel(title: "Continue", symbol: "arrow.right") }
-                        .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                    trustButton.frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    denyButton
+                    Spacer()
+                    continueButton
+                }
+                VStack(spacing: 10) {
+                    denyButton.frame(maxWidth: .infinity, alignment: .leading)
+                    continueButton.frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
         }
     }
+
+    private var denyButton: some View {
+        Button(role: .destructive, action: deny) { ConnectionActionLabel(title: "Deny", symbol: "xmark") }
+            .keyboardShortcut(.cancelAction)
+    }
+
+    @ViewBuilder
+    private var continueButton: some View {
+        if trust == nil {
+            baseContinueButton
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+        } else {
+            baseContinueButton
+                .help("Continue once without saving this host key")
+        }
+    }
+
+    private var baseContinueButton: some View {
+        Button(action: proceed) { ConnectionActionLabel(title: "Continue", symbol: "arrow.right") }
+    }
+
+    private var trustButton: some View {
+        Button(action: { trust?() }) {
+            ConnectionActionLabel(title: "Trust and Continue", symbol: "checkmark.shield")
+        }
+        .buttonStyle(.borderedProminent)
+        .keyboardShortcut(.defaultAction)
+    }
+
     private var explanation: String {
         switch prompt.kind {
         case .firstUse:
@@ -437,7 +523,9 @@ private struct ConnectionActionLabel: View {
 
     var body: some View {
         #if os(iOS)
-            Label(title, systemImage: symbol).fixedSize(horizontal: false, vertical: true)
+            Label(title, systemImage: symbol)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .frame(minHeight: 44)
         #else
             Text(title)

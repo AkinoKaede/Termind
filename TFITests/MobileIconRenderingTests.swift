@@ -51,7 +51,9 @@ struct MobileIconRenderingTests {
         for scheme in [ColorScheme.light, .dark] {
             let suffix = scheme == .dark ? "dark" : "light"
             try await capture("vault-\(suffix)", language: language, scheme: scheme) {
-                NavigationStack { MobileVaultView(app: app, open: { _, _ in }) }.environment(\.locale, locale)
+                NavigationStack {
+                    MobileVaultView(app: app, editingHost: .constant(nil), open: { _, _ in })
+                }.environment(\.locale, locale)
             }
             try await capture("snippets-\(suffix)", language: language, scheme: scheme) {
                 NavigationStack { MobileSnippetsView(app: snippetApp) }.environment(\.locale, locale)

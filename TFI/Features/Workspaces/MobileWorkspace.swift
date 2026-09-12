@@ -7,6 +7,7 @@ import TermindDomain
 import TermindInfrastructure
 import TermindPresentation
 import TermindRemoteInfrastructure
+import UIKit
 
 import struct TermindDomain.Host
 
@@ -115,6 +116,7 @@ final class MobileWorkspace: Identifiable {
     private let commandDraft = TerminalCommandDraftController()
     private var workingDirectoryObservation: AnyCancellable?
     private let surfaceOwner = MobileTerminalSurface()
+    var uploadTerminalView: UIView? { descriptor.kind == .ssh ? surfaceOwner.view : nil }
     let terminal: TerminalViewState
     private let backend: InMemoryTerminalSession
     private var ssh: SSHSessionActor?
@@ -248,6 +250,7 @@ final class MobileWorkspace: Identifiable {
                 relay?.owner?.receiveWorkingDirectory(path)
             }
         }
+        surfaceOwner.bindFind(find)
     }
 
     func dismissTerminalTextSelection() {

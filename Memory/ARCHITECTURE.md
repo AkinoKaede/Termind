@@ -328,6 +328,15 @@ tests/discovery use ephemeral snapshots, cancel on editor/config changes, and ca
 repopulate discarded drafts. Secrets remain in memory until atomic save and roll back
 on metadata failure. Mobile does not start the local MCP listener.
 
+Each mobile scene owns one navigation/command model and publishes it as a focused
+scene value, so hardware-keyboard commands never operate another iPad window. Mobile
+uses the macOS shortcuts for capabilities that exist on both platforms: navigation,
+connection/creation, terminal Find and Command Generator, Workspace close/switch,
+and Assistant send/stop. Workspace switching activates lazy restoration but never
+claims terminal focus. The UIKit terminal surface owns F3/Shift-F3 and replaces
+Ghostty's bare/Shift-Escape commands only while Find is presented; otherwise Escape
+continues to the terminal unchanged.
+
 Mobile Agent runs belong to the app, not the visible page. Conversations retain
 independent drafts/runs; archiving persists metadata before navigation and becomes
 read-only until restored. Attachment parsing and speech are injected services; speech
@@ -341,6 +350,14 @@ streaming transcript, large SFTP lists, conversation library, and tool sidebars;
 uses one UIKit bridge for transcript and large SFTP lists. Bounded navigation and
 archive pages remain SwiftUI `List`. Shared frameworks never import ListViewKit, and
 architecture tests own its allowlist.
+
+Mobile workspace file drops use one upload policy for native routing and payload
+loading. The visible workspace marks its bounds for a window drop interaction;
+the terminal adapter forwards file drops to that destination instead of Ghostty's
+local-path paste, while text and web links keep Ghostty's behavior. Leaving the
+destination restores the original interaction and clears targeting. File-provider
+representations are copied within their callbacks into app-owned staging before
+upload preparation; queued transfers retain those files after navigation away.
 
 
 ### Assistant transcript presentation parity (2026-09-12)

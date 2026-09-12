@@ -104,6 +104,7 @@ struct MobileAssistantActivity: View {
         }
         .foregroundStyle(.secondary)
         .modifier(MobileAssistantScanning(active: true))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

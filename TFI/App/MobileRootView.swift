@@ -1,26 +1,22 @@
 import SwiftUI
-import TermindDomain
 import UIKit
-
-import struct TermindDomain.Host
 
 /// iPhone has four destinations. iPad retains the sidebar with individual library routes.
 struct MobileRootView: View {
     let app: MobileAppModel
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.mobileInterfaceIdiom) private var interfaceIdiom
-    @State private var sceneID = UUID()
-    @State private var tab: MobileTab = .vault
-    @State private var selection: MobileDestination? = .vault
-    @State private var workspaceID: UUID?
-    @State private var selectingConnection = false
-    @State private var unavailable = false
-    @State private var renamingWorkspace: MobileWorkspace?
+    @State private var scene: MobileSceneModel
+
+    init(app: MobileAppModel) {
+        self.app = app
+        _scene = State(initialValue: MobileSceneModel(app: app))
+    }
 
     var body: some View {
         Group {
             if interfaceIdiom != .pad {
-                TabView(selection: $tab) {
+                TabView(selection: $scene.selectedTab) {
                     NavigationStack { vault }
                         .tabItem { Label("Vault", systemImage: "server.rack") }.tag(MobileTab.vault)
                     NavigationStack { workspaceList }
@@ -32,7 +28,7 @@ struct MobileRootView: View {
                 }
             } else {
                 NavigationSplitView {
-                    List(selection: $selection) {
+                    List(selection: $scene.selectedDestination) {
                         ForEach(MobileDestination.allCases) { destination in
                             NavigationLink(value: destination) {
                                 Label(destination.title, systemImage: destination.symbol)
@@ -41,7 +37,7 @@ struct MobileRootView: View {
                     }
                 } detail: {
                     NavigationStack {
-                        switch selection {
+                        switch scene.selectedDestination {
                         case .vault: sidebarVault
                         case .assistant: assistant
                         case .settings: settings
@@ -56,68 +52,54 @@ struct MobileRootView: View {
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
             MobileProView(pro: app.pro)
         }
-        .sheet(item: $renamingWorkspace) { workspace in
+        .sheet(item: $scene.renamingWorkspace) { workspace in
             MobileWorkspaceRenameView(workspace: workspace) { title in
                 app.renameWorkspace(workspace.id, to: title)
             }
         }
-        .onChange(of: scenePhase, initial: true) { _, phase in app.sceneChanged(sceneID, phase: phase) }
+        .onChange(of: scenePhase, initial: true) { _, phase in app.sceneChanged(scene.id, phase: phase) }
         .onChange(of: app.pro.hasProAccess) { _, _ in app.reconcileSync() }
         .onChange(of: app.workspaces.map(\.id)) { _, workspaceIDs in
-            guard let workspaceID, !workspaceIDs.contains(workspaceID) else { return }
-            self.workspaceID = nil
+            scene.reconcileWorkspaceIDs(workspaceIDs)
         }
-        .onDisappear { app.removeScene(sceneID) }
-        .onOpenURL { url in
-            if WorkspaceActivityAttributes.accepts(url) {
-                tab = .workspaces
-                selection = .workspaces
-                workspaceID = nil
-                return
-            }
-            guard let id = WorkspaceActivityAttributes.workspaceID(from: url) else { return }
-            tab = .workspaces
-            selection = .workspaces
-            if let workspace = app.workspaces.first(where: { $0.id == id }) {
-                workspace.activateWhenOpened()
-                workspaceID = id
-                app.focusWorkspaceActivity(id)
-                workspace.terminal.requestFocus()
-            } else {
-                unavailable = true
-            }
-        }
+        .onDisappear { app.removeScene(scene.id) }
+        .onOpenURL(perform: scene.open)
+        .focusedSceneValue(\.mobileScene, scene)
         .alert(
-            unavailable ? String(localized: "Workspace Unavailable") : String(localized: "Operation Failed"),
+            scene.isWorkspaceUnavailable
+                ? String(localized: "Workspace Unavailable") : String(localized: "Operation Failed"),
             isPresented: Binding(
-                get: { unavailable || app.error != nil },
+                get: { scene.isWorkspaceUnavailable || app.error != nil },
                 set: {
                     if !$0 {
-                        unavailable = false
+                        scene.isWorkspaceUnavailable = false
                         app.error = nil
                     }
                 })
         ) {
             Button("OK", role: .cancel) {
-                unavailable = false
+                scene.isWorkspaceUnavailable = false
                 app.error = nil
             }
         } message: {
             Text(
-                unavailable
+                scene.isWorkspaceUnavailable
                     ? String(localized: "This workspace was closed or its host was removed.") : app.error ?? "")
         }
 
     }
 
     private var vault: some View {
-        MobileVaultView(app: app, open: open, executeSnippet: executeSnippet)
+        MobileVaultView(
+            app: app, editingHost: $scene.editingHost,
+            open: scene.open, executeSnippet: scene.execute)
     }
 
     private var sidebarVault: some View {
         MobileVaultView(
-            app: app, open: open, showsMetrics: false,
-            executeSnippet: executeSnippet)
+            app: app, editingHost: $scene.editingHost,
+            open: scene.open, showsMetrics: false,
+            executeSnippet: scene.execute)
     }
 
     private var workspaceList: some View {
@@ -135,31 +117,31 @@ struct MobileRootView: View {
         .toolbar {
             MobileWorkspaceToolbar(
                 hasWorkspaces: !app.workspaces.isEmpty,
-                closeAll: closeAllWorkspaces,
-                connect: { selectingConnection = true })
+                closeAll: scene.closeAllWorkspaces,
+                connect: scene.openConnectionPicker)
         }
-        .navigationDestination(item: $workspaceID) { id in
+        .navigationDestination(item: $scene.workspaceID) { id in
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                     workspace: workspace, workspaces: app.workspaces,
-                    selectWorkspace: selectWorkspace,
-                    renameWorkspace: beginWorkspaceRename,
-                    openSameDirectory: openSameDirectory,
-                    closeWorkspace: closeWorkspace
+                    selectWorkspace: scene.selectWorkspace,
+                    renameWorkspace: scene.beginWorkspaceRename,
+                    openSameDirectory: scene.openSameDirectory,
+                    closeWorkspace: scene.closeWorkspace
                 )
                 .onAppear { workspace.activateWhenOpened() }
             }
         }
-        .sheet(isPresented: $selectingConnection) {
+        .sheet(isPresented: $scene.isConnectionPickerPresented) {
             NavigationStack {
                 MobileConnectionPicker(
                     library: app.library,
                     connect: { hostID, kind in
-                        selectingConnection = false
-                        open(hostID, kind)
+                        scene.isConnectionPickerPresented = false
+                        scene.open(hostID: hostID, kind: kind)
                     },
-                    cancel: { selectingConnection = false })
+                    cancel: { scene.isConnectionPickerPresented = false })
             }
             .mobileSheetPresentation(compact: true)
         }
@@ -176,7 +158,7 @@ struct MobileRootView: View {
         }
         ForEach(app.workspaces) { workspace in
             Button {
-                selectWorkspace(workspace.id)
+                scene.selectWorkspace(workspace.id)
             } label: {
                 HStack(spacing: 12) {
                     ZStack(alignment: .bottomTrailing) {
@@ -199,12 +181,12 @@ struct MobileRootView: View {
             }
             .buttonStyle(.plain)
             .swipeActions {
-                Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
+                Button("Close", systemImage: "xmark", role: .destructive) { scene.closeWorkspace(workspace.id) }
             }
             .contextMenu {
-                Button("Rename", systemImage: "pencil") { beginWorkspaceRename(workspace) }
+                Button("Rename", systemImage: "pencil") { scene.beginWorkspaceRename(workspace) }
                 Divider()
-                Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
+                Button("Close", systemImage: "xmark", role: .destructive) { scene.closeWorkspace(workspace.id) }
             }
         }
     }
@@ -216,7 +198,9 @@ struct MobileRootView: View {
     }
 
     private var assistant: some View {
-        MobileAssistantView(app: app, model: app.assistant)
+        MobileAssistantView(
+            app: app, model: app.assistant,
+            libraryRoute: $scene.assistantLibraryRoute)
     }
 
     private var metrics: some View {
@@ -227,46 +211,4 @@ struct MobileRootView: View {
         MobileSettingsView(app: app)
     }
 
-    private func open(_ hostID: UUID, _ kind: MobileWorkspaceDescriptor.Kind) {
-        workspaceID = app.open(hostID: hostID, kind: kind)
-        tab = .workspaces
-        selection = .workspaces
-    }
-
-    private func executeSnippet(_ snippet: Snippet, on hostIDs: [Host.ID]) {
-        guard let first = app.execute(snippet, on: hostIDs).first else { return }
-        workspaceID = first
-        tab = .workspaces
-        selection = .workspaces
-        app.focusWorkspaceActivity(first)
-    }
-
-    private func selectWorkspace(_ id: UUID) {
-        guard let workspace = app.workspaces.first(where: { $0.id == id }) else { return }
-        workspace.activateWhenOpened()
-        workspaceID = id
-        app.focusWorkspaceActivity(id)
-    }
-
-    private func beginWorkspaceRename(_ workspace: MobileWorkspace) {
-        renamingWorkspace = workspace
-    }
-
-    private func openSameDirectory(_ launch: MobileWorkspaceDirectoryLaunch) {
-        guard let id = app.open(hostID: launch.hostID, kind: launch.kind, initialPath: launch.path) else { return }
-        workspaceID = id
-        tab = .workspaces
-        selection = .workspaces
-        app.focusWorkspaceActivity(id)
-    }
-
-    private func closeWorkspace(_ id: UUID) {
-        app.close(id)
-        if workspaceID == id { workspaceID = nil }
-    }
-
-    private func closeAllWorkspaces() {
-        app.closeAll()
-        workspaceID = nil
-    }
 }

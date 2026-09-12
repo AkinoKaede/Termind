@@ -565,7 +565,13 @@ struct ArchitectureBoundaryTests {
         #expect(workspace.contains(".toolbar(.hidden, for: .tabBar)"))
         #expect(workspace.contains("guard let text = UIPasteboard.general.string else { return }"))
         #expect(workspace.contains("workspace.insertTerminalText(text)"))
-        #expect(root.contains("private func closeWorkspace(_ id: UUID)"))
+        let mobileScene = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileSceneModel.swift"), encoding: .utf8)
+        let mobileCommands = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileCommands.swift"), encoding: .utf8)
+        #expect(root.contains(".focusedSceneValue(\\.mobileScene, scene)"))
+        #expect(mobileScene.contains("func closeWorkspace(_ id: MobileWorkspace.ID)"))
+        #expect(mobileCommands.contains("@FocusedValue(\\.mobileScene)"))
         #expect(!workspace.contains("Circle().fill(workspace.connected"))
         let keyboard = try String(
             contentsOf: sourceRoot.appending(path: "../TFI/Features/Terminal/MobileTerminalKeyboard.swift"),

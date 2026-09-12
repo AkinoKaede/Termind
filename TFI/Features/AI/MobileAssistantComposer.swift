@@ -119,6 +119,21 @@ struct MobileAssistantComposer: View {
         }
         .onAppear(perform: normalizeReasoningEffort)
         .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
+        .background { keyboardShortcuts }
+    }
+
+    private var keyboardShortcuts: some View {
+        Group {
+            Button("Send", action: submitFromKeyboard)
+                .keyboardShortcut(MobileShortcut.send)
+                .disabled(!canSend)
+            Button("Stop", action: conversation.stop)
+                .keyboardShortcut(MobileShortcut.stop)
+                .disabled(!conversation.isStreaming)
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 
     private var composerSurface: some View {
