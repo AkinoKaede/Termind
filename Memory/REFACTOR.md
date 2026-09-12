@@ -1364,3 +1364,22 @@ Host chooser environment/rendering coverage without asserting its underlying App
 access that is required to exercise or observe actual interaction behavior.
 
 **Estimated reduction:** 30–40 test lines with no production or public API changes.
+
+## 2026-09-13 — Remove obsolete app localizations
+
+**Status:** Completed on 2026-09-13; both app builds, localization validation, and App language tests pass.
+
+**Evidence:** Fresh macOS and iOS compiler extraction with localization emission enabled found 1,558 production
+keys. Comparing that union with `Localizable.xcstrings` identified 81 catalog entries used by neither app. The old
+catalog also marked 509 entries stale, although 471 of them are still emitted by current production sources.
+
+**Action:** Delete the 81 unused entries and their obsolete Simplified Chinese translations, remove the three test
+expectations that existed only to keep retired formatting templates alive, and clear stale metadata only for keys
+confirmed by the new compiler extraction. Keep every InfoPlist localization because both current plists still use all
+seven entries.
+
+**Estimated reduction:** About 1,350 catalog and test lines without changing current user-facing text.
+
+**Result:** The app catalog fell from 1,637 to 1,556 entries and now contains no stale entries. Both app builds pass
+with pinned dependencies; `AppLanguageTests`, both Simplified Chinese catalog checks, direct string-catalog
+compilation, strict formatting for the touched test, and `git diff --check` pass.

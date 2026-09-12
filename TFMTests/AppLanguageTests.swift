@@ -103,8 +103,6 @@ struct AppLanguageTests {
         )
         let strings = try #require(root["strings"] as? [String: Any])
         let interpolations: [String: [String]] = [
-            "%@ → listen %@ → This Mac → %@:%@": ["jump.example", "[::1]:8080", "db.internal", "5432"],
-            "SOCKS5 %@ → %@ → Requested Target": ["[::1]:1080", "jump.example"],
             "SSH %@ → This Mac %@": ["[::1]:8080", "[2001:db8::1]:443"],
             "Unable to listen on %@: %@": ["[::1]:8080", "Address already in use"],
         ]
@@ -124,18 +122,6 @@ struct AppLanguageTests {
                 remaining = remaining[range.upperBound...]
             }
         }
-    }
-
-    @Test
-    func automaticModelCaptionResolvesInChineseAndPreservesModelAndProvider() throws {
-        let path = try #require(Bundle.main.path(forResource: "zh-Hans", ofType: "lproj"))
-        let bundle = try #require(Bundle(path: path))
-        let detail = "用于对话、工具和助手侧边栏。"
-        let model = "model-example"
-        let provider = "Example Provider"
-        let caption = String(localized: "\(detail) Currently \(model) on \(provider).", bundle: bundle)
-
-        #expect(caption == "用于对话、工具和助手侧边栏。当前使用Example Provider提供的model-example。")
     }
 
     @Test
