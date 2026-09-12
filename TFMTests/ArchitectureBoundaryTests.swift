@@ -227,6 +227,29 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func sshHostKeyTrustStaysInsideTheLiveConnectionAttempt() throws {
+        let request = try String(
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindApplication/SSHConnectionTypes.swift"
+            ),
+            encoding: .utf8
+        )
+        #expect(request.contains("struct SSHConnectionRequest"))
+        #expect(request.contains("SSHHostKeyAuthorizer"))
+
+        for root in [
+            "../Frameworks/TermindRemoteInfrastructure", "Features/Terminal",
+            "Features/SFTP", "../TFI",
+        ] {
+            for file in try swiftFiles(in: root) {
+                let source = try String(contentsOf: file, encoding: .utf8)
+                #expect(!source.contains("discoverHostKey"), "\(file.path) opens a separate host-key probe")
+                #expect(!source.contains("probe complete"), "\(file.path) closes an unauthenticated probe")
+            }
+        }
+    }
+
+    @Test
     func remoteDirectoryStateDependsOnTheApplicationPort() throws {
         let value = try String(
             contentsOf: sourceRoot.appending(path: "../Frameworks/TermindDomain/Transfers/RemoteFile.swift"),

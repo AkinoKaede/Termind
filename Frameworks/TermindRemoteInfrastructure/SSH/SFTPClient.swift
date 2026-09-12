@@ -76,6 +76,11 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws
+    func connect(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws
     func disconnect() async
     func homeDirectory() async throws -> String
     func uploadFile(
@@ -100,6 +105,17 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
 }
 
 nonisolated extension SFTPClientProtocol {
+    public func connect(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
+        try await connect(
+            using: request.configuration, progress: progress,
+            connectionFailure: connectionFailure
+        )
+    }
+
     public func connect(
         using configuration: SSHConnectionConfiguration,
         progress: SSHRouteProgressHandler?,
@@ -154,7 +170,10 @@ public actor SFTPClient: SFTPClientProtocol {
         using configuration: SSHConnectionConfiguration,
         progress: SSHRouteProgressHandler? = nil
     ) async throws {
-        try await worker.connect(using: configuration, progress: progress)
+        try await worker.connect(
+            using: SSHConnectionRequest(configuration: configuration),
+            progress: progress
+        )
     }
 
     public func connect(
@@ -162,8 +181,19 @@ public actor SFTPClient: SFTPClientProtocol {
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
+        try await connect(
+            using: SSHConnectionRequest(configuration: configuration),
+            progress: progress, connectionFailure: connectionFailure
+        )
+    }
+
+    public func connect(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
         try await worker.connect(
-            using: configuration, progress: progress,
+            using: request, progress: progress,
             connectionFailure: connectionFailure
         )
     }
@@ -327,48 +357,32 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     deinit { cleanup() }
 
     public func connect(
-        using configuration: SSHConnectionConfiguration,
+        using request: SSHConnectionRequest,
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)? = nil
     ) async throws {
-        try await queue.perform {
-            self.cleanup()
-            let transport = try SSHRoutedSocket.open(
-                host: configuration.host, port: configuration.port,
-                proxy: configuration.proxy, jumps: configuration.jumps, timeout: 20,
-                progress: progress
-            )
-            progress?(.connecting(configuration.hostID))
-            self.routeTransport = transport
-            guard let session = libssh2_session_init_ex(nil, nil, nil, nil) else {
-                throw TermindSSHError.library("Unable to create an SSH session.")
+        await queue.perform { self.cleanup() }
+        let opened = try await SSHSessionWorker.openAuthenticatedSession(
+            using: request, timeout: 20, progress: progress
+        )
+        do {
+            try await queue.perform {
+                self.routeTransport = opened.transport
+                self.session = opened.session
+                let session = opened.session
+                progress?(.initializing(request.configuration.hostID, String(localized: "Starting SFTP subsystem")))
+                guard let sftp = libssh2_sftp_init(session) else {
+                    throw SSHSessionWorker.sessionError(session, prefix: "Unable to start SFTP")
+                }
+                self.sftp = sftp
+                self.connectionFailure = connectionFailure
+                self.didReportConnectionFailure = false
+                self.startKeepalive(for: session)
             }
-            self.session = session
-            libssh2_session_set_blocking(session, 1)
-            guard libssh2_session_handshake(session, transport.socket) == 0 else {
-                throw SSHSessionWorker.sessionError(session, prefix: "SSH handshake failed")
-            }
-            let observed = try SSHSessionWorker.observation(
-                host: configuration.host, port: configuration.port, session: session
-            )
-            try SSHSessionWorker.validateHostKey(
-                observed, expected: configuration.expectedHostKeys
-            )
-            progress?(.authenticating(configuration.hostID))
-            try SSHSessionWorker.authenticate(
-                username: configuration.username,
-                credentials: configuration.credentials,
-                session: session
-            )
-            progress?(.authenticated(configuration.hostID))
-            progress?(.initializing(configuration.hostID, String(localized: "Starting SFTP subsystem")))
-            guard let sftp = libssh2_sftp_init(session) else {
-                throw SSHSessionWorker.sessionError(session, prefix: "Unable to start SFTP")
-            }
-            self.sftp = sftp
-            self.connectionFailure = connectionFailure
-            self.didReportConnectionFailure = false
-            self.startKeepalive(for: session)
+            try Task.checkCancellation()
+        } catch {
+            await queue.perform { self.cleanup() }
+            throw error
         }
     }
 

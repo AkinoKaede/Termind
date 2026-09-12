@@ -116,8 +116,11 @@ infrastructure, persistence, or presentation responsibility.
   following prompt marker is idempotent, so losing or duplicating it cannot strand or cancel Command Generator.
 - SSH, SFTP, and mobile Workspaces share `RemoteSessionConnectionController` for
   first-connect and recovery state, retry timing, Journey ownership, and host-key
-  decisions. `SSHShellIntegrationEvent` is a Domain session value emitted by the
-  Remote Infrastructure transport.
+  decisions. Interactive host-key approval is part of the live transport attempt:
+  every route node keeps the same socket and libssh2 session from handshake through
+  approval and authentication. Production callers must never open a separate
+  unauthenticated discovery connection before the real connection. `SSHShellIntegrationEvent`
+  is a Domain session value emitted by the Remote Infrastructure transport.
 - `RemoteFile` is a Domain value and `RemoteFileSystem` is the Application port for listing and mutating remote
   entries. The libssh2-backed `SFTPClientProtocol` refines that port in Remote Infrastructure. File-kind symbols and
   localized kind labels belong to Presentation. Mobile directory path, listing, and stale-request state live in

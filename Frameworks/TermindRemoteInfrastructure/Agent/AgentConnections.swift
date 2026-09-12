@@ -60,14 +60,7 @@ nonisolated public struct AgentHostListing: Hashable, Sendable {
 /// never serialized into a tool result.
 @MainActor
 public final class AgentHostResolver: Sendable {
-    public typealias HostKeyDiscovering =
-        @Sendable (
-            _ hostID: Host.ID, _ host: String, _ port: Int,
-            _ proxy: SSHTransportProxy?, _ jumps: [SSHRouteHopConfiguration]
-        ) async throws -> SSHHostKeyObservation
-
     private let store: HostLibraryModel
-    private let discoverHostKey: HostKeyDiscovering?
     private var temporaryTargets: @MainActor @Sendable () -> [AgentHostTarget]
     private var temporaryConfiguration: @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration?
 
@@ -75,13 +68,11 @@ public final class AgentHostResolver: Sendable {
         store: HostLibraryModel,
         temporaryTargets: @escaping @MainActor @Sendable () -> [AgentHostTarget] = { [] },
         temporaryConfiguration: @escaping @MainActor @Sendable (UUID) throws -> SSHConnectionConfiguration? = { _ in nil
-        },
-        discoverHostKey: HostKeyDiscovering? = nil
+        }
     ) {
         self.store = store
         self.temporaryTargets = temporaryTargets
         self.temporaryConfiguration = temporaryConfiguration
-        self.discoverHostKey = discoverHostKey
     }
 
     public func configureTemporaryTargets(
@@ -172,6 +163,10 @@ public final class AgentHostResolver: Sendable {
         throw AgentToolError.invalidHost
     }
 
+    public func canResolve(_ id: UUID) -> Bool {
+        store.host(id) != nil || temporaryTargets().contains { $0.id == id }
+    }
+
     fileprivate struct InteractiveResolution: Sendable {
         var configuration: SSHConnectionConfiguration
         var submissions: [Host.ID: SSHAuthenticationSubmission]
@@ -188,19 +183,14 @@ public final class AgentHostResolver: Sendable {
         submissions initial: [Host.ID: SSHAuthenticationSubmission],
         temporaryHostKeys initialTemporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         forcedHostID initialForcedHostID: Host.ID? = nil,
-        failure initialFailure: String? = nil,
-        forcedHostKeyID: Host.ID? = nil
+        failure initialFailure: String? = nil
     ) async throws -> InteractiveResolution {
         guard let destination = store.host(id) else {
             // Pane-backed targets already carry a complete configuration and
             // cannot be saved back to the Vault from an Agent card.
             if let configuration = try temporaryConfiguration(id) {
-                let verified = try await verifyTemporaryConfiguration(
-                    configuration, invocationID: invocationID,
-                    interaction: interaction, forcedHostKeyID: forcedHostKeyID
-                )
                 return InteractiveResolution(
-                    configuration: verified, submissions: initial,
+                    configuration: configuration, submissions: initial,
                     temporaryHostKeys: initialTemporaryHostKeys
                 )
             }
@@ -208,7 +198,7 @@ public final class AgentHostResolver: Sendable {
         }
 
         var submissions = initial
-        var temporaryHostKeys = initialTemporaryHostKeys
+        let temporaryHostKeys = initialTemporaryHostKeys
         var forcedHostID = initialForcedHostID
         var failure = initialFailure
         // Match Terminal and SFTP: resolve local credential requirements first,
@@ -257,119 +247,62 @@ public final class AgentHostResolver: Sendable {
                 failure = nil
             }
 
-            if let discoverHostKey {
-                let trusted = Set(store.knownHosts(for: node).map(\.identity))
-                let observation = try await discoverHostKey(
-                    node.id, node.host, node.port, try store.transportProxy(for: node),
-                    try store.sshJumpConfigurations(
-                        for: node, submissions: submissions,
-                        temporaryHostKeys: temporaryHostKeys
-                    )
-                )
-                if !trusted.contains(observation.identity)
-                    && temporaryHostKeys[node.id] != observation.identity
-                {
-                    if !trusted.isEmpty {
-                        store.markKnownHostMismatched(hostname: node.host, port: node.port)
-                    }
-                    let response = await interaction.confirmHostKey(
-                        AgentSSHHostKeyRequest(
-                            invocationID: invocationID, hostID: node.id,
-                            displayName: node.name, address: node.displayAddress,
-                            prompt: SSHHostKeyPrompt(
-                                observation: observation,
-                                kind: trusted.isEmpty
-                                    ? .firstUse
-                                    : .additionalKey(trustedKeyCount: trusted.count)
-                            ),
-                            allowsPersistentTrust: true
-                        )
-                    )
-                    switch response {
-                    case .deny:
-                        throw AgentToolError.cancelled
-                    case .continueOnce:
-                        temporaryHostKeys[node.id] = observation.identity
-                    case .trustAndContinue:
-                        store.trust(
-                            KnownHostEntry(
-                                hostname: observation.hostname, port: observation.port,
-                                algorithm: observation.algorithm,
-                                fingerprint: observation.fingerprint, addedAt: .now
-                            )
-                        )
-                        temporaryHostKeys[node.id] = observation.identity
-                    }
-                }
-            }
-
         }
 
         return InteractiveResolution(
             configuration: try store.sshConnectionConfiguration(
                 for: destination, submissions: submissions,
-                temporaryHostKeys: temporaryHostKeys
+                temporaryHostKeys: temporaryHostKeys,
+                trustPolicy: .allowChallenge
             ),
             submissions: submissions, temporaryHostKeys: temporaryHostKeys
         )
     }
 
-    /// Pane-backed targets already contain a complete route. They cannot save
-    /// trust into the Vault, but a transport-time mismatch can still be
-    /// rediscovered and approved for this one replacement connection.
-    private func verifyTemporaryConfiguration(
-        _ initial: SSHConnectionConfiguration,
+    fileprivate func confirmHostKey(
+        _ challenge: SSHHostKeyChallenge,
         invocationID: AgentToolInvocation.ID,
-        interaction: AgentSSHInteraction,
-        forcedHostKeyID: Host.ID?
-    ) async throws -> SSHConnectionConfiguration {
-        guard let forcedHostKeyID else { return initial }
-        guard let discoverHostKey else { throw TermindSSHError.untrustedHost }
-        var configuration = initial
-        let observation: SSHHostKeyObservation
-        let displayName: String
-        let address: String
-        let trustedCount: Int
-        if forcedHostKeyID == configuration.hostID {
-            observation = try await discoverHostKey(
-                configuration.hostID, configuration.host, configuration.port,
-                configuration.proxy, configuration.jumps
+        interaction: AgentSSHInteraction
+    ) async -> AgentSSHHostKeyResponse {
+        let saved = store.host(challenge.hostID)
+        let temporary = temporaryTargets().first { $0.id == challenge.hostID }
+        let displayName = saved?.name ?? temporary?.displayName ?? challenge.observation.hostname
+        let address =
+            saved?.displayAddress ?? temporary?.address
+            ?? (challenge.observation.port == 22
+                ? challenge.observation.hostname
+                : "\(challenge.observation.hostname):\(challenge.observation.port)")
+        if !challenge.expectedHostKeys.isEmpty {
+            store.markKnownHostMismatched(
+                hostname: challenge.observation.hostname,
+                port: challenge.observation.port
             )
-            displayName =
-                temporaryTargets().first { $0.id == configuration.hostID }?.displayName
-                ?? configuration.host
-            address =
-                configuration.port == 22
-                ? configuration.host : "\(configuration.host):\(configuration.port)"
-            trustedCount = configuration.expectedHostKeys.count
-            configuration.expectedHostKeys.insert(observation.identity)
-        } else if let index = configuration.jumps.firstIndex(where: { $0.id == forcedHostKeyID }) {
-            let hop = configuration.jumps[index]
-            observation = try await discoverHostKey(
-                hop.id, hop.host, hop.port, hop.proxy,
-                Array(configuration.jumps.prefix(index))
-            )
-            displayName = hop.name
-            address = hop.port == 22 ? hop.host : "\(hop.host):\(hop.port)"
-            trustedCount = hop.expectedHostKeys.count
-            configuration.jumps[index].expectedHostKeys.insert(observation.identity)
-        } else {
-            throw AgentToolError.invalidHost
         }
         let response = await interaction.confirmHostKey(
             AgentSSHHostKeyRequest(
-                invocationID: invocationID, hostID: forcedHostKeyID,
+                invocationID: invocationID, hostID: challenge.hostID,
                 displayName: displayName, address: address,
                 prompt: SSHHostKeyPrompt(
-                    observation: observation,
-                    kind: trustedCount == 0
-                        ? .firstUse : .additionalKey(trustedKeyCount: trustedCount)
+                    observation: challenge.observation,
+                    kind: challenge.expectedHostKeys.isEmpty
+                        ? .firstUse
+                        : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count)
                 ),
-                allowsPersistentTrust: false
+                allowsPersistentTrust: saved != nil
             )
         )
-        guard response == .continueOnce else { throw AgentToolError.cancelled }
-        return configuration
+        if response == .trustAndContinue, saved != nil {
+            store.trust(
+                KnownHostEntry(
+                    hostname: challenge.observation.hostname,
+                    port: challenge.observation.port,
+                    algorithm: challenge.observation.algorithm,
+                    fingerprint: challenge.observation.fingerprint,
+                    addedAt: .now
+                )
+            )
+        }
+        return response
     }
 
     private struct AuthenticationRequirement {
@@ -513,12 +446,21 @@ public final class AgentHostResolver: Sendable {
 /// same user answer at the same time; this actor resolves that answer once.
 public actor AgentSSHConfigurationSession {
     public struct Attempt: Sendable {
-        public var configuration: SSHConnectionConfiguration
+        public var request: SSHConnectionRequest
         public var generation: UInt64
 
-        public init(configuration: SSHConnectionConfiguration, generation: UInt64) {
-            self.configuration = configuration
+        public var configuration: SSHConnectionConfiguration { request.configuration }
+
+        public init(request: SSHConnectionRequest, generation: UInt64) {
+            self.request = request
             self.generation = generation
+        }
+
+        public init(configuration: SSHConnectionConfiguration, generation: UInt64) {
+            self.init(
+                request: SSHConnectionRequest(configuration: configuration),
+                generation: generation
+            )
         }
     }
 
@@ -538,7 +480,12 @@ public actor AgentSSHConfigurationSession {
     private var pending: Pending?
     private var forcedHostID: Host.ID?
     private var failure: String?
-    private var forcedHostKeyID: Host.ID?
+    private struct PendingHostKey {
+        var fingerprint: String
+        var task: Task<AgentSSHHostKeyResponse, Never>
+        var waiters: [UUID: CheckedContinuation<AgentSSHHostKeyResponse?, Never>]
+    }
+    private var pendingHostKeys: [Host.ID: PendingHostKey] = [:]
 
     public init(
         resolver: AgentHostResolver, hostID: Host.ID,
@@ -552,7 +499,7 @@ public actor AgentSSHConfigurationSession {
     }
 
     public func configurationAttempt() async throws -> Attempt {
-        if let cached { return Attempt(configuration: cached, generation: generation) }
+        if let cached { return makeAttempt(configuration: cached, generation: generation) }
 
         let active: Pending
         if let pending, pending.generation == generation {
@@ -567,13 +514,11 @@ public actor AgentSSHConfigurationSession {
             let temporaryHostKeys = temporaryHostKeys
             let forcedHostID = forcedHostID
             let failure = failure
-            let forcedHostKeyID = forcedHostKeyID
             let task = Task {
                 try await resolver.interactiveConfiguration(
                     for: hostID, invocationID: invocationID, interaction: interaction,
                     submissions: submissions, temporaryHostKeys: temporaryHostKeys,
-                    forcedHostID: forcedHostID, failure: failure,
-                    forcedHostKeyID: forcedHostKeyID
+                    forcedHostID: forcedHostID, failure: failure
                 )
             }
             active = Pending(generation: currentGeneration, task: task)
@@ -587,12 +532,12 @@ public actor AgentSSHConfigurationSession {
                 temporaryHostKeys = resolution.temporaryHostKeys
                 cached = resolution.configuration
                 forcedHostID = nil
-                forcedHostKeyID = nil
                 failure = nil
                 if pending?.generation == active.generation { pending = nil }
             }
-            return Attempt(
-                configuration: resolution.configuration, generation: active.generation
+            return makeAttempt(
+                configuration: resolution.configuration,
+                generation: active.generation
             )
         } catch {
             if pending?.generation == active.generation { pending = nil }
@@ -607,6 +552,10 @@ public actor AgentSSHConfigurationSession {
     }
 
     public var currentGeneration: UInt64 { generation }
+
+    public func canResolveTarget() async -> Bool {
+        await resolver.canResolve(hostID)
+    }
 
     public func retry(after error: TermindSSHError, generation failedGeneration: UInt64) {
         // Exec and SFTP may reject the same configuration concurrently. Only
@@ -627,17 +576,120 @@ public actor AgentSSHConfigurationSession {
         failure = error.localizedDescription
     }
 
-    public func retryHostKey(
-        after error: TermindSSHError, generation failedGeneration: UInt64
+    private func makeAttempt(
+        configuration: SSHConnectionConfiguration, generation: UInt64
+    ) -> Attempt {
+        Attempt(
+            request: SSHConnectionRequest(
+                configuration: configuration,
+                authorizeHostKey: { [weak self] challenge in
+                    guard let self else { throw CancellationError() }
+                    return await self.authorizeHostKey(
+                        challenge, generation: generation
+                    )
+                }
+            ),
+            generation: generation
+        )
+    }
+
+    private func authorizeHostKey(
+        _ challenge: SSHHostKeyChallenge, generation attemptedGeneration: UInt64
+    ) async -> SSHHostKeyDecision {
+        guard attemptedGeneration == generation else { return .reject }
+        if temporaryHostKeys[challenge.hostID] == challenge.observation.identity {
+            return .accept
+        }
+        let pending: PendingHostKey
+        if let existing = pendingHostKeys[challenge.hostID],
+            existing.fingerprint == challenge.observation.fingerprint
+        {
+            pending = existing
+        } else {
+            let resolver = resolver
+            let invocationID = invocationID
+            let interaction = interaction
+            let task = Task {
+                await resolver.confirmHostKey(
+                    challenge, invocationID: invocationID,
+                    interaction: interaction
+                )
+            }
+            pending = PendingHostKey(
+                fingerprint: challenge.observation.fingerprint,
+                task: task, waiters: [:]
+            )
+            pendingHostKeys[challenge.hostID] = pending
+            Task { [weak self] in
+                let response = await task.value
+                await self?.finishHostKeyPrompt(
+                    hostID: challenge.hostID,
+                    fingerprint: challenge.observation.fingerprint,
+                    response: response
+                )
+            }
+        }
+        let waiterID = UUID()
+        let response: AgentSSHHostKeyResponse? = await withTaskCancellationHandler {
+            await withCheckedContinuation {
+                (continuation: CheckedContinuation<AgentSSHHostKeyResponse?, Never>) in
+                guard var current = pendingHostKeys[challenge.hostID],
+                    current.fingerprint == pending.fingerprint
+                else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                current.waiters[waiterID] = continuation
+                pendingHostKeys[challenge.hostID] = current
+            }
+        } onCancel: {
+            Task { [weak self] in
+                await self?.cancelHostKeyWaiter(
+                    hostID: challenge.hostID,
+                    fingerprint: challenge.observation.fingerprint,
+                    waiterID: waiterID
+                )
+            }
+        }
+        guard attemptedGeneration == generation else { return .reject }
+        switch response {
+        case nil:
+            return .reject
+        case .deny:
+            return .reject
+        case .continueOnce, .trustAndContinue:
+            temporaryHostKeys[challenge.hostID] = challenge.observation.identity
+            return .accept
+        }
+    }
+
+    private func finishHostKeyPrompt(
+        hostID: Host.ID, fingerprint: String,
+        response: AgentSSHHostKeyResponse
     ) {
-        guard failedGeneration == generation else { return }
-        generation &+= 1
-        cached = nil
-        pending?.task.cancel()
-        pending = nil
-        let target = error.routeHostID ?? hostID
-        forcedHostKeyID = target
-        temporaryHostKeys[target] = nil
+        guard let pending = pendingHostKeys[hostID],
+            pending.fingerprint == fingerprint
+        else { return }
+        pendingHostKeys[hostID] = nil
+        for continuation in pending.waiters.values {
+            continuation.resume(returning: response)
+        }
+    }
+
+    private func cancelHostKeyWaiter(
+        hostID: Host.ID, fingerprint: String, waiterID: UUID
+    ) {
+        guard var pending = pendingHostKeys[hostID],
+            pending.fingerprint == fingerprint,
+            let continuation = pending.waiters.removeValue(forKey: waiterID)
+        else { return }
+        continuation.resume(returning: nil)
+        if pending.waiters.isEmpty {
+            pending.task.cancel()
+            pendingHostKeys[hostID] = nil
+        } else {
+            pendingHostKeys[hostID] = pending
+        }
     }
 }
 
@@ -704,7 +756,7 @@ public actor AgentSSHAuthenticationRegistry {
             hostID: hostID, authentication: authentication, pool: pool, kind: .exec
         ) { attempt in
             if let attempt {
-                return try await pool.exec(hostID: hostID) { _ in attempt.configuration }
+                return try await pool.exec(hostID: hostID) { _ in attempt.request }
             }
             return try await pool.exec(hostID: hostID)
         }
@@ -721,7 +773,7 @@ public actor AgentSSHAuthenticationRegistry {
                 hostID: hostID, authentication: authentication, pool: pool, kind: .sftp
             ) { attempt in
                 if let attempt {
-                    return try await pool.sftp(hostID: hostID) { _ in attempt.configuration }
+                    return try await pool.sftp(hostID: hostID) { _ in attempt.request }
                 }
                 return try await pool.sftp(hostID: hostID)
             }
@@ -734,6 +786,9 @@ public actor AgentSSHAuthenticationRegistry {
         open: @Sendable (AgentSSHConfigurationSession.Attempt?) async throws -> Client
     ) async throws -> Client {
         var attempt: AgentSSHConfigurationSession.Attempt?
+        if await authentication.canResolveTarget() {
+            attempt = try await authentication.configurationAttempt()
+        }
         while true {
             let attemptedGeneration: UInt64
             if let attempt {
@@ -748,19 +803,6 @@ public actor AgentSSHAuthenticationRegistry {
                 await authentication.retry(after: error, generation: attemptedGeneration)
                 attempt = try await authentication.configurationAttempt()
             } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
-                attempt = try await authentication.configurationAttempt()
-            } catch TermindSSHError.untrustedHost {
-                await authentication.retryHostKey(
-                    after: .untrustedHost, generation: attemptedGeneration
-                )
-                attempt = try await authentication.configurationAttempt()
-            } catch let error as TermindSSHError
-                where error.isHostKeyChanged || error.shouldRequestHostKey
-            {
-                await pool.disconnect(hostID: hostID, kind: kind)
-                await authentication.retryHostKey(
-                    after: error, generation: attemptedGeneration
-                )
                 attempt = try await authentication.configurationAttempt()
             }
         }
@@ -818,11 +860,13 @@ public actor AgentConnectionPool {
 
     public typealias ConfigurationResolving =
         @Sendable (UUID) async throws -> SSHConnectionConfiguration
+    public typealias RequestResolving =
+        @Sendable (UUID) async throws -> SSHConnectionRequest
     public typealias FingerprintResolving = @Sendable (UUID) async throws -> String
     public typealias ExecOpening =
-        @Sendable (SSHConnectionConfiguration) async throws -> any SSHExecSessionProtocol
+        @Sendable (SSHConnectionRequest) async throws -> any SSHExecSessionProtocol
     public typealias SFTPOpening =
-        @Sendable (SSHConnectionConfiguration) async throws -> any SFTPClientProtocol
+        @Sendable (SSHConnectionRequest) async throws -> any SFTPClientProtocol
 
     /// Long enough that a user reading output and asking a follow-up keeps the
     /// connection, short enough that walking away does not leave an
@@ -892,7 +936,7 @@ public actor AgentConnectionPool {
     public func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
         timeout: TimeInterval, outputLimit: Int, hostID: UUID,
-        configuration override: ConfigurationResolving? = nil,
+        configuration override: RequestResolving? = nil,
         onOutput: SSHExecOutputHandler? = nil
     ) async throws -> SSHExecResult {
         do {
@@ -910,7 +954,7 @@ public actor AgentConnectionPool {
     }
 
     public func exec(
-        hostID: UUID, configuration override: ConfigurationResolving? = nil
+        hostID: UUID, configuration override: RequestResolving? = nil
     ) async throws -> any SSHExecSessionProtocol {
         guard
             case .exec(let session) = try await resolve(
@@ -921,7 +965,7 @@ public actor AgentConnectionPool {
     }
 
     public func sftp(
-        hostID: UUID, configuration override: ConfigurationResolving? = nil
+        hostID: UUID, configuration override: RequestResolving? = nil
     ) async throws -> any SFTPClientProtocol {
         guard
             case .sftp(let client) = try await resolve(
@@ -994,7 +1038,7 @@ public actor AgentConnectionPool {
     public var openConnectionCount: Int { entries.count }
 
     private func resolve(
-        hostID: UUID, kind: Kind, configuration override: ConfigurationResolving?
+        hostID: UUID, kind: Kind, configuration override: RequestResolving?
     ) async throws -> Client {
         let fingerprint: String
         do {
@@ -1025,7 +1069,7 @@ public actor AgentConnectionPool {
     }
 
     private func open(
-        key: Key, fingerprint: String, configuration override: ConfigurationResolving?
+        key: Key, fingerprint: String, configuration override: RequestResolving?
     ) async throws -> Client {
         // Without this join, two tool calls that both miss the cache would each
         // build a connection and one of them would never be pooled — or closed.
@@ -1036,10 +1080,17 @@ public actor AgentConnectionPool {
             return client
         }
         let task = Task { [configuration, openExec, openSFTP] () async throws -> Client in
-            let resolved = try await (override ?? configuration)(key.hostID)
+            let request: SSHConnectionRequest
+            if let override {
+                request = try await override(key.hostID)
+            } else {
+                request = SSHConnectionRequest(
+                    configuration: try await configuration(key.hostID)
+                )
+            }
             switch key.kind {
-            case .exec: return .exec(try await openExec(resolved))
-            case .sftp: return .sftp(try await openSFTP(resolved))
+            case .exec: return .exec(try await openExec(request))
+            case .sftp: return .sftp(try await openSFTP(request))
             }
         }
         pending[key] = InFlight(fingerprint: fingerprint, task: task)

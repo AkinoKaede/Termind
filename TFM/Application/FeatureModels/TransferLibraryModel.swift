@@ -22,9 +22,13 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     func knownHosts(for host: Host) -> [KnownHostEntry] { library.knownHosts(for: host) }
     func route(for host: Host) -> [Host] { library.route(for: host) }
     func expectedHostKeys(
-        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> Set<SSHHostKeyIdentity> {
-        try library.expectedHostKeys(for: host, temporaryHostKeys: temporaryHostKeys)
+        try library.expectedHostKeys(
+            for: host, temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: trustPolicy
+        )
     }
     func prepareSSHConnection(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
@@ -33,18 +37,24 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     }
     func sshConnectionConfiguration(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHConnectionConfiguration {
         try library.sshConnectionConfiguration(
-            for: host, submissions: submissions, temporaryHostKeys: temporaryHostKeys
+            for: host, submissions: submissions,
+            temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: trustPolicy
         )
     }
     func sshJumpConfigurations(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration] {
         try library.sshJumpConfigurations(
-            for: host, submissions: submissions, temporaryHostKeys: temporaryHostKeys
+            for: host, submissions: submissions,
+            temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: trustPolicy
         )
     }
     func transportProxy(for host: Host) throws -> SSHTransportProxy? {

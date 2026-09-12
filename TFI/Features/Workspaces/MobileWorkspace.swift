@@ -516,45 +516,26 @@ final class MobileWorkspace: Identifiable {
         let progressHandler = connection.progressHandler(attemptID: token) { [weak self] in
             self?.generation == $0
         }
+        connection.clearHostKeyPrompt()
         attempt = Task { [weak self] in
             guard let self else { return }
             defer { if generation == token { busy = false } }
             guard generation == token, !Task.isCancelled else { return }
             do {
-                // Validate each hop in order so credentials and trust prompts name the actual endpoint.
-                for endpoint in route {
-                    guard generation == token, !Task.isCancelled else { return }
-                    let preparation = try preparation(for: endpoint)
-                    let discovery = try await preparation.resolve(discoveryOnly: true)
-                    guard generation == token, !Task.isCancelled else { return }
-                    journey.receive(.connecting(endpoint.id))
-                    let observation = try await connectionServices.discoverHostKey(
-                        endpoint.id, endpoint.host, endpoint.port, discovery.proxy, discovery.jumps)
-                    guard generation == token, !Task.isCancelled else { return }
-                    let trusted = hosts.knownHosts(for: endpoint)
-                    if !trusted.contains(where: { $0.identity == observation.identity })
-                        && temporaryKeys[endpoint.id] != observation.identity
-                    {
-                        if trusted.contains(where: { $0.algorithm == observation.algorithm }) {
-                            hosts.markKnownHostMismatched(hostname: endpoint.host, port: endpoint.port)
-                            throw TermindSSHError.hostKeyChanged(
-                                expected: trusted.map(\.fingerprint), received: observation.fingerprint)
-                        }
-                        connection.waitForHostKey(
-                            SSHHostKeyPrompt(
-                                observation: observation,
-                                kind: trusted.isEmpty ? .firstUse : .additionalKey(trustedKeyCount: trusted.count)
-                            ),
-                            hostID: endpoint.id,
-                            fingerprint: observation.fingerprint
-                        )
-                        status = String(localized: "Waiting for approval")
-                        return
-                    }
-                }
                 let preparation = try preparation(for: host)
-                let config = try await preparation.resolve()
+                let config = try await preparation.resolve(
+                    trustPolicy: .allowChallenge
+                )
                 guard generation == token, !Task.isCancelled else { return }
+                let request = SSHConnectionRequest(
+                    configuration: config,
+                    authorizeHostKey: { [weak self, weak hosts] challenge in
+                        guard let self, let hosts else { throw CancellationError() }
+                        return await self.connection.authorizeHostKey(
+                            challenge, using: hosts
+                        )
+                    }
+                )
 
                 if descriptor.kind == .ssh {
                     let backend = backend
@@ -566,7 +547,7 @@ final class MobileWorkspace: Identifiable {
                     ssh = session
                     try await connectionServices.connectSSH(
                         session,
-                        config,
+                        request,
                         terminalSettings.preferences.shellIntegration,
                         UInt16(clamping: viewport.columns),
                         UInt16(clamping: viewport.rows),
@@ -574,7 +555,7 @@ final class MobileWorkspace: Identifiable {
                     )
                 } else {
                     let client = try await connectionServices.connectSFTP(
-                        config, progressHandler,
+                        request, progressHandler,
                         { [weak self] message in
                             Task { @MainActor in
                                 guard let self, self.generation == token else { return }
@@ -846,7 +827,6 @@ final class MobileWorkspace: Identifiable {
         } else {
             guard connection.useTemporaryHostKey(observation) else { return }
         }
-        connect()
     }
 
     func disconnect() {
@@ -984,7 +964,7 @@ final class MobileWorkspace: Identifiable {
                     client = sftp
                 } else {
                     client = try await connectionServices.connectSFTP(
-                        configuration,
+                        SSHConnectionRequest(configuration: configuration),
                         nil,
                         nil
                     )

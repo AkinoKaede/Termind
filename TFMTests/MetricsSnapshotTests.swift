@@ -23,7 +23,6 @@ struct MetricsSnapshotTests {
         let model = ServerMetricsModel(
             hosts: hosts, preferences: preferences,
             makeSampler: { preconditionFailure("Snapshot reads cannot create samplers") },
-            discover: { _, _, _ in preconditionFailure("Snapshot reads cannot discover hosts") },
             clock: MetricsClock(now: { now })
         )
         model.start()
@@ -56,8 +55,7 @@ struct MetricsSnapshotTests {
         let host = Host(name: "Monitor", host: "monitor.example")
         let model = ServerMetricsModel(
             hosts: HostLibraryModel(hosts: [host]), preferences: SnapshotPreferences(hostID: host.id),
-            makeSampler: { preconditionFailure("Snapshot reads cannot create samplers") },
-            discover: { _, _, _ in preconditionFailure("Snapshot reads cannot discover hosts") }
+            makeSampler: { preconditionFailure("Snapshot reads cannot create samplers") }
         )
         model.start()
         defer { model.shutdown() }

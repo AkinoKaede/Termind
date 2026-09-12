@@ -270,13 +270,16 @@ public final class HostLibraryModel {
     /// Resolves persistent trust plus approvals scoped to the current connection
     /// journey. Temporary approvals never enter SwiftData or sync.
     public func expectedHostKeys(
-        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
+        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
+        trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> Set<SSHHostKeyIdentity> {
         var keys = Set(knownHosts(for: host).map(\.identity))
         if let temporary = temporaryHostKeys[host.id] {
             keys.insert(temporary)
         }
-        guard !keys.isEmpty else { throw TermindSSHError.untrustedHost }
+        if trustPolicy == .requireKnownHost, keys.isEmpty {
+            throw TermindSSHError.untrustedHost
+        }
         return keys
     }
 
@@ -336,7 +339,8 @@ public final class HostLibraryModel {
     public func sshConnectionConfiguration(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission] = [:],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
+        trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> SSHConnectionConfiguration {
         let username: String
         let credentials: [SSHCredentials]
@@ -358,7 +362,8 @@ public final class HostLibraryModel {
         }
         guard !credentials.isEmpty else { throw TermindSSHError.missingCredential }
         let expectedHostKeys = try expectedHostKeys(
-            for: host, temporaryHostKeys: temporaryHostKeys
+            for: host, temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: trustPolicy
         )
 
         return SSHConnectionConfiguration(
@@ -368,7 +373,8 @@ public final class HostLibraryModel {
             proxy: try transportProxy(for: host),
             jumps: try sshJumpConfigurations(
                 for: host, submissions: submissions,
-                temporaryHostKeys: temporaryHostKeys
+                temporaryHostKeys: temporaryHostKeys,
+                trustPolicy: trustPolicy
             )
         )
     }
@@ -376,7 +382,8 @@ public final class HostLibraryModel {
     public func sshJumpConfigurations(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
+        trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> [SSHRouteHopConfiguration] {
         guard let route = validatedRoute(for: host) else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
@@ -386,11 +393,13 @@ public final class HostLibraryModel {
                 if let submission = submissions[jump.id] {
                     return try sshRouteHopConfiguration(
                         for: jump, submission: submission,
-                        temporaryHostKeys: temporaryHostKeys
+                        temporaryHostKeys: temporaryHostKeys,
+                        trustPolicy: trustPolicy
                     )
                 }
                 return try sshRouteHopConfiguration(
-                    for: jump, temporaryHostKeys: temporaryHostKeys
+                    for: jump, temporaryHostKeys: temporaryHostKeys,
+                    trustPolicy: trustPolicy
                 )
             } catch {
                 let authentication =
@@ -413,13 +422,15 @@ public final class HostLibraryModel {
     }
 
     private func sshRouteHopConfiguration(
-        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHRouteHopConfiguration {
         guard let identity = identity(for: host) else { throw TermindSSHError.missingCredential }
         let username = identity.username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }
         let expectedHostKeys = try expectedHostKeys(
-            for: host, temporaryHostKeys: temporaryHostKeys
+            for: host, temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: trustPolicy
         )
         let resolution = sshCredentials(for: identity)
         guard resolution.requiredPassphraseKeyID == nil else {
@@ -436,12 +447,14 @@ public final class HostLibraryModel {
 
     private func sshRouteHopConfiguration(
         for host: Host, submission: SSHAuthenticationSubmission,
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHRouteHopConfiguration {
         let username = submission.username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }
         let expectedHostKeys = try expectedHostKeys(
-            for: host, temporaryHostKeys: temporaryHostKeys
+            for: host, temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: trustPolicy
         )
         let credentials = try sshCredentials(for: submission)
         guard !credentials.isEmpty else { throw TermindSSHError.missingCredential }

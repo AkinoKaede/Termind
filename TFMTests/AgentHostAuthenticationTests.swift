@@ -571,21 +571,26 @@ struct AgentHostAuthenticationTests {
                 return .continueOnce
             }
         )
-        let resolver = AgentHostResolver(
-            store: store,
-            discoverHostKey: { _, _, _, _, _ in observation }
-        )
+        let resolver = AgentHostResolver(store: store)
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
-        let configuration = try await session.configuration()
+        let attempt = try await session.configurationAttempt()
+        let authorizer = try #require(attempt.request.authorizeHostKey)
+        let decision = try await authorizer(
+            SSHHostKeyChallenge(
+                hostID: host.id, observation: observation,
+                expectedHostKeys: attempt.configuration.expectedHostKeys
+            )
+        )
 
+        #expect(decision == .accept)
         #expect(requests.count == 1)
         #expect(requests[0].prompt.kind == .firstUse)
         #expect(requests[0].allowsPersistentTrust)
-        #expect(configuration.expectedHostKeys == [observation.identity])
+        #expect(attempt.configuration.expectedHostKeys.isEmpty)
         #expect(store.knownHosts(for: host).isEmpty)
     }
 
@@ -609,33 +614,40 @@ struct AgentHostAuthenticationTests {
                 return .continueOnce
             }
         )
-        let resolver = AgentHostResolver(
-            store: store,
-            discoverHostKey: { hostID, host, port, _, _ in
-                SSHHostKeyObservation(
-                    hostname: host, port: port, algorithm: .ed25519,
-                    fingerprint: "SHA256:\(hostID)"
-                )
-            }
-        )
+        let resolver = AgentHostResolver(store: store)
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: destination.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
-        _ = try await session.configuration()
+        let attempt = try await session.configurationAttempt()
+        let authorizer = try #require(attempt.request.authorizeHostKey)
+        for endpoint in [jump, destination] {
+            let decision = try await authorizer(
+                SSHHostKeyChallenge(
+                    hostID: endpoint.id,
+                    observation: SSHHostKeyObservation(
+                        hostname: endpoint.host, port: endpoint.port,
+                        algorithm: .ed25519,
+                        fingerprint: "SHA256:\(endpoint.id)"
+                    ),
+                    expectedHostKeys: []
+                )
+            )
+            #expect(decision == .accept)
+        }
 
         #expect(
             events == [
                 "authenticate:\(jump.id)",
-                "verify:\(jump.id)",
                 "authenticate:\(destination.id)",
+                "verify:\(jump.id)",
                 "verify:\(destination.id)",
             ])
     }
 
     @Test
-    func directPassphraseIsPresentedBeforeABannerFailure() async throws {
+    func directPassphraseIsPresentedBeforeAConnectionRequestIsReturned() async throws {
         let keychain = MemoryHostSecretStore()
         let reference = "termind.key.\(UUID().uuidString)"
         let key = SSHKeyRef(
@@ -655,7 +667,7 @@ struct AgentHostAuthenticationTests {
         let probe = PassphraseRequestProbe()
         let interaction = AuthenticationResponder { request in
             guard case .passphrase(let keyID) = request.mode else {
-                Issue.record("Expected Passphrase before network discovery")
+                Issue.record("Expected Passphrase before opening the connection")
                 return .cancelled
             }
             #expect(keyID == key.id)
@@ -666,23 +678,15 @@ struct AgentHostAuthenticationTests {
                     passphrase: "one-use", keyID: key.id, save: false
                 ))
         }
-        let resolver = AgentHostResolver(
-            store: store,
-            discoverHostKey: { _, _, _, _, _ in
-                let requestedPassphrase = await probe.wasRequested
-                #expect(requestedPassphrase)
-                throw TermindSSHError.socket("SSH handshake failed: Failed getting banner")
-            }
-        )
+        let resolver = AgentHostResolver(store: store)
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
-        await #expect(throws: TermindSSHError.self) {
-            _ = try await session.configuration()
-        }
+        let attempt = try await session.configurationAttempt()
         #expect(probe.wasRequested)
+        #expect(attempt.request.authorizeHostKey != nil)
     }
 
     @Test
@@ -709,35 +713,32 @@ struct AgentHostAuthenticationTests {
                 return .trustAndContinue
             }
         )
-        let resolver = AgentHostResolver(
-            store: store,
-            discoverHostKey: { _, _, _, _, _ in observation }
-        )
+        let resolver = AgentHostResolver(store: store)
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
-        let configuration = try await session.configuration()
+        let attempt = try await session.configurationAttempt()
+        let authorizer = try #require(attempt.request.authorizeHostKey)
+        let decision = try await authorizer(
+            SSHHostKeyChallenge(
+                hostID: host.id, observation: observation,
+                expectedHostKeys: attempt.configuration.expectedHostKeys
+            )
+        )
 
-        #expect(configuration.expectedHostKeys == [old.identity, observation.identity])
+        #expect(decision == .accept)
+        #expect(attempt.configuration.expectedHostKeys == [old.identity])
         #expect(Set(store.knownHosts(for: host).map(\.identity)) == [old.identity, observation.identity])
         #expect(store.knownHosts(for: host).allSatisfy { !$0.isMismatched })
     }
 
     @Test
-    func denyingHostKeyStopsBeforeAConnectionCanOpen() async {
+    func denyingHostKeyRejectsTheInFlightConnection() async throws {
         let host = Host(name: "Server", host: "server.example")
         let store = HostLibraryModel(hosts: [host])
-        let resolver = AgentHostResolver(
-            store: store,
-            discoverHostKey: { _, _, _, _, _ in
-                SSHHostKeyObservation(
-                    hostname: host.host, port: host.port, algorithm: .ed25519,
-                    fingerprint: "SHA256:denied"
-                )
-            }
-        )
+        let resolver = AgentHostResolver(store: store)
         let interaction = AuthenticationResponder(
             answer: { _ in
                 .submit(
@@ -752,9 +753,19 @@ struct AgentHostAuthenticationTests {
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
-        await #expect(throws: AgentToolError.self) {
-            _ = try await session.configuration()
-        }
+        let attempt = try await session.configurationAttempt()
+        let authorizer = try #require(attempt.request.authorizeHostKey)
+        let observation = SSHHostKeyObservation(
+            hostname: host.host, port: host.port, algorithm: .ed25519,
+            fingerprint: "SHA256:denied"
+        )
+        let decision = try await authorizer(
+            SSHHostKeyChallenge(
+                hostID: host.id, observation: observation,
+                expectedHostKeys: []
+            )
+        )
+        #expect(decision == .reject)
         #expect(store.knownHosts(for: host).isEmpty)
     }
 
@@ -763,28 +774,32 @@ struct AgentHostAuthenticationTests {
         let host = Host(name: "Server", host: "server.example")
         let store = HostLibraryModel(hosts: [host])
         let interaction = GatedHostKeyResponder()
-        let resolver = AgentHostResolver(
-            store: store,
-            discoverHostKey: { _, _, _, _, _ in
-                SSHHostKeyObservation(
-                    hostname: host.host, port: host.port, algorithm: .ed25519,
-                    fingerprint: "SHA256:shared"
-                )
-            }
-        )
+        let resolver = AgentHostResolver(store: store)
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
 
-        async let first = session.configuration()
-        async let second = session.configuration()
+        let firstAttempt = try await session.configurationAttempt()
+        let secondAttempt = try await session.configurationAttempt()
+        let firstAuthorizer = try #require(firstAttempt.request.authorizeHostKey)
+        let secondAuthorizer = try #require(secondAttempt.request.authorizeHostKey)
+        let observation = SSHHostKeyObservation(
+            hostname: host.host, port: host.port, algorithm: .ed25519,
+            fingerprint: "SHA256:shared"
+        )
+        let challenge = SSHHostKeyChallenge(
+            hostID: host.id, observation: observation,
+            expectedHostKeys: []
+        )
+        async let first = firstAuthorizer(challenge)
+        async let second = secondAuthorizer(challenge)
         while await interaction.hostKeyRequestCount == 0 { await Task.yield() }
         #expect(await interaction.hostKeyRequestCount == 1)
         await interaction.answerHostKey(.continueOnce)
 
-        let configurations = try await [first, second]
-        #expect(configurations[0].expectedHostKeys == configurations[1].expectedHostKeys)
+        let decisions = try await [first, second]
+        #expect(decisions.allSatisfy { $0 == .accept })
         #expect(await interaction.authenticationRequestCount == 1)
         #expect(await interaction.hostKeyRequestCount == 1)
     }
@@ -819,24 +834,26 @@ struct AgentHostAuthenticationTests {
         )
         let resolver = AgentHostResolver(
             store: HostLibraryModel(), temporaryTargets: { [target] },
-            temporaryConfiguration: { id in id == hostID ? configuration : nil },
-            discoverHostKey: { _, _, _, _, _ in observation }
+            temporaryConfiguration: { id in id == hostID ? configuration : nil }
         )
         let session = AgentSSHConfigurationSession(
             resolver: resolver, hostID: hostID,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
         let initial = try await session.configurationAttempt()
-        await session.retryHostKey(
-            after: .hostKeyChanged(expected: [old.fingerprint], received: observation.fingerprint),
-            generation: initial.generation
+        let authorizer = try #require(initial.request.authorizeHostKey)
+        let challenge = SSHHostKeyChallenge(
+            hostID: hostID, observation: observation,
+            expectedHostKeys: [old]
         )
+        let decision = try await authorizer(challenge)
+        let repeatedDecision = try await authorizer(challenge)
 
-        let replacement = try await session.configuration()
-
+        #expect(decision == .accept)
+        #expect(repeatedDecision == .accept)
         #expect(requests.count == 1)
         #expect(!requests[0].allowsPersistentTrust)
-        #expect(replacement.expectedHostKeys == [old, observation.identity])
+        #expect(initial.configuration.expectedHostKeys == [old])
     }
 
     @Test
@@ -946,8 +963,8 @@ struct AgentHostAuthenticationTests {
         AgentConnectionPool(
             configuration: { try await resolver.configuration(for: $0) },
             routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
-            openExec: { await backend.openExec(configuration: $0) },
-            openSFTP: { try await backend.openSFTP(configuration: $0) },
+            openExec: { await backend.openExec(configuration: $0.configuration) },
+            openSFTP: { try await backend.openSFTP(configuration: $0.configuration) },
             sweepInterval: nil
         )
     }

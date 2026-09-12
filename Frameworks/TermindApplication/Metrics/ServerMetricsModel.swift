@@ -56,8 +56,6 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private let hosts: any RemoteSessionHostStore
     private let preferences: any MetricsConfigurationStoring
     private let makeSampler: @Sendable () -> any MetricsSampling
-    private let discover:
-        @Sendable (Host, SSHTransportProxy?, [SSHRouteHopConfiguration]) async throws -> SSHHostKeyObservation
     private let clock: MetricsClock
     private let cardLimit: () -> Int?
     private let limitReached: () -> Void
@@ -69,15 +67,17 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private var detailObservers: [UUID: UUID] = [:]
     private var temporaryKeys: [UUID: [UUID: SSHHostKeyIdentity]] = [:]
     private var stamps: [UUID: Data] = [:]
+    private struct PendingHostKeyAuthorization {
+        var id: UUID
+        var continuation: CheckedContinuation<SSHHostKeyDecision, Never>
+    }
+    private var pendingHostKeyAuthorizations: [UUID: PendingHostKeyAuthorization] = [:]
 
     public var keepsRunning: Bool { servers.contains { $0.selection.enabled } }
 
     public init(
         hosts: any RemoteSessionHostStore, preferences: any MetricsConfigurationStoring,
         makeSampler: @escaping @Sendable () -> any MetricsSampling,
-        discover:
-            @escaping @Sendable (Host, SSHTransportProxy?, [SSHRouteHopConfiguration]) async throws ->
-            SSHHostKeyObservation,
         clock: MetricsClock = MetricsClock(),
         cardLimit: @escaping () -> Int? = { ServerMetricsModel.freeCardLimit },
         limitReached: @escaping () -> Void = {}
@@ -85,7 +85,6 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         self.hosts = hosts
         self.preferences = preferences
         self.makeSampler = makeSampler
-        self.discover = discover
         self.clock = clock
         self.cardLimit = cardLimit
         self.limitReached = limitReached
@@ -122,7 +121,6 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             self.init(
                 hosts: screenshotHosts, preferences: ScreenshotMetricsPreferences(),
                 makeSampler: { preconditionFailure("Screenshot metrics cannot connect") },
-                discover: { _, _, _ in preconditionFailure("Screenshot metrics cannot discover hosts") },
                 cardLimit: { nil }
             )
             servers = rows
@@ -281,7 +279,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         } else {
             temporaryKeys[server.id, default: [:]][hostID] = observation.identity
         }
-        retry(server)
+        server.hostKey = nil
+        server.hostKeyHostID = nil
+        server.hostKeyPrompt = nil
+        server.needsAttention = false
+        server.journey.resume()
+        finishHostKeyAuthorization(for: server.id, decision: .accept)
     }
 
     private func preparation(for host: Host, server: ServerMetric) throws -> SSHConnectionPreparation {
@@ -443,6 +446,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     private func cancel(_ id: UUID) {
+        finishHostKeyAuthorization(for: id, decision: .reject)
         generations[id] = nil
         workers.removeValue(forKey: id)?.cancel()
         if let sampler = samplers.removeValue(forKey: id) {
@@ -499,9 +503,21 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                 server.status = String(localized: "Connecting…")
                 server.collectionState = .connecting
                 server.isConnecting = true
-                let configuration = try await preparation(for: host, server: server).resolve()
+                let configuration = try await preparation(for: host, server: server).resolve(
+                    trustPolicy: .allowChallenge
+                )
                 guard current(server, token) else { return }
-                try await sampler.connect(configuration)
+                try await sampler.connect(
+                    SSHConnectionRequest(
+                        configuration: configuration,
+                        authorizeHostKey: { [weak self, weak server] challenge in
+                            guard let self, let server else { throw CancellationError() }
+                            return await self.authorizeHostKey(
+                                server, challenge: challenge, token: token
+                            )
+                        }
+                    )
+                )
                 guard current(server, token) else {
                     await sampler.disconnect()
                     return
@@ -598,10 +614,6 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                     let targetID = ssh.routeHostID ?? server.id
                     if ssh.isLocalAuthenticationRequirement || ssh.shouldRequestAuthentication {
                         requestAuthentication(server, hostID: targetID, error: ssh)
-                    } else if ssh.shouldRequestHostKey || ssh.isHostKeyChanged
-                        || isTrustRequirement(ssh)
-                    {
-                        await requestTrust(server, hostID: targetID, token: token)
                     }
                 }
                 if case MetricsReadError.unsupported = error { server.needsAttention = true }
@@ -619,46 +631,57 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         }
     }
 
-    private func isTrustRequirement(_ error: TermindSSHError) -> Bool {
-        switch error {
-        case .untrustedHost, .mismatchedHostKey: true
-        default: false
+    private func authorizeHostKey(
+        _ server: ServerMetric, challenge: SSHHostKeyChallenge, token: UUID
+    ) async -> SSHHostKeyDecision {
+        guard current(server, token) else { return .reject }
+        finishHostKeyAuthorization(for: server.id, decision: .reject)
+        if !challenge.expectedHostKeys.isEmpty {
+            hosts.markKnownHostMismatched(
+                hostname: challenge.observation.hostname,
+                port: challenge.observation.port
+            )
+        }
+        server.hostKey = challenge.observation
+        server.hostKeyHostID = challenge.hostID
+        server.hostKeyPrompt = SSHHostKeyPrompt(
+            observation: challenge.observation,
+            kind: challenge.expectedHostKeys.isEmpty
+                ? .firstUse
+                : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count)
+        )
+        server.status = String(localized: "Server Identity Verification Required")
+        server.needsAttention = true
+        server.journey.waitForHostKey(
+            at: challenge.hostID,
+            fingerprint: challenge.observation.fingerprint
+        )
+        let authorizationID = UUID()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                pendingHostKeyAuthorizations[server.id] = PendingHostKeyAuthorization(
+                    id: authorizationID, continuation: continuation
+                )
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.cancelHostKeyAuthorization(
+                    for: server.id, id: authorizationID
+                )
+            }
         }
     }
 
-    private func requestTrust(_ server: ServerMetric, hostID: UUID, token: UUID, visited: Set<UUID> = []) async {
-        guard !visited.contains(hostID), visited.count < 16 else {
-            server.needsAttention = true
-            return
-        }
-        guard let host = hosts.host(hostID) else { return }
-        do {
-            let configuration = try await preparation(for: host, server: server).resolve(discoveryOnly: true)
-            guard current(server, token) else { return }
-            let observation = try await discover(host, configuration.proxy, configuration.jumps)
-            guard current(server, token) else { return }
-            server.hostKey = observation
-            server.hostKeyHostID = host.id
-            let trustedCount = hosts.knownHosts(for: host).count
-            server.hostKeyPrompt = SSHHostKeyPrompt(
-                observation: observation,
-                kind: trustedCount == 0 ? .firstUse : .additionalKey(trustedKeyCount: trustedCount)
-            )
-            server.status = String(localized: "Server Identity Verification Required")
-            server.needsAttention = true
-            server.journey.waitForHostKey(at: host.id, fingerprint: observation.fingerprint)
-        } catch {
-            guard current(server, token) else { return }
-            server.status = error.localizedDescription
-            server.collectionState = .failed
-            if let ssh = error as? TermindSSHError, ssh.shouldRequestAuthentication {
-                requestAuthentication(server, hostID: ssh.routeHostID ?? hostID, error: ssh)
-            } else if let ssh = error as? TermindSSHError, ssh.shouldRequestHostKey,
-                let next = ssh.routeHostID
-            {
-                await requestTrust(server, hostID: next, token: token, visited: visited.union([hostID]))
-            }
-        }
+    private func cancelHostKeyAuthorization(for serverID: UUID, id: UUID) {
+        guard pendingHostKeyAuthorizations[serverID]?.id == id else { return }
+        finishHostKeyAuthorization(for: serverID, decision: .reject)
+    }
+
+    private func finishHostKeyAuthorization(
+        for serverID: UUID, decision: SSHHostKeyDecision
+    ) {
+        pendingHostKeyAuthorizations.removeValue(forKey: serverID)?
+            .continuation.resume(returning: decision)
     }
 }
 

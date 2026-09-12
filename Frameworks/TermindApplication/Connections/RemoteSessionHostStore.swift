@@ -15,18 +15,21 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func knownHosts(for host: Host) -> [KnownHostEntry]
     func route(for host: Host) -> [Host]
     func expectedHostKeys(
-        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> Set<SSHHostKeyIdentity>
     func prepareSSHConnection(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation
     func sshConnectionConfiguration(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHConnectionConfiguration
     func sshJumpConfigurations(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration]
     func transportProxy(for host: Host) throws -> SSHTransportProxy?
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution
@@ -44,6 +47,37 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 extension HostLibraryModel: RemoteSessionHostStore {}
 
 extension RemoteSessionHostStore {
+    public func expectedHostKeys(
+        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+    ) throws -> Set<SSHHostKeyIdentity> {
+        try expectedHostKeys(
+            for: host, temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: .requireKnownHost
+        )
+    }
+
+    public func sshConnectionConfiguration(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+    ) throws -> SSHConnectionConfiguration {
+        try sshConnectionConfiguration(
+            for: host, submissions: submissions,
+            temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: .requireKnownHost
+        )
+    }
+
+    public func sshJumpConfigurations(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+    ) throws -> [SSHRouteHopConfiguration] {
+        try sshJumpConfigurations(
+            for: host, submissions: submissions,
+            temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: .requireKnownHost
+        )
+    }
+
     public func prepareSSHConnection(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission],

@@ -146,7 +146,6 @@ final class AppModel {
             ?? ServerMetricsModel(
                 hosts: hosts, preferences: dependencies.metricsPreferences ?? MetricsPreferences(),
                 makeSampler: { connectionCoordinator.makeMetricsSampler() },
-                discover: { try await connectionCoordinator.discoverMetricsHostKey(host: $0, proxy: $1, jumps: $2) },
                 cardLimit: { proAccess.canUse(.unlimitedMetrics) ? nil : ServerMetricsModel.freeCardLimit },
                 limitReached: { proAccess.require(.unlimitedMetrics) }
             )
@@ -167,15 +166,7 @@ final class AppModel {
         connections = connectionCoordinator
         serialPorts = dependencies.serialPortService
         agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
-        agentHosts = AgentHostResolver(
-            store: hosts,
-            discoverHostKey: { hostID, host, port, proxy, jumps in
-                try await SSHSessionActor.discoverHostKey(
-                    hostID: hostID, host: host, port: port,
-                    proxy: proxy, jumps: jumps
-                )
-            }
-        )
+        agentHosts = AgentHostResolver(store: hosts)
         let agentHostResolver = agentHosts
         agentAuthentication = AgentSSHAuthenticationRegistry(resolver: agentHostResolver)
         agentConnections = AgentConnectionPool(

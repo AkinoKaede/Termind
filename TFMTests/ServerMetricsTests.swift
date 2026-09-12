@@ -385,7 +385,7 @@ struct ServerMetricsLifecycleTests {
         fixture.model.acceptHostKey(server, observation: observation, remember: false)
         await eventually { server.point != nil }
         #expect(fixture.hosts.knownHosts(for: fixture.host).isEmpty)
-        #expect(await fixture.sampler.lastConfiguration?.expectedHostKeys.contains(observation.identity) == true)
+        #expect(await fixture.sampler.lastConfiguration?.expectedHostKeys.isEmpty == true)
         #expect(server.journey.phase == .succeeded)
         fixture.model.setEnabled(false, for: server)
         fixture.model.setEnabled(true, for: server)
@@ -508,10 +508,7 @@ struct ServerMetricsLifecycleTests {
             let sampler = sampler
             model = ServerMetricsModel(
                 hosts: hosts, preferences: preferences, makeSampler: { sampler },
-                discover: { host, _, _ in
-                    SSHHostKeyObservation(
-                        hostname: host.host, port: host.port, algorithm: .ed25519, fingerprint: "SHA256:test")
-                }, clock: time.clock
+                clock: time.clock
             )
         }
     }
@@ -563,6 +560,28 @@ private actor FakeMetricsSampler: MetricsSampling {
         lastConfiguration = configuration
         if connectionHeld { await withCheckedContinuation { connectionContinuation = $0 } }
         if connectionError { throw TermindSSHError.disconnected }
+    }
+    func connect(_ request: SSHConnectionRequest) async throws {
+        let configuration = request.configuration
+        let observation = SSHHostKeyObservation(
+            hostname: configuration.host, port: configuration.port,
+            algorithm: .ed25519, fingerprint: "SHA256:test"
+        )
+        if !configuration.expectedHostKeys.contains(observation.identity) {
+            guard let authorizeHostKey = request.authorizeHostKey else {
+                throw TermindSSHError.untrustedHost
+            }
+            guard
+                try await authorizeHostKey(
+                    SSHHostKeyChallenge(
+                        hostID: configuration.hostID,
+                        observation: observation,
+                        expectedHostKeys: configuration.expectedHostKeys
+                    )
+                ) == .accept
+            else { throw CancellationError() }
+        }
+        try await connect(configuration)
     }
     func disconnect() async { disconnections += 1 }
     func sample() async throws -> MetricsSample {

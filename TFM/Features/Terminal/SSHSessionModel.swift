@@ -526,26 +526,19 @@ final class SSHSessionModel: Identifiable {
 
         let proxy: SSHTransportProxy?
         let jumps: [SSHRouteHopConfiguration]
+        let expectedHostKeys: Set<SSHHostKeyIdentity>
         do {
             proxy = try store.transportProxy(for: host)
             jumps = try store.sshJumpConfigurations(
                 for: host, submissions: suppliedAuthentications,
-                temporaryHostKeys: temporaryHostKeys
+                temporaryHostKeys: temporaryHostKeys,
+                trustPolicy: .allowChallenge
+            )
+            expectedHostKeys = try store.expectedHostKeys(
+                for: host, temporaryHostKeys: temporaryHostKeys,
+                trustPolicy: .allowChallenge
             )
         } catch {
-            if let sshError = error as? TermindSSHError,
-                sshError.shouldRequestHostKey,
-                let id = sshError.routeHostID,
-                let jump = store.host(id)
-            {
-                status = reconnecting ? .reconnecting : .connecting
-                connectionTask = Task { [weak self] in
-                    await self?.discoverHostKey(
-                        for: jump, using: store, attemptID: attemptID
-                    )
-                }
-                return
-            }
             if let sshError = error as? TermindSSHError,
                 sshError.shouldRequestAuthentication,
                 let id = sshError.routeHostID,
@@ -575,42 +568,22 @@ final class SSHSessionModel: Identifiable {
             return
         }
 
-        connection.pendingHostKey = nil
+        connection.clearHostKeyPrompt()
         connectionTask?.cancel()
         status = reconnecting ? .reconnecting : .connecting
         connectionTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let observation = try await SSHSessionActor.discoverHostKey(
-                    hostID: host.id, host: host.host, port: host.port,
-                    proxy: proxy, jumps: jumps, progress: progressHandler(attemptID: attemptID)
-                )
-                try Task.checkCancellation()
-                guard connectionAttemptID == attemptID else { throw CancellationError() }
-                let expectedHostKeys: Set<SSHHostKeyIdentity>
-                do {
-                    expectedHostKeys = try store.expectedHostKeys(
-                        for: host, temporaryHostKeys: temporaryHostKeys
-                    )
-                } catch TermindSSHError.untrustedHost {
-                    presentHostKeyPrompt(
-                        observation, kind: .firstUse, hostID: host.id
-                    )
-                    return
-                }
-                guard expectedHostKeys.contains(observation.identity) else {
-                    store.markKnownHostMismatched(hostname: host.host, port: host.port)
-                    presentHostKeyPrompt(
-                        observation,
-                        kind: .additionalKey(trustedKeyCount: store.knownHosts(for: host).count),
-                        hostID: host.id
-                    )
-                    return
-                }
                 try await openSSH(
                     host: host, username: username, credentials: credentials,
                     expectedHostKeys: expectedHostKeys, proxy: proxy, jumps: jumps,
-                    attemptID: attemptID
+                    attemptID: attemptID,
+                    authorizeHostKey: { [weak self, weak store] challenge in
+                        guard let self, let store else { throw CancellationError() }
+                        return await self.connection.authorizeHostKey(
+                            challenge, using: store
+                        )
+                    }
                 )
             } catch is CancellationError {
                 guard connectionAttemptID == attemptID else { return }
@@ -619,26 +592,7 @@ final class SSHSessionModel: Identifiable {
             } catch {
                 guard connectionAttemptID == attemptID else { return }
                 connectionAttemptID = nil
-                if let sshError = error as? TermindSSHError, sshError.isHostKeyChanged {
-                    store.markKnownHostMismatched(hostname: host.host, port: host.port)
-                    connectionAttemptID = attemptID
-                    connectionTask = Task { [weak self] in
-                        await self?.discoverHostKey(
-                            for: host, using: store, attemptID: attemptID
-                        )
-                    }
-                } else if let sshError = error as? TermindSSHError,
-                    sshError.shouldRequestHostKey,
-                    let id = sshError.routeHostID,
-                    let jump = store.host(id)
-                {
-                    connectionAttemptID = attemptID
-                    connectionTask = Task { [weak self] in
-                        await self?.discoverHostKey(
-                            for: jump, using: store, attemptID: attemptID
-                        )
-                    }
-                } else if let sshError = error as? TermindSSHError,
+                if let sshError = error as? TermindSSHError,
                     sshError.shouldRequestAuthentication
                 {
                     let authenticationHost: Host
@@ -791,14 +745,12 @@ final class SSHSessionModel: Identifiable {
 
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
         connection.trustHostKey(observation, using: store)
-        connect(using: store)
     }
 
     func continueWithTemporaryHostKey(
         _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
     ) {
-        guard connection.useTemporaryHostKey(observation) else { return }
-        connect(using: store)
+        _ = connection.useTemporaryHostKey(observation)
     }
 
     func disconnect() {
@@ -841,7 +793,8 @@ final class SSHSessionModel: Identifiable {
         host: Host, username: String, credentials: [SSHCredentials],
         expectedHostKeys: Set<SSHHostKeyIdentity>,
         proxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
-        attemptID: UUID
+        attemptID: UUID,
+        authorizeHostKey: @escaping SSHHostKeyAuthorizer
     ) async throws {
         let wasReconnecting = connection.isRecovering
         let presentsConnectionJourney = connectionJourney.isPresented
@@ -869,11 +822,10 @@ final class SSHSessionModel: Identifiable {
         ssh = actor
         do {
             try await actor.connect(
-                hostID: configuration.hostID, host: configuration.host,
-                port: configuration.port, username: configuration.username,
-                credentials: configuration.credentials,
-                expectedHostKeys: configuration.expectedHostKeys,
-                proxy: configuration.proxy, jumps: configuration.jumps,
+                using: SSHConnectionRequest(
+                    configuration: configuration,
+                    authorizeHostKey: authorizeHostKey
+                ),
                 shellIntegrationEnabled: DesktopSettingsKey.isShellIntegrationEnabled,
                 columns: latestViewport.columns, rows: latestViewport.rows,
                 progress: progressHandler(attemptID: attemptID)
@@ -1014,56 +966,6 @@ final class SSHSessionModel: Identifiable {
         connection.progressHandler(attemptID: attemptID) { [weak self] id in
             self?.connectionAttemptID == id
         }
-    }
-
-    private func discoverHostKey(
-        for host: Host, using store: any RemoteSessionHostStore, attemptID: UUID
-    ) async {
-        do {
-            let observation = try await SSHSessionActor.discoverHostKey(
-                hostID: host.id, host: host.host, port: host.port,
-                proxy: try store.transportProxy(for: host),
-                jumps: try store.sshJumpConfigurations(
-                    for: host, submissions: suppliedAuthentications,
-                    temporaryHostKeys: temporaryHostKeys
-                ),
-                progress: progressHandler(attemptID: attemptID)
-            )
-            guard connectionAttemptID == attemptID else { return }
-            let trusted = Set(store.knownHosts(for: host).map(\.identity))
-            if trusted.contains(observation.identity) {
-                connect(using: store)
-                return
-            }
-            let kind: SSHHostKeyPrompt.Kind
-            if trusted.isEmpty {
-                kind = .firstUse
-            } else {
-                store.markKnownHostMismatched(hostname: host.host, port: host.port)
-                kind = .additionalKey(trustedKeyCount: trusted.count)
-            }
-            presentHostKeyPrompt(observation, kind: kind, hostID: host.id)
-        } catch {
-            guard connectionAttemptID == attemptID else { return }
-            connectionAttemptID = nil
-            if connection.hasConnectedOnce {
-                scheduleReconnect(after: error.localizedDescription, using: store)
-            } else {
-                status = .failed(error.localizedDescription)
-                connectionJourney.fail(error.localizedDescription, at: host.id)
-            }
-        }
-    }
-
-    private func presentHostKeyPrompt(
-        _ observation: SSHHostKeyObservation, kind: SSHHostKeyPrompt.Kind, hostID: Host.ID
-    ) {
-        connection.waitForHostKey(
-            SSHHostKeyPrompt(observation: observation, kind: kind),
-            hostID: hostID, fingerprint: observation.fingerprint
-        )
-        connectionAttemptID = nil
-        status = .disconnected
     }
 
     func copyForReconnect() -> SSHSessionModel {

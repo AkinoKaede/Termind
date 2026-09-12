@@ -15028,12 +15028,44 @@
         }
       }
     },
+    "The server closed the connection before sending its SSH identification. Check the server's unauthenticated connection limits." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器在发送SSH标识前关闭了连接。请检查服务器的未认证连接限制。"
+          }
+        }
+      }
+    },
+    "The server closed the SSH connection while waiting for host-key approval. Retry to connect using the accepted key." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器在等待主机密钥批准时关闭了SSH连接。请使用已接受的密钥重试连接。"
+          }
+        }
+      }
+    },
     "The server listens only on 127.0.0.1 and ::1. It is off by default; when enabled, external calls execute without per-call approval." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "服务器仅监听127.0.0.1和::1，默认关闭。启用后，外部调用无需逐次批准即可执行。"
+          }
+        }
+      }
+    },
+    "The server sent an invalid SSH identification." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器发送了无效的SSH标识。"
           }
         }
       }
@@ -15088,6 +15120,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法读取SSH文件。"
+          }
+        }
+      }
+    },
+    "The SSH handshake failed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH握手失败。"
+          }
+        }
+      }
+    },
+    "The SSH handshake timed out." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH握手超时。"
+          }
+        }
+      }
+    },
+    "The SSH identification could not be read. The server or network path may have reset the connection; check the server's unauthenticated connection limits." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取SSH标识。服务器或网络路径可能重置了连接；请检查服务器的未认证连接限制。"
           }
         }
       }

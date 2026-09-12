@@ -51,11 +51,18 @@ public nonisolated enum SSHExecSessionError: LocalizedError, Sendable {
 /// `/bin/sh -lc`, so there is no shared shell state and no cwd carry-over.
 public nonisolated protocol SSHExecSessionProtocol: AnyObject, Sendable {
     func connect(using configuration: SSHConnectionConfiguration) async throws
+    func connect(using request: SSHConnectionRequest) async throws
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult
     func disconnect() async
+}
+
+nonisolated extension SSHExecSessionProtocol {
+    public func connect(using request: SSHConnectionRequest) async throws {
+        try await connect(using: request.configuration)
+    }
 }
 
 /// Called with each chunk the command produces, and which stream it came from —
@@ -72,7 +79,11 @@ public actor SSHExecSession: SSHExecSessionProtocol {
     private nonisolated let worker = SSHExecWorker()
 
     public func connect(using configuration: SSHConnectionConfiguration) async throws {
-        try await worker.connect(using: configuration)
+        try await connect(using: SSHConnectionRequest(configuration: configuration))
+    }
+
+    public func connect(using request: SSHConnectionRequest) async throws {
+        try await worker.connect(using: request)
     }
 
     /// Actor-isolated, so commands on one session queue behind each other. That
@@ -111,16 +122,22 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
 
     deinit { cleanup() }
 
-    public func connect(using configuration: SSHConnectionConfiguration) async throws {
-        try await queue.perform {
-            self.cleanup()
-            let (transport, session) = try SSHSessionWorker.openAuthenticatedSession(
-                using: configuration, timeout: 20
-            )
-            self.routeTransport = transport
-            self.session = session
-            self.isDead = false
-            self.startKeepalive(for: session)
+    public func connect(using request: SSHConnectionRequest) async throws {
+        await queue.perform { self.cleanup() }
+        let opened = try await SSHSessionWorker.openAuthenticatedSession(
+            using: request, timeout: 20
+        )
+        do {
+            await queue.perform {
+                self.routeTransport = opened.transport
+                self.session = opened.session
+                self.isDead = false
+                self.startKeepalive(for: opened.session)
+            }
+            try Task.checkCancellation()
+        } catch {
+            await queue.perform { self.cleanup() }
+            throw error
         }
     }
 

@@ -16,7 +16,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
     private var bridges: [SSHChannelSocketBridge]
     private var isClosed = false
 
-    private init(socket: Int32, bridges: [SSHChannelSocketBridge]) {
+    fileprivate init(socket: Int32, bridges: [SSHChannelSocketBridge]) {
         self.socket = socket
         self.bridges = bridges
     }
@@ -47,7 +47,8 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                 let hop = jumps[index]
                 progress?(.connecting(hop.id))
                 let session = try connectHop(
-                    hop, socket: currentSocket, level: index + 1, progress: progress
+                    hop, socket: currentSocket, level: index + 1,
+                    timeout: timeout, progress: progress
                 )
                 progress?(.connected(hop.id))
                 let nextHost: String
@@ -110,6 +111,68 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         }
     }
 
+    public static func open(
+        host: String, port: Int, proxy: SSHTransportProxy?,
+        jumps: [SSHRouteHopConfiguration], timeout: TimeInterval,
+        progress: SSHRouteProgressHandler? = nil,
+        authorizeHostKey: SSHHostKeyAuthorizer?
+    ) async throws -> SSHRoutedSocket {
+        let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.route-opening")
+        let state = SSHRouteOpeningState()
+        return try await withTaskCancellationHandler {
+            do {
+                try await queue.perform {
+                    try state.openFirst(
+                        destinationHost: host, destinationPort: port,
+                        destinationProxy: proxy, jumps: jumps, timeout: timeout
+                    )
+                }
+                for index in jumps.indices {
+                    try Task.checkCancellation()
+                    let hop = jumps[index]
+                    progress?(.connecting(hop.id))
+                    let observed: SSHHostKeyObservation
+                    do {
+                        observed = try await queue.perform {
+                            try state.beginHop(
+                                hop, level: index + 1, timeout: timeout
+                            )
+                        }
+                        let requiredApproval = !hop.expectedHostKeys.contains(observed.identity)
+                        try await SSHSessionWorker.authorizeHostKey(
+                            hostID: hop.id, observed: observed,
+                            expected: hop.expectedHostKeys,
+                            authorizer: authorizeHostKey
+                        )
+                        try Task.checkCancellation()
+                        try await queue.perform {
+                            try state.completeHop(
+                                hop, level: index + 1,
+                                destinationHost: host, destinationPort: port,
+                                destinationProxy: proxy, jumps: jumps,
+                                index: index, timeout: timeout,
+                                afterHostKeyApproval: requiredApproval,
+                                progress: progress
+                            )
+                        }
+                    } catch is CancellationError {
+                        throw CancellationError()
+                    } catch {
+                        throw routeFailure(error, hop: hop, level: index + 1)
+                    }
+                    progress?(.connected(hop.id))
+                }
+                return try await queue.perform { try state.takeResult() }
+            } catch {
+                await queue.perform { state.cleanup() }
+                throw error
+            }
+        } onCancel: {
+            state.cancel()
+            queue.async { state.cleanup() }
+        }
+    }
+
     public func close() {
         guard !isClosed else { return }
         isClosed = true
@@ -120,6 +183,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
 
     private static func connectHop(
         _ hop: SSHRouteHopConfiguration, socket: Int32, level: Int,
+        timeout: TimeInterval,
         progress: SSHRouteProgressHandler?
     ) throws -> OpaquePointer {
         guard let session = libssh2_session_init_ex(nil, nil, nil, nil) else {
@@ -127,9 +191,13 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         }
         do {
             libssh2_session_set_blocking(session, 1)
-            guard libssh2_session_handshake(session, socket) == 0 else {
-                throw SSHSessionWorker.sessionError(session, prefix: "SSH handshake failed")
-            }
+            try SSHSessionWorker.performHandshake(
+                session, socket: socket,
+                peer: SSHSocketConnector.peerDescription(
+                    socket: socket, fallbackHost: hop.host, port: hop.port
+                ),
+                timeout: timeout
+            )
             let observed = try SSHSessionWorker.observation(
                 host: hop.host, port: hop.port, session: session
             )
@@ -153,6 +221,186 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                 message: "Jump Host \(level) (\(hop.name)): \(error.localizedDescription)"
             )
         }
+    }
+
+    private static func routeFailure(
+        _ error: any Error, hop: SSHRouteHopConfiguration, level: Int
+    ) -> TermindSSHError {
+        let ssh = error as? TermindSSHError
+        let hostKeyFailure: Bool
+        switch ssh {
+        case .untrustedHost, .hostKeyChanged, .mismatchedHostKey:
+            hostKeyFailure = true
+        default:
+            hostKeyFailure = false
+        }
+        return TermindSSHError.routeHost(
+            hostID: hop.id,
+            authentication: ssh?.shouldRequestAuthentication == true,
+            serverChallenge: ssh?.isServerAuthenticationChallenge == true,
+            hostKey: hostKeyFailure,
+            message: "Jump Host \(level) (\(hop.name)): \(error.localizedDescription)"
+        )
+    }
+}
+
+private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
+    private let cancellationLock = NSLock()
+    private var currentSocket: Int32 = -1
+    private var cancellableSocket: Int32 = -1
+    private var bridges: [SSHChannelSocketBridge] = []
+    private var pendingSession: OpaquePointer?
+
+    func openFirst(
+        destinationHost: String, destinationPort: Int,
+        destinationProxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
+        timeout: TimeInterval
+    ) throws {
+        if let first = jumps.first {
+            currentSocket = try SSHSocketConnector.open(
+                host: first.host, port: first.port,
+                proxy: first.proxy, timeout: timeout
+            )
+        } else {
+            currentSocket = try SSHSocketConnector.open(
+                host: destinationHost, port: destinationPort,
+                proxy: destinationProxy, timeout: timeout
+            )
+        }
+        setCancellableSocket(currentSocket)
+    }
+
+    func beginHop(
+        _ hop: SSHRouteHopConfiguration, level: Int,
+        timeout: TimeInterval
+    ) throws -> SSHHostKeyObservation {
+        guard pendingSession == nil else { throw TermindSSHError.disconnected }
+        guard let session = libssh2_session_init_ex(nil, nil, nil, nil) else {
+            throw TermindSSHError.route(
+                "Jump Host \(level) (\(hop.name)): unable to create SSH session."
+            )
+        }
+        pendingSession = session
+        libssh2_session_set_blocking(session, 1)
+        try SSHSessionWorker.performHandshake(
+            session, socket: currentSocket,
+            peer: SSHSocketConnector.peerDescription(
+                socket: currentSocket, fallbackHost: hop.host, port: hop.port
+            ),
+            timeout: timeout
+        )
+        return try SSHSessionWorker.observation(
+            host: hop.host, port: hop.port, session: session
+        )
+    }
+
+    func completeHop(
+        _ hop: SSHRouteHopConfiguration, level: Int,
+        destinationHost: String, destinationPort: Int,
+        destinationProxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
+        index: Int, timeout: TimeInterval,
+        afterHostKeyApproval: Bool,
+        progress: SSHRouteProgressHandler?
+    ) throws {
+        guard let session = pendingSession else { throw TermindSSHError.disconnected }
+        progress?(.authenticating(hop.id))
+        try SSHSessionWorker.authenticate(
+            username: hop.username, credentials: hop.credentials,
+            session: session,
+            afterHostKeyApproval: afterHostKeyApproval
+        )
+        progress?(.authenticated(hop.id))
+
+        let nextHost: String
+        let nextPort: Int
+        let nextProxy: SSHTransportProxy?
+        if jumps.indices.contains(index + 1) {
+            let next = jumps[index + 1]
+            nextHost = next.host
+            nextPort = next.port
+            nextProxy = next.proxy
+        } else {
+            nextHost = destinationHost
+            nextPort = destinationPort
+            nextProxy = destinationProxy
+        }
+        let channelHost = nextProxy?.hostname ?? nextHost
+        let channelPort = nextProxy?.port ?? nextPort
+        guard
+            let channel = channelHost.withCString({ target in
+                libssh2_channel_direct_tcpip_ex(
+                    session, target, Int32(channelPort), "127.0.0.1", 0
+                )
+            })
+        else {
+            throw TermindSSHError.route(
+                "Jump Host \(level) (\(hop.name)) denied TCP forwarding."
+            )
+        }
+        let transportSocket = currentSocket
+        pendingSession = nil
+        currentSocket = -1
+        setCancellableSocket(-1)
+        let bridge = try SSHChannelSocketBridge(
+            transportSocket: transportSocket, session: session,
+            channel: channel, timeout: timeout
+        )
+        bridges.append(bridge)
+        currentSocket = bridge.clientSocket
+        setCancellableSocket(currentSocket)
+        if let nextProxy {
+            do {
+                try SSHSocketConnector.negotiate(
+                    socket: currentSocket, host: nextHost,
+                    port: nextPort, proxy: nextProxy
+                )
+            } catch {
+                throw TermindSSHError.route(
+                    "Proxy after Jump Host \(level) (\(hop.name)): \(error.localizedDescription)"
+                )
+            }
+        }
+    }
+
+    func takeResult() throws -> SSHRoutedSocket {
+        guard currentSocket >= 0, pendingSession == nil else {
+            throw TermindSSHError.disconnected
+        }
+        let result = SSHRoutedSocket(socket: currentSocket, bridges: bridges)
+        currentSocket = -1
+        setCancellableSocket(-1)
+        bridges = []
+        return result
+    }
+
+    func cleanup() {
+        if let pendingSession {
+            _ = libssh2_session_disconnect_ex(
+                pendingSession, SSH_DISCONNECT_BY_APPLICATION,
+                "Termind route cancelled", ""
+            )
+            _ = libssh2_session_free(pendingSession)
+            self.pendingSession = nil
+        }
+        if currentSocket >= 0 {
+            Darwin.close(currentSocket)
+            currentSocket = -1
+        }
+        setCancellableSocket(-1)
+        for bridge in bridges.reversed() { bridge.close() }
+        bridges.removeAll()
+    }
+
+    func cancel() {
+        cancellationLock.withLock {
+            if cancellableSocket >= 0 {
+                _ = Darwin.shutdown(cancellableSocket, SHUT_RDWR)
+            }
+        }
+    }
+
+    private func setCancellableSocket(_ socket: Int32) {
+        cancellationLock.withLock { cancellableSocket = socket }
     }
 }
 

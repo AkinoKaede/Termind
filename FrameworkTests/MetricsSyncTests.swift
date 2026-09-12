@@ -67,8 +67,7 @@ struct MetricsSyncTests {
         let library = HostLibraryModel()
         let model = ServerMetricsModel(
             hosts: library, preferences: preferences,
-            makeSampler: { TestMetricsSampler() },
-            discover: { _, _, _ in throw CancellationError() })
+            makeSampler: { TestMetricsSampler() })
 
         model.start()
         model.suspend()
@@ -89,8 +88,7 @@ struct MetricsSyncTests {
         library.upsert(host)
         let model = ServerMetricsModel(
             hosts: library, preferences: preferences,
-            makeSampler: { TestMetricsSampler() },
-            discover: { _, _, _ in throw CancellationError() })
+            makeSampler: { TestMetricsSampler() })
         model.start()
         model.suspend()
         preferences.failSaves = true

@@ -363,6 +363,7 @@ final class SFTPSessionModel: Identifiable {
         didResolveHomeForConnection = false
         bindStatus(to: store)
         connectionTask?.cancel()
+        connection.clearHostKeyPrompt()
         guard let host = store.host(hostID) else {
             connection.stopRecovery()
             let message = String(localized: "The host is no longer available.")
@@ -408,7 +409,8 @@ final class SFTPSessionModel: Identifiable {
                 let configuration: SSHConnectionConfiguration
                 if let suppliedAuthentication {
                     let expectedHostKeys = try store.expectedHostKeys(
-                        for: host, temporaryHostKeys: temporaryHostKeys
+                        for: host, temporaryHostKeys: temporaryHostKeys,
+                        trustPolicy: .allowChallenge
                     )
                     var credentials: [SSHCredentials] = []
                     if let keyID = suppliedAuthentication.keyID,
@@ -431,18 +433,29 @@ final class SFTPSessionModel: Identifiable {
                         proxy: try store.transportProxy(for: host),
                         jumps: try store.sshJumpConfigurations(
                             for: host, submissions: suppliedAuthentications,
-                            temporaryHostKeys: temporaryHostKeys
+                            temporaryHostKeys: temporaryHostKeys,
+                            trustPolicy: .allowChallenge
                         )
                     )
                 } else {
                     configuration = try store.sshConnectionConfiguration(
                         for: host, submissions: suppliedAuthentications,
-                        temporaryHostKeys: temporaryHostKeys
+                        temporaryHostKeys: temporaryHostKeys,
+                        trustPolicy: .allowChallenge
                     )
                 }
                 let coordinator = self.connectionCoordinator ?? RemoteConnectionCoordinator()
                 let client = try await coordinator.connectSFTP(
-                    using: configuration, progress: progressHandler(attemptID: attemptID),
+                    using: SSHConnectionRequest(
+                        configuration: configuration,
+                        authorizeHostKey: { [weak self, weak store] challenge in
+                            guard let self, let store else { throw CancellationError() }
+                            return await self.connection.authorizeHostKey(
+                                challenge, using: store
+                            )
+                        }
+                    ),
+                    progress: progressHandler(attemptID: attemptID),
                     connectionFailure: { [weak self] message in
                         Task { @MainActor in
                             self?.handleConnectionFailure(message, attemptID: attemptID)
@@ -472,24 +485,11 @@ final class SFTPSessionModel: Identifiable {
                 guard self.connectionAttemptID == attemptID else { return }
                 self.status = .disconnected
                 self.homeResolution = .unavailable
-            } catch TermindSSHError.untrustedHost {
-                await self.discoverHostKey(host: host, store: store)
-            } catch let error as TermindSSHError where error.isHostKeyChanged {
-                store.markKnownHostMismatched(hostname: host.host, port: host.port)
-                await self.discoverHostKey(host: host, store: store)
             } catch TermindSSHError.missingCredential,
                 TermindSSHError.missingUsername,
                 TermindSSHError.keyPassphraseRequired
             {
                 self.requestAuthentication(host: host, store: store)
-            } catch let error as TermindSSHError where error.shouldRequestHostKey {
-                if let id = error.routeHostID, let jump = store.host(id) {
-                    await self.discoverHostKey(host: jump, store: store)
-                } else {
-                    self.status = .failed(error.localizedDescription)
-                    self.homeResolution = .unavailable
-                    self.connectionJourney.fail(error.localizedDescription, at: error.routeHostID)
-                }
             } catch let error as TermindSSHError where error.shouldRequestAuthentication {
                 let authenticationHost: Host
                 if let id = error.routeHostID, let jump = store.host(id) {
@@ -607,14 +607,12 @@ final class SFTPSessionModel: Identifiable {
 
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
         connection.trustHostKey(observation, using: store)
-        connect(using: store)
     }
 
     func continueWithTemporaryHostKey(
         _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
     ) {
-        guard connection.useTemporaryHostKey(observation) else { return }
-        connect(using: store)
+        _ = connection.useTemporaryHostKey(observation)
     }
 
     func continueAuthentication(
@@ -1301,43 +1299,6 @@ final class SFTPSessionModel: Identifiable {
         let copy = SFTPSessionModel(hostID: hostID, initialPath: initialPath)
         copy.connectionCoordinator = connectionCoordinator
         return copy
-    }
-
-    private func discoverHostKey(host: Host, store: any RemoteSessionHostStore) async {
-        do {
-            let observation = try await SSHSessionActor.discoverHostKey(
-                hostID: host.id, host: host.host, port: host.port,
-                proxy: try store.transportProxy(for: host),
-                jumps: try store.sshJumpConfigurations(
-                    for: host, submissions: suppliedAuthentications,
-                    temporaryHostKeys: temporaryHostKeys
-                ),
-                progress: connectionAttemptID.map(progressHandler(attemptID:))
-            )
-            status = .disconnected
-            let trusted = Set(store.knownHosts(for: host).map(\.identity))
-            if trusted.contains(observation.identity) {
-                connect(using: store)
-                return
-            }
-            let kind: SSHHostKeyPrompt.Kind
-            if trusted.isEmpty {
-                kind = .firstUse
-            } else {
-                store.markKnownHostMismatched(hostname: host.host, port: host.port)
-                kind = .additionalKey(trustedKeyCount: trusted.count)
-            }
-            connection.waitForHostKey(
-                SSHHostKeyPrompt(observation: observation, kind: kind),
-                hostID: host.id, fingerprint: observation.fingerprint
-            )
-        } catch {
-            if connection.hasConnectedOnce {
-                scheduleReconnect(after: error.localizedDescription, using: store)
-            } else {
-                status = .failed(error.localizedDescription)
-            }
-        }
     }
 
     private func requestAuthentication(

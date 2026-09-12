@@ -22,7 +22,6 @@ struct MetricsJourneyTests {
         let model = ServerMetricsModel(
             hosts: hosts, preferences: preferences,
             makeSampler: { FailingMetricsSampler() },
-            discover: { _, _, _ in throw TermindSSHError.socket("offline") },
             clock: clock.clock)
         defer { model.shutdown() }
 
@@ -63,8 +62,7 @@ struct MetricsJourneyTests {
         try hosts.upsert(identity, passwordUpdate: .replace("test-only"))
         let model = ServerMetricsModel(
             hosts: hosts, preferences: PortMetricsPreferences(),
-            makeSampler: { FailingMetricsSampler() },
-            discover: { _, _, _ in throw TermindSSHError.socket("offline") })
+            makeSampler: { FailingMetricsSampler() })
         defer { model.shutdown() }
 
         #expect(model.add(host))
@@ -87,11 +85,7 @@ struct MetricsJourneyTests {
         let hosts = HostLibraryModel(hosts: [host])
         let sampler = PortMetricsSampler()
         let model = ServerMetricsModel(
-            hosts: hosts, preferences: PortMetricsPreferences(), makeSampler: { sampler },
-            discover: { host, _, _ in
-                SSHHostKeyObservation(
-                    hostname: host.host, port: host.port, algorithm: .ed25519, fingerprint: "SHA256:test")
-            })
+            hosts: hosts, preferences: PortMetricsPreferences(), makeSampler: { sampler })
         defer { model.shutdown() }
         #expect(model.add(host))
         let server = try #require(model.servers.first)
@@ -153,6 +147,28 @@ private actor PortMetricsSampler: MetricsSampling {
     var connections = 0
     var processRequests = 0
     func connect(_ configuration: SSHConnectionConfiguration) async throws { connections += 1 }
+    func connect(_ request: SSHConnectionRequest) async throws {
+        let configuration = request.configuration
+        let observation = SSHHostKeyObservation(
+            hostname: configuration.host, port: configuration.port,
+            algorithm: .ed25519, fingerprint: "SHA256:test"
+        )
+        if !configuration.expectedHostKeys.contains(observation.identity) {
+            guard let authorizeHostKey = request.authorizeHostKey else {
+                throw TermindSSHError.untrustedHost
+            }
+            guard
+                try await authorizeHostKey(
+                    SSHHostKeyChallenge(
+                        hostID: configuration.hostID,
+                        observation: observation,
+                        expectedHostKeys: configuration.expectedHostKeys
+                    )
+                ) == .accept
+            else { throw CancellationError() }
+        }
+        try await connect(configuration)
+    }
     func sample() async throws -> MetricsSample {
         .init(uptime: 1, cpu: [10, 0, 10, 80], memoryUsed: 50, memoryTotal: 100)
     }

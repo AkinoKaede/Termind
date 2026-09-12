@@ -105,9 +105,14 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     }
                     session = created
                     libssh2_session_set_blocking(created, 1)
-                    guard libssh2_session_handshake(created, socket) == 0 else {
-                        throw SSHSessionWorker.sessionError(created, prefix: String(localized: "SSH handshake failed"))
-                    }
+                    try SSHSessionWorker.performHandshake(
+                        created, socket: socket,
+                        peer: SSHSocketConnector.peerDescription(
+                            socket: socket,
+                            fallbackHost: configuration.host,
+                            port: configuration.port
+                        )
+                    )
                     let observed = try SSHSessionWorker.observation(
                         host: configuration.host, port: configuration.port, session: created
                     )

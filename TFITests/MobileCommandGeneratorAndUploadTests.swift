@@ -38,14 +38,6 @@ private final class MobileSSHCommandConnectionBox {
 
     var services: MobileWorkspaceConnectionServices {
         MobileWorkspaceConnectionServices(
-            discoverHostKey: { _, host, port, _, _ in
-                SSHHostKeyObservation(
-                    hostname: host,
-                    port: port,
-                    algorithm: .ed25519,
-                    fingerprint: "SHA256:test"
-                )
-            },
             makeSSHSession: { [weak self] output, exit, shellIntegration in
                 self?.exits.append(exit)
                 self?.shellIntegrations.append(shellIntegration)
@@ -417,14 +409,6 @@ struct MobileUploadBatchTests {
         let transferClient = MobileUploadSFTPClient()
         let transfers = SFTPTransferCoordinator(store: library) { transferClient }
         let services = MobileWorkspaceConnectionServices(
-            discoverHostKey: { _, name, port, _, _ in
-                SSHHostKeyObservation(
-                    hostname: name,
-                    port: port,
-                    algorithm: .ed25519,
-                    fingerprint: "SHA256:test"
-                )
-            },
             makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { _, _, _ in preflightClient },
@@ -473,14 +457,6 @@ struct MobileUploadBatchTests {
         let client = MobileUploadSFTPClient()
         let transfers = SFTPTransferCoordinator(store: library) { client }
         let services = MobileWorkspaceConnectionServices(
-            discoverHostKey: { _, name, port, _, _ in
-                SSHHostKeyObservation(
-                    hostname: name,
-                    port: port,
-                    algorithm: .ed25519,
-                    fingerprint: "SHA256:test"
-                )
-            },
             makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { _, _, _ in client },
@@ -559,14 +535,6 @@ struct MobileUploadBatchTests {
         let transferClient = MobileUploadSFTPClient(failedDownloadPaths: [broken.path])
         let transfers = SFTPTransferCoordinator(store: library) { transferClient }
         let services = MobileWorkspaceConnectionServices(
-            discoverHostKey: { _, name, port, _, _ in
-                SSHHostKeyObservation(
-                    hostname: name,
-                    port: port,
-                    algorithm: .ed25519,
-                    fingerprint: "SHA256:test"
-                )
-            },
             makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { _, _, _ in sessionClient },

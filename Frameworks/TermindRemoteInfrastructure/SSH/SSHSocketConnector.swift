@@ -26,6 +26,47 @@ public nonisolated enum SSHSocketConnector {
         }
     }
 
+    public static func peerDescription(socket: Int32, fallbackHost: String, port: Int) -> String {
+        var storage = sockaddr_storage()
+        var length = socklen_t(MemoryLayout<sockaddr_storage>.size)
+        let status = withUnsafeMutablePointer(to: &storage) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getpeername(socket, $0, &length)
+            }
+        }
+        guard status == 0 else { return displayAddress(host: fallbackHost, port: port) }
+        guard
+            storage.ss_family == sa_family_t(AF_INET)
+                || storage.ss_family == sa_family_t(AF_INET6)
+        else { return displayAddress(host: fallbackHost, port: port) }
+
+        var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+        var service = [CChar](repeating: 0, count: Int(NI_MAXSERV))
+        let lookup = withUnsafePointer(to: &storage) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getnameinfo(
+                    $0, length, &host, socklen_t(host.count),
+                    &service, socklen_t(service.count), NI_NUMERICHOST | NI_NUMERICSERV
+                )
+            }
+        }
+        guard lookup == 0 else { return displayAddress(host: fallbackHost, port: port) }
+        let hostname = String(
+            decoding: host.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) },
+            as: UTF8.self
+        )
+        let serviceText = String(
+            decoding: service.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) },
+            as: UTF8.self
+        )
+        let resolvedPort = Int(serviceText) ?? port
+        return displayAddress(host: hostname, port: resolvedPort)
+    }
+
+    private static func displayAddress(host: String, port: Int) -> String {
+        host.contains(":") ? "[\(host)]:\(port)" : "\(host):\(port)"
+    }
+
     /// Applies proxy negotiation to an already-open byte stream. Jump routing
     /// uses this with the local end of a socketpair bridged to direct-tcpip.
     public static func negotiate(

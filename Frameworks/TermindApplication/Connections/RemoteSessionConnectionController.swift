@@ -10,11 +10,13 @@ import struct TermindDomain.Host
 public final class RemoteSessionConnectionController {
     public let journey = ConnectionJourney()
     public let reconnect: SessionReconnectController
-    public var pendingHostKey: SSHHostKeyPrompt?
+    public private(set) var pendingHostKey: SSHHostKeyPrompt?
     public var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
     public private(set) var hasConnectedOnce = false
     public private(set) var isRecovering = false
     private var pendingHostKeyHostID: Host.ID?
+    private var hostKeyAuthorizationID: UUID?
+    private var hostKeyAuthorization: CheckedContinuation<SSHHostKeyDecision, Never>?
 
     public var reconnectState: ReconnectState? { reconnect.state }
 
@@ -23,7 +25,7 @@ public final class RemoteSessionConnectionController {
     }
 
     public func disconnect() {
-        clearHostKeyPrompt()
+        finishHostKeyAuthorization(.reject)
         temporaryHostKeys.removeAll()
         reconnect.stop()
         hasConnectedOnce = false
@@ -78,6 +80,7 @@ public final class RemoteSessionConnectionController {
     public func trustHostKey(
         _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
     ) {
+        guard pendingHostKey?.observation == observation else { return }
         store.trust(
             KnownHostEntry(
                 hostname: observation.hostname, port: observation.port,
@@ -85,16 +88,61 @@ public final class RemoteSessionConnectionController {
                 addedAt: Date()
             ))
         if let pendingHostKeyHostID { temporaryHostKeys[pendingHostKeyHostID] = nil }
-        clearHostKeyPrompt()
+        finishHostKeyAuthorization(.accept)
         journey.resume()
     }
 
     public func useTemporaryHostKey(_ observation: SSHHostKeyObservation) -> Bool {
-        guard let pendingHostKeyHostID else { return false }
+        guard pendingHostKey?.observation == observation,
+            let pendingHostKeyHostID
+        else { return false }
         temporaryHostKeys[pendingHostKeyHostID] = observation.identity
-        clearHostKeyPrompt()
+        finishHostKeyAuthorization(.accept)
         journey.resume()
         return true
+    }
+
+    public func rejectHostKey() { finishHostKeyAuthorization(.reject) }
+
+    public func authorizeHostKey(
+        _ challenge: SSHHostKeyChallenge,
+        using store: any RemoteSessionHostStore
+    ) async -> SSHHostKeyDecision {
+        if challenge.expectedHostKeys.contains(challenge.observation.identity) {
+            return .accept
+        }
+        finishHostKeyAuthorization(.reject)
+        if !challenge.expectedHostKeys.isEmpty {
+            store.markKnownHostMismatched(
+                hostname: challenge.observation.hostname,
+                port: challenge.observation.port
+            )
+        }
+        let authorizationID = UUID()
+        hostKeyAuthorizationID = authorizationID
+        waitForHostKey(
+            SSHHostKeyPrompt(
+                observation: challenge.observation,
+                kind: challenge.expectedHostKeys.isEmpty
+                    ? .firstUse
+                    : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count)
+            ),
+            hostID: challenge.hostID,
+            fingerprint: challenge.observation.fingerprint
+        )
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                guard hostKeyAuthorizationID == authorizationID else {
+                    continuation.resume(returning: .reject)
+                    return
+                }
+                hostKeyAuthorization = continuation
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.cancelHostKeyAuthorization(id: authorizationID)
+            }
+        }
     }
 
     public func waitForHostKey(
@@ -129,7 +177,20 @@ public final class RemoteSessionConnectionController {
     }
 
     public func clearHostKeyPrompt() {
+        finishHostKeyAuthorization(.reject)
+    }
+
+    private func cancelHostKeyAuthorization(id: UUID) {
+        guard hostKeyAuthorizationID == id else { return }
+        finishHostKeyAuthorization(.reject)
+    }
+
+    private func finishHostKeyAuthorization(_ decision: SSHHostKeyDecision) {
+        let continuation = hostKeyAuthorization
+        hostKeyAuthorization = nil
+        hostKeyAuthorizationID = nil
         pendingHostKey = nil
         pendingHostKeyHostID = nil
+        continuation?.resume(returning: decision)
     }
 }

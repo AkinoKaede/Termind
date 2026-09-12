@@ -29,8 +29,16 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
     public var nodes: [Node]
     public var secrets: any SecretStoring
 
-    public func resolve(discoveryOnly: Bool = false) async throws -> SSHConnectionConfiguration {
-        let task = Task.detached { try resolveSynchronously(discoveryOnly: discoveryOnly) }
+    public func resolve(
+        discoveryOnly: Bool = false,
+        trustPolicy: SSHHostTrustPolicy = .requireKnownHost
+    ) async throws -> SSHConnectionConfiguration {
+        let task = Task.detached {
+            try resolveSynchronously(
+                discoveryOnly: discoveryOnly,
+                trustPolicy: trustPolicy
+            )
+        }
         return try await withTaskCancellationHandler {
             let result = try await task.value
             try Task.checkCancellation()
@@ -40,7 +48,9 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         }
     }
 
-    private func resolveSynchronously(discoveryOnly: Bool) throws -> SSHConnectionConfiguration {
+    private func resolveSynchronously(
+        discoveryOnly: Bool, trustPolicy: SSHHostTrustPolicy
+    ) throws -> SSHConnectionConfiguration {
         guard let target = nodes.last else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
@@ -49,7 +59,9 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             do {
                 try Task.checkCancellation()
                 let material = try credentials(node)
-                guard !node.trustedKeys.isEmpty else { throw TermindSSHError.untrustedHost }
+                if trustPolicy == .requireKnownHost, node.trustedKeys.isEmpty {
+                    throw TermindSSHError.untrustedHost
+                }
                 jumps.append(
                     SSHRouteHopConfiguration(
                         id: node.host.id, name: node.host.name, host: node.host.host, port: node.host.port,
@@ -69,7 +81,9 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         }
         try Task.checkCancellation()
         let material = discoveryOnly ? ("", [SSHCredentials]()) : try credentials(target)
-        if !discoveryOnly, target.trustedKeys.isEmpty { throw TermindSSHError.untrustedHost }
+        if !discoveryOnly, trustPolicy == .requireKnownHost, target.trustedKeys.isEmpty {
+            throw TermindSSHError.untrustedHost
+        }
         return SSHConnectionConfiguration(
             hostID: target.host.id, host: target.host.host, port: target.host.port,
             username: material.0, credentials: material.1, expectedHostKeys: target.trustedKeys,

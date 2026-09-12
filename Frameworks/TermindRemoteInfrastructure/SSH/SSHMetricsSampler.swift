@@ -12,6 +12,9 @@ public actor SSHMetricsSampler: MetricsSampling {
     public func connect(_ configuration: SSHConnectionConfiguration) async throws {
         try await session.connect(using: configuration)
     }
+    public func connect(_ request: SSHConnectionRequest) async throws {
+        try await session.connect(using: request)
+    }
     public func disconnect() async { await session.disconnect() }
 
     public func sample() async throws -> MetricsSample {
@@ -115,11 +118,4 @@ public final class MetricsPreferences: MetricsConfigurationStoring {
 nonisolated extension RemoteConnectionCoordinator {
     public func makeMetricsSampler() -> any MetricsSampling { SSHMetricsSampler(session: makeExecSession()) }
 
-    public func discoverMetricsHostKey(
-        host: Host, proxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration]
-    ) async throws -> SSHHostKeyObservation {
-        try await SSHSessionActor.discoverHostKey(
-            hostID: host.id, host: host.host, port: host.port, proxy: proxy, jumps: jumps
-        )
-    }
 }

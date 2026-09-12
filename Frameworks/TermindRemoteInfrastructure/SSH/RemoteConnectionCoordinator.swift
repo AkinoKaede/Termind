@@ -26,9 +26,17 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
     public func connectExec(
         using configuration: SSHConnectionConfiguration
     ) async throws -> any SSHExecSessionProtocol {
+        try await connectExec(
+            using: SSHConnectionRequest(configuration: configuration)
+        )
+    }
+
+    public func connectExec(
+        using request: SSHConnectionRequest
+    ) async throws -> any SSHExecSessionProtocol {
         let session = makeExecSession()
         do {
-            try await session.connect(using: configuration)
+            try await session.connect(using: request)
             return session
         } catch {
             await session.disconnect()
@@ -41,10 +49,21 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         progress: SSHRouteProgressHandler? = nil,
         connectionFailure: (@Sendable (String) -> Void)? = nil
     ) async throws -> any SFTPClientProtocol {
+        try await connectSFTP(
+            using: SSHConnectionRequest(configuration: configuration),
+            progress: progress, connectionFailure: connectionFailure
+        )
+    }
+
+    public func connectSFTP(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler? = nil,
+        connectionFailure: (@Sendable (String) -> Void)? = nil
+    ) async throws -> any SFTPClientProtocol {
         let client = makeSFTPClient()
         do {
             try await client.connect(
-                using: configuration, progress: progress,
+                using: request, progress: progress,
                 connectionFailure: connectionFailure
             )
             return client

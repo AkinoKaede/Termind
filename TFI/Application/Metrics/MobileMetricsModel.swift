@@ -20,10 +20,7 @@ final class MobileMetricsModel {
         core = ServerMetricsModel(
             hosts: hosts, preferences: preferences,
             makeSampler: { SSHMetricsSampler(session: SSHExecSession()) },
-            discover: { host, proxy, jumps in
-                try await SSHSessionActor.discoverHostKey(
-                    hostID: host.id, host: host.host, port: host.port, proxy: proxy, jumps: jumps)
-            }, cardLimit: { limit.maximum })
+            cardLimit: { limit.maximum })
     }
 
     convenience init(defaults: UserDefaults?, hosts: any RemoteSessionHostStore) {

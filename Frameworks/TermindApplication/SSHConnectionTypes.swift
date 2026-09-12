@@ -21,6 +21,125 @@ public nonisolated struct SSHHostKeyObservation: Hashable, Sendable {
 
 }
 
+public nonisolated struct SSHHostKeyChallenge: Hashable, Sendable {
+    public var hostID: Host.ID
+    public var observation: SSHHostKeyObservation
+    public var expectedHostKeys: Set<SSHHostKeyIdentity>
+
+    public init(
+        hostID: Host.ID, observation: SSHHostKeyObservation,
+        expectedHostKeys: Set<SSHHostKeyIdentity>
+    ) {
+        self.hostID = hostID
+        self.observation = observation
+        self.expectedHostKeys = expectedHostKeys
+    }
+}
+
+public nonisolated enum SSHHostKeyDecision: Equatable, Sendable {
+    case accept
+    case reject
+}
+
+public typealias SSHHostKeyAuthorizer = @Sendable (SSHHostKeyChallenge) async throws -> SSHHostKeyDecision
+
+public nonisolated enum SSHHostTrustPolicy: Equatable, Sendable {
+    case requireKnownHost
+    case allowChallenge
+}
+
+/// A connection configuration plus the optional interaction that may authorize
+/// an unknown or changed host key. A nil authorizer preserves strict behavior:
+/// the connection must already contain a matching expected key.
+public nonisolated struct SSHConnectionRequest: Sendable {
+    public var configuration: SSHConnectionConfiguration
+    public var authorizeHostKey: SSHHostKeyAuthorizer?
+
+    public init(
+        configuration: SSHConnectionConfiguration,
+        authorizeHostKey: SSHHostKeyAuthorizer? = nil
+    ) {
+        self.configuration = configuration
+        self.authorizeHostKey = authorizeHostKey
+    }
+}
+
+public nonisolated struct SSHHandshakeFailure: Hashable, Sendable {
+    public enum Kind: String, Hashable, Sendable {
+        case peerClosed
+        case receiveFailed
+        case invalidIdentification
+        case timedOut
+        case other
+    }
+
+    public enum Phase: String, Hashable, Sendable {
+        case identification
+        case keyExchange
+        case unknown
+    }
+
+    public var code: Int32
+    public var systemError: Int32?
+    public var kind: Kind
+    public var phase: Phase
+    public var elapsedMilliseconds: Int
+    public var peer: String?
+
+    public init(
+        code: Int32, systemError: Int32?, kind: Kind? = nil, phase: Phase,
+        elapsedMilliseconds: Int, peer: String?
+    ) {
+        self.code = code
+        self.systemError = systemError
+        self.kind = kind ?? Self.defaultKind(code: code, phase: phase)
+        self.phase = phase
+        self.elapsedMilliseconds = elapsedMilliseconds
+        self.peer = peer
+    }
+
+    public var diagnosticDescription: String {
+        var fields = ["libssh2 \(code)"]
+        if let systemError { fields.append("errno \(systemError)") }
+        if let peer { fields.append("peer \(peer)") }
+        fields.append("\(elapsedMilliseconds) ms")
+        return fields.joined(separator: ", ")
+    }
+
+    public var localizedDescription: String {
+        let message: String
+        switch kind {
+        case .peerClosed:
+            message = String(
+                localized:
+                    "The server closed the connection before sending its SSH identification. Check the server's unauthenticated connection limits."
+            )
+        case .receiveFailed:
+            message = String(
+                localized:
+                    "The SSH identification could not be read. The server or network path may have reset the connection; check the server's unauthenticated connection limits."
+            )
+        case .invalidIdentification:
+            message = String(localized: "The server sent an invalid SSH identification.")
+        case .timedOut:
+            message = String(localized: "The SSH handshake timed out.")
+        case .other:
+            message = String(localized: "The SSH handshake failed.")
+        }
+        return "\(message) [\(diagnosticDescription)]"
+    }
+
+    private static func defaultKind(code: Int32, phase: Phase) -> Kind {
+        switch (phase, code) {
+        case (.identification, -13): .peerClosed
+        case (.identification, -43): .receiveFailed
+        case (.identification, -2): .invalidIdentification
+        case (_, -9), (_, -30): .timedOut
+        default: .other
+        }
+    }
+}
+
 public nonisolated struct SSHHostKeyPrompt: Hashable, Sendable {
     public enum Kind: Hashable, Sendable {
         case firstUse
@@ -113,6 +232,7 @@ public nonisolated enum TermindSSHError: LocalizedError, Sendable {
         hostKey: Bool, message: String
     )
     case library(String)
+    case handshake(SSHHandshakeFailure)
     case authenticationFailed(String)
     case hostKeyChanged(expected: [String], received: String)
     case missingCredential
@@ -127,6 +247,7 @@ public nonisolated enum TermindSSHError: LocalizedError, Sendable {
         case .socket(let message), .proxy(let message), .route(let message),
             .library(let message), .authenticationFailed(let message):
             message
+        case .handshake(let failure): failure.localizedDescription
         case .routeHost(_, _, _, _, let message): message
         case .hostKeyChanged(let expected, let received):
             String(
@@ -177,7 +298,7 @@ public nonisolated enum TermindSSHError: LocalizedError, Sendable {
 
     public var isRetryableForwardingFailure: Bool {
         switch self {
-        case .socket, .library, .disconnected: true
+        case .socket, .library, .handshake, .disconnected: true
         case .proxy, .route, .routeHost, .authenticationFailed, .hostKeyChanged,
             .missingCredential, .keyPassphraseRequired, .missingUsername,
             .untrustedHost, .mismatchedHostKey:

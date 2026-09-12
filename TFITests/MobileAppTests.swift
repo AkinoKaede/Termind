@@ -472,7 +472,7 @@ struct MobileWorkspaceConnectionRecoveryTests {
         workspace.connect()
 
         #expect(await eventually { workspace.connected })
-        #expect(await eventually { workspace.journey.logs.count >= 8 })
+        #expect(await eventually { workspace.journey.logs.count >= 6 })
         #expect(connections.didReceiveProgressHandler)
         #expect(workspace.journey.purpose == .sftpSession)
     }
@@ -586,6 +586,56 @@ struct MobileWorkspaceConnectionRecoveryTests {
         #expect(!state.isRecovering)
     }
 
+    @Test func firstUseHostKeyContinuesOnTheOriginalSSHConnection() async throws {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        let library = HostLibraryModel(hosts: [host], identities: [identity])
+        try library.upsert(identity, passwordUpdate: .replace("test-only"))
+        var connectionCount = 0
+        let services = MobileWorkspaceConnectionServices(
+            makeSSHSession: {
+                SSHSessionActor(output: $0, exit: $1, shellIntegration: $2)
+            },
+            connectSSH: { _, request, _, _, _, _ in
+                connectionCount += 1
+                let configuration = request.configuration
+                let observation = SSHHostKeyObservation(
+                    hostname: configuration.host, port: configuration.port,
+                    algorithm: .ed25519, fingerprint: "SHA256:first-use"
+                )
+                let authorizer = try #require(request.authorizeHostKey)
+                guard
+                    try await authorizer(
+                        SSHHostKeyChallenge(
+                            hostID: configuration.hostID,
+                            observation: observation,
+                            expectedHostKeys: configuration.expectedHostKeys
+                        )
+                    ) == .accept
+                else { throw CancellationError() }
+            },
+            connectSFTP: { _, _, _ in throw SFTPError.notConnected },
+            writeSSH: { _, _ in }
+        )
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(
+                hostID: host.id, title: host.name, kind: .ssh
+            ),
+            hosts: library, connectionServices: services
+        )
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+        #expect(await eventually { workspace.hostKeyPrompt != nil })
+        #expect(connectionCount == 1)
+        workspace.trustHostKey()
+
+        #expect(await eventually { workspace.connected })
+        #expect(connectionCount == 1)
+        #expect(library.knownHosts(for: host).map(\.fingerprint) == ["SHA256:first-use"])
+    }
+
     private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
         for _ in 0..<100 {
             if condition() { return true }
@@ -686,10 +736,6 @@ private final class MobileSFTPConnectionBox {
 
     var services: MobileWorkspaceConnectionServices {
         MobileWorkspaceConnectionServices(
-            discoverHostKey: { _, host, port, _, _ in
-                SSHHostKeyObservation(
-                    hostname: host, port: port, algorithm: .ed25519, fingerprint: "SHA256:test")
-            },
             makeSSHSession: { [self] output, exit, shellIntegration in
                 sshExitHandlers.append(exit)
                 return SSHSessionActor(output: output, exit: exit, shellIntegration: shellIntegration)

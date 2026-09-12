@@ -46,23 +46,21 @@ final class MobileAssistantModel {
             speech ?? SpeechTranscriptionCoordinator(service: AppleSpeechTranscriptionService(audioInput: audio))
         self.speech = coordinator
         audio.onInterruption = { [weak coordinator] in coordinator?.cancelAll() }
-        let resolver = AgentHostResolver(
-            store: hosts,
-            discoverHostKey: { id, host, port, proxy, jumps in
-                try await SSHSessionActor.discoverHostKey(
-                    hostID: id, host: host, port: port, proxy: proxy, jumps: jumps)
-            })
+        let resolver = AgentHostResolver(store: hosts)
         let connections = AgentConnectionPool(
             configuration: { try await resolver.configuration(for: $0) },
             routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
-            openExec: { configuration in
+            openExec: { request in
                 let session = SSHExecSession()
-                try await session.connect(using: configuration)
+                try await session.connect(using: request)
                 return session
             },
-            openSFTP: { configuration in
+            openSFTP: { request in
                 let client = SFTPClient()
-                try await client.connect(using: configuration)
+                try await client.connect(
+                    using: request, progress: nil,
+                    connectionFailure: nil
+                )
                 return client
             })
         self.connections = connections
