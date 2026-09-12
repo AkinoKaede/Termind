@@ -745,8 +745,9 @@ the provider/model/credential captured at start. Assistant now registers the sam
 Mobile navigation and Metrics reuse (2026-09-11):
 
 - Transfers belongs to Workspaces. Host cards connect to SSH on a single activation and expose SFTP/edit/delete through a visible More menu and a long-press context menu. SSH folder import is desktop-only; mobile retains private-key and certificate file import.
-- Port forwarding rules belong to the host draft and commit with it. Only unchanged, saved rules can start; the
-  mobile host editor exposes a persistent, device-local Enabled switch per rule and has no bulk controls.
+- Port forwarding rules belong to the host draft and commit with it. Enabled intent is persisted immediately on
+  the local device, independently of the draft: saved rules run with their last saved Host and rule configuration,
+  while a newly enabled rule waits for its first successful Host save. The mobile host editor has no bulk controls.
 - Keychain lists Keys before Identities. Identity notes remain preserved data without an editor field. Generation defaults match macOS: iCloud, Ed25519, ECDSA P-256, RSA 3072, AES-256 and 100 rounds; encrypted generation requires a matching confirmation. The shared bounded/scoped key-file reader accepts explicit private-key and certificate files.
 - ServerMetricsModel, ServerMetric, MetricsClock and ConnectionJourney live in Application. Their samplers/discovery functions remain injected. Mobile delegates its collector to this shared model, including authentication, temporary trust, process/filesystem sampling and detail observer lifetimes.
 - Metrics instruments/system panels, Journey route/checkpoint animations, and SSH decision forms live in Presentation. AppKit's keyboard monitor stays in TFM and is injected through ConnectionFormKeyboardAdapting; Presentation has no native UI imports.
@@ -858,14 +859,15 @@ Terminal custom-configuration editors expose the same immediate-persistence enab
 preference as the parent settings page. Both light and dark editors remain reachable
 while disabled; toggling never clears or replaces their independently autosaved text.
 
-Desktop forwarding lists and rule details share one start gate: the normalized rule
-and its host draft must match persisted records. Rule Save still updates only the
-host draft; saving the host persists the collection and never starts it. Runtime
-start/stop remains process-local and uses the existing forwarding controller. Active
-rules can open their details, with configuration edits, Save and Delete locked until
-stopped. Stop remains available even when drafts differ from persisted records,
-including through Stop All. Closing or cancelling an editor does not undo runtime
-start/stop actions.
+Desktop forwarding lists and rule details share immediate, device-local Enabled intent.
+An existing rule can be enabled while its Host or rule draft differs, and the runtime
+uses the last saved configuration until the Host is saved. A new rule can be enabled
+before its first save; it remains Waiting for Save and starts only after the Host
+transaction succeeds. Active runtime phases lock configuration edits until disabled,
+but an enabled rule that has not started remains editable. Cancelling an existing rule
+editor does not undo enable/disable actions; cancelling an unsaved rule or its Host
+editor removes that rule's pending intent. Enable All and Disable All follow the same
+policy.
 
 ### Mobile card presentation and color tags (2026-09-11)
 

@@ -35,7 +35,7 @@ struct HostEditorView: View {
             } else {
                 VaultDetailScaffold(
                     title: hostID == nil ? "New Host" : "Edit Host",
-                    symbol: "server.rack", close: closeTab
+                    symbol: "server.rack", close: cancel
                 ) {
                     form
                 } footer: {
@@ -419,7 +419,7 @@ struct HostEditorView: View {
                     .lineLimit(2)
             }
             Spacer()
-            Button("Cancel") { closeTab() }
+            Button("Cancel", action: cancel)
                 .keyboardShortcut(.cancelAction)
             Button("Save") { save() }
                 .keyboardShortcut(.defaultAction)
@@ -471,6 +471,11 @@ struct HostEditorView: View {
         } else {
             saveError = app.hostLibrary.storageError ?? String(localized: "The host could not be saved.")
         }
+    }
+
+    private func cancel() {
+        app.forwarding.discardPending(draftForwardings.map(\.id))
+        closeTab()
     }
 
     /// Return to Hosts so the saved or retained record is immediately visible.

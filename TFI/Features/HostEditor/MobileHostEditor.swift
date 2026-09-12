@@ -28,6 +28,7 @@ struct MobileHostEditor: View {
             title: String(localized: "Host"), isDirty: draft != original || draftForwardings != originalForwardings,
             canSave: !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && (1...65535).contains(draft.port) && draftForwardings.allSatisfy(\.isValid),
+            onCancel: cancel,
             save: {
                 if draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { draft.name = draft.host }
                 _ = library.upsert(draft, replacingPortForwardings: draftForwardings)
@@ -59,7 +60,11 @@ struct MobileHostEditor: View {
                                 Label {
                                     VStack(alignment: .leading) {
                                         Text(rule.label.isEmpty ? rule.bindAddress : rule.label)
-                                        Text(runtime.label).font(.caption).foregroundStyle(.secondary)
+                                        Text(
+                                            state.isWaitingForSave
+                                                ? String(localized: "Waiting for Save") : runtime.label
+                                        )
+                                        .font(.caption).foregroundStyle(.secondary)
                                     }
                                 } icon: {
                                     Image(systemName: "arrow.left.arrow.right").accessibilityHidden(true)
@@ -67,7 +72,7 @@ struct MobileHostEditor: View {
                             }
                             Spacer()
                             Button(
-                                isRunning ? String(localized: "Stop") : String(localized: "Start"),
+                                isRunning ? String(localized: "Disable") : String(localized: "Enable"),
                                 systemImage: isRunning ? "stop" : "play"
                             ) {
                                 app.forwardings.setEnabled(!isRunning, for: rule.id)
@@ -81,6 +86,7 @@ struct MobileHostEditor: View {
                             }
                             .disabled(!state.canEdit)
                             Button("Delete", systemImage: "trash", role: .destructive) {
+                                app.forwardings.discardPending([rule.id])
                                 draftForwardings.removeAll { $0.id == rule.id }
                             }
                             .disabled(!state.canEdit)
@@ -90,7 +96,7 @@ struct MobileHostEditor: View {
                         editingForwarding = PortForwardingRule(hostID: draft.id)
                     }
                     Text(
-                        "Forwarding uses a background SSH connection and stops when Termind quits. Save changes before starting a rule."
+                        "Enabled is saved immediately on this device. Unsaved forwarding changes apply after the host is saved."
                     )
                     .font(.caption).foregroundStyle(.secondary)
                 }
@@ -117,6 +123,10 @@ struct MobileHostEditor: View {
                 }
             }
         }
+    }
+
+    private func cancel() {
+        app.forwardings.discardPending(draftForwardings.map(\.id))
     }
 
     private func forwardingState(

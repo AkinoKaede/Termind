@@ -5,15 +5,16 @@ import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
-/// The list and detail use the same saved-configuration gate; stopping never requires a clean draft.
+/// The list and detail keep enabled intent separate from the saved configuration and live runtime.
 struct PortForwardingEditorState {
     let hasSavedConfiguration: Bool
     let isEnabled: Bool
     let runtime: PortForwardingRuntimeState
 
     var canStart: Bool { hasSavedConfiguration && !isEnabled && !runtime.isActive }
-    var canToggle: Bool { isEnabled || runtime.isActive || canStart }
-    var canEdit: Bool { !isEnabled && !runtime.isActive }
+    var canToggle: Bool { true }
+    var canEdit: Bool { !runtime.isActive }
+    var isWaitingForSave: Bool { isEnabled && !hasSavedConfiguration && !runtime.isActive }
 
     init(
         rule: PortForwardingRule?, host: Host,

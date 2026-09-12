@@ -28,7 +28,8 @@ public final class HostLibraryModel {
     /// references are removed and the controller can stop listeners cleanly.
     public var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
     public var willDeletePortForwardings: (([PortForwardingRule.ID]) -> Void)?
-    /// Restarts locally enabled rules after their saved configuration has been replaced or rolled back.
+    /// Reconciles locally enabled rules after their saved configuration has been added,
+    /// replaced, removed, or rolled back.
     public var didReplacePortForwardings: (([PortForwardingRule.ID]) -> Void)?
     public var didPersistCore: (() -> Void)? {
         get { vault.didPersist }
@@ -679,6 +680,7 @@ public final class HostLibraryModel {
         let oldRules = portForwardings
         let existingHost = self.host(host.id)
         let existingRules = portForwardings(for: host.id)
+        let existingRuleIDs = Set(existingRules.map(\.id))
         let nextByID = Dictionary(uniqueKeysWithValues: normalizedRules.map { ($0.id, $0) })
         var rulesToStop = Set(
             existingRules.compactMap { old in nextByID[old.id] == old ? nil : old.id }
@@ -688,9 +690,6 @@ public final class HostLibraryModel {
         }
         let affectedRuleIDs = Array(rulesToStop)
         if !affectedRuleIDs.isEmpty { willDeletePortForwardings?(affectedRuleIDs) }
-        defer {
-            if !affectedRuleIDs.isEmpty { didReplacePortForwardings?(affectedRuleIDs) }
-        }
 
         if let index = hosts.firstIndex(where: { $0.id == host.id }) {
             var updated = host
@@ -706,8 +705,12 @@ public final class HostLibraryModel {
         guard persistCore() else {
             hosts = oldHosts
             portForwardings = oldRules
+            if !affectedRuleIDs.isEmpty { didReplacePortForwardings?(affectedRuleIDs) }
             return false
         }
+        let addedRuleIDs = Set(normalizedRules.map(\.id)).subtracting(existingRuleIDs)
+        let savedRuleIDs = Array(rulesToStop.union(addedRuleIDs))
+        if !savedRuleIDs.isEmpty { didReplacePortForwardings?(savedRuleIDs) }
         return true
     }
 

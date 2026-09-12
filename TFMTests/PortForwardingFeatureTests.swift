@@ -16,6 +16,44 @@ import struct TermindDomain.Host
 @MainActor
 struct PortForwardingFeatureTests {
     @Test
+    func unsavedEnabledIntentWaitsForSaveAndCanBeDiscarded() throws {
+        let suite = "PortForwardingPendingIntentTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let host = Host(name: "Server", host: "server.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+        let library = HostLibraryModel()
+        let controller = PortForwardingController(hosts: library, defaults: defaults)
+
+        controller.setEnabled(true, for: rule.id)
+        #expect(controller.isEnabled(rule.id))
+        #expect(controller.state(for: rule.id) == .stopped)
+        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs) == [rule.id.uuidString])
+
+        controller.resumeEnabled([])
+        #expect(controller.isEnabled(rule.id))
+        controller.discardPending([rule.id])
+        #expect(!controller.isEnabled(rule.id))
+        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs)?.isEmpty == true)
+    }
+
+    @Test
+    func savingAPendingRuleMakesItRunnable() throws {
+        let host = Host(name: "Server", host: "server.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+        let library = HostLibraryModel()
+        let controller = PortForwardingController(hosts: library)
+        library.didReplacePortForwardings = { controller.resumeEnabled($0) }
+
+        controller.setEnabled(true, for: rule.id)
+        #expect(controller.state(for: rule.id) == .stopped)
+        #expect(library.upsert(host, replacingPortForwardings: [rule]))
+        #expect(controller.isEnabled(rule.id))
+        #expect(controller.state(for: rule.id) != .stopped)
+        controller.setEnabled(false, for: rule.id)
+    }
+
+    @Test
     func enabledIntentPersistsLocallyAndPrunesMissingRulesWithoutStarting() throws {
         let suite = "PortForwardingIntentTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))

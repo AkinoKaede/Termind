@@ -24,7 +24,7 @@ struct PortForwardingEditorSection: View {
                     rule: rule,
                     edit: { openEditor(rule) },
                     duplicate: { duplicate(rule) },
-                    delete: { rules.removeAll { $0.id == rule.id } }
+                    delete: { delete(rule) }
                 )
             }
             FormNavigationAction(title: "Add Forwarding") {
@@ -34,7 +34,7 @@ struct PortForwardingEditorSection: View {
                 forwardingActions
             }
             Text(
-                "Forwarding uses a background SSH connection and stops when Termind quits. Save changes before starting a rule."
+                "Enabled is saved immediately on this device. Unsaved forwarding changes apply after the host is saved."
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -45,19 +45,15 @@ struct PortForwardingEditorSection: View {
     private var forwardingActions: some View {
         HStack(spacing: Metrics.Space.m) {
             Spacer()
-            Button("Start All", action: startAll)
-                .disabled(startableRules.isEmpty)
-            Button("Stop All", action: stopAll)
+            Button("Enable All", action: enableAll)
+                .disabled(enableableRules.isEmpty)
+            Button("Disable All", action: disableAll)
                 .disabled(runningRules.isEmpty)
         }
     }
 
-    private var startableRules: [PortForwardingRule] {
-        rules.filter {
-            PortForwardingEditorState(
-                ruleID: $0.id, rule: PortForwardingEditorState.normalized($0), host: host, app: app
-            ).canStart
-        }
+    private var enableableRules: [PortForwardingRule] {
+        rules.filter { !app.forwarding.isEnabled($0.id) }
     }
 
     private var runningRules: [PortForwardingRule] {
@@ -71,11 +67,16 @@ struct PortForwardingEditorSection: View {
         rules.append(copy)
     }
 
-    private func startAll() {
-        app.forwarding.setEnabled(true, for: startableRules.map(\.id))
+    private func delete(_ rule: PortForwardingRule) {
+        app.forwarding.discardPending([rule.id])
+        rules.removeAll { $0.id == rule.id }
     }
 
-    private func stopAll() {
+    private func enableAll() {
+        app.forwarding.setEnabled(true, for: enableableRules.map(\.id))
+    }
+
+    private func disableAll() {
         app.forwarding.setEnabled(false, for: runningRules.map(\.id))
     }
 }
@@ -138,14 +139,14 @@ private struct HostForwardingRow: View {
 
     @ViewBuilder
     private var statusChip: some View {
-        if state.hasSavedConfiguration || !state.canEdit {
+        if state.isWaitingForSave {
+            CardChip(text: String(localized: "Waiting for Save"), symbol: "clock")
+        } else {
             CardChip(
                 text: runtime.label,
                 symbol: runtime.isActive ? "circle.fill" : "circle",
                 tint: runtime.isActive ? Color.green : nil
             )
-        } else {
-            CardChip(text: String(localized: "Save required"), symbol: "circle")
         }
     }
 
@@ -153,12 +154,7 @@ private struct HostForwardingRow: View {
         Binding(
             get: { state.isEnabled || state.runtime.isActive },
             set: { value in
-                if value {
-                    guard state.canStart else { return }
-                    app.forwarding.setEnabled(true, for: rule.id)
-                } else {
-                    app.forwarding.setEnabled(false, for: rule.id)
-                }
+                app.forwarding.setEnabled(value, for: rule.id)
             }
         )
     }
@@ -183,7 +179,7 @@ private struct HostForwardingContextMenu: View {
     var body: some View {
         let isRunning = state.isEnabled || state.runtime.isActive
         Button(
-            isRunning ? String(localized: "Stop") : String(localized: "Start"),
+            isRunning ? String(localized: "Disable") : String(localized: "Enable"),
             systemImage: isRunning ? MenuSymbol.stop : MenuSymbol.start,
             action: toggle
         )
@@ -204,7 +200,7 @@ private struct HostForwardingContextMenu: View {
     private func toggle() {
         if state.isEnabled || state.runtime.isActive {
             app.forwarding.setEnabled(false, for: rule.id)
-        } else if state.canStart {
+        } else {
             app.forwarding.setEnabled(true, for: rule.id)
         }
     }
@@ -240,16 +236,19 @@ struct PortForwardingEditorSheet: View {
     var body: some View {
         VaultDetailScaffold(
             title: isNew ? "New Forwarding" : "Edit Forwarding",
-            symbol: "arrow.left.arrow.right", close: back,
+            symbol: "arrow.left.arrow.right", close: cancel,
             closeLabel: "Back", closeSymbol: "chevron.backward"
         ) {
             Form {
                 Section {
                     Toggle("Enabled", isOn: enabled)
                         .disabled(!state.canToggle)
-                    LabeledContent("Status", value: state.runtime.label)
-                    if !state.hasSavedConfiguration {
-                        Text("Save the host and forwarding changes before starting this rule.")
+                    LabeledContent(
+                        "Status",
+                        value: state.isWaitingForSave ? String(localized: "Waiting for Save") : state.runtime.label
+                    )
+                    if state.isWaitingForSave {
+                        Text("This forwarding will start after the host is saved.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -269,7 +268,7 @@ struct PortForwardingEditorSheet: View {
                     .disabled(!state.canEdit)
                 }
                 Spacer()
-                Button("Cancel", action: back).keyboardShortcut(.cancelAction)
+                Button("Cancel", action: cancel).keyboardShortcut(.cancelAction)
                 Button("Save") { commit() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
@@ -291,13 +290,13 @@ struct PortForwardingEditorSheet: View {
         Binding(
             get: { state.isEnabled || state.runtime.isActive },
             set: { value in
-                if value {
-                    guard state.canStart else { return }
-                    app.forwarding.setEnabled(true, for: draft.id)
-                } else {
-                    app.forwarding.setEnabled(false, for: draft.id)
-                }
+                app.forwarding.setEnabled(value, for: draft.id)
             })
+    }
+
+    private func cancel() {
+        if isNew { app.forwarding.discardPending([draft.id]) }
+        back()
     }
 
     private func commit() {

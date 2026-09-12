@@ -10,8 +10,9 @@ public nonisolated struct PortForwardingEditorPolicy {
     public let isRuntimeActive: Bool
 
     public var canStart: Bool { hasSavedConfiguration && !isEnabled && !isRuntimeActive }
-    public var canToggle: Bool { isEnabled || isRuntimeActive || canStart }
-    public var canEdit: Bool { !isEnabled && !isRuntimeActive }
+    public var canToggle: Bool { true }
+    public var canEdit: Bool { !isRuntimeActive }
+    public var isWaitingForSave: Bool { isEnabled && !hasSavedConfiguration && !isRuntimeActive }
 
     public init(
         rule: PortForwardingRule?, host: Host,
@@ -19,7 +20,8 @@ public nonisolated struct PortForwardingEditorPolicy {
         isEnabled: Bool, isRuntimeActive: Bool
     ) {
         hasSavedConfiguration =
-            rule != nil && rule?.isValid == true && rule == savedRule && host == savedHost
+            savedRule?.isValid == true && savedRule?.hostID == savedHost?.id
+            && (rule == nil || rule?.id == savedRule?.id)
         self.isEnabled = isEnabled
         self.isRuntimeActive = isRuntimeActive
     }

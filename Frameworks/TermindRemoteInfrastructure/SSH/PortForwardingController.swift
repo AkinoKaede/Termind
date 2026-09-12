@@ -53,6 +53,10 @@ public final class PortForwardingController {
     private let enabledDefaultsKey: String
     public private(set) var states: [PortForwardingRule.ID: PortForwardingRuntimeState] = [:]
     private var enabled: Set<PortForwardingRule.ID>
+    /// Enabled IDs created in this process before their rules have been saved.
+    /// Unlike stale IDs restored from defaults, these survive reconciliation until
+    /// their editor explicitly discards them or a save makes them runnable.
+    private var pending: Set<PortForwardingRule.ID> = []
     private var desired: Set<PortForwardingRule.ID> = []
     private var sessions: [Host.ID: SSHForwardingSession] = [:]
     private var connectionTasks: [Host.ID: Task<Void, any Error>] = [:]
@@ -83,12 +87,17 @@ public final class PortForwardingController {
 
     public func setEnabled(_ value: Bool, for id: PortForwardingRule.ID) {
         if value {
-            guard hosts.portForwarding(id)?.isValid == true else { return }
             enabled.insert(id)
+            if let rule = hosts.portForwarding(id), rule.isValid, hosts.host(rule.hostID) != nil {
+                pending.remove(id)
+            } else {
+                pending.insert(id)
+            }
             persistEnabled()
-            activate(id)
+            if !pending.contains(id) { activate(id) }
         } else {
             enabled.remove(id)
+            pending.remove(id)
             persistEnabled()
             suspend(id)
         }
@@ -106,8 +115,10 @@ public final class PortForwardingController {
             ruleHostIDs[rule.id] = rule.hostID
             valid.insert(id)
         }
-        if valid != enabled {
-            enabled = valid
+        pending.subtract(valid)
+        let reconciled = valid.union(pending.intersection(enabled))
+        if reconciled != enabled {
+            enabled = reconciled
             persistEnabled()
         }
         let targets = ids.map { valid.intersection($0) } ?? valid
@@ -139,9 +150,20 @@ public final class PortForwardingController {
 
     public func suspend(_ ids: [PortForwardingRule.ID]) { ids.forEach(suspend) }
 
+    /// Forgets enabled intent only for rules that were enabled before their first save.
+    public func discardPending(_ ids: [PortForwardingRule.ID]) {
+        let discarded = pending.intersection(ids)
+        guard !discarded.isEmpty else { return }
+        pending.subtract(discarded)
+        enabled.subtract(discarded)
+        for id in discarded { states[id] = nil }
+        persistEnabled()
+    }
+
     public func remove(_ ids: [PortForwardingRule.ID]) {
         for id in ids {
             enabled.remove(id)
+            pending.remove(id)
             suspend(id)
             ruleHostIDs[id] = nil
         }

@@ -623,7 +623,11 @@ struct ArchitectureBoundaryTests {
             #expect(editor.contains("Edit Forwarding"))
         }
         #expect(desktop.contains("FormNavigationAction(title: \"Add Forwarding\")"))
+        #expect(desktop.contains("Button(\"Enable All\""))
+        #expect(desktop.contains("Button(\"Disable All\""))
+        #expect(desktop.contains("Waiting for Save"))
         #expect(mobileHost.contains("Button(\"Add Forwarding\", systemImage: \"plus\")"))
+        #expect(mobileHost.contains("Waiting for Save"))
         #expect(mobileHost.contains("isNew: !draftForwardings.contains"))
         for removed in ["Add Port Forward", "New Port Forward", "Edit Port Forward"] {
             #expect(!desktop.contains(removed))

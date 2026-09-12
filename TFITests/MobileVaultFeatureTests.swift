@@ -28,6 +28,22 @@ struct MobileVaultFeatureTests {
         #expect(!app.forwardings.isEnabled(rule.id))
     }
 
+    @Test func unsavedForwardingIntentWaitsUntilTheHostIsSaved() throws {
+        let suite = "MobilePendingForwardingIntentTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let app = try MobileAppModel(inMemory: true, forwardingDefaults: defaults)
+        let host = TermindDomain.Host(name: "Remote", host: "example.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+
+        app.forwardings.setEnabled(true, for: rule.id)
+        #expect(app.forwardings.isEnabled(rule.id))
+        #expect(app.forwardings.state(for: rule.id) == .stopped)
+        #expect(app.library.upsert(host, replacingPortForwardings: [rule]))
+        #expect(app.forwardings.state(for: rule.id) != .stopped)
+        app.forwardings.setEnabled(false, for: rule.id)
+    }
+
     @Test func encryptedKeyGenerationImportAndMetadataEditingKeepTheSecretOutOfRecords() async throws {
         let app = try MobileAppModel(inMemory: true)
         let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)

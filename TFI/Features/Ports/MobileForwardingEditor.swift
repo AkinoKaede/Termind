@@ -30,16 +30,20 @@ struct MobileForwardingEditor: View {
     var body: some View {
         MobileEditorSheet(
             title: isNew ? String(localized: "New Forwarding") : String(localized: "Edit Forwarding"),
-            isDirty: draft != original,
+            isDirty: draft != original || (isNew && state.isEnabled),
             canSave: draft.isValid && state.canEdit,
+            onCancel: cancel,
             save: { save(draft) },
             content: {
                 Section {
                     Toggle("Enabled", isOn: enabled)
                         .disabled(!state.canToggle)
-                    LabeledContent("Status", value: runtime.label)
-                    if !state.hasSavedConfiguration {
-                        Text("Save the host and forwarding changes before starting this rule.")
+                    LabeledContent(
+                        "Status",
+                        value: state.isWaitingForSave ? String(localized: "Waiting for Save") : runtime.label
+                    )
+                    if state.isWaitingForSave {
+                        Text("This forwarding will start after the host is saved.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -62,8 +66,11 @@ struct MobileForwardingEditor: View {
         Binding(
             get: { state.isEnabled || state.isRuntimeActive },
             set: { value in
-                guard !value || state.canStart else { return }
                 app.forwardings.setEnabled(value, for: draft.id)
             })
+    }
+
+    private func cancel() {
+        if isNew { app.forwardings.discardPending([draft.id]) }
     }
 }

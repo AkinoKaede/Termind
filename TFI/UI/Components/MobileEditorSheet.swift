@@ -17,6 +17,7 @@ struct MobileEditorSheet<Content: View>: View {
     var canSave = true
     var compact = false
     var actions: [MobileEditorToolbarAction] = []
+    var onCancel: () -> Void = {}
     let save: () async throws -> Void
     @ViewBuilder let content: () -> Content
     @Environment(\.dismiss) private var dismiss
@@ -32,8 +33,14 @@ struct MobileEditorSheet<Content: View>: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel", systemImage: "xmark") { if isDirty { discard = true } else { dismiss() } }
-                            .labelStyle(.iconOnly).disabled(isSaving)
+                        Button("Cancel", systemImage: "xmark") {
+                            if isDirty {
+                                discard = true
+                            } else {
+                                cancel()
+                            }
+                        }
+                        .labelStyle(.iconOnly).disabled(isSaving)
                     }
                     ToolbarItem(placement: .primaryAction) {
                         if !actions.isEmpty {
@@ -70,7 +77,7 @@ struct MobileEditorSheet<Content: View>: View {
                     }
                 }
                 .confirmationDialog("Discard Changes?", isPresented: $discard, titleVisibility: .visible) {
-                    Button("Discard Changes", role: .destructive) { dismiss() }
+                    Button("Discard Changes", role: .destructive, action: cancel)
                 }
                 .alert("Unable to Save", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                     Button("OK", role: .cancel) { error = nil }
@@ -81,5 +88,10 @@ struct MobileEditorSheet<Content: View>: View {
         .mobileSheetPresentation(compact: compact)
         .interactiveDismissDisabled(isDirty || isSaving)
         .onDisappear { saveTask?.cancel() }
+    }
+
+    private func cancel() {
+        onCancel()
+        dismiss()
     }
 }
