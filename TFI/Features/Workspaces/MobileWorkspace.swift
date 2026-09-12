@@ -30,12 +30,17 @@ private struct MobilePendingUpload {
     var connectionGeneration: UUID
 }
 
+private struct MobilePendingInitialCommand {
+    var command: String
+    var recordsInHistory: Bool
+}
+
 @MainActor
 @Observable
 final class MobileWorkspace: Identifiable {
     typealias ID = UUID
 
-    let descriptor: MobileWorkspaceDescriptor
+    private(set) var descriptor: MobileWorkspaceDescriptor
     var id: UUID { descriptor.id }
     @ObservationIgnored private(set) var activitySession: WorkspaceActivityAttributes.Session
     @ObservationIgnored var didChangeState: ((WorkspaceActivityAttributes.Session) -> Void)?
@@ -80,7 +85,10 @@ final class MobileWorkspace: Identifiable {
     )
     private var activeHistoryID: UUID?
     private var shellIntegrationAvailable = false
-    private(set) var pendingInitialCommand: String?
+    private var pendingCommand: MobilePendingInitialCommand?
+    private var commandExcludedFromHistory: String?
+    private var pendingInitialSFTPPath: String?
+    var pendingInitialCommand: String? { pendingCommand?.command }
     private(set) var workingDirectory: String?
     var commandGeneratorState: CommandGeneratorState { commandGeneration.state }
     private var integratedShell: String?
@@ -106,6 +114,30 @@ final class MobileWorkspace: Identifiable {
 
     var uploadConflictCount: Int { pendingUpload?.batch.conflictCount ?? 0 }
     var hasPendingUploadConflict: Bool { uploadConflictCount > 0 }
+
+    var sameDirectoryLaunch: MobileWorkspaceDirectoryLaunch? {
+        guard connected else { return nil }
+        switch descriptor.kind {
+        case .ssh:
+            guard terminalSettings.preferences.shellIntegration,
+                shellIntegrationAvailable,
+                let workingDirectory,
+                !workingDirectory.isEmpty
+            else { return nil }
+            return MobileWorkspaceDirectoryLaunch(
+                hostID: descriptor.hostID,
+                kind: .sftp,
+                path: RemotePath.normalized(workingDirectory)
+            )
+        case .sftp:
+            guard !sftpSession.path.isEmpty else { return nil }
+            return MobileWorkspaceDirectoryLaunch(
+                hostID: descriptor.hostID,
+                kind: .ssh,
+                path: RemotePath.normalized(sftpSession.path)
+            )
+        }
+    }
 
     var uploadDestination: String? {
         switch descriptor.kind {
@@ -144,6 +176,8 @@ final class MobileWorkspace: Identifiable {
         connectionServices: MobileWorkspaceConnectionServices = .live,
         reconnectController: SessionReconnectController = SessionReconnectController(),
         initialCommand: String? = nil,
+        recordsInitialCommandInHistory: Bool = true,
+        initialSFTPPath: String? = nil,
         connectsWhenOpened: Bool = false
     ) {
         self.terminalSettings = terminalSettings
@@ -156,7 +190,12 @@ final class MobileWorkspace: Identifiable {
             connected: false,
             iconAsset: LinuxDistributionIconCatalog.entry(
                 for: hosts.host(descriptor.hostID)?.detectedDistribution)?.asset)
-        pendingInitialCommand = initialCommand
+        pendingCommand = initialCommand.map {
+            MobilePendingInitialCommand(command: $0, recordsInHistory: recordsInitialCommandInHistory)
+        }
+        pendingInitialSFTPPath = initialSFTPPath.flatMap { path in
+            path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : RemotePath.normalized(path)
+        }
         self.connectionServices = connectionServices
         connection = RemoteSessionConnectionController(reconnect: reconnectController)
         connectionResumeIntent = connectsWhenOpened ? .whenOpened : .none
@@ -188,6 +227,16 @@ final class MobileWorkspace: Identifiable {
 
     func dismissTerminalTextSelection() {
         terminalTextSelection = nil
+    }
+
+    @discardableResult
+    func rename(to proposedTitle: String) -> Bool {
+        let title = proposedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, title != descriptor.title else { return false }
+        descriptor.title = title
+        activitySession.title = title
+        didChangeState?(activitySession)
+        return true
     }
 
     private func makeAuthenticationPrompt() -> SSHAuthenticationPrompt? {
@@ -370,6 +419,7 @@ final class MobileWorkspace: Identifiable {
         isShellPromptReady = false
         shellIntegrationAvailable = false
         workingDirectory = nil
+        commandExcludedFromHistory = nil
         commandDraft.cancel()
         commandGeneratorRevision &+= 1
     }
@@ -409,7 +459,12 @@ final class MobileWorkspace: Identifiable {
             guard shellIntegrationAvailable else { return }
             isShellPromptReady = false
             invalidateCommandGeneration()
-            activeHistoryID = commandHistory.record(command, for: descriptor.hostID)?.id
+            if command == commandExcludedFromHistory {
+                commandExcludedFromHistory = nil
+                activeHistoryID = nil
+            } else {
+                activeHistoryID = commandHistory.record(command, for: descriptor.hostID)?.id
+            }
         case .commandFinished(let status, let duration):
             // CommandFinished is emitted from the prompt hook immediately before
             // cwd and prompt reporting, so it is also a trustworthy recovery
@@ -527,11 +582,16 @@ final class MobileWorkspace: Identifiable {
                         return
                     }
                     sftp = client
-                    let initialPath =
-                        reconnecting
-                        ? sftpSession.path
-                        : host.sftpSessionInitialPath.isEmpty
-                            ? try await client.homeDirectory() : host.sftpSessionInitialPath
+                    let initialPath: String
+                    if reconnecting {
+                        initialPath = sftpSession.path
+                    } else if let pendingInitialSFTPPath {
+                        initialPath = pendingInitialSFTPPath
+                    } else if host.sftpSessionInitialPath.isEmpty {
+                        initialPath = try await client.homeDirectory()
+                    } else {
+                        initialPath = host.sftpSessionInitialPath
+                    }
                     try await sftpSession.attach(
                         fileSystem: client,
                         path: initialPath,
@@ -543,6 +603,7 @@ final class MobileWorkspace: Identifiable {
                             self?.cancelPendingUpload()
                         }
                     )
+                    pendingInitialSFTPPath = nil
                     journey.receive(.connected(host.id))
                 }
                 guard generation == token, !Task.isCancelled else { return }
@@ -626,8 +687,12 @@ final class MobileWorkspace: Identifiable {
     /// Consumes the launch-only command before it is written. Reconnects and
     /// restored descriptors therefore cannot replay a script.
     func consumePendingInitialCommand() -> String? {
-        defer { pendingInitialCommand = nil }
-        return pendingInitialCommand
+        guard let pendingCommand else { return nil }
+        self.pendingCommand = nil
+        if !pendingCommand.recordsInHistory {
+            commandExcludedFromHistory = pendingCommand.command
+        }
+        return pendingCommand.command
     }
 
     func retryReconnectNow() {
@@ -793,6 +858,9 @@ final class MobileWorkspace: Identifiable {
         submissions.removeAll()
 
         activeHistoryID = nil
+        pendingCommand = nil
+        pendingInitialSFTPPath = nil
+        commandExcludedFromHistory = nil
         generation = UUID()
         attempt?.cancel()
         attempt = nil

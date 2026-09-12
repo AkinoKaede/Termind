@@ -10,6 +10,12 @@ import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
+private enum MobileWorkspaceStartup {
+    case none
+    case command(String)
+    case directory(String)
+}
+
 @MainActor
 @Observable
 final class MobileAppModel {
@@ -171,10 +177,18 @@ final class MobileAppModel {
 
     func open(
         hostID: UUID, kind: MobileWorkspaceDescriptor.Kind,
-        initialCommand: String? = nil
+        initialPath: String? = nil
     ) -> UUID? {
         guard let host = library.host(hostID) else { return nil }
-        let workspace = makeWorkspace(host: host, kind: kind, initialCommand: initialCommand)
+        let startup: MobileWorkspaceStartup
+        if let initialPath,
+            !initialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            startup = .directory(RemotePath.normalized(initialPath))
+        } else {
+            startup = .none
+        }
+        let workspace = makeWorkspace(host: host, kind: kind, startup: startup)
         addWorkspaces([workspace])
         return workspace.id
     }
@@ -184,9 +198,18 @@ final class MobileAppModel {
     func execute(_ snippet: Snippet, on hostIDs: [Host.ID]) -> [MobileWorkspace.ID] {
         let wanted = Set(hostIDs)
         let targets = library.searchHosts("").filter { wanted.contains($0.id) }
-        let opened = targets.map { makeWorkspace(host: $0, kind: .ssh, initialCommand: snippet.body) }
+        let opened = targets.map { makeWorkspace(host: $0, kind: .ssh, startup: .command(snippet.body)) }
         addWorkspaces(opened)
         return opened.map(\.id)
+    }
+
+    @discardableResult
+    func renameWorkspace(_ id: MobileWorkspace.ID, to title: String) -> Bool {
+        guard let workspace = workspaces.first(where: { $0.id == id }), workspace.rename(to: title) else {
+            return false
+        }
+        persistWorkspaces()
+        return true
     }
 
     func close(_ id: UUID) {
@@ -324,14 +347,37 @@ final class MobileAppModel {
     }
 
     private func makeWorkspace(
-        host: Host, kind: MobileWorkspaceDescriptor.Kind, initialCommand: String?
+        host: Host, kind: MobileWorkspaceDescriptor.Kind, startup: MobileWorkspaceStartup = .none
     ) -> MobileWorkspace {
         connectionHistory.record(kind: kind == .ssh ? .ssh : .sftp, for: host.id)
+        let initialCommand: String?
+        let recordsInitialCommandInHistory: Bool
+        let initialSFTPPath: String?
+        switch (kind, startup) {
+        case (.ssh, .command(let command)):
+            initialCommand = command
+            recordsInitialCommandInHistory = true
+            initialSFTPPath = nil
+        case (.ssh, .directory(let path)):
+            initialCommand = RemoteShellCommand.changeDirectory(to: path)
+            recordsInitialCommandInHistory = false
+            initialSFTPPath = nil
+        case (.sftp, .directory(let path)):
+            initialCommand = nil
+            recordsInitialCommandInHistory = true
+            initialSFTPPath = path
+        case (.ssh, .none), (.sftp, .none), (.sftp, .command):
+            initialCommand = nil
+            recordsInitialCommandInHistory = true
+            initialSFTPPath = nil
+        }
         return MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
             hosts: library, transfers: transfers, terminalSettings: terminalSettings,
             commandHistory: commandHistory, connectionServices: workspaceConnectionServices,
-            initialCommand: initialCommand)
+            initialCommand: initialCommand,
+            recordsInitialCommandInHistory: recordsInitialCommandInHistory,
+            initialSFTPPath: initialSFTPPath)
     }
 
     private func addWorkspaces(_ added: [MobileWorkspace]) {

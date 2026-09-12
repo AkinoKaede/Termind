@@ -615,9 +615,11 @@ An open mobile Workspace switches among its peers through the navigation-title
 menu; switching alone neither connects nor claims keyboard focus. Workspace
 chrome exposes no manual Connect or Disconnect action: an initial failure retries
 through its Journey, an established session recovers through the shared reconnect
-policy, and the More menu closes the Workspace. Explicit closes never schedule
-retries. Background-task expiration closes transports without discarding the
-connection intent or Journey; the next foreground activation immediately resumes
+policy, and the More menu closes the Workspace. A mobile Workspace name is stored
+in its restoration descriptor and a rename updates the matching Live Activity
+session snapshot. The Workspace list and detail More menu are the two rename
+surfaces. Explicit closes never schedule retries. Background-task expiration closes
+transports without discarding the connection intent or Journey; the next foreground activation immediately resumes
 those Workspaces. Cold-launch restoration remains lazy and starts only the Workspace
 the user opens. Connection, authentication, host-key and
 reconnection failures remain inside Journey and never fall through to a second
@@ -664,6 +666,13 @@ configurations. Closing a browser does not cancel those transfers. Deleting a ho
 expiration of background execution cancels its work; no transfer is silently replayed.
 Downloads are staged in a unique app-temporary directory and exported through the system
 share sheet. Remote names are validated before becoming local path components.
+
+The first item in a mobile Workspace's More menu opens the same live remote directory
+in a new Workspace of the opposite kind. SSH offers SFTP only after Shell Integration
+has reported a working directory; SFTP offers SSH only while its browser is connected.
+Unavailable actions are omitted. The initial SFTP path and the SSH shell's generated,
+history-excluded `cd` command survive authentication/trust retries but remain live-only;
+neither enters restoration metadata nor replays on reconnect.
 
 Mobile host deletion records the existing deletion saga and starts the shared outbox
 runner. Restored pending deletions are hidden before workspace restoration. The runner's

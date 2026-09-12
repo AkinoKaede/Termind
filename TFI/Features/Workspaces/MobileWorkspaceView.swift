@@ -22,6 +22,8 @@ struct MobileWorkspaceView: View {
     @Bindable var workspace: MobileWorkspace
     let workspaces: [MobileWorkspace]
     let selectWorkspace: (UUID) -> Void
+    let renameWorkspace: (MobileWorkspace) -> Void
+    let openSameDirectory: (MobileWorkspaceDirectoryLaunch) -> Void
     let closeWorkspace: (UUID) -> Void
     @State private var terminalSheet: TerminalSheet?
     @State private var importing = false
@@ -127,6 +129,9 @@ struct MobileWorkspaceView: View {
         .toolbar {
             if workspace.descriptor.kind == .ssh {
                 Menu {
+                    sameDirectoryMenuAction
+                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
+                    Divider()
                     Button("Generate Command", systemImage: "sparkles") {
                         workspace.generateCommand(using: commandGenerator)
                     }
@@ -153,6 +158,9 @@ struct MobileWorkspaceView: View {
             }
             if workspace.descriptor.kind == .sftp {
                 Menu {
+                    sameDirectoryMenuAction
+                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
+                    Divider()
                     Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                     Divider()
                     Button("Parent Directory", systemImage: "arrow.up") {
@@ -321,6 +329,19 @@ struct MobileWorkspaceView: View {
 
     private var presentedOperationError: String? {
         workspace.operationError ?? workspace.sftpSession.operationError
+    }
+
+    @ViewBuilder
+    private var sameDirectoryMenuAction: some View {
+        if let launch = workspace.sameDirectoryLaunch {
+            switch launch.kind {
+            case .ssh:
+                Button("Open with SSH", systemImage: "terminal") { openSameDirectory(launch) }
+            case .sftp:
+                Button("Open with SFTP", systemImage: "folder") { openSameDirectory(launch) }
+            }
+            Divider()
+        }
     }
 
     private var showsJourney: Bool {

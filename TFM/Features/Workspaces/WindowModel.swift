@@ -812,7 +812,7 @@ final class WindowModel {
         let pane = Pane.sshSession(
             host: host,
             usernameHint: usernameHint,
-            initialCommand: initialPath.flatMap(Self.changeDirectoryCommand),
+            initialCommand: initialPath.flatMap(RemoteShellCommand.changeDirectory),
             recordsInitialCommandInHistory: initialPath == nil
         )
         numberPane(pane)
@@ -924,15 +924,6 @@ final class WindowModel {
         service: any SerialPortServing
     ) -> Workspace {
         open(Workspace(pane: .serialSession(configuration: configuration, service: service)))
-    }
-
-    /// A one-shot directory change for a shell opened from an SFTP path.
-    /// Single-quoting keeps spaces and shell punctuation inert; embedded
-    /// apostrophes are closed, emitted literally, and reopened.
-    nonisolated static func changeDirectoryCommand(for path: String) -> String? {
-        guard !path.isEmpty else { return nil }
-        let quoted = path.replacingOccurrences(of: "'", with: "'\"'\"'")
-        return "cd '\(quoted)'"
     }
 
     /// Opens the host editor, reusing the workspace that already holds one for the

@@ -48,7 +48,8 @@ struct MobileAISettingsToolbarTests {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                     workspace: workspace, workspaces: [workspace],
-                    selectWorkspace: { _ in }, closeWorkspace: { _ in })
+                    selectWorkspace: { _ in }, renameWorkspace: { _ in },
+                    openSameDirectory: { _ in }, closeWorkspace: { _ in })
             ) { names in
                 #expect(names.contains("More"))
                 #expect(!names.contains("History"))
@@ -151,7 +152,8 @@ private struct WorkspaceTabBarHarness: View {
                     MobileWorkspaceView(
                         library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                         workspace: workspace, workspaces: [workspace],
-                        selectWorkspace: { _ in }, closeWorkspace: { _ in })
+                        selectWorkspace: { _ in }, renameWorkspace: { _ in },
+                        openSameDirectory: { _ in }, closeWorkspace: { _ in })
                 } else {
                     Text("Workspaces")
                 }

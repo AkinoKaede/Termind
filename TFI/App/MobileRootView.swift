@@ -15,6 +15,7 @@ struct MobileRootView: View {
     @State private var workspaceID: UUID?
     @State private var selectingConnection = false
     @State private var unavailable = false
+    @State private var renamingWorkspace: MobileWorkspace?
 
     var body: some View {
         Group {
@@ -54,6 +55,11 @@ struct MobileRootView: View {
         }
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
             MobileProView(pro: app.pro)
+        }
+        .sheet(item: $renamingWorkspace) { workspace in
+            MobileWorkspaceRenameView(workspace: workspace) { title in
+                app.renameWorkspace(workspace.id, to: title)
+            }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in app.sceneChanged(sceneID, phase: phase) }
         .onChange(of: app.pro.hasProAccess) { _, _ in app.reconcileSync() }
@@ -137,7 +143,10 @@ struct MobileRootView: View {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                     workspace: workspace, workspaces: app.workspaces,
-                    selectWorkspace: selectWorkspace, closeWorkspace: closeWorkspace
+                    selectWorkspace: selectWorkspace,
+                    renameWorkspace: beginWorkspaceRename,
+                    openSameDirectory: openSameDirectory,
+                    closeWorkspace: closeWorkspace
                 )
                 .onAppear { workspace.activateWhenOpened() }
             }
@@ -193,6 +202,8 @@ struct MobileRootView: View {
                 Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
             }
             .contextMenu {
+                Button("Rename", systemImage: "pencil") { beginWorkspaceRename(workspace) }
+                Divider()
                 Button("Close", systemImage: "xmark", role: .destructive) { closeWorkspace(workspace.id) }
             }
         }
@@ -234,6 +245,18 @@ struct MobileRootView: View {
         guard let workspace = app.workspaces.first(where: { $0.id == id }) else { return }
         workspace.activateWhenOpened()
         workspaceID = id
+        app.focusWorkspaceActivity(id)
+    }
+
+    private func beginWorkspaceRename(_ workspace: MobileWorkspace) {
+        renamingWorkspace = workspace
+    }
+
+    private func openSameDirectory(_ launch: MobileWorkspaceDirectoryLaunch) {
+        guard let id = app.open(hostID: launch.hostID, kind: launch.kind, initialPath: launch.path) else { return }
+        workspaceID = id
+        tab = .workspaces
+        selection = .workspaces
         app.focusWorkspaceActivity(id)
     }
 

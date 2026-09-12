@@ -48,6 +48,26 @@ struct MobileWorkspaceTests {
         #expect(first.destinationURL != second.destinationURL)
     }
 
+    @Test func renamingUpdatesRestorationAndActivityStateWithoutChangingIdentity() throws {
+        let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "Production", kind: .ssh)
+        let workspace = MobileWorkspace(descriptor: descriptor, hosts: HostLibraryModel())
+        var activityTitle: String?
+        workspace.didChangeState = { activityTitle = $0.title }
+
+        #expect(!workspace.rename(to: "   "))
+        #expect(workspace.rename(to: "  Release Shell  "))
+        #expect(workspace.id == descriptor.id)
+        #expect(workspace.descriptor.title == "Release Shell")
+        #expect(workspace.activitySession.title == "Release Shell")
+        #expect(activityTitle == "Release Shell")
+        #expect(!workspace.rename(to: "Release Shell"))
+
+        let data = try JSONEncoder().encode(workspace.descriptor)
+        let restored = try JSONDecoder().decode(MobileWorkspaceDescriptor.self, from: data)
+        #expect(restored.title == "Release Shell")
+        #expect(restored.id == descriptor.id)
+    }
+
     @Test func closeAllDisconnectsAndRemovesEveryWorkspaceAndIsRepeatable() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
@@ -123,6 +143,31 @@ struct MobileTerminalShiftStateTests {
 
 @Suite @MainActor
 struct MobileWorkspaceConnectionRecoveryTests {
+    @Test func sameDirectorySFTPStartupUsesTheOverrideAndOffersSSHOnlyWhileConnected() async throws {
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let app = try MobileAppModel(
+            inMemory: true,
+            workspaceConnectionServices: connections.services
+        )
+        let host = try configureConnectionFixture(in: app)
+        let id = try #require(app.open(hostID: host.id, kind: .sftp, initialPath: "/srv/releases/"))
+        let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
+        defer { app.close(id) }
+
+        #expect(workspace.sameDirectoryLaunch == nil)
+        #expect(await eventually { workspace.connected })
+        #expect(workspace.sftpSession.path == "/srv/releases")
+        #expect(
+            workspace.sameDirectoryLaunch
+                == MobileWorkspaceDirectoryLaunch(hostID: host.id, kind: .ssh, path: "/srv/releases")
+        )
+        #expect(app.renameWorkspace(id, to: "  Release Files  "))
+        #expect(workspace.descriptor.title == "Release Files")
+
+        workspace.disconnect()
+        #expect(workspace.sameDirectoryLaunch == nil)
+    }
+
     @Test func backgroundExpirationResumesEveryAffectedWorkspaceOnForeground() async throws {
         let background = MobileTestBackgroundTaskManager()
         let connections = MobileSFTPConnectionBox(

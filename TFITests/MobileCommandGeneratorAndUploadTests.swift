@@ -162,6 +162,72 @@ struct MobileCommandGeneratorTests {
         #expect(connections.writes.isEmpty)
     }
 
+    @Test func sameDirectorySFTPLaunchRequiresLiveShellIntegrationAndWorkingDirectory() async throws {
+        let (host, library) = try commandFixture()
+        let connections = MobileSSHCommandConnectionBox()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library,
+            connectionServices: connections.services
+        )
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        workspace.receiveWorkingDirectory("/srv/releases/")
+        #expect(workspace.sameDirectoryLaunch == nil)
+
+        await connections.sendShellEvents([
+            .available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test")
+        ])
+
+        #expect(
+            await eventually {
+                workspace.sameDirectoryLaunch
+                    == MobileWorkspaceDirectoryLaunch(hostID: host.id, kind: .sftp, path: "/srv/releases")
+            })
+        workspace.receiveWorkingDirectory(nil)
+        #expect(workspace.sameDirectoryLaunch == nil)
+    }
+
+    @Test func directoryStartupCommandRunsOnceWithoutEnteringHistory() async throws {
+        let connections = MobileSSHCommandConnectionBox()
+        let app = try MobileAppModel(
+            inMemory: true,
+            workspaceConnectionServices: connections.services
+        )
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        try app.library.upsert(identity, passwordUpdate: .replace("test-only"))
+        app.library.upsert(host)
+        app.library.trust(
+            KnownHostEntry(
+                hostname: host.host,
+                port: host.port,
+                algorithm: .ed25519,
+                fingerprint: "SHA256:test"
+            ))
+        let command = try #require(RemoteShellCommand.changeDirectory(to: "/srv/it's live"))
+        let id = try #require(app.open(hostID: host.id, kind: .ssh, initialPath: "/srv/it's live"))
+        let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
+        defer { app.close(id) }
+
+        #expect(await eventually { workspace.connected })
+        #expect(await eventually { connections.writes.contains(Data((command + "\r").utf8)) })
+        await connections.sendShellEvents([
+            .available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/test"),
+            .commandStarted(command),
+            .commandFinished(0, duration: 0.01),
+            .commandStarted("pwd"),
+            .commandFinished(0, duration: 0.02),
+        ])
+
+        #expect(await eventually { app.commandHistory.entries(for: host.id).count == 1 })
+        #expect(app.commandHistory.entries(for: host.id).first?.command == "pwd")
+        #expect(workspace.pendingInitialCommand == nil)
+    }
+
     @Test func newTerminalInputCancelsAnInFlightGeneration() async throws {
         let (host, library) = try commandFixture()
         let connections = MobileSSHCommandConnectionBox()
@@ -261,6 +327,8 @@ struct MobileCommandGeneratorTests {
 
         #expect(await eventually { connections.shellIntegrationPreferences == [false] })
         #expect(!workspace.canGenerateFromCurrentDraft)
+        workspace.receiveWorkingDirectory("/srv/app")
+        #expect(workspace.sameDirectoryLaunch == nil)
     }
 
     @Test func unsupportedShellRemainsUnavailableAfterOrderedPromptEvents() async throws {

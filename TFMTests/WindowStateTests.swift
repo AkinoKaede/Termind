@@ -1140,15 +1140,6 @@ struct WindowStateTests {
     }
 
     @Test
-    func sshDirectoryCommandQuotesRemotePaths() {
-        #expect(
-            WindowModel.changeDirectoryCommand(for: "/srv/it's live")
-                == "cd '/srv/it'\"'\"'s live'"
-        )
-        #expect(WindowModel.changeDirectoryCommand(for: "") == nil)
-    }
-
-    @Test
     func sftpWithoutAnOverrideKeepsTheHostsConfiguredInitialPath() {
         var host = Host(name: "Files", host: "files.example")
         host.sftpSessionInitialPath = "/configured"

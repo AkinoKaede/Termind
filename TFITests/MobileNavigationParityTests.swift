@@ -228,6 +228,27 @@ struct MobileNavigationParityTests {
         #expect(segments[1].contains("Button(\"New Folder\", systemImage: \"folder.badge.plus\")"))
     }
 
+    @Test func workspaceMenusLeadWithConditionalSameDirectoryActionsAndExposeRename() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let workspace = try String(
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"), encoding: .utf8)
+        let rootView = try String(
+            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
+
+        #expect(workspace.components(separatedBy: "Menu {\n                    sameDirectoryMenuAction").count == 3)
+        #expect(workspace.contains("if let launch = workspace.sameDirectoryLaunch"))
+        #expect(workspace.contains("Button(\"Open with SSH\", systemImage: \"terminal\")"))
+        #expect(workspace.contains("Button(\"Open with SFTP\", systemImage: \"folder\")"))
+        #expect(
+            workspace.components(
+                separatedBy: "Button(\"Rename\", systemImage: \"pencil\") { renameWorkspace(workspace) }"
+            ).count == 3)
+        #expect(rootView.contains("Button(\"Rename\", systemImage: \"pencil\")"))
+        #expect(rootView.contains("MobileWorkspaceRenameView(workspace: workspace)"))
+    }
+
     @Test func keyGenerationMatchesDesktopDefaultsAndRequiresMatchingPassphrases() throws {
         let app = try MobileAppModel(inMemory: true)
         let editor = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)

@@ -14,3 +14,9 @@ nonisolated struct MobileWorkspaceDescriptor: Codable, Hashable, Identifiable, S
 
     var destinationURL: URL { WorkspaceActivityAttributes.destinationURL(for: id) }
 }
+
+nonisolated struct MobileWorkspaceDirectoryLaunch: Equatable, Sendable {
+    var hostID: UUID
+    var kind: MobileWorkspaceDescriptor.Kind
+    var path: String
+}
