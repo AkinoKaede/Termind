@@ -27,6 +27,9 @@ Before shipping the app and privacy policy 1.4 together:
   independent. Repeat with the master disabled and after Pro expiration.
 - Check light/dark themes, fonts, custom terminal text and shell-integration
   changes on existing windows; ensure conversations and approval mode stay local.
+- With different built-in MCP listener settings on both Macs, verify that enabled
+  state, port, exposed tools and bearer token remain independent. An older synchronized
+  listener token must be verified locally before its iCloud Keychain copy is removed.
 - Match the privacy policy effective date to the actual release date before
   publishing the website. The prepared date is September 10, 2026.
 

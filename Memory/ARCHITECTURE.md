@@ -591,7 +591,11 @@ the application models without entering the local mutation path. Web Search and
 Terminal preferences are migrated from UserDefaults once, then mirrored there
 for existing runtime readers. Active agent runs retain their configuration snapshots.
 Conversations, approval mode, local MCP listener settings and other app preferences
-are excluded. Only explicitly selected settings are projected, never all defaults.
+are excluded. The listener's enabled state, port and exposed-tool selection remain in
+device-local `UserDefaults`; its bearer token uses a dedicated this-device-only Data
+Protection Keychain path. Older synchronized listener tokens are copied and verified
+locally before their iCloud Keychain copy is removed. Only explicitly selected settings
+are projected, never all defaults.
 
 The journal retains tombstones and unresolved references across partial fetches.
 Preexisting defaults use baseline versions and yield to cloud records. Built-in
@@ -599,14 +603,14 @@ skills use stable IDs; migration preserves customized skills and records deleted
 built-ins. Duplicate skill names or MCP namespaces retain their data but only the
 lowest UUID is eligible for execution until the conflict is resolved.
 
-AI credentials use `AISecretStore`. First Settings sync checks the iCloud account
-before migrating local Keychain entries. A verified cloud copy and durable local
+AI provider and remote MCP client credentials use `AISecretStore`. First Settings sync
+checks the iCloud account before migrating local Keychain entries. A verified cloud copy and durable local
 storage marker precede local-copy cleanup. Migrated entries remain in iCloud
 Keychain when configuration sync pauses. Production reads do not cache secrets;
 missing synchronized credentials may arrive later. Pending credential deletion
 markers prevent delayed Keychain deliveries from reviving a cleared value.
-Explicit credentials stay out of CloudKit; custom MCP headers and custom terminal
-configuration are ordinary user-authored settings. The private-account sync
+The built-in MCP listener token never enters this path. Explicit credentials stay out
+of CloudKit; custom MCP headers and custom terminal configuration are ordinary user-authored settings. The private-account sync
 adapter is the only additional trusted source of skill-library snapshots.
 
 ## Mobile presentation and workspace activities

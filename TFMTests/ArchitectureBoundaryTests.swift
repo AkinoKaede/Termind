@@ -87,9 +87,16 @@ struct ArchitectureBoundaryTests {
         let records = try String(
             contentsOf: sourceRoot.appending(path: "../Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift"),
             encoding: .utf8)
-        for excluded in ["AgentPermissionMode", "AgentRun", "AgentConversation", "mcpServerPort", "mcpServerEnabled"] {
+        for excluded in [
+            "AgentPermissionMode", "AgentRun", "AgentConversation", "mcpServerPort", "mcpServerEnabled",
+            "mcpServerDisabledTools", "mcpserver.token",
+        ] {
             #expect(!records.contains(excluded))
         }
+        let localServer = try String(
+            contentsOf: sourceRoot.appending(path: "App/MCPServerController.swift"), encoding: .utf8)
+        #expect(localServer.contains("MCPServerTokenStore"))
+        #expect(!localServer.contains("AIConfigurationModel"))
         let terminal = try String(
             contentsOf: sourceRoot.appending(
                 path: "../Frameworks/TermindPersistence/TerminalPreferences+Defaults.swift"),

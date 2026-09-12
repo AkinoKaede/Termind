@@ -104,7 +104,7 @@ struct TermindApp: App {
                             context: container.mainContext
                         ),
                         vaultSync: vaultSync, settingsSync: settingsSync,
-                        forwardingDefaults: .standard
+                        forwardingDefaults: .standard, mcpServerSecrets: secrets
                     ),
                     proAccess: proAccess,
                     appReview: .live()

@@ -6,8 +6,6 @@ import TermindRemoteInfrastructure
 @MainActor
 @Observable
 final class MCPServerController {
-    static let tokenReference = "termind.ai.mcpserver.token"
-
     enum Status: Equatable {
         case stopped, starting
         case ready(port: UInt16)
@@ -25,7 +23,7 @@ final class MCPServerController {
     }
 
     private let defaults: UserDefaults
-    private let ai: AIConfigurationModel
+    private let tokenStore: MCPServerTokenStore
     private let metrics: any MetricsSnapshotReading
     private let hosts: AgentHostResolver
     private let connections: AgentConnectionPool
@@ -43,9 +41,11 @@ final class MCPServerController {
     private(set) var isEnabled: Bool
     private(set) var port: Int
     private(set) var disabledTools: Set<String>
+    private(set) var token = ""
+    private(set) var tokenStorageError: String?
 
     init(
-        ai: AIConfigurationModel, hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
+        secrets: any SecretStoring, hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
         connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands,
@@ -55,7 +55,7 @@ final class MCPServerController {
         requestPro: @escaping @MainActor () -> Bool = { true },
         defaults: UserDefaults = .standard
     ) {
-        self.ai = ai
+        tokenStore = MCPServerTokenStore(secrets: secrets)
         self.metrics = metrics
         self.hosts = hosts
         self.connections = connections
@@ -79,16 +79,13 @@ final class MCPServerController {
             history: history, disabledTools: initialDisabledTools
         )
         protocolServer = MCPServerProtocol(tools: tools)
+        reloadToken()
         Task { [weak self, protocolServer] in
             await protocolServer.setClientCountHandler { [weak self] count in
                 Task { @MainActor in self?.connectedClients = count }
             }
         }
         if isEnabled, canUsePro() { Task { [weak self] in await self?.start() } }
-    }
-
-    var token: String {
-        ai.secret(for: Self.tokenReference) ?? ""
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -135,9 +132,13 @@ final class MCPServerController {
             status = .failed(String(localized: "Unable to generate a secure token."))
             return
         }
-        ai.setSecret(generated, for: Self.tokenReference)
-        guard ai.secretStorageError == nil else {
-            status = .failed(ai.secretStorageError ?? String(localized: "Unable to store the token."))
+        do {
+            try tokenStore.save(generated)
+            token = generated
+            tokenStorageError = nil
+        } catch {
+            tokenStorageError = error.localizedDescription
+            status = .failed(error.localizedDescription)
             return
         }
         Task { [weak self] in
@@ -148,6 +149,8 @@ final class MCPServerController {
     }
 
     func ensureToken() -> String? {
+        if token.isEmpty { reloadToken() }
+        guard tokenStorageError == nil else { return nil }
         if !token.isEmpty { return token }
         rotateToken()
         return token.isEmpty ? nil : token
@@ -202,6 +205,16 @@ final class MCPServerController {
     private static func readDisabledTools(_ defaults: UserDefaults) -> Set<String> {
         Set((defaults.array(forKey: DesktopSettingsKey.mcpServerDisabledTools) as? [String]) ?? [])
             .intersection(MCPServerTools.exportedNames)
+    }
+
+    private func reloadToken() {
+        do {
+            token = try tokenStore.load() ?? ""
+            tokenStorageError = nil
+        } catch {
+            tokenStorageError = error.localizedDescription
+            status = .failed(error.localizedDescription)
+        }
     }
 
     private static func makeToken() throws -> String {

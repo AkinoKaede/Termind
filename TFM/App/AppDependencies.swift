@@ -17,6 +17,7 @@ struct AppDependencies {
     let settingsSync: SettingsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
     let forwardingDefaults: UserDefaults?
+    let mcpServerSecrets: any SecretStoring
 
     init(
         hostRepository: any HostRepository, outboxRunner: OutboxRunner?,
@@ -25,7 +26,8 @@ struct AppDependencies {
         agentRunRepository: (any AgentRunPersisting)? = nil,
         vaultSync: VaultSyncCoordinator? = nil,
         settingsSync: SettingsSyncCoordinator? = nil,
-        forwardingDefaults: UserDefaults? = nil
+        forwardingDefaults: UserDefaults? = nil,
+        mcpServerSecrets: any SecretStoring = InMemorySecretStore()
     ) {
         self.hostRepository = hostRepository
         self.outboxRunner = outboxRunner
@@ -35,6 +37,7 @@ struct AppDependencies {
         self.vaultSync = vaultSync
         self.settingsSync = settingsSync
         self.forwardingDefaults = forwardingDefaults
+        self.mcpServerSecrets = mcpServerSecrets
     }
 
     static func inMemory(hosts: [Host], groups: [HostGroup]) -> Self {

@@ -70,6 +70,11 @@ struct MCPServerSettings: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            if let error = server.tokenStorageError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
 
         clientSetupSection

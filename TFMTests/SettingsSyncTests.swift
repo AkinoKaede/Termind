@@ -204,6 +204,7 @@ struct SettingsSyncTests {
             let json = String(decoding: data, as: UTF8.self)
             #expect(!json.contains("permissionMode"))
             #expect(!json.contains("lastConnectedAt"))
+            #expect(!json.contains(MCPServerTokenStore.reference))
             let record = try SettingsSyncCoordinator.makeRecord(
                 SettingsOutgoingEntry(envelope: value),
                 recordID: CKRecord.ID(
@@ -424,6 +425,24 @@ struct SettingsSyncTests {
         try secrets.setString(nil, for: ref)
         try keychain.setString("delayed stale item", for: ref, storage: .iCloud)
         #expect(try secrets.string(for: ref) == nil)
+    }
+
+    @Test
+    func remoteMCPTokenMigratesWithoutSelectingTheBuiltInServerToken() throws {
+        let (container, _, _) = try fixture()
+        let keychain = SyncTestSecrets()
+        let secrets = AISecretStore(context: container.mainContext, keychain: keychain)
+        let remoteReference = "termind.ai.mcp.remote"
+        try secrets.setString("remote", for: remoteReference)
+        try keychain.setString(
+            "listener", for: MCPServerTokenStore.reference, storage: .thisDevice)
+
+        secrets.uploadsAuthorized = true
+        try secrets.migrate([remoteReference])
+
+        #expect(try keychain.string(for: remoteReference, storage: .iCloud) == "remote")
+        #expect(try keychain.string(for: MCPServerTokenStore.reference, storage: .thisDevice) == "listener")
+        #expect(try keychain.string(for: MCPServerTokenStore.reference, storage: .iCloud) == nil)
     }
 
     @Test

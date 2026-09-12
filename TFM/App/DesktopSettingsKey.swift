@@ -18,6 +18,7 @@ nonisolated enum DesktopSettingsKey {
     /// App-wide appearance. `system` inherits changes from macOS.
     static let appAppearance = "app.appearance"
 
+    // Built-in MCP listener preferences are device-local and never enter Settings sync.
     static let mcpServerEnabled = "mcpServer.enabled"
     static let mcpServerPort = "mcpServer.port"
     static let mcpServerDisabledTools = "mcpServer.disabledTools"
