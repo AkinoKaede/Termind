@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 struct MobileWorkspaceView: View {
     private enum TerminalSheet: String, Identifiable {
         case snippets
-        case history
+        case commandHistory
         case sftpHistory
 
         var id: String { rawValue }
@@ -102,7 +102,7 @@ struct MobileWorkspaceView: View {
                     .keyboardShortcut("i", modifiers: .command)
                     Divider()
                     Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
-                    Button("History", systemImage: "clock") { terminalSheet = .history }
+                    Button("History", systemImage: "clock") { terminalSheet = .commandHistory }
                     Divider()
                     Button("Next Match", systemImage: "chevron.down") {
                         workspace.find.presentAndNavigate(.next)
@@ -171,7 +171,7 @@ struct MobileWorkspaceView: View {
                 switch sheet {
                 case .snippets:
                     MobileTerminalSnippetsView(library: library, workspace: workspace)
-                case .history:
+                case .commandHistory:
                     MobileCommandHistoryView(workspace: workspace)
                 case .sftpHistory:
                     MobileSFTPHistoryView(workspace: workspace, open: reopenHistory)
