@@ -12,13 +12,14 @@ struct MobileProView: View {
                     hero
                     accessStatus
                     featureList
-                    purchaseActions
+                    secondaryActions
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
             }
             .background(Color(uiColor: .systemGroupedBackground))
+            .safeAreaInset(edge: .bottom, spacing: 0) { purchaseActions }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
@@ -87,46 +88,58 @@ struct MobileProView: View {
         }
     }
 
-    private var purchaseActions: some View {
+    @ViewBuilder private var purchaseActions: some View {
+        if showsPurchaseActions {
+            VStack(spacing: 10) {
+                if pro.isProcessing {
+                    ProgressView("Contacting the App Store…")
+                }
+                if let message = pro.message {
+                    Text(message).font(.caption).foregroundStyle(.orange).multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if pro.canStartTrial {
+                    Button {
+                        Task { await pro.startTrial() }
+                    } label: {
+                        Text("Start 14-Day Free Trial").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    Button {
+                        Task { await pro.purchase() }
+                    } label: {
+                        Text(purchaseTitle).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered).controlSize(.large)
+                    .disabled(!pro.canPurchase)
+                } else if showsPurchase {
+                    Button {
+                        Task { await pro.purchase() }
+                    } label: {
+                        Text(purchaseTitle).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .disabled(!pro.canPurchase)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .background(.ultraThinMaterial)
+        }
+    }
+
+    private var secondaryActions: some View {
         VStack(spacing: 10) {
-            if pro.isProcessing {
-                ProgressView("Contacting the App Store…")
-            }
-            if let message = pro.message {
-                Text(message).font(.caption).foregroundStyle(.orange).multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if pro.canStartTrial {
-                Button {
-                    Task { await pro.startTrial() }
-                } label: {
-                    Text("Start 14-Day Free Trial").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent).controlSize(.large)
-                Button {
-                    Task { await pro.purchase() }
-                } label: {
-                    Text(purchaseTitle).frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered).controlSize(.large)
-                .disabled(!pro.canPurchase)
-            } else if showsPurchase {
-                Button {
-                    Task { await pro.purchase() }
-                } label: {
-                    Text(purchaseTitle).frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent).controlSize(.large)
-                .disabled(!pro.canPurchase)
-            }
             Button("Restore Purchase") { Task { await pro.restorePurchases() } }
                 .buttonStyle(.plain).foregroundStyle(.tint).disabled(pro.isProcessing)
             Text("Permanent unlock · Supports Apple Family Sharing · AI provider charges are separate")
                 .font(.caption2).foregroundStyle(.tertiary).multilineTextAlignment(.center)
         }
-        .padding(16)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
-        .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(.quaternary, lineWidth: 1) }
+    }
+
+    private var showsPurchaseActions: Bool {
+        pro.isProcessing || pro.message != nil || pro.canStartTrial || showsPurchase
     }
 
     private var showsPurchase: Bool {

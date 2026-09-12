@@ -204,8 +204,14 @@ struct MobileNavigationParityTests {
         let pro = try String(
             contentsOf: root.appending(path: "TFI/Features/Commerce/MobileProView.swift"), encoding: .utf8)
         #expect(!pro.contains("Arrange multiple panes and broadcast input"))
-        #expect(!pro.contains(".safeAreaInset(edge: .bottom)"))
-        #expect(pro.contains("featureList\n                    purchaseActions"))
+        #expect(pro.contains(".safeAreaInset(edge: .bottom, spacing: 0) { purchaseActions }"))
+        #expect(!pro.contains("featureList\n                    purchaseActions"))
+        #expect(pro.contains("featureList\n                    secondaryActions"))
+        let purchaseActions = try #require(
+            pro.components(separatedBy: "private var purchaseActions").last?
+                .components(separatedBy: "private var showsPurchase").first)
+        #expect(!purchaseActions.contains("secondarySystemGroupedBackground"))
+        #expect(!purchaseActions.contains(".overlay"))
     }
 
     @Test func workspaceCloseActionsStayAtTheBottomOfBothMenus() throws {
