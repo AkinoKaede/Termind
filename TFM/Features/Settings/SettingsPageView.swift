@@ -360,7 +360,16 @@ private struct AppSettings: View {
     @State private var launchLanguage = AppLanguage.stored()
 
     private var selectedLanguage: AppLanguage {
-        AppLanguage(rawValue: languageID) ?? .system
+        AppLanguage(rawValue: languageID) ?? AppLanguage.stored()
+    }
+
+    private var languageSelection: Binding<AppLanguage> {
+        Binding(
+            get: { selectedLanguage },
+            set: { language in
+                languageID = language.rawValue
+                AppLanguage.store(language)
+            })
     }
 
     var body: some View {
@@ -378,9 +387,9 @@ private struct AppSettings: View {
                 }
             }
 
-            Picker("Language", selection: $languageID) {
+            Picker("Language", selection: languageSelection) {
                 ForEach(AppLanguage.allCases) { language in
-                    Text(language.displayName).tag(language.rawValue)
+                    Text(language.displayName).tag(language)
                 }
             }
 
@@ -392,11 +401,6 @@ private struct AppSettings: View {
                         .foregroundStyle(.secondary)
                 }
             }
-        }
-        .onChange(of: languageID) {
-            let language = AppLanguage(rawValue: languageID) ?? .system
-            if language.rawValue != languageID { languageID = language.rawValue }
-            AppLanguage.store(language)
         }
     }
 }

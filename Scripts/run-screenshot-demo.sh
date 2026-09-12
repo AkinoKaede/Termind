@@ -30,7 +30,7 @@ case "$language" in
         ;;
     zh)
         apple_language="zh-Hans"
-        apple_locale="zh_CN"
+        apple_locale="zh-Hans"
         ;;
     *)
         print -u2 "Unknown Demo language: $language"

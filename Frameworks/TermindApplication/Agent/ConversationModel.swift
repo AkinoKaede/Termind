@@ -2644,7 +2644,7 @@ extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 extension ConversationModel {
     public static func demo(language: AppLanguage = .english) -> ConversationModel {
         func text(_ en: String, _ zh: String) -> String {
-            language == .simplifiedChineseChina ? zh : en
+            language == .simplifiedChinese ? zh : en
         }
         let now = Date(timeIntervalSinceReferenceDate: 809_020_800)
         let user = ChatMessage(

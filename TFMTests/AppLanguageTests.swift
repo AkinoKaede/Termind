@@ -20,17 +20,38 @@ struct AppLanguageTests {
     }
 
     @Test
-    func explicitLanguagesWriteFullAppleLanguageTags() throws {
+    func explicitLanguagesWriteCanonicalLanguageTags() throws {
         let defaults = try makeDefaults()
 
         AppLanguage.store(.english, in: defaults)
         #expect(AppLanguage.stored(in: defaults) == .english)
         #expect(defaults.stringArray(forKey: "AppleLanguages") == ["en"])
 
-        AppLanguage.store(.simplifiedChineseChina, in: defaults)
-        #expect(AppLanguage.stored(in: defaults) == .simplifiedChineseChina)
-        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hans-CN"])
-        #expect(AppLanguage.simplifiedChineseChina.locale.identifier == "zh-Hans-CN")
+        AppLanguage.store(.simplifiedChinese, in: defaults)
+        #expect(AppLanguage.stored(in: defaults) == .simplifiedChinese)
+        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hans"])
+        #expect(AppLanguage.simplifiedChinese.locale.identifier == "zh-Hans")
+        #expect(AppLanguage.simplifiedChinese.displayName == "简体中文")
+    }
+
+    @Test(arguments: ["zh-Hans-CN", "zh-CN", "zh_CN", "zh-Hans-SG", "zh"])
+    func legacySimplifiedChinesePreferencesMigrateToCanonicalTag(identifier: String) throws {
+        let defaults = try makeDefaults()
+        defaults.set(identifier, forKey: SettingsKey.appLanguage)
+        defaults.set([identifier], forKey: "AppleLanguages")
+
+        #expect(AppLanguage.stored(in: defaults) == .simplifiedChinese)
+        #expect(defaults.string(forKey: SettingsKey.appLanguage) == "zh-Hans")
+        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hans"])
+    }
+
+    @Test(arguments: ["zh-Hant", "unsupported"])
+    func nonSimplifiedChinesePreferencesContinueToFollowSystem(identifier: String) throws {
+        let defaults = try makeDefaults()
+        defaults.set(identifier, forKey: SettingsKey.appLanguage)
+
+        #expect(AppLanguage.stored(in: defaults) == .system)
+        #expect(defaults.string(forKey: SettingsKey.appLanguage) == identifier)
     }
 
     @Test
@@ -38,7 +59,7 @@ struct AppLanguageTests {
         let suiteName = "AppLanguageTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
-        defaults.set(["zh-Hans-SG"], forKey: "AppleLanguages")
+        defaults.set(["zh-Hans"], forKey: "AppleLanguages")
 
         AppLanguage.store(.system, in: defaults)
 

@@ -189,7 +189,7 @@ struct WindowToolbarFindTests {
         let window = WindowModel()
         window.selectAssistant()
 
-        let locale = Locale(identifier: "zh-Hans-CN")
+        let locale = Locale(identifier: "zh-Hans")
         #expect(VaultWindowTitleProvider().title(in: window, locale: locale) == nil)
         #expect(AssistantWindowTitleProvider().title(in: window, locale: locale) != nil)
     }
@@ -203,7 +203,7 @@ struct WindowToolbarFindTests {
         store.insert(conversation)
         let window = WindowModel(assistantLibrary: AssistantLibraryModel(store: store))
         let title = AssistantWindowTitleProvider()
-        let locale = Locale(identifier: "zh-Hans-CN")
+        let locale = Locale(identifier: "zh-Hans")
 
         window.selectAssistant()
         #expect(title.title(in: window, locale: locale) == AppLocalization.string("New Chat", locale: locale))
@@ -218,7 +218,7 @@ struct WindowToolbarFindTests {
     @Test
     func workspaceTitleLocalizesOnlyBuiltInFallbacks() {
         let store = HostLibraryModel()
-        let locale = Locale(identifier: "zh-Hans-CN")
+        let locale = Locale(identifier: "zh-Hans")
         let first = Pane(.empty)
         let second = Pane(.empty)
         let workspace = Workspace(pane: first)

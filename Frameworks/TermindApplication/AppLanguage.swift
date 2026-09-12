@@ -29,7 +29,7 @@ public nonisolated enum AppLocalization {
 public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
     case system
     case english = "en"
-    case simplifiedChineseChina = "zh-Hans-CN"
+    case simplifiedChinese = "zh-Hans"
 
     public nonisolated var id: String { rawValue }
 
@@ -37,7 +37,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch self {
         case .system: String(localized: "Follow System")
         case .english: "English"
-        case .simplifiedChineseChina: "简体中文（中国）"
+        case .simplifiedChinese: "简体中文"
         }
     }
 
@@ -45,7 +45,16 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         guard let rawValue = defaults.string(forKey: SettingsKey.appLanguage) else {
             return .system
         }
-        return AppLanguage(rawValue: rawValue) ?? .system
+        if let language = AppLanguage(rawValue: rawValue) {
+            return language
+        }
+        let language = Locale(identifier: rawValue).language
+        guard language.languageCode?.identifier == "zh",
+            language.script?.identifier == "Hans"
+        else { return .system }
+
+        store(.simplifiedChinese, in: defaults)
+        return .simplifiedChinese
     }
 
     /// Keeps the app's explicit choice separate from Apple's per-app language
@@ -58,7 +67,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch language {
         case .system:
             defaults.removeObject(forKey: "AppleLanguages")
-        case .english, .simplifiedChineseChina:
+        case .english, .simplifiedChinese:
             defaults.set([language.rawValue], forKey: "AppleLanguages")
         }
     }
@@ -67,7 +76,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch self {
         case .system: .autoupdatingCurrent
         case .english: Locale(identifier: "en")
-        case .simplifiedChineseChina: Locale(identifier: rawValue)
+        case .simplifiedChinese: Locale(identifier: rawValue)
         }
     }
 }

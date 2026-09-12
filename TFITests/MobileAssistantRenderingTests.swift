@@ -13,7 +13,7 @@ struct MobileAssistantRenderingTests {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }
         for language in ["en", "zh-Hans"] {
             let app = try MobileAppModel(inMemory: true)
-            let conversation = ConversationModel.demo(language: language == "en" ? .english : .simplifiedChineseChina)
+            let conversation = ConversationModel.demo(language: language == "en" ? .english : .simplifiedChinese)
             app.assistant.library.insertAndSelect(conversation)
             conversation.composer.draft = language == "en" ? "Check the service logs first." : "先检查服务日志。"
             conversation.attach(ContextChip(kind: .file, label: "service.log", content: "Example log"))

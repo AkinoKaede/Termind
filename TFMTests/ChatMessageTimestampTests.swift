@@ -14,7 +14,7 @@ struct ChatMessageTimestampTests {
     @Test
     func todayUsesOnlyTheLocalizedShortTime() throws {
         let timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
-        let locale = Locale(identifier: "zh_CN")
+        let locale = Locale(identifier: "zh-Hans")
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let message = try #require(

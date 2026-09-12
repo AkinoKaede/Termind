@@ -6,6 +6,19 @@ struct MobileAppSettingsView: View {
     @AppStorage(SettingsKey.appLanguage) private var language = AppLanguage.system.rawValue
     @State private var launchLanguage = AppLanguage.stored()
 
+    private var selectedLanguage: AppLanguage {
+        AppLanguage(rawValue: language) ?? AppLanguage.stored()
+    }
+
+    private var languageSelection: Binding<AppLanguage> {
+        Binding(
+            get: { selectedLanguage },
+            set: { language in
+                self.language = language.rawValue
+                AppLanguage.store(language)
+            })
+    }
+
     var body: some View {
         Form {
             Section("Appearance") {
@@ -14,10 +27,10 @@ struct MobileAppSettingsView: View {
                     Text("Light").tag("light")
                     Text("Dark").tag("dark")
                 }
-                Picker("Language", selection: $language) {
-                    ForEach(AppLanguage.allCases) { Text($0.displayName).tag($0.rawValue) }
+                Picker("Language", selection: languageSelection) {
+                    ForEach(AppLanguage.allCases) { Text($0.displayName).tag($0) }
                 }
-                if language != launchLanguage.rawValue {
+                if selectedLanguage != launchLanguage {
                     Text("The new language will be used after Termind relaunches.").font(.caption).foregroundStyle(
                         .secondary)
                 }
@@ -43,6 +56,5 @@ struct MobileAppSettingsView: View {
             }
         }
         .navigationTitle("App")
-        .onChange(of: language) { _, value in AppLanguage.store(AppLanguage(rawValue: value) ?? .system) }
     }
 }

@@ -78,7 +78,7 @@ import TermindApplication
             let language: AppLanguage
             switch languageValue {
             case "en": language = .english
-            case "zh": language = .simplifiedChineseChina
+            case "zh": language = .simplifiedChinese
             default: throw ParseError.unknownLanguage(languageValue)
             }
             return Self(scene: scene, language: language)
@@ -267,7 +267,7 @@ import TermindApplication
         }
 
         private func text(en: String, zh: String) -> String {
-            language == .simplifiedChineseChina ? zh : en
+            language == .simplifiedChinese ? zh : en
         }
     }
 #endif

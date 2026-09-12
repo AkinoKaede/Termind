@@ -11,7 +11,7 @@ extension HostLibraryModel {
     /// persistence or networking exists.
     static func demo(language: AppLanguage = .english) -> HostLibraryModel {
         func text(_ en: String, _ zh: String) -> String {
-            language == .simplifiedChineseChina ? zh : en
+            language == .simplifiedChinese ? zh : en
         }
         func distribution(_ id: String) -> DetectedDistribution {
             guard let distribution = DetectedDistribution(id: id) else {

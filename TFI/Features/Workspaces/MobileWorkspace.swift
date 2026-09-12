@@ -1138,14 +1138,17 @@ final class MobileWorkspace: Identifiable {
             operationError = String(localized: "The SFTP connection is not available.")
             return false
         }
+        let connectionGeneration = generation
         do {
-            guard let file = try await sftp.attributes(at: path), !file.isDirectory else {
+            let file = try await sftp.attributes(at: path)
+            guard generation == connectionGeneration, connected else { return false }
+            guard let file, !file.isDirectory else {
                 operationError = String(localized: "The remote file is no longer available.")
                 return false
             }
             return download(file)
         } catch {
-            if !handleSFTPConnectionError(error, connection: generation) {
+            if !handleSFTPConnectionError(error, connection: connectionGeneration) {
                 operationError = error.localizedDescription
             }
             return false

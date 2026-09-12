@@ -16,7 +16,7 @@ import TermindRemoteInfrastructure
         func parsesEverySceneAndLanguageCombination() throws {
             let languages: [(argument: String, language: AppLanguage)] = [
                 ("en", .english),
-                ("zh", .simplifiedChineseChina),
+                ("zh", .simplifiedChinese),
             ]
 
             for scene in ScreenshotDemoConfiguration.Scene.allCases {
@@ -90,7 +90,7 @@ import TermindRemoteInfrastructure
 
         @Test
         func appSettingsSceneUsesTheProductionSettingsRouteInBothLanguages() {
-            for language in [AppLanguage.english, .simplifiedChineseChina] {
+            for language in [AppLanguage.english, .simplifiedChinese] {
                 let configuration = ScreenshotDemoConfiguration(scene: .appSettings, language: language)
                 let window = configuration.makeWindow(hosts: .demo())
                 #expect(window.selectedDestination == .settings)
