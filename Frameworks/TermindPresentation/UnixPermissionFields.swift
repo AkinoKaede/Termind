@@ -53,20 +53,30 @@ public struct UnixPermissionGrid: View {
             Grid(horizontalSpacing: horizontalSpacing, verticalSpacing: verticalSpacing) {
                 GridRow {
                     Color.clear.frame(width: 72, height: 1)
-                    Text("Read")
-                    Text("Write")
-                    Text("Execute")
+                    permissionHeader("Read")
+                    permissionHeader("Write")
+                    permissionHeader("Execute")
                 }.font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 ForEach(0..<3) { row in
                     GridRow {
                         Text(title(row)).frame(width: 72, alignment: .leading).foregroundStyle(.secondary)
-                        toggle(row, bit: 4, label: String(localized: "Read"), hideLabel: true)
-                        toggle(row, bit: 2, label: String(localized: "Write"), hideLabel: true)
-                        toggle(row, bit: 1, label: String(localized: "Execute"), hideLabel: true)
+                        permissionCell(row, bit: 4, label: String(localized: "Read"))
+                        permissionCell(row, bit: 2, label: String(localized: "Write"))
+                        permissionCell(row, bit: 1, label: String(localized: "Execute"))
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
         }
+    }
+
+    private func permissionHeader(_ title: LocalizedStringKey) -> some View {
+        Text(title).frame(maxWidth: .infinity)
+    }
+
+    private func permissionCell(_ row: Int, bit: UInt32, label: String) -> some View {
+        toggle(row, bit: bit, label: label, hideLabel: true)
+            .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder private func toggle(_ row: Int, bit: UInt32, label: String, hideLabel: Bool) -> some View {

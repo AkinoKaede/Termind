@@ -1496,6 +1496,7 @@
       }
     },
     "Added %lld items to Transfers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1506,6 +1507,7 @@
       }
     },
     "Added 1 item to Transfers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2432,6 +2434,7 @@
       }
     },
     "Can't upload here" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5490,6 +5493,7 @@
       }
     },
     "Establishing connection…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5918,6 +5922,7 @@
       }
     },
     "File browser ready" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -6519,6 +6524,7 @@
       }
     },
     "Hashed Address" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -6610,6 +6616,7 @@
       }
     },
     "Hide Logs" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -8161,6 +8168,7 @@
       }
     },
     "Metrics ready" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -8648,6 +8656,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下一个匹配项"
+          }
+        }
+      }
+    },
+    "Next Location" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一步"
           }
         }
       }
@@ -10439,6 +10457,7 @@
       }
     },
     "Preparing upload…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -10497,6 +10516,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上一个匹配项"
+          }
+        }
+      }
+    },
+    "Previous Location" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上一步"
           }
         }
       }
@@ -11032,6 +11061,7 @@
       }
     },
     "Reconnect attempt %lld · retrying in %llds" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -11048,6 +11078,7 @@
       }
     },
     "Reconnect attempt %lld…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -11089,6 +11120,7 @@
       }
     },
     "Reconnecting %@ · %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -11702,6 +11734,7 @@
       }
     },
     "Retry Now" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12340,16 +12373,6 @@
         }
       }
     },
-    "Select Text" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择文本"
-          }
-        }
-      }
-    },
     "Select at least two hosts. A Workspace can contain one or more hosts." : {
       "localizations" : {
         "zh-Hans" : {
@@ -12376,6 +12399,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无"
+          }
+        }
+      }
+    },
+    "Select Text" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择文本"
           }
         }
       }
@@ -12784,6 +12817,7 @@
       }
     },
     "Show Logs" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -13343,6 +13377,7 @@
       }
     },
     "SSH Connection" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -13667,6 +13702,7 @@
       }
     },
     "Stop Reconnecting" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -14045,6 +14081,7 @@
       }
     },
     "Terminal ready" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -15036,6 +15073,7 @@
       }
     },
     "The SSH session is not ready for file transfer." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -16586,6 +16624,7 @@
       }
     },
     "Wait for the shell prompt to report its current directory." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -16659,6 +16698,7 @@
       }
     },
     "Waiting for you…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

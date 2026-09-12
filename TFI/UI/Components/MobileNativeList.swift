@@ -11,6 +11,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     let refreshID: AnyHashable
     let onSelect: ((Item) -> Void)?
     let onDelete: ((Item) -> Void)?
+    let onRefresh: (() async -> Void)?
     @ViewBuilder let rowContent: (Item) -> RowContent
 
     @Environment(\.colorScheme) private var colorScheme
@@ -21,6 +22,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         items: [Item], estimatedRowHeight: CGFloat = 72, refreshID: AnyHashable = 0,
         onSelect: ((Item) -> Void)? = nil,
         onDelete: ((Item) -> Void)? = nil,
+        onRefresh: (() async -> Void)? = nil,
         @ViewBuilder rowContent: @escaping (Item) -> RowContent
     ) {
         self.items = items
@@ -28,6 +30,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         self.refreshID = refreshID
         self.onSelect = onSelect
         self.onDelete = onDelete
+        self.onRefresh = onRefresh
         self.rowContent = rowContent
     }
 
@@ -60,6 +63,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             renderer: { item in AnyView(rowContent(item)) },
             onSelect: onSelect,
             onDelete: onDelete,
+            onRefresh: onRefresh,
             refreshID: refreshID,
             locale: locale,
             colorScheme: colorScheme,
@@ -67,14 +71,21 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         )
     }
 
+    static func dismantleUIView(_: ListView<Item>, coordinator: Coordinator) {
+        coordinator.cancelRefresh()
+    }
+
     @MainActor
-    final class Coordinator {
+    final class Coordinator: NSObject {
         typealias Renderer = @MainActor (Item) -> AnyView
 
         private var items: [Item] = []
         private var renderer: Renderer?
         private var onSelect: ((Item) -> Void)?
         private var onDelete: ((Item) -> Void)?
+        private var onRefresh: (() async -> Void)?
+        private var refreshTask: Task<Void, Never>?
+        private weak var refreshControl: UIRefreshControl?
         private var locale = Locale.current
         private var colorScheme = ColorScheme.light
         private var dynamicTypeSize = DynamicTypeSize.large
@@ -85,6 +96,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         func update(
             listView: ListView<Item>, items newItems: [Item], renderer: @escaping Renderer,
             onSelect: ((Item) -> Void)?, onDelete: ((Item) -> Void)?,
+            onRefresh: (() async -> Void)?,
             refreshID newRefreshID: AnyHashable,
             locale: Locale, colorScheme: ColorScheme, dynamicTypeSize: DynamicTypeSize
         ) {
@@ -94,10 +106,12 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             self.renderer = renderer
             self.onSelect = onSelect
             self.onDelete = onDelete
+            self.onRefresh = onRefresh
             self.locale = locale
             self.colorScheme = colorScheme
             self.dynamicTypeSize = dynamicTypeSize
             refreshID = newRefreshID
+            updateRefreshControl(in: listView)
 
             let identitiesChanged = items.map(\.id) != newItems.map(\.id)
             if identitiesChanged {
@@ -109,6 +123,39 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
                 if environmentChanged { listView.reloadData() }
             }
             items = newItems
+        }
+
+        func cancelRefresh() {
+            refreshTask?.cancel()
+            refreshTask = nil
+            refreshControl?.endRefreshing()
+        }
+
+        private func updateRefreshControl(in listView: ListView<Item>) {
+            if onRefresh == nil {
+                cancelRefresh()
+                listView.refreshControl = nil
+                refreshControl = nil
+                return
+            }
+            guard listView.refreshControl == nil else { return }
+            let control = UIRefreshControl()
+            control.addTarget(self, action: #selector(refreshRequested), for: .valueChanged)
+            listView.refreshControl = control
+            refreshControl = control
+        }
+
+        @objc private func refreshRequested() {
+            guard refreshTask == nil, let onRefresh else {
+                refreshControl?.endRefreshing()
+                return
+            }
+            refreshTask = Task { [weak self] in
+                await onRefresh()
+                guard let self else { return }
+                refreshControl?.endRefreshing()
+                refreshTask = nil
+            }
         }
 
         func configure(_ row: MobileHostingListRow, item: Item) {

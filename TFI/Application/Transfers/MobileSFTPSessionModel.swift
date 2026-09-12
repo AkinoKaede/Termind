@@ -7,8 +7,19 @@ import TermindDomain
 @Observable
 final class MobileSFTPSessionModel {
     private(set) var path = "/"
+    var pathText = "/"
     private(set) var files: [RemoteFile] = []
+    var query = ""
+    private(set) var backHistory: [String] = []
+    private(set) var forwardHistory: [String] = []
     var operationError: String?
+
+    var canGoBack: Bool { !backHistory.isEmpty }
+    var canGoForward: Bool { !forwardHistory.isEmpty }
+    var visibleFiles: [RemoteFile] {
+        guard !query.isEmpty else { return files }
+        return files.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
 
     @ObservationIgnored private var fileSystem: (any RemoteFileSystem)?
     @ObservationIgnored private var connectionGeneration: UUID?
@@ -30,9 +41,11 @@ final class MobileSFTPSessionModel {
         operationError = nil
         let request = UUID()
         directoryRequest = request
+        let path = RemotePath.normalized(path)
         let entries = try await fileSystem.directoryContents(at: path)
         guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
         self.path = path
+        pathText = path
         files = entries
     }
 
@@ -48,13 +61,83 @@ final class MobileSFTPSessionModel {
 
     func openDirectory(_ directory: String) async {
         guard let fileSystem, let connectionGeneration else { return }
+        let destination = RemotePath.normalized(directory)
+        guard destination != path else {
+            await reload()
+            return
+        }
+        let source = path
         let request = UUID()
         directoryRequest = request
         do {
-            let entries = try await fileSystem.directoryContents(at: directory)
+            let entries = try await fileSystem.directoryContents(at: destination)
             guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
-            if path != directory { didChangePath?() }
-            path = directory
+            backHistory.append(source)
+            forwardHistory.removeAll()
+            path = destination
+            pathText = destination
+            files = entries
+            didChangePath?()
+        } catch {
+            guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
+            record(error)
+        }
+    }
+
+    func goBack() async {
+        guard let fileSystem, let connectionGeneration, let destination = backHistory.last else { return }
+        let source = path
+        let request = UUID()
+        directoryRequest = request
+        do {
+            let entries = try await fileSystem.directoryContents(at: destination)
+            guard self.connectionGeneration == connectionGeneration, directoryRequest == request,
+                path == source, backHistory.last == destination
+            else { return }
+            backHistory.removeLast()
+            forwardHistory.append(source)
+            path = destination
+            pathText = destination
+            files = entries
+            didChangePath?()
+        } catch {
+            guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
+            record(error)
+        }
+    }
+
+    func goForward() async {
+        guard let fileSystem, let connectionGeneration, let destination = forwardHistory.last else { return }
+        let source = path
+        let request = UUID()
+        directoryRequest = request
+        do {
+            let entries = try await fileSystem.directoryContents(at: destination)
+            guard self.connectionGeneration == connectionGeneration, directoryRequest == request,
+                path == source, forwardHistory.last == destination
+            else { return }
+            forwardHistory.removeLast()
+            backHistory.append(source)
+            path = destination
+            pathText = destination
+            files = entries
+            didChangePath?()
+        } catch {
+            guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
+            record(error)
+        }
+    }
+
+    func reload() async {
+        guard let fileSystem, let connectionGeneration else { return }
+        let requestedPath = path
+        let request = UUID()
+        directoryRequest = request
+        do {
+            let entries = try await fileSystem.directoryContents(at: requestedPath)
+            guard self.connectionGeneration == connectionGeneration, directoryRequest == request,
+                path == requestedPath
+            else { return }
             files = entries
         } catch {
             guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
@@ -66,7 +149,7 @@ final class MobileSFTPSessionModel {
         guard let fileSystem else { return }
         do {
             try await fileSystem.rename(file, to: name)
-            await openDirectory(path)
+            await reload()
         } catch {
             if handlesConnectionError?(error) != true { throw error }
         }
@@ -76,7 +159,7 @@ final class MobileSFTPSessionModel {
         guard let fileSystem else { return }
         do {
             try await fileSystem.setPermissions(of: file, to: mode)
-            await openDirectory(path)
+            await reload()
         } catch {
             if handlesConnectionError?(error) != true { throw error }
         }
@@ -86,7 +169,7 @@ final class MobileSFTPSessionModel {
         guard let fileSystem else { return }
         do {
             try await fileSystem.createDirectory(named: name, in: path)
-            await openDirectory(path)
+            await reload()
         } catch {
             record(error)
         }
@@ -96,7 +179,7 @@ final class MobileSFTPSessionModel {
         guard let fileSystem else { return }
         do {
             try await fileSystem.remove(file)
-            await openDirectory(path)
+            await reload()
         } catch {
             record(error)
         }

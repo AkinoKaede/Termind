@@ -630,6 +630,13 @@ key strip remains visible while the software keyboard is dismissed, uses a borde
 keys. SSH and SFTP Workspace detail hides the iPhone root tab bar; returning to the
 Workspace list restores the root navigation.
 
+Mobile SFTP renders its reusable, diffed file rows through ListViewKit. The Workspace
+session owns the current path, editable path text, current-directory filename filter,
+and backward/forward directory stacks; reloads and post-mutation refreshes never add
+history. Its navigation-bar chevrons traverse directory history, while the system
+left-edge interactive pop remains the separate way to return to Workspaces. The path
+bar mirrors desktop with breadcrumbs that become an absolute-path editor on activation.
+
 Every mobile SSH-backed connection initializes its Journey route before publishing
 connecting or failed state. Route rendering accepts zero, one, or many endpoints, and
 generation-scoped progress and failure callbacks from a retired transport cannot mutate
