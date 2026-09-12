@@ -40,7 +40,7 @@ struct MobileAISettingsToolbarTests {
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
 
-        for kind in [MobileWorkspaceDescriptor.Kind.ssh, .sftp] {
+        for kind in [ConnectionHistoryEntry.Kind.ssh, .sftp] {
             let workspace = MobileWorkspace(
                 descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
                 hosts: app.library)
@@ -66,7 +66,7 @@ struct MobileAISettingsToolbarTests {
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
 
-        for kind in [MobileWorkspaceDescriptor.Kind.ssh, .sftp] {
+        for kind in [ConnectionHistoryEntry.Kind.ssh, .sftp] {
             let workspace = MobileWorkspace(
                 descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
                 hosts: app.library)

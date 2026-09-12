@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 struct SyncSettings: View {
     @Environment(AppModel.self) private var app
@@ -82,7 +83,7 @@ private struct SyncSelectionRow: View {
                 .toggleStyle(.checkbox)
                 Spacer()
                 if isSelected, let status {
-                    SyncStatusLabel(status: status)
+                    VaultSyncStatusLabel(status: status)
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -95,45 +96,6 @@ private struct SyncSelectionRow: View {
                 default: EmptyView()
                 }
             }
-        }
-    }
-}
-
-struct SyncStatusLabel: View {
-    let status: VaultSyncStatus
-    @Environment(\.locale) private var locale
-
-    @ViewBuilder
-    var body: some View {
-        switch status {
-        case .checkingAccount:
-            Label("Checking iCloud…", systemImage: "icloud")
-        case .paused:
-            Label("Paused", systemImage: "pause.circle")
-        case .unavailable(let message):
-            Label(message, systemImage: "icloud.slash").foregroundStyle(.secondary)
-        case .accountChangeConfirmationRequired:
-            Label("Waiting for confirmation", systemImage: "person.crop.circle.badge.exclamationmark")
-                .foregroundStyle(.orange)
-        case .syncing(let pendingCount):
-            Label(
-                pendingCount == 1 ? "Syncing 1 change…" : "Syncing \(pendingCount) changes…",
-                systemImage: "arrow.triangle.2.circlepath.icloud"
-            )
-        case .upToDate(let lastSync):
-            if let lastSync {
-                let formatted = lastSync.formatted(
-                    Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale)
-                )
-                Label(
-                    "Up to date · \(formatted)",
-                    systemImage: "checkmark.icloud"
-                )
-            } else {
-                Label("Up to date", systemImage: "checkmark.icloud")
-            }
-        case .failed(let message):
-            Label(message, systemImage: "exclamationmark.icloud").foregroundStyle(.red)
         }
     }
 }

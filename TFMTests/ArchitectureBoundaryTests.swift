@@ -220,6 +220,38 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func mobileFeaturesAndLiveServicesEnterThroughRegistries() throws {
+        let root = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileRootView.swift"), encoding: .utf8)
+        let features = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileFeatureRegistry.swift"), encoding: .utf8)
+        #expect(root.contains("features.registrations(on: .phoneTab)"))
+        #expect(root.contains("features.registrations(on: .padSidebar)"))
+        #expect(!root.contains("switch scene.selectedDestination"))
+        #expect(features.contains("mutating func register("))
+        #expect(features.contains("Duplicate mobile feature registration"))
+
+        let descriptor = try String(
+            contentsOf: sourceRoot.appending(
+                path: "../TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift"), encoding: .utf8)
+        #expect(descriptor.contains("var kind: ConnectionHistoryEntry.Kind"))
+        #expect(!descriptor.contains("enum Kind"))
+
+        let assistant = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Application/Agent/MobileAssistantModel.swift"),
+            encoding: .utf8)
+        let metrics = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Application/Metrics/MobileMetricsModel.swift"),
+            encoding: .utf8)
+        for concrete in ["SSHExecSession()", "SFTPClient()"] {
+            #expect(!assistant.contains(concrete))
+        }
+        for concrete in ["SSHMetricsSampler", "SSHExecSession"] {
+            #expect(!metrics.contains(concrete))
+        }
+    }
+
+    @Test
     func sessionFeaturesDependOnTheConnectionPort() throws {
         for path in ["Features/Terminal/SSHSessionModel.swift", "Features/SFTP/SFTPSessionModel.swift"] {
             let text = try String(

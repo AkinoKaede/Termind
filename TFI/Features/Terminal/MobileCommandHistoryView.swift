@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 import UIKit
 
 struct MobileCommandHistoryView: View {
@@ -86,7 +87,7 @@ struct MobileCommandHistoryView: View {
                     .font(.body.monospaced())
                     .lineLimit(2)
                     .textSelection(.enabled)
-                Text(MobileTerminalHistoryPresentation.subtitle(for: entry, locale: locale))
+                Text(CommandHistoryPresentation.subtitle(for: entry, locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

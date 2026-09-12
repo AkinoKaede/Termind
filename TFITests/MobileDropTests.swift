@@ -2,6 +2,7 @@ import Foundation
 import GhosttyTerminal
 import SwiftUI
 import TermindApplication
+import TermindDomain
 import Testing
 import UIKit
 import UniformTypeIdentifiers
@@ -164,8 +165,8 @@ nonisolated private func failedFileProvider() -> NSItemProvider {
 
 @Suite(.serialized) @MainActor
 struct MobileWorkspaceDropTests {
-    @Test(arguments: MobileWorkspaceDescriptor.Kind.allCases)
-    func hostedWorkspacesRenderTheOverlayAcrossTheirContent(kind: MobileWorkspaceDescriptor.Kind) async throws {
+    @Test(arguments: ConnectionHistoryEntry.Kind.allCases)
+    func hostedWorkspacesRenderTheOverlayAcrossTheirContent(kind: ConnectionHistoryEntry.Kind) async throws {
         let app = try MobileAppModel(inMemory: true)
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: UUID(), title: "Drop Test", kind: kind), hosts: app.library)

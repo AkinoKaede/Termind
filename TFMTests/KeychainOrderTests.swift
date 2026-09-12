@@ -103,7 +103,7 @@ struct KeychainOrderTests {
         #expect(fixed.allowsMove(from: .keys, to: .keys))
         #expect(!fixed.allowsMove(from: .keys, to: .identities))
 
-        let exchangeable = ManagedCardDropPolicy<HostsPageView.SectionID>.anySection
+        let exchangeable = ManagedCardDropPolicy<HostLibrarySection.ID>.anySection
         #expect(
             exchangeable.allowsMove(
                 from: .ungrouped, to: .group(UUID())

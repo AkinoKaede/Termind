@@ -42,24 +42,6 @@ final class SnippetsPageState {
 /// terminal Workspaces. ManagedCardPage owns selection and drag geometry; this
 /// page supplies only the Package sections and business actions.
 struct SnippetsPageView: ManagedCardPage {
-    nonisolated enum SectionID: Hashable {
-        case results
-        case package(SnippetPackage.ID)
-        case ungrouped
-
-        var packageID: SnippetPackage.ID? {
-            if case .package(let id) = self { return id }
-            return nil
-        }
-    }
-
-    private struct Section {
-        let id: SectionID
-        let title: String
-        var isExpanded: Bool?
-        let snippets: [Snippet]
-    }
-
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
@@ -78,51 +60,13 @@ struct SnippetsPageView: ManagedCardPage {
 
     private var isFiltering: Bool { !state.query.isEmpty }
 
-    private var sections: [Section] {
-        if isFiltering {
-            let matches = app.snippets.searchSnippets(state.query)
-            guard !matches.isEmpty else { return [] }
-            return [
-                Section(
-                    id: .results, title: String(localized: "Results"),
-                    isExpanded: nil, snippets: matches
-                )
-            ]
-        }
-
-        var result: [Section] = []
-        func walk(_ package: SnippetPackage, prefix: String) {
-            let title = prefix.isEmpty ? package.name : "\(prefix) / \(package.name)"
-            result.append(
-                Section(
-                    id: .package(package.id), title: title,
-                    isExpanded: package.isExpanded,
-                    snippets: app.snippets.snippets(in: package.id)
-                )
-            )
-            guard package.isExpanded else { return }
-            for child in app.snippets.childSnippetPackages(of: package.id) {
-                walk(child, prefix: title)
-            }
-        }
-        for package in app.snippets.rootSnippetPackages { walk(package, prefix: "") }
-
-        let ungrouped = app.snippets.snippets(in: nil)
-        if !ungrouped.isEmpty || !app.snippets.snippetPackages.isEmpty {
-            result.append(
-                Section(
-                    id: .ungrouped, title: String(localized: "Ungrouped"),
-                    isExpanded: app.snippets.isSnippetsUngroupedExpanded,
-                    snippets: ungrouped
-                )
-            )
-        }
-        return result
+    private var sections: [SnippetLibrarySection] {
+        SnippetLibrarySectionLayout.sections(library: app.snippets, query: state.query)
     }
 
     // MARK: ManagedCardPage
 
-    var managedSections: [ManagedCardSection<SectionID, Snippet>] {
+    var managedSections: [ManagedCardSection<SnippetLibrarySection.ID, Snippet>] {
         sections.map {
             ManagedCardSection(
                 id: $0.id, title: $0.title, items: $0.snippets,
@@ -136,7 +80,7 @@ struct SnippetsPageView: ManagedCardPage {
         ManagedCardSelection(selected: { selection }, update: setSelection)
     }
 
-    var managedCapabilities: ManagedCardCapabilities<SectionID, Snippet.ID> {
+    var managedCapabilities: ManagedCardCapabilities<SnippetLibrarySection.ID, Snippet.ID> {
         ManagedCardCapabilities(
             selection: .multiple,
             marqueeSelection: true,
@@ -157,7 +101,7 @@ struct SnippetsPageView: ManagedCardPage {
 
     @ViewBuilder
     func managedHeader(
-        for section: ManagedCardSection<SectionID, Snippet>, isDropTarget: Bool
+        for section: ManagedCardSection<SnippetLibrarySection.ID, Snippet>, isDropTarget: Bool
     ) -> some View {
         switch section.id {
         case .package(let id):
@@ -229,7 +173,7 @@ struct SnippetsPageView: ManagedCardPage {
     /// Right-clicking inside a package files the new snippet or subpackage
     /// there. Results is a view of matches from everywhere, so it files at the
     /// root rather than guessing which package the user meant.
-    func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
+    func managedBlankAreaMenu(for section: SnippetLibrarySection.ID?) -> [NativeMenuEntry] {
         let packageID = section?.packageID
         return [
             NativeMenuEntry(
@@ -306,11 +250,7 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     private func duplicate(_ snippet: Snippet) {
-        var copy = snippet
-        copy.id = UUID()
-        copy.title = String(localized: "\(snippet.title) Copy")
-        copy.sortIndex = 0
-        saveSnippet(copy)
+        saveSnippet(snippet.duplicated())
     }
 
     private func savePackage(_ package: SnippetPackage) {

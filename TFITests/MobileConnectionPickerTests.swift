@@ -11,7 +11,7 @@ import struct TermindDomain.Host
 struct MobileConnectionPickerTests {
     @Test func pickerDefaultsToSSHFiltersHostsAndReturnsTheSelectedProtocol() throws {
         let app = try MobileAppModel(inMemory: true)
-        var selections: [(Host.ID, MobileWorkspaceDescriptor.Kind)] = []
+        var selections: [(Host.ID, ConnectionHistoryEntry.Kind)] = []
         let hostModel = MobileHostPickerModel(library: app.library)
         let connectionModel = MobileConnectionPickerModel { selections.append(($0, $1)) }
 

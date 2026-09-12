@@ -1318,13 +1318,14 @@ remains behind the context menu and confirmation dialog.
 
 ## 2026-09-12 — Share Assistant transcript presentation
 
-**Status:** In progress.
+**Status:** Completed before the 2026-09-13 registration pass.
 
 **Evidence:** `rg` confirms mobile renders literal Worked/tool names and duplicates result projection, while desktop owns AgentToolPresentation (1,087 lines), disclosure/deadline state, timestamps and Markdown policy.
 
 **Action:** Move platform-neutral presentation into TermindPresentation, inject tool presenters from the existing registry, and retain native platform rendering and viewport ownership. Replace mobile disclosure and detail branches with shared policy consumers. Estimated duplicate-policy reduction: 150–250 lines, with desktop presentation code moved rather than copied.
 
-**Verification:** Pending shared, desktop, mobile and bilingual rendering checks.
+**Verification:** Shared policy and both native renderers are recorded in `ARCHITECTURE.md`; the subsequent
+cross-platform registration pass keeps those boundaries intact and both app builds pass.
 
 ## 2026-09-12 — Remove Periphery-confirmed dead code
 
@@ -1383,3 +1384,56 @@ seven entries.
 **Result:** The app catalog fell from 1,637 to 1,556 entries and now contains no stale entries. Both app builds pass
 with pinned dependencies; `AppLanguageTests`, both Simplified Chinese catalog checks, direct string-catalog
 compilation, strict formatting for the touched test, and `git diff --check` pass.
+
+## 2026-09-13 — Register cross-platform Assistant slash commands
+
+**Status:** Completed; both app builds, direct registry tests, desktop Slash Command tests, and the focused mobile
+Assistant tests pass.
+
+**Evidence:** `ComposerView` and `MobileAssistantComposer` separately built the same Plan, Compact, Reasoning,
+Model, MCP, and Skill descriptors, then repeated option lookup, current-value presentation, completion acceptance,
+and execution switches. Mobile filtered commands through `isShownOnMobile` but retained unreachable handlers for
+the commands it had already removed.
+
+**Action:** Add a value-based `ChatSlashCommandRegistry`. Each registration owns its descriptor, explicit
+`platforms` array, availability, options, trailing/current presentation, preferred option, and execution. Desktop
+and mobile inject only host-owned navigation, compaction, send, access, and localization actions. Replace the
+mobile-only Boolean with the extensible `desktop` / `mobile` platform vocabulary.
+
+**Result:** Both composers consume one catalog and executor, mobile no longer contains unreachable command branches,
+and duplicate registration IDs fail immediately. The parser and stored conversation formats are unchanged.
+
+## 2026-09-13 — Register mobile feature destinations
+
+**Status:** Completed; the iOS build and all 28 focused mobile navigation parity tests pass.
+
+**Evidence:** `MobileRootView`, `MobileNavigation`, and `MobileSceneModel` maintained separate phone tabs, iPad
+sidebar rows, localized metadata, selection conversion, and a destination switch. Workspace list content also made
+the root shell responsible for feature-specific navigation and sheets.
+
+**Action:** Add an injected `MobileFeatureRegistry`. A registration owns destination identity, localized label,
+symbol, ordered phone/iPad placements, and a destination factory. Move the Workspace list into its feature folder
+and use `MobileDestination` directly as the tab selection.
+
+**Result:** The root shell renders one catalog for both device families and no longer knows how individual features
+construct their views. The registry remains app-owned and uses stable IDs; it does not add a global service locator.
+
+## 2026-09-13 — Share remaining mobile and desktop policies
+
+**Status:** Completed; both app builds, Architecture Boundary tests, four direct shared-policy tests, and focused
+mobile App, Assistant, Card, Picker, Drop, Toolbar, and Navigation tests pass.
+
+**Evidence:** The app targets duplicated Host/Snippet tree flattening, Host route-change detection, five Host deletion
+outbox registrations, Command History duration formatting, Vault sync status mapping, Snippet duplication, and the
+exported SFTP drag type. TFI also declared a second SSH/SFTP Workspace kind and constructed live Agent/Metrics
+services inside Application models.
+
+**Action:** Move tree layouts and remote-change planning to Application; register the Host deletion saga once;
+move shared display values and the SFTP drag type to Presentation; move Snippet and AI-model edit rules to Domain;
+reuse `ConnectionHistoryEntry.Kind`; compose Agent host services in Remote Infrastructure; and inject the mobile
+Metrics sampler through `MobileMetricsServices`. Move Host Picker, Snippet operation, and Workspace descriptor state
+out of view files.
+
+**Result:** Cross-platform policy now has one owner while native lists, cards, menus, selection, and transport
+lifecycle remain platform-specific. No persistence schema, dependency version, remote protocol, or localization key
+changed. The deliberate AppKit/UIKit and complete SSH/SFTP session boundaries remain intact.

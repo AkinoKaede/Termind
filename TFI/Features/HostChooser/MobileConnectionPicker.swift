@@ -1,4 +1,3 @@
-import Observation
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -34,7 +33,7 @@ struct MobileConnectionPicker: View {
 
     init(
         library: HostLibraryModel,
-        connect: @escaping (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void,
+        connect: @escaping (Host.ID, ConnectionHistoryEntry.Kind) -> Void,
         cancel: @escaping () -> Void
     ) {
         self.library = library
@@ -52,8 +51,8 @@ struct MobileConnectionPicker: View {
         ) {
             Section {
                 Picker("Connection Protocol", selection: $model.kind) {
-                    Text("SSH").tag(MobileWorkspaceDescriptor.Kind.ssh)
-                    Text("SFTP").tag(MobileWorkspaceDescriptor.Kind.sftp)
+                    Text("SSH").tag(ConnectionHistoryEntry.Kind.ssh)
+                    Text("SFTP").tag(ConnectionHistoryEntry.Kind.sftp)
                 }
                 .pickerStyle(.segmented)
             }
@@ -168,32 +167,4 @@ extension MobileHostPicker where Header == EmptyView {
             select: select,
             header: { EmptyView() })
     }
-}
-
-@MainActor
-@Observable
-final class MobileHostPickerModel {
-    var query = ""
-
-    private let library: HostLibraryModel
-
-    init(library: HostLibraryModel) { self.library = library }
-
-    var isLibraryEmpty: Bool { library.hosts.isEmpty }
-
-    var hosts: [Host] { library.searchHosts(query) }
-
-    func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
-}
-
-@MainActor
-@Observable
-final class MobileConnectionPickerModel {
-    var kind = MobileWorkspaceDescriptor.Kind.ssh
-
-    private let connect: (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void
-
-    init(connect: @escaping (Host.ID, MobileWorkspaceDescriptor.Kind) -> Void) { self.connect = connect }
-
-    func select(_ host: Host) { connect(host.id, kind) }
 }

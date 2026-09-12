@@ -5,49 +5,6 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
-enum MobileHostSectionID: Hashable {
-    case group(HostGroup.ID)
-    case ungrouped
-}
-
-struct MobileHostSection: Identifiable {
-    let id: MobileHostSectionID
-    let title: String
-    let hosts: [Host]
-    let isExpanded: Bool
-}
-
-enum MobileHostSectionLayout {
-    static func sections(library: HostLibraryModel) -> [MobileHostSection] {
-        var result: [MobileHostSection] = []
-
-        func append(_ group: HostGroup, prefix: String) {
-            let title = prefix.isEmpty ? group.name : "\(prefix) / \(group.name)"
-            result.append(
-                MobileHostSection(
-                    id: .group(group.id), title: title, hosts: library.hosts(in: group.id),
-                    isExpanded: group.isExpanded))
-            guard group.isExpanded else { return }
-            for child in library.childGroups(of: group.id) {
-                append(child, prefix: title)
-            }
-        }
-
-        for group in library.rootGroups {
-            append(group, prefix: "")
-        }
-
-        let ungrouped = library.hosts(in: nil)
-        if !ungrouped.isEmpty || !library.groups.isEmpty {
-            result.append(
-                MobileHostSection(
-                    id: .ungrouped, title: String(localized: "Ungrouped"), hosts: ungrouped,
-                    isExpanded: library.isUngroupedExpanded))
-        }
-        return result
-    }
-}
-
 private struct MobileVaultLinkGroup<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -127,7 +84,7 @@ struct MobileVaultView: View {
     @Environment(\.locale) private var locale
 
     let app: MobileAppModel
-    let open: (UUID, MobileWorkspaceDescriptor.Kind) -> Void
+    let open: (UUID, ConnectionHistoryEntry.Kind) -> Void
     let showsMetrics: Bool
     let executeSnippet: (Snippet, [Host.ID]) -> Void
     @Binding var editingHost: Host?
@@ -139,7 +96,7 @@ struct MobileVaultView: View {
     init(
         app: MobileAppModel,
         editingHost: Binding<Host?>,
-        open: @escaping (UUID, MobileWorkspaceDescriptor.Kind) -> Void,
+        open: @escaping (UUID, ConnectionHistoryEntry.Kind) -> Void,
         showsMetrics: Bool = true,
         executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in }
     ) {
@@ -162,7 +119,7 @@ struct MobileVaultView: View {
     private var matchesKeychainPage: Bool { pageTitle("Keychain").localizedCaseInsensitiveContains(query) }
     private var matchesSnippetsPage: Bool { pageTitle("Snippets").localizedCaseInsensitiveContains(query) }
     private var matchesKnownHostsPage: Bool { pageTitle("Known Hosts").localizedCaseInsensitiveContains(query) }
-    private var hostSections: [MobileHostSection] { MobileHostSectionLayout.sections(library: app.library) }
+    private var hostSections: [HostLibrarySection] { HostLibrarySectionLayout.sections(library: app.library) }
 
     private var keychainSearchLinks: [SearchLink] {
         var result: [SearchLink] = []
@@ -253,7 +210,7 @@ struct MobileVaultView: View {
                 ForEach(hostSections) { section in
                     VStack(alignment: .leading, spacing: 12) {
                         hostSectionHeader(section)
-                        if section.isExpanded {
+                        if section.isExpanded != false {
                             MobileCardGrid {
                                 ForEach(section.hosts) { row($0) }
                             }
@@ -407,7 +364,7 @@ struct MobileVaultView: View {
         }
     }
 
-    private func hostSectionHeader(_ section: MobileHostSection) -> some View {
+    private func hostSectionHeader(_ section: HostLibrarySection) -> some View {
         HStack(spacing: 8) {
             Button {
                 toggle(section)
@@ -415,7 +372,7 @@ struct MobileVaultView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .rotationEffect(.degrees(section.isExpanded ? 90 : 0))
+                        .rotationEffect(.degrees(section.isExpanded == true ? 90 : 0))
                     Text(section.title).font(.headline)
                 }
                 .contentShape(.rect)
@@ -428,10 +385,12 @@ struct MobileVaultView: View {
         .accessibilityElement(children: .contain)
     }
 
-    private func toggle(_ section: MobileHostSection) {
+    private func toggle(_ section: HostLibrarySection) {
+        guard let isExpanded = section.isExpanded else { return }
         switch section.id {
-        case .group(let id): app.library.setExpanded(!section.isExpanded, for: id)
-        case .ungrouped: app.library.setUngroupedExpanded(!section.isExpanded)
+        case .group(let id): app.library.setExpanded(!isExpanded, for: id)
+        case .ungrouped: app.library.setUngroupedExpanded(!isExpanded)
+        case .results: break
         }
     }
 

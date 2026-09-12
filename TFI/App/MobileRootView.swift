@@ -1,9 +1,9 @@
 import SwiftUI
-import UIKit
 
 /// iPhone has four destinations. iPad retains the sidebar with individual library routes.
 struct MobileRootView: View {
     let app: MobileAppModel
+    private let features = MobileFeatureRegistry.standard()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.mobileInterfaceIdiom) private var interfaceIdiom
     @State private var scene: MobileSceneModel
@@ -17,34 +17,26 @@ struct MobileRootView: View {
         Group {
             if interfaceIdiom != .pad {
                 TabView(selection: $scene.selectedTab) {
-                    NavigationStack { vault }
-                        .tabItem { Label("Vault", systemImage: "server.rack") }.tag(MobileTab.vault)
-                    NavigationStack { workspaceList }
-                        .tabItem { Label("Workspaces", systemImage: "terminal") }.tag(MobileTab.workspaces)
-                    NavigationStack { assistant }
-                        .tabItem { Label("Assistant", systemImage: "sparkles") }.tag(MobileTab.assistant)
-                    NavigationStack { settings }
-                        .tabItem { Label("Settings", systemImage: "gearshape") }.tag(MobileTab.settings)
+                    ForEach(features.registrations(on: .phoneTab)) { feature in
+                        NavigationStack {
+                            feature.makeView(app: app, scene: scene, surface: .phoneTab)
+                        }
+                        .tabItem { Label(feature.title, systemImage: feature.symbol) }
+                        .tag(feature.id)
+                    }
                 }
             } else {
                 NavigationSplitView {
                     List(selection: $scene.selectedDestination) {
-                        ForEach(MobileDestination.allCases) { destination in
-                            NavigationLink(value: destination) {
-                                Label(destination.title, systemImage: destination.symbol)
+                        ForEach(features.registrations(on: .padSidebar)) { feature in
+                            NavigationLink(value: feature.id) {
+                                Label(feature.title, systemImage: feature.symbol)
                             }
                         }
                     }
                 } detail: {
                     NavigationStack {
-                        switch scene.selectedDestination {
-                        case .vault: sidebarVault
-                        case .assistant: assistant
-                        case .settings: settings
-                        case .metrics: metrics
-                        case .workspaces: workspaceList
-                        default: sidebarVault
-                        }
+                        selectedFeature.makeView(app: app, scene: scene, surface: .padSidebar)
                     }
                 }
             }
@@ -89,125 +81,9 @@ struct MobileRootView: View {
 
     }
 
-    private var vault: some View {
-        MobileVaultView(
-            app: app, editingHost: $scene.editingHost,
-            open: scene.open, executeSnippet: scene.execute)
-    }
-
-    private var sidebarVault: some View {
-        MobileVaultView(
-            app: app, editingHost: $scene.editingHost,
-            open: scene.open, showsMetrics: false,
-            executeSnippet: scene.execute)
-    }
-
-    private var workspaceList: some View {
-        List {
-            Section {
-                NavigationLink {
-                    MobileTransfersView(transfers: app.transfers, hosts: app.library)
-                } label: {
-                    Label("Transfers", systemImage: "arrow.up.arrow.down")
-                }
-            }
-            Section("Workspaces") { workspaceRows }
-        }
-        .navigationTitle("Workspaces")
-        .toolbar {
-            MobileWorkspaceToolbar(
-                hasWorkspaces: !app.workspaces.isEmpty,
-                closeAll: scene.closeAllWorkspaces,
-                connect: scene.openConnectionPicker)
-        }
-        .navigationDestination(item: $scene.workspaceID) { id in
-            if let workspace = app.workspaces.first(where: { $0.id == id }) {
-                MobileWorkspaceView(
-                    library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
-                    workspace: workspace, workspaces: app.workspaces,
-                    selectWorkspace: scene.selectWorkspace,
-                    renameWorkspace: scene.beginWorkspaceRename,
-                    openSameDirectory: scene.openSameDirectory,
-                    closeWorkspace: scene.closeWorkspace
-                )
-            }
-        }
-        .sheet(isPresented: $scene.isConnectionPickerPresented) {
-            NavigationStack {
-                MobileConnectionPicker(
-                    library: app.library,
-                    connect: { hostID, kind in
-                        scene.isConnectionPickerPresented = false
-                        scene.open(hostID: hostID, kind: kind)
-                    },
-                    cancel: { scene.isConnectionPickerPresented = false })
-            }
-            .mobileSheetPresentation(compact: true)
-        }
-    }
-
-    @ViewBuilder private var workspaceRows: some View {
-        if app.workspaces.isEmpty {
-            ContentUnavailableView(
-                "No Workspaces", systemImage: "terminal",
-                description: Text("Open a host from Vault to start a workspace.")
-            )
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-        }
-        ForEach(app.workspaces) { workspace in
-            Button {
-                scene.selectWorkspace(workspace.id)
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack(alignment: .bottomTrailing) {
-                        Image(systemName: workspace.descriptor.kind.symbol)
-                            .foregroundStyle(.tint)
-                            .frame(width: 28, height: 28)
-                        Circle()
-                            .fill(workspaceStatusTint(workspace))
-                            .frame(width: 8, height: 8)
-                            .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(workspace.descriptor.title).foregroundStyle(.primary).lineLimit(1)
-                        Text(workspace.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .swipeActions {
-                Button("Close", systemImage: "xmark", role: .destructive) { scene.closeWorkspace(workspace.id) }
-            }
-            .contextMenu {
-                Button("Rename", systemImage: "pencil") { scene.beginWorkspaceRename(workspace) }
-                Divider()
-                Button("Close", systemImage: "xmark", role: .destructive) { scene.closeWorkspace(workspace.id) }
-            }
-        }
-    }
-
-    private func workspaceStatusTint(_ workspace: MobileWorkspace) -> Color {
-        if workspace.connected { return .green }
-        if workspace.busy || workspace.reconnectState != nil { return .orange }
-        return .secondary
-    }
-
-    private var assistant: some View {
-        MobileAssistantView(
-            app: app, model: app.assistant,
-            libraryRoute: $scene.assistantLibraryRoute)
-    }
-
-    private var metrics: some View {
-        MobileMetricsView(app: app)
-    }
-
-    private var settings: some View {
-        MobileSettingsView(app: app)
+    private var selectedFeature: MobileFeatureRegistration {
+        features.registration(for: scene.selectedDestination ?? .vault)
+            ?? features.registration(for: .vault)!
     }
 
 }

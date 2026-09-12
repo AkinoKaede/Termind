@@ -7,6 +7,11 @@ import Foundation
 /// `AppCommandTarget`, and they route a *window*. These change the posture of
 /// one conversation, are typed into its draft, and never leave it.
 nonisolated public struct ChatSlashCommand: Identifiable, Hashable, Sendable {
+    public nonisolated enum Platform: String, CaseIterable, Hashable, Sendable {
+        case desktop
+        case mobile
+    }
+
     public nonisolated enum Icon: Hashable, Sendable {
         case symbol(String)
         case contextRing
@@ -35,9 +40,8 @@ nonisolated public struct ChatSlashCommand: Identifiable, Hashable, Sendable {
     public var displayName: String
     public var summary: String
     public var icon: Icon
-    /// Whether touch-first Assistant surfaces should include this command in
-    /// their Slash catalog. Desktop remains the complete command surface.
-    public var isShownOnMobile: Bool
+    /// Platforms whose composers offer and execute this command.
+    public var platforms: [Platform]
     /// Shown after the name when the command takes free text. Empty for a
     /// command that takes none.
     public var argumentHint: String = ""
@@ -57,14 +61,14 @@ nonisolated public struct ChatSlashCommand: Identifiable, Hashable, Sendable {
 
     public init(
         id: String, displayName: String, summary: String, icon: Icon,
-        argumentHint: String = "", isShownOnMobile: Bool = true
+        argumentHint: String = "", platforms: [Platform] = Platform.allCases
     ) {
         self.id = id
         self.displayName = displayName
         self.summary = summary
         self.icon = icon
         self.argumentHint = argumentHint
-        self.isShownOnMobile = isShownOnMobile
+        self.platforms = platforms
     }
 }
 

@@ -82,7 +82,8 @@ final class MobileAppModel {
                 defaults: defaults,
                 forwardingDefaults: forwardingDefaults ?? (inMemory || hosts != nil ? nil : defaults),
                 background: background,
-                workspaceConnections: workspaceConnectionServices
+                workspaceConnections: workspaceConnectionServices,
+                metrics: inMemory || hosts != nil ? .testing : .live
             ))
     }
 
@@ -146,12 +147,20 @@ final class MobileAppModel {
         commandGenerator = CommandGeneratorController(ai: ai)
         skills = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence))
         library = HostLibraryModel(persistence: persistence, secrets: secrets)
-        metrics = MobileMetricsModel(preferences: metricsPersistence, hosts: library)
+        metrics = MobileMetricsModel(preferences: metricsPersistence, hosts: library, services: dependencies.metrics)
+        let speechAudio = IOSSpeechAudioInput()
+        let speech = SpeechTranscriptionCoordinator(
+            service: AppleSpeechTranscriptionService(audioInput: speechAudio)
+        )
+        speechAudio.onInterruption = { [weak speech] in speech?.cancelAll() }
         assistant = MobileAssistantModel(
             configuration: ai,
             repository: SwiftDataAgentRunRepository(context: ModelContext(container)),
-            hosts: library, metrics: metrics.core, skills: skills,
-            authorize: { [pro] in pro.require(.assistant) })
+            hostServices: AgentHostServices.live(store: library), metrics: metrics.core, skills: skills,
+            authorize: { [pro] in pro.require(.assistant) },
+            speech: speech,
+            attachmentLoader: .live
+        )
         credentials = CredentialLibraryModel(library: library)
         snippets = SnippetLibraryModel(library: library)
         knownHosts = KnownHostsLibraryModel(library: library)
@@ -162,26 +171,23 @@ final class MobileAppModel {
         library.didReplacePortForwardings = { [weak forwardings] ids in forwardings?.resumeEnabled(ids) }
         let visibleHostIDs = Set(try self.hosts.snapshot().value.hosts.map(\.id))
         for host in library.hosts where !visibleHostIDs.contains(host.id) { library.projectHostDeletion(host.id) }
-        outbox.register(
-            RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.closeWorkspaces) { [weak self] payload in
+        outbox.registerHostDeletionHandlers(
+            repository: self.hosts,
+            closeWorkspaces: { [weak self] payload in
                 guard let self else { return }
                 for workspace in workspaces.filter({ $0.descriptor.hostID == payload.hostID }) { close(workspace.id) }
                 commandHistory.clear(for: payload.hostID)
                 sftpHistory.clear(for: payload.hostID)
                 library.projectHostDeletion(payload.hostID)
-            })
-        outbox.register(
-            RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.cancelTransfers) { [weak self] payload in
+            },
+            cancelTransfers: { [weak self] payload in
                 guard let self else { return }
                 transfers.cancelAll(for: payload.hostID)
-            })
-        outbox.register(
-            RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.stopForwardings) { [weak forwardings] payload in
+            },
+            stopForwardings: { [weak forwardings] payload in
                 forwardings?.remove(payload.forwardingRuleIDs)
-            })
-        outbox.register(
-            RepositoryHostDeletionHandler(handlerID: HostDeletionOutbox.clearReferences, repository: self.hosts))
-        outbox.register(RepositoryHostDeletionHandler(handlerID: HostDeletionOutbox.finalize, repository: self.hosts))
+            }
+        )
         library.didRecordVaultChanges = { [weak vaultSync] in vaultSync?.noteLocalChanges($0) }
         if let repository = self.hosts as? SwiftDataHostRepository {
             repository.didRecordVaultChanges = { [weak vaultSync] in vaultSync?.noteLocalChanges($0) }
@@ -198,7 +204,7 @@ final class MobileAppModel {
     }
 
     func open(
-        hostID: UUID, kind: MobileWorkspaceDescriptor.Kind,
+        hostID: UUID, kind: ConnectionHistoryEntry.Kind,
         initialPath: String? = nil
     ) -> UUID? {
         guard let host = library.host(hostID) else { return nil }
@@ -332,30 +338,26 @@ final class MobileAppModel {
     }
 
     func applyRemoteVault(_ snapshot: VaultSnapshot, keys: Set<VaultRecordKey>) {
-        let changed = Set(keys.filter { $0.kind == .host }.map(\.id))
-        for id in changed {
-            guard let old = library.host(id) else { continue }
-            let next = snapshot.hosts.first { $0.id == id }
-            let removed = next == nil
-            let routeChanged =
-                next.map {
-                    old.host != $0.host || old.port != $0.port || old.identityID != $0.identityID
-                        || old.jumpHostID != $0.jumpHostID || old.proxy != $0.proxy
-                } ?? true
-            if routeChanged {
-                for workspace in workspaces.filter({ $0.descriptor.hostID == id }) {
-                    if removed { close(workspace.id) } else { workspace.disconnect() }
+        let plan = VaultRemoteChangePlan.make(
+            currentHosts: library.hosts,
+            snapshot: snapshot,
+            changedKeys: keys
+        )
+        for change in plan.hosts {
+            if change.routeChanged {
+                for workspace in workspaces.filter({ $0.descriptor.hostID == change.id }) {
+                    if change.isRemoved { close(workspace.id) } else { workspace.disconnect() }
                 }
-                transfers.cancelAll(for: id)
-                forwardings.suspend(library.portForwardings(for: id).map(\.id))
+                transfers.cancelAll(for: change.id)
+                forwardings.suspend(library.portForwardings(for: change.id).map(\.id))
             }
-            if removed {
-                commandHistory.clear(for: id)
-                sftpHistory.clear(for: id)
-                metrics.remove(id)
+            if change.isRemoved {
+                commandHistory.clear(for: change.id)
+                sftpHistory.clear(for: change.id)
+                metrics.remove(change.id)
             }
         }
-        forwardings.suspend(keys.filter { $0.kind == .portForwarding }.map(\.id))
+        forwardings.suspend(plan.forwardingRuleIDs)
         library.replacePersistedSnapshot(snapshot)
         forwardings.resumeEnabled()
         liveActivities.update(workspaceActivitySessions)
@@ -371,9 +373,9 @@ final class MobileAppModel {
     }
 
     private func makeWorkspace(
-        host: Host, kind: MobileWorkspaceDescriptor.Kind, startup: MobileWorkspaceStartup = .none
+        host: Host, kind: ConnectionHistoryEntry.Kind, startup: MobileWorkspaceStartup = .none
     ) -> MobileWorkspace {
-        connectionHistory.record(kind: kind == .ssh ? .ssh : .sftp, for: host.id)
+        connectionHistory.record(kind: kind, for: host.id)
         let initialCommand: String?
         let recordsInitialCommandInHistory: Bool
         let initialSFTPPath: String?

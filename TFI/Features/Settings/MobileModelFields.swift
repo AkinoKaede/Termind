@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindDomain
 
 struct MobileModelFields: View {
     @Binding var model: AIModel
@@ -100,9 +101,7 @@ struct MobileModelFields: View {
                 isOn: Binding(
                     get: { model.reasoningProfile?.mapping(for: effort).isSupported ?? false },
                     set: { enabled in
-                        let count = model.reasoningProfile?.levels.values.filter(\.isSupported).count ?? 0
-                        guard enabled || count > 1 else { return }
-                        update(effort) { $0.isSupported = enabled }
+                        _ = model.setReasoningEffort(effort, isSupported: enabled)
                     }
                 )
             )
@@ -114,10 +113,10 @@ struct MobileModelFields: View {
                 text: Binding(
                     get: { model.reasoningProfile?.mapping(for: effort).wireValue ?? "" },
                     set: { value in
-                        update(effort) {
-                            $0.wireValue =
-                                value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : value
-                        }
+                        model.setReasoningWireValue(
+                            value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : value,
+                            for: effort
+                        )
                     }
                 )
             )
@@ -130,13 +129,6 @@ struct MobileModelFields: View {
         }
     }
 
-    private func update(_ effort: ReasoningEffort, change: (inout ReasoningLevelMapping) -> Void) {
-        var profile = model.reasoningProfile ?? ReasoningProfile()
-        var mapping = profile.mapping(for: effort)
-        change(&mapping)
-        profile.levels[effort] = mapping
-        model.reasoningProfile = profile
-    }
 }
 
 private struct MobileCheckboxToggleStyle: ToggleStyle {

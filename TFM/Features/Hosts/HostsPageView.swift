@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 
@@ -49,19 +50,6 @@ final class HostsPageState {
 /// connects. Nothing outside this page acts on that selection — ⌘T raises the
 /// host chooser rather than reusing whatever is highlighted here.
 struct HostsPageView: ManagedCardPage {
-    nonisolated enum SectionID: Hashable {
-        case results
-        case group(HostGroup.ID)
-        case ungrouped
-
-        var groupID: HostGroup.ID? {
-            switch self {
-            case .group(let id): id
-            case .results, .ungrouped: nil
-            }
-        }
-    }
-
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
@@ -84,82 +72,23 @@ struct HostsPageView: ManagedCardPage {
 
     // MARK: - Sections
 
-    private struct Section {
-        let id: SectionID
-        let title: String
-        /// `nil` means the section cannot be folded at all — which is only
-        /// Results, since folding away what you just searched for is not a thing
-        /// anyone wants.
-        var isExpanded: Bool?
-        let hosts: [Host]
-    }
-
     private var isFiltering: Bool { !state.query.isEmpty || !state.selectedTags.isEmpty }
 
     /// Filtering collapses the grouping into one "Results" section: when you are
     /// hunting for a name, being told which folder it sits in is noise. Tags
     /// narrow the same way — and stack with the field, so `prod` plus "web"
     /// means both.
-    private var sections: [Section] {
-        guard !isFiltering else {
-            let matches = app.hostLibrary.searchHosts(state.query).filter {
-                $0.hasTags(state.selectedTags)
-            }
-            guard !matches.isEmpty else { return [] }
-            return [Section(id: .results, title: String(localized: "Results"), hosts: matches)]
-        }
-
-        var result: [Section] = []
-
-        // Nested groups are flattened into "Parent / Child" headers, so the tree
-        // reads in a grid that has no room to indent.
-        //
-        // Collapsing a group therefore has to stop the recursion, not just hide
-        // one grid: `Production / Edge` is a sibling row in this list, and
-        // leaving it behind when Production folds would strand a child header
-        // under a parent that is no longer showing anything.
-        //
-        // Empty groups get a header too, with a count of zero. This is the page
-        // that creates groups, and one that vanished the moment it was made
-        // would read as a button that did nothing.
-        func walk(_ group: HostGroup, prefix: String) {
-            let title = prefix.isEmpty ? group.name : "\(prefix) / \(group.name)"
-            result.append(
-                Section(
-                    id: .group(group.id), title: title,
-                    isExpanded: group.isExpanded,
-                    hosts: app.hostLibrary.hosts(in: group.id)
-                )
-            )
-            guard group.isExpanded else { return }
-            for child in app.hostLibrary.childGroups(of: group.id) {
-                walk(child, prefix: title)
-            }
-        }
-        for group in app.hostLibrary.rootGroups {
-            walk(group, prefix: "")
-        }
-
-        let ungrouped = app.hostLibrary.hosts(in: nil)
-        if !ungrouped.isEmpty || !app.hostLibrary.groups.isEmpty {
-            // Foldable like a real group, because on a fleet that is mostly
-            // unfiled it is the section most worth getting out of the way. Its
-            // flag has to live on the store instead of on a `HostGroup` — there
-            // is no group here to hang it on.
-            result.append(
-                Section(
-                    id: .ungrouped, title: String(localized: "Ungrouped"),
-                    isExpanded: app.hostLibrary.isUngroupedExpanded, hosts: ungrouped
-                )
-            )
-        }
-
-        return result
+    private var sections: [HostLibrarySection] {
+        HostLibrarySectionLayout.sections(
+            library: app.hostLibrary,
+            query: state.query,
+            selectedTags: state.selectedTags
+        )
     }
 
     // MARK: - Page
 
-    var managedSections: [ManagedCardSection<SectionID, Host>] {
+    var managedSections: [ManagedCardSection<HostLibrarySection.ID, Host>] {
         sections.map { section in
             ManagedCardSection(
                 id: section.id, title: section.title, items: section.hosts,
@@ -173,7 +102,7 @@ struct HostsPageView: ManagedCardPage {
         ManagedCardSelection(selected: { hostSelection }, update: setHostSelection)
     }
 
-    var managedCapabilities: ManagedCardCapabilities<SectionID, Host.ID> {
+    var managedCapabilities: ManagedCardCapabilities<HostLibrarySection.ID, Host.ID> {
         ManagedCardCapabilities(
             selection: .multiple,
             marqueeSelection: true,
@@ -192,7 +121,7 @@ struct HostsPageView: ManagedCardPage {
 
     @ViewBuilder
     func managedHeader(
-        for section: ManagedCardSection<SectionID, Host>, isDropTarget: Bool
+        for section: ManagedCardSection<HostLibrarySection.ID, Host>, isDropTarget: Bool
     ) -> some View {
         if case .group(let groupID) = section.id, let group = app.hostLibrary.group(groupID) {
             CardSectionHeader(
@@ -244,7 +173,7 @@ struct HostsPageView: ManagedCardPage {
     /// tag filter live now that the dashed tiles and the page toolbar are gone.
     /// Right-clicking inside a group files the new host there without a second
     /// decision.
-    func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
+    func managedBlankAreaMenu(for section: HostLibrarySection.ID?) -> [NativeMenuEntry] {
         let groupID = section?.groupID
         return [
             NativeMenuEntry(title: String(localized: "New Host"), symbol: MenuSymbol.newHost) {

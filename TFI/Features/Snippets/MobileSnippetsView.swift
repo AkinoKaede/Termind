@@ -1,49 +1,11 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host
 
-nonisolated enum MobileSnippetExecutionDecision: Equatable {
-    case chooseHosts
-    case confirmDestructive([Host.ID])
-    case execute([Host.ID])
-}
-
-nonisolated enum MobileSnippetOperations {
-    static func duplicate(_ snippet: Snippet) -> Snippet {
-        var copy = snippet
-        copy.id = UUID()
-        copy.title = String(localized: "\(snippet.title) Copy")
-        copy.sortIndex = 0
-        return copy
-    }
-
-    static func executionDecision(
-        for snippet: Snippet, hostIDs: [Host.ID], requiresHostSelection: Bool
-    ) -> MobileSnippetExecutionDecision {
-        if requiresHostSelection || hostIDs.isEmpty { return .chooseHosts }
-        if CommandRiskClassifier.assess(snippet.body).requiresSecondConfirmation {
-            return .confirmDestructive(hostIDs)
-        }
-        return .execute(hostIDs)
-    }
-}
-
 struct MobileSnippetsView: View {
     @Environment(\.locale) private var locale
-
-    private enum SectionID: Hashable {
-        case results
-        case package(SnippetPackage.ID)
-        case ungrouped
-    }
-
-    private struct SnippetSection: Identifiable {
-        let id: SectionID
-        let title: String
-        let snippets: [Snippet]
-        let isExpanded: Bool?
-    }
 
     private struct SnippetEditorRequest: Identifiable {
         let id = UUID()
@@ -88,40 +50,8 @@ struct MobileSnippetsView: View {
         _query = State(initialValue: initialQuery)
     }
 
-    private var sections: [SnippetSection] {
-        if !query.isEmpty {
-            let matches = app.snippets.searchSnippets(query)
-            return matches.isEmpty
-                ? []
-                : [
-                    SnippetSection(
-                        id: .results, title: String(localized: "Results"), snippets: matches,
-                        isExpanded: nil)
-                ]
-        }
-
-        var result: [SnippetSection] = []
-        func append(_ package: SnippetPackage, prefix: String) {
-            let path = prefix.isEmpty ? package.name : "\(prefix) / \(package.name)"
-            result.append(
-                SnippetSection(
-                    id: .package(package.id), title: path,
-                    snippets: app.snippets.snippets(in: package.id), isExpanded: package.isExpanded))
-            guard package.isExpanded else { return }
-            for child in app.snippets.childSnippetPackages(of: package.id) {
-                append(child, prefix: path)
-            }
-        }
-        for package in app.snippets.rootSnippetPackages { append(package, prefix: "") }
-
-        let ungrouped = app.snippets.snippets(in: nil)
-        if !ungrouped.isEmpty || !app.snippets.snippetPackages.isEmpty {
-            result.append(
-                SnippetSection(
-                    id: .ungrouped, title: String(localized: "Ungrouped"), snippets: ungrouped,
-                    isExpanded: app.snippets.isSnippetsUngroupedExpanded))
-        }
-        return result
+    private var sections: [SnippetLibrarySection] {
+        SnippetLibrarySectionLayout.sections(library: app.snippets, query: query)
     }
 
     var body: some View {
@@ -262,7 +192,7 @@ struct MobileSnippetsView: View {
         }
     }
 
-    private func sectionHeader(_ section: SnippetSection) -> some View {
+    private func sectionHeader(_ section: SnippetLibrarySection) -> some View {
         HStack(spacing: 8) {
             if let isExpanded = section.isExpanded {
                 Button {
@@ -363,7 +293,7 @@ struct MobileSnippetsView: View {
         }
     }
 
-    private func toggle(_ section: SnippetSection, expanded: Bool) {
+    private func toggle(_ section: SnippetLibrarySection, expanded: Bool) {
         switch section.id {
         case .package(let id): app.snippets.setSnippetPackageExpanded(expanded, for: id)
         case .ungrouped: app.snippets.setSnippetsUngroupedExpanded(expanded)
@@ -377,7 +307,7 @@ struct MobileSnippetsView: View {
 
     private func duplicate(_ id: Snippet.ID) {
         guard let snippet = snippet(id) else { return }
-        let copy = MobileSnippetOperations.duplicate(snippet)
+        let copy = snippet.duplicated()
         app.snippets.upsert(copy)
         reportStorageError()
         selectedSnippetID = copy.id

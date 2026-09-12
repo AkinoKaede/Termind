@@ -113,7 +113,7 @@ final class AppModel {
     /// Commands that outlived the turn that started them. App-wide rather than
     /// per-run, because a handle taken in one turn is answered in a later one
     /// and a run ending is not a reason to stop a deploy.
-    private let agentBackgroundCommands = AgentBackgroundCommands()
+    private let agentBackgroundCommands: AgentBackgroundCommands
     private let outboxRunner: OutboxRunner?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
     private var deletedAgentConversationIDs = Set<UUID>()
@@ -166,15 +166,11 @@ final class AppModel {
         connections = connectionCoordinator
         serialPorts = dependencies.serialPortService
         agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
-        agentHosts = AgentHostResolver(store: hosts)
-        let agentHostResolver = agentHosts
-        agentAuthentication = AgentSSHAuthenticationRegistry(resolver: agentHostResolver)
-        agentConnections = AgentConnectionPool(
-            configuration: { try await agentHostResolver.configuration(for: $0) },
-            routeFingerprint: { try await agentHostResolver.routeFingerprint(for: $0) },
-            openExec: { try await connectionCoordinator.connectExec(using: $0) },
-            openSFTP: { try await connectionCoordinator.connectSFTP(using: $0) }
-        )
+        let agentHostServices = AgentHostServices.live(store: hosts, coordinator: connectionCoordinator)
+        agentHosts = agentHostServices.resolver
+        agentAuthentication = agentHostServices.authentication
+        agentConnections = agentHostServices.connections
+        agentBackgroundCommands = agentHostServices.background
         hostRepository = dependencies.hostRepository
         vaultSync = dependencies.vaultSync
         settingsSync = dependencies.settingsSync
@@ -235,35 +231,17 @@ final class AppModel {
             }
         }
         if let outboxRunner {
-            outboxRunner.register(
-                RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.closeWorkspaces) {
-                    [weak self] deletion in
+            outboxRunner.registerHostDeletionHandlers(
+                repository: hostRepository,
+                closeWorkspaces: { [weak self] deletion in
                     self?.closeWorkspaces(for: deletion.hostID)
-                }
-            )
-            outboxRunner.register(
-                RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.cancelTransfers) {
-                    [weak self] deletion in
+                },
+                cancelTransfers: { [weak self] deletion in
                     self?.sftpTransfers.cancelAll(for: deletion.hostID)
-                }
-            )
-            outboxRunner.register(
-                RuntimeHostDeletionHandler(handlerID: HostDeletionOutbox.stopForwardings) {
-                    [weak self] deletion in
+                },
+                stopForwardings: { [weak self] deletion in
                     self?.forwarding.remove(deletion.forwardingRuleIDs)
                 }
-            )
-            outboxRunner.register(
-                RepositoryHostDeletionHandler(
-                    handlerID: HostDeletionOutbox.clearReferences,
-                    repository: hostRepository
-                )
-            )
-            outboxRunner.register(
-                RepositoryHostDeletionHandler(
-                    handlerID: HostDeletionOutbox.finalize,
-                    repository: hostRepository
-                )
             )
             outboxRunner.start()
         }
@@ -307,33 +285,24 @@ final class AppModel {
     private func applyRemoteVaultSnapshot(
         _ snapshot: VaultSnapshot, changedKeys: Set<VaultRecordKey>
     ) {
-        let changedHostIDs = Set(changedKeys.filter { $0.kind == .host }.map(\.id))
-        let changedRuleIDs = Set(changedKeys.filter { $0.kind == .portForwarding }.map(\.id))
-        let nextHostIDs = Set(snapshot.hosts.map(\.id))
-
-        for hostID in changedHostIDs {
-            let oldHost = hosts.host(hostID)
-            let newHost = snapshot.hosts.first { $0.id == hostID }
-            let routeChanged =
-                oldHost.map { old in
-                    newHost.map {
-                        old.host != $0.host || old.port != $0.port
-                            || old.identityID != $0.identityID || old.jumpHostID != $0.jumpHostID
-                            || old.proxy != $0.proxy
-                    } ?? true
-                } ?? false
-            if routeChanged {
-                hosts.willDeleteHost?(hostID, hosts.portForwardings(for: hostID).map(\.id))
+        let plan = VaultRemoteChangePlan.make(
+            currentHosts: hosts.hosts,
+            snapshot: snapshot,
+            changedKeys: changedKeys
+        )
+        for change in plan.hosts {
+            if change.routeChanged {
+                hosts.willDeleteHost?(change.id, hosts.portForwardings(for: change.id).map(\.id))
             }
-            if oldHost != nil, !nextHostIDs.contains(hostID) {
-                closeWorkspaces(for: hostID)
-                sftpTransfers.cancelAll(for: hostID)
-                commandHistory.clear(for: hostID)
-                sftpHistory.clear(for: hostID)
-                connectionHistory.clear(for: hostID)
+            if change.isRemoved {
+                closeWorkspaces(for: change.id)
+                sftpTransfers.cancelAll(for: change.id)
+                commandHistory.clear(for: change.id)
+                sftpHistory.clear(for: change.id)
+                connectionHistory.clear(for: change.id)
             }
         }
-        if !changedRuleIDs.isEmpty { forwarding.suspend(Array(changedRuleIDs)) }
+        if !plan.forwardingRuleIDs.isEmpty { forwarding.suspend(plan.forwardingRuleIDs) }
         hosts.replacePersistedSnapshot(snapshot)
         forwarding.resumeEnabled()
     }

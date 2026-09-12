@@ -40,3 +40,40 @@ public final class RuntimeHostDeletionHandler: OutboxEventHandler {
         action(try JSONDecoder().decode(HostDeletionPayload.self, from: payload))
     }
 }
+
+extension OutboxRunner {
+    /// Registers the ordered host-deletion saga shared by both app shells.
+    /// Runtime cleanup stays injected; repository cleanup keeps its durable IDs.
+    public func registerHostDeletionHandlers(
+        repository: any HostRepository,
+        closeWorkspaces: @escaping (HostDeletionPayload) -> Void,
+        cancelTransfers: @escaping (HostDeletionPayload) -> Void,
+        stopForwardings: @escaping (HostDeletionPayload) -> Void
+    ) {
+        register(
+            RuntimeHostDeletionHandler(
+                handlerID: HostDeletionOutbox.closeWorkspaces,
+                action: closeWorkspaces
+            ))
+        register(
+            RuntimeHostDeletionHandler(
+                handlerID: HostDeletionOutbox.cancelTransfers,
+                action: cancelTransfers
+            ))
+        register(
+            RuntimeHostDeletionHandler(
+                handlerID: HostDeletionOutbox.stopForwardings,
+                action: stopForwardings
+            ))
+        register(
+            RepositoryHostDeletionHandler(
+                handlerID: HostDeletionOutbox.clearReferences,
+                repository: repository
+            ))
+        register(
+            RepositoryHostDeletionHandler(
+                handlerID: HostDeletionOutbox.finalize,
+                repository: repository
+            ))
+    }
+}

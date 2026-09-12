@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 struct MobileSyncSettingsView: View {
     let app: MobileAppModel
@@ -57,27 +58,14 @@ struct MobileSyncSettingsView: View {
         -> some View
     {
         if let value {
+            VaultSyncStatusLabel(status: value)
             switch value {
-            case .checkingAccount: Label("Checking iCloud…", systemImage: "icloud")
-            case .paused: Label("Paused", systemImage: "pause.circle")
-            case .unavailable(let message): Text(message)
             case .accountChangeConfirmationRequired:
-                Text("Waiting for confirmation")
                 Button("Merge with This iCloud Account", systemImage: "icloud", action: merge)
-            case .syncing(let count): Text("Syncing \(count) changes…")
-            case .upToDate(let date):
-                HStack {
-                    Label("Up to date", systemImage: "checkmark.icloud")
-                    Spacer(minLength: 8)
-                    if let date {
-                        Text(date, format: .dateTime.year().month().day().hour().minute())
-                            .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
-                    }
-                }
-                .accessibilityElement(children: .combine)
-            case .failed(let message):
-                Text(message).foregroundStyle(.red)
+            case .failed:
                 Button("Retry", systemImage: "arrow.clockwise", action: retry)
+            default:
+                EmptyView()
             }
         }
     }

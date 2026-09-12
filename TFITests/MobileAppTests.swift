@@ -14,11 +14,18 @@ import UIKit
 
 @Suite @MainActor
 struct MobileAppTests {
+    private final class MetricsPreferences: MetricsConfigurationStoring {
+        var values: [MetricsSelection] = []
+        func load() -> [MetricsSelection] { values }
+        func save(_ selections: [MetricsSelection]) { values = selections }
+    }
+
     @Test func startupUsesTheSharedSchemaAndEmptyRepository() throws {
         let app = try MobileAppModel(inMemory: true)
         #expect(try app.hosts.snapshot().value == .empty)
         #expect(Set(app.container.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
-        #expect(MobileTab.allCases == [.vault, .workspaces, .assistant, .settings])
+        let features = MobileFeatureRegistry.standard()
+        #expect(features.registrations(on: .phoneTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
     }
 
     @Test func scenesCanUseTheSameAppRepository() throws {
@@ -104,7 +111,8 @@ struct MobileWorkspaceTests {
         let library = HostLibraryModel()
         let hosts = (0..<5).map { TermindDomain.Host(name: "Host \($0)", host: "example.invalid") }
         for host in hosts { library.upsert(host) }
-        let metrics = MobileMetricsModel(defaults: nil, hosts: library)
+        let metrics = MobileMetricsModel(
+            preferences: MetricsPreferences(), hosts: library, services: .testing)
         metrics.pause()
         #expect(metrics.add(hosts[0].id, pro: false))
         #expect(metrics.add(hosts[0].id, pro: false))

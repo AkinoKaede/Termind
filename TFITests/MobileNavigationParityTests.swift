@@ -17,8 +17,9 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"), encoding: .utf8)
         let workRows = try String(
             contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantWorkRow.swift"), encoding: .utf8)
-        let mobileRoot = try String(
-            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
+        let workspaceList = try String(
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceListView.swift"),
+            encoding: .utf8)
         let currentConversationMenu = try #require(
             assistant.components(separatedBy: ".toolbar {").dropFirst().first?
                 .components(separatedBy: ".navigationDestination").first)
@@ -32,8 +33,8 @@ struct MobileNavigationParityTests {
             assistant.components(separatedBy: "private func conversationRow").last?
                 .components(separatedBy: "private func select").first)
         let workspaceRows = try #require(
-            mobileRoot.components(separatedBy: "@ViewBuilder private var workspaceRows").last?
-                .components(separatedBy: "private func workspaceStatusTint").first)
+            workspaceList.components(separatedBy: "private var workspaceRows").last?
+                .components(separatedBy: "private func statusTint").first)
 
         #expect(assistant.contains(".toolbarTitleMenu"))
         #expect(assistant.contains("@Binding var libraryRoute: MobileAssistantLibraryRoute?"))
@@ -263,7 +264,7 @@ struct MobileNavigationParityTests {
         #expect(composer.contains("get: { resolvedModelRef }"))
         #expect(!composer.contains("Text(\"Automatic\")"))
         #expect(!composer.contains("private var controls:"))
-        #expect(composer.contains("commands.filter(\\.isShownOnMobile).sorted"))
+        #expect(composer.contains("slashRegistry.commands(in: slashContext)"))
         #expect(composer.contains(".onSubmit(submitFromKeyboard)"))
         #expect(composer.contains(".onKeyPress(.escape"))
         let badges = try #require(
@@ -316,8 +317,12 @@ struct MobileNavigationParityTests {
     }
 
     @Test func vaultReplacesWelcomeAndMetricsRemainsBelowItOnIPad() {
-        #expect(MobileTab.allCases == [.vault, .workspaces, .assistant, .settings])
-        #expect(MobileDestination.allCases == [.vault, .metrics, .workspaces, .assistant, .settings])
+        let features = MobileFeatureRegistry.standard()
+        #expect(features.registrations(on: .phoneTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
+        #expect(
+            features.registrations(on: .padSidebar).map(\.id)
+                == [.vault, .metrics, .workspaces, .assistant, .settings]
+        )
     }
 
     @Test func aiSettingsUseThreeNativeManagementPages() {
@@ -337,14 +342,12 @@ struct MobileNavigationParityTests {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let rootSource = try String(
-            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
+        let registrySource = try String(
+            contentsOf: root.appending(path: "TFI/App/MobileFeatureRegistry.swift"), encoding: .utf8)
         let vaultSource = try String(
             contentsOf: root.appending(path: "TFI/Features/Vault/MobileVaultView.swift"), encoding: .utf8)
 
-        #expect(rootSource.contains("NavigationStack { vault }"))
-        #expect(rootSource.contains("case .vault: sidebarVault"))
-        #expect(rootSource.contains("open: scene.open, showsMetrics: false"))
+        #expect(registrySource.contains("showsMetrics: surface == .phoneTab"))
         #expect(vaultSource.contains("guard showsMetrics else { return [] }"))
         #expect(vaultSource.contains("if showsMetrics {"))
     }
@@ -426,11 +429,11 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let workspaceList = try String(
-            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceListView.swift"),
+            encoding: .utf8)
         #expect(workspaceList.contains(".contextMenu {"))
-        #expect(
-            workspaceList.contains(
-                "Button(\"Close\", systemImage: \"xmark\", role: .destructive) { scene.closeWorkspace(workspace.id) }"))
+        #expect(workspaceList.contains("Button(\"Close\", systemImage: \"xmark\", role: .destructive)"))
+        #expect(workspaceList.contains("scene.closeWorkspace(workspace.id)"))
 
         let toolbar = try String(
             contentsOf: root.appending(path: "TFI/Features/HostChooser/MobileConnectionPicker.swift"), encoding: .utf8)
@@ -530,13 +533,14 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/Vault/MobileVaultView.swift"), encoding: .utf8)
         #expect(vault.contains("MobileCardPage {"))
         #expect(!vault.contains("List {"))
-        #expect(vault.contains("app.library.setExpanded(!section.isExpanded, for: id)"))
-        #expect(vault.contains("app.library.setUngroupedExpanded(!section.isExpanded)"))
+        #expect(vault.contains("app.library.setExpanded(!isExpanded, for: id)"))
+        #expect(vault.contains("app.library.setUngroupedExpanded(!isExpanded)"))
 
-        let rootView = try String(
-            contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
-        #expect(rootView.contains("ContentUnavailableView(\n                \"No Workspaces\""))
-        #expect(rootView.contains(".buttonStyle(.plain)"))
+        let workspaceList = try String(
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceListView.swift"),
+            encoding: .utf8)
+        #expect(workspaceList.contains("ContentUnavailableView(\n                \"No Workspaces\""))
+        #expect(workspaceList.contains(".buttonStyle(.plain)"))
 
         let pro = try String(
             contentsOf: root.appending(path: "TFI/Features/Commerce/MobileProView.swift"), encoding: .utf8)
@@ -610,6 +614,9 @@ struct MobileNavigationParityTests {
             .deletingLastPathComponent()
         let workspace = try String(
             contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"), encoding: .utf8)
+        let workspaceList = try String(
+            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceListView.swift"),
+            encoding: .utf8)
         let rootView = try String(
             contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         let sameDirectoryAction = try #require(
@@ -625,7 +632,7 @@ struct MobileNavigationParityTests {
             workspace.components(
                 separatedBy: "Button(\"Rename\", systemImage: \"pencil\") { renameWorkspace(workspace) }"
             ).count == 3)
-        #expect(rootView.contains("Button(\"Rename\", systemImage: \"pencil\")"))
+        #expect(workspaceList.contains("Button(\"Rename\", systemImage: \"pencil\")"))
         #expect(rootView.contains("MobileWorkspaceRenameView(workspace: workspace)"))
     }
 

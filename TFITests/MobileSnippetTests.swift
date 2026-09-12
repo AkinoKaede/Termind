@@ -98,7 +98,7 @@ struct MobileSnippetTests {
             title: "Deploy", body: "deploy --safe", packageID: packageID,
             targetHostIDs: [hostID], sortIndex: 42)
 
-        let copy = MobileSnippetOperations.duplicate(original)
+        let copy = original.duplicated()
 
         #expect(copy.id != original.id)
         #expect(copy.title == "Deploy Copy")

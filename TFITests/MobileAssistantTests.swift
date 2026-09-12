@@ -231,7 +231,7 @@ struct MobileAssistantTests {
                     $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
                 }
         )
-        #expect(!commands.contains { !$0.isShownOnMobile })
+        #expect(commands.allSatisfy { $0.platforms.contains(.mobile) })
         #expect(!first.summary.isEmpty)
     }
 

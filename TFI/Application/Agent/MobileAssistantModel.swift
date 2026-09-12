@@ -3,7 +3,6 @@ import Foundation
 import Observation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindRemoteInfrastructure
 
 /// Application-owned runs, with navigation and drafts independent of each run.
@@ -21,6 +20,7 @@ final class MobileAssistantModel {
     private let execution: AssistantExecutionController
     private let connections: AgentConnectionPool
     private let background: AgentBackgroundCommands
+    private let attachmentLoader: ContextAttachmentLoading
     private var suspensionTask: Task<Void, Never>?
     private var loaded = false
     private(set) var isSuspending = false
@@ -31,41 +31,24 @@ final class MobileAssistantModel {
 
     init(
         configuration: AIConfigurationModel, repository: any AgentRunPersisting,
-        hosts: HostLibraryModel, metrics: any MetricsSnapshotReading, skills: SkillLibraryModel,
+        hostServices: AgentHostServices, metrics: any MetricsSnapshotReading, skills: SkillLibraryModel,
         authorize: @escaping @MainActor () -> Bool,
-        speech: SpeechTranscriptionCoordinator? = nil
+        speech: SpeechTranscriptionCoordinator,
+        attachmentLoader: ContextAttachmentLoading
     ) {
         self.authorize = authorize
         self.configuration = configuration
         self.repository = repository
         self.skills = skills
+        self.speech = speech
+        self.attachmentLoader = attachmentLoader
         library = AssistantLibraryModel(store: store)
         operations = AssistantConversationOperations(repository: repository)
-        let audio = IOSSpeechAudioInput()
-        let coordinator =
-            speech ?? SpeechTranscriptionCoordinator(service: AppleSpeechTranscriptionService(audioInput: audio))
-        self.speech = coordinator
-        audio.onInterruption = { [weak coordinator] in coordinator?.cancelAll() }
-        let resolver = AgentHostResolver(store: hosts)
-        let connections = AgentConnectionPool(
-            configuration: { try await resolver.configuration(for: $0) },
-            routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
-            openExec: { request in
-                let session = SSHExecSession()
-                try await session.connect(using: request)
-                return session
-            },
-            openSFTP: { request in
-                let client = SFTPClient()
-                try await client.connect(
-                    using: request, progress: nil,
-                    connectionFailure: nil
-                )
-                return client
-            })
+        let resolver = hostServices.resolver
+        let connections = hostServices.connections
+        let authentication = hostServices.authentication
+        let background = hostServices.background
         self.connections = connections
-        let authentication = AgentSSHAuthenticationRegistry(resolver: resolver)
-        let background = AgentBackgroundCommands()
         self.background = background
         let titles = ConversationTitleController(ai: configuration)
         execution = AssistantExecutionController(
@@ -92,7 +75,7 @@ final class MobileAssistantModel {
         }
     }
 
-    private func configure(_ conversation: ConversationModel) { conversation.attachmentLoader = .live }
+    private func configure(_ conversation: ConversationModel) { conversation.attachmentLoader = attachmentLoader }
 
     func select(_ conversation: ConversationModel) {
         speech.cancelAll()

@@ -3,6 +3,7 @@ import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -1284,7 +1285,7 @@ private struct CommandHistoryCard: View {
             symbol: nil,
             title: entry.command,
             titleIsMonospaced: true,
-            subtitle: subtitle,
+            subtitle: CommandHistoryPresentation.subtitle(for: entry, locale: locale),
             subtitleIsMonospaced: false,
             isSelected: isSelected
         ) {
@@ -1312,28 +1313,6 @@ private struct CommandHistoryCard: View {
         .help(Text(entry.command))
     }
 
-    private var subtitle: String {
-        var parts = [
-            entry.executedAt.formatted(
-                .relative(presentation: .numeric).locale(locale)
-            )
-        ]
-        if let duration = entry.duration,
-            let formatted = formattedDuration(duration)
-        {
-            parts.append(formatted)
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    private func formattedDuration(_ duration: TimeInterval) -> String? {
-        let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .abbreviated
-        formatter.maximumUnitCount = 2
-        formatter.allowedUnits =
-            duration < 60 ? [.second] : [.hour, .minute, .second]
-        return formatter.string(from: max(0, duration))
-    }
 }
 
 /// A native borderless field whose editor remains transparent inside a Sidebar

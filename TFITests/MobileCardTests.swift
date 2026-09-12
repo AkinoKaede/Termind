@@ -61,7 +61,7 @@ struct MobileCardTests {
         app.library.upsert(childHost)
         app.library.upsert(ungroupedHost)
 
-        let expanded = MobileHostSectionLayout.sections(library: app.library)
+        let expanded = HostLibrarySectionLayout.sections(library: app.library)
         #expect(
             expanded.map(\.id)
                 == [.group(root.id), .group(child.id), .group(empty.id), .ungrouped])
@@ -69,13 +69,13 @@ struct MobileCardTests {
         #expect(expanded.first(where: { $0.id == .group(empty.id) })?.hosts.isEmpty == true)
 
         app.library.setExpanded(false, for: root.id)
-        let collapsed = MobileHostSectionLayout.sections(library: app.library)
+        let collapsed = HostLibrarySectionLayout.sections(library: app.library)
         #expect(collapsed.map(\.id) == [.group(root.id), .group(empty.id), .ungrouped])
         #expect(app.library.searchHosts("Child Node").map(\.id) == [childHost.id])
 
         app.library.setUngroupedExpanded(false)
         #expect(
-            MobileHostSectionLayout.sections(library: app.library)
+            HostLibrarySectionLayout.sections(library: app.library)
                 .first(where: { $0.id == .ungrouped })?.isExpanded == false)
 
         let stored = try HostPersistence(context: ModelContext(app.container)).load()

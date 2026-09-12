@@ -140,6 +140,9 @@ The additive seams are:
 
 - `AgentToolCatalog.registry(builtIn:additional:)`: AgentKit groups first, then
   `TermindAgentTools`; Termind and remote MCP tools cannot shadow built-ins.
+- `ChatSlashCommandRegistry`: one registration owns a command's platforms,
+  availability, options, current-value presentation, and execution. Desktop and
+  mobile composers inject only host navigation, compaction, send, and access actions.
 - `AgentToolServices`: typed host services, including `AgentSSHInteraction`, keep
   credentials and host-key prompts outside AgentKit events and durable history.
 - `TermindAgentPolicy`: Termind's prompt, plan contract, and `ssh_exec` decision;
@@ -357,6 +360,24 @@ local-path paste, while text and web links keep Ghostty's behavior. Leaving the
 destination restores the original interaction and clears targeting. File-provider
 representations are copied within their callbacks into app-owned staging before
 upload preparation; queued transfers retain those files after navigation away.
+
+Mobile top-level destinations are registered in `MobileFeatureRegistry`. A
+registration owns stable identity, label, symbol, phone/iPad placement, ordering,
+and its destination factory. The root shell renders that catalog and does not
+maintain separate tab, sidebar, and destination switches. Registries are injected
+values rather than global singletons, and duplicate feature IDs fail immediately.
+
+Mobile Workspace descriptors use Domain's `ConnectionHistoryEntry.Kind` as the
+single SSH/SFTP kind vocabulary. Host Picker and Snippet operation state live in
+the mobile Application layer rather than beside their views. Live Metrics samplers
+enter through `MobileMetricsServices`, while both app shells obtain Agent host
+resolution, authentication, connections, and background commands from the shared
+Remote Infrastructure `AgentHostServices` composition.
+
+Application derives flattened Host and Snippet sections once for both platforms.
+Presentation owns the shared command-history subtitle, Vault sync status label,
+and the exported SFTP drag type. App targets retain native card/list composition,
+selection, menus, and clipboard behavior.
 
 
 ### Assistant transcript presentation parity (2026-09-12)

@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindDomain
 
 /// A provider's full-width models page: a checkable list and details for the
 /// selected row.
@@ -499,18 +500,15 @@ struct ModelListEditor: View {
         let mapping =
             model.reasoningProfile?.mapping(for: effort)
             ?? ReasoningLevelMapping(isSupported: false)
-        let supportedCount = model.reasoningProfile?.levels.values.filter(\.isSupported).count ?? 0
-
         return HStack(spacing: Metrics.Space.s) {
             Toggle(
                 effort.displayName,
                 isOn: Binding(
                     get: { mapping.isSupported },
                     set: { enabled in
-                        guard enabled || supportedCount > 1 else { return }
-                        updateReasoningMapping(model, effort: effort) {
-                            $0.isSupported = enabled
-                        }
+                        var updated = model
+                        guard updated.setReasoningEffort(effort, isSupported: enabled) else { return }
+                        app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 )
             )
@@ -522,10 +520,10 @@ struct ModelListEditor: View {
                 text: Binding(
                     get: { mapping.wireValue ?? "" },
                     set: { value in
-                        updateReasoningMapping(model, effort: effort) {
-                            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-                            $0.wireValue = trimmed.isEmpty ? nil : value
-                        }
+                        var updated = model
+                        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                        updated.setReasoningWireValue(trimmed.isEmpty ? nil : value, for: effort)
+                        app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 )
             )
@@ -533,20 +531,6 @@ struct ModelListEditor: View {
             .disabled(!mapping.isSupported)
             .accessibilityLabel(Text("\(effort.displayName) provider value"))
         }
-    }
-
-    private func updateReasoningMapping(
-        _ model: AIModel,
-        effort: ReasoningEffort,
-        update: (inout ReasoningLevelMapping) -> Void
-    ) {
-        var model = model
-        var profile = model.reasoningProfile ?? ReasoningProfile()
-        var mapping = profile.mapping(for: effort)
-        update(&mapping)
-        profile.levels[effort] = mapping
-        model.reasoningProfile = profile
-        app.aiConfiguration.updateModel(model, in: modelProviderID)
     }
 
     private func limitField(
@@ -739,14 +723,6 @@ struct ModelListEditor: View {
             case .failed: "exclamationmark.triangle.fill"
             }
         }
-    }
-}
-
-extension AIModel {
-    fileprivate var withoutReasoningOverride: AIModel {
-        var copy = self
-        copy.reasoningProfile = nil
-        return copy
     }
 }
 

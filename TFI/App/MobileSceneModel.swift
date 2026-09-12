@@ -26,23 +26,15 @@ final class MobileSceneModel {
         self.app = app
     }
 
-    var selectedTab: MobileTab {
+    var selectedTab: MobileDestination {
         get {
             switch selectedDestination {
-            case .workspaces: .workspaces
-            case .assistant: .assistant
-            case .settings: .settings
+            case .workspaces, .assistant, .settings:
+                selectedDestination ?? .vault
             case .vault, .metrics, nil: .vault
             }
         }
-        set {
-            switch newValue {
-            case .vault: selectedDestination = .vault
-            case .workspaces: selectedDestination = .workspaces
-            case .assistant: selectedDestination = .assistant
-            case .settings: selectedDestination = .settings
-            }
-        }
+        set { selectedDestination = newValue }
     }
 
     var activeWorkspace: MobileWorkspace? {
@@ -76,7 +68,7 @@ final class MobileSceneModel {
         editingHost = Host(name: "", host: "")
     }
 
-    func open(hostID: Host.ID, kind: MobileWorkspaceDescriptor.Kind) {
+    func open(hostID: Host.ID, kind: ConnectionHistoryEntry.Kind) {
         guard let id = app.open(hostID: hostID, kind: kind) else { return }
         selectWorkspace(id)
     }

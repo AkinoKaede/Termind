@@ -466,6 +466,7 @@ struct ComposerView: View {
     @State private var slashSelection = 0
     @State private var slashScrollRequest = 0
     @State private var slashMenuHeight: CGFloat = 0
+    private let slashRegistry = ChatSlashCommandRegistry.standard()
     /// Escape closes the palette without clearing the draft, so the draft alone
     /// cannot decide whether it is open.
     @State private var isSlashMenuDismissed = false
@@ -966,150 +967,29 @@ struct ComposerView: View {
 
     // MARK: - Slash commands
 
-    /// What this conversation offers. `/reasoning` only where the resolved model
-    /// has more than one effort to choose between — a command that can only
-    /// confirm what is already true is a row that wastes the reader's time.
+    private var slashContext: ChatSlashCommandContext {
+        ChatSlashCommandContext(
+            platform: .desktop,
+            conversation: conversation,
+            configuration: app.aiConfiguration,
+            skills: app.skills,
+            archive: {
+                window.setAssistantArchived(conversation.id, archived: true)
+            },
+            newConversation: onNewChat,
+            compact: { instructions in
+                Task { await app.compact(conversation, instructions: instructions) }
+            },
+            send: sendDraft
+        )
+    }
+
     private var slashCommands: [ChatSlashCommand] {
-        var commands: [ChatSlashCommand] = []
-        if !conversation.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "archive", displayName: String(localized: "Archive"),
-                    summary: String(localized: "Move this conversation to Archive"), icon: .symbol("archivebox"),
-                    isShownOnMobile: false
-                ))
-        }
-        if !conversation.isEmpty, onNewChat != nil {
-            commands.append(
-                ChatSlashCommand(
-                    id: "new", displayName: String(localized: "New chat"),
-                    summary: String(localized: "Start a new conversation"),
-                    icon: .symbol("plus.bubble")
-                ))
-        }
-        commands.append(
-            ChatSlashCommand(
-                id: "plan", displayName: String(localized: "Plan mode"),
-                summary: conversation.isPlanning
-                    ? String(localized: "Stop planning and act")
-                    : String(localized: "Research and propose before acting"),
-                icon: .symbol(PlanModeChip.symbol),
-                // Free text, so `/plan why is root at 99%` both enters the mode
-                // and asks the question. Typing `/plan` alone toggles it.
-                argumentHint: String(localized: "what to plan")
-            ))
-        // Existing conversations always expose Compact, even before enough
-        // history has accumulated to compact. A blank New chat has nothing it
-        // could summarize, so the command would only be noise there.
-        if !conversation.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "compact", displayName: String(localized: "Compact"),
-                    summary: String(localized: "Summarize older turns to free context"),
-                    icon: .contextRing,
-                    argumentHint: String(localized: "what to emphasize")
-                ))
-        }
-        if supportsThinking {
-            commands.append(
-                ChatSlashCommand(
-                    id: "reasoning", displayName: String(localized: "Reasoning"),
-                    summary: String(localized: "How hard the model thinks"),
-                    icon: .symbol("brain"),
-                    argumentHint: String(localized: "effort")
-                ))
-        }
-        if !slashModelChoices.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "model", displayName: String(localized: "Model"),
-                    summary: String(localized: "Switch the model for this conversation"),
-                    icon: .symbol("sparkles"),
-                    argumentHint: String(localized: "model")
-                ))
-        }
-        if !app.aiConfiguration.mcpServers.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "mcp", displayName: String(localized: "MCP"),
-                    summary: String(localized: "Enable or disable MCP servers"),
-                    icon: .symbol("server.rack"),
-                    argumentHint: String(localized: "server")
-                ))
-        }
-        // Only where there is something to name. A model normally reaches for a
-        // skill on its own from the catalog it is shown; this is for the times
-        // it does not, so it has nothing to offer when nothing is installed.
-        if !app.skills.enabledSkills.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "skill", displayName: String(localized: "Skill"),
-                    summary: String(localized: "Use an installed skill"),
-                    icon: .symbol(SkillChip.symbol),
-                    argumentHint: String(localized: "skill")
-                ))
-        }
-        // Only the first page is alphabetical. A command's second page keeps
-        // its semantic order — especially Reasoning's effort scale and the
-        // configured order of providers and MCP servers.
-        return commands.sorted { lhs, rhs in
-            let order = lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName)
-            return order == .orderedSame ? lhs.id < rhs.id : order == .orderedAscending
-        }
+        slashRegistry.commands(in: slashContext)
     }
 
     private var slashOptions: (ChatSlashCommand) -> [ChatSlashCommand.Option] {
-        { command in
-            switch command.id {
-            case "reasoning":
-                guard let reasoningResolution else { return [] }
-                return reasoningResolution.supported.map { effort in
-                    ChatSlashCommand.Option(id: effort.rawValue, label: effort.displayName)
-                }
-            case "model":
-                return slashModelChoices.map { choice in
-                    ChatSlashCommand.Option(id: choice.argument, label: choice.model.label)
-                }
-            case "mcp":
-                return app.aiConfiguration.mcpServers.map { server in
-                    ChatSlashCommand.Option(
-                        id: server.id.uuidString.lowercased(), label: server.name
-                    )
-                }
-            case "skill":
-                return app.skills.enabledSkills.map { skill in
-                    ChatSlashCommand.Option(
-                        id: skill.effectiveName, label: skill.displayTitle
-                    )
-                }
-            default:
-                return []
-            }
-        }
-    }
-
-    private var slashModelChoices:
-        [(
-            argument: String, provider: ModelProvider, model: AIModel
-        )]
-    {
-        modelProviders.flatMap { provider in
-            provider.assistantModels.map { model in
-                (
-                    argument: ChatSlashCommand.argumentID(
-                        scope: provider.id.uuidString.lowercased(), value: model.id
-                    ),
-                    provider: provider,
-                    model: model
-                )
-            }
-        }
-    }
-
-    private func slashModelChoice(
-        for argument: String
-    ) -> (argument: String, provider: ModelProvider, model: AIModel)? {
-        slashModelChoices.first { $0.argument == argument }
+        { slashRegistry.options(for: $0, in: slashContext) }
     }
 
     private var slashCompletion: ChatSlashCommandCompletion {
@@ -1118,9 +998,7 @@ struct ComposerView: View {
     }
 
     private func slashCompletion(for draft: String) -> ChatSlashCommandCompletion {
-        ChatSlashCommandCompletion.rows(
-            draft: draft, commands: slashCommands, options: slashOptions
-        )
+        slashRegistry.completion(for: draft, in: slashContext)
     }
 
     /// Opening a single-choice page starts on the value this conversation
@@ -1129,23 +1007,7 @@ struct ComposerView: View {
     private func preferredSlashSelection(
         in completion: ChatSlashCommandCompletion
     ) -> Int {
-        guard case .option(let command, _) = completion.rows.first else { return 0 }
-
-        switch command.id {
-        case "reasoning":
-            return completion.selectionIndex(
-                commandID: command.id, optionID: effectiveReasoningEffort.rawValue
-            )
-        case "model":
-            guard let resolved else { return 0 }
-            let optionID =
-                ChatSlashCommand.argumentID(
-                    scope: resolved.provider.id.uuidString.lowercased(), value: resolved.model.id
-                )
-            return completion.selectionIndex(commandID: command.id, optionID: optionID)
-        default:
-            return 0
-        }
+        slashRegistry.preferredSelection(in: completion, context: slashContext)
     }
 
     private func selectPreferredSlashOption(for draft: String) {
@@ -1184,30 +1046,7 @@ struct ComposerView: View {
     }
 
     private func slashTrailingText(_ row: ChatSlashCommandCompletion.Row) -> String? {
-        switch row {
-        case .command(let command) where command.id == "reasoning":
-            return effectiveReasoningEffort.displayName
-        case .option(let command, let option) where command.id == "reasoning":
-            return option.id == effectiveReasoningEffort.rawValue
-                ? String(localized: "Current") : nil
-        case .command(let command) where command.id == "model":
-            return resolvedModelLabel
-        case .option(let command, let option) where command.id == "model":
-            return slashModelChoice(for: option.id)?.provider.name
-        case .option(let command, let option) where command.id == "mcp":
-            guard
-                let id = UUID(uuidString: option.id),
-                let server = app.aiConfiguration.mcpServer(id)
-            else { return nil }
-            return server.isEnabled
-                ? String(localized: "Enabled") : String(localized: "Disabled")
-        case .option(let command, let option) where command.id == "skill":
-            // The model-facing name. Two skills can carry the same title, and
-            // this is the one the argument actually is.
-            return option.id
-        default:
-            return nil
-        }
+        slashRegistry.trailingText(for: row, in: slashContext)
     }
 
     /// Completing a name leaves the command in the field; running it consumes
@@ -1250,89 +1089,12 @@ struct ComposerView: View {
     /// the user said to it.
     @discardableResult
     private func runSlashCommand() -> Bool {
-        guard let input = ChatSlashCommandInput.parse(conversation.composer.draft),
-            let command = slashCommands.first(where: { $0.id == input.name.lowercased() })
-        else { return false }
-
-        switch command.id {
-        case "archive":
-            guard !conversation.isEmpty, !conversation.isStreaming, !conversation.isCompacting else {
-                return false
-            }
-            clearSlashDraft(input)
-            window.setAssistantArchived(conversation.id, archived: true)
-            return true
-        case "new":
-            guard !conversation.isEmpty, let onNewChat else { return false }
-            clearSlashDraft(input)
-            onNewChat()
-            return true
-        case "plan":
-            // The one command that runs on its bare name: `/plan` toggles the
-            // mode, and `/plan <question>` turns it on and asks. Both are the
-            // whole action, so neither leaves a half-typed command behind.
-            let question = argumentText(of: input)
-            guard question.isEmpty else {
-                conversation.isPlanning = true
-                conversation.composer.draft = input.leadingText + question
-                if input.leadingText.isEmpty { sendDraft() }
-                return true
-            }
-            conversation.isPlanning.toggle()
-        case "compact":
-            let instructions = argumentText(of: input)
-            clearSlashDraft(input)
-            Task { await app.compact(conversation, instructions: instructions) }
-            return true
-        case "reasoning":
-            guard case .argument(_, _, let argument) = input else { return false }
-            guard let effort = ReasoningEffort(rawValue: argument.lowercased()),
-                reasoningResolution?.supported.contains(effort) == true
-            else { return false }
-            conversation.reasoningEffort = effort
-        case "model":
-            guard case .argument(_, _, let argument) = input,
-                let choice = slashModelChoice(for: argument)
-            else { return false }
-            select(choice.model, on: choice.provider)
-        case "mcp":
-            guard case .argument(_, _, let argument) = input,
-                let id = UUID(uuidString: argument),
-                let server = app.aiConfiguration.mcpServer(id)
-            else { return false }
-            app.aiConfiguration.setServerEnabled(!server.isEnabled, for: id)
-        case "skill":
-            // `/skill <name>` arms it and leaves a chip; `/skill <name> <text>`
-            // arms it and asks in the same keystroke — the shape `/plan` already
-            // has. An unknown name changes nothing and leaves the draft alone,
-            // as `/model` does, because the alternative is silently sending a
-            // command as a message.
-            guard let selection = input.selection,
-                app.skills.enabledSkills.contains(where: { $0.effectiveName == selection.name })
-            else { return false }
-            conversation.composer.armedSkillName = selection.name
-            conversation.composer.draft = input.leadingText + selection.remainder
-            guard selection.remainder.isEmpty else {
-                if input.leadingText.isEmpty { sendDraft() }
-                return true
-            }
-            return true
-        default:
-            return false
+        let performed = slashRegistry.perform(draft: conversation.composer.draft, in: slashContext)
+        if performed {
+            isSlashMenuDismissed = false
+            slashSelection = 0
         }
-        clearSlashDraft(input)
-        return true
-    }
-
-    private func argumentText(of input: ChatSlashCommandInput) -> String {
-        guard case .argument(_, _, let text) = input else { return "" }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func clearSlashDraft(_ input: ChatSlashCommandInput) {
-        conversation.composer.draft = input.leadingText
-        isSlashMenuDismissed = false
-        slashSelection = 0
+        return performed
     }
 
     /// Accepts what the palette is highlighting, if it is showing anything.

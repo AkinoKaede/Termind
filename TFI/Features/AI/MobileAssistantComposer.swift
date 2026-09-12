@@ -22,6 +22,7 @@ struct MobileAssistantComposer: View {
     @State private var contextDetails = false
     @State private var isSlashPanelDismissed = false
     @State private var slashPanelHeight: CGFloat = 0
+    private let slashRegistry = ChatSlashCommandRegistry.standard()
     @FocusState private var localFocus: Bool
     @Environment(\.locale) private var locale
     private var composer: ConversationComposerState { conversation.composer }
@@ -500,109 +501,16 @@ struct MobileAssistantComposer: View {
         )
     }
 
-    private var slashModelChoices: [(argument: String, provider: ModelProvider, model: AIModel)] {
-        model.configuration.enabledModelProviders.flatMap { provider in
-            provider.assistantModels.map { item in
-                (
-                    ChatSlashCommand.argumentID(
-                        scope: provider.id.uuidString.lowercased(), value: item.id
-                    ),
-                    provider,
-                    item
-                )
-            }
-        }
-    }
-
     var availableCommands: [ChatSlashCommand] {
-        var commands: [ChatSlashCommand] = []
-        if !conversation.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "new", displayName: localized("New chat"),
-                    summary: localized("Start a new conversation"), icon: .symbol("plus.bubble"),
-                    isShownOnMobile: false
-                ))
-        }
-        commands.append(
-            ChatSlashCommand(
-                id: "plan", displayName: localized("Plan mode"),
-                summary: conversation.isPlanning
-                    ? localized("Stop planning and act")
-                    : localized("Research and propose before acting"),
-                icon: .symbol("lightbulb.max"), argumentHint: localized("what to plan")
-            ))
-        if !conversation.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "compact", displayName: localized("Compact"),
-                    summary: localized("Summarize older turns to free context"), icon: .contextRing,
-                    argumentHint: localized("what to emphasize"), isShownOnMobile: true
-                ))
-        }
-        if reasoningResolution?.supported.contains(where: { $0 != .off }) == true {
-            commands.append(
-                ChatSlashCommand(
-                    id: "reasoning", displayName: localized("Reasoning"),
-                    summary: localized("How hard the model thinks"), icon: .symbol("brain"),
-                    argumentHint: localized("effort"), isShownOnMobile: false
-                ))
-        }
-        if !slashModelChoices.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "model", displayName: localized("Model"),
-                    summary: localized("Switch the model for this conversation"), icon: .symbol("sparkles"),
-                    argumentHint: localized("model"), isShownOnMobile: false
-                ))
-        }
-        if !model.configuration.mcpServers.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "mcp", displayName: localized("MCP"),
-                    summary: localized("Enable or disable MCP servers"), icon: .symbol("server.rack"),
-                    argumentHint: localized("server"), isShownOnMobile: false
-                ))
-        }
-        if !model.skills.enabledSkills.isEmpty {
-            commands.append(
-                ChatSlashCommand(
-                    id: "skill", displayName: localized("Skill"),
-                    summary: localized("Use an installed skill"), icon: .symbol("book.closed"),
-                    argumentHint: localized("skill")
-                ))
-        }
-        return commands.filter(\.isShownOnMobile).sorted { lhs, rhs in
-            let order = lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName)
-            return order == .orderedSame ? lhs.id < rhs.id : order == .orderedAscending
-        }
+        slashRegistry.commands(in: slashContext)
     }
 
     private func slashOptions(_ command: ChatSlashCommand) -> [ChatSlashCommand.Option] {
-        switch command.id {
-        case "model":
-            return slashModelChoices.map { choice in
-                .init(id: choice.argument, label: choice.model.label, detail: choice.provider.name)
-            }
-        case "reasoning":
-            return reasoningResolution?.supported.map {
-                .init(id: $0.rawValue, label: $0.displayName)
-            } ?? []
-        case "skill":
-            return model.skills.enabledSkills.map {
-                .init(id: $0.effectiveName, label: $0.displayTitle, detail: $0.summary)
-            }
-        case "mcp":
-            return model.configuration.mcpServers.map {
-                .init(id: $0.id.uuidString.lowercased(), label: $0.name)
-            }
-        default: return []
-        }
+        slashRegistry.options(for: command, in: slashContext)
     }
 
     private var slashCompletion: ChatSlashCommandCompletion {
-        ChatSlashCommandCompletion.rows(
-            draft: composer.draft, commands: availableCommands, options: slashOptions)
+        slashRegistry.completion(for: composer.draft, in: slashContext)
     }
 
     private var contextShare: Double? {
@@ -611,39 +519,11 @@ struct MobileAssistantComposer: View {
     }
 
     private func slashTrailingText(_ row: ChatSlashCommandCompletion.Row) -> String? {
-        switch row {
-        case .command(let command) where command.id == "reasoning":
-            return effectiveReasoningEffort.displayName
-        case .command(let command) where command.id == "model":
-            return resolved?.model.label ?? localized("No model")
-        case .option(let command, let option) where command.id == "mcp":
-            guard let id = UUID(uuidString: option.id), let server = model.configuration.mcpServer(id) else {
-                return nil
-            }
-            return server.isEnabled ? localized("Enabled") : localized("Disabled")
-        case .option(let command, let option) where command.id == "skill":
-            return option.id
-        default:
-            return nil
-        }
+        slashRegistry.trailingText(for: row, in: slashContext)
     }
 
     private func isCurrentSlashOption(_ row: ChatSlashCommandCompletion.Row) -> Bool {
-        guard case .option(let command, let option) = row else { return false }
-        switch command.id {
-        case "reasoning":
-            return option.id == effectiveReasoningEffort.rawValue
-        case "model":
-            guard let resolved else { return false }
-            return option.id
-                == ChatSlashCommand.argumentID(
-                    scope: resolved.provider.id.uuidString.lowercased(), value: resolved.model.id
-                )
-        case "skill":
-            return option.id == composer.armedSkillName
-        default:
-            return false
-        }
+        slashRegistry.isCurrent(row, in: slashContext)
     }
 
     private func localized(_ resource: String.LocalizationValue) -> String {
@@ -686,74 +566,22 @@ struct MobileAssistantComposer: View {
     }
 
     @discardableResult private func executeSlash() -> Bool {
-        guard let command = ChatSlashCommandInput.parse(composer.draft),
-            availableCommands.contains(where: { $0.id == command.name.lowercased() })
-        else { return false }
-        let argument: String
-        if case .argument(_, _, let text) = command { argument = text } else { argument = "" }
-        switch command.name.lowercased() {
-        case "new":
-            composer.draft = command.leadingText
-            model.newConversation()
-        case "plan":
-            if argument.isEmpty {
-                conversation.isPlanning.toggle()
-                composer.draft = command.leadingText
-            } else {
-                conversation.isPlanning = true
-                composer.draft = command.leadingText + argument
-                if command.leadingText.isEmpty { model.send() }
-            }
-        case "compact":
-            guard !conversation.isStreaming, !conversation.isCompacting else { return true }
-            composer.draft = command.leadingText
-            Task { await model.compact(conversation, instructions: argument) }
-        case "mcp":
-            if let id = UUID(uuidString: argument), let server = model.configuration.mcpServer(id),
-                pro.require(.remoteMCP)
-            {
-                model.configuration.setServerEnabled(!server.isEnabled, for: id)
-                composer.draft = command.leadingText
-            } else if argument.isEmpty {
-                composer.draft = command.replacingCommand(with: "/mcp ")
-            }
-        case "reasoning":
-            if let effort = ReasoningEffort(rawValue: argument.lowercased()),
-                let resolved = model.configuration.resolve(conversation: conversation.model),
-                ModelCapabilityResolver.reasoning(model: resolved.model, provider: resolved.provider).supported
-                    .contains(effort)
-            {
-                conversation.reasoningEffort = effort
-                composer.draft = command.leadingText
-            } else if argument.isEmpty {
-                composer.draft = command.replacingCommand(with: "/reasoning ")
-            }
-        case "model":
-            for provider in model.configuration.enabledModelProviders {
-                if let item = provider.assistantModels.first(where: {
-                    ChatSlashCommand.argumentID(
-                        scope: provider.id.uuidString.lowercased(), value: $0.id
-                    ) == argument
-                }) {
-                    model.selectModel(.init(modelProviderID: provider.id, modelID: item.id))
-                    composer.draft = command.leadingText
-                    return true
-                }
-            }
-            if argument.isEmpty { composer.draft = command.replacingCommand(with: "/model ") }
-        case "skill":
-            if let choice = command.selection,
-                model.skills.enabledSkills.contains(where: { $0.effectiveName == choice.name })
-            {
-                composer.armedSkillName = choice.name
-                composer.draft = command.leadingText + choice.remainder
-                if command.leadingText.isEmpty, !choice.remainder.isEmpty { model.send() }
-            } else if argument.isEmpty {
-                composer.draft = command.replacingCommand(with: "/skill ")
-            }
-        default: break
-        }
-        return true
+        slashRegistry.perform(draft: composer.draft, in: slashContext)
+    }
+
+    private var slashContext: ChatSlashCommandContext {
+        ChatSlashCommandContext(
+            platform: .mobile,
+            conversation: conversation,
+            configuration: model.configuration,
+            skills: model.skills,
+            compact: { instructions in
+                Task { await model.compact(conversation, instructions: instructions) }
+            },
+            send: model.send,
+            authorizeRemoteMCP: { pro.require(.remoteMCP) },
+            localized: localized
+        )
     }
 
     private func normalizeReasoningEffort() {
