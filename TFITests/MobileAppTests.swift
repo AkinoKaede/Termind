@@ -850,8 +850,10 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
         let state = WorkspaceActivityAttributes.ContentState.snapshot(sessions, focusedID: focused)
         #expect(state.workspaceCount == 12)
         #expect(state.connectedCount == 3)
-        #expect(state.sessions.count == WorkspaceActivityAttributes.ContentState.maximumPresentedSessionCount)
+        #expect(WorkspaceActivityAttributes.ContentState.maximumPresentedSessionCount == 6)
+        #expect(state.sessions.count == 6)
         #expect(state.sessions.first?.id == focused)
+        #expect(state.workspaceCount > state.sessions.count)
         #expect(WorkspaceActivityAttributes.workspaceID(from: state.destinationURL) == focused)
         #expect(try JSONEncoder().encode(state).count < 3500)
     }

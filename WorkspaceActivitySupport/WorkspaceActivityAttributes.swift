@@ -15,7 +15,7 @@ nonisolated struct WorkspaceActivityAttributes: ActivityAttributes {
     }
 
     struct ContentState: Codable, Hashable {
-        static let maximumPresentedSessionCount = 4
+        static let maximumPresentedSessionCount = 6
 
         var workspaceCount: Int
         var connectedCount: Int

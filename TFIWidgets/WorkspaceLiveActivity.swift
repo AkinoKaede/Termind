@@ -52,8 +52,21 @@ struct WorkspaceLiveActivity: Widget {
     }
 
     private func sessions(_ context: ActivityViewContext<WorkspaceActivityAttributes>) -> some View {
-        let visibleSessions = context.state.sessions.prefix(
-            WorkspaceActivityAttributes.ContentState.maximumPresentedSessionCount)
+        ViewThatFits(in: .horizontal) {
+            sessionRow(
+                context,
+                maximumVisibleCount: WorkspaceActivityAttributes.ContentState.maximumPresentedSessionCount)
+            sessionRow(context, maximumVisibleCount: 5)
+            sessionRow(context, maximumVisibleCount: 4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func sessionRow(
+        _ context: ActivityViewContext<WorkspaceActivityAttributes>,
+        maximumVisibleCount: Int
+    ) -> some View {
+        let visibleSessions = context.state.sessions.prefix(maximumVisibleCount)
 
         return HStack(spacing: 8) {
             ForEach(visibleSessions) { session in
@@ -70,9 +83,8 @@ struct WorkspaceLiveActivity: Widget {
                         .frame(minWidth: 44, minHeight: 44)
                 }.accessibilityLabel("All Workspaces")
             }
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private func appIcon(size: CGFloat) -> some View {
