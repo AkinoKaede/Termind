@@ -92,9 +92,6 @@ struct MobileWorkspaceView: View {
         if workspace.descriptor.kind == .ssh {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    sameDirectoryMenuAction
-                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
-                    Divider()
                     Button("Generate Command", systemImage: "sparkles") {
                         workspace.generateCommand(using: commandGenerator)
                     }
@@ -112,6 +109,8 @@ struct MobileWorkspaceView: View {
                     }
                     .keyboardShortcut("g", modifiers: [.command, .shift])
                     Divider()
+                    sameDirectoryMenuAction
+                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
                     Button("Close", systemImage: "xmark", role: .destructive) {
                         closeWorkspace(workspace.id)
                     }
@@ -135,9 +134,6 @@ struct MobileWorkspaceView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    sameDirectoryMenuAction
-                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
-                    Divider()
                     Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                     Divider()
                     Button("Parent Directory", systemImage: "arrow.up") {
@@ -147,12 +143,13 @@ struct MobileWorkspaceView: View {
                         }
                     }
                     .disabled(!workspace.connected)
-                    Divider()
                     Button("Upload", systemImage: "square.and.arrow.up") { importing = true }
                         .disabled(!workspace.connected)
                     Button("New Folder", systemImage: "folder.badge.plus") { creatingDirectory = true }
                         .disabled(!workspace.connected)
                     Divider()
+                    sameDirectoryMenuAction
+                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
                     Button("Close", systemImage: "xmark", role: .destructive) {
                         closeWorkspace(workspace.id)
                     }
@@ -386,7 +383,6 @@ struct MobileWorkspaceView: View {
             case .sftp:
                 Button("Open with SFTP", systemImage: "folder") { openSameDirectory(launch) }
             }
-            Divider()
         }
     }
 

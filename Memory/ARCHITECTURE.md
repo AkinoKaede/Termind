@@ -677,8 +677,9 @@ expiration of background execution cancels its work; no transfer is silently rep
 Downloads are staged in a unique app-temporary directory and exported through the system
 share sheet. Remote names are validated before becoming local path components.
 
-The first item in a mobile Workspace's More menu opens the same live remote directory
-in a new Workspace of the opposite kind. SSH offers SFTP only after Shell Integration
+The bottom group in a mobile Workspace's More menu opens the same live remote directory
+in a new Workspace of the opposite kind when available, then offers Rename and Close
+without separators between those actions. SSH offers SFTP only after Shell Integration
 has reported a working directory; SFTP offers SSH only while its browser is connected.
 Unavailable actions are omitted. The initial SFTP path and the SSH shell's generated,
 history-excluded `cd` command survive authentication/trust retries but remain live-only;

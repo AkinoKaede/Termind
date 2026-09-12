@@ -246,21 +246,50 @@ struct MobileNavigationParityTests {
         #expect(!purchaseActions.contains(".overlay"))
     }
 
-    @Test func workspaceCloseActionsStayAtTheBottomOfBothMenus() throws {
+    @Test func workspaceMenusUseCompactActionGroups() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let workspace = try String(
             contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"), encoding: .utf8)
-        let segments = workspace.components(
-            separatedBy: "Button(\"Close\", systemImage: \"xmark\", role: .destructive)")
+        let toolbar = try #require(
+            workspace.components(separatedBy: "private var workspaceToolbar").last?
+                .components(separatedBy: "private var workspaceSheets").first)
+        let branches = toolbar.components(separatedBy: "        if isSFTP {")
+        let sshMenu = try #require(branches.first)
+        let sftpMenu = try #require(branches.last)
+        let sshGroups = sshMenu.components(separatedBy: "                    Divider()\n")
+        let sftpGroups = sftpMenu.components(separatedBy: "                    Divider()\n")
 
-        #expect(segments.count == 3)
-        #expect(segments[0].contains("Button(\"Previous Match\", systemImage: \"chevron.up\")"))
-        #expect(segments[1].contains("Button(\"New Folder\", systemImage: \"folder.badge.plus\")"))
+        #expect(sshGroups.count == 4)
+        #expect(sshGroups[0].contains("Menu {\n                    Button(\"Generate Command\""))
+        let snippets = try #require(sshGroups[1].range(of: "Button(\"Snippets\""))
+        let history = try #require(sshGroups[1].range(of: "Button(\"History\""))
+        let nextMatch = try #require(sshGroups[2].range(of: "Button(\"Next Match\""))
+        let previousMatch = try #require(sshGroups[2].range(of: "Button(\"Previous Match\""))
+        #expect(snippets.lowerBound < history.lowerBound)
+        #expect(nextMatch.lowerBound < previousMatch.lowerBound)
+        let sshSameDirectory = try #require(sshGroups[3].range(of: "sameDirectoryMenuAction"))
+        let sshRename = try #require(sshGroups[3].range(of: "Button(\"Rename\""))
+        let sshClose = try #require(sshGroups[3].range(of: "Button(\"Close\""))
+        #expect(sshSameDirectory.lowerBound < sshRename.lowerBound)
+        #expect(sshRename.lowerBound < sshClose.lowerBound)
+
+        #expect(sftpGroups.count == 3)
+        #expect(sftpGroups[0].contains("Menu {\n                    Button(\"Transfers\""))
+        let parentDirectory = try #require(sftpGroups[1].range(of: "Button(\"Parent Directory\""))
+        let upload = try #require(sftpGroups[1].range(of: "Button(\"Upload\""))
+        let newFolder = try #require(sftpGroups[1].range(of: "Button(\"New Folder\""))
+        #expect(parentDirectory.lowerBound < upload.lowerBound)
+        #expect(upload.lowerBound < newFolder.lowerBound)
+        let sftpSameDirectory = try #require(sftpGroups[2].range(of: "sameDirectoryMenuAction"))
+        let sftpRename = try #require(sftpGroups[2].range(of: "Button(\"Rename\""))
+        let sftpClose = try #require(sftpGroups[2].range(of: "Button(\"Close\""))
+        #expect(sftpSameDirectory.lowerBound < sftpRename.lowerBound)
+        #expect(sftpRename.lowerBound < sftpClose.lowerBound)
     }
 
-    @Test func workspaceMenusLeadWithConditionalSameDirectoryActionsAndExposeRename() throws {
+    @Test func workspaceMenusExposeConditionalSameDirectoryActionsWithoutOwningASeparator() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -268,11 +297,15 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"), encoding: .utf8)
         let rootView = try String(
             contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
+        let sameDirectoryAction = try #require(
+            workspace.components(separatedBy: "private var sameDirectoryMenuAction").last?
+                .components(separatedBy: "private var showsJourney").first)
 
-        #expect(workspace.components(separatedBy: "Menu {\n                    sameDirectoryMenuAction").count == 3)
+        #expect(workspace.components(separatedBy: "                    sameDirectoryMenuAction").count == 3)
         #expect(workspace.contains("if let launch = workspace.sameDirectoryLaunch"))
         #expect(workspace.contains("Button(\"Open with SSH\", systemImage: \"terminal\")"))
         #expect(workspace.contains("Button(\"Open with SFTP\", systemImage: \"folder\")"))
+        #expect(!sameDirectoryAction.contains("Divider()"))
         #expect(
             workspace.components(
                 separatedBy: "Button(\"Rename\", systemImage: \"pencil\") { renameWorkspace(workspace) }"
