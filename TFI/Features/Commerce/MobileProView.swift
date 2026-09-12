@@ -80,7 +80,7 @@ struct MobileProView: View {
             Divider().padding(.leading, 52)
             feature("Connect MCP tools and run the built-in MCP Server", symbol: "server.rack")
             Divider().padding(.leading, 52)
-            feature("Sync Vault and Settings across devices", symbol: "icloud")
+            feature("Sync Vault, Metrics, and Settings across devices", symbol: "icloud")
         }
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
         .overlay {

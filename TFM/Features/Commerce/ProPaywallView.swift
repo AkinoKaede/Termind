@@ -41,7 +41,7 @@ struct ProPaywallView: View {
                 feature("Monitor more than 3 servers", "waveform.path.ecg")
                 feature("Upload files by dropping them on a terminal", "arrow.up.doc")
                 feature("Connect MCP tools and run the built-in MCP Server", "server.rack")
-                feature("Sync Vault and Settings across devices", "icloud")
+                feature("Sync Vault, Metrics, and Settings across devices", "icloud")
             }
             .padding(.vertical, 28)
 

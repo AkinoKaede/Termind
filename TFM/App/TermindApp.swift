@@ -59,11 +59,18 @@ struct TermindApp: App {
             SettingsKey.migrateSyncPreferences()
             let settingsPersistence = SettingsSyncPersistence(context: container.mainContext)
             try settingsPersistence.prepare()
+            let metricsDefaults =
+                isRunningTests ? UserDefaults(suiteName: "termind.metrics.tests.\(UUID().uuidString)")! : .standard
+            let metricsPersistence = MetricsSyncPersistence(
+                context: container.mainContext, defaults: metricsDefaults)
+            try metricsPersistence.prepare()
             let aiSecrets = AISecretStore(context: container.mainContext, keychain: secrets)
             let settingsSync: SettingsSyncCoordinator? =
                 isRunningTests
                 ? nil
                 : SettingsSyncCoordinator(persistence: settingsPersistence, secrets: aiSecrets)
+            let metricsSync: MetricsSyncCoordinator? =
+                isRunningTests ? nil : MetricsSyncCoordinator(persistence: metricsPersistence)
             let hosts = HostLibraryModel(
                 modelContext: container.mainContext, secrets: secrets
             )
@@ -106,6 +113,7 @@ struct TermindApp: App {
                             context: container.mainContext
                         ),
                         vaultSync: vaultSync, settingsSync: settingsSync,
+                        metricsSync: metricsSync, metricsPreferences: metricsPersistence,
                         forwardingDefaults: .standard, mcpServerSecrets: secrets
                     ),
                     proAccess: proAccess,

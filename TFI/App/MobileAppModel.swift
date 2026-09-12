@@ -52,6 +52,7 @@ final class MobileAppModel {
     let connectionHistory: ConnectionHistoryModel
     let vaultSync: VaultSyncCoordinator?
     let settingsSync: SettingsSyncCoordinator?
+    let metricsSync: MetricsSyncCoordinator?
     let skills: SkillLibraryModel
     let ai: AIConfigurationModel
     let commandGenerator: CommandGeneratorController
@@ -120,6 +121,8 @@ final class MobileAppModel {
         SettingsKey.migrateSyncPreferences(in: settingsDefaults)
         let settingsPersistence = SettingsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
         try settingsPersistence.prepare()
+        let metricsPersistence = MetricsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
+        try metricsPersistence.prepare()
         let aiSecrets = AISecretStore(context: settingsPersistence.context, keychain: secrets)
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
         commandHistory = CommandHistoryModel(
@@ -132,6 +135,10 @@ final class MobileAppModel {
             memoryOnly
             ? nil
             : SettingsSyncCoordinator(persistence: settingsPersistence, secrets: aiSecrets, defaults: settingsDefaults)
+        metricsSync =
+            memoryOnly
+            ? nil
+            : MetricsSyncCoordinator(persistence: metricsPersistence, defaults: settingsDefaults)
         vaultSync = memoryOnly ? nil : VaultSyncCoordinator(context: vaultContext, defaults: settingsDefaults)
         ai = AIConfigurationModel(
             persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
@@ -139,7 +146,7 @@ final class MobileAppModel {
         commandGenerator = CommandGeneratorController(ai: ai)
         skills = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence))
         library = HostLibraryModel(persistence: persistence, secrets: secrets)
-        metrics = MobileMetricsModel(defaults: memoryOnly ? nil : defaults, hosts: library)
+        metrics = MobileMetricsModel(preferences: metricsPersistence, hosts: library)
         assistant = MobileAssistantModel(
             configuration: ai,
             repository: SwiftDataAgentRunRepository(context: ModelContext(container)),
@@ -184,6 +191,9 @@ final class MobileAppModel {
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
+        }
+        metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
+            self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
         if let data = self.defaults?.data(forKey: "mobile.workspaces.v1") {
             let descriptors = try JSONDecoder().decode([MobileWorkspaceDescriptor].self, from: data)
@@ -290,6 +300,7 @@ final class MobileAppModel {
         let isBackground = scenePhases.values.allSatisfy { $0 == .background }
         if isBackground && !wasBackground {
             vaultSync?.pause()
+            metricsSync?.pause()
             settingsSync?.pause()
             metrics.pause()
             outbox.stop()
@@ -322,9 +333,11 @@ final class MobileAppModel {
         let foreground = scenePhases.values.contains(.active)
         if foreground && pro.canUse(.vaultSync) {
             vaultSync?.start()
+            metricsSync?.start()
             settingsSync?.start()
         } else {
             vaultSync?.pause()
+            metricsSync?.pause()
             settingsSync?.pause()
         }
     }

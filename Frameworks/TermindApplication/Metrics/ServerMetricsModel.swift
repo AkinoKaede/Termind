@@ -48,8 +48,11 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     public static let freeCardLimit = 3
     public private(set) var servers: [ServerMetric] = []
     public private(set) var sleeping = false
+    public private(set) var storageError: String?
+    public var selections: [MetricsSelection] { configuredSelections }
     private var started = false
     private var stopped = false
+    private var configuredSelections: [MetricsSelection] = []
     private let hosts: any RemoteSessionHostStore
     private let preferences: any MetricsConfigurationStoring
     private let makeSampler: @Sendable () -> any MetricsSampling
@@ -111,7 +114,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         )
     }
 
-    public var remainingCardSlots: Int? { cardLimit().map { max(0, $0 - servers.count) } }
+    public var remainingCardSlots: Int? { cardLimit().map { max(0, $0 - configuredSelections.count) } }
 
     #if DEBUG
         /// Frozen product fixtures never load preferences or start an SSH worker.
@@ -123,6 +126,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                 cardLimit: { nil }
             )
             servers = rows
+            configuredSelections = rows.map(\.selection)
             started = true
             stopped = true
         }
@@ -142,12 +146,13 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     public func start() {
         guard !started else { return }
         started = true
-        var seen = Set<UUID>()
-        servers = preferences.load().filter { seen.insert($0.id).inserted }.compactMap { selection in
-            guard let host = hosts.host(selection.id) else { return nil }
-            return ServerMetric(selection: selection, name: host.name)
+        do {
+            configuredSelections = Self.deduplicated(try preferences.load())
+            storageError = nil
+        } catch {
+            storageError = error.localizedDescription
         }
-        for server in servers { launch(server) }
+        applyConfiguration(configuredSelections)
         // Keep the timer independent, but make the executor hop explicit at the
         // boundary before touching Metrics or its MainActor host store.
         maintenance = Task.detached { [weak self, clock] in
@@ -165,55 +170,38 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     /// Admission and insertion are one MainActor operation, shared by all windows.
     @discardableResult
     public func add(_ hosts: [Host]) -> Bool {
-        var seen = Set(servers.map(\.id))
+        var seen = Set(configuredSelections.map(\.id))
         let additions = hosts.filter { seen.insert($0.id).inserted }
         guard requestAddition(count: additions.count) else { return false }
-        guard !additions.isEmpty else { return true }
-        let rows = additions.map { ServerMetric(selection: MetricsSelection(id: $0.id), name: $0.name) }
-        servers.append(contentsOf: rows)
-        save()
-        for server in rows { launch(server) }
+        let next = configuredSelections + additions.map { MetricsSelection(id: $0.id) }
+        guard persist(next) else { return false }
+        applyConfiguration(next)
         return true
     }
 
     public func move(_ ids: [UUID], before next: UUID?) {
         let wanted = Set(ids)
-        let moving = servers.filter { wanted.contains($0.id) }
+        let moving = configuredSelections.filter { wanted.contains($0.id) }
         guard !moving.isEmpty, next.map({ !wanted.contains($0) }) ?? true else { return }
-        var ordered = servers.filter { !wanted.contains($0.id) }
+        var ordered = configuredSelections.filter { !wanted.contains($0.id) }
         let index = next.flatMap { id in ordered.firstIndex { $0.id == id } } ?? ordered.count
         ordered.insert(contentsOf: moving, at: index)
-        guard ordered.map(\.id) != servers.map(\.id) else { return }
-        servers = ordered
-        save()
+        guard ordered.map(\.id) != configuredSelections.map(\.id), persist(ordered) else { return }
+        applyConfiguration(ordered)
     }
 
     public func remove(_ id: UUID) {
-        cancel(id)
-        submissions[id] = nil
-        temporaryKeys[id] = nil
-        stamps[id] = nil
-        detailObservers = detailObservers.filter { $0.value != id }
-        servers.removeAll { $0.id == id }
-        save()
+        let next = configuredSelections.filter { $0.id != id }
+        guard next.count != configuredSelections.count, persist(next) else { return }
+        applyConfiguration(next)
     }
 
     public func setEnabled(_ enabled: Bool, for server: ServerMetric) {
-        server.selection.enabled = enabled
-        cancel(server.id)
-        server.isConnecting = false
-        server.authenticationHost = nil
-        server.hostKey = nil
-        server.needsAttention = false
-        if !enabled {
-            submissions[server.id] = nil
-            temporaryKeys[server.id] = nil
-            server.journey.hide()
-        }
-        server.authenticationPrompt = nil
-        server.hostKeyPrompt = nil
-        save()
-        launch(server)
+        guard let index = configuredSelections.firstIndex(where: { $0.id == server.id }) else { return }
+        var next = configuredSelections
+        next[index].enabled = enabled
+        guard next != configuredSelections, persist(next) else { return }
+        applyConfiguration(next)
     }
 
     public func retry(_ server: ServerMetric) {
@@ -229,12 +217,19 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     public func selectDevices(_ server: ServerMetric, disks: Set<String>?, interfaces: Set<String>?) {
-        server.selection.disks = disks
-        server.selection.interfaces = interfaces
-        server.history = []
-        server.point = nil
-        save()
-        retry(server)
+        guard let index = configuredSelections.firstIndex(where: { $0.id == server.id }) else { return }
+        var next = configuredSelections
+        next[index].disks = disks
+        next[index].interfaces = interfaces
+        guard next != configuredSelections, persist(next) else { return }
+        applyConfiguration(next)
+    }
+
+    public func applyRemoteSnapshot(_ snapshot: MetricsSyncSnapshot) {
+        let next = Self.deduplicated(snapshot.selections)
+        configuredSelections = next
+        storageError = nil
+        if started { applyConfiguration(next) }
     }
 
     public func submitAuthentication(
@@ -346,11 +341,9 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     public func reconcile() {
+        applyConfiguration(configuredSelections)
         for server in servers {
-            guard let host = hosts.host(server.id) else {
-                remove(server.id)
-                continue
-            }
+            guard let host = hosts.host(server.id) else { continue }
             server.name = host.name
             server.history.removeAll { $0.date < clock.now().addingTimeInterval(-300) }
             let stamp = connectionStamp(host)
@@ -380,7 +373,74 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         return result
     }
 
-    private func save() { preferences.save(servers.map(\.selection)) }
+    private func persist(_ selections: [MetricsSelection]) -> Bool {
+        do {
+            try preferences.save(Self.deduplicated(selections))
+            storageError = nil
+            return true
+        } catch {
+            storageError = error.localizedDescription
+            return false
+        }
+    }
+
+    private func applyConfiguration(_ selections: [MetricsSelection]) {
+        let normalized = Self.deduplicated(selections)
+        configuredSelections = normalized
+        let previous = Dictionary(uniqueKeysWithValues: servers.map { ($0.id, $0) })
+        let configuredIDs = Set(normalized.map(\.id))
+        var nextServers: [ServerMetric] = []
+
+        for selection in normalized {
+            guard let host = hosts.host(selection.id) else { continue }
+            if let server = previous[selection.id] {
+                let enabledChanged = server.selection.enabled != selection.enabled
+                let devicesChanged =
+                    server.selection.disks != selection.disks
+                    || server.selection.interfaces != selection.interfaces
+                server.selection = selection
+                server.name = host.name
+                if enabledChanged || devicesChanged {
+                    cancel(server.id)
+                    server.isConnecting = false
+                    server.authenticationHost = nil
+                    server.hostKey = nil
+                    server.authenticationPrompt = nil
+                    server.hostKeyPrompt = nil
+                    server.needsAttention = false
+                    if devicesChanged {
+                        server.history = []
+                        server.point = nil
+                    }
+                    if !selection.enabled {
+                        submissions[server.id] = nil
+                        temporaryKeys[server.id] = nil
+                        server.journey.hide()
+                    }
+                }
+                nextServers.append(server)
+            } else {
+                nextServers.append(ServerMetric(selection: selection, name: host.name))
+            }
+        }
+
+        for server in servers where !nextServers.contains(where: { $0.id == server.id }) {
+            cancel(server.id)
+            if !configuredIDs.contains(server.id) {
+                submissions[server.id] = nil
+                temporaryKeys[server.id] = nil
+                stamps[server.id] = nil
+                detailObservers = detailObservers.filter { $0.value != server.id }
+            }
+        }
+        servers = nextServers
+        for server in servers { launch(server) }
+    }
+
+    private static func deduplicated(_ selections: [MetricsSelection]) -> [MetricsSelection] {
+        var seen = Set<UUID>()
+        return selections.filter { seen.insert($0.id).inserted }
+    }
 
     private func cancel(_ id: UUID) {
         generations[id] = nil

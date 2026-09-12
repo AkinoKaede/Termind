@@ -4,9 +4,10 @@ import TermindDomain
 
 struct MobileSyncSettingsView: View {
     let app: MobileAppModel
-    @AppStorage(SettingsKey.iCloudSyncEnabled) private var enabled = true
-    @AppStorage(SettingsKey.vaultSyncEnabled) private var vault = true
-    @AppStorage(SettingsKey.settingsSyncEnabled) private var settings = false
+    @AppStorage(SettingsKey.iCloudSyncEnabled) private var enabled = SettingsKey.defaultICloudSyncEnabled
+    @AppStorage(SettingsKey.vaultSyncEnabled) private var vault = SettingsKey.defaultVaultSyncEnabled
+    @AppStorage(SettingsKey.metricsSyncEnabled) private var metrics = SettingsKey.defaultMetricsSyncEnabled
+    @AppStorage(SettingsKey.settingsSyncEnabled) private var settings = SettingsKey.defaultSettingsSyncEnabled
 
     var body: some View {
         Form {
@@ -26,6 +27,16 @@ struct MobileSyncSettingsView: View {
                     .secondary)
             }.disabled(!enabled || !app.pro.canUse(.vaultSync))
             Section {
+                Toggle("Metrics", isOn: selection(metrics, SettingsKey.metricsSyncEnabled))
+                if metrics {
+                    status(
+                        app.metricsSync?.status, retry: { app.metricsSync?.retry() },
+                        merge: { app.metricsSync?.confirmAccountSwitchMerge() })
+                }
+                Text("Monitored servers, pause state, device selections, and card order.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }.disabled(!enabled || !app.pro.canUse(.vaultSync))
+            Section {
                 Toggle("Settings", isOn: selection(settings, SettingsKey.settingsSyncEnabled))
                 if settings {
                     status(
@@ -34,10 +45,6 @@ struct MobileSyncSettingsView: View {
                 }
                 Text("Terminal and AI preferences.").font(.caption).foregroundStyle(.secondary)
             }.disabled(!enabled || !app.pro.canUse(.vaultSync))
-            if settings {
-                Text("API keys use iCloud Keychain, even when configuration sync is paused.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
         }.navigationTitle("Sync")
     }
 

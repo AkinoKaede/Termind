@@ -15,7 +15,9 @@ struct AppDependencies {
     let serialPortService: any SerialPortServing
     let agentRunRepository: (any AgentRunPersisting)?
     let settingsSync: SettingsSyncCoordinator?
+    let metricsSync: MetricsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
+    let metricsPreferences: (any MetricsConfigurationStoring)?
     let forwardingDefaults: UserDefaults?
     let mcpServerSecrets: any SecretStoring
 
@@ -26,6 +28,8 @@ struct AppDependencies {
         agentRunRepository: (any AgentRunPersisting)? = nil,
         vaultSync: VaultSyncCoordinator? = nil,
         settingsSync: SettingsSyncCoordinator? = nil,
+        metricsSync: MetricsSyncCoordinator? = nil,
+        metricsPreferences: (any MetricsConfigurationStoring)? = nil,
         forwardingDefaults: UserDefaults? = nil,
         mcpServerSecrets: any SecretStoring = InMemorySecretStore()
     ) {
@@ -36,6 +40,8 @@ struct AppDependencies {
         self.agentRunRepository = agentRunRepository
         self.vaultSync = vaultSync
         self.settingsSync = settingsSync
+        self.metricsSync = metricsSync
+        self.metricsPreferences = metricsPreferences
         self.forwardingDefaults = forwardingDefaults
         self.mcpServerSecrets = mcpServerSecrets
     }

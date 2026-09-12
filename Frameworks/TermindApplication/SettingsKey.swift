@@ -3,6 +3,7 @@ import Foundation
 public nonisolated enum SettingsKey {
     public static let appLanguage = "app.language"
     public static let defaultICloudSyncEnabled = true
+    public static let defaultMetricsSyncEnabled = true
     public static let defaultSettingsSyncEnabled = false
     public static let defaultTerminalThemeDark = "Termind Dark"
     public static let defaultTerminalThemeLight = "Termind Light"
@@ -10,6 +11,8 @@ public nonisolated enum SettingsKey {
     public static let defaultWebSearchBuiltIn = true
     public static let defaultWebSearchEnabled = true
     public static let iCloudSyncEnabled = "icloud.sync.enabled"
+    public static let metricsSyncEnabled = "metrics.sync.enabled"
+    public static let metricsSyncEnvironment = "metrics.sync.environment"
     /// Device-local forwarding intent. It is deliberately excluded from Settings and Vault sync.
     public static let portForwardingEnabledRuleIDs = "portForwarding.enabledRuleIDs"
     public static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"

@@ -465,7 +465,7 @@ private struct ProSettings: View {
 
         Section("Termind Pro") {
             Text(
-                "One purchase unlocks multi-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and iCloud sync for your Vault and settings across devices."
+                "One purchase unlocks multi-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and iCloud sync for your Vault, Metrics, and settings across devices."
             )
             .foregroundStyle(.secondary)
             if app.proAccess.status.canPurchase {

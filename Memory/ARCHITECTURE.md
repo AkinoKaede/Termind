@@ -42,7 +42,7 @@ a namespace: the module and responsibility-specific name express ownership.
 would otherwise make lookup ambiguous. Presentation of session-context chips
 belongs to the desktop feature extension, not the domain value.
 
-All SwiftData models and V1–V14 schemas have one definition in Persistence,
+All SwiftData models and V1–V15 schemas have one definition in Persistence,
 including sync journals' records and secret-location metadata. Platform adapters
 can still access public persistent records during incremental extraction, but
 feature views cannot access SwiftData or construct transports. Neither moving a
@@ -152,7 +152,7 @@ infrastructure, persistence, or presentation responsibility.
 Repository data is persistent truth. Runtime connection state is kept in a
 connection registry and is never persisted onto domain records. Port forwarding's
 Enabled choice is a device-local `UserDefaults` intent rather than runtime state:
-it is not included in Vault/Settings sync, while macOS restores it at launch and
+it is not included in Vault/Metrics/Settings sync, while macOS restores it at launch and
 iOS restores it whenever the app becomes active after background suspension.
 
 SSH command history is created only after an authenticated shell-integration
@@ -440,8 +440,8 @@ Linux procfs and optional `nvidia-smi -q -x` are read by Infrastructure with bou
 output and command deadlines. GPU failure does not erase base metrics. Servers without NVIDIA hardware omit
 the GPU section entirely. Missing
 values and invalid counter deltas remain unknown; remote uptime determines
-rates. History is an in-memory five-minute window; only host/device selections
-persist in local preferences. GPU identity uses NVIDIA UUID, and XML external
+rates. History is an in-memory five-minute window; ordered host selections,
+pause state and device selections persist through the Metrics store. GPU identity uses NVIDIA UUID, and XML external
 entities are disabled. There is no WidgetKit extension, App Group, remote agent,
 or dependency on AgentKit for monitoring.
 
@@ -488,7 +488,8 @@ or process environment variables are collected.
 Metrics uses ManagedCardPage/CardTile for the same surfaces, hover, native
 selection, marquee, drag ghosts, and reordering contract as Hosts. Its local
 monitor order is persisted independently of Vault host order and moving rows
-does not reconnect them. Metrics opts into single-click activation; drag gestures retain the shared
+does not reconnect them. The order syncs across devices; adaptive columns, process sorting,
+search, detail navigation and menu-bar visibility remain local. Metrics opts into single-click activation; drag gestures retain the shared
 reordering behavior and Shift-click extends selection without opening details.
 Add Server is a window-toolbar creation action backed by the shared host chooser;
 Show in Menu Bar lives only in Settings. The page does not duplicate its title
@@ -573,12 +574,12 @@ to disabled controllers, and test-host launches never enable live requests.
 
 ## Settings replication
 
-The iCloud page has one master preference and separate Vault/Settings selections.
-Vault is selected by default; Settings is opt-in. Disabling the master preserves
-both selections. Upgrading with Vault sync disabled keeps the master disabled.
-Pro access gates both CloudKit coordinators, whose zones, subscriptions, account
-bindings and journals are independent. Settings use `TermindAIConfigurationV1`; the
-existing `TermindVaultV1` protocol is unchanged.
+The iCloud page has one master preference and separate Vault/Metrics/Settings selections.
+Vault and Metrics are selected by default; Settings is opt-in. Disabling the master preserves
+all selections. Upgrading with sync disabled keeps the master disabled.
+Pro access gates all three CloudKit coordinators, whose zones, subscriptions, account
+bindings and journals are independent. Metrics uses `TermindMetricsV1`, Settings uses
+`TermindAIConfigurationV1`, and the existing `TermindVaultV1` protocol is unchanged.
 
 Shared `TerminalSettingsModel` and `CommandHistoryModel` live in Application, with
 repository protocols there and their concrete SwiftData implementations in Persistence.
@@ -615,6 +616,12 @@ storage marker precede local-copy cleanup. Migrated entries remain in iCloud
 Keychain when configuration sync pauses. Production reads do not cache secrets;
 missing synchronized credentials may arrive later. Pending credential deletion
 markers prevent delayed Keychain deliveries from reviving a cleared value.
+
+Metrics configuration uses one versioned record per host. V15 adds its independent
+journal, account state and quarantine, and imports the old desktop and mobile defaults
+at baseline versions. Records whose Vault host is absent remain persisted but hidden
+until the host appears. Live samples, history, prompts, credentials and platform UI
+preferences never enter the Metrics zone.
 The built-in MCP listener token never enters this path. Explicit credentials stay out
 of CloudKit; custom MCP headers and custom terminal configuration are ordinary user-authored settings. The private-account sync
 adapter is the only additional trusted source of skill-library snapshots.
@@ -715,7 +722,7 @@ is absent from restoration descriptors, so reconnect, foreground restoration and
 links can never replay it. Temporary execution targets do not mutate the saved Snippet.
 
 Mobile Settings exposes full terminal themes, font controls, custom text, shell integration,
-Vault/Settings sync, providers, model discovery and role assignments. The macOS window-title
+Vault/Metrics/Settings sync, providers, model discovery and role assignments. The macOS window-title
 preference remains in synchronized records but has no mobile control. Search belongs to each
 workspace and uses Ghostty's search actions; history insertion uses the paste path without
 appending Enter. Only authenticated integration events produce history rows; interrupted

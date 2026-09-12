@@ -57,7 +57,11 @@ struct MobileMetricsView: View {
                     select: { host in
                         selecting = false
                         if !app.metrics.add(host.id, pro: app.pro.hasProAccess) {
-                            app.pro.presentPaywall(for: .unlimitedMetrics)
+                            if let error = app.metrics.core.storageError {
+                                app.error = error
+                            } else {
+                                app.pro.presentPaywall(for: .unlimitedMetrics)
+                            }
                         }
                     })
             }.mobileSheetPresentation(compact: true)
@@ -186,8 +190,13 @@ private struct MobileMetricsProcessesView: View {
             if server.processesFailed { Text("Process metrics unavailable").foregroundStyle(.secondary) }
             ForEach(rows) { process in
                 HStack {
-                    Text(String(process.pid)).font(.caption.monospaced()).foregroundStyle(.secondary).frame(
-                        width: 48, alignment: .leading)
+                    Text(String(process.pid))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(minWidth: 64, alignment: .leading)
+                        .layoutPriority(1)
                     Text(process.name).lineLimit(1)
                     Spacer(minLength: 4)
                     VStack(alignment: .trailing) {

@@ -208,7 +208,7 @@ struct HostChooserView: View {
     private var results: [Host] {
         let matches = app.hostLibrary.searchHosts(query)
         guard purpose == .metrics else { return matches }
-        let monitored = Set(app.serverMetrics.servers.map(\.id))
+        let monitored = Set(app.serverMetrics.selections.map(\.id))
         return matches.filter { !monitored.contains($0.id) }
     }
 

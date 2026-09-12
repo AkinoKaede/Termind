@@ -12,18 +12,22 @@ final class MobileMetricsModel {
     private let hosts: any RemoteSessionHostStore
     private let limit = MobileMetricsLimit()
     var servers: [ServerMetric] { core.servers }
-    var selections: [MetricsSelection] { servers.map(\.selection) }
+    var selections: [MetricsSelection] { core.selections }
 
-    init(defaults: UserDefaults?, hosts: any RemoteSessionHostStore) {
+    init(preferences: any MetricsConfigurationStoring, hosts: any RemoteSessionHostStore) {
         self.hosts = hosts
         let limit = limit
         core = ServerMetricsModel(
-            hosts: hosts, preferences: MobileMetricsPreferences(defaults: defaults),
+            hosts: hosts, preferences: preferences,
             makeSampler: { SSHMetricsSampler(session: SSHExecSession()) },
             discover: { host, proxy, jumps in
                 try await SSHSessionActor.discoverHostKey(
                     hostID: host.id, host: host.host, port: host.port, proxy: proxy, jumps: jumps)
             }, cardLimit: { limit.maximum })
+    }
+
+    convenience init(defaults: UserDefaults?, hosts: any RemoteSessionHostStore) {
+        self.init(preferences: MobileMetricsPreferences(defaults: defaults), hosts: hosts)
     }
 
     func add(_ id: UUID, pro: Bool) -> Bool {
@@ -44,13 +48,18 @@ final class MobileMetricsModel {
 
 @MainActor private final class MobileMetricsPreferences: MetricsConfigurationStoring {
     private let defaults: UserDefaults?
+    private var memory: [MetricsSelection] = []
+
     init(defaults: UserDefaults?) { self.defaults = defaults }
+
     func load() -> [MetricsSelection] {
         defaults?.data(forKey: "mobile.metrics.v1").flatMap {
             try? JSONDecoder().decode([MetricsSelection].self, from: $0)
-        } ?? []
+        } ?? memory
     }
+
     func save(_ values: [MetricsSelection]) {
+        memory = values
         if let data = try? JSONEncoder().encode(values) { defaults?.set(data, forKey: "mobile.metrics.v1") }
     }
 }

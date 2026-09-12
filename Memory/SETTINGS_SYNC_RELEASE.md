@@ -1,6 +1,7 @@
 # Settings sync release verification
 
-Settings sync ships disabled by default under the Settings checkbox. Vault keeps
+Settings sync ships disabled by default under the Settings checkbox. Vault and Metrics are
+selected by default. Vault keeps
 its existing zone and record type. Settings retains the first AI-sync zone and
 record identifiers for compatibility. No AgentKit dependency update is required.
 
@@ -10,7 +11,7 @@ to V14 succeeded, SQLite integrity was valid, and every preexisting table kept
 its row count. The live database was subsequently observed at V14 with valid
 integrity.
 
-Before shipping the app and privacy policy 1.4 together:
+Before shipping the app and privacy policy 1.5 together:
 
 - In `iCloud.com.akinokaede.termind`, create/validate the Development
   `AIConfigurationItem` record type, then deploy its schema to Production. Use the same
@@ -31,9 +32,15 @@ Before shipping the app and privacy policy 1.4 together:
   state, port, exposed tools and bearer token remain independent. An older synchronized
   listener token must be verified locally before its iCloud Keychain copy is removed.
 - Match the privacy policy effective date to the actual release date before
-  publishing the website. The prepared date is September 10, 2026.
+  publishing the website. The prepared date is September 12, 2026.
 
 The implementation environment did not have a CloudKit management token
 (`cktool get-teams` reported that none was available). Production schema
 validation/deployment and two-Mac delivery verification require that environment
 access; local tests do not establish real iCloud delivery.
+
+Metrics adds private zone `TermindMetricsV1`, record type `MetricsItem`, and subscription
+`termind-metrics-v1-changes`. Before release, create and deploy that schema with the same
+envelope field types as Vault and Settings, then verify ordered selections, pause state and
+disk/network filters between signed macOS and iOS devices. Confirm a Metrics record received
+before its Vault host remains hidden and appears after the host arrives.

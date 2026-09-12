@@ -6,6 +6,7 @@ struct SyncSettings: View {
     @Environment(AppModel.self) private var app
     @AppStorage(SettingsKey.iCloudSyncEnabled) private var isEnabled = SettingsKey.defaultICloudSyncEnabled
     @AppStorage(SettingsKey.vaultSyncEnabled) private var includesVault = SettingsKey.defaultVaultSyncEnabled
+    @AppStorage(SettingsKey.metricsSyncEnabled) private var includesMetrics = SettingsKey.defaultMetricsSyncEnabled
     @AppStorage(SettingsKey.settingsSyncEnabled) private var includesSettings = SettingsKey.defaultSettingsSyncEnabled
 
     private var isActive: Bool { isEnabled && app.proAccess.canUse(.vaultSync) }
@@ -36,6 +37,16 @@ struct SyncSettings: View {
                     retry: { app.vaultSync?.retry() },
                     merge: { app.vaultSync?.confirmAccountSwitchMerge() })
                 SyncSelectionRow(
+                    title: "Metrics", detail: "Monitored servers, pause state, device selections, and card order.",
+                    isSelected: Binding(
+                        get: { includesMetrics },
+                        set: { value in
+                            includesMetrics = value
+                            app.metricsSync?.setEnabled(value)
+                        }), status: isActive ? app.metricsSync?.status : nil,
+                    retry: { app.metricsSync?.retry() },
+                    merge: { app.metricsSync?.confirmAccountSwitchMerge() })
+                SyncSelectionRow(
                     title: "Settings", detail: "Terminal and AI preferences.",
                     isSelected: Binding(
                         get: { includesSettings },
@@ -47,11 +58,6 @@ struct SyncSettings: View {
                     merge: { app.settingsSync?.confirmAccountSwitchMerge() })
             }
             .disabled(!isActive)
-
-            if includesSettings {
-                Text("API keys use iCloud Keychain, even when configuration sync is paused.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
         }
     }
 }

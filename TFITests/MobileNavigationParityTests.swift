@@ -109,7 +109,7 @@ struct MobileNavigationParityTests {
         #expect(MobileMetricsDetailPage.showsBothColumns(width: 1024))
     }
 
-    @Test func metricsProcessListRemovesItsAutomaticTopMargin() throws {
+    @Test func metricsProcessListRemovesItsTopMarginAndKeepsLongPIDsReadable() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -118,6 +118,9 @@ struct MobileNavigationParityTests {
         let processes = try #require(source.components(separatedBy: "struct MobileMetricsProcessesView").last)
 
         #expect(processes.contains(".contentMargins(.top, 0, for: .scrollContent)"))
+        #expect(processes.contains(".font(.caption.monospacedDigit())"))
+        #expect(processes.contains(".fixedSize(horizontal: true, vertical: false)"))
+        #expect(processes.contains(".frame(minWidth: 64, alignment: .leading)"))
     }
 
     @Test func connectionFailuresStayInJourneyAndCancellationLeavesTheDetail() throws {

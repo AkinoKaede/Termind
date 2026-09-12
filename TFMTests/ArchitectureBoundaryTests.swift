@@ -576,7 +576,7 @@ struct ArchitectureBoundaryTests {
             encoding: .utf8)
         #expect(!terminal.contains("remoteWindowTitleInMenuBar"))
         let cloud = try swiftFiles(in: "../Frameworks/TermindInfrastructure/Cloud")
-        #expect(cloud.count == 2)
+        #expect(cloud.count == 3)
     }
 
     @Test

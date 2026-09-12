@@ -80,6 +80,7 @@ final class AppModel {
     let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
     let settingsSync: SettingsSyncCoordinator?
+    let metricsSync: MetricsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
     let forwarding: PortForwardingController
     let sftpTransfers: SFTPTransferCoordinator
@@ -143,7 +144,7 @@ final class AppModel {
         self.serverMetrics =
             suppliedMetrics
             ?? ServerMetricsModel(
-                hosts: hosts, preferences: MetricsPreferences(),
+                hosts: hosts, preferences: dependencies.metricsPreferences ?? MetricsPreferences(),
                 makeSampler: { connectionCoordinator.makeMetricsSampler() },
                 discover: { try await connectionCoordinator.discoverMetricsHostKey(host: $0, proxy: $1, jumps: $2) },
                 cardLimit: { proAccess.canUse(.unlimitedMetrics) ? nil : ServerMetricsModel.freeCardLimit },
@@ -186,6 +187,7 @@ final class AppModel {
         hostRepository = dependencies.hostRepository
         vaultSync = dependencies.vaultSync
         settingsSync = dependencies.settingsSync
+        metricsSync = dependencies.metricsSync
         forwarding = PortForwardingController(hosts: hosts, defaults: dependencies.forwardingDefaults)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
@@ -285,8 +287,12 @@ final class AppModel {
             self?.skills.applyRemoteSnapshot(snapshot.skills)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
         }
+        metricsSync?.didApplyRemote = { [weak serverMetrics] snapshot, _ in
+            serverMetrics?.applyRemoteSnapshot(snapshot)
+        }
         if proAccess.canUse(.vaultSync) {
             vaultSync?.start()
+            metricsSync?.start()
             settingsSync?.start()
         }
     }
@@ -294,10 +300,12 @@ final class AppModel {
     func reconcileProAccess() {
         if proAccess.canUse(.vaultSync) {
             vaultSync?.start()
+            metricsSync?.start()
             settingsSync?.start()
             mcpServer.resumeForProAccess()
         } else {
             vaultSync?.pause()
+            metricsSync?.pause()
             settingsSync?.pause()
         }
         if !proAccess.canUse(.mcpServer), mcpServer.isEnabled {

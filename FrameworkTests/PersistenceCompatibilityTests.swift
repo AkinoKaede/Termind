@@ -26,6 +26,7 @@ struct PersistenceCompatibilityTests {
             #expect(providers.map(\.name) == ["Legacy fixture provider"])
         }
         #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentTerminalPreferences>()) == 0)
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentMetricsSyncEntry>()) == 0)
     }
 
     @Test
@@ -53,6 +54,6 @@ struct PersistenceCompatibilityTests {
         try first.mainContext.save()
         #expect(try second.mainContext.fetchCount(FetchDescriptor<PersistentHostGroup>()) == 0)
         #expect(Set(first.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
-        #expect(TermindMigrationPlan.schemas.count == 14)
+        #expect(TermindMigrationPlan.schemas.count == 15)
     }
 }

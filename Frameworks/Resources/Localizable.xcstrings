@@ -1790,16 +1790,6 @@
         }
       }
     },
-    "API keys use iCloud Keychain, even when configuration sync is paused." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "API密钥使用iCloud钥匙串，即使配置同步已暂停也会继续同步。"
-          }
-        }
-      }
-    },
     "API Type" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8189,6 +8179,16 @@
         }
       }
     },
+    "Monitored servers, pause state, device selections, and card order." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监控的服务器、暂停状态、设备选择和卡片顺序。"
+          }
+        }
+      }
+    },
     "Microphone Unavailable" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9490,12 +9490,12 @@
         }
       }
     },
-    "One purchase unlocks multi-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and iCloud sync for your Vault and settings across devices." : {
+    "One purchase unlocks multi-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and iCloud sync for your Vault, Metrics, and settings across devices." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一次买断，永久解锁多窗格工作区、AI助手、终端拖放上传和MCP，并跨设备同步保管库和设置。"
+            "value" : "一次买断，永久解锁多窗格工作区、AI助手、终端拖放上传和MCP，并跨设备同步保管库、监控和设置。"
           }
         }
       }
@@ -12933,6 +12933,16 @@
         }
       }
     },
+    "Sign in to iCloud to sync Metrics." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录iCloud以同步监控。"
+          }
+        }
+      }
+    },
     "Sign in to iCloud to sync settings." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13898,12 +13908,12 @@
         }
       }
     },
-    "Sync Vault and Settings across devices" : {
+    "Sync Vault, Metrics, and Settings across devices" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跨设备同步保管库和设置"
+            "value" : "跨设备同步保管库、监控和设置"
           }
         }
       }
@@ -14505,6 +14515,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法检查iCloud账户。"
+          }
+        }
+      }
+    },
+    "The iCloud Metrics record %@ is invalid." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud监控记录%@无效。"
           }
         }
       }
@@ -15450,6 +15470,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此会话未记录历史。请启用Shell集成，并使用bash、zsh或fish。"
+          }
+        }
+      }
+    },
+    "This Metrics record requires sync format %lld." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此监控记录需要同步格式%lld。"
           }
         }
       }

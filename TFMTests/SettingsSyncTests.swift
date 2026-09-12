@@ -84,7 +84,7 @@ struct SettingsSyncTests {
         _ = try store.load()
         let metadata = try NSPersistentStoreCoordinator.metadataForPersistentStore(
             ofType: NSSQLiteStoreType, at: settingsMigrationFixtureURL)
-        #expect(metadata[NSStoreModelVersionIdentifiersKey] as? [String] == ["14.0.0"])
+        #expect(metadata[NSStoreModelVersionIdentifiersKey] as? [String] == ["15.0.0"])
     }
 
     @Test
