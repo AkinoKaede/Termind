@@ -197,6 +197,15 @@ public final class VaultSyncJournal {
         try entry(recordName: key.recordName)?.envelope
     }
 
+    public func modificationDates() throws -> [VaultRecordKey: Date] {
+        var result: [VaultRecordKey: Date] = [:]
+        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()) {
+            guard let envelope = row.envelope, !envelope.isDeleted else { continue }
+            result[envelope.key] = envelope.version.modifiedAt
+        }
+        return result
+    }
+
     public func mergeDecision(for remote: [VaultEnvelope]) throws -> VaultRemoteMerge {
         var result = VaultRemoteMerge()
         let entries = try entriesByName()

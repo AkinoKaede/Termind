@@ -124,6 +124,10 @@ public final class HostLibraryModel {
         snippets.first { $0.id == id }
     }
 
+    public func snippetModifiedAt(_ id: Snippet.ID) -> Date? {
+        vault.modifiedAt(for: VaultRecordKey(kind: .snippet, id: id))
+    }
+
     public func snippetPackage(_ id: SnippetPackage.ID) -> SnippetPackage? {
         snippetPackages.first { $0.id == id }
     }

@@ -11,6 +11,41 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileSnippetTests {
+    @Test func legacyTimestampFallbackIsStableUntilARealEditExists() throws {
+        let suiteName = "termind.snippet-timestamp-tests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let fallback = MobileSnippetTimestamp.fallback(in: defaults)
+        #expect(MobileSnippetTimestamp.fallback(in: defaults) == fallback)
+        #expect(
+            MobileSnippetTimestamp.resolve(modifiedAt: VaultVersion.baselineDate, fallback: fallback)
+                == fallback)
+
+        let editedAt = fallback.addingTimeInterval(60)
+        #expect(MobileSnippetTimestamp.resolve(modifiedAt: editedAt, fallback: fallback) == editedAt)
+    }
+
+    @Test func snippetCardsReadCreationAndEditTimesFromTheVaultJournal() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        var snippet = Snippet(title: "Status", body: "uptime")
+
+        app.snippets.upsert(snippet)
+        let createdAt = try #require(app.snippets.modifiedAt(for: snippet.id))
+        #expect(createdAt > VaultVersion.baselineDate)
+        #expect(app.snippetModifiedAt(for: snippet.id) == createdAt)
+
+        app.snippets.upsert(snippet)
+        #expect(app.snippets.modifiedAt(for: snippet.id) == createdAt)
+
+        try await Task.sleep(for: .milliseconds(10))
+        snippet.body = "uptime -p"
+        app.snippets.upsert(snippet)
+        let editedAt = try #require(app.snippets.modifiedAt(for: snippet.id))
+        #expect(editedAt > createdAt)
+        #expect(app.snippetModifiedAt(for: snippet.id) == editedAt)
+    }
+
     @Test func packageManagementSearchAndPersistenceUseTheSharedVault() throws {
         let app = try MobileAppModel(inMemory: true)
         let root = SnippetPackage(name: "Operations")

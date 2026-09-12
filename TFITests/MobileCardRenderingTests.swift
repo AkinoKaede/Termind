@@ -72,7 +72,12 @@ struct MobileCardRenderingTests {
             SSHKeyRef(
                 label: "Missing Private Key / 私钥缺失", algorithm: .ecdsa384,
                 fingerprint: "SHA256:missing", credentialRef: "termind.key.\(UUID())", storage: .iCloud))
-        app.snippets.upsert(Snippet(title: "Inspect disk usage / 检查磁盘", body: "df -h\ndu -sh /var/log"))
+        let snippetPackage = SnippetPackage(name: "Operations / 运维")
+        app.snippets.upsert(snippetPackage)
+        app.snippets.upsert(
+            Snippet(
+                title: "Inspect disk usage / 检查磁盘", body: "df -h\ndu -sh /var/log",
+                packageID: snippetPackage.id))
         let server = ServerMetric(selection: MetricsSelection(id: UUID()), name: "Production Gateway")
         server.isConnecting = false
         server.status = ""
@@ -92,6 +97,12 @@ struct MobileCardRenderingTests {
             for scheme in [ColorScheme.light, .dark] {
                 try await capture("vault", language: language, scheme: scheme) {
                     NavigationStack { MobileVaultView(app: app, open: { _, _ in }) }
+                }
+                try await capture("snippets", language: language, scheme: scheme) {
+                    NavigationStack { MobileSnippetsView(app: app) }
+                }
+                try await capture("snippets-search", language: language, scheme: scheme) {
+                    NavigationStack { MobileSnippetsView(app: app, initialQuery: "Inspect") }
                 }
                 try await capture("keychain", language: language, scheme: scheme) {
                     NavigationStack { MobileCredentialsView(app: app) }

@@ -688,6 +688,10 @@ foreground loop. New port forwarding rules never start merely because they were 
 
 Mobile Snippets retain the shared Vault records, nested packages, ordering and target
 host references. A card opens a read-only detail; execution is always an explicit action.
+On iOS, each card's lower-right timestamp is the Snippet record's Vault journal
+`modifiedAt`: the first save is its added time and later persisted changes replace it.
+Pre-journal baseline records use a stable, device-local migration timestamp for display
+without rewriting the record or creating a sync conflict.
 Each resolved target opens an independent SSH Workspace, including free multi-host runs,
 because mobile never composes panes. The initial command is live Workspace state only: it
 is submitted once after the first successful authentication/trust flow, then consumed. It

@@ -31,6 +31,9 @@ public final class SnippetLibraryModel {
     public func snippetPackagePath(_ packageID: SnippetPackage.ID?) -> String? {
         library.snippetPackagePath(packageID)
     }
+    public func modifiedAt(for snippetID: Snippet.ID) -> Date? {
+        library.snippetModifiedAt(snippetID)
+    }
     public func searchSnippets(_ query: String) -> [Snippet] { library.searchSnippets(query) }
     public func searchHosts(_ query: String) -> [Host] { library.searchHosts(query) }
     public func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }

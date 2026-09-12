@@ -30,6 +30,8 @@ nonisolated enum MobileSnippetOperations {
 }
 
 struct MobileSnippetsView: View {
+    @Environment(\.locale) private var locale
+
     private enum SectionID: Hashable {
         case results
         case package(SnippetPackage.ID)
@@ -322,8 +324,22 @@ struct MobileSnippetsView: View {
                             assessment: CommandRiskClassifier.assess(snippet.body))
                     }
                 }
-                if showsPackage, let path = app.snippets.snippetPackagePath(snippet.packageID) {
-                    Label(path, systemImage: "folder").font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    if showsPackage, let path = app.snippets.snippetPackagePath(snippet.packageID) {
+                        Label(path, systemImage: "folder")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 6)
+                    Text(
+                        app.snippetModifiedAt(for: snippet.id)
+                            .formatted(.relative(presentation: .numeric).locale(locale))
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
             }
         } actions: {

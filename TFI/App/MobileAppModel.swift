@@ -16,6 +16,22 @@ private enum MobileWorkspaceStartup {
     case directory(String)
 }
 
+enum MobileSnippetTimestamp {
+    static let fallbackKey = "mobile.snippets.baselineModifiedAtFallback.v1"
+
+    static func fallback(in defaults: UserDefaults?) -> Date {
+        if let existing = defaults?.object(forKey: fallbackKey) as? Date { return existing }
+        let date = Date()
+        defaults?.set(date, forKey: fallbackKey)
+        return date
+    }
+
+    static func resolve(modifiedAt: Date?, fallback: Date) -> Date {
+        guard let modifiedAt, modifiedAt > VaultVersion.baselineDate else { return fallback }
+        return modifiedAt
+    }
+}
+
 @MainActor
 @Observable
 final class MobileAppModel {
@@ -44,6 +60,7 @@ final class MobileAppModel {
     let liveActivities: MobileLiveActivityController
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
     private let defaults: UserDefaults?
+    private let snippetTimestampFallback: Date
     private let background: any MobileBackgroundTaskManaging
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
     let outbox: OutboxRunner
@@ -84,6 +101,7 @@ final class MobileAppModel {
         self.hosts = hosts ?? SwiftDataHostRepository(context: vaultContext)
         outbox = OutboxRunner(store: SwiftDataOutboxStore(context: ModelContext(container)))
         self.defaults = inMemory || hosts != nil ? nil : defaults
+        snippetTimestampFallback = MobileSnippetTimestamp.fallback(in: self.defaults)
         liveActivities = MobileLiveActivityController(enabled: !inMemory && hosts == nil)
         pro = inMemory || hosts != nil ? .unrestrictedForTesting() : .live()
         let persistence = HostPersistence(context: vaultContext)
@@ -251,6 +269,11 @@ final class MobileAppModel {
 
     func lastConnectedAt(for hostID: Host.ID) -> Date? {
         connectionHistory.mostRecentDate(for: hostID)
+    }
+
+    func snippetModifiedAt(for snippetID: Snippet.ID) -> Date {
+        MobileSnippetTimestamp.resolve(
+            modifiedAt: snippets.modifiedAt(for: snippetID), fallback: snippetTimestampFallback)
     }
 
     func sceneChanged(_ id: UUID, phase: ScenePhase) {

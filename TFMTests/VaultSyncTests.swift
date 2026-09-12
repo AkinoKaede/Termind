@@ -17,6 +17,28 @@ import struct TermindDomain.Host
 @MainActor
 struct VaultSyncTests {
     @Test
+    func vaultModificationDatesTrackOnlyPersistedRecordChanges() async throws {
+        let container = try makeContainer("ModificationDates")
+        let persistence = HostPersistence(context: container.mainContext)
+        var snippet = Snippet(title: "Uptime", body: "uptime")
+        let initial = VaultSnapshot(snippets: [snippet])
+
+        _ = try persistence.save(initial)
+        let key = VaultRecordKey(kind: .snippet, id: snippet.id)
+        let createdAt = try #require(try persistence.modificationDates()[key])
+        #expect(createdAt > VaultVersion.baselineDate)
+
+        _ = try persistence.save(initial)
+        #expect(try persistence.modificationDates()[key] == createdAt)
+
+        try await Task.sleep(for: .milliseconds(10))
+        snippet.body = "uptime -p"
+        _ = try persistence.save(VaultSnapshot(snippets: [snippet]))
+        let editedAt = try #require(try persistence.modificationDates()[key])
+        #expect(editedAt > createdAt)
+    }
+
+    @Test
     func allVaultPayloadsRoundTripWithStableRecordNames() throws {
         let host = Host(name: "Production", host: "prod.example")
         let group = HostGroup(name: "Servers")

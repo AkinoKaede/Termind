@@ -79,6 +79,10 @@ public final class HostPersistence {
         return try journal.recordCurrentSnapshot(snapshot)
     }
 
+    public func modificationDates() throws -> [VaultRecordKey: Date] {
+        try VaultSyncJournal(context: context).modificationDates()
+    }
+
     private func persist(_ snapshot: VaultSnapshot) throws {
         try reconcile(
             try context.fetch(FetchDescriptor<PersistentHost>()), with: snapshot.hosts,

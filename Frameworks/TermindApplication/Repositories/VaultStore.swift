@@ -7,6 +7,7 @@ import TermindDomain
 @MainActor
 public final class VaultStore {
     private let persistence: (any VaultPersisting)?
+    private var modificationDates: [VaultRecordKey: Date] = [:]
     public var didPersist: (() -> Void)?
     public var didRecordChanges: ((VaultMutationSet) -> Void)?
 
@@ -15,20 +16,33 @@ public final class VaultStore {
     }
 
     public func load(fallback: VaultSnapshot) throws -> VaultSnapshot {
-        try persistence?.load() ?? fallback
+        let snapshot = try persistence?.load() ?? fallback
+        refreshModificationDates()
+        return snapshot
     }
 
     public func save(_ snapshot: VaultSnapshot) throws {
         if let persistence {
             let mutations = try persistence.save(snapshot)
+            refreshModificationDates()
             didRecordChanges?(mutations)
         }
         didPersist?()
     }
 
+    public func modifiedAt(for key: VaultRecordKey) -> Date? {
+        modificationDates[key]
+    }
+
     /// A remote projection is already persisted by the sync engine. Aggregate
     /// models only need to refresh repository projections after accepting it.
     public func didApplyRemoteSnapshot() {
+        refreshModificationDates()
         didPersist?()
+    }
+
+    private func refreshModificationDates() {
+        guard let dates = try? persistence?.modificationDates() else { return }
+        modificationDates = dates
     }
 }
