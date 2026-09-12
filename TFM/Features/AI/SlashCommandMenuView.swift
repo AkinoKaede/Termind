@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 /// The palette that opens when a draft starts with `/`.
 ///

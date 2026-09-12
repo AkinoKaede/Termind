@@ -4,6 +4,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
+import TermindPresentation
 import UniformTypeIdentifiers
 
 /// Reports composition text that SwiftUI's String binding has not committed.

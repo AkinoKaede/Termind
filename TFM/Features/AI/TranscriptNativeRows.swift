@@ -5,6 +5,7 @@ import MarkdownView
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 @MainActor
 final class TranscriptMarkdownCache {

@@ -16,36 +16,19 @@ struct MobileAssistantConversation: View {
     @State private var preview: URL?
     @State private var previewDirectory = FileManager.default.temporaryDirectory.appending(
         path: "Assistant-Previews/\(UUID().uuidString)")
-    @State private var followsBottom = true
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    if conversation.isEmpty {
-                        ContentUnavailableView("Ask anything…", systemImage: "sparkles")
-                    }
-                    ForEach(conversation.timeline) { item in timelineRow(item) }
-                    if !conversation.tasks.isEmpty {
-                        DisclosureGroup("Tasks") {
-                            ForEach(conversation.tasks) { task in
-                                Label(
-                                    task.title,
-                                    systemImage: task.status == .completed ? "checkmark.circle.fill" : "circle")
-                            }
-                        }
-                    }
-                    Color.clear.frame(height: 1).id("bottom")
-                        .onAppear { followsBottom = true }.onDisappear { followsBottom = false }
-                }.padding().frame(maxWidth: 850).frame(maxWidth: .infinity)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .onChange(of: conversation.messages.last?.text) { _, _ in
-                if followsBottom { proxy.scrollTo("bottom", anchor: .bottom) }
-            }
-            .onChange(of: conversation.timeline.count) { _, _ in
-                if followsBottom { proxy.scrollTo("bottom", anchor: .bottom) }
-            }
+        MobileNativeList(
+            items: transcriptEntries,
+            estimatedRowHeight: 132,
+            refreshID: transcriptRefreshID,
+            followsBottom: true
+        ) { entry in
+            transcriptRow(entry)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: 850)
+                .frame(maxWidth: .infinity)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 8) {
@@ -55,6 +38,7 @@ struct MobileAssistantConversation: View {
                         Task { await model.archive(conversation, archived: false) }
                     }
                 } else {
+                    if !conversation.tasks.isEmpty { taskList }
                     MobileAssistantInteraction(conversation: conversation, hosts: app.library)
                     MobileAssistantComposer(pro: app.pro, model: model, conversation: conversation)
                 }
@@ -81,6 +65,54 @@ struct MobileAssistantConversation: View {
         .quickLookPreview($preview)
         .onDisappear {
             try? FileManager.default.removeItem(at: previewDirectory)
+        }
+    }
+
+    private var transcriptRefreshID: String {
+        "\(conversation.id.uuidString):\(conversation.isArchived):\(conversation.isStreaming):\(conversation.timeline.count)"
+    }
+
+    private var transcriptEntries: [AssistantTranscriptEntry] {
+        AssistantTranscriptEntry.items(
+            timeline: conversation.timeline,
+            isInterrupted: conversation.runState == .interrupted,
+            canEdit: conversation.canEditUserMessage,
+            canFork: conversation.canForkAssistantMessage
+        )
+    }
+
+    private var taskList: some View {
+        DisclosureGroup("Tasks") {
+            ForEach(conversation.tasks) { task in
+                Label(task.title, systemImage: task.status == .completed ? "checkmark.circle.fill" : "circle")
+                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            }
+        }
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    @ViewBuilder private func transcriptRow(_ entry: AssistantTranscriptEntry) -> some View {
+        switch entry.content {
+        case .empty:
+            ContentUnavailableView("Ask anything…", systemImage: "sparkles").frame(minHeight: 180)
+        case .user(let message, _), .assistant(let message, _):
+            messageRow(message)
+        case .tool(let card):
+            toolRow(card)
+        case .work(let group):
+            timelineRow(.work(group))
+        case .command(let command):
+            timelineRow(.command(command))
+        case .plan(let plan):
+            timelineRow(.plan(plan))
+        case .compaction(let mark):
+            timelineRow(.compaction(mark))
+        case .compactionActivity(let activity):
+            timelineRow(.compactionActivity(activity))
+        case .interrupted:
+            Label("This run was interrupted and was not resumed.", systemImage: "exclamationmark.circle")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -127,13 +159,28 @@ struct MobileAssistantConversation: View {
 
     private func messageRow(_ message: ChatMessage) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(message.role == .user ? "You" : "Assistant").font(.caption).foregroundStyle(.secondary)
+            if message.role != .user {
+                Text("Assistant").font(.caption).foregroundStyle(.secondary)
+            }
             if !message.reasoning.isEmpty {
                 DisclosureGroup("Thinking") {
                     ForEach(message.reasoning) { block in AssistantMessageBody(block.text).textSelection(.enabled) }
                 }
             }
-            AssistantMessageBody(message.text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+            if !message.text.isEmpty {
+                if message.role == .user {
+                    HStack {
+                        Spacer(minLength: 44)
+                        AssistantMessageBody(message.text)
+                            .textSelection(.enabled)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                } else {
+                    AssistantMessageBody(message.text).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
             ForEach(message.images) { image in
                 Button {
                     open(data: image.data, name: image.label)

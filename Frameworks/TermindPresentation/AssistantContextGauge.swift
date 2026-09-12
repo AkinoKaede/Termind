@@ -13,16 +13,23 @@ import TermindApplication
 /// a plain SwiftUI view and renders wherever any view renders — including a
 /// `Menu` label, which on macOS is bridged into AppKit and is not somewhere to
 /// find out that an imperative drawing context was unsupported.
-struct ProgressRing: View {
+public struct ProgressRing: View {
     let share: Double
     let tint: Color
-    var diameter: CGFloat = 11
-    var lineWidth: CGFloat = 2
+    public var diameter: CGFloat = 11
+    public var lineWidth: CGFloat = 2
 
-    var body: some View {
+    public init(share: Double, tint: Color, diameter: CGFloat = 11, lineWidth: CGFloat = 2) {
+        self.share = share
+        self.tint = tint
+        self.diameter = diameter
+        self.lineWidth = lineWidth
+    }
+
+    public var body: some View {
         ZStack {
             Circle()
-                .stroke(.quaternary, lineWidth: lineWidth)
+                .stroke(Color.secondary.opacity(0.3), lineWidth: lineWidth)
                 .padding(lineWidth / 2)
             Circle()
                 .trim(from: 0, to: max(0, min(1, share)))
@@ -40,13 +47,19 @@ struct ProgressRing: View {
     }
 }
 
-struct ContextRing: View {
+public struct ContextRing: View {
     /// 0...1. `AgentContextEstimate.share(of:)` clamps before this is reached.
     let share: Double
-    var diameter: CGFloat = 11
-    var lineWidth: CGFloat = 2
+    public var diameter: CGFloat = 11
+    public var lineWidth: CGFloat = 2
 
-    var body: some View {
+    public init(share: Double, diameter: CGFloat = 11, lineWidth: CGFloat = 2) {
+        self.share = share
+        self.diameter = diameter
+        self.lineWidth = lineWidth
+    }
+
+    public var body: some View {
         ProgressRing(
             share: share, tint: Self.tint(for: share),
             diameter: diameter, lineWidth: lineWidth
@@ -60,7 +73,7 @@ struct ContextRing: View {
     /// next turn is likely to be the one that compacts. Below that it is just a
     /// quantity, and a quantity in a warning colour is a warning nobody asked
     /// for — which is also why the Plan chip beside it is grey and this is not.
-    static func tint(for share: Double) -> Color {
+    public static func tint(for share: Double) -> Color {
         switch share {
         case ..<0.75: .accentColor
         case ..<0.9: .orange
@@ -75,24 +88,30 @@ struct ContextRing: View {
 /// and shortcuts. No amount of string padding can place text in that column —
 /// it only makes the menu wider. Keeping this in the model picker's popover
 /// gives `Spacer` an actual width and makes the value edge truthful.
-struct ContextBreakdownView: View {
-    let estimate: AgentContextEstimate
+public struct ContextBreakdownView: View {
+    public let estimate: AgentContextEstimate
     /// `nil` when the model's window is unknown, which is common for gateway
     /// providers. The parts still mean something; the share does not.
-    let contextWindow: Int?
-    let cachedInputTokens: Int
+    public let contextWindow: Int?
+    public let cachedInputTokens: Int
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
+    public init(estimate: AgentContextEstimate, contextWindow: Int?, cachedInputTokens: Int) {
+        self.estimate = estimate
+        self.contextWindow = contextWindow
+        self.cachedInputTokens = cachedInputTokens
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Context")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.l) {
+                HStack(alignment: .firstTextBaseline, spacing: 16) {
                     Text(row.name)
                         .foregroundStyle(.secondary)
-                    Spacer(minLength: Metrics.Space.l)
+                    Spacer(minLength: 16)
                     Text(row.value)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
@@ -134,7 +153,7 @@ struct ContextBreakdownView: View {
 
     /// `62.4k`, not `62,431`. A gauge is read at a glance, and the last three
     /// digits of a token count have never changed anyone's mind.
-    static func compact(_ tokens: Int) -> String {
+    public static func compact(_ tokens: Int) -> String {
         switch tokens {
         case ..<1_000: "\(tokens)"
         case ..<10_000: String(format: "%.1fk", Double(tokens) / 1_000)

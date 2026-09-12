@@ -12,6 +12,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     let onSelect: ((Item) -> Void)?
     let onDelete: ((Item) -> Void)?
     let onRefresh: (() async -> Void)?
+    let followsBottom: Bool
     @ViewBuilder let rowContent: (Item) -> RowContent
 
     @Environment(\.colorScheme) private var colorScheme
@@ -23,6 +24,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         onSelect: ((Item) -> Void)? = nil,
         onDelete: ((Item) -> Void)? = nil,
         onRefresh: (() async -> Void)? = nil,
+        followsBottom: Bool = false,
         @ViewBuilder rowContent: @escaping (Item) -> RowContent
     ) {
         self.items = items
@@ -31,6 +33,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         self.onSelect = onSelect
         self.onDelete = onDelete
         self.onRefresh = onRefresh
+        self.followsBottom = followsBottom
         self.rowContent = rowContent
     }
 
@@ -64,6 +67,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             onSelect: onSelect,
             onDelete: onDelete,
             onRefresh: onRefresh,
+            followsBottom: followsBottom,
             refreshID: refreshID,
             locale: locale,
             colorScheme: colorScheme,
@@ -97,9 +101,14 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             listView: ListView<Item>, items newItems: [Item], renderer: @escaping Renderer,
             onSelect: ((Item) -> Void)?, onDelete: ((Item) -> Void)?,
             onRefresh: (() async -> Void)?,
+            followsBottom: Bool,
             refreshID newRefreshID: AnyHashable,
             locale: Locale, colorScheme: ColorScheme, dynamicTypeSize: DynamicTypeSize
         ) {
+            let wasAtBottom =
+                items.isEmpty
+                || listView.contentSize.height - listView.bounds.height
+                    - listView.contentOffset.y <= 48
             let environmentChanged =
                 self.locale != locale || self.colorScheme != colorScheme
                 || self.dynamicTypeSize != dynamicTypeSize || refreshID != newRefreshID
@@ -123,6 +132,9 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
                 if environmentChanged { listView.reloadData() }
             }
             items = newItems
+            if followsBottom, wasAtBottom {
+                Task { @MainActor in listView.scrollToBottom(animated: !self.items.isEmpty) }
+            }
         }
 
         func cancelRefresh() {

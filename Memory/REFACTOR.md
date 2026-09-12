@@ -1084,9 +1084,9 @@ and chat content. Strict formatting and Chinese localization checks passed.
 **Estimated reduction:** Remove approximately 35 lines of duplicate role form logic and avoid a second 250-line skill library implementation.
 
 
-## 2026-09-11 — Shared Assistant execution (in progress)
+## 2026-09-11 — Shared Assistant execution (completed 2026-09-12)
 
-Evidence: MobileAssistantModel registers no tools, while TFM/App/AppModel builds the complete runtime and ConversationModel owns its event and interaction queues. Move the existing model, tool adapters, import and speech services into their owning frameworks, then share runtime composition and conversation commands. Expected reduction: remove the mobile duplicate chat loop and avoid a second implementation of approximately 5,000 lines of Agent state/tool behavior. Verification pending macOS/iOS builds and regression suites.
+Evidence: MobileAssistantModel registered no tools, while TFM/App/AppModel built the complete runtime and ConversationModel owned its event and interaction queues. The runtime, tool adapters, attachment and speech services now live in their owning frameworks; both apps consume the shared conversation projection, and both transcripts use ListViewKit. The macOS and iOS builds pass, Assistant/navigation tests pass, localization and format checks pass, and the full iOS run's only failure was an unrelated Metrics journey timing race that passed when its four-test suite was rerun.
 
 ## 2026-09-12 — Remove app-target framework forwarding aliases
 

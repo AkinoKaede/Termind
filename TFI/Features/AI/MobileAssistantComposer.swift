@@ -4,6 +4,7 @@ import PhotosUI
 import SwiftUI
 import TermindApplication
 import TermindInfrastructure
+import TermindPresentation
 
 struct MobileAssistantComposer: View {
     let pro: ProAccessController
@@ -16,6 +17,7 @@ struct MobileAssistantComposer: View {
     @State private var photoTask: Task<Void, Never>?
     @State private var speechDraft = ""
     @State private var mcp = false
+    @State private var contextDetails = false
     @State private var isSlashPanelDismissed = false
     @State private var slashPanelHeight: CGFloat = 0
     @FocusState private var focused: Bool
@@ -25,64 +27,7 @@ struct MobileAssistantComposer: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            attachmentRow
-            if recording {
-                HStack {
-                    if model.speech.isRequestingAuthorization || model.speech.phase == .transcribing {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "waveform").symbolEffect(.variableColor)
-                        Text("Recording…")
-                    }
-                    Spacer()
-                    Button("Cancel", systemImage: "xmark") { model.speech.cancel(ownerID: conversation.id) }
-                    Button("Done", systemImage: "checkmark") { model.speech.stop(ownerID: conversation.id) }
-                        .disabled(model.speech.phase != .recording)
-                }
-            }
-            HStack(alignment: .bottom, spacing: 12) {
-                Menu {
-                    Button("Camera", systemImage: "camera") { openCamera() }
-                        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-                    Button("Photos", systemImage: "photo") { photos = true }
-                    Button("Files", systemImage: "doc") { files = true }
-                    Divider()
-                    Button("Voice Input", systemImage: "mic") { startSpeech() }
-                        .disabled(recording)
-                } label: {
-                    Image(systemName: "plus").font(.title3).frame(minWidth: 44, minHeight: 44)
-                }.accessibilityLabel("Add Attachment")
-                TextField(
-                    "Ask anything…", text: Binding(get: { composer.draft }, set: { composer.draft = $0 }),
-                    axis: .vertical
-                )
-                .lineLimit(1...6).focused($focused)
-                .padding(.vertical, 10).padding(.horizontal, 12)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 18))
-                .disabled(recording)
-                VStack(spacing: 4) {
-                    if conversation.isStreaming {
-                        Button {
-                            conversation.stop()
-                        } label: {
-                            Label("Stop", systemImage: "stop.circle.fill").labelStyle(.iconOnly).frame(
-                                minWidth: 44, minHeight: 44
-                            ).contentShape(.rect)
-                        }
-                        .labelStyle(.iconOnly).font(.title2)
-                    }
-                    Button {
-                        send()
-                    } label: {
-                        Label("Send", systemImage: "arrow.up.circle.fill").labelStyle(.iconOnly).frame(
-                            minWidth: 44, minHeight: 44
-                        ).contentShape(.rect)
-                    }
-                    .labelStyle(.iconOnly).font(.title2)
-                    .disabled(!canSend || recording)
-                }.frame(minWidth: 44, minHeight: 44)
-            }
-            controls
+            composerSurface
             if let error = composer.attachmentImportError {
                 HStack(alignment: .top) {
                     Text(error).font(.caption).foregroundStyle(.red)
@@ -101,36 +46,7 @@ struct MobileAssistantComposer: View {
                 }
             }
         }
-        .overlay(alignment: .top) {
-            if !slashCompletion.isEmpty, !isSlashPanelDismissed {
-                MobileSlashCommandPanel(
-                    completion: slashCompletion,
-                    contextShare: contextShare,
-                    hasOptions: { !slashOptions($0).isEmpty },
-                    trailingText: slashTrailingText,
-                    isCurrent: isCurrentSlashOption,
-                    onBack: {
-                        composer.draft = "/"
-                        focused = true
-                    },
-                    onClose: {
-                        isSlashPanelDismissed = true
-                        focused = true
-                    },
-                    onSelect: acceptSlashRow
-                )
-                .onGeometryChange(for: CGFloat.self) { proxy in
-                    proxy.size.height
-                } action: { height in
-                    slashPanelHeight = height
-                }
-                .offset(y: -(slashPanelHeight + 8))
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                .zIndex(20)
-            }
-        }
-        .animation(.snappy(duration: 0.2), value: slashCompletion.rows.map(\.id))
-        .onChange(of: composer.draft) { _, _ in isSlashPanelDismissed = false }
+        .sheet(isPresented: $contextDetails) { contextDetailsSheet }
         .fileImporter(
             isPresented: $files, allowedContentTypes: ContextAttachmentImporter.supportedContentTypes,
             allowsMultipleSelection: true
@@ -186,6 +102,218 @@ struct MobileAssistantComposer: View {
         }
     }
 
+    private var composerSurface: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !composer.attachments.isEmpty || !composer.pendingAttachments.isEmpty {
+                attachmentRow
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+            TextField(
+                "Ask anything…", text: Binding(get: { composer.draft }, set: { composer.draft = $0 }),
+                axis: .vertical
+            )
+            .lineLimit(1...6)
+            .focused($focused)
+            .disabled(recording)
+            .padding(.horizontal, 4)
+            .padding(.top, 4)
+
+            if recording { recordingControls } else { standardControls }
+        }
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(.primary.opacity(0.08), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+        .overlay(alignment: .top) {
+            if !slashCompletion.isEmpty, !isSlashPanelDismissed {
+                MobileSlashCommandPanel(
+                    completion: slashCompletion,
+                    contextShare: contextShare,
+                    hasOptions: { !slashOptions($0).isEmpty },
+                    trailingText: slashTrailingText,
+                    isCurrent: isCurrentSlashOption,
+                    onBack: {
+                        composer.draft = "/"
+                        focused = true
+                    },
+                    onClose: {
+                        isSlashPanelDismissed = true
+                        focused = true
+                    },
+                    onSelect: acceptSlashRow
+                )
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.height
+                } action: { height in
+                    slashPanelHeight = height
+                }
+                .offset(y: -(slashPanelHeight + 8))
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .zIndex(20)
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: slashCompletion.rows.map(\.id))
+        .onChange(of: composer.draft) { _, _ in isSlashPanelDismissed = false }
+    }
+
+    private var standardControls: some View {
+        HStack(spacing: 2) {
+            addMenu
+            permissionMenu
+            badges
+            Spacer(minLength: 4)
+            contextButton
+            microphoneButton
+            primaryButton
+        }
+        .frame(minHeight: 48)
+    }
+
+    private var recordingControls: some View {
+        HStack(spacing: 8) {
+            Button {
+                composer.draft = speechDraft
+                model.speech.cancel(ownerID: conversation.id)
+                focused = true
+            } label: {
+                Label("Cancel", systemImage: "xmark").labelStyle(.iconOnly)
+                    .frame(width: 48, height: 48).contentShape(.circle)
+            }
+            if model.speech.isRequestingAuthorization || model.speech.phase == .transcribing {
+                ProgressView().frame(maxWidth: .infinity)
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "waveform").symbolEffect(.variableColor)
+                    Text("Recording…").font(.callout).foregroundStyle(.secondary)
+                }.frame(maxWidth: .infinity)
+            }
+            Button {
+                model.speech.stop(ownerID: conversation.id)
+            } label: {
+                Label("Done", systemImage: "stop.fill").labelStyle(.iconOnly)
+                    .frame(width: 48, height: 48).contentShape(.circle)
+            }
+            .disabled(model.speech.phase != .recording)
+        }
+        .frame(minHeight: 48)
+    }
+
+    private var addMenu: some View {
+        Menu {
+            Button("Camera", systemImage: "camera") { openCamera() }
+                .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+            Button("Photos", systemImage: "photo") { photos = true }
+            Button("Files", systemImage: "doc") { files = true }
+            Divider()
+            Button("Voice Input", systemImage: "mic") { startSpeech() }.disabled(recording)
+        } label: {
+            Image(systemName: "plus").font(.title3.weight(.medium))
+                .foregroundStyle(.primary)
+                .frame(width: 48, height: 48).contentShape(.circle)
+        }
+        .accessibilityLabel("Add Attachment")
+    }
+
+    private var permissionMenu: some View {
+        Menu {
+            Picker(
+                "Permissions",
+                selection: Binding(
+                    get: { model.configuration.resolve(conversation: conversation.permissionMode) },
+                    set: {
+                        conversation.permissionMode = $0
+                        model.configuration.select($0)
+                    })
+            ) {
+                ForEach(AgentPermissionMode.allCases) { mode in Text(mode.displayName).tag(mode) }
+            }
+        } label: {
+            Image(systemName: model.configuration.resolve(conversation: conversation.permissionMode).symbol)
+                .font(.title3)
+                .foregroundStyle(
+                    model.configuration.resolve(conversation: conversation.permissionMode) == .fullAccess
+                        ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary)
+                )
+                .frame(width: 48, height: 48).contentShape(.circle)
+        }
+        .accessibilityLabel("Permissions")
+    }
+
+    private var contextButton: some View {
+        Button {
+            contextDetails = true
+        } label: {
+            ContextRing(share: contextShare ?? 0, diameter: 28, lineWidth: 4)
+                .frame(width: 48, height: 48).contentShape(.circle)
+        }
+        .accessibilityLabel("Context Tokens")
+        .accessibilityValue(Text(conversation.contextEstimate.total, format: .number))
+    }
+
+    private var microphoneButton: some View {
+        Button(action: startSpeech) {
+            Label("Voice Input", systemImage: "mic").labelStyle(.iconOnly)
+                .font(.system(size: 25, weight: .medium)).foregroundStyle(.primary)
+                .frame(width: 48, height: 48).contentShape(.circle)
+        }
+        .disabled(!model.speech.canStart(for: conversation.id))
+    }
+
+    @ViewBuilder private var primaryButton: some View {
+        if conversation.isStreaming && !canSend {
+            Button(action: conversation.stop) {
+                Label("Stop", systemImage: "stop.circle.fill").labelStyle(.iconOnly)
+                    .font(.system(size: 34, weight: .semibold)).foregroundStyle(.red)
+                    .frame(width: 48, height: 48).contentShape(.circle)
+            }
+        } else {
+            Button(action: send) {
+                Label("Send", systemImage: "arrow.up.circle.fill").labelStyle(.iconOnly)
+                    .font(.system(size: 34, weight: .semibold)).frame(width: 48, height: 48).contentShape(.circle)
+            }
+            .disabled(!canSend)
+        }
+    }
+
+    private var contextDetailsSheet: some View {
+        NavigationStack {
+            Form {
+                if conversation.contextEstimate.total > 0 {
+                    Section {
+                        ContextBreakdownView(
+                            estimate: conversation.contextEstimate,
+                            contextWindow: resolved?.model.contextLength,
+                            cachedInputTokens: conversation.usage?.cachedInputTokens ?? 0
+                        )
+                    }
+                }
+                Section("Model") { modelPicker }
+                if let reasoningResolution {
+                    Section("Reasoning") {
+                        Picker("Reasoning", selection: $conversation.reasoningEffort) {
+                            ForEach(reasoningResolution.supported, id: \.self) { effort in
+                                Text(effort.displayName).tag(effort)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                    }
+                }
+            }
+            .navigationTitle("Context")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { contextDetails = false }
+                }
+            }
+        }
+        .mobileSheetPresentation(compact: true)
+    }
+
     private var canSend: Bool {
         composer.pendingAttachments.isEmpty && !conversation.isCompacting
             && (!composer.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -194,39 +322,52 @@ struct MobileAssistantComposer: View {
 
     private var attachmentRow: some View {
         ScrollView(.horizontal) {
-            HStack {
+            HStack(spacing: 6) {
                 ForEach(composer.attachments) { chip in
-                    HStack {
-                        if let image = chip.image, let ui = UIImage(data: image.data) {
-                            Image(uiImage: ui).resizable().scaledToFill().frame(width: 36, height: 36).clipped()
-                        } else {
-                            Image(systemName: chip.kind.symbol)
+                    Button {
+                        conversation.detach(chip.id)
+                    } label: {
+                        HStack(spacing: 6) {
+                            if let image = chip.image, let ui = UIImage(data: image.data) {
+                                Image(uiImage: ui).resizable().scaledToFill()
+                                    .frame(width: 24, height: 24).clipShape(.rect(cornerRadius: 6))
+                            } else {
+                                Image(systemName: chip.kind.symbol).font(.caption)
+                            }
+                            Text(chip.label).font(.caption).lineLimit(1)
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption.weight(.semibold)).foregroundStyle(Color.primary.opacity(0.55))
                         }
-                        Text(chip.label).font(.caption).lineLimit(1)
-                        Button {
-                            conversation.detach(chip.id)
-                        } label: {
-                            Label("Remove", systemImage: "xmark.circle.fill").labelStyle(.iconOnly).frame(
-                                minWidth: 44, minHeight: 44
-                            ).contentShape(.rect)
-                        }.labelStyle(.iconOnly)
-                    }.padding(6).background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .frame(minHeight: 44)
+                        .background(Color.primary.opacity(0.08), in: .capsule)
+                        .overlay { Capsule().stroke(Color.primary.opacity(0.08), lineWidth: 1) }
+                        .contentShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Remove \(chip.label)"))
                 }
                 ForEach(composer.pendingAttachments) { pending in
-                    HStack {
-                        ProgressView().controlSize(.small)
-                        Text(pending.label).font(.caption)
-                        Button {
-                            conversation.cancelAttachmentImport(pending.id)
-                        } label: {
-                            Label("Cancel", systemImage: "xmark").labelStyle(.iconOnly).frame(
-                                minWidth: 44, minHeight: 44
-                            ).contentShape(.rect)
-                        }.labelStyle(.iconOnly)
+                    Button {
+                        conversation.cancelAttachmentImport(pending.id)
+                    } label: {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text(pending.label).font(.caption).lineLimit(1)
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption.weight(.semibold)).foregroundStyle(Color.primary.opacity(0.55))
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .frame(minHeight: 44)
+                        .background(Color.primary.opacity(0.08), in: .capsule)
+                        .overlay { Capsule().stroke(Color.primary.opacity(0.08), lineWidth: 1) }
+                        .contentShape(.capsule)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Cancel importing \(pending.label)"))
                 }
             }
-        }.fixedSize(horizontal: false, vertical: true)
+        }.scrollIndicators(.hidden).fixedSize(horizontal: false, vertical: true)
     }
 
     private var controls: some View {
@@ -313,9 +454,11 @@ struct MobileAssistantComposer: View {
     @ViewBuilder private var badges: some View {
         if conversation.isPlanning {
             Button("Plan", systemImage: "lightbulb.max") { conversation.isPlanning = false }
+                .buttonStyle(.plain).foregroundStyle(.secondary)
         }
         if let skill = composer.armedSkillName {
             Button(skill, systemImage: "book.closed") { composer.armedSkillName = nil }
+                .buttonStyle(.plain).foregroundStyle(.secondary)
         }
     }
 
@@ -481,7 +624,12 @@ struct MobileAssistantComposer: View {
     }
 
     private func localized(_ resource: String.LocalizationValue) -> String {
-        String(localized: resource, locale: locale)
+        let candidates = [locale.identifier, locale.language.languageCode?.identifier].compactMap { $0 }
+        let bundle =
+            candidates.lazy.compactMap { identifier in
+                Bundle.main.path(forResource: identifier, ofType: "lproj").flatMap(Bundle.init(path:))
+            }.first ?? .main
+        return String(localized: resource, bundle: bundle, locale: locale)
     }
 
     private func acceptSlashRow(_ row: ChatSlashCommandCompletion.Row) {

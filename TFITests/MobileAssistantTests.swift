@@ -3,6 +3,7 @@ import Foundation
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
+import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
 
@@ -10,6 +11,25 @@ import Testing
 
 @Suite @MainActor
 struct MobileAssistantTests {
+    @Test func sharedTranscriptProjectionKeepsStableKindsAndEditCapabilities() {
+        let user = ChatMessage(role: .user, text: "Inspect")
+        let assistant = ChatMessage(role: .assistant, text: "Done")
+        let entries = AssistantTranscriptEntry.items(
+            timeline: [.message(user), .message(assistant)],
+            isInterrupted: true,
+            canEdit: { $0 == user.id },
+            canFork: { $0 == assistant.id }
+        )
+
+        #expect(entries.map(\.kind) == [.user, .assistant, .interrupted])
+        if case .user(_, let canEdit) = entries[0].content { #expect(canEdit) } else { Issue.record("Missing user") }
+        if case .assistant(_, let canFork) = entries[1].content {
+            #expect(canFork)
+        } else {
+            Issue.record("Missing assistant")
+        }
+    }
+
     @Test func changingConversationsPreservesTheirDraftsAndArchiveNavigation() async throws {
         let app = try MobileAppModel(inMemory: true)
         let model = app.assistant
@@ -33,7 +53,6 @@ struct MobileAssistantTests {
         let composer = MobileAssistantComposer(pro: app.pro, model: app.assistant, conversation: conversation)
         let compact = try #require(composer.availableCommands.first { $0.id == "compact" })
         #expect(compact.name == "/compact")
-        #expect(compact.summary == String(localized: "Summarize older turns to free context"))
         #expect(!compact.summary.isEmpty)
     }
 

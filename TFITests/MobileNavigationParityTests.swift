@@ -7,6 +7,38 @@ import Testing
 
 @Suite @MainActor
 struct MobileNavigationParityTests {
+    @Test func assistantUsesTopTitleSwitchingAndListViewKitWithoutAnIPadConversationSidebar() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let assistant = try String(
+            contentsOf: root.appending(path: "TFI/Features/Assistant/MobileAssistantView.swift"), encoding: .utf8)
+        let transcript = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"), encoding: .utf8)
+
+        #expect(assistant.contains(".toolbarTitleMenu"))
+        #expect(assistant.contains("MobileNativeList("))
+        #expect(!assistant.contains("geometry.size.width >= 760"))
+        #expect(!assistant.contains("MobileAssistantLibrary(model: model, selected: {})"))
+        #expect(transcript.contains("MobileNativeList("))
+        #expect(transcript.contains("AssistantTranscriptEntry.items("))
+        #expect(!transcript.contains("LazyVStack"))
+    }
+
+    @Test func assistantSlashRowsUseTwoTouchSizedLines() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let slash = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileSlashCommandPanel.swift"), encoding: .utf8)
+
+        #expect(slash.contains("rowHeight = 88.0"))
+        #expect(slash.contains("headerHeight = 56.0"))
+        #expect(slash.contains("Text(verbatim: command.summary)"))
+        #expect(slash.contains("Text(verbatim: option.detail.isEmpty ? \" \" : option.detail)"))
+        #expect(slash.contains(".lineLimit(1).truncationMode(.tail)"))
+    }
+
     @Test func vaultReplacesWelcomeAndMetricsRemainsBelowItOnIPad() {
         #expect(MobileTab.allCases == [.vault, .workspaces, .assistant, .settings])
         #expect(MobileDestination.allCases == [.vault, .metrics, .workspaces, .assistant, .settings])
