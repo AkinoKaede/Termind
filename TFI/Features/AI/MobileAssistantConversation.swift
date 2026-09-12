@@ -529,11 +529,6 @@ struct MobileAssistantConversation: View {
 
     private func messageRow(_ message: ChatMessage) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !message.reasoning.isEmpty {
-                transcriptDisclosure("Thinking", id: message.id) {
-                    ForEach(message.reasoning) { block in MobileAssistantMarkdown(text: block.text, secondary: true) }
-                }
-            }
             if !message.images.isEmpty {
                 MobileAssistantImageFlowLayout(
                     alignment: message.role == .user ? .trailing : .leading
@@ -673,19 +668,6 @@ struct MobileAssistantConversation: View {
 
     private func toolRow(_ card: AgentToolCard) -> some View {
         MobileAssistantToolRow(card: card, presentation: presentation, hostName: hostName)
-    }
-
-    private func transcriptDisclosure<Content: View>(
-        _ title: LocalizedStringKey,
-        id: UUID,
-        @ViewBuilder content: @escaping () -> Content
-    ) -> some View {
-        MobileAssistantDisclosure(
-            expanded: presentation.isExpanded(.reasoning(id)),
-            toggle: { presentation.toggleDisclosure(.reasoning(id)) },
-            title: { Text(title).foregroundStyle(.secondary) },
-            content: content
-        )
     }
 
     private func disclosureBinding(for id: AssistantTranscriptDisclosureID) -> Binding<Bool> {
