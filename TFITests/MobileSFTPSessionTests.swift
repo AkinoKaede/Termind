@@ -4,6 +4,8 @@ import TermindDomain
 import Testing
 import UIKit
 
+import struct TermindDomain.Host
+
 @testable import TermindIOS
 
 @Suite @MainActor
@@ -78,6 +80,57 @@ struct MobileSFTPSessionTests {
         #expect(session.visibleFiles == [folder, notes, report])
     }
 
+    @Test func successfulDirectoriesRefreshPersistentHistoryAndFailuresDoNot() async throws {
+        let hostID = UUID()
+        let history = SFTPHistoryModel()
+        let fileSystem = MobileBrowserFileSystem(
+            listings: [
+                "/home": [],
+                "/srv": [],
+            ])
+        let session = MobileSFTPSessionModel(hostID: hostID, history: history)
+        try await attach(session, to: fileSystem, path: "/home/")
+
+        await session.openDirectory("/srv")
+        await session.reload()
+        #expect(history.entries(for: hostID).map(\.path) == ["/srv", "/home"])
+
+        await session.openDirectory("/missing")
+        #expect(history.entries(for: hostID).map(\.path) == ["/srv", "/home"])
+    }
+
+    @Test func staleDirectoryResponseDoesNotCreateHistory() async throws {
+        let hostID = UUID()
+        let history = SFTPHistoryModel()
+        let staleFileSystem = MobileDeferredFileSystem()
+        let currentFileSystem = MobileBrowserFileSystem(listings: ["/current": []])
+        let session = MobileSFTPSessionModel(hostID: hostID, history: history)
+        let staleGeneration = UUID()
+
+        let staleAttach = Task {
+            try? await session.attach(
+                fileSystem: staleFileSystem,
+                path: "/stale",
+                connectionGeneration: staleGeneration,
+                handlesConnectionError: { _ in false },
+                didChangePath: {}
+            )
+        }
+        await staleFileSystem.waitUntilRequested()
+        try await session.attach(
+            fileSystem: currentFileSystem,
+            path: "/current",
+            connectionGeneration: UUID(),
+            handlesConnectionError: { _ in false },
+            didChangePath: {}
+        )
+        await staleFileSystem.succeed()
+        await staleAttach.value
+
+        #expect(session.path == "/current")
+        #expect(history.entries(for: hostID).map(\.path) == ["/current"])
+    }
+
     @Test func interactivePopRequiresAParentNavigationDestination() {
         let root = UIViewController()
         let controller = MobileInteractivePopGesture.Controller()
@@ -127,6 +180,34 @@ private actor MobileBrowserFileSystem: RemoteFileSystem {
             throw MobileBrowserFileSystemError.missing(path)
         }
         return files
+    }
+
+    func attributes(at _: String) async throws -> RemoteFile? { nil }
+    func readFile(at _: String, maximumBytes _: Int) async throws -> Data { Data() }
+    func writeFile(_: Data, at _: String, overwrite _: Bool) async throws {}
+    func setPermissions(at _: String, to _: UInt32) async throws {}
+    func createDirectory(at _: String) async throws {}
+    func rename(from _: String, to _: String, overwrite _: Bool) async throws {}
+    func removeFile(at _: String) async throws {}
+    func removeDirectory(at _: String) async throws {}
+}
+
+private actor MobileDeferredFileSystem: RemoteFileSystem {
+    private var requested = false
+    private var continuation: CheckedContinuation<[RemoteFile], any Error>?
+
+    func waitUntilRequested() async {
+        while !requested { await Task.yield() }
+    }
+
+    func succeed() {
+        continuation?.resume(returning: [])
+        continuation = nil
+    }
+
+    func listDirectory(at _: String) async throws -> [RemoteFile] {
+        requested = true
+        return try await withCheckedThrowingContinuation { continuation = $0 }
     }
 
     func attributes(at _: String) async throws -> RemoteFile? { nil }

@@ -48,6 +48,7 @@ final class MobileAppModel {
     var error: String?
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
+    let sftpHistory: SFTPHistoryModel
     let connectionHistory: ConnectionHistoryModel
     let vaultSync: VaultSyncCoordinator?
     let settingsSync: SettingsSyncCoordinator?
@@ -123,6 +124,8 @@ final class MobileAppModel {
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
         commandHistory = CommandHistoryModel(
             repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
+        sftpHistory = SFTPHistoryModel(
+            repository: SwiftDataSFTPHistoryRepository(context: ModelContext(container)))
         connectionHistory = ConnectionHistoryModel(
             repository: SwiftDataConnectionHistoryRepository(context: ModelContext(container)))
         settingsSync =
@@ -157,6 +160,7 @@ final class MobileAppModel {
                 guard let self else { return }
                 for workspace in workspaces.filter({ $0.descriptor.hostID == payload.hostID }) { close(workspace.id) }
                 commandHistory.clear(for: payload.hostID)
+                sftpHistory.clear(for: payload.hostID)
                 library.projectHostDeletion(payload.hostID)
             })
         outbox.register(
@@ -186,7 +190,8 @@ final class MobileAppModel {
             workspaces = descriptors.filter { library.host($0.hostID) != nil }.map {
                 MobileWorkspace(
                     descriptor: $0, hosts: library, transfers: transfers, terminalSettings: terminalSettings,
-                    commandHistory: commandHistory, connectionServices: workspaceConnectionServices,
+                    commandHistory: commandHistory, sftpHistory: sftpHistory,
+                    connectionServices: workspaceConnectionServices,
                     connectsWhenOpened: true)
             }
             workspaceActivitySessions = workspaces.map(\.activitySession)
@@ -350,6 +355,7 @@ final class MobileAppModel {
             }
             if removed {
                 commandHistory.clear(for: id)
+                sftpHistory.clear(for: id)
                 metrics.remove(id)
             }
         }
@@ -402,7 +408,8 @@ final class MobileAppModel {
         return MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
             hosts: library, transfers: transfers, terminalSettings: terminalSettings,
-            commandHistory: commandHistory, connectionServices: workspaceConnectionServices,
+            commandHistory: commandHistory, sftpHistory: sftpHistory,
+            connectionServices: workspaceConnectionServices,
             initialCommand: initialCommand,
             recordsInitialCommandInHistory: recordsInitialCommandInHistory,
             initialSFTPPath: initialSFTPPath)

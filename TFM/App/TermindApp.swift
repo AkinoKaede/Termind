@@ -92,7 +92,9 @@ struct TermindApp: App {
                     skills: SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence)),
                     terminalSettings: TerminalSettingsModel(persistence: settingsPersistence),
                     commandHistory: CommandHistoryModel(modelContext: container.mainContext),
-                    sftpHistory: SFTPHistoryModel(modelContext: container.mainContext),
+                    sftpHistory: SFTPHistoryModel(
+                        repository: SwiftDataSFTPHistoryRepository(context: container.mainContext)
+                    ),
                     connectionHistory: ConnectionHistoryModel(
                         modelContext: container.mainContext
                     ),

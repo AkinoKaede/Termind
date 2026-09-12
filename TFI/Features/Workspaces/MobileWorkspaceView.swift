@@ -12,6 +12,7 @@ struct MobileWorkspaceView: View {
     private enum TerminalSheet: String, Identifiable {
         case snippets
         case history
+        case sftpHistory
 
         var id: String { rawValue }
     }
@@ -135,6 +136,7 @@ struct MobileWorkspaceView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
+                    Button("History", systemImage: "clock") { terminalSheet = .sftpHistory }
                     Divider()
                     Button("Parent Directory", systemImage: "arrow.up") {
                         Task {
@@ -168,6 +170,8 @@ struct MobileWorkspaceView: View {
                     MobileTerminalSnippetsView(library: library, workspace: workspace)
                 case .history:
                     MobileCommandHistoryView(workspace: workspace)
+                case .sftpHistory:
+                    MobileSFTPHistoryView(workspace: workspace, open: reopenHistory)
                 }
             }
             .sheet(
@@ -303,6 +307,19 @@ struct MobileWorkspaceView: View {
         } else {
             workspace.download(file)
             showingTransfers = true
+        }
+    }
+
+    private func reopenHistory(_ entry: SFTPHistoryEntry) {
+        switch entry.kind {
+        case .directory:
+            Task { await workspace.sftpSession.openDirectory(entry.path) }
+        case .file:
+            Task {
+                if await workspace.reopenHistoryFile(at: entry.path) {
+                    showingTransfers = true
+                }
+            }
         }
     }
 

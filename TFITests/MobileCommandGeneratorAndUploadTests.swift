@@ -524,6 +524,87 @@ struct MobileUploadBatchTests {
         )
     }
 
+    @Test func successfulFileDownloadsRefreshHistoryWhileInvalidAndFailedFilesDoNot() async throws {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        let library = HostLibraryModel(
+            hosts: [host],
+            identities: [identity],
+            knownHosts: [
+                KnownHostEntry(
+                    hostname: host.host,
+                    port: host.port,
+                    algorithm: .ed25519,
+                    fingerprint: "SHA256:test"
+                )
+            ]
+        )
+        try library.upsert(identity, passwordUpdate: .replace("test-only"))
+        let report = RemoteFile(
+            path: "/srv/report.txt", name: "report.txt", kind: .file, size: 4,
+            permissions: 0o644, ownerUID: 501, ownerGID: 20)
+        let broken = RemoteFile(
+            path: "/srv/broken.txt", name: "broken.txt", kind: .file, size: 4,
+            permissions: 0o644, ownerUID: 501, ownerGID: 20)
+        let changedDirectory = RemoteFile(
+            path: "/srv/changed", name: "changed", kind: .directory, size: 0,
+            permissions: 0o755, ownerUID: 501, ownerGID: 20)
+        let sessionClient = MobileUploadSFTPClient(
+            attributes: [
+                report.path: report,
+                broken.path: broken,
+                changedDirectory.path: changedDirectory,
+            ])
+        let transferClient = MobileUploadSFTPClient(failedDownloadPaths: [broken.path])
+        let transfers = SFTPTransferCoordinator(store: library) { transferClient }
+        let services = MobileWorkspaceConnectionServices(
+            discoverHostKey: { _, name, port, _, _ in
+                SSHHostKeyObservation(
+                    hostname: name,
+                    port: port,
+                    algorithm: .ed25519,
+                    fingerprint: "SHA256:test"
+                )
+            },
+            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            connectSSH: { _, _, _, _, _, _ in },
+            connectSFTP: { _, _, _ in sessionClient },
+            writeSSH: { _, _ in }
+        )
+        let history = SFTPHistoryModel()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library,
+            transfers: transfers,
+            sftpHistory: history,
+            connectionServices: services
+        )
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+
+        #expect(await workspace.reopenHistoryFile(at: report.path))
+        #expect(
+            await eventually {
+                history.entries(for: host.id).contains { $0.kind == .file && $0.path == report.path }
+            })
+
+        #expect(await workspace.reopenHistoryFile(at: broken.path))
+        #expect(
+            await eventually {
+                guard let state = transfers.sftpTransfers.first(where: { $0.remotePath == broken.path })?.state
+                else { return false }
+                if case .failed = state { return true }
+                return false
+            })
+        #expect(!history.entries(for: host.id).contains { $0.path == broken.path })
+
+        #expect(!(await workspace.reopenHistoryFile(at: "/srv/missing.txt")))
+        #expect(!(await workspace.reopenHistoryFile(at: changedDirectory.path)))
+        #expect(!history.entries(for: host.id).contains { $0.path == changedDirectory.path })
+    }
+
     @Test func sharedUploadPlannerDoesNotFollowASymlinkOutsideTheSelectedFolder() async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         let upload = root.appending(path: "upload", directoryHint: .isDirectory)
@@ -607,12 +688,22 @@ struct MobileUploadBatchTests {
 private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private(set) var createdDirectories: [String] = []
     private(set) var disconnectCount = 0
+    private let attributes: [String: RemoteFile]
+    private let failedDownloadPaths: Set<String>
+
+    init(
+        attributes: [String: RemoteFile] = [:],
+        failedDownloadPaths: Set<String> = []
+    ) {
+        self.attributes = attributes
+        self.failedDownloadPaths = failedDownloadPaths
+    }
 
     func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
     func disconnect() async { disconnectCount += 1 }
     func homeDirectory() async throws -> String { "/home/test" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
-    func attributes(at path: String) async throws -> RemoteFile? { nil }
+    func attributes(at path: String) async throws -> RemoteFile? { attributes[path] }
     func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws { createdDirectories.append(path) }
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
@@ -631,5 +722,9 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         overwrite: Bool,
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
-    ) async throws {}
+    ) async throws {
+        if failedDownloadPaths.contains(remotePath) {
+            throw SFTPError.operation("Download failed")
+        }
+    }
 }

@@ -121,8 +121,8 @@ infrastructure, persistence, or presentation responsibility.
 - `RemoteFile` is a Domain value and `RemoteFileSystem` is the Application port for listing and mutating remote
   entries. The libssh2-backed `SFTPClientProtocol` refines that port in Remote Infrastructure. File-kind symbols and
   localized kind labels belong to Presentation. Mobile directory path, listing, and stale-request state live in
-  `MobileSFTPSessionModel`; `MobileWorkspace` only injects the connected file-system port and reacts to connection
-  loss.
+  `MobileSFTPSessionModel`; `MobileWorkspace` injects the connected file-system port and app-wide SFTP History facade,
+  and reacts to connection loss.
 - Connection Journey's header, ordinary status, route graph, decision forms, and reconnect countdown live in
   Presentation. Desktop and mobile retain their own log renderer, failure actions, background, and keyboard bridge.
 - `RemoteSystemInfo.distributionDetection` is the only mapping from untrusted remote metadata to a persisted
@@ -162,10 +162,16 @@ commands, old protocol events, and history migrated from older versions preserve
 an honest unknown outcome. Duration is never inferred from client receive time,
 because SSH buffering can deliver start and completion events together.
 
+SFTP History is device-local persisted truth shared by the desktop and mobile
+apps. A directory is recorded only after its listing succeeds and survives the
+current connection-generation gate. A file is recorded only after its download
+completes successfully. Failed, cancelled, missing, type-changed, and stale
+operations do not create or refresh History rows.
+
 Feature views receive aggregate-facing Application Models rather than a generic
 store API: `HostLibraryModel`, `CredentialLibraryModel`, `KnownHostsLibraryModel`, `SnippetLibraryModel`,
 `ForwardingLibraryModel`, `TransferLibraryModel`, `AIConfigurationModel`,
-`SkillLibraryModel`, `CommandHistoryModel`, and `ToolAuditModel`. Aggregates that share one persisted
+`SkillLibraryModel`, `CommandHistoryModel`, `SFTPHistoryModel`, and `ToolAuditModel`. Aggregates that share one persisted
 vault snapshot still expose separate intent surfaces, so a feature cannot gain
 unrelated write operations merely because its records are saved together.
 

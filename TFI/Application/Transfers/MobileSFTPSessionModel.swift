@@ -3,6 +3,8 @@ import Observation
 import TermindApplication
 import TermindDomain
 
+import struct TermindDomain.Host
+
 @MainActor
 @Observable
 final class MobileSFTPSessionModel {
@@ -22,10 +24,17 @@ final class MobileSFTPSessionModel {
     }
 
     @ObservationIgnored private var fileSystem: (any RemoteFileSystem)?
+    @ObservationIgnored private let hostID: Host.ID?
+    @ObservationIgnored private let history: SFTPHistoryModel?
     @ObservationIgnored private var connectionGeneration: UUID?
     @ObservationIgnored private var directoryRequest = UUID()
     @ObservationIgnored private var handlesConnectionError: ((any Error) -> Bool)?
     @ObservationIgnored private var didChangePath: (() -> Void)?
+
+    init(hostID: Host.ID? = nil, history: SFTPHistoryModel? = nil) {
+        self.hostID = hostID
+        self.history = history
+    }
 
     func attach(
         fileSystem: any RemoteFileSystem,
@@ -47,6 +56,7 @@ final class MobileSFTPSessionModel {
         self.path = path
         pathText = path
         files = entries
+        recordDirectory(path)
     }
 
     func detach() {
@@ -77,6 +87,7 @@ final class MobileSFTPSessionModel {
             path = destination
             pathText = destination
             files = entries
+            recordDirectory(destination)
             didChangePath?()
         } catch {
             guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
@@ -99,6 +110,7 @@ final class MobileSFTPSessionModel {
             path = destination
             pathText = destination
             files = entries
+            recordDirectory(destination)
             didChangePath?()
         } catch {
             guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
@@ -121,6 +133,7 @@ final class MobileSFTPSessionModel {
             path = destination
             pathText = destination
             files = entries
+            recordDirectory(destination)
             didChangePath?()
         } catch {
             guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
@@ -139,6 +152,7 @@ final class MobileSFTPSessionModel {
                 path == requestedPath
             else { return }
             files = entries
+            recordDirectory(requestedPath)
         } catch {
             guard self.connectionGeneration == connectionGeneration, directoryRequest == request else { return }
             record(error)
@@ -189,5 +203,10 @@ final class MobileSFTPSessionModel {
         if handlesConnectionError?(error) != true {
             operationError = error.localizedDescription
         }
+    }
+
+    private func recordDirectory(_ path: String) {
+        guard let hostID else { return }
+        history?.record(kind: .directory, path: path, for: hostID)
     }
 }

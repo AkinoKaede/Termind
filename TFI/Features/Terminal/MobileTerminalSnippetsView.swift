@@ -21,14 +21,22 @@ struct MobileTerminalSnippetsView: View {
                         ContentUnavailableView.search(text: query)
                     }
                 } else {
-                    MobileNativeList(
-                        items: snippets,
-                        estimatedRowHeight: 60,
-                        refreshID: workspace.connected,
-                        onSelect: insert
-                    ) { snippet in
-                        snippetRow(snippet)
+                    List(snippets) { snippet in
+                        Button {
+                            insert(snippet)
+                        } label: {
+                            snippetRow(snippet)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Copy", systemImage: "doc.on.doc") {
+                                UIPasteboard.general.string = snippet.body
+                            }
+                            Button("Insert", systemImage: "text.insert") { insert(snippet) }
+                                .disabled(!workspace.connected)
+                        }
                     }
+                    .listStyle(.insetGrouped)
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
@@ -47,7 +55,7 @@ struct MobileTerminalSnippetsView: View {
     private func snippetRow(_ snippet: Snippet) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(snippet.title).font(.body.weight(.medium)).lineLimit(1)
+                Text(snippet.title).font(.body).lineLimit(1)
                 Text(snippet.body)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
@@ -58,15 +66,7 @@ struct MobileTerminalSnippetsView: View {
             MobileTerminalRiskIndicator(assessment: CommandRiskClassifier.assess(snippet.body))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
         .contentShape(.rect)
-        .contextMenu {
-            Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = snippet.body }
-            Button("Insert", systemImage: "text.insert") { insert(snippet) }
-                .disabled(!workspace.connected)
-        }
-        .overlay(alignment: .bottom) { Divider() }
     }
 
     private func insert(_ snippet: Snippet) {

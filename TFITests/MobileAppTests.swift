@@ -27,6 +27,23 @@ struct MobileAppTests {
         try repository.upsertHost(host)
         #expect(try app.hosts.snapshot().value.hosts == [host])
     }
+
+    @Test func historyModelsUseTheSharedSwiftDataContainer() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let hostID = UUID()
+        app.commandHistory.record("echo persisted", for: hostID)
+        app.sftpHistory.record(kind: .directory, path: "/srv/app", for: hostID)
+
+        let commands = CommandHistoryModel(
+            repository: SwiftDataCommandHistoryRepository(context: ModelContext(app.container))
+        )
+        let files = SFTPHistoryModel(
+            repository: SwiftDataSFTPHistoryRepository(context: ModelContext(app.container))
+        )
+
+        #expect(commands.entries(for: hostID).map(\.command) == ["echo persisted"])
+        #expect(files.entries(for: hostID).map(\.path) == ["/srv/app"])
+    }
 }
 
 @Suite @MainActor

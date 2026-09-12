@@ -68,7 +68,7 @@ final class MobileWorkspace: Identifiable {
         set { connection.temporaryHostKeys = newValue }
     }
     private var submissions: [UUID: SSHAuthenticationSubmission] = [:]
-    let sftpSession = MobileSFTPSessionModel()
+    let sftpSession: MobileSFTPSessionModel
     let transfers: SFTPTransferCoordinator?
     private var transferConfiguration: SSHConnectionConfiguration?
     private(set) var uploadNotice: WorkspaceUploadNotice?
@@ -78,6 +78,7 @@ final class MobileWorkspace: Identifiable {
     private var uploadNoticeTask: Task<Void, Never>?
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
+    let sftpHistory: SFTPHistoryModel
     var terminalTextSelection: MobileTerminalTextSelection?
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in _ = self?.terminal.performBindingAction($0) },
@@ -173,6 +174,7 @@ final class MobileWorkspace: Identifiable {
         transfers: SFTPTransferCoordinator? = nil,
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
+        sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionServices: MobileWorkspaceConnectionServices = .live,
         reconnectController: SessionReconnectController = SessionReconnectController(),
         initialCommand: String? = nil,
@@ -182,6 +184,8 @@ final class MobileWorkspace: Identifiable {
     ) {
         self.terminalSettings = terminalSettings
         self.commandHistory = commandHistory
+        self.sftpHistory = sftpHistory
+        sftpSession = MobileSFTPSessionModel(hostID: descriptor.hostID, history: sftpHistory)
         self.transfers = transfers
         self.descriptor = descriptor
         self.hosts = hosts
@@ -1102,8 +1106,11 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
-    func download(_ file: RemoteFile) {
-        guard let transfers, let configuration = transferConfiguration, connected, !file.isDirectory else { return }
+    @discardableResult
+    func download(_ file: RemoteFile) -> Bool {
+        guard let transfers, let configuration = transferConfiguration, connected, !file.isDirectory else {
+            return false
+        }
         do {
             guard RemoteFileName.isValid(file.name) else { throw CocoaError(.fileWriteInvalidFileName) }
             let directory = FileManager.default.temporaryDirectory.appending(
@@ -1114,8 +1121,35 @@ final class MobileWorkspace: Identifiable {
             transfers.enqueue(
                 direction: .download, batchID: UUID(), localURL: directory.appending(path: file.name),
                 remotePath: file.path, byteCount: file.size, hostID: descriptor.hostID,
-                configuration: configuration, scopedRoot: directory, overwrite: false)
-        } catch { operationError = error.localizedDescription }
+                configuration: configuration, scopedRoot: directory, overwrite: false
+            ) { [sftpHistory, hostID = descriptor.hostID, path = file.path] state in
+                guard state == .completed else { return }
+                sftpHistory.record(kind: .file, path: path, for: hostID)
+            }
+            return true
+        } catch {
+            operationError = error.localizedDescription
+            return false
+        }
+    }
+
+    func reopenHistoryFile(at path: String) async -> Bool {
+        guard let sftp, connected else {
+            operationError = String(localized: "The SFTP connection is not available.")
+            return false
+        }
+        do {
+            guard let file = try await sftp.attributes(at: path), !file.isDirectory else {
+                operationError = String(localized: "The remote file is no longer available.")
+                return false
+            }
+            return download(file)
+        } catch {
+            if !handleSFTPConnectionError(error, connection: generation) {
+                operationError = error.localizedDescription
+            }
+            return false
+        }
     }
 
     private func handleSFTPConnectionError(_ error: any Error, connection: UUID) -> Bool {
