@@ -130,8 +130,7 @@ struct MobileAssistantLibrary: View {
         MobileNativeList(
             items: listItems, estimatedRowHeight: 84,
             refreshID: libraryRefreshID,
-            onSelect: selectItem,
-            onDelete: requestDelete
+            onSelect: selectItem
         ) { item in
             listRow(item)
         }
@@ -253,13 +252,6 @@ struct MobileAssistantLibrary: View {
         case .section, .empty:
             break
         }
-    }
-
-    private func requestDelete(_ item: MobileConversationListItem) {
-        guard case .conversation(let id) = item.kind,
-            let conversation = model.library.conversation(id: id)
-        else { return }
-        deleting = conversation
     }
 
     @ViewBuilder private func actions(_ conversation: ConversationModel) -> some View {

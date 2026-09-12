@@ -54,11 +54,6 @@ struct MobileSFTPBrowser: View {
                         case .file(let file): open(file)
                         }
                     },
-                    onDelete: { item in
-                        guard connected else { return }
-                        if case .file(let file) = item { delete(file) }
-                    },
-                    canDelete: { if case .file = $0 { true } else { false } },
                     onRefresh: { await session.reload() }
                 ) { item in
                     switch item {
@@ -95,7 +90,6 @@ struct MobileSFTPBrowser: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .contentShape(.rect)
-        .overlay(alignment: .bottom) { Divider().padding(.leading, 64) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Parent Directory")
     }
@@ -115,7 +109,12 @@ struct MobileSFTPBrowser: View {
             }
             Spacer(minLength: 12)
             VStack(alignment: .trailing, spacing: 3) {
-                if !file.isDirectory {
+                if file.isDirectory {
+                    Text(verbatim: "0")
+                        .font(.subheadline.monospacedDigit())
+                        .hidden()
+                        .accessibilityHidden(true)
+                } else {
                     Text(DataSizeFormat.bytes(file.size))
                         .font(.subheadline.monospacedDigit())
                 }
@@ -143,7 +142,6 @@ struct MobileSFTPBrowser: View {
             Button("Edit Permissions", systemImage: "lock.shield") { editPermissions(file) }
             Button("Delete", systemImage: "trash", role: .destructive) { delete(file) }
         }
-        .overlay(alignment: .bottom) { Divider().padding(.leading, 52) }
         .accessibilityHint(file.isDirectory ? Text("Open") : Text("Download"))
     }
 }

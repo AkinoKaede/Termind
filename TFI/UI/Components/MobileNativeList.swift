@@ -10,8 +10,6 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     let estimatedRowHeight: CGFloat
     let refreshID: AnyHashable
     let onSelect: ((Item) -> Void)?
-    let onDelete: ((Item) -> Void)?
-    let canDelete: (Item) -> Bool
     let onRefresh: (() async -> Void)?
     let followsBottom: Bool
     @ViewBuilder let rowContent: (Item) -> RowContent
@@ -23,8 +21,6 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     init(
         items: [Item], estimatedRowHeight: CGFloat = 72, refreshID: AnyHashable = 0,
         onSelect: ((Item) -> Void)? = nil,
-        onDelete: ((Item) -> Void)? = nil,
-        canDelete: @escaping (Item) -> Bool = { _ in true },
         onRefresh: (() async -> Void)? = nil,
         followsBottom: Bool = false,
         @ViewBuilder rowContent: @escaping (Item) -> RowContent
@@ -33,8 +29,6 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         self.estimatedRowHeight = estimatedRowHeight
         self.refreshID = refreshID
         self.onSelect = onSelect
-        self.onDelete = onDelete
-        self.canDelete = canDelete
         self.onRefresh = onRefresh
         self.followsBottom = followsBottom
         self.rowContent = rowContent
@@ -68,8 +62,6 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             items: items,
             renderer: { item in AnyView(rowContent(item)) },
             onSelect: onSelect,
-            onDelete: onDelete,
-            canDelete: canDelete,
             onRefresh: onRefresh,
             followsBottom: followsBottom,
             refreshID: refreshID,
@@ -90,8 +82,6 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         private var items: [Item] = []
         private var renderer: Renderer?
         private var onSelect: ((Item) -> Void)?
-        private var onDelete: ((Item) -> Void)?
-        private var canDelete: (Item) -> Bool = { _ in true }
         private var onRefresh: (() async -> Void)?
         private var refreshTask: Task<Void, Never>?
         private weak var refreshControl: UIRefreshControl?
@@ -104,8 +94,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
 
         func update(
             listView: ListView<Item>, items newItems: [Item], renderer: @escaping Renderer,
-            onSelect: ((Item) -> Void)?, onDelete: ((Item) -> Void)?,
-            canDelete: @escaping (Item) -> Bool,
+            onSelect: ((Item) -> Void)?,
             onRefresh: (() async -> Void)?,
             followsBottom: Bool,
             refreshID newRefreshID: AnyHashable,
@@ -120,8 +109,6 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
                 || self.dynamicTypeSize != dynamicTypeSize || refreshID != newRefreshID
             self.renderer = renderer
             self.onSelect = onSelect
-            self.onDelete = onDelete
-            self.canDelete = canDelete
             self.onRefresh = onRefresh
             self.locale = locale
             self.colorScheme = colorScheme
@@ -180,13 +167,12 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         func configure(_ row: MobileHostingListRow, item: Item) {
             row.configure(
                 rootView: rootView(for: item),
-                onSelect: onSelect.map { action in { action(item) } },
-                onDelete: canDelete(item) ? onDelete.map { action in { action(item) } } : nil
+                onSelect: onSelect.map { action in { action(item) } }
             )
         }
 
         func configurePrototype(_ row: MobileHostingListRow, item: Item) {
-            row.configure(rootView: rootView(for: item), onSelect: nil, onDelete: nil)
+            row.configure(rootView: rootView(for: item), onSelect: nil)
         }
 
         private func rootView(for item: Item) -> AnyView {
@@ -204,28 +190,15 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
 
 @MainActor
 final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
-    static let deleteWidth: CGFloat = 72
-
     private let contentContainer = UIView()
-    private let deleteButton = UIButton(type: .system)
     private var hostedView: UIView?
     private var onSelect: (() -> Void)?
-    private var onDelete: (() -> Void)?
-    private var revealOffset: CGFloat = 0
-    private var panStartOffset: CGFloat = 0
     private var pressOrigin: CGPoint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         clipsToBounds = true
         backgroundColor = .secondarySystemGroupedBackground
-
-        deleteButton.setImage(UIImage(systemName: "trash"), for: .normal)
-        deleteButton.tintColor = .white
-        deleteButton.backgroundColor = .systemRed
-        deleteButton.accessibilityLabel = String(localized: "Delete")
-        deleteButton.addTarget(self, action: #selector(deletePressed), for: .touchUpInside)
-        addSubview(deleteButton)
 
         contentContainer.backgroundColor = .secondarySystemGroupedBackground
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -247,10 +220,6 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         press.cancelsTouchesInView = false
         press.delegate = self
         contentContainer.addGestureRecognizer(press)
-
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(rowPanned(_:)))
-        pan.delegate = self
-        contentContainer.addGestureRecognizer(pan)
     }
 
     override func prepareForReuse() {
@@ -258,26 +227,11 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         hostedView?.removeFromSuperview()
         hostedView = nil
         onSelect = nil
-        onDelete = nil
-        revealOffset = 0
-        panStartOffset = 0
         pressOrigin = nil
-        contentContainer.transform = .identity
         contentContainer.backgroundColor = .secondarySystemGroupedBackground
-        deleteButton.isHidden = true
-        deleteButton.accessibilityElementsHidden = true
-        accessibilityCustomActions = nil
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        deleteButton.frame = CGRect(
-            x: bounds.maxX - Self.deleteWidth, y: bounds.minY,
-            width: Self.deleteWidth, height: bounds.height)
-        contentContainer.transform = CGAffineTransform(translationX: revealOffset, y: 0)
-    }
-
-    func configure(rootView: AnyView, onSelect: (() -> Void)?, onDelete: (() -> Void)?) {
+    func configure(rootView: AnyView, onSelect: (() -> Void)?) {
         hostedView?.removeFromSuperview()
         let hostedView = UIHostingConfiguration {
             rootView
@@ -295,27 +249,11 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         ])
         self.hostedView = hostedView
         self.onSelect = onSelect
-        self.onDelete = onDelete
-        deleteButton.isHidden = onDelete == nil
-        deleteButton.accessibilityElementsHidden = onDelete == nil
-        let deleteActions = onDelete.map { action in
-            [
-                UIAccessibilityCustomAction(name: String(localized: "Delete")) { _ in
-                    action()
-                    return true
-                }
-            ]
-        }
-        accessibilityCustomActions = deleteActions
-        hostedView.accessibilityCustomActions = deleteActions
     }
 
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if gestureRecognizer is UILongPressGestureRecognizer { return onSelect != nil }
-        guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
-        guard onDelete != nil else { return false }
-        let velocity = pan.velocity(in: self)
-        return abs(velocity.x) > abs(velocity.y) && (velocity.x < 0 || revealOffset < 0)
+        return true
     }
 
     func gestureRecognizer(
@@ -325,13 +263,7 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         true
     }
 
-    @objc private func rowTapped() {
-        guard revealOffset == 0 else {
-            setRevealOffset(0, animated: true)
-            return
-        }
-        onSelect?()
-    }
+    @objc private func rowTapped() { onSelect?() }
 
     @objc private func rowPressed(_ recognizer: UILongPressGestureRecognizer) {
         let isPressed: Bool
@@ -357,36 +289,4 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         }
     }
 
-    @objc private func rowPanned(_ recognizer: UIPanGestureRecognizer) {
-        switch recognizer.state {
-        case .began:
-            panStartOffset = revealOffset
-        case .changed:
-            let translation = recognizer.translation(in: self).x
-            setRevealOffset(min(0, max(-Self.deleteWidth, panStartOffset + translation)), animated: false)
-        case .ended, .cancelled:
-            let velocity = recognizer.velocity(in: self).x
-            let shouldReveal = velocity < -250 || (velocity <= 250 && revealOffset < -Self.deleteWidth / 2)
-            setRevealOffset(shouldReveal ? -Self.deleteWidth : 0, animated: true)
-        default:
-            break
-        }
-    }
-
-    @objc private func deletePressed() { onDelete?() }
-
-    private func setRevealOffset(_ value: CGFloat, animated: Bool) {
-        revealOffset = value
-        let changes = {
-            self.contentContainer.transform = CGAffineTransform(translationX: value, y: 0)
-        }
-        if animated {
-            UIView.animate(
-                withDuration: 0.22, delay: 0,
-                usingSpringWithDamping: 0.9, initialSpringVelocity: 0,
-                options: [.beginFromCurrentState, .allowUserInteraction], animations: changes)
-        } else {
-            changes()
-        }
-    }
 }

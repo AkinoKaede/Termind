@@ -25,6 +25,32 @@ struct MobileNavigationParityTests {
         #expect(!transcript.contains("LazyVStack"))
     }
 
+    @Test func nativeListOmitsSwipeDeletionAndSFTPRowsKeepAlignedMetadataWithoutSeparators() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let nativeList = try String(
+            contentsOf: root.appending(path: "TFI/UI/Components/MobileNativeList.swift"), encoding: .utf8)
+        let assistant = try String(
+            contentsOf: root.appending(path: "TFI/Features/Assistant/MobileAssistantView.swift"), encoding: .utf8)
+        let sftp = try String(
+            contentsOf: root.appending(path: "TFI/Features/SFTP/MobileSFTPBrowser.swift"), encoding: .utf8)
+
+        #expect(!nativeList.contains("onDelete"))
+        #expect(!nativeList.contains("canDelete"))
+        #expect(!nativeList.contains("UIPanGestureRecognizer"))
+        #expect(!nativeList.contains("deleteButton"))
+        #expect(!assistant.contains("onDelete:"))
+        #expect(assistant.contains("Button(\"Delete\", systemImage: \"trash\", role: .destructive)"))
+        #expect(!sftp.contains("onDelete:"))
+        #expect(sftp.contains("Button(\"Delete\", systemImage: \"trash\", role: .destructive)"))
+        #expect(sftp.contains("MobileSFTPPathBar(session: session, connected: connected)\n            Divider()"))
+        #expect(!sftp.contains(".overlay(alignment: .bottom) { Divider()"))
+        #expect(sftp.contains("Text(verbatim: \"0\")"))
+        #expect(sftp.contains(".hidden()"))
+        #expect(sftp.contains(".accessibilityHidden(true)"))
+    }
+
     @Test func assistantSlashRowsUseTwoTouchSizedLines() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
