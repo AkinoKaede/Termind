@@ -27,7 +27,7 @@ struct PortForwardingEditorSection: View {
                     delete: { rules.removeAll { $0.id == rule.id } }
                 )
             }
-            FormNavigationAction(title: "Add Port Forward") {
+            FormNavigationAction(title: "Add Forwarding") {
                 openEditor(PortForwardingRule(hostID: host.id))
             }
             if !rules.isEmpty {
@@ -222,10 +222,6 @@ struct PortForwardingEditorSheet: View {
 
     @Environment(AppModel.self) private var app
     @State private var draft: PortForwardingRule
-    @State private var bindPortDraft: String
-    @State private var targetHostDraft: String
-    @State private var targetPortDraft: String
-    @State private var showsAdvanced = false
 
     init(
         forwarding: PortForwardingRule, host: Host, isNew: Bool,
@@ -239,23 +235,16 @@ struct PortForwardingEditorSheet: View {
         self.delete = delete
         self.save = save
         _draft = State(initialValue: forwarding)
-        _bindPortDraft = State(initialValue: isNew ? "" : String(forwarding.bindPort))
-        _targetHostDraft = State(initialValue: isNew ? "" : (forwarding.targetHost ?? ""))
-        _targetPortDraft = State(
-            initialValue: isNew ? "" : forwarding.targetPort.map(String.init) ?? ""
-        )
     }
 
     var body: some View {
         VaultDetailScaffold(
-            title: isNew ? "New Port Forward" : "Edit Port Forward",
+            title: isNew ? "New Forwarding" : "Edit Forwarding",
             symbol: "arrow.left.arrow.right", close: back,
             closeLabel: "Back", closeSymbol: "chevron.backward"
         ) {
             Form {
                 Section {
-                    TextField("Name", text: $draft.label, prompt: Text("Optional"))
-                        .disabled(!state.canEdit)
                     Toggle("Enabled", isOn: enabled)
                         .disabled(!state.canToggle)
                     LabeledContent("Status", value: state.runtime.label)
@@ -265,41 +254,8 @@ struct PortForwardingEditorSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                Section {
-                    PortForwardingDirectionPicker(kind: $draft.kind)
-                    Text(directionHelp).font(.caption).foregroundStyle(.secondary)
-                }
-                .disabled(!state.canEdit)
-                Section("SSH Host") {
-                    LabeledContent("Host", value: host.name.isEmpty ? host.host : host.name)
-                    if !host.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(app.forwardings.routeSummary(for: host))
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Section("Forward") {
-                    TextField(bindPortLabel, text: $bindPortDraft)
-                    if draft.kind != .dynamic {
-                        TextField(targetHostLabel, text: $targetHostDraft)
-                        TextField("Destination Port", text: $targetPortDraft)
-                    }
-                    DisclosureGroup("Advanced", isExpanded: $showsAdvanced) {
-                        TextField(bindAddressLabel, text: $draft.bindHost)
-                        if exposesNetwork {
-                            Label(
-                                "This address may expose the listener to other devices.",
-                                systemImage: "exclamationmark.triangle.fill"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                        }
-                    }
-                }
-                .disabled(!state.canEdit)
-                Section("Route Preview") {
-                    Text(routePreview).font(.body.monospaced()).textSelection(.enabled)
-                }
+                PortForwardingFields(rule: $draft)
+                    .disabled(!state.canEdit)
             }
             .formStyle(.grouped)
         } footer: {
@@ -323,39 +279,8 @@ struct PortForwardingEditorSheet: View {
         }
     }
 
-    private var directionHelp: String {
-        switch draft.kind {
-        case .local: String(localized: "This Mac → SSH Host → Target")
-        case .remote: String(localized: "SSH Host → This Mac → Target")
-        case .dynamic: String(localized: "SOCKS5 on This Mac → SSH Host → Requested Target")
-        }
-    }
-
-    private var bindPortLabel: String {
-        draft.kind == .dynamic ? String(localized: "SOCKS Listen Port") : String(localized: "Listen Port")
-    }
-
-    private var bindAddressLabel: String {
-        switch draft.kind {
-        case .local: String(localized: "Listen Address on This Mac")
-        case .remote: String(localized: "Listen Address on SSH Host")
-        case .dynamic: String(localized: "SOCKS Listen Address on This Mac")
-        }
-    }
-
-    private var targetHostLabel: String {
-        draft.kind == .remote
-            ? String(localized: "Destination Host on This Mac") : String(localized: "Destination Host from SSH Host")
-    }
-
-    private var exposesNetwork: Bool {
-        !["127.0.0.1", "::1", "localhost"].contains(draft.bindHost.lowercased())
-    }
-
     private var normalizedDraft: PortForwardingRule? {
-        PortForwardingEditorState.normalized(
-            draft, hostID: host.id, bindPort: bindPortDraft,
-            targetHost: targetHostDraft, targetPort: targetPortDraft)
+        PortForwardingEditorState.normalized(draft)
     }
 
     private var state: PortForwardingEditorState {
@@ -373,32 +298,6 @@ struct PortForwardingEditorSheet: View {
                     app.forwarding.setEnabled(false, for: draft.id)
                 }
             })
-    }
-
-    private var parsedBindPort: Int? {
-        Int(bindPortDraft.trimmingCharacters(in: .whitespacesAndNewlines))
-    }
-
-    private var parsedTargetPort: Int? {
-        Int(targetPortDraft.trimmingCharacters(in: .whitespacesAndNewlines))
-    }
-
-    private var routePreview: String {
-        let start = previewAddress(draft.bindHost, port: parsedBindPort)
-        let ssh = host.host.isEmpty ? String(localized: "SSH Host") : app.forwardings.routeSummary(for: host)
-        let targetHost = targetHostDraft.isEmpty ? "—" : targetHostDraft
-        let targetPort = parsedTargetPort.map(String.init) ?? "—"
-        switch draft.kind {
-        case .local: return "\(start) → \(ssh) → \(targetHost):\(targetPort)"
-        case .remote:
-            return String(localized: "\(ssh) → listen \(start) → This Mac → \(targetHost):\(targetPort)")
-        case .dynamic: return String(localized: "SOCKS5 \(start) → \(ssh) → Requested Target")
-        }
-    }
-
-    private func previewAddress(_ host: String, port: Int?) -> String {
-        let formattedHost = host.contains(":") ? "[\(host)]" : host
-        return "\(formattedHost):\(port.map(String.init) ?? "—")"
     }
 
     private func commit() {

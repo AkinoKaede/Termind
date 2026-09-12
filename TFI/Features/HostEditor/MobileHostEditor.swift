@@ -86,7 +86,7 @@ struct MobileHostEditor: View {
                             .disabled(!state.canEdit)
                         }
                     }
-                    Button("Add Port Forward", systemImage: "plus") {
+                    Button("Add Forwarding", systemImage: "plus") {
                         editingForwarding = PortForwardingRule(hostID: draft.id)
                     }
                     Text(
@@ -106,7 +106,10 @@ struct MobileHostEditor: View {
             }
         )
         .sheet(item: $editingForwarding) { rule in
-            MobileForwardingEditor(app: app, host: draft, rule: rule) { updated in
+            MobileForwardingEditor(
+                app: app, host: draft, rule: rule,
+                isNew: !draftForwardings.contains { $0.id == rule.id }
+            ) { updated in
                 if let index = draftForwardings.firstIndex(where: { $0.id == updated.id }) {
                     draftForwardings[index] = updated
                 } else {

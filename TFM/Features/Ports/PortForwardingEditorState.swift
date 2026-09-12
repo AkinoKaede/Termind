@@ -39,13 +39,4 @@ struct PortForwardingEditorState {
         PortForwardingEditorPolicy.normalized(rule)
     }
 
-    /// Use the exact save candidate for validation and start eligibility, including hidden dynamic targets.
-    static func normalized(
-        _ rule: PortForwardingRule, hostID: Host.ID,
-        bindPort: String, targetHost: String, targetPort: String
-    ) -> PortForwardingRule? {
-        PortForwardingEditorPolicy.normalized(
-            rule, hostID: hostID, bindPort: bindPort,
-            targetHost: targetHost, targetPort: targetPort)
-    }
 }

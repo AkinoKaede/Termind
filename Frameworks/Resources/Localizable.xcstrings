@@ -1432,12 +1432,12 @@
         }
       }
     },
-    "Add Port Forward" : {
+    "Add Forwarding" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加端口转发"
+            "value" : "添加转发"
           }
         }
       }
@@ -5255,12 +5255,12 @@
         }
       }
     },
-    "Edit Port Forward" : {
+    "Edit Forwarding" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "编辑端口转发"
+            "value" : "编辑转发"
           }
         }
       }
@@ -8599,12 +8599,12 @@
         }
       }
     },
-    "New Port Forward" : {
+    "New Forwarding" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新建端口转发"
+            "value" : "新建转发"
           }
         }
       }

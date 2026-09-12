@@ -603,6 +603,39 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func forwardingEditorsShareTheFlatFormAndContextualLabels() throws {
+        let desktop = try String(
+            contentsOf: sourceRoot.appending(path: "Features/Ports/PortForwardingView.swift"), encoding: .utf8)
+        let mobile = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/Ports/MobileForwardingEditor.swift"),
+            encoding: .utf8)
+        let mobileHost = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Features/HostEditor/MobileHostEditor.swift"),
+            encoding: .utf8)
+        let shared = try String(
+            contentsOf: sourceRoot.appending(path: "../Frameworks/TermindPresentation/PortForwardingFields.swift"),
+            encoding: .utf8)
+
+        #expect(shared.contains("Section(\"Port Forwarding\")"))
+        for editor in [desktop, mobile] {
+            #expect(editor.contains("PortForwardingFields(rule: $draft)"))
+            #expect(editor.contains("New Forwarding"))
+            #expect(editor.contains("Edit Forwarding"))
+        }
+        #expect(desktop.contains("FormNavigationAction(title: \"Add Forwarding\")"))
+        #expect(mobileHost.contains("Button(\"Add Forwarding\", systemImage: \"plus\")"))
+        #expect(mobileHost.contains("isNew: !draftForwardings.contains"))
+        for removed in ["Add Port Forward", "New Port Forward", "Edit Port Forward"] {
+            #expect(!desktop.contains(removed))
+            #expect(!mobile.contains(removed))
+            #expect(!mobileHost.contains(removed))
+        }
+        for removed in ["DisclosureGroup(\"Advanced\"", "Section(\"SSH Host\")", "Section(\"Route Preview\")"] {
+            #expect(!desktop.contains(removed))
+        }
+    }
+
+    @Test
     func sharedFrameworksCannotImportPlatformAppsOrUI() throws {
         for module in [
             "TermindDomain", "TermindApplication", "TermindInfrastructure", "TermindRemoteInfrastructure",

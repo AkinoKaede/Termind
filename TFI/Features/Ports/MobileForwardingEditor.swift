@@ -11,23 +11,26 @@ struct MobileForwardingEditor: View {
     let app: MobileAppModel
     let host: Host
     let original: PortForwardingRule
+    let isNew: Bool
     let save: (PortForwardingRule) -> Void
     @State private var draft: PortForwardingRule
 
     init(
-        app: MobileAppModel, host: Host, rule: PortForwardingRule,
+        app: MobileAppModel, host: Host, rule: PortForwardingRule, isNew: Bool,
         save: @escaping (PortForwardingRule) -> Void
     ) {
         self.app = app
         self.host = host
         original = rule
+        self.isNew = isNew
         self.save = save
         _draft = State(initialValue: rule)
     }
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: "Port Forwarding"), isDirty: draft != original,
+            title: isNew ? String(localized: "New Forwarding") : String(localized: "Edit Forwarding"),
+            isDirty: draft != original,
             canSave: draft.isValid && state.canEdit,
             save: { save(draft) },
             content: {

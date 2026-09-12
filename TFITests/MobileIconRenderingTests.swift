@@ -125,8 +125,11 @@ struct MobileIconRenderingTests {
                     .environment(\.locale, locale)
             }
             try await capture("forwarding-editor-\(suffix)", language: language, scheme: scheme) {
-                MobileForwardingEditor(app: app, host: forwardingHost, rule: forwardingRule) { _ in }
-                    .environment(\.locale, locale)
+                MobileForwardingEditor(
+                    app: app, host: forwardingHost, rule: forwardingRule, isNew: false,
+                    save: { _ in }
+                )
+                .environment(\.locale, locale)
             }
             try await capture("add-\(suffix)", language: language, scheme: scheme) {
                 MobileAddModelSheet(existing: [], add: { _ in }).environment(\.locale, locale)

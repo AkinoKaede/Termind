@@ -797,8 +797,9 @@ Desktop keeps its existing list switches and also exposes enable controls in all
 three detail editors; both controls write through the same feature model. Desktop
 Enabled controls follow Name (after Title and stable Name for Skills). The shared
 provider form uses Name then Enabled on both platforms; mobile Skill and MCP editors
-retain their leading enable row. Desktop forwarding details likewise group Name,
-Enabled and runtime status together, with only Name locked while forwarding is active.
+retain their leading enable row. Desktop and mobile forwarding editors place Enabled
+and runtime status above the shared, flat Port Forwarding form. Their contextual titles
+are New Forwarding or Edit Forwarding, and active forwarding locks the configuration fields.
 Terminal custom configuration has no Name field and keeps its enable control in the toolbar.
 
 Mobile local uploads and desktop local uploads use one batch planner in Remote Infrastructure. File picking and
@@ -816,7 +817,7 @@ covers all editors, AI pickers, Pro, history, transfer and Metrics selection she
 Mobile editor fields align by structure: editable values paired with a leading label
 align trailing, while standalone fields align leading. Save remains the trailingmost
 editor action. Skill Export/Delete and MCP Connect/Delete live in the adjacent More
-menu; Provider Fetch/Add, MCP Add Header, Host Add Port Forward, key file selection,
+menu; Provider Fetch/Add, MCP Add Header, Host Add Forwarding, key file selection,
 and Terminal configuration editing remain beside the content they affect. SFTP keeps
 Transfers visible and groups parent navigation, upload, and folder creation in More.
 

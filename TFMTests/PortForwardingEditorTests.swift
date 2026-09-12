@@ -70,24 +70,32 @@ struct PortForwardingEditorTests {
         #expect(state.canToggle)
     }
 
-    @Test func normalizationMatchesSavedValuesAndRejectsInvalidPorts() throws {
+    @Test func normalizationMatchesSavedValuesAndRejectsInvalidFields() throws {
         let host = Host(name: "Server", host: "server.invalid")
         let saved = PortForwardingRule(hostID: host.id)
         var draft = saved
         draft.bindHost = " 127.0.0.1\n"
-        let normalized = try #require(
-            PortForwardingEditorState.normalized(
-                draft, hostID: host.id, bindPort: " 08080\n", targetHost: " localhost ", targetPort: " 80 "))
+        draft.targetHost = " localhost "
+        let normalized = try #require(PortForwardingEditorState.normalized(draft))
         #expect(normalized == saved)
-        #expect(PortForwardingEditorState.normalized(draft) == saved)
-        for invalid in ["", "abc", "0", "65536"] {
-            #expect(
-                PortForwardingEditorState.normalized(
-                    draft, hostID: host.id, bindPort: invalid, targetHost: "localhost", targetPort: "80") == nil)
-            #expect(
-                PortForwardingEditorState.normalized(
-                    draft, hostID: host.id, bindPort: "8080", targetHost: "localhost", targetPort: invalid) == nil)
+
+        for invalidPort in [0, 65_536] {
+            var invalidBind = saved
+            invalidBind.bindPort = invalidPort
+            #expect(PortForwardingEditorState.normalized(invalidBind) == nil)
+
+            var invalidTarget = saved
+            invalidTarget.targetPort = invalidPort
+            #expect(PortForwardingEditorState.normalized(invalidTarget) == nil)
         }
+
+        var emptyBindHost = saved
+        emptyBindHost.bindHost = " \n"
+        #expect(PortForwardingEditorState.normalized(emptyBindHost) == nil)
+
+        var emptyTargetHost = saved
+        emptyTargetHost.targetHost = " \n"
+        #expect(PortForwardingEditorState.normalized(emptyTargetHost) == nil)
     }
 
     @Test func dynamicDraftDiscardsHiddenTargetValuesBeforeComparingOrSaving() throws {
@@ -96,13 +104,10 @@ struct PortForwardingEditorTests {
         var draft = saved
         draft.targetHost = "old-target.invalid"
         draft.targetPort = 443
-        let normalized = try #require(
-            PortForwardingEditorState.normalized(
-                draft, hostID: host.id, bindPort: "8080", targetHost: "old-target.invalid", targetPort: "invalid"))
+        let normalized = try #require(PortForwardingEditorState.normalized(draft))
         #expect(normalized == saved)
         #expect(normalized.targetHost == nil)
         #expect(normalized.targetPort == nil)
-        #expect(PortForwardingEditorState.normalized(draft) == saved)
     }
 
     @Test func savingHostAndRuleDoesNotStartForwardingAndOtherWindowEditsInvalidateStart() throws {
