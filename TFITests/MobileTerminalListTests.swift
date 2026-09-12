@@ -38,8 +38,14 @@ struct MobileTerminalListTests {
                 descendants(of: UIButton.self, in: row).first {
                     $0.accessibilityLabel == String(localized: "Delete")
                 })
-            #expect(deleteButton.configuration?.title == nil)
-            #expect(deleteButton.configuration?.image != nil)
+            row.layoutIfNeeded()
+            #expect(deleteButton.configuration == nil)
+            #expect(deleteButton.backgroundColor == .systemRed)
+            #expect(deleteButton.tintColor == .white)
+            #expect(deleteButton.currentImage != nil)
+            #expect(deleteButton.frame.width == MobileHostingListRow.deleteWidth)
+            #expect(deleteButton.frame.height == row.bounds.height)
+            #expect(deleteButton.frame.maxX == row.bounds.maxX)
             row.prepareForReuse()
             #expect(row.accessibilityCustomActions == nil)
         }

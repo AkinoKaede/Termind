@@ -154,11 +154,9 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         clipsToBounds = true
         backgroundColor = .secondarySystemGroupedBackground
 
-        var configuration = UIButton.Configuration.filled()
-        configuration.image = UIImage(systemName: "trash")
-        configuration.baseBackgroundColor = .systemRed
-        configuration.baseForegroundColor = .white
-        deleteButton.configuration = configuration
+        deleteButton.setImage(UIImage(systemName: "trash"), for: .normal)
+        deleteButton.tintColor = .white
+        deleteButton.backgroundColor = .systemRed
         deleteButton.accessibilityLabel = String(localized: "Delete")
         deleteButton.addTarget(self, action: #selector(deletePressed), for: .touchUpInside)
         addSubview(deleteButton)
