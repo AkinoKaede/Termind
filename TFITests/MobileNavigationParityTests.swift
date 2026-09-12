@@ -289,7 +289,10 @@ struct MobileNavigationParityTests {
         #expect(permissionMenu.contains("Button(role: mode == .fullAccess ? .destructive : nil)"))
         #expect(permissionMenu.contains("mode == resolvedPermissionMode ? \"checkmark\" : mode.symbol"))
         #expect(permissionMenu.contains("Label(\"Permissions\", systemImage: resolvedPermissionMode.symbol)"))
-        #expect(permissionMenu.contains("? AnyShapeStyle(.red) : AnyShapeStyle(.primary)"))
+        #expect(
+            permissionMenu.contains(
+                ".mobileComposerControlIcon(isDestructive: resolvedPermissionMode == .fullAccess)"))
+        #expect(!permissionMenu.contains("AnyShapeStyle"))
         #expect(permissionMenu.contains(".labelStyle(.iconOnly)"))
         #expect(permissionMenu.contains(".fixedSize()"))
         #expect(permissionMenu.contains(".layoutPriority(1)"))
@@ -314,6 +317,56 @@ struct MobileNavigationParityTests {
         #expect(photos.lowerBound < files.lowerBound)
         #expect(!addMenu.contains("Voice Input"))
         #expect(!addMenu.contains("Divider()"))
+    }
+
+    @Test func assistantNeutralControlsShareVisualStyleAndAlignWithSend() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+
+        let style = try #require(
+            composer.components(separatedBy: "private struct MobileComposerControlIconModifier").last?
+                .components(separatedBy: "extension View").first)
+        #expect(style.contains("isDestructive ? .red : Color.primary.opacity(opacity)"))
+        #expect(style.contains(".font(.title3.weight(.medium))"))
+        #expect(style.contains(".symbolRenderingMode(.monochrome)"))
+        #expect(style.contains(".foregroundStyle(tint)"))
+        #expect(style.contains(".frame(width: 48, height: 48, alignment: .center)"))
+        #expect(style.contains(".contentShape(.circle)"))
+
+        let styleEntryPoint = try #require(composer.components(separatedBy: "extension View").last)
+        #expect(styleEntryPoint.contains("opacity: Double = 0.75"))
+
+        let standardControls = try #require(
+            composer.components(separatedBy: "private var standardControls").last?
+                .components(separatedBy: "private var recordingControls").first)
+        #expect(standardControls.contains("HStack(alignment: .center, spacing: 2)"))
+
+        for markers in [
+            ("private var recordingControls", "private var addMenu"),
+            ("private var addMenu", "private var permissionMenu"),
+            ("private var permissionMenu", "private var resolvedPermissionMode"),
+            ("private var microphoneButton", "@ViewBuilder private var primaryButton"),
+            ("@ViewBuilder private var badges", "private var modelProviders"),
+        ] {
+            let controls = try #require(
+                composer.components(separatedBy: markers.0).last?
+                    .components(separatedBy: markers.1).first)
+            #expect(controls.contains(".mobileComposerControlIcon"))
+        }
+
+        let badges = try #require(
+            composer.components(separatedBy: "@ViewBuilder private var badges").last?
+                .components(separatedBy: "private var modelProviders").first)
+        #expect(badges.components(separatedBy: ".mobileComposerControlIcon(opacity: 0.62)").count == 3)
+
+        let primaryButton = try #require(
+            composer.components(separatedBy: "@ViewBuilder private var primaryButton").last?
+                .components(separatedBy: "private var contextDetailsSheet").first)
+        #expect(primaryButton.contains(".font(.system(size: 34, weight: .semibold))"))
+        #expect(primaryButton.contains(".frame(width: 48, height: 48)"))
     }
 
     @Test func vaultReplacesWelcomeAndMetricsRemainsBelowItOnIPad() {

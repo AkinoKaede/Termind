@@ -195,7 +195,7 @@ struct MobileAssistantComposer: View {
     }
 
     private var standardControls: some View {
-        HStack(spacing: 2) {
+        HStack(alignment: .center, spacing: 2) {
             addMenu
             permissionMenu
             badges
@@ -208,15 +208,16 @@ struct MobileAssistantComposer: View {
     }
 
     private var recordingControls: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             Button {
                 composer.draft = speechDraft
                 model.speech.cancel(ownerID: conversation.id)
                 activeFocus.wrappedValue = true
             } label: {
                 Label("Cancel", systemImage: "xmark").labelStyle(.iconOnly)
-                    .frame(width: 48, height: 48).contentShape(.circle)
+                    .mobileComposerControlIcon()
             }
+            .buttonStyle(.plain)
             if model.speech.isRequestingAuthorization || model.speech.phase == .transcribing {
                 ProgressView().frame(maxWidth: .infinity)
             } else {
@@ -229,8 +230,9 @@ struct MobileAssistantComposer: View {
                 model.speech.stop(ownerID: conversation.id)
             } label: {
                 Label("Done", systemImage: "stop.fill").labelStyle(.iconOnly)
-                    .frame(width: 48, height: 48).contentShape(.circle)
+                    .mobileComposerControlIcon()
             }
+            .buttonStyle(.plain)
             .disabled(model.speech.phase != .recording)
         }
         .frame(minHeight: 48)
@@ -243,9 +245,8 @@ struct MobileAssistantComposer: View {
             Button("Photos", systemImage: "photo") { photos = true }
             Button("Files", systemImage: "doc") { files = true }
         } label: {
-            Image(systemName: "plus").font(.title3.weight(.medium))
-                .foregroundStyle(.primary)
-                .frame(width: 48, height: 48).contentShape(.circle)
+            Image(systemName: "plus")
+                .mobileComposerControlIcon()
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Add Attachment")
@@ -267,13 +268,7 @@ struct MobileAssistantComposer: View {
         } label: {
             Label("Permissions", systemImage: resolvedPermissionMode.symbol)
                 .labelStyle(.iconOnly)
-                .font(.title3)
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(
-                    resolvedPermissionMode == .fullAccess
-                        ? AnyShapeStyle(.red) : AnyShapeStyle(.primary)
-                )
-                .frame(width: 48, height: 48).contentShape(.circle)
+                .mobileComposerControlIcon(isDestructive: resolvedPermissionMode == .fullAccess)
         }
         .buttonStyle(.plain)
         .fixedSize()
@@ -300,8 +295,7 @@ struct MobileAssistantComposer: View {
     private var microphoneButton: some View {
         Button(action: startSpeech) {
             Label("Voice Input", systemImage: "mic").labelStyle(.iconOnly)
-                .font(.system(size: 25, weight: .medium)).foregroundStyle(.primary)
-                .frame(width: 48, height: 48).contentShape(.circle)
+                .mobileComposerControlIcon()
         }
         .buttonStyle(.plain)
         .disabled(!model.speech.canStart(for: conversation.id))
@@ -446,11 +440,9 @@ struct MobileAssistantComposer: View {
             } label: {
                 Label("Plan", systemImage: "lightbulb.max")
                     .labelStyle(.iconOnly)
-                    .frame(width: 48, height: 48)
-                    .contentShape(.circle)
+                    .mobileComposerControlIcon(opacity: 0.62)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
         }
         if let skill = composer.armedSkillName {
             Button {
@@ -458,11 +450,9 @@ struct MobileAssistantComposer: View {
             } label: {
                 Label(skill, systemImage: "book.closed")
                     .labelStyle(.iconOnly)
-                    .frame(width: 48, height: 48)
-                    .contentShape(.circle)
+                    .mobileComposerControlIcon(opacity: 0.62)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
             .accessibilityLabel(Text("Skill \(skill) armed, remove"))
         }
     }
@@ -630,5 +620,29 @@ struct MobileAssistantComposer: View {
                 composer.attachmentImportError = String(localized: "Allow camera access in Settings to take a photo.")
             }
         }
+    }
+}
+
+private struct MobileComposerControlIconModifier: ViewModifier {
+    let isDestructive: Bool
+    let opacity: Double
+
+    private var tint: Color {
+        isDestructive ? .red : Color.primary.opacity(opacity)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .font(.title3.weight(.medium))
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(tint)
+            .frame(width: 48, height: 48, alignment: .center)
+            .contentShape(.circle)
+    }
+}
+
+extension View {
+    fileprivate func mobileComposerControlIcon(isDestructive: Bool = false, opacity: Double = 0.75) -> some View {
+        modifier(MobileComposerControlIconModifier(isDestructive: isDestructive, opacity: opacity))
     }
 }
