@@ -1,32 +1,6 @@
 import SwiftUI
 import TermindDomain
 
-public struct UnixPermissionFields: View {
-    @Binding private var draft: SFTPPermissionDraft
-    public init(draft: Binding<SFTPPermissionDraft>) { _draft = draft }
-
-    public var body: some View {
-        Section("Permissions") {
-            TextField("Octal permissions", text: Binding(get: { draft.text }, set: { _ = draft.accept($0) }))
-                .font(.body.monospaced())
-                #if os(iOS)
-                    .multilineTextAlignment(.leading)
-                    .keyboardType(.numberPad)
-                #endif
-        }
-        Section("File Access") { UnixPermissionGrid(draft: $draft) }
-        Section("Special Permissions") {
-            Toggle("Set UID", isOn: permission(0o4000))
-            Toggle("Set GID", isOn: permission(0o2000))
-            Toggle("Sticky Bit", isOn: permission(0o1000))
-        }
-    }
-
-    private func permission(_ mask: UInt32) -> Binding<Bool> {
-        Binding(get: { draft.contains(mask) }, set: { draft.set(mask, enabled: $0) })
-    }
-}
-
 public struct UnixPermissionGrid: View {
     @Binding private var draft: SFTPPermissionDraft
     private let horizontalSpacing: CGFloat

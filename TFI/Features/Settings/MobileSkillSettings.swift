@@ -2,6 +2,7 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindInfrastructure
+import TermindPresentation
 import UniformTypeIdentifiers
 
 struct MobileSkillSettings: View {
@@ -187,7 +188,8 @@ struct MobileSkillEditor: View {
                     Text("Markdown. Returned whole when the assistant loads this skill.").font(.caption)
                         .foregroundStyle(.secondary)
                     if model.draft.body.utf8.count > AgentSkill.maximumBodyBytes {
-                        Text("Longer than \(AgentSkill.maximumBodyBytes / 1_024) KB.").foregroundStyle(.orange)
+                        Text("Longer than \(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)).")
+                            .foregroundStyle(.orange)
                     }
                 }
                 if let error { Section { Text(error).foregroundStyle(.red) } }

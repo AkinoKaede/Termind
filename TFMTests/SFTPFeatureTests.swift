@@ -160,7 +160,7 @@ struct SFTPFeatureTests {
 
         await session.reload(silently: true)
         #expect(session.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
-        #expect(session.visibleRows.map(\.sizeText) == ["--", "10 bytes", "100 bytes"])
+        #expect(session.visibleRows.map(\.sizeText) == ["", "10 bytes", "100 bytes"])
 
         session.selection = [notes.id, report.id]
         #expect(session.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
@@ -769,6 +769,26 @@ struct SFTPFeatureTests {
             manifest.entries.filter(\.isDirectory).map(\.relativePath) == [
                 "bundle", "bundle/empty",
             ])
+    }
+
+    @Test
+    func remoteDownloadPlannerPreservesHierarchyAndEmptyDirectories() async throws {
+        let bundle = remoteFile(path: "/source/bundle", kind: .directory)
+        let empty = remoteFile(path: "/source/bundle/empty", kind: .directory)
+        let readme = remoteFile(path: "/source/bundle/README.md", kind: .file, size: 4)
+        let client = TreeSFTPClient(listings: [
+            bundle.path: [empty, readme],
+            empty.path: [],
+        ])
+        let destination = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+
+        let batch = try await SFTPRemoteDownloadPlanner.prepare(
+            [bundle], destination: destination, client: client
+        )
+
+        #expect(batch.transferCount == 1)
+        #expect(batch.directoryCount == 2)
+        #expect(batch.conflictCount == 0)
     }
 
     @Test

@@ -11,6 +11,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     let refreshID: AnyHashable
     let onSelect: ((Item) -> Void)?
     let onDelete: ((Item) -> Void)?
+    let canDelete: (Item) -> Bool
     let onRefresh: (() async -> Void)?
     let followsBottom: Bool
     @ViewBuilder let rowContent: (Item) -> RowContent
@@ -23,6 +24,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         items: [Item], estimatedRowHeight: CGFloat = 72, refreshID: AnyHashable = 0,
         onSelect: ((Item) -> Void)? = nil,
         onDelete: ((Item) -> Void)? = nil,
+        canDelete: @escaping (Item) -> Bool = { _ in true },
         onRefresh: (() async -> Void)? = nil,
         followsBottom: Bool = false,
         @ViewBuilder rowContent: @escaping (Item) -> RowContent
@@ -32,6 +34,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         self.refreshID = refreshID
         self.onSelect = onSelect
         self.onDelete = onDelete
+        self.canDelete = canDelete
         self.onRefresh = onRefresh
         self.followsBottom = followsBottom
         self.rowContent = rowContent
@@ -66,6 +69,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             renderer: { item in AnyView(rowContent(item)) },
             onSelect: onSelect,
             onDelete: onDelete,
+            canDelete: canDelete,
             onRefresh: onRefresh,
             followsBottom: followsBottom,
             refreshID: refreshID,
@@ -87,6 +91,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         private var renderer: Renderer?
         private var onSelect: ((Item) -> Void)?
         private var onDelete: ((Item) -> Void)?
+        private var canDelete: (Item) -> Bool = { _ in true }
         private var onRefresh: (() async -> Void)?
         private var refreshTask: Task<Void, Never>?
         private weak var refreshControl: UIRefreshControl?
@@ -100,6 +105,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         func update(
             listView: ListView<Item>, items newItems: [Item], renderer: @escaping Renderer,
             onSelect: ((Item) -> Void)?, onDelete: ((Item) -> Void)?,
+            canDelete: @escaping (Item) -> Bool,
             onRefresh: (() async -> Void)?,
             followsBottom: Bool,
             refreshID newRefreshID: AnyHashable,
@@ -115,6 +121,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             self.renderer = renderer
             self.onSelect = onSelect
             self.onDelete = onDelete
+            self.canDelete = canDelete
             self.onRefresh = onRefresh
             self.locale = locale
             self.colorScheme = colorScheme
@@ -174,7 +181,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             row.configure(
                 rootView: rootView(for: item),
                 onSelect: onSelect.map { action in { action(item) } },
-                onDelete: onDelete.map { action in { action(item) } }
+                onDelete: canDelete(item) ? onDelete.map { action in { action(item) } } : nil
             )
         }
 

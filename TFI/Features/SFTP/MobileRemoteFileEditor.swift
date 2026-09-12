@@ -39,7 +39,22 @@ struct MobileRemoteFileEditor: View {
                     TextField("Name", text: $name).textInputAutocapitalization(.never).autocorrectionDisabled()
                         .multilineTextAlignment(.leading)
                 } else {
-                    UnixPermissionFields(draft: $permissions)
+                    Section("Permissions") {
+                        TextField(
+                            "Octal permissions",
+                            text: Binding(
+                                get: { permissions.text },
+                                set: { _ = permissions.accept($0) }
+                            )
+                        )
+                        .font(.body.monospaced())
+                        .keyboardType(.numberPad)
+                    }
+                    Section("File Access") { UnixPermissionGrid(draft: $permissions) }
+                    Section("Ownership") {
+                        LabeledContent("UID", value: file.ownerUID.formatted())
+                        LabeledContent("GID", value: file.ownerGID.formatted())
+                    }
                 }
             })
     }

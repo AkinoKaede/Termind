@@ -1,6 +1,167 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Copy Cancelled" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "复制已取消" }
+        }
+      }
+    },
+    "Copy Failed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "复制失败" }
+        }
+      }
+    },
+    "Copy Paused" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "复制已暂停" }
+        }
+      }
+    },
+    "Copy Queued" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "复制已排队" }
+        }
+      }
+    },
+    "Copying" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "正在复制" }
+        }
+      }
+    },
+    "Date" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "日期" }
+        }
+      }
+    },
+    "Download Cancelled" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "下载已取消" }
+        }
+      }
+    },
+    "Download Failed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "下载失败" }
+        }
+      }
+    },
+    "Download Paused" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "下载已暂停" }
+        }
+      }
+    },
+    "Download Queued" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "下载已排队" }
+        }
+      }
+    },
+    "Downloaded" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "下载完成" }
+        }
+      }
+    },
+    "Downloading" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "正在下载" }
+        }
+      }
+    },
+    "Longer than %@." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "超过%@。" }
+        }
+      }
+    },
+    "Share" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "分享" }
+        }
+      }
+    },
+    "The copied SFTP items are invalid." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "已复制的SFTP项目无效。" }
+        }
+      }
+    },
+    "The file is larger than %@." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "文件大于%@。" }
+        }
+      }
+    },
+    "The normalized image is larger than %@." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "处理后的图像大于%@。" }
+        }
+      }
+    },
+    "Upload Cancelled" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "上传已取消" }
+        }
+      }
+    },
+    "Upload Failed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "上传失败" }
+        }
+      }
+    },
+    "Upload Paused" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "上传已暂停" }
+        }
+      }
+    },
+    "Upload Queued" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "上传已排队" }
+        }
+      }
+    },
+    "Uploaded" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "上传完成" }
+        }
+      }
+    },
+    "Uploading" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "正在上传" }
+        }
+      }
+    },
     "" : {
       "localizations" : {
         "zh-Hans" : {
@@ -16,7 +177,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "复制"
+            "value" : "已复制"
           }
         }
       }

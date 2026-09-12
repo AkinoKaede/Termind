@@ -30,6 +30,18 @@ private struct MobilePendingUpload {
     var connectionGeneration: UUID
 }
 
+private struct MobilePendingDownload {
+    var batch: SFTPRemoteDownloadBatch
+    var configuration: SSHConnectionConfiguration
+    var connectionGeneration: UUID
+}
+
+private struct MobilePendingRemoteCopy {
+    var batch: SFTPRemoteCopyBatch
+    var configuration: SSHConnectionConfiguration
+    var connectionGeneration: UUID
+}
+
 private struct MobilePendingInitialCommand {
     var command: String
     var recordsInHistory: Bool
@@ -76,6 +88,9 @@ final class MobileWorkspace: Identifiable {
     private var uploadPreparationTask: Task<Void, Never>?
     private var uploadEnqueueTask: Task<Void, Never>?
     private var uploadNoticeTask: Task<Void, Never>?
+    private var remoteTransferPreparationTask: Task<Void, Never>?
+    private var pendingDownload: MobilePendingDownload?
+    private var pendingRemoteCopy: MobilePendingRemoteCopy?
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
@@ -114,7 +129,13 @@ final class MobileWorkspace: Identifiable {
     private var viewport = InMemoryTerminalViewport(columns: 80, rows: 24)
 
     var uploadConflictCount: Int { pendingUpload?.batch.conflictCount ?? 0 }
-    var hasPendingUploadConflict: Bool { uploadConflictCount > 0 }
+    var transferConflictCount: Int {
+        pendingRemoteCopy?.batch.conflictCount
+            ?? pendingDownload?.batch.conflictCount
+            ?? pendingUpload?.batch.conflictCount
+            ?? 0
+    }
+    var hasPendingTransferConflict: Bool { transferConflictCount > 0 }
 
     var sameDirectoryLaunch: MobileWorkspaceDirectoryLaunch? {
         guard connected else { return nil }
@@ -1014,6 +1035,138 @@ final class MobileWorkspace: Identifiable {
         return true
     }
 
+    func remoteCopySource(for file: RemoteFile) -> SFTPRemoteCopySource? {
+        guard descriptor.kind == .sftp, connected, let configuration = transferConfiguration else {
+            return nil
+        }
+        return SFTPRemoteCopySource(
+            hostID: descriptor.hostID,
+            connection: .saved(configuration),
+            files: [file]
+        )
+    }
+
+    func prepareRemoteCopy(_ payload: SFTPRemoteItemsPayload) {
+        guard let transfers, let configuration = transferConfiguration,
+            let sftp, connected
+        else {
+            operationError = String(localized: "The SFTP connection is not available.")
+            return
+        }
+        cancelPendingUpload()
+        let connectionGeneration = generation
+        remoteTransferPreparationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let batch = try await SFTPRemoteCopyPlanner.prepare(
+                    payload, destination: sftpSession.path,
+                    client: sftp, coordinator: transfers
+                )
+                try Task.checkCancellation()
+                guard generation == connectionGeneration else {
+                    remoteTransferPreparationTask = nil
+                    return
+                }
+                pendingRemoteCopy = MobilePendingRemoteCopy(
+                    batch: batch, configuration: configuration,
+                    connectionGeneration: connectionGeneration
+                )
+                remoteTransferPreparationTask = nil
+                if batch.conflictCount == 0 { enqueuePendingTransfer(.replace) }
+            } catch is CancellationError {
+                remoteTransferPreparationTask = nil
+            } catch {
+                operationError = error.localizedDescription
+                remoteTransferPreparationTask = nil
+            }
+        }
+    }
+
+    func prepareDownload(_ file: RemoteFile, to destination: URL) {
+        guard transfers != nil, let configuration = transferConfiguration,
+            let sftp, connected
+        else {
+            operationError = String(localized: "The SFTP connection is not available.")
+            return
+        }
+        cancelPendingUpload()
+        let connectionGeneration = generation
+        remoteTransferPreparationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let batch = try await SFTPRemoteDownloadPlanner.prepare(
+                    [file], destination: destination, client: sftp
+                )
+                try Task.checkCancellation()
+                guard generation == connectionGeneration else {
+                    remoteTransferPreparationTask = nil
+                    return
+                }
+                pendingDownload = MobilePendingDownload(
+                    batch: batch, configuration: configuration,
+                    connectionGeneration: connectionGeneration
+                )
+                remoteTransferPreparationTask = nil
+                if batch.conflictCount == 0 { enqueuePendingTransfer(.replace) }
+            } catch is CancellationError {
+                remoteTransferPreparationTask = nil
+            } catch {
+                operationError = error.localizedDescription
+                remoteTransferPreparationTask = nil
+            }
+        }
+    }
+
+    func enqueuePendingTransfer(_ policy: TransferConflictPolicy) {
+        if let pendingRemoteCopy, let transfers, let sftp {
+            self.pendingRemoteCopy = nil
+            guard generation == pendingRemoteCopy.connectionGeneration else { return }
+            let generation = pendingRemoteCopy.connectionGeneration
+            Task { [weak self] in
+                guard let self else { return }
+                do {
+                    try await SFTPRemoteCopyPlanner.enqueue(
+                        pendingRemoteCopy.batch, policy: policy,
+                        destinationHostID: descriptor.hostID,
+                        destinationConnection: .saved(pendingRemoteCopy.configuration),
+                        client: sftp, coordinator: transfers
+                    ) { [weak self] state in
+                        guard state == .completed else { return }
+                        Task { @MainActor in
+                            guard let self, self.generation == generation else { return }
+                            await self.sftpSession.reload()
+                        }
+                    }
+                } catch { operationError = error.localizedDescription }
+            }
+            return
+        }
+        if let pendingDownload, let transfers {
+            self.pendingDownload = nil
+            guard generation == pendingDownload.connectionGeneration else { return }
+            do {
+                try SFTPRemoteDownloadPlanner.enqueue(
+                    pendingDownload.batch, policy: policy,
+                    hostID: descriptor.hostID,
+                    connection: .saved(pendingDownload.configuration),
+                    coordinator: transfers
+                ) { [sftpHistory, hostID = descriptor.hostID] path, state in
+                    guard state == .completed else { return }
+                    sftpHistory.record(kind: .file, path: path, for: hostID)
+                }
+            } catch { operationError = error.localizedDescription }
+            return
+        }
+        enqueuePendingUpload(policy)
+    }
+
+    func cancelPendingRemoteTransfer() {
+        remoteTransferPreparationTask?.cancel()
+        remoteTransferPreparationTask = nil
+        pendingDownload = nil
+        pendingRemoteCopy = nil
+    }
+
     func enqueuePendingUpload(_ policy: TransferConflictPolicy) {
         guard let pendingUpload, let transfers else { return }
         self.pendingUpload = nil
@@ -1061,6 +1214,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func cancelPendingUpload() {
+        cancelPendingRemoteTransfer()
         uploadPreparationTask?.cancel()
         uploadPreparationTask = nil
         uploadEnqueueTask?.cancel()
@@ -1087,7 +1241,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     @discardableResult
-    func download(_ file: RemoteFile) -> Bool {
+    func preview(_ file: RemoteFile, completion: @escaping (URL) -> Void) -> Bool {
         guard let transfers, let configuration = transferConfiguration, connected, !file.isDirectory else {
             return false
         }
@@ -1098,13 +1252,15 @@ final class MobileWorkspace: Identifiable {
             )
             .appending(path: UUID().uuidString, directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let localURL = directory.appending(path: file.name)
             transfers.enqueue(
-                direction: .download, batchID: UUID(), localURL: directory.appending(path: file.name),
+                direction: .download, batchID: UUID(), localURL: localURL,
                 remotePath: file.path, byteCount: file.size, hostID: descriptor.hostID,
                 configuration: configuration, scopedRoot: directory, overwrite: false
             ) { [sftpHistory, hostID = descriptor.hostID, path = file.path] state in
                 guard state == .completed else { return }
                 sftpHistory.record(kind: .file, path: path, for: hostID)
+                completion(localURL)
             }
             return true
         } catch {
@@ -1113,7 +1269,7 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
-    func reopenHistoryFile(at path: String) async -> Bool {
+    func reopenHistoryFile(at path: String, completion: @escaping (URL) -> Void = { _ in }) async -> Bool {
         guard let sftp, connected else {
             operationError = String(localized: "The SFTP connection is not available.")
             return false
@@ -1126,7 +1282,7 @@ final class MobileWorkspace: Identifiable {
                 operationError = String(localized: "The remote file is no longer available.")
                 return false
             }
-            return download(file)
+            return preview(file, completion: completion)
         } catch {
             if !handleSFTPConnectionError(error, connection: connectionGeneration) {
                 operationError = error.localizedDescription

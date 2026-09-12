@@ -10,13 +10,22 @@ import UniformTypeIdentifiers
 #endif
 
 nonisolated struct SFTPFileListItem: Identifiable, Hashable, Sendable {
-    let row: SFTPRow
+    nonisolated enum ID: Hashable, Sendable {
+        case parent
+        case file(RemoteFile.ID)
+    }
+
+    let row: SFTPRow?
+    let parentPath: String?
     let isSelected: Bool
     let isEmphasized: Bool
     let isHovered: Bool
     let layoutKey: Int
 
-    var id: RemoteFile.ID { row.id }
+    var id: ID {
+        if let row { return .file(row.id) }
+        return .parent
+    }
 }
 
 nonisolated struct SFTPFileScrollRequest: Equatable, Sendable {
@@ -122,7 +131,7 @@ private struct SFTPFileNativeList: NSViewRepresentable {
             if let request = scrollRequest, request.token != lastScrollToken {
                 lastScrollToken = request.token
                 listView.scrollToRow(
-                    with: request.targetID,
+                    with: SFTPFileListItem.ID.file(request.targetID),
                     at: request.position == .top ? .top : .nearest,
                     animated: false
                 )
@@ -449,22 +458,27 @@ struct SFTPBrowserView: View {
 
     private func actionsMenu(layout: Layout) -> some View {
         Menu {
-            Button("New Folder") { newFolderPresented = true }
+            Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
                 .disabled(sftpSession.status != .connected)
-            Button("Paste") { pasteRemoteItems() }
+            Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
                 .disabled(sftpSession.status != .connected || !canPasteRemoteItems)
             Divider()
             if sftpSession.showsHiddenFiles {
-                Button("Hide Hidden Files") { sftpSession.showsHiddenFiles = false }
+                Button("Hide Hidden Files", systemImage: MenuSymbol.hideHiddenFiles) {
+                    sftpSession.showsHiddenFiles = false
+                }
             } else {
-                Button("Show Hidden Files") { sftpSession.showsHiddenFiles = true }
+                Button("Show Hidden Files", systemImage: MenuSymbol.showHiddenFiles) {
+                    sftpSession.showsHiddenFiles = true
+                }
             }
-            Button("Edit Path") { beginPathEditing() }
-            Button("Refresh") { sftpSession.reloadNow() }
+            Button("Edit Path", systemImage: MenuSymbol.editPath) { beginPathEditing() }
+            Button("Refresh", systemImage: MenuSymbol.refresh) { sftpSession.reloadNow() }
                 .disabled(sftpSession.status != .connected || sftpSession.isLoading)
         } label: {
             if layout == .full {
                 HStack(spacing: Metrics.Space.s) {
+                    Image(systemName: MenuSymbol.actions)
                     Text("Actions")
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
@@ -619,7 +633,7 @@ struct SFTPBrowserView: View {
             scrollRequest: fileScrollRequest,
             onBackgroundClick: clearFileSelection
         ) { item in
-            fileRow(item.row, layout: layout)
+            fileListRow(item, layout: layout)
         }
         .focusable(!window.isToolbarFindFocused)
         .focusEffectDisabled()
@@ -659,15 +673,60 @@ struct SFTPBrowserView: View {
         case .medium: layoutKey = 1
         case .compact: layoutKey = 0
         }
-        return sftpSession.visibleRows.map { row in
+        var items = sftpSession.visibleRows.map { row in
             SFTPFileListItem(
-                row: row,
+                row: row, parentPath: nil,
                 isSelected: sftpSession.selection.contains(row.id),
                 isEmphasized: emphasized,
                 isHovered: hoveredFileID == row.id,
                 layoutKey: layoutKey
             )
         }
+        if sftpSession.path != "/" {
+            items.insert(
+                SFTPFileListItem(
+                    row: nil, parentPath: RemotePath.parent(of: sftpSession.path),
+                    isSelected: false, isEmphasized: false, isHovered: false,
+                    layoutKey: layoutKey
+                ),
+                at: 0
+            )
+        }
+        return items
+    }
+
+    @ViewBuilder
+    private func fileListRow(_ item: SFTPFileListItem, layout: Layout) -> some View {
+        if let row = item.row {
+            fileRow(row, layout: layout)
+        } else if let parentPath = item.parentPath {
+            parentDirectoryRow(path: parentPath)
+        }
+    }
+
+    private func parentDirectoryRow(path: String) -> some View {
+        HStack(spacing: Metrics.Space.m) {
+            Image(systemName: "folder.fill")
+                .font(.system(size: 23, weight: .regular))
+                .foregroundStyle(.tint)
+                .frame(width: 28)
+            Text("..")
+                .font(.body.weight(.medium))
+            Spacer()
+        }
+        .padding(.leading, Metrics.Space.xxl)
+        .padding(.trailing, Metrics.Space.xl)
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .contentShape(.rect)
+        .onTapGesture {
+            focusPane()
+            focusListForUserGesture()
+            if NSApp.currentEvent?.clickCount == 2 { sftpSession.navigate(to: path) }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Parent Directory")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { sftpSession.navigate(to: path) }
     }
 
     private func clearFileSelection() {
@@ -713,7 +772,7 @@ struct SFTPBrowserView: View {
     }
 
     private func sortHeader(
-        _ title: LocalizedStringKey, field: SFTPFileSortField, separated: Bool = false
+        _ title: LocalizedStringKey, field: RemoteFileSortField, separated: Bool = false
     ) -> some View {
         let isSorted = sftpSession.sortField == field
         return Button {
@@ -861,12 +920,12 @@ struct SFTPBrowserView: View {
         case .full:
             return row.permissionText
         case .medium:
-            return [row.permissionText, row.kindText, row.sizeText]
+            return [row.permissionText, row.kindText, row.sizeText].filter { !$0.isEmpty }
                 .joined(separator: "  ·  ")
         case .compact:
             return [
                 row.kindText, row.sizeText, row.modifiedText, row.permissionText,
-            ].joined(separator: "  ·  ")
+            ].filter { !$0.isEmpty }.joined(separator: "  ·  ")
         }
     }
 

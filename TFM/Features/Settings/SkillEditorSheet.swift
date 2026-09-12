@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindPresentation
 import UniformTypeIdentifiers
 
 /// One skill: what it is called, when the assistant should reach for it, and
@@ -164,7 +165,7 @@ struct SkillEditorPage: View {
 
                 if skill.body.utf8.count > AgentSkill.maximumBodyBytes {
                     Label(
-                        "Longer than \(AgentSkill.maximumBodyBytes / 1_024) KB.",
+                        "Longer than \(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)).",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.caption)

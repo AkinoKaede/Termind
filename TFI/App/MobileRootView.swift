@@ -124,7 +124,7 @@ struct MobileRootView: View {
         List {
             Section {
                 NavigationLink {
-                    MobileTransfersView(transfers: app.transfers)
+                    MobileTransfersView(transfers: app.transfers, hosts: app.library)
                 } label: {
                     Label("Transfers", systemImage: "arrow.up.arrow.down")
                 }

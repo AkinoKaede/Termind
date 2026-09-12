@@ -299,8 +299,16 @@ nonisolated public enum ContextAttachmentImporter {
         public var errorDescription: String? {
             switch self {
             case .notAFile: String(localized: "Folders cannot be attached.")
-            case .fileTooLarge: String(localized: "The file is larger than 25 MB.")
-            case .imageTooLarge: String(localized: "The normalized image is larger than 5 MB.")
+            case .fileTooLarge:
+                String(
+                    localized:
+                        "The file is larger than \(AgentByteCountFormatter.string(fromByteCount: Int64(maximumFileBytes)))."
+                )
+            case .imageTooLarge:
+                String(
+                    localized:
+                        "The normalized image is larger than \(AgentByteCountFormatter.string(fromByteCount: Int64(maximumImageBytes)))."
+                )
             case .textTooLarge: String(localized: "The extracted text is longer than 200,000 characters.")
             case .unsupportedFormat: String(localized: "This file format is not supported.")
             case .legacyOffice: String(localized: "Convert legacy Office files to DOCX, XLSX, or PPTX first.")

@@ -23,6 +23,7 @@ nonisolated enum MenuSymbol {
     static let settings = "gearshape"
     static let quickOpen = "magnifyingglass"
     static let find = "magnifyingglass"
+    static let actions = "ellipsis.circle"
     static let support = "questionmark.circle"
     static let showAssistant = "sidebar.left"
 
@@ -71,6 +72,9 @@ nonisolated enum MenuSymbol {
     static let start = "play"
     static let stop = "stop.fill"
     static let refresh = "arrow.clockwise"
+    static let showHiddenFiles = "eye"
+    static let hideHiddenFiles = "eye.slash"
+    static let editPath = "text.cursor"
     static let editPermissions = "lock"
     static let test = "checkmark.circle"
     static let pin = "pin"
@@ -112,13 +116,14 @@ nonisolated enum MenuSymbol {
     /// a real SF Symbol. A misspelled name draws nothing and says nothing, which
     /// is exactly the kind of mistake no one notices in review.
     static let all: [String] = [
-        settings, quickOpen, find, support, showAssistant,
+        settings, quickOpen, find, actions, support, showAssistant,
         quickConnect, connect, ssh, sftp,
         newChat, newHost, newGroup, newPackage, newFolder, newSnippet, saveAsSnippet,
         newIdentity, generateKey, generateCommand,
         importItem, download, export, upload,
         details, pause, selectDevices, open, openFullScreen, edit, rename, resetName, duplicate, copy, paste,
-        execute, executeOnHosts, start, stop, refresh, editPermissions, test,
+        execute, executeOnHosts, start, stop, refresh, showHiddenFiles, hideHiddenFiles, editPath,
+        editPermissions, test,
         pin, unpin, archive, unarchive, delete,
         workspace, nextWorkspace, previousWorkspace, currentWorkspace, newWorkspace,
         separatePanes, splitRight, splitDown, closeWorkspace, reopenWorkspace,

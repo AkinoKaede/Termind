@@ -1,4 +1,5 @@
 import GhosttyTerminal
+import QuickLook
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -36,6 +37,8 @@ struct MobileWorkspaceView: View {
     @State private var showingTransfers = false
     @State private var uploadConflictPresented = false
     @State private var uploadDropTargeted = false
+    @State private var downloadTarget: RemoteFile?
+    @State private var previewURL: URL?
 
     var body: some View {
         workspaceAlerts
@@ -138,17 +141,17 @@ struct MobileWorkspaceView: View {
                     Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                     Button("History", systemImage: "clock") { terminalSheet = .sftpHistory }
                     Divider()
-                    Button("Parent Directory", systemImage: "arrow.up") {
-                        Task {
-                            await workspace.sftpSession.openDirectory(
-                                RemotePath.parent(of: workspace.sftpSession.path))
-                        }
-                    }
-                    .disabled(!workspace.connected)
                     Button("Upload", systemImage: "square.and.arrow.up") { importing = true }
                         .disabled(!workspace.connected)
                     Button("New Folder", systemImage: "folder.badge.plus") { creatingDirectory = true }
                         .disabled(!workspace.connected)
+                    Button("Paste", systemImage: "doc.on.clipboard", action: pasteRemoteItems)
+                        .disabled(!workspace.connected)
+                    sortMenu
+                    Button("Refresh", systemImage: "arrow.clockwise") {
+                        Task { await workspace.sftpSession.reload() }
+                    }
+                    .disabled(!workspace.connected || workspace.sftpSession.isRefreshing)
                     Divider()
                     sameDirectoryMenuAction
                     Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
@@ -190,9 +193,12 @@ struct MobileWorkspaceView: View {
             }
             .sheet(isPresented: $showingTransfers) {
                 NavigationStack {
-                    if let transfers = workspace.transfers { MobileTransfersView(transfers: transfers) }
+                    if let transfers = workspace.transfers {
+                        MobileTransfersView(transfers: transfers, hosts: library)
+                    }
                 }.mobileSheetPresentation(compact: true)
             }
+            .quickLookPreview($previewURL)
             .fileImporter(
                 isPresented: $importing,
                 allowedContentTypes: [.data, .folder],
@@ -204,15 +210,34 @@ struct MobileWorkspaceView: View {
                 case .failure(let error): workspace.operationError = error.localizedDescription
                 }
             }
+            .fileImporter(
+                isPresented: Binding(
+                    get: { downloadTarget != nil },
+                    set: { if !$0 { downloadTarget = nil } }
+                ),
+                allowedContentTypes: [.folder],
+                allowsMultipleSelection: false
+            ) { result in
+                let target = downloadTarget
+                downloadTarget = nil
+                switch result {
+                case .success(let urls):
+                    if let target, let destination = urls.first {
+                        workspace.prepareDownload(target, to: destination)
+                    }
+                case .failure(let error):
+                    workspace.operationError = error.localizedDescription
+                }
+            }
     }
 
     private var workspaceDialogs: some View {
         workspaceSheets
-            .onChange(of: workspace.uploadConflictCount) { _, count in
+            .onChange(of: workspace.transferConflictCount) { _, count in
                 uploadConflictPresented = count > 0
             }
             .onChange(of: uploadConflictPresented) { wasPresented, isPresented in
-                if wasPresented, !isPresented, workspace.hasPendingUploadConflict {
+                if wasPresented, !isPresented, workspace.hasPendingTransferConflict {
                     workspace.cancelPendingUpload()
                 }
             }
@@ -294,6 +319,9 @@ struct MobileWorkspaceView: View {
                 session: workspace.sftpSession,
                 connected: workspace.connected,
                 open: open,
+                download: { downloadTarget = $0 },
+                copy: copyRemoteItem,
+                paste: pasteRemoteItems,
                 rename: { renaming = $0 },
                 editPermissions: { editingPermissions = $0 },
                 delete: { deleting = $0 }
@@ -305,8 +333,9 @@ struct MobileWorkspaceView: View {
         if file.isDirectory {
             Task { await workspace.sftpSession.openDirectory(file.path) }
         } else {
-            workspace.download(file)
-            showingTransfers = true
+            _ = workspace.preview(file) { url in
+                Task { @MainActor in previewURL = url }
+            }
         }
     }
 
@@ -316,17 +345,17 @@ struct MobileWorkspaceView: View {
             Task { await workspace.sftpSession.openDirectory(entry.path) }
         case .file:
             Task {
-                if await workspace.reopenHistoryFile(at: entry.path) {
-                    showingTransfers = true
+                _ = await workspace.reopenHistoryFile(at: entry.path) { url in
+                    Task { @MainActor in previewURL = url }
                 }
             }
         }
     }
 
     private var uploadConflictTitle: String {
-        workspace.uploadConflictCount == 1
+        workspace.transferConflictCount == 1
             ? String(localized: "1 item already exists")
-            : String(localized: "\(workspace.uploadConflictCount) items already exist")
+            : String(localized: "\(workspace.transferConflictCount) items already exist")
     }
 
     private var uploadDropTitle: String {
@@ -353,8 +382,77 @@ struct MobileWorkspaceView: View {
     }
 
     private func enqueuePendingUpload(_ policy: TransferConflictPolicy) {
-        workspace.enqueuePendingUpload(policy)
+        workspace.enqueuePendingTransfer(policy)
         uploadConflictPresented = false
+    }
+
+    @ViewBuilder
+    private var sortMenu: some View {
+        Menu {
+            sortButton("Name", field: .name, symbol: "textformat")
+            sortButton("Date", field: .modified, symbol: "calendar")
+            sortButton("Size", field: .size, symbol: "externaldrive")
+            sortButton("Kind", field: .kind, symbol: "doc")
+        } label: {
+            Label {
+                VStack(alignment: .leading) {
+                    Text("Sort By")
+                    Text(sortFieldTitle).font(.caption).foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "arrow.up.arrow.down.square")
+            }
+        }
+    }
+
+    private func sortButton(
+        _ title: LocalizedStringKey, field: RemoteFileSortField, symbol: String
+    ) -> some View {
+        Button {
+            workspace.sftpSession.sort(by: field)
+        } label: {
+            Label(
+                title,
+                systemImage: workspace.sftpSession.sortField == field
+                    ? (workspace.sftpSession.sortDirection == .ascending ? "chevron.up" : "chevron.down")
+                    : symbol
+            )
+        }
+    }
+
+    private var sortFieldTitle: String {
+        switch workspace.sftpSession.sortField {
+        case .name: String(localized: "Name")
+        case .modified: String(localized: "Date")
+        case .size: String(localized: "Size")
+        case .kind: String(localized: "Kind")
+        }
+    }
+
+    private func copyRemoteItem(_ file: RemoteFile) {
+        guard let transfers = workspace.transfers,
+            let source = workspace.remoteCopySource(for: file),
+            let data = try? JSONEncoder().encode(transfers.registerRemoteCopySource(source))
+        else { return }
+        UIPasteboard.general.items = [
+            [
+                UTType.termindSFTPItems.identifier: data,
+                UTType.plainText.identifier: file.name,
+            ]
+        ]
+    }
+
+    private func pasteRemoteItems() {
+        guard
+            let data = UIPasteboard.general.data(
+                forPasteboardType: UTType.termindSFTPItems.identifier
+            ), let payload = try? JSONDecoder().decode(SFTPRemoteItemsPayload.self, from: data),
+            workspace.transfers?.remoteCopySource(for: payload) != nil
+        else {
+            workspace.operationError = String(localized: "The copied SFTP items are invalid.")
+            return
+        }
+        workspace.prepareRemoteCopy(payload)
     }
 
     private var presentedOperationError: String? {

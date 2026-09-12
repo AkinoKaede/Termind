@@ -1,7 +1,7 @@
 import Foundation
 import TermindDomain
 
-extension RemoteFile.Kind {
+nonisolated extension RemoteFile.Kind {
     public var symbol: String {
         switch self {
         case .directory: "folder.fill"
@@ -12,7 +12,7 @@ extension RemoteFile.Kind {
     }
 }
 
-extension RemoteFile {
+nonisolated extension RemoteFile {
     public var sftpKindDescription: String {
         switch kind {
         case .directory: return String(localized: "Folder")

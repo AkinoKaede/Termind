@@ -80,6 +80,53 @@ struct MobileSFTPSessionTests {
         #expect(session.visibleFiles == [folder, notes, report])
     }
 
+    @Test func sortMatchesDesktopDefaultsAndKeepsDirectoriesBeforeFiles() async throws {
+        let older = RemoteFile(
+            path: "/home/older.txt", name: "older.txt", kind: .file, size: 1_000,
+            modifiedAt: Date(timeIntervalSince1970: 10), permissions: 0o644,
+            ownerUID: 501, ownerGID: 20
+        )
+        let newer = RemoteFile(
+            path: "/home/newer.txt", name: "newer.txt", kind: .file, size: 10,
+            modifiedAt: Date(timeIntervalSince1970: 20), permissions: 0o644,
+            ownerUID: 501, ownerGID: 20
+        )
+        let folder = remoteFile("/home/folder", kind: .directory)
+        let session = MobileSFTPSessionModel()
+        try await attach(
+            session,
+            to: MobileBrowserFileSystem(listings: ["/home": [older, newer, folder]]),
+            path: "/home"
+        )
+
+        session.sort(by: .modified)
+        #expect(session.sortDirection == .descending)
+        #expect(session.visibleFiles.map(\.name) == ["folder", "newer.txt", "older.txt"])
+        session.sort(by: .modified)
+        #expect(session.sortDirection == .ascending)
+        #expect(session.visibleFiles.map(\.name) == ["folder", "older.txt", "newer.txt"])
+        session.sort(by: .size)
+        #expect(session.sortDirection == .descending)
+        #expect(session.visibleFiles.map(\.name) == ["folder", "older.txt", "newer.txt"])
+    }
+
+    @Test func parentNavigationItemIsPrependedAfterFileSorting() {
+        let files = [remoteFile("/home/z.txt"), remoteFile("/home/a.txt")]
+        let sorted = files.sorted { $0.name < $1.name }
+
+        let items = mobileSFTPListItems(path: "/home", files: sorted)
+
+        guard case .parent("/") = items.first else {
+            Issue.record("The parent navigation item must remain first")
+            return
+        }
+        let names = items.dropFirst().compactMap { item in
+            if case .file(let file) = item { file.name } else { nil }
+        }
+        #expect(names == ["a.txt", "z.txt"])
+        #expect(mobileSFTPListItems(path: "/", files: sorted).count == sorted.count)
+    }
+
     @Test func successfulDirectoriesRefreshPersistentHistoryAndFailuresDoNot() async throws {
         let hostID = UUID()
         let history = SFTPHistoryModel()

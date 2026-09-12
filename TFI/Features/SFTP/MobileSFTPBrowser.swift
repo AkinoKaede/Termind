@@ -3,13 +3,40 @@ import TermindDomain
 import TermindPresentation
 import UIKit
 
+nonisolated enum MobileSFTPListItem: Identifiable, Hashable, Sendable {
+    case parent(String)
+    case file(RemoteFile)
+
+    var id: String {
+        switch self {
+        case .parent: "\u{0}parent"
+        case .file(let file): file.id
+        }
+    }
+}
+
+nonisolated func mobileSFTPListItems(path: String, files: [RemoteFile]) -> [MobileSFTPListItem] {
+    var items = files.map(MobileSFTPListItem.file)
+    if path != "/" {
+        items.insert(.parent(RemotePath.parent(of: path)), at: 0)
+    }
+    return items
+}
+
 struct MobileSFTPBrowser: View {
     @Bindable var session: MobileSFTPSessionModel
     let connected: Bool
     let open: (RemoteFile) -> Void
+    let download: (RemoteFile) -> Void
+    let copy: (RemoteFile) -> Void
+    let paste: () -> Void
     let rename: (RemoteFile) -> Void
     let editPermissions: (RemoteFile) -> Void
     let delete: (RemoteFile) -> Void
+
+    private var items: [MobileSFTPListItem] {
+        mobileSFTPListItems(path: session.path, files: session.visibleFiles)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,22 +44,31 @@ struct MobileSFTPBrowser: View {
             Divider()
             ZStack {
                 MobileNativeList(
-                    items: session.visibleFiles,
-                    estimatedRowHeight: 52,
-                    refreshID: connected,
-                    onSelect: { file in
+                    items: items,
+                    estimatedRowHeight: 68,
+                    refreshID: AnyHashable([connected, session.isRefreshing]),
+                    onSelect: { item in
                         guard connected else { return }
-                        open(file)
+                        switch item {
+                        case .parent(let path): Task { await session.openDirectory(path) }
+                        case .file(let file): open(file)
+                        }
                     },
-                    onDelete: { file in
+                    onDelete: { item in
                         guard connected else { return }
-                        delete(file)
+                        if case .file(let file) = item { delete(file) }
                     },
+                    canDelete: { if case .file = $0 { true } else { false } },
                     onRefresh: { await session.reload() }
-                ) { file in
-                    fileRow(file)
+                ) { item in
+                    switch item {
+                    case .parent:
+                        parentRow
+                    case .file(let file):
+                        fileRow(file)
+                    }
                 }
-                if session.visibleFiles.isEmpty {
+                if items.isEmpty {
                     Group {
                         if session.query.isEmpty {
                             ContentUnavailableView("Empty", systemImage: "folder")
@@ -47,19 +83,68 @@ struct MobileSFTPBrowser: View {
         }
     }
 
+    private var parentRow: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "folder.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(.tint)
+                .frame(width: 34)
+            Text("..").font(.body.weight(.semibold))
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .contentShape(.rect)
+        .overlay(alignment: .bottom) { Divider().padding(.leading, 64) }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Parent Directory")
+    }
+
     private func fileRow(_ file: RemoteFile) -> some View {
-        Label(file.name, systemImage: file.kind.symbol)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .contentShape(.rect)
-            .contextMenu {
-                Button("Rename", systemImage: "pencil") { rename(file) }
-                Button("Edit Permissions", systemImage: "lock.shield") { editPermissions(file) }
-                Button("Delete", systemImage: "trash", role: .destructive) { delete(file) }
+        HStack(spacing: 14) {
+            Image(systemName: file.kind.symbol)
+                .font(.system(size: file.isDirectory ? 28 : 25))
+                .foregroundStyle(file.isDirectory ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                .frame(width: 34)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(file.name).font(.body.weight(.semibold)).lineLimit(1)
+                Text(file.permissionDescription)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .overlay(alignment: .bottom) { Divider().padding(.leading, 52) }
-            .accessibilityHint(file.isDirectory ? Text("Open") : Text("Download"))
+            Spacer(minLength: 12)
+            VStack(alignment: .trailing, spacing: 3) {
+                if !file.isDirectory {
+                    Text(DataSizeFormat.bytes(file.size))
+                        .font(.subheadline.monospacedDigit())
+                }
+                Text(file.modifiedAt?.formatted(date: .numeric, time: .shortened) ?? "—")
+                    .font(.caption.monospacedDigit())
+            }
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .contentShape(.rect)
+        .contextMenu {
+            Button("Open", systemImage: "arrow.up.right") { open(file) }
+            Button("Download", systemImage: "square.and.arrow.down") { download(file) }
+            Divider()
+            Button("Copy", systemImage: "doc.on.doc") { copy(file) }
+            Menu("Copy As", systemImage: "doc.on.doc") {
+                Button("Name") { UIPasteboard.general.string = file.name }
+                Button("Path") { UIPasteboard.general.string = file.path }
+            }
+            Button("Paste", systemImage: "doc.on.clipboard") { paste() }
+            Button("Rename", systemImage: "pencil") { rename(file) }
+            Button("Edit Permissions", systemImage: "lock.shield") { editPermissions(file) }
+            Button("Delete", systemImage: "trash", role: .destructive) { delete(file) }
+        }
+        .overlay(alignment: .bottom) { Divider().padding(.leading, 52) }
+        .accessibilityHint(file.isDirectory ? Text("Open") : Text("Download"))
     }
 }
 

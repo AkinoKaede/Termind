@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -571,11 +572,11 @@ private struct TransferCenterRow: View {
     private var detail: String {
         if case .failed(let reason) = transfer.state { return reason }
         if transfer.bytesPerSecond > 0 {
-            return "\(transfer.bytesPerSecond.formatted(.byteCount(style: .file)))/s"
+            return DataSizeFormat.rate(transfer.bytesPerSecond)
         }
         if transfer.byteCount > 0 {
-            let transferred = transfer.transferredBytes.formatted(.byteCount(style: .file))
-            let total = transfer.byteCount.formatted(.byteCount(style: .file))
+            let transferred = DataSizeFormat.bytes(transfer.transferredBytes)
+            let total = DataSizeFormat.bytes(transfer.byteCount)
             return "\(transferred) of \(total)"
         }
         return transfer.state.label

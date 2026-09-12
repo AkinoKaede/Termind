@@ -10,29 +10,6 @@ protocol SFTPSessionNavigationRouting: AnyObject {
     func sftpSession(_ sftpSession: SFTPSessionModel, didChangePath path: String)
 }
 
-nonisolated enum SFTPFileSortField: String, CaseIterable, Sendable {
-    case name
-    case modified
-    case size
-    case kind
-
-    var defaultDirection: SFTPFileSortDirection {
-        switch self {
-        case .modified, .size: .descending
-        case .name, .kind: .ascending
-        }
-    }
-}
-
-nonisolated enum SFTPFileSortDirection: String, Sendable {
-    case ascending
-    case descending
-
-    mutating func toggle() {
-        self = self == .ascending ? .descending : .ascending
-    }
-}
-
 /// One row of the browser, with its display strings already rendered.
 ///
 /// The formatters are the reason this type exists. A hand-rolled `LazyVStack`
@@ -52,7 +29,7 @@ nonisolated struct SFTPRow: Identifiable, Hashable, Sendable {
 
     init(file: RemoteFile, kindText: String? = nil) {
         self.file = file
-        self.sizeText = file.isDirectory ? "--" : file.size.formatted(.byteCount(style: .file))
+        self.sizeText = file.isDirectory ? "" : DataSizeFormat.bytes(file.size)
         self.modifiedText =
             file.modifiedAt?.formatted(date: .abbreviated, time: .shortened) ?? "—"
         self.kindText = kindText ?? file.sftpKindDescription
@@ -73,8 +50,8 @@ private struct SFTPDirectoryPresentation {
     var selection: Set<RemoteFile.ID> = []
     var query = ""
     var showsHiddenFiles = false
-    var sortField: SFTPFileSortField = .name
-    var sortDirection: SFTPFileSortDirection = .ascending
+    var sortField: RemoteFileSortField = .name
+    var sortDirection: RemoteFileSortDirection = .ascending
     private(set) var visibleRows: [SFTPRow] = []
 
     /// Re-filters, re-sorts, and drops any selection that fell out of view.
@@ -101,42 +78,9 @@ private struct SFTPDirectoryPresentation {
     }
 
     private func rowPrecedes(_ lhs: SFTPRow, _ rhs: SFTPRow) -> Bool {
-        if lhs.file.isDirectory != rhs.file.isDirectory { return lhs.file.isDirectory }
-
-        let primary = compare(lhs, rhs)
-        if primary != .orderedSame {
-            return sortDirection == .ascending
-                ? primary == .orderedAscending
-                : primary == .orderedDescending
-        }
-
-        let name = lhs.file.name.localizedStandardCompare(rhs.file.name)
-        if name != .orderedSame { return name == .orderedAscending }
-        return lhs.file.path.localizedStandardCompare(rhs.file.path) == .orderedAscending
-    }
-
-    private func compare(_ lhs: SFTPRow, _ rhs: SFTPRow) -> ComparisonResult {
-        switch sortField {
-        case .name:
-            return lhs.file.name.localizedStandardCompare(rhs.file.name)
-        case .modified:
-            switch (lhs.file.modifiedAt, rhs.file.modifiedAt) {
-            case (.none, .none): return .orderedSame
-            case (.none, .some):
-                return sortDirection == .ascending ? .orderedDescending : .orderedAscending
-            case (.some, .none):
-                return sortDirection == .ascending ? .orderedAscending : .orderedDescending
-            case (.some(let left), .some(let right)):
-                return left == right
-                    ? .orderedSame : (left < right ? .orderedAscending : .orderedDescending)
-            }
-        case .size:
-            return lhs.file.size == rhs.file.size
-                ? .orderedSame
-                : (lhs.file.size < rhs.file.size ? .orderedAscending : .orderedDescending)
-        case .kind:
-            return lhs.kindText.localizedStandardCompare(rhs.kindText)
-        }
+        RemoteFileSortDescriptor(field: sortField, direction: sortDirection).precedes(
+            lhs.file, rhs.file, lhsKind: lhs.kindText, rhsKind: rhs.kindText
+        )
     }
 }
 
@@ -229,8 +173,8 @@ final class SFTPSessionModel: Identifiable {
             directoryPresentation = presentation
         }
     }
-    var sortField: SFTPFileSortField { directoryPresentation.sortField }
-    var sortDirection: SFTPFileSortDirection { directoryPresentation.sortDirection }
+    var sortField: RemoteFileSortField { directoryPresentation.sortField }
+    var sortDirection: RemoteFileSortDirection { directoryPresentation.sortDirection }
     var files: [RemoteFile] { directoryPresentation.files }
     private(set) var status: ConnectionStatus = .disconnected {
         didSet {
@@ -324,7 +268,7 @@ final class SFTPSessionModel: Identifiable {
         directoryPresentation.visibleRows.filter { selection.contains($0.id) }.map(\.file)
     }
 
-    func sort(by field: SFTPFileSortField) {
+    func sort(by field: RemoteFileSortField) {
         var presentation = directoryPresentation
         if presentation.sortField == field {
             presentation.sortDirection.toggle()

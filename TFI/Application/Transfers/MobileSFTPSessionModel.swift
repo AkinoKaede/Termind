@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -15,12 +16,28 @@ final class MobileSFTPSessionModel {
     private(set) var backHistory: [String] = []
     private(set) var forwardHistory: [String] = []
     var operationError: String?
+    private(set) var isRefreshing = false
+    var sortField: RemoteFileSortField = .name
+    var sortDirection: RemoteFileSortDirection = .ascending
 
     var canGoBack: Bool { !backHistory.isEmpty }
     var canGoForward: Bool { !forwardHistory.isEmpty }
     var visibleFiles: [RemoteFile] {
-        guard !query.isEmpty else { return files }
-        return files.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        let matches =
+            query.isEmpty
+            ? files
+            : files.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        let descriptor = RemoteFileSortDescriptor(field: sortField, direction: sortDirection)
+        return matches.sorted { descriptor.precedes($0, $1) }
+    }
+
+    func sort(by field: RemoteFileSortField) {
+        if sortField == field {
+            sortDirection.toggle()
+        } else {
+            sortField = field
+            sortDirection = field.defaultDirection
+        }
     }
 
     @ObservationIgnored private var fileSystem: (any RemoteFileSystem)?
@@ -142,7 +159,9 @@ final class MobileSFTPSessionModel {
     }
 
     func reload() async {
-        guard let fileSystem, let connectionGeneration else { return }
+        guard let fileSystem, let connectionGeneration, !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
         let requestedPath = path
         let request = UUID()
         directoryRequest = request
