@@ -24,9 +24,13 @@ struct MobileAssistantComposer: View {
     @State private var slashPanelHeight: CGFloat = 0
     private let slashRegistry = ChatSlashCommandRegistry.standard()
     @FocusState private var localFocus: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locale) private var locale
     private var composer: ConversationComposerState { conversation.composer }
-    private var recording: Bool { model.speech.isOwned(by: conversation.id) }
+    private var ownsTranscription: Bool { model.speech.isOwned(by: conversation.id) }
+    private var showsTranscriptionControls: Bool {
+        ownsTranscription && model.speech.phase != .idle
+    }
     private var activeFocus: FocusState<Bool>.Binding { focus ?? $localFocus }
 
     init(
@@ -149,7 +153,7 @@ struct MobileAssistantComposer: View {
             )
             .lineLimit(1...6)
             .focused(activeFocus)
-            .disabled(recording)
+            .disabled(ownsTranscription)
             .padding(.horizontal, 4)
             .padding(.top, 4)
             .submitLabel(.send)
@@ -160,7 +164,17 @@ struct MobileAssistantComposer: View {
                 return .handled
             }
 
-            if recording { recordingControls } else { standardControls }
+            ZStack {
+                if showsTranscriptionControls {
+                    recordingControls
+                        .transition(.opacity)
+                } else {
+                    standardControls
+                        .transition(.opacity)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: showsTranscriptionControls)
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -207,7 +221,30 @@ struct MobileAssistantComposer: View {
         .frame(minHeight: 48)
     }
 
+    @ViewBuilder
     private var recordingControls: some View {
+        switch model.speech.phase {
+        case .recording:
+            speechControls {
+                SpeechWaveformView(
+                    samples: model.speech.levelSamples,
+                    reduceMotion: reduceMotion
+                )
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .accessibilityLabel(Text("Recording"))
+            }
+        case .transcribing:
+            speechControls {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(Text("Transcribing"))
+            }
+        case .idle:
+            EmptyView()
+        }
+    }
+
+    private func speechControls<Status: View>(@ViewBuilder status: () -> Status) -> some View {
         HStack(alignment: .center, spacing: 8) {
             Button {
                 composer.draft = speechDraft
@@ -218,14 +255,7 @@ struct MobileAssistantComposer: View {
                     .mobileComposerControlIcon()
             }
             .buttonStyle(.plain)
-            if model.speech.isRequestingAuthorization || model.speech.phase == .transcribing {
-                ProgressView().frame(maxWidth: .infinity)
-            } else {
-                HStack(spacing: 8) {
-                    Image(systemName: "waveform").symbolEffect(.variableColor)
-                    Text("Recording…").font(.callout).foregroundStyle(.secondary)
-                }.frame(maxWidth: .infinity)
-            }
+            status()
             Button {
                 model.speech.stop(ownerID: conversation.id)
             } label: {
@@ -294,11 +324,21 @@ struct MobileAssistantComposer: View {
 
     private var microphoneButton: some View {
         Button(action: startSpeech) {
-            Label("Voice Input", systemImage: "mic").labelStyle(.iconOnly)
-                .mobileComposerControlIcon()
+            Group {
+                if ownsTranscription && model.speech.isRequestingAuthorization {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Label("Voice Input", systemImage: "mic").labelStyle(.iconOnly)
+                }
+            }
+            .mobileComposerControlIcon()
         }
         .buttonStyle(.plain)
-        .disabled(!model.speech.canStart(for: conversation.id))
+        .disabled(
+            !model.speech.canStart(for: conversation.id)
+                || (ownsTranscription && model.speech.isRequestingAuthorization)
+        )
+        .accessibilityLabel(Text("Voice Input"))
     }
 
     @ViewBuilder private var primaryButton: some View {

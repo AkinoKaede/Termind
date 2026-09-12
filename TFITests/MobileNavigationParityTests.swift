@@ -168,6 +168,22 @@ struct MobileNavigationParityTests {
         #expect(source.contains("block: Self.makeTapHandler"))
     }
 
+    @Test func speechComposerUsesTheSharedLevelDrivenWaveformAndMobileTouchTargets() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+
+        #expect(source.contains("SpeechWaveformView("))
+        #expect(source.contains("samples: model.speech.levelSamples"))
+        #expect(source.contains("@Environment(\\.accessibilityReduceMotion) private var reduceMotion"))
+        #expect(source.contains(".transition(.opacity)"))
+        #expect(source.contains(".smooth(duration: 0.22)"))
+        #expect(source.contains("minHeight: 48, maxHeight: 48"))
+        #expect(!source.contains(".symbolEffect(.variableColor)"))
+    }
+
     @Test func nativeListOmitsSwipeDeletionAndSFTPRowsKeepAlignedMetadataWithoutSeparators() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
