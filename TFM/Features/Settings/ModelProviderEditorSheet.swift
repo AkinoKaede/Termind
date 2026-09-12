@@ -158,25 +158,8 @@ struct ModelProviderEditorPage: View {
         app.aiConfiguration.upsert(provider)
     }
 
-    // MARK: - Binding
-
     private var endpoint: ProviderEndpoint {
         app.aiConfiguration.endpoint(for: modelProviderID)
-    }
-
-    /// A two-way binding into the endpoint, written through the store's one
-    /// derivation so the composed URL and the API format are updated together.
-    private func endpointBinding<Value>(
-        _ keyPath: WritableKeyPath<ProviderEndpoint, Value>
-    ) -> Binding<Value> {
-        Binding(
-            get: { endpoint[keyPath: keyPath] },
-            set: { newValue in
-                var updated = endpoint
-                updated[keyPath: keyPath] = newValue
-                app.aiConfiguration.setEndpoint(updated, for: modelProviderID)
-            }
-        )
     }
 
     /// A two-way binding into the stored provider.

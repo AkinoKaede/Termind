@@ -31,15 +31,3 @@ extension AIConfigurationModel {
         )
     }
 }
-
-extension SkillLibraryModel {
-    convenience init(
-        modelContext: ModelContext,
-        seedDefaults: UserDefaults = .standard
-    ) {
-        self.init(
-            persistence: SkillPersistence(context: modelContext),
-            seedDefaults: seedDefaults
-        )
-    }
-}

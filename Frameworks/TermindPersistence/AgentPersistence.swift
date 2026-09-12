@@ -1,7 +1,6 @@
 import AgentKit
 import Foundation
 import SwiftData
-import TermindDomain
 
 @Model
 public final class PersistentAgentConversation {

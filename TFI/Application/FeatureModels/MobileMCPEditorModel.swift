@@ -2,7 +2,6 @@ import AgentKit
 import Foundation
 import Observation
 import TermindApplication
-import TermindDomain
 
 @MainActor @Observable
 final class MobileMCPEditorModel {
@@ -36,7 +35,6 @@ final class MobileMCPEditorModel {
         self.discover = discover
         key.begin(in: ai, reference: server.credentialRef)
     }
-    var isDirty: Bool { draft != original || key.isDirty }
     var hasValidURL: Bool {
         guard let url = URL(string: draft.url.trimmingCharacters(in: .whitespacesAndNewlines)),
             let scheme = url.scheme?.lowercased(), let host = url.host, !host.isEmpty

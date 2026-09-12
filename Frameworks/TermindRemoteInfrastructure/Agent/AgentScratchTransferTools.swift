@@ -1,7 +1,6 @@
 import AgentKit
 import Foundation
 import TermindApplication
-import TermindInfrastructure
 
 // The two scratch tools that touch a host.
 //

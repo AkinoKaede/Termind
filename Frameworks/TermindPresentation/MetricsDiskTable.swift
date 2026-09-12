@@ -1,5 +1,4 @@
 import SwiftUI
-import TermindApplication
 import TermindDomain
 
 /// A fixed label gutter followed by four equal-width, leading-aligned data columns.

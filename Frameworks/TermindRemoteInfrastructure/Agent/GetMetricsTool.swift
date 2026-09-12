@@ -2,7 +2,6 @@ import AgentKit
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 
 import struct TermindDomain.Host
 

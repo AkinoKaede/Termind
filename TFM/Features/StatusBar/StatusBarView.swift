@@ -242,10 +242,6 @@ struct StatusBarView: View {
 
     private var host: Host? { pane?.hostID.flatMap { app.hostLibrary.host($0) } }
 
-    private func item(_ symbol: String, _ text: String) -> some View {
-        Label(text, systemImage: symbol).truncationMode(.head)
-    }
-
     private func workingDirectoryButton(_ path: String, displayed: String) -> some View {
         Button {
             app.onboarding.recordUse(of: .statusBarPath)

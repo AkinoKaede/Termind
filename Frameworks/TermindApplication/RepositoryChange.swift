@@ -1,5 +1,4 @@
 import Foundation
-import TermindDomain
 
 public nonisolated enum RepositoryChangeReason: String, Hashable, Sendable {
     case initial

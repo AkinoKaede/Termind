@@ -10,7 +10,6 @@ nonisolated struct WorkspaceActivityAttributes: ActivityAttributes {
         var connected: Bool
         var iconAsset: String? = nil
 
-        var symbol: String { "server.rack" }
         var destinationURL: URL { WorkspaceActivityAttributes.destinationURL(for: id) }
     }
 

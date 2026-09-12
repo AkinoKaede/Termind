@@ -3,7 +3,6 @@ import Foundation
 nonisolated struct MobileWorkspaceDescriptor: Hashable, Identifiable, Sendable {
     enum Kind: String, CaseIterable, Sendable {
         case ssh, sftp
-        var title: String { self == .ssh ? "SSH" : "SFTP" }
         var symbol: String { self == .ssh ? "terminal" : "folder" }
     }
 

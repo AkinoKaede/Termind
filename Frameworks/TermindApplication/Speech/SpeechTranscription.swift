@@ -197,13 +197,13 @@ public final class SpeechTranscriptionCoordinator {
         case .partial(let transcript):
             latestPartial = transcript
         case .final(let transcript):
-            finish(with: transcript, ownerID: ownerID)
+            finish(with: transcript)
         case .failure(let failure):
             fail(failure, for: ownerID)
         }
     }
 
-    private func finish(with transcript: String, ownerID: UUID) {
+    private func finish(with transcript: String) {
         let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else {
             resetSession(cancelService: true)

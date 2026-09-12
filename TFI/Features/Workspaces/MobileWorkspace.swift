@@ -4,7 +4,6 @@ import GhosttyTerminal
 import Observation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindPresentation
 import TermindRemoteInfrastructure
 import UIKit
@@ -129,7 +128,6 @@ final class MobileWorkspace: Identifiable {
     private let connection: RemoteSessionConnectionController
     private var viewport = InMemoryTerminalViewport(columns: 80, rows: 24)
 
-    var uploadConflictCount: Int { pendingUpload?.batch.conflictCount ?? 0 }
     var transferConflictCount: Int {
         pendingRemoteCopy?.batch.conflictCount
             ?? pendingDownload?.batch.conflictCount

@@ -1,5 +1,4 @@
 @preconcurrency import AVFoundation
-import TermindApplication
 
 public typealias SpeechAudioBufferHandler = @Sendable (AVAudioPCMBuffer) -> Void
 public typealias SpeechAudioLevelHandler = @Sendable (Float) -> Void

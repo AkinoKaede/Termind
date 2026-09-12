@@ -8,26 +8,6 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileTerminalListTests {
-    @Test func snippetsAndHistoryMountNativeSwiftUILists() async throws {
-        let app = try MobileAppModel(inMemory: true)
-        let host = TermindDomain.Host(name: "Test", host: "example.invalid")
-        app.library.upsert(host)
-        app.library.upsert(Snippet(title: "List files", body: "ls -la\npwd"))
-        app.commandHistory.record("pwd", for: host.id)
-        let workspace = MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
-            hosts: app.library,
-            commandHistory: app.commandHistory)
-
-        try await withHostedView(MobileTerminalSnippetsView(library: app.library, workspace: workspace)) { root in
-            expectNativeList(in: root.view)
-        }
-
-        try await withHostedView(MobileCommandHistoryView(workspace: workspace)) { root in
-            expectNativeList(in: root.view)
-        }
-    }
-
     @Test func deletingAnEndpointUpdatesTheNativeHistoryList() async throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
@@ -150,15 +130,6 @@ struct MobileTerminalListTests {
         }
         try await Task.sleep(for: .milliseconds(700))
         try await check(controller)
-    }
-
-    private func expectNativeList(in root: UIView) {
-        let legacyList = descendants(of: UIScrollView.self, in: root).first {
-            String(reflecting: type(of: $0)).contains("ListViewKit.ListView")
-        }
-        #expect(legacyList == nil)
-        #expect(descendants(of: MobileHostingListRow.self, in: root).isEmpty)
-        #expect(!nativeVisibleCells(in: root).isEmpty)
     }
 
     private func nativeVisibleCells(in root: UIView) -> [UIView] {

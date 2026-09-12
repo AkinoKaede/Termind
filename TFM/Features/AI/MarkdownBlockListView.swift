@@ -3,7 +3,6 @@ import Combine
 import MarkdownParser
 import MarkdownView
 import SwiftUI
-import TermindApplication
 import TermindPresentation
 
 /// The Markdown entry point used by the transcript.

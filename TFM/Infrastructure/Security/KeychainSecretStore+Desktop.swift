@@ -1,4 +1,3 @@
-import TermindInfrastructure
 import TermindRemoteInfrastructure
 
 extension KeychainSecretStore {

@@ -22,7 +22,7 @@ struct PortForwardingEditorState {
         isEnabled: Bool, runtime: PortForwardingRuntimeState
     ) {
         let shared = PortForwardingEditorPolicy(
-            rule: rule, host: host, savedRule: savedRule, savedHost: savedHost,
+            rule: rule, savedRule: savedRule, savedHost: savedHost,
             isEnabled: isEnabled, isRuntimeActive: runtime.isActive)
         hasSavedConfiguration = shared.hasSavedConfiguration
         self.isEnabled = shared.isEnabled

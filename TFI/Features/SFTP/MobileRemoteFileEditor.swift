@@ -1,7 +1,6 @@
 import SwiftUI
 import TermindDomain
 import TermindPresentation
-import TermindRemoteInfrastructure
 
 struct MobileRemoteFileEditor: View {
     enum Mode { case rename, permissions }

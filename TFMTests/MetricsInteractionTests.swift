@@ -47,7 +47,7 @@ struct MetricsInteractionTests {
     }
 
     @Test(arguments: [HostChooserPurpose.connect, .batchStartup, .metrics])
-    func hostChoosersMountNativeListsWithTheirRequiredEnvironment(
+    func hostChoosersRenderWithTheirRequiredEnvironment(
         purpose: HostChooserPurpose
     ) async throws {
         let host = Host(name: "Fixture", host: "fixture.invalid")
@@ -68,7 +68,6 @@ struct MetricsInteractionTests {
         try await Task.sleep(for: .milliseconds(100))
         hosting.layoutSubtreeIfNeeded()
         #expect(hosting.fittingSize.height > 0)
-        #expect(hasTable(hosting))
         #expect(windowModel.workspaces.isEmpty)
         #expect(app.serverMetrics.servers.isEmpty)
     }

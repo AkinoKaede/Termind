@@ -2,7 +2,6 @@ import AgentKit
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 
 nonisolated public struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBuilding {
     public static let presenter = AgentToolDetailPresenter(
@@ -440,8 +439,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
             // fresh one.
             await pool.detachExec(hostID: hostID, session: session)
             let handle = await background.adopt(
-                hostID: hostID, command: command, stream: stream,
-                task: running, session: session
+                stream: stream, task: running, session: session
             )
             let captured = stream.captured
             return Self.result(

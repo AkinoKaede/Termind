@@ -1,6 +1,5 @@
 import Foundation
 import TermindApplication
-import TermindInfrastructure
 
 /// What a command looks like to whoever asked about it.
 ///
@@ -75,8 +74,6 @@ public actor AgentBackgroundCommands {
     public static let defaultIdleTimeout = Duration.seconds(600)
 
     private struct Entry {
-        let hostID: UUID
-        let command: String
         let stream: AgentCommandOutputStream
         let task: Task<SSHExecResult, any Error>
         let session: any SSHExecSessionProtocol
@@ -103,15 +100,12 @@ public actor AgentBackgroundCommands {
     /// Takes ownership of a command still in flight, and of the session it is
     /// running on.
     public func adopt(
-        hostID: UUID, command: String, stream: AgentCommandOutputStream,
+        stream: AgentCommandOutputStream,
         task: Task<SSHExecResult, any Error>, session: any SSHExecSessionProtocol,
         now: ContinuousClock.Instant = .now
     ) -> UUID {
         let handle = UUID()
-        entries[handle] = Entry(
-            hostID: hostID, command: command, stream: stream, task: task,
-            session: session, lastAskedAt: now
-        )
+        entries[handle] = Entry(stream: stream, task: task, session: session, lastAskedAt: now)
         startSweeping()
         return handle
     }

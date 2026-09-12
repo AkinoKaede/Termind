@@ -60,23 +60,4 @@ nonisolated enum DesktopSettingsKey {
     }
     /// The last approval posture selected in the Assistant composer.
     static let agentPermissionMode = "assistant.permissionMode"
-    static var isWebSearchEnabled: Bool {
-        UserDefaults.standard.object(forKey: SettingsKey.webSearchEnabled) as? Bool
-            ?? SettingsKey.defaultWebSearchEnabled
-    }
-    /// Let a provider run the search on its own servers where it can.
-    ///
-    /// On by default, because where it works it beats a snippet API: the
-    /// provider reads whole pages and the model simply knows things. Off is the
-    /// compatibility position — every model then goes through the backend
-    /// below, which behaves identically on every endpoint.
-    ///
-    /// The switch exists because whether a given endpoint really runs the
-    /// search is a *guess*: `ModelProvider.supportsNativeWebSearch(model:)`
-    /// infers it from the model id, and a gateway can make that inference wrong
-    /// in either direction. This is the escape hatch for when it is.
-    static var isBuiltInWebSearchEnabled: Bool {
-        UserDefaults.standard.object(forKey: SettingsKey.webSearchBuiltIn) as? Bool
-            ?? SettingsKey.defaultWebSearchBuiltIn
-    }
 }

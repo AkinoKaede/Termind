@@ -133,7 +133,7 @@ struct MobileHostEditor: View {
         for rule: PortForwardingRule, runtimeIsActive: Bool
     ) -> PortForwardingEditorPolicy {
         PortForwardingEditorPolicy(
-            rule: rule, host: draft,
+            rule: rule,
             savedRule: app.forwardingLibrary.portForwarding(rule.id), savedHost: library.host(draft.id),
             isEnabled: app.forwardings.isEnabled(rule.id), isRuntimeActive: runtimeIsActive)
     }

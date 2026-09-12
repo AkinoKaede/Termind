@@ -103,7 +103,7 @@ struct AgentBackgroundCommandTests {
         let commands = AgentBackgroundCommands(sweepInterval: nil)
         let session = StubSession()
         let handle = await commands.adopt(
-            hostID: UUID(), command: "make", stream: AgentCommandOutputStream { _, _ in },
+            stream: AgentCommandOutputStream { _, _ in },
             task: Task { exited(0, stdout: "built") }, session: session
         )
 
@@ -126,7 +126,7 @@ struct AgentBackgroundCommandTests {
         let released = AsyncRelease()
         let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
         let handle = await commands.adopt(
-            hostID: UUID(), command: "deploy", stream: stream,
+            stream: stream,
             task: Task {
                 await released.wait()
                 return exited(0)
@@ -160,7 +160,7 @@ struct AgentBackgroundCommandTests {
         let released = AsyncRelease()
         let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
         let handle = await commands.adopt(
-            hostID: UUID(), command: "deploy", stream: stream,
+            stream: stream,
             task: Task {
                 await released.wait()
                 return exited(0)
@@ -184,7 +184,7 @@ struct AgentBackgroundCommandTests {
         let released = AsyncRelease()
         let start = ContinuousClock.now
         let stale = await commands.adopt(
-            hostID: UUID(), command: "tail -f", stream: AgentCommandOutputStream { _, _ in },
+            stream: AgentCommandOutputStream { _, _ in },
             task: Task {
                 await released.wait()
                 return exited(0)
@@ -192,7 +192,7 @@ struct AgentBackgroundCommandTests {
             now: start
         )
         _ = await commands.adopt(
-            hostID: UUID(), command: "deploy", stream: AgentCommandOutputStream { _, _ in },
+            stream: AgentCommandOutputStream { _, _ in },
             task: Task {
                 await released.wait()
                 return exited(0)
@@ -221,7 +221,7 @@ struct AgentBackgroundCommandTests {
         let session = StubSession()
         let released = AsyncRelease()
         _ = await commands.adopt(
-            hostID: UUID(), command: "tail -f", stream: AgentCommandOutputStream { _, _ in },
+            stream: AgentCommandOutputStream { _, _ in },
             task: Task {
                 await released.wait()
                 return exited(0)
@@ -253,7 +253,7 @@ struct AgentBackgroundCommandTests {
             return exited(0)
         }
         let handle = await commands.adopt(
-            hostID: UUID(), command: "deploy", stream: AgentCommandOutputStream { _, _ in },
+            stream: AgentCommandOutputStream { _, _ in },
             task: task, session: StubSession()
         )
 

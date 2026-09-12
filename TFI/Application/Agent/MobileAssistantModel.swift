@@ -125,8 +125,6 @@ final class MobileAssistantModel {
         }
     }
 
-    func stop() { for conversation in store.conversations { conversation.stop() } }
-
     func suspendRecording() { speech.cancelAll() }
 
     func expireBackground() {

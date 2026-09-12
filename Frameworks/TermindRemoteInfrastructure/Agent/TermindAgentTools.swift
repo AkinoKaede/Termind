@@ -1,7 +1,6 @@
 import AgentKit
 import Foundation
 import TermindApplication
-import TermindInfrastructure
 
 /// What Termind's own agent tools are built from.
 ///

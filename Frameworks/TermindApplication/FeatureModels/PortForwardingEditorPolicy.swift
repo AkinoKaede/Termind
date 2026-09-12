@@ -15,7 +15,7 @@ public nonisolated struct PortForwardingEditorPolicy {
     public var isWaitingForSave: Bool { isEnabled && !hasSavedConfiguration && !isRuntimeActive }
 
     public init(
-        rule: PortForwardingRule?, host: Host,
+        rule: PortForwardingRule?,
         savedRule: PortForwardingRule?, savedHost: Host?,
         isEnabled: Bool, isRuntimeActive: Bool
     ) {

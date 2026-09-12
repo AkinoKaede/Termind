@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import TermindApplication
 import TermindDomain
 
 public nonisolated struct SettingsRemoteMerge: Sendable {

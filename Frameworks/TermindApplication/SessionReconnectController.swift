@@ -1,5 +1,4 @@
 import Foundation
-import TermindDomain
 
 public nonisolated struct ReconnectPolicy: Sendable, Equatable {
     public static let sessionDefault = ReconnectPolicy()

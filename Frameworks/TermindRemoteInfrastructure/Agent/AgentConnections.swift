@@ -2,7 +2,6 @@ import AgentKit
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 
 import struct TermindDomain.Host
 
@@ -306,7 +305,6 @@ public final class AgentHostResolver: Sendable {
     }
 
     private struct AuthenticationRequirement {
-        var host: Host
         var mode: AgentSSHAuthenticationRequest.Mode
     }
 
@@ -321,32 +319,32 @@ public final class AgentHostResolver: Sendable {
                 store.key(keyID)?.requiresPassphraseEntry == true,
                 submission.passphrase?.isEmpty != false
             {
-                return AuthenticationRequirement(host: host, mode: .passphrase(keyID: keyID))
+                return AuthenticationRequirement(mode: .passphrase(keyID: keyID))
             }
             if submission.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || (submission.keyID == nil && submission.password == nil)
             {
-                return AuthenticationRequirement(host: host, mode: .identity)
+                return AuthenticationRequirement(mode: .identity)
             }
             if forcedHostID == host.id {
-                return AuthenticationRequirement(host: host, mode: .identity)
+                return AuthenticationRequirement(mode: .identity)
             }
             return nil
         }
         guard let identity = store.identity(for: host) else {
-            return AuthenticationRequirement(host: host, mode: .identity)
+            return AuthenticationRequirement(mode: .identity)
         }
         let resolution = store.sshCredentials(for: identity)
         if let keyID = resolution.requiredPassphraseKeyID {
-            return AuthenticationRequirement(host: host, mode: .passphrase(keyID: keyID))
+            return AuthenticationRequirement(mode: .passphrase(keyID: keyID))
         }
         if identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || resolution.credentials.isEmpty
         {
-            return AuthenticationRequirement(host: host, mode: .identity)
+            return AuthenticationRequirement(mode: .identity)
         }
         if forcedHostID == host.id {
-            return AuthenticationRequirement(host: host, mode: .identity)
+            return AuthenticationRequirement(mode: .identity)
         }
         return nil
     }

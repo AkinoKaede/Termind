@@ -638,8 +638,6 @@ private struct TerminalSettings: View {
     @Environment(AppModel.self) private var app
     private var fontSize: Double { app.terminalSettings.preferences.fontSize }
     private var fontFollowTheme: Bool { app.terminalSettings.preferences.fontFollowTheme }
-    private var shellIntegration: Bool { app.terminalSettings.preferences.shellIntegration }
-    private var remoteWindowTitleInMenuBar: Bool { app.terminalSettings.preferences.remoteWindowTitleInMenuBar }
     private var darkTheme: String { app.terminalSettings.preferences.darkTheme }
     private var lightTheme: String { app.terminalSettings.preferences.lightTheme }
     private var darkCustomEnabled: Bool { app.terminalSettings.preferences.darkCustomEnabled }

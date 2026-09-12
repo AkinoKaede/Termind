@@ -1,6 +1,5 @@
 import Foundation
 import TermindApplication
-import TermindInfrastructure
 
 /// Turns the chunks a running command emits into progress reports.
 ///

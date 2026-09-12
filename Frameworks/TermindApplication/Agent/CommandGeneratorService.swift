@@ -107,11 +107,6 @@ public final class CommandGeneratorController: CommandGenerating {
         self.service = CommandGeneratorService()
     }
 
-    init(ai: AIConfigurationModel, service: CommandGeneratorService) {
-        self.ai = ai
-        self.service = service
-    }
-
     /// A local readiness check for contextual UI. It never contacts a model;
     /// it only resolves the configured role and its already local credential.
     public var isLocallyAvailable: Bool {

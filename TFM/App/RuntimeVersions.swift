@@ -1,5 +1,4 @@
 import GhosttyKit
-import TermindInfrastructure
 import TermindRemoteInfrastructure
 
 nonisolated enum RuntimeVersions {

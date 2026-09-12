@@ -57,7 +57,7 @@ struct MobileForwardingEditor: View {
 
     private var state: PortForwardingEditorPolicy {
         PortForwardingEditorPolicy(
-            rule: draft, host: host,
+            rule: draft,
             savedRule: app.forwardingLibrary.portForwarding(draft.id), savedHost: app.library.host(host.id),
             isEnabled: app.forwardings.isEnabled(draft.id), isRuntimeActive: runtime.isActive)
     }

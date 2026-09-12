@@ -1,7 +1,6 @@
 import AgentKit
 import AppKit
 import Foundation
-import TermindApplication
 import UniformTypeIdentifiers
 
 nonisolated enum ContextAttachmentOpener {

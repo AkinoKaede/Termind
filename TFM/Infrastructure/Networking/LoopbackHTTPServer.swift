@@ -64,7 +64,6 @@ actor LoopbackHTTPServer {
     private var handler: Handler?
     private var stateHandler: StateHandler?
     private var readyListeners = 0
-    private(set) var state: State = .stopped
 
     func start(
         port: UInt16, token: String,
@@ -78,7 +77,6 @@ actor LoopbackHTTPServer {
         self.token = token
         self.handler = handler
         self.stateHandler = stateHandler
-        state = .starting
         stateHandler(.starting)
 
         do {
@@ -125,7 +123,6 @@ actor LoopbackHTTPServer {
         connections.removeAll()
         handler = nil
         readyListeners = 0
-        state = .stopped
         stateHandler?(.stopped)
         stateHandler = nil
     }
@@ -135,11 +132,9 @@ actor LoopbackHTTPServer {
         case .ready:
             readyListeners += 1
             if readyListeners == listeners.count {
-                state = .ready(port: port)
                 stateHandler?(.ready(port: port))
             }
         case .failed(let error):
-            state = .failed(error.localizedDescription)
             stateHandler?(.failed(error.localizedDescription))
             for listener in listeners { listener.cancel() }
         default:

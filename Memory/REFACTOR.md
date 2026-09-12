@@ -1325,3 +1325,42 @@ remains behind the context menu and confirmation dialog.
 **Action:** Move platform-neutral presentation into TermindPresentation, inject tool presenters from the existing registry, and retain native platform rendering and viewport ownership. Replace mobile disclosure and detail branches with shared policy consumers. Estimated duplicate-policy reduction: 150–250 lines, with desktop presentation code moved rather than copied.
 
 **Verification:** Pending shared, desktop, mobile and bilingual rendering checks.
+
+## 2026-09-12 — Remove Periphery-confirmed dead code
+
+**Status:** Completed on 2026-09-12; both app builds, focused tests, formatting, and localization checks pass.
+
+**Evidence:** Periphery 3.8.0 reported 461 diagnostics while indexing the TFM scheme and 73 while indexing TFI.
+After excluding test-only diagnostics and reconciling the two platform scans, source-reference checks confirm 34
+unused production imports, several uncalled private/internal helpers and compatibility accessors, and stored fields
+that are written but never read. SwiftUI/AppKit lifecycle entry points, Codable payload fields, C callback parameters,
+protocol witnesses, and fields whose synthesized conformance reads are intentionally excluded from this pass.
+
+**Action:** Repair the stale Periphery scheme configuration, remove only declarations confirmed by both index data
+and `rg`, then rerun both app builds, focused tests for changed behavior, strict formatting, localization validation,
+and Periphery to measure the reduced result set.
+
+**Estimated reduction:** 70–110 production lines without adding an abstraction.
+
+**Result:** Removed 34 unused production imports, three empty source files, and confirmed dead initializers,
+accessors, view helpers, state storage, and background-command metadata. Production code changed by net -150 lines.
+The TFM production diagnostic count fell from 114 to 69 (461 to 416 including test diagnostics), while the TFI
+production count fell from 66 to 41. Remaining reports are retained protocol/C callback parameters, synthesized
+conformance or Codable fields, dynamic UI entry points, and separate candidates that require their own behavioral
+review. The macOS and iOS builds pass, as do 49 focused Agent background command, port forwarding, and speech tests,
+strict Swift formatting, Simplified Chinese localization validation, and `git diff --check`.
+
+## 2026-09-12 — Remove UI implementation-type assertions
+
+**Status:** Completed.
+
+**Evidence:** `TranscriptListViewBridgeTests` directly asserts dedicated concrete row classes, the mobile Terminal
+list suite reflects private SwiftUI/ListViewKit view types, and the macOS Host chooser render test additionally
+requires an `NSTableView`. Existing behavior tests already cover rendering, row identity and reuse, dynamic type,
+virtualization, interaction, and state isolation without requiring those implementation choices.
+
+**Action:** Remove the two tests whose only result is a concrete UI type, drop their test-only helper, and keep the
+Host chooser environment/rendering coverage without asserting its underlying AppKit table class. Preserve UI type
+access that is required to exercise or observe actual interaction behavior.
+
+**Estimated reduction:** 30–40 test lines with no production or public API changes.

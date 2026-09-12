@@ -1,7 +1,6 @@
 import AgentKit
 import SwiftUI
 import TermindApplication
-import TermindDomain
 
 enum MobileAssistantLibraryRoute: String, Identifiable, Hashable {
     case conversations

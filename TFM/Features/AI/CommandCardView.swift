@@ -1,5 +1,4 @@
 import SwiftUI
-import TermindApplication
 import TermindDomain
 
 extension CommandRisk {

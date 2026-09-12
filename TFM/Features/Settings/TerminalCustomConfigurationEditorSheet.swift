@@ -9,13 +9,6 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
 
     var id: String { rawValue }
 
-    var settingsKey: String {
-        switch self {
-        case .light: SettingsKey.terminalCustomConfigurationLight
-        case .dark: SettingsKey.terminalCustomConfigurationDark
-        }
-    }
-
     var preferenceKeyPath: WritableKeyPath<TerminalPreferences, String> {
         switch self {
         case .light: \.lightCustomConfiguration

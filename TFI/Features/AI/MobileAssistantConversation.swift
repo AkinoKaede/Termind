@@ -4,7 +4,6 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
-import TermindRemoteInfrastructure
 import UniformTypeIdentifiers
 
 private struct MobileConversationAttachmentDropModifier: ViewModifier {

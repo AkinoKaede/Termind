@@ -2,7 +2,6 @@ import AgentKit
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 
 /// The wire projection stays with the tool; monitoring has no dependency on AgentKit.
 nonisolated public enum MetricsToolOutput {

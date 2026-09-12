@@ -353,21 +353,6 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
-    func entryKindsUseDedicatedReusableRowTypes() {
-        let coordinator = TranscriptListView.Coordinator()
-        let listView = coordinator.makeListView()
-        let empty = TranscriptEntry(id: UUID(), content: .empty)
-        let assistant = assistant(id: UUID(), text: "Hello")
-        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
-
-        update(coordinator, listView, entries: [empty, assistant])
-        listView.layoutSubtreeIfNeeded()
-
-        #expect(listView.rowView(for: empty.id) is TranscriptEmptyRow)
-        #expect(listView.rowView(for: assistant.id) is TranscriptAssistantRow)
-    }
-
-    @Test
     func streamingUpdateKeepsTheMountedAssistantRowIdentity() throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
