@@ -80,6 +80,8 @@ App appearance is a global UserDefaults preference applied by the macOS app
 delegate through `NSApplication.appearance`; following System clears the override.
 Opening at login reflects `SMAppService` on every Settings visit rather than a
 mirrored preference. A quiet login hides the app without suppressing its window.
+macOS owns an explicit in-app language preference. Mobile delegates language selection
+to Apple's per-app Settings and never stores or injects its own locale override.
 
 ## Remote sessions, terminal, and files
 

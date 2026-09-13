@@ -6,10 +6,10 @@ import TermindApplication
 struct TermindIOSApp: App {
     @UIApplicationDelegateAdaptor(MobileAppDelegate.self) private var appDelegate
     @AppStorage("mobile.appearance") private var appearance = "system"
-    private let launchLanguage = AppLanguage.stored()
     private let startup: Result<MobileAppModel, any Error>
 
     init() {
+        MobileLanguagePreferenceMigration.run()
         startup = Result {
             let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
             return try MobileAppModel(dependencies: isTesting ? .testing() : .live())
@@ -23,7 +23,6 @@ struct TermindIOSApp: App {
                 MobileQuickActionSceneRoot(app: app)
                     .modelContainer(app.container)
                     .environment(\.mobileInterfaceIdiom, MobileInterfaceIdiom.current)
-                    .environment(\.locale, launchLanguage.locale)
                     .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
             case .failure:
                 ContentUnavailableView(
