@@ -55,25 +55,6 @@ struct CommandHistoryTests {
     }
 
     @Test
-    func storeRejectsBlankCommandsAndTrimsPerHost() {
-        let hostID = UUID()
-        let store = CommandHistoryModel()
-        #expect(store.record(" \n\t ", for: hostID) == nil)
-
-        for index in 0...CommandHistoryModel.perHostLimit {
-            store.record(
-                "command-\(index)", for: hostID,
-                at: Date(timeIntervalSince1970: TimeInterval(index))
-            )
-        }
-
-        let commands = store.entries(for: hostID).map(\.command)
-        #expect(commands.count == CommandHistoryModel.perHostLimit)
-        #expect(commands.first == "command-1000")
-        #expect(commands.last == "command-1")
-    }
-
-    @Test
     func swiftDataStorePersistsIncrementally() throws {
         let container = try makeContainer("CommandHistoryPersistence")
         let hostID = UUID()

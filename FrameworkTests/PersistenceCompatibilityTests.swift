@@ -8,6 +8,17 @@ private final class FixtureBundle: NSObject {}
 
 @Suite @MainActor
 struct PersistenceCompatibilityTests {
+    @Test
+    func credentialStorageNamesAndDefaultsRemainCompatible() {
+        #expect(KeyStorage.thisDevice.rawValue == "thisDevice")
+        #expect(PasswordStorage.thisDevice.rawValue == "thisDevice")
+        #expect(KeyStorage.iCloud.rawValue == "iCloud")
+        #expect(PasswordStorage.iCloud.rawValue == "iCloud")
+        #expect(KeyStorage(rawValue: "local" + "Keychain") == nil)
+        #expect(Identity(name: "", username: "").passwordStorage == .iCloud)
+        #expect(SSHKeyRef(label: "").storage == .iCloud)
+    }
+
     @Test(arguments: [1, 14])
     func originalAppModuleStoresOpenWithoutLosingData(version: Int) throws {
         let source = try #require(

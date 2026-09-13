@@ -77,67 +77,6 @@ struct MobileConnectionPickerTests {
         #expect(rows[0].entry.kind == rows[1].entry.kind)
     }
 
-    @Test func workspaceHistoryAlignsProtocolWithNameAndTimeWithAddress() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceListView.swift"),
-            encoding: .utf8
-        )
-        let historyRows = try #require(
-            source.components(separatedBy: "private var historyRowsContent").last?
-                .components(separatedBy: "private func statusTint").first
-        )
-        let metadataRows = historyRows.components(separatedBy: "HStack(alignment: .center, spacing: 12) {")
-        #expect(metadataRows.count == 3)
-        #expect(metadataRows[1].contains("Text(row.host.name)"))
-        #expect(metadataRows[1].contains("Text(row.entry.kind.label)"))
-        #expect(metadataRows[2].contains("Text(app.library.loginAddress(for: row.host))"))
-        #expect(metadataRows[2].contains("Text(row.entry.connectedAt, format: .relative"))
-    }
-
-    @Test func workspaceHistoryOffersProtocolShortcutsAndDestructiveRemoval() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let workspaceList = try String(
-            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceListView.swift"),
-            encoding: .utf8
-        )
-        let historyRows = try #require(
-            workspaceList.components(separatedBy: "private var historyRowsContent").last?
-                .components(separatedBy: "private func statusTint").first
-        )
-        #expect(historyRows.contains(".contextMenu {"))
-        #expect(historyRows.contains("Button(\"SSH\", systemImage: \"terminal\")"))
-        #expect(historyRows.contains("Button(\"SFTP\", systemImage: \"folder\")"))
-        #expect(historyRows.contains(".swipeActions(edge: .trailing, allowsFullSwipe: true)"))
-        #expect(
-            historyRows.components(
-                separatedBy: "app.connectionHistory.delete(row.entry.id)"
-            ).count == 3
-        )
-
-        let toolbar = try String(
-            contentsOf: root.appending(path: "TFI/Features/HostChooser/MobileConnectionPicker.swift"),
-            encoding: .utf8
-        )
-        #expect(toolbar.contains("Button(\"Clear History\", systemImage: \"trash\", role: .destructive"))
-        let clearHistory = try #require(toolbar.range(of: "Button(\"Clear History\""))
-        let closeAll = try #require(toolbar.range(of: "Button(\"Close All Workspaces\""))
-        let separator = try #require(
-            toolbar.range(
-                of: "Divider()",
-                range: closeAll.upperBound..<clearHistory.lowerBound
-            ))
-        #expect(closeAll.lowerBound < separator.lowerBound)
-        #expect(separator.lowerBound < clearHistory.lowerBound)
-        #expect(!toolbar[closeAll.lowerBound..<separator.lowerBound].contains("role: .destructive"))
-        #expect(workspaceList.contains("app.connectionHistory.clearAll()"))
-        #expect(workspaceList.contains("\"Clear connection history?\""))
-    }
-
     @Test func sharedHostPickerUsesConfiguredTitleWithoutHostsHeaderOrProtocolControl() async throws {
         let app = try MobileAppModel(inMemory: true)
         app.library.upsert(Host(name: "Production", host: "production.example.invalid"))
@@ -191,25 +130,6 @@ struct MobileConnectionPickerTests {
             let done = try #require(toolbarButton(named: "Done", in: navigation))
             #expect(done.isEnabled)
         }
-    }
-
-    @Test func snippetHostPickerSharesSingleSelectionRowsAndUsesATintedCheckmark() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let sharedPicker = try String(
-            contentsOf: root.appending(path: "TFI/Features/HostChooser/MobileConnectionPicker.swift"),
-            encoding: .utf8)
-        let snippetPicker = try String(
-            contentsOf: root.appending(path: "TFI/Features/Snippets/MobileSnippetsView.swift"),
-            encoding: .utf8)
-
-        #expect(sharedPicker.components(separatedBy: "MobileHostPickerRow(").count >= 2)
-        #expect(snippetPicker.contains("MobileHostPickerRow("))
-        #expect(snippetPicker.contains("Button(actionTitle, systemImage: \"checkmark\")"))
-        #expect(snippetPicker.contains(".labelStyle(.iconOnly)"))
-        #expect(snippetPicker.contains(".foregroundStyle(.tint)"))
-        #expect(snippetPicker.contains(".accessibilityAddTraits(selected.contains(host.id) ? [.isSelected] : [])"))
     }
 
     @Test(

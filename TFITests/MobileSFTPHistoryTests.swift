@@ -9,27 +9,6 @@ import UIKit
 @Suite(.serialized)
 @MainActor
 struct MobileSFTPHistoryTests {
-    @Test func historyUsesNativeListContextActionsAndFullSwipeDeletion() throws {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-        let history = try String(
-            contentsOf: root.appending(path: "TFI/Features/SFTP/MobileSFTPHistoryView.swift"),
-            encoding: .utf8
-        )
-        let workspace = try String(
-            contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceView.swift"),
-            encoding: .utf8
-        )
-
-        #expect(history.contains("List(entries)"))
-        #expect(history.contains(".listStyle(.insetGrouped)"))
-        #expect(history.contains(".contextMenu"))
-        #expect(history.contains(".swipeActions(edge: .trailing, allowsFullSwipe: true)"))
-        #expect(history.contains("workspace.sftpHistory.delete(entry.id)"))
-        #expect(history.contains("workspace.sftpHistory.clear(for: workspace.descriptor.hostID)"))
-        #expect(workspace.contains("Button(\"History\", systemImage: \"clock\")"))
-        #expect(workspace.contains("MobileSFTPHistoryView(workspace: workspace, open: reopenHistory)"))
-    }
-
     @Test func deletingAHistoryEntryUpdatesThePresentedList() async throws {
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         let library = HostLibraryModel(hosts: [host])

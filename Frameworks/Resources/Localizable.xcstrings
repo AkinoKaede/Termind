@@ -23650,19 +23650,19 @@
         }
       }
     },
-    "The SSH identification could not be read. The server or network path may have reset the connection; check the server's unauthenticated connection limits." : {
+    "The SSH identification could not be read. The server or network path may have reset the connection." : {
       "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法读取SSH标识。服务器或网络路径可能重置了连接；请检查服务器的未认证连接限制。"
+            "value" : "无法读取SSH标识。服务器或网络路径可能重置了连接。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法讀取SSH標識。伺服器或網路路徑可能重置了連線；請檢查伺服器的未認證連線限制。"
+            "value" : "無法讀取SSH標識。伺服器或網路路徑可能重置了連線。"
           }
         }
       }

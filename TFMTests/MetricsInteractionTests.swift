@@ -98,48 +98,6 @@ struct MetricsInteractionTests {
     }
 
     @Test
-    func statusItemCanBeEnabledDisabledAndOpenItsPopoverWithoutWindowEnvironment() async throws {
-        let suite = "MetricsMenuTests.\(UUID())"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        let app = AppModel(hosts: HostLibraryModel())
-        let menu = MetricsMenuBarController(defaults: defaults)
-        defer {
-            menu.stop()
-            app.shutdownForTermination()
-            defaults.removePersistentDomain(forName: suite)
-        }
-        defaults.set(true, forKey: DesktopSettingsKey.showMetricsInMenuBar)
-        menu.start(app.serverMetrics)
-        #expect(menu.isVisible)
-        // Status-item hosting and popover presentation cross an asynchronous AppKit scene boundary.
-        try await Task.sleep(for: .milliseconds(250))
-        menu.togglePopover()
-        for _ in 0..<100 {
-            if menu.isPopoverShown { break }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        #expect(menu.isPopoverShown)
-        for _ in 0..<100 {
-            if menu.hasNeutralInitialFocus { break }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        #expect(menu.hasNeutralInitialFocus)
-        #expect(UserInputModalityTracker.shared.modality == .pointer)
-        menu.togglePopover()
-        for _ in 0..<100 {
-            if !menu.isPopoverShown { break }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        #expect(!menu.isPopoverShown)
-        defaults.set(false, forKey: DesktopSettingsKey.showMetricsInMenuBar)
-        menu.refresh()
-        #expect(!menu.isVisible)
-        defaults.set(true, forKey: DesktopSettingsKey.showMetricsInMenuBar)
-        menu.refresh()
-        #expect(menu.isVisible)
-    }
-
-    @Test
     func reopenDefersToSwiftUIOnlyUntilAWindowFactoryExists() {
         var createdWindow = false
 

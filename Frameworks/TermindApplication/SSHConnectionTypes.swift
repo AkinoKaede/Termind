@@ -117,7 +117,7 @@ public nonisolated struct SSHHandshakeFailure: Hashable, Sendable {
         case .receiveFailed:
             message = String(
                 localized:
-                    "The SSH identification could not be read. The server or network path may have reset the connection; check the server's unauthenticated connection limits."
+                    "The SSH identification could not be read. The server or network path may have reset the connection."
             )
         case .invalidIdentification:
             message = String(localized: "The server sent an invalid SSH identification.")

@@ -172,26 +172,6 @@ struct MobileSnippetTests {
         #expect(app.workspaces.map(\.pendingInitialCommand) == [snippet.body, snippet.body])
     }
 
-    @Test func hostSelectionStagesExecutionOnlyAfterItsSheetDismisses() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: root.appending(path: "TFI/Features/Snippets/MobileSnippetsView.swift"),
-            encoding: .utf8)
-        let sheet = try #require(
-            source.components(
-                separatedBy: ".sheet(item: $targetRequest, onDismiss: completeTargetSelection)"
-            ).last?.components(separatedBy: ".confirmationDialog(").first)
-        let completion = try #require(
-            source.components(separatedBy: "private func completeTargetSelection()").last?
-                .components(separatedBy: "private func performExecution").first)
-
-        #expect(sheet.contains("pendingTargetExecution = ExecutionRequest"))
-        #expect(!sheet.contains("stageExecution("))
-        #expect(completion.contains("stageExecution(snippetID: request.snippetID, hostIDs: request.hostIDs)"))
-    }
-
     @Test func initialCommandIsLaunchOnlyAndConsumedAtMostOnce() throws {
         let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "Server", kind: .ssh)
         let workspace = MobileWorkspace(

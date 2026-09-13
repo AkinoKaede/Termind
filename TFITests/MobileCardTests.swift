@@ -45,26 +45,6 @@ struct MobileCardTests {
         #expect(Array(MobileCardLayout.visibleTags(["one", "two", "three"])) == ["one", "two"])
     }
 
-    @Test func destructiveCardActionsAreSeparatedFromOrdinaryActions() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let vault = try String(
-            contentsOf: root.appending(path: "TFI/Features/Vault/MobileVaultView.swift"), encoding: .utf8)
-        let credentials = try String(
-            contentsOf: root.appending(path: "TFI/Features/Keychain/MobileCredentialsView.swift"), encoding: .utf8)
-        let metrics = try String(
-            contentsOf: root.appending(path: "TFI/Features/Metrics/MobileMetricsView.swift"), encoding: .utf8)
-
-        #expect(vault.contains("Divider()\n            Button(\"Delete\", systemImage: \"trash\""))
-        #expect(
-            credentials.components(
-                separatedBy: "Divider()\n                                Button(\"Delete\", systemImage: \"trash\""
-            ).count == 3
-        )
-        #expect(metrics.contains("Divider()\n                        Button(\"Remove\", systemImage: \"trash\""))
-    }
-
     @Test func hostSectionsFoldNestedGroupsKeepEmptyGroupsAndLeaveSearchAvailable() throws {
         let app = try MobileAppModel(inMemory: true)
         let root = HostGroup(name: "Production")

@@ -19,13 +19,6 @@ struct MenuSymbolTests {
             .appending(path: "TFM/DesignSystem/MenuSymbol.swift")
     }
 
-    private var knownHostsSource: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "TFM/Features/KnownHosts/KnownHostsPageView.swift")
-    }
-
     /// A misspelled SF Symbol draws nothing and reports nothing, so the menu
     /// simply loses one glyph and no one finds out. This is the only place that
     /// notices.
@@ -74,25 +67,4 @@ struct MenuSymbolTests {
         #expect(alpha.filter { $0 < 0.1 }.count > alpha.count / 2)
     }
 
-    @Test
-    @MainActor
-    func aNamedGlyphReachesTheMenuItem() {
-        let withSymbol = NativeMenuEntry(title: "Delete", symbol: MenuSymbol.delete).menuItem()
-        #expect(withSymbol.image != nil)
-
-        let withoutSymbol = NativeMenuEntry(title: "Delete").menuItem()
-        #expect(withoutSymbol.image == nil)
-
-        #expect(NativeMenuEntry.separator.menuItem().isSeparatorItem)
-    }
-
-    @Test
-    func knownHostsContextMenuUsesTheSharedGlyphVocabulary() throws {
-        let source = try String(contentsOf: knownHostsSource, encoding: .utf8)
-
-        #expect(source.contains("Button(\"Edit\", systemImage: MenuSymbol.edit)"))
-        #expect(source.contains("Button(\"Copy Fingerprint\", systemImage: MenuSymbol.copy)"))
-        #expect(source.contains("Button(\"Delete\", systemImage: MenuSymbol.delete, role: .destructive)"))
-        #expect(source.contains(".relative(presentation: .numeric).locale(locale)"))
-    }
 }

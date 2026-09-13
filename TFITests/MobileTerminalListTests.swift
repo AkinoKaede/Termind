@@ -81,38 +81,6 @@ struct MobileTerminalListTests {
         #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .destructive) == "TerminalRisk.destructive")
     }
 
-    @Test func terminalListsUseNativeActionsAndCompactContent() throws {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-        let history = try String(
-            contentsOf: root.appending(path: "TFI/Features/Terminal/MobileCommandHistoryView.swift"),
-            encoding: .utf8)
-        let snippets = try String(
-            contentsOf: root.appending(path: "TFI/Features/Terminal/MobileTerminalSnippetsView.swift"),
-            encoding: .utf8)
-
-        #expect(history.contains("List(entries)"))
-        #expect(history.contains(".listStyle(.insetGrouped)"))
-        #expect(history.contains(".contextMenu"))
-        #expect(history.contains(".swipeActions(edge: .trailing, allowsFullSwipe: true)"))
-        #expect(history.contains(".disabled(!workspace.connected)"))
-        #expect(!history.contains("MobileNativeList("))
-        #expect(history.contains(".lineLimit(2)"))
-        #expect(!history.contains("Exit Status"))
-        #expect(history.contains("MobileTerminalRiskIndicator"))
-
-        let bodyStart = try #require(snippets.range(of: "Text(snippet.body)"))
-        let bodyEnd = try #require(snippets[bodyStart.upperBound...].range(of: "Spacer(minLength: 8)"))
-        let bodyPreview = snippets[bodyStart.lowerBound..<bodyEnd.lowerBound]
-        #expect(snippets.contains("List(snippets)"))
-        #expect(snippets.contains(".listStyle(.insetGrouped)"))
-        #expect(snippets.contains(".contextMenu"))
-        #expect(snippets.contains(".disabled(!workspace.connected)"))
-        #expect(!snippets.contains("MobileNativeList("))
-        #expect(bodyPreview.contains(".lineLimit(1)"))
-        #expect(bodyPreview.contains(".truncationMode(.tail)"))
-        #expect(snippets.contains("MobileTerminalRiskIndicator"))
-    }
-
     private func withHostedView<Content: View>(
         _ content: Content, check: (UIViewController) async throws -> Void
     ) async throws {

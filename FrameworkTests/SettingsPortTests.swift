@@ -9,6 +9,39 @@ import Testing
 
 @Suite @MainActor
 struct SettingsPortTests {
+    @Test func permissionResolutionUsesTheLatestDefaultUntilAConversationChooses() {
+        let ai = AIConfigurationModel(lastSelectedPermissionMode: .approveForMe)
+        let conversation = ConversationModel()
+        #expect(ai.resolve(conversation: conversation.permissionMode) == .approveForMe)
+
+        conversation.permissionMode = .askForApproval
+        ai.select(.fullAccess)
+        #expect(ai.resolve(conversation: conversation.permissionMode) == .askForApproval)
+    }
+
+    @Test func permissionDefaultPersistsAcrossConfigurationInstances() throws {
+        let domain = "SettingsPortPermission.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+
+        let first = AIConfigurationModel(permissionDefaults: defaults)
+        first.select(.approveForMe)
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .approveForMe)
+
+        first.select(.fullAccess)
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .fullAccess)
+    }
+
+    @Test func missingAndInvalidPermissionDefaultsRequireApproval() throws {
+        let domain = "SettingsPortPermissionFallback.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .askForApproval)
+        defaults.set("unknown-mode", forKey: "assistant.permissionMode")
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .askForApproval)
+    }
+
     @Test func failedTerminalSaveKeepsTheAppliedPreferences() {
         let persistence = FailingTerminalPreferences()
         let model = TerminalSettingsModel(persistence: persistence)
@@ -90,11 +123,12 @@ struct SettingsPortTests {
     @Test func historyRetainsTheNewestThousandAndUnknownCompletion() {
         let model = CommandHistoryModel()
         let host = UUID()
+        #expect(model.record(" \n\t ", for: host) == nil)
         for index in 0...CommandHistoryModel.perHostLimit {
             model.record("command \(index)", for: host, at: Date(timeIntervalSince1970: Double(index)))
         }
         let values = model.entries(for: host)
-        #expect(values.count == 1_000)
+        #expect(values.count == CommandHistoryModel.perHostLimit)
         #expect(values.first?.command == "command 1000")
         #expect(values.last?.command == "command 1")
         #expect(values.allSatisfy { $0.exitStatus == nil && $0.duration == nil })
