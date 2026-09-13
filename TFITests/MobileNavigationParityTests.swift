@@ -366,6 +366,7 @@ struct MobileNavigationParityTests {
 
         #expect(!permissionMenu.contains("Picker("))
         #expect(permissionMenu.contains("Button(role: mode == .fullAccess ? .destructive : nil)"))
+        #expect(permissionMenu.contains(".menuOrder(.fixed)"))
         #expect(permissionMenu.contains("mode == resolvedPermissionMode ? \"checkmark\" : mode.symbol"))
         #expect(permissionMenu.contains("Label(\"Permissions\", systemImage: resolvedPermissionMode.symbol)"))
         #expect(
@@ -377,6 +378,16 @@ struct MobileNavigationParityTests {
         #expect(permissionMenu.contains(".layoutPriority(1)"))
         #expect(permissionMenu.contains("conversation.permissionMode = mode"))
         #expect(permissionMenu.contains("model.configuration.select(mode)"))
+    }
+
+    @Test func assistantPermissionSelectionUsesDeviceLocalDefaults() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appModel = try String(
+            contentsOf: root.appending(path: "TFI/App/MobileAppModel.swift"), encoding: .utf8)
+
+        #expect(appModel.contains("permissionDefaults: settingsDefaults"))
     }
 
     @Test func assistantAddMenuContainsOnlyOrderedAttachmentSources() throws {

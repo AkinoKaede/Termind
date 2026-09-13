@@ -8,6 +8,30 @@ import Testing
 
 @Suite @MainActor
 struct MobileAISettingsTests {
+    @Test func permissionDefaultPersistsLocallyAcrossConfigurationInstances() throws {
+        let suiteName = "MobileAgentPermissionMode-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = AIConfigurationModel(permissionDefaults: defaults)
+        first.select(AgentPermissionMode.approveForMe)
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .approveForMe)
+
+        first.select(AgentPermissionMode.fullAccess)
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .fullAccess)
+    }
+
+    @Test func missingOrInvalidLocalPermissionDefaultsToAskForApproval() throws {
+        let suiteName = "MobileAgentPermissionModeFallback-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .askForApproval)
+
+        defaults.set("unknown-mode", forKey: "assistant.permissionMode")
+        #expect(AIConfigurationModel(permissionDefaults: defaults).lastSelectedPermissionMode == .askForApproval)
+    }
+
     @Test func roleLabelsMatchDesktopDefaults() {
         #expect(AIRole.commandGenerator.unsetLabel == AIRole.securityReview.unsetLabel)
         #expect(AIRole.chat.unsetLabel != AIRole.securityReview.unsetLabel)

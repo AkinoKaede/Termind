@@ -143,7 +143,8 @@ final class MobileAppModel {
         vaultSync = memoryOnly ? nil : VaultSyncCoordinator(context: vaultContext, defaults: settingsDefaults)
         ai = AIConfigurationModel(
             persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
-            aiSecrets: aiSecrets, webSearchPersistence: settingsPersistence)
+            permissionDefaults: settingsDefaults, aiSecrets: aiSecrets,
+            webSearchPersistence: settingsPersistence)
         commandGenerator = CommandGeneratorController(ai: ai)
         skills = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence))
         library = HostLibraryModel(persistence: persistence, secrets: secrets)

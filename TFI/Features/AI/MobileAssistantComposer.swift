@@ -304,6 +304,7 @@ struct MobileAssistantComposer: View {
                 .labelStyle(.iconOnly)
                 .mobileComposerControlIcon(isDestructive: resolvedPermissionMode == .fullAccess)
         }
+        .menuOrder(.fixed)
         .buttonStyle(.plain)
         .fixedSize()
         .layoutPriority(1)
