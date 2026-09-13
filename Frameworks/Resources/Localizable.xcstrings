@@ -9951,6 +9951,22 @@
         }
       }
     },
+    "Free" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空闲"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空閒"
+          }
+        }
+      }
+    },
     "Free includes up to 3 monitoring cards. Upgrade to Pro for more." : {
       "localizations" : {
         "zh-Hans" : {
@@ -21681,6 +21697,22 @@
         }
       }
     },
+    "Swap" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交换空间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交換空間"
+          }
+        }
+      }
+    },
     "Switch the model for this conversation" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -24527,6 +24559,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "頂層"
+          }
+        }
+      }
+    },
+    "Total" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总量"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "總量"
           }
         }
       }

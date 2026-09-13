@@ -95,6 +95,10 @@ nonisolated public struct GetMetricsTool: AgentToolDefinition, AgentToolSchemaBu
                 let value = overview[key]?.numberValue.map { String(format: "%.1f%%", $0) } ?? "—"
                 items.append(field(String.LocalizationValue(label), value))
             }
+            if let total = overview["swap_total_bytes"]?.numberValue, total > 0 {
+                let value = overview["swap_percent"]?.numberValue.map { String(format: "%.1f%%", $0) } ?? "—"
+                items.append(field("Swap", value))
+            }
             if overview["stale"]?.boolValue == true {
                 items.append(
                     .message(AppLocalization.string("Cached metrics are stale", locale: input.locale), .warning))

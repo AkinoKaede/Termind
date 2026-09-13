@@ -19,6 +19,8 @@ nonisolated struct ServerMetricsParsingTests {
         #expect(sample.uptime == 100)
         #expect(sample.memoryTotal == 1_048_576.0)
         #expect(sample.memoryUsed == 786_432.0)
+        #expect(sample.swapTotal == 2_097_152.0)
+        #expect(sample.swapFree == 524_288.0)
         #expect(
             sample.disks?["nvme0n1"]
                 == MetricsCounters(
@@ -63,6 +65,38 @@ nonisolated struct ServerMetricsParsingTests {
         #expect(point.diskRead == 512 && point.diskWrite == 1024)
         #expect(point.networkReceive == 100 && point.networkSend == 200)
         #expect(point.memory == 75)
+        #expect(point.swapUsed == 1_572_864)
+        #expect(point.swapPercent == 75)
+    }
+
+    @Test
+    func swapMissingMalformedZeroAndOverFreeRemainSafe() {
+        let missing = Self.proc.replacingOccurrences(of: "SwapTotal: 2048 kB\nSwapFree: 512 kB\n", with: "")
+        let missingSample = LinuxMetricsParser.parse(missing)
+        #expect(missingSample.swapTotal == nil && missingSample.swapFree == nil)
+
+        let malformed = Self.proc.replacingOccurrences(of: "SwapFree: 512 kB", with: "SwapFree: invalid kB")
+        let malformedSample = LinuxMetricsParser.parse(malformed)
+        #expect(malformedSample.swapTotal == 2_097_152 && malformedSample.swapFree == nil)
+        #expect(
+            MetricsCalculation.point(
+                previous: nil, current: malformedSample, selection: MetricsSelection(id: UUID()), date: Date()
+            ).swapPercent == nil)
+
+        let zero = Self.proc.replacingOccurrences(
+            of: "SwapTotal: 2048 kB\nSwapFree: 512 kB", with: "SwapTotal: 0 kB\nSwapFree: 0 kB")
+        let zeroPoint = MetricsCalculation.point(
+            previous: nil, current: LinuxMetricsParser.parse(zero), selection: MetricsSelection(id: UUID()),
+            date: Date())
+        #expect(zeroPoint.swapTotal == 0 && zeroPoint.swapFree == 0 && zeroPoint.swapUsed == 0)
+        #expect(zeroPoint.swapPercent == nil)
+
+        let overFree = Self.proc.replacingOccurrences(of: "SwapFree: 512 kB", with: "SwapFree: 4096 kB")
+        let overFreePoint = MetricsCalculation.point(
+            previous: nil, current: LinuxMetricsParser.parse(overFree), selection: MetricsSelection(id: UUID()),
+            date: Date())
+        #expect(overFreePoint.swapUsed == 0)
+        #expect(overFreePoint.swapPercent == 0)
     }
 
     @Test
@@ -189,6 +223,8 @@ nonisolated struct ServerMetricsParsingTests {
         __TERMIND_MEMORY__
         MemTotal: 1024 kB
         MemAvailable: 256 kB
+        SwapTotal: 2048 kB
+        SwapFree: 512 kB
         __TERMIND_DISKS__
         nvme0n1 10 0 100 0 10 0 200 0 0 0 0
         __TERMIND_NETWORK__

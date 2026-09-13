@@ -47,6 +47,8 @@ public nonisolated struct MetricsSample: Sendable {
     public var memoryCached: Double?
     public var memoryUsed: Double?
     public var memoryTotal: Double?
+    public var swapFree: Double?
+    public var swapTotal: Double?
     public var disks: [String: MetricsCounters]?
     public var interfaces: [String: MetricsCounters]?
     public var blocks: [String: MetricsCounters]?
@@ -56,6 +58,7 @@ public nonisolated struct MetricsSample: Sendable {
     public init(
         uptime: Double? = nil, cpu: [UInt64]? = nil, coreCount: Int? = nil, load: [Double] = [],
         memoryFree: Double? = nil, memoryCached: Double? = nil, memoryUsed: Double? = nil, memoryTotal: Double? = nil,
+        swapFree: Double? = nil, swapTotal: Double? = nil,
         disks: [String: MetricsCounters]? = nil, interfaces: [String: MetricsCounters]? = nil,
         blocks: [String: MetricsCounters]? = nil, interfaceKinds: [String: MetricsInterfaceKind] = [:],
         interfaceAddresses: [String: [String]] = [:], tcp: MetricsTCP? = nil
@@ -68,6 +71,8 @@ public nonisolated struct MetricsSample: Sendable {
         self.memoryCached = memoryCached
         self.memoryUsed = memoryUsed
         self.memoryTotal = memoryTotal
+        self.swapFree = swapFree
+        self.swapTotal = swapTotal
         self.disks = disks
         self.interfaces = interfaces
         self.blocks = blocks
@@ -169,6 +174,10 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
     public var memory: Double?
     public var memoryUsed: Double?
     public var memoryTotal: Double?
+    public var swapPercent: Double?
+    public var swapUsed: Double?
+    public var swapTotal: Double?
+    public var swapFree: Double?
     public var diskRead: Double?
     public var diskWrite: Double?
     public var networkReceive: Double?
@@ -193,6 +202,7 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
     public var tcpRetransmissionPercent: Double?
     public init(
         date: Date, cpu: Double? = nil, memory: Double? = nil, memoryUsed: Double? = nil, memoryTotal: Double? = nil,
+        swapPercent: Double? = nil, swapUsed: Double? = nil, swapTotal: Double? = nil, swapFree: Double? = nil,
         diskRead: Double? = nil, diskWrite: Double? = nil, networkReceive: Double? = nil, networkSend: Double? = nil,
         gpus: [NvidiaGPU] = [], uptime: Double? = nil, coreCount: Int? = nil, load: [Double] = [],
         cpuUser: Double? = nil, cpuSystem: Double? = nil, cpuWait: Double? = nil, cpuSteal: Double? = nil,
@@ -206,6 +216,10 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
         self.memory = memory
         self.memoryUsed = memoryUsed
         self.memoryTotal = memoryTotal
+        self.swapPercent = swapPercent
+        self.swapUsed = swapUsed
+        self.swapTotal = swapTotal
+        self.swapFree = swapFree
         self.diskRead = diskRead
         self.diskWrite = diskWrite
         self.networkReceive = networkReceive
@@ -258,6 +272,13 @@ public nonisolated enum MetricsCalculation {
         point.memoryTotal = current.memoryTotal
         if let used = current.memoryUsed, let total = current.memoryTotal, total > 0 {
             point.memory = min(100, max(0, used / total * 100))
+        }
+        point.swapFree = current.swapFree
+        point.swapTotal = current.swapTotal
+        if let free = current.swapFree, let total = current.swapTotal {
+            let used = min(total, max(0, total - free))
+            point.swapUsed = used
+            if total > 0 { point.swapPercent = min(100, max(0, used / total * 100)) }
         }
         guard let previous, let before = previous.uptime, let after = current.uptime,
             after > before

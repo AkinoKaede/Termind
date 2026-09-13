@@ -31,14 +31,21 @@ struct GetMetricsToolTests {
     @Test
     func overviewAndTrendUseOnlyRecentFiniteSamples() throws {
         let old = MetricsPoint(date: now.addingTimeInterval(-301), cpu: 99)
-        let first = MetricsPoint(date: now.addingTimeInterval(-300), cpu: 20, memory: 40, diskRead: 100)
-        let last = MetricsPoint(date: now, cpu: 60, memory: nil, diskRead: .infinity)
+        let first = MetricsPoint(
+            date: now.addingTimeInterval(-300), cpu: 20, memory: 40, swapPercent: 50, diskRead: 100)
+        let last = MetricsPoint(
+            date: now, cpu: 60, memory: nil, swapPercent: 75, swapUsed: 3_072, swapTotal: 4_096,
+            swapFree: 1_024, diskRead: .infinity)
         let future = MetricsPoint(date: now.addingTimeInterval(1), cpu: 100)
         let snapshot = MetricsSnapshot(capturedAt: now, state: .live, point: last, history: [future, last, old, first])
         let object = output(snapshot)
         let overview = try #require(object["overview"]?.objectValue)
         #expect(overview["cpu_percent"] == .number(60))
         #expect(overview["memory_percent"] == .null)
+        #expect(overview["swap_percent"] == .number(75))
+        #expect(overview["swap_used_bytes"] == .number(3_072))
+        #expect(overview["swap_total_bytes"] == .number(4_096))
+        #expect(overview["swap_free_bytes"] == .number(1_024))
         #expect(overview["disk_read_bytes_per_second"] == .null)
         #expect(overview["sampled_at"] == .string(now.ISO8601Format()))
         #expect(overview["age_seconds"] == .number(0))
@@ -50,6 +57,8 @@ struct GetMetricsToolTests {
         #expect(trend["cpu_percent"]?.objectValue?["mean"] == .number(40))
         #expect(trend["cpu_percent"]?.objectValue?["peak"] == .number(60))
         #expect(trend["memory_percent"]?.objectValue?["sample_count"] == .number(1))
+        #expect(trend["swap_percent"]?.objectValue?["mean"] == .number(62.5))
+        #expect(trend["swap_percent"]?.objectValue?["peak"] == .number(75))
         #expect(trend["disk_read_bytes_per_second"]?.objectValue?["mean"] == .number(100))
         #expect(trend["network_receive_bytes_per_second"]?.objectValue?["mean"] == .null)
         for section in GetMetricsTool.sections { #expect(object[section] == nil) }
@@ -109,6 +118,20 @@ struct GetMetricsToolTests {
         #expect(object["trend"]?.objectValue?["from"] == .null)
         #expect(object["trend"]?.objectValue?["sample_count"] == .number(0))
         #expect(object["trend"]?.objectValue?["cpu_percent"]?.objectValue?["peak"] == .null)
+        #expect(object["overview"]?.objectValue?["swap_percent"] == .null)
+        #expect(object["trend"]?.objectValue?["swap_percent"]?.objectValue?["peak"] == .null)
+    }
+
+    @Test
+    func zeroCapacitySwapRemainsMachineReadableWithoutAUtilization() throws {
+        let snapshot = MetricsSnapshot(
+            capturedAt: now, state: .live,
+            point: MetricsPoint(date: now, swapUsed: 0, swapTotal: 0, swapFree: 0))
+        let overview = try #require(output(snapshot)["overview"]?.objectValue)
+        #expect(overview["swap_used_bytes"] == .number(0))
+        #expect(overview["swap_total_bytes"] == .number(0))
+        #expect(overview["swap_free_bytes"] == .number(0))
+        #expect(overview["swap_percent"] == .null)
     }
 
     @Test
@@ -214,7 +237,10 @@ struct GetMetricsToolTests {
     func persistedPresenterPreservesHostValuesAndStaleWarningAcrossLocales() throws {
         let presenter = try #require(TermindAgentTools.presenter(id: "builtin.get_metrics"))
         let snapshot = MetricsSnapshot(
-            capturedAt: now, state: .live, point: MetricsPoint(date: now.addingTimeInterval(-31), cpu: 25, memory: 50))
+            capturedAt: now, state: .live,
+            point: MetricsPoint(
+                date: now.addingTimeInterval(-31), cpu: 25, memory: 50, swapPercent: 75,
+                swapUsed: 3_072, swapTotal: 4_096, swapFree: 1_024))
         let value = AgentJSONValue.object(output(snapshot))
         for language in ["en", "zh-Hans", "zh-Hant"] {
             let locale = Locale(identifier: language)
@@ -225,6 +251,9 @@ struct GetMetricsToolTests {
             #expect(detail.contains(.field(.init(label: hostLabel, value: "Host"))))
             #expect(detail.contains(.message(staleLabel, .warning)))
             #expect(detail.contains(.field(.init(label: "CPU", value: "25.0%"))))
+            #expect(
+                detail.contains(
+                    .field(.init(label: AppLocalization.string("Swap", locale: locale), value: "75.0%"))))
         }
     }
 

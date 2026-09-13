@@ -53,6 +53,16 @@ public struct MetricsSystemPanels: View {
                     MetricsRing(title: "Memory", value: point?.memory)
                 }
             }
+            if let swapTotal = point?.swapTotal, swapTotal > 0 {
+                panel {
+                    HStack {
+                        figure("Used", value: MetricsFormat.bytes(point?.swapUsed))
+                        figure("Free", value: MetricsFormat.bytes(point?.swapFree))
+                        figure("Total", value: MetricsFormat.bytes(point?.swapTotal))
+                        MetricsRing(title: "Swap", value: point?.swapPercent)
+                    }
+                }
+            }
             if server.gpuSnapshot?.devices.isEmpty == false {
                 MetricsGPUSection(server: server)
             }

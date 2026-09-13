@@ -33,6 +33,9 @@ nonisolated public enum MetricsToolOutput {
         overview["memory_total_bytes"] = number(point?.memoryTotal)
         overview["memory_free_bytes"] = number(point?.memoryFree)
         overview["memory_cached_bytes"] = number(point?.memoryCached)
+        overview["swap_used_bytes"] = number(point?.swapUsed)
+        overview["swap_total_bytes"] = number(point?.swapTotal)
+        overview["swap_free_bytes"] = number(point?.swapFree)
         for (key, value) in [
             ("cpu_user_percent", point?.cpuUser), ("cpu_system_percent", point?.cpuSystem),
             ("cpu_wait_percent", point?.cpuWait), ("cpu_steal_percent", point?.cpuSteal),
@@ -117,6 +120,7 @@ nonisolated public enum MetricsToolOutput {
     private static func core(_ point: MetricsPoint?) -> [String: AgentJSONValue] {
         [
             "cpu_percent": number(point?.cpu), "memory_percent": number(point?.memory),
+            "swap_percent": number(point?.swapPercent),
             "disk_read_bytes_per_second": number(point?.diskRead),
             "disk_write_bytes_per_second": number(point?.diskWrite),
             "network_receive_bytes_per_second": number(point?.networkReceive),

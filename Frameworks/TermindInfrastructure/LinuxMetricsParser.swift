@@ -42,6 +42,8 @@ public nonisolated enum LinuxMetricsParser {
             }
             sample.memoryFree = values["MemFree"]
             sample.memoryCached = values["Cached"]
+            sample.swapFree = values["SwapFree"]
+            sample.swapTotal = values["SwapTotal"]
             if let total = values["MemTotal"], total > 0 {
                 let available = values["MemAvailable"] ?? fallbackAvailable(values)
                 sample.memoryTotal = total
