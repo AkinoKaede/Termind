@@ -165,6 +165,53 @@ struct MobileConnectionPickerTests {
         }
     }
 
+    @Test func snippetHostPickerUsesContextualTitlesAndCheckmarkConfirmation() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Production", host: "production.example.invalid")
+        app.library.upsert(host)
+
+        try await withStandaloneNavigation(
+            MobileSnippetHostPicker(
+                app: app, selected: [], title: "Execute on Hosts", actionTitle: "Execute",
+                requiresSelection: true, save: { _ in }),
+            language: "en"
+        ) { navigation in
+            #expect(navigation.topViewController?.navigationItem.title == "Execute on Hosts")
+            let execute = try #require(toolbarButton(named: "Execute", in: navigation))
+            #expect(!execute.isEnabled)
+        }
+
+        try await withStandaloneNavigation(
+            MobileSnippetHostPicker(
+                app: app, selected: [host.id], title: "Add Hosts", actionTitle: "Done",
+                requiresSelection: false, save: { _ in }),
+            language: "en"
+        ) { navigation in
+            #expect(navigation.topViewController?.navigationItem.title == "Add Hosts")
+            let done = try #require(toolbarButton(named: "Done", in: navigation))
+            #expect(done.isEnabled)
+        }
+    }
+
+    @Test func snippetHostPickerSharesSingleSelectionRowsAndUsesATintedCheckmark() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sharedPicker = try String(
+            contentsOf: root.appending(path: "TFI/Features/HostChooser/MobileConnectionPicker.swift"),
+            encoding: .utf8)
+        let snippetPicker = try String(
+            contentsOf: root.appending(path: "TFI/Features/Snippets/MobileSnippetsView.swift"),
+            encoding: .utf8)
+
+        #expect(sharedPicker.components(separatedBy: "MobileHostPickerRow(").count >= 2)
+        #expect(snippetPicker.contains("MobileHostPickerRow("))
+        #expect(snippetPicker.contains("Button(actionTitle, systemImage: \"checkmark\")"))
+        #expect(snippetPicker.contains(".labelStyle(.iconOnly)"))
+        #expect(snippetPicker.contains(".foregroundStyle(.tint)"))
+        #expect(snippetPicker.contains(".accessibilityAddTraits(selected.contains(host.id) ? [.isSelected] : [])"))
+    }
+
     @Test(
         arguments: [
             ("en", "Connect", "More"),
@@ -214,6 +261,29 @@ struct MobileConnectionPickerTests {
         let window = UIWindow(windowScene: scene)
         let controller = UIHostingController(
             rootView: NavigationStack { content }.environment(\.locale, Locale(identifier: language)))
+        window.rootViewController = controller
+        window.windowLevel = .alert + 1
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previousWindow?.makeKey()
+        }
+        try await Task.sleep(for: .milliseconds(700))
+        let navigation = try #require(descendant(of: UINavigationController.self, in: controller))
+        try check(navigation)
+    }
+
+    private func withStandaloneNavigation<Content: View>(
+        _ content: Content,
+        language: String,
+        check: (UINavigationController) throws -> Void
+    ) async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousWindow = scene.keyWindow
+        let window = UIWindow(windowScene: scene)
+        let controller = UIHostingController(
+            rootView: content.environment(\.locale, Locale(identifier: language)))
         window.rootViewController = controller
         window.windowLevel = .alert + 1
         window.makeKeyAndVisible()

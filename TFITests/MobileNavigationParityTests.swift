@@ -596,6 +596,8 @@ struct MobileNavigationParityTests {
         let rootSource = try String(
             contentsOf: root.appending(path: "TFI/App/MobileRootView.swift"), encoding: .utf8)
         #expect(!rootSource.contains(".navigationTitle(\"Termind\")"))
+        #expect(rootSource.contains("NavigationSplitView"))
+        #expect(rootSource.contains(".id(scene.selectedDestination ?? .vault)"))
     }
 
     @Test func vaultOnlyShowsMetricsWhenTheSidebarDoesNotProvideIt() throws {

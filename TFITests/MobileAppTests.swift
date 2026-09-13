@@ -721,6 +721,36 @@ struct MobileLiveActivitySchedulingTests {
 
 @Suite(.serialized) @MainActor
 struct MobileWorkspaceNavigationRenderingTests {
+    @Test func crossDestinationExecutionBuildsTheWorkspaceDetailInThePadRoot() async throws {
+        let connections = MobileSFTPConnectionBox(clients: [])
+        let app = try MobileAppModel(
+            inMemory: true,
+            workspaceConnectionServices: connections.services
+        )
+        let host = try configureConnectionFixture(in: app)
+        let scene = MobileSceneModel(app: app)
+        let snippet = Snippet(title: "Status", body: "uptime")
+
+        scene.execute(snippet, on: [host.id])
+        let workspace = try #require(app.workspaces.first)
+        defer { app.closeAll() }
+        #expect(app.renameWorkspace(workspace.id, to: "Snippet Workspace"))
+        #expect(scene.selectedDestination == .workspaces)
+        #expect(scene.workspaceID == nil)
+
+        try await withHostedView(
+            MobileRootView(app: app, scene: scene)
+                .environment(\.mobileInterfaceIdiom, .pad)
+        ) { controller in
+            let navigation = try #require(
+                await navigationController(titled: "Snippet Workspace", in: controller)
+            )
+            let detail = try #require(navigation.topViewController)
+            #expect(scene.workspaceID == workspace.id)
+            #expect(descendant(of: MobileTerminalView.self, in: detail.view) != nil)
+        }
+    }
+
     @Test func switchingFromSFTPRebuildsSSHContentAndConnectionJourney() async throws {
         let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
         let app = try MobileAppModel(

@@ -65,8 +65,58 @@ struct MobileConnectionPicker: View {
     }
 }
 
-struct MobileHostPicker<Header: View>: View {
+struct MobileHostPickerRow<Accessory: View>: View {
     @Environment(\.colorScheme) private var colorScheme
+
+    let host: Host
+    let loginAddress: String
+    @ViewBuilder let accessory: Accessory
+
+    init(host: Host, loginAddress: String, @ViewBuilder accessory: () -> Accessory) {
+        self.host = host
+        self.loginAddress = loginAddress
+        self.accessory = accessory()
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HostSystemIcon(asset: distributionEntry?.asset, size: 32)
+                .tint(tint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(host.name).foregroundStyle(.primary).lineLimit(1)
+                Text(loginAddress)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer(minLength: 0)
+            accessory
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
+    }
+
+    private var distributionEntry: LinuxDistributionIconEntry? {
+        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
+    }
+
+    private var tint: Color {
+        host.colorTag.color
+            ?? distributionEntry.flatMap {
+                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
+            }
+            ?? .accentColor
+    }
+}
+
+extension MobileHostPickerRow where Accessory == EmptyView {
+    init(host: Host, loginAddress: String) {
+        self.init(host: host, loginAddress: loginAddress) { EmptyView() }
+    }
+}
+
+struct MobileHostPicker<Header: View>: View {
     @State private var model: MobileHostPickerModel
     let title: LocalizedStringKey
     let emptyDescription: LocalizedStringKey
@@ -111,21 +161,9 @@ struct MobileHostPicker<Header: View>: View {
                         Button {
                             select(host)
                         } label: {
-                            HStack(spacing: 12) {
-                                HostSystemIcon(asset: distributionEntry(for: host)?.asset, size: 32)
-                                    .tint(tint(for: host))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(host.name).foregroundStyle(.primary).lineLimit(1)
-                                    Text(model.loginAddress(for: host))
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(.rect)
+                            MobileHostPickerRow(
+                                host: host,
+                                loginAddress: model.loginAddress(for: host))
                         }
                         .buttonStyle(.plain)
                     }
@@ -141,18 +179,6 @@ struct MobileHostPicker<Header: View>: View {
                     .labelStyle(.iconOnly)
             }
         }
-    }
-
-    private func distributionEntry(for host: Host) -> LinuxDistributionIconEntry? {
-        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
-    }
-
-    private func tint(for host: Host) -> Color {
-        host.colorTag.color
-            ?? distributionEntry(for: host).flatMap {
-                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-            }
-            ?? .accentColor
     }
 }
 

@@ -83,6 +83,11 @@ struct MobileWorkspaceListView: View {
             }
             .mobileSheetPresentation(compact: true)
         }
+        .task(id: scene.selectedDestination) {
+            guard scene.selectedDestination == .workspaces else { return }
+            await Task.yield()
+            scene.activatePendingWorkspace()
+        }
     }
 
     @ViewBuilder

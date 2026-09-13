@@ -233,6 +233,7 @@ final class SSHSessionModel: Identifiable {
     }
     private var pendingInitialCommand: PendingInitialCommand?
     private var commandExcludedFromHistory: String?
+    private var isInitialCommandSubmissionReady = false
 
     var reconnectState: ReconnectState? { connection.reconnectState }
 
@@ -391,6 +392,7 @@ final class SSHSessionModel: Identifiable {
         remoteSystemInfo = nil
         isShellPromptReady = false
         shellIntegrationAvailable = false
+        isInitialCommandSubmissionReady = false
         activeShellCommand = nil
         commandDraft.cancel()
         invalidateCommandGeneration()
@@ -847,7 +849,10 @@ final class SSHSessionModel: Identifiable {
                     String(localized: "Reconnected; a new remote shell has started.")
                 )
             }
-            submitPendingInitialCommand()
+            if !DesktopSettingsKey.isShellIntegrationEnabled {
+                isInitialCommandSubmissionReady = true
+            }
+            submitPendingInitialCommandIfReady()
         } catch {
             await actor.disconnect()
             if ssh === actor { ssh = nil }
@@ -1052,17 +1057,23 @@ final class SSHSessionModel: Identifiable {
             statusStore?.recordRemoteSystemInfo(systemInfo, for: hostID)
             isShellPromptReady = false
             shellIntegrationAvailable = true
+            isInitialCommandSubmissionReady = true
             invalidateCommandGeneration()
             inputRouter?.sshSession(self, didChangeWorkingDirectory: workingDirectory)
+            submitPendingInitialCommandIfReady()
         case .systemInfo(let systemInfo):
             remoteSystemInfo = systemInfo
             statusStore?.recordRemoteSystemInfo(systemInfo, for: hostID)
         case .homeResolutionUnavailable:
             homeResolution = .unavailable
             inputRouter?.sshSession(self, didChangeWorkingDirectory: workingDirectory)
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
         case .promptReady:
             isShellPromptReady = true
+            isInitialCommandSubmissionReady = true
             invalidateCommandGeneration()
+            submitPendingInitialCommandIfReady()
         case .commandStarted(let command):
             isShellPromptReady = false
             invalidateCommandGeneration()
@@ -1085,6 +1096,11 @@ final class SSHSessionModel: Identifiable {
             commandExcludedFromHistory = initialCommand.command
         }
         insert(initialCommand.command, submit: true)
+    }
+
+    private func submitPendingInitialCommandIfReady() {
+        guard status.isLive, isInitialCommandSubmissionReady else { return }
+        submitPendingInitialCommand()
     }
 
     @discardableResult

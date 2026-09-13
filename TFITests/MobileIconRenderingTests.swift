@@ -72,8 +72,15 @@ struct MobileIconRenderingTests {
             }
             try await capture("snippet-targets-\(suffix)", language: language, scheme: scheme) {
                 MobileSnippetHostPicker(
-                    app: snippetApp, selected: [snippetHost.id], actionTitle: "Done",
-                    requiresSelection: false, save: { _ in }
+                    app: snippetApp, selected: [snippetHost.id], title: "Add Hosts",
+                    actionTitle: "Done", requiresSelection: false, save: { _ in }
+                )
+                .environment(\.locale, locale)
+            }
+            try await capture("snippet-execution-targets-\(suffix)", language: language, scheme: scheme) {
+                MobileSnippetHostPicker(
+                    app: snippetApp, selected: [], title: "Execute on Hosts",
+                    actionTitle: "Execute", requiresSelection: true, save: { _ in }
                 )
                 .environment(\.locale, locale)
             }

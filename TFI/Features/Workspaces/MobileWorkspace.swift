@@ -104,6 +104,7 @@ final class MobileWorkspace: Identifiable {
     )
     private var activeHistoryID: UUID?
     private var shellIntegrationAvailable = false
+    private var isInitialCommandSubmissionReady = false
     private var pendingCommand: MobilePendingInitialCommand?
     private var commandExcludedFromHistory: String?
     private var pendingInitialSFTPPath: String?
@@ -446,6 +447,7 @@ final class MobileWorkspace: Identifiable {
         remoteSystemInfo = nil
         isShellPromptReady = false
         shellIntegrationAvailable = false
+        isInitialCommandSubmissionReady = false
         workingDirectory = nil
         commandExcludedFromHistory = nil
         commandDraft.cancel()
@@ -471,18 +473,24 @@ final class MobileWorkspace: Identifiable {
             // that authenticated boundary as ready even if the following
             // TermindPrompt OSC is swallowed by the UIKit terminal path.
             isShellPromptReady = true
+            isInitialCommandSubmissionReady = true
             invalidateCommandGeneration()
             recordRemoteSystemInfo(systemInfo)
+            submitPendingInitialCommandIfReady()
         case .systemInfo(let systemInfo):
             remoteSystemInfo = systemInfo
             invalidateCommandGeneration()
             recordRemoteSystemInfo(systemInfo)
         case .homeResolutionUnavailable:
-            break
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
         case .promptReady:
-            guard !isShellPromptReady else { return }
-            isShellPromptReady = true
-            invalidateCommandGeneration()
+            if !isShellPromptReady {
+                isShellPromptReady = true
+                invalidateCommandGeneration()
+            }
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
         case .commandStarted(let command):
             guard shellIntegrationAvailable else { return }
             isShellPromptReady = false
@@ -501,6 +509,8 @@ final class MobileWorkspace: Identifiable {
                 isShellPromptReady = true
                 invalidateCommandGeneration()
             }
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
             guard let id = activeHistoryID else { return }
             commandHistory.recordCompletion(
                 for: id, hostID: descriptor.hostID, exitStatus: status, duration: duration)
@@ -625,10 +635,11 @@ final class MobileWorkspace: Identifiable {
                 if wasReconnecting, descriptor.kind == .ssh {
                     appendTerminalNotice(String(localized: "Reconnected; a new remote shell has started."))
                 }
-                if descriptor.kind == .ssh, let session = ssh,
-                    let command = consumePendingInitialCommand()
-                {
-                    await connectionServices.writeSSH(session, Data((command + "\r").utf8))
+                if descriptor.kind == .ssh {
+                    if !terminalSettings.preferences.shellIntegration {
+                        isInitialCommandSubmissionReady = true
+                    }
+                    submitPendingInitialCommandIfReady()
                 }
             } catch {
                 guard generation == token else { return }
@@ -702,6 +713,18 @@ final class MobileWorkspace: Identifiable {
             commandExcludedFromHistory = pendingCommand.command
         }
         return pendingCommand.command
+    }
+
+    private func submitPendingInitialCommandIfReady() {
+        guard descriptor.kind == .ssh, connected, isInitialCommandSubmissionReady,
+            let session = ssh, let command = consumePendingInitialCommand()
+        else { return }
+        let token = generation
+        let data = Data((command + "\r").utf8)
+        Task { [weak self] in
+            guard let self, generation == token, connected, ssh === session else { return }
+            await connectionServices.writeSSH(session, data)
+        }
     }
 
     func retryReconnectNow() {

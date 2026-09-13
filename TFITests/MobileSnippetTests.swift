@@ -153,6 +153,45 @@ struct MobileSnippetTests {
         #expect(!app.pro.isPaywallPresented)
     }
 
+    @Test func sceneExecutionSelectsTheFirstCreatedWorkspaceAndPreservesThePendingCommand() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let first = Host(name: "First", host: "first.example.invalid")
+        let second = Host(name: "Second", host: "second.example.invalid")
+        app.library.upsert(first)
+        app.library.upsert(second)
+        let scene = MobileSceneModel(app: app)
+        let snippet = Snippet(title: "Status", body: "uptime")
+
+        scene.execute(snippet, on: [first.id, second.id])
+        defer { app.closeAll() }
+
+        #expect(scene.selectedDestination == .workspaces)
+        #expect(scene.workspaceID == nil)
+        scene.activatePendingWorkspace()
+        #expect(scene.workspaceID == app.workspaces.first?.id)
+        #expect(app.workspaces.map(\.pendingInitialCommand) == [snippet.body, snippet.body])
+    }
+
+    @Test func hostSelectionStagesExecutionOnlyAfterItsSheetDismisses() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFI/Features/Snippets/MobileSnippetsView.swift"),
+            encoding: .utf8)
+        let sheet = try #require(
+            source.components(
+                separatedBy: ".sheet(item: $targetRequest, onDismiss: completeTargetSelection)"
+            ).last?.components(separatedBy: ".confirmationDialog(").first)
+        let completion = try #require(
+            source.components(separatedBy: "private func completeTargetSelection()").last?
+                .components(separatedBy: "private func performExecution").first)
+
+        #expect(sheet.contains("pendingTargetExecution = ExecutionRequest"))
+        #expect(!sheet.contains("stageExecution("))
+        #expect(completion.contains("stageExecution(snippetID: request.snippetID, hostIDs: request.hostIDs)"))
+    }
+
     @Test func initialCommandIsLaunchOnlyAndConsumedAtMostOnce() throws {
         let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "Server", kind: .ssh)
         let workspace = MobileWorkspace(

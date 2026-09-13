@@ -39,6 +39,7 @@ struct MobileSnippetsView: View {
     @State private var deletingSnippetID: Snippet.ID?
     @State private var deletingPackage: SnippetPackage?
     @State private var targetRequest: TargetRequest?
+    @State private var pendingTargetExecution: ExecutionRequest?
     @State private var destructiveRequest: ExecutionRequest?
 
     init(
@@ -117,12 +118,12 @@ struct MobileSnippetsView: View {
                 package: request.packageID.flatMap(app.snippets.snippetPackage),
                 parentID: request.parentID)
         }
-        .sheet(item: $targetRequest) { request in
+        .sheet(item: $targetRequest, onDismiss: completeTargetSelection) { request in
             MobileSnippetHostPicker(
-                app: app, selected: [], actionTitle: "Execute", requiresSelection: true
+                app: app, selected: [], title: "Execute on Hosts", actionTitle: "Execute",
+                requiresSelection: true
             ) { ids in
-                targetRequest = nil
-                stageExecution(snippetID: request.snippetID, hostIDs: ids)
+                pendingTargetExecution = ExecutionRequest(snippetID: request.snippetID, hostIDs: ids)
             }
         }
         .confirmationDialog(
@@ -355,6 +356,7 @@ struct MobileSnippetsView: View {
     private func handle(_ decision: MobileSnippetExecutionDecision, snippetID: Snippet.ID) {
         switch decision {
         case .chooseHosts:
+            pendingTargetExecution = nil
             targetRequest = TargetRequest(snippetID: snippetID)
         case .confirmDestructive(let hostIDs):
             destructiveRequest = ExecutionRequest(snippetID: snippetID, hostIDs: hostIDs)
@@ -374,6 +376,12 @@ struct MobileSnippetsView: View {
             MobileSnippetOperations.executionDecision(
                 for: snippet, hostIDs: hostIDs, requiresHostSelection: false),
             snippetID: snippetID)
+    }
+
+    private func completeTargetSelection() {
+        guard let request = pendingTargetExecution else { return }
+        pendingTargetExecution = nil
+        stageExecution(snippetID: request.snippetID, hostIDs: request.hostIDs)
     }
 
     private func performExecution(_ request: ExecutionRequest) {
@@ -660,8 +668,8 @@ struct MobileSnippetEditor: View {
         }
         .sheet(isPresented: $choosingTargets) {
             MobileSnippetHostPicker(
-                app: app, selected: Set(draft.targetHostIDs), actionTitle: "Done",
-                requiresSelection: false
+                app: app, selected: Set(draft.targetHostIDs), title: "Add Hosts",
+                actionTitle: "Done", requiresSelection: false
             ) { ids in
                 draft.targetHostIDs = ids
                 choosingTargets = false
@@ -752,6 +760,7 @@ struct MobileSnippetPackageEditor: View {
 
 struct MobileSnippetHostPicker: View {
     let app: MobileAppModel
+    let title: LocalizedStringKey
     let actionTitle: LocalizedStringKey
     let requiresSelection: Bool
     let save: ([Host.ID]) -> Void
@@ -760,10 +769,12 @@ struct MobileSnippetHostPicker: View {
     @State private var selected: Set<Host.ID>
 
     init(
-        app: MobileAppModel, selected: Set<Host.ID>, actionTitle: LocalizedStringKey,
-        requiresSelection: Bool, save: @escaping ([Host.ID]) -> Void
+        app: MobileAppModel, selected: Set<Host.ID>, title: LocalizedStringKey,
+        actionTitle: LocalizedStringKey, requiresSelection: Bool,
+        save: @escaping ([Host.ID]) -> Void
     ) {
         self.app = app
+        self.title = title
         self.actionTitle = actionTitle
         self.requiresSelection = requiresSelection
         self.save = save
@@ -800,40 +811,44 @@ struct MobileSnippetHostPicker: View {
                             toggleAllResults()
                         }
                     }
-                    Section("Hosts") {
+                    Section {
                         ForEach(results) { host in
                             Button {
                                 toggle(host.id)
                             } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(host.name).foregroundStyle(.primary)
-                                        Text(app.snippets.loginAddress(for: host))
-                                            .font(.caption.monospaced()).foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
+                                MobileHostPickerRow(
+                                    host: host,
+                                    loginAddress: app.snippets.loginAddress(for: host)
+                                ) {
                                     if selected.contains(host.id) {
-                                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                                        Image(systemName: "checkmark")
+                                            .font(.body.weight(.semibold))
+                                            .foregroundStyle(.tint)
+                                            .accessibilityHidden(true)
                                     }
                                 }
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(selected.contains(host.id) ? [.isSelected] : [])
                         }
                     }
                 }
             }
             .searchable(text: $query, prompt: "Search hosts")
-            .navigationTitle("Add Hosts")
+            .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(actionTitle) {
+                    Button(actionTitle, systemImage: "checkmark") {
                         let ordered = app.snippets.searchHosts("").filter { selected.contains($0.id) }.map(\.id)
                         save(ordered)
                         dismiss()
                     }
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(.tint)
                     .disabled(requiresSelection && selected.isEmpty)
                 }
             }

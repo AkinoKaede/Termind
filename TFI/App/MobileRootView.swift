@@ -8,9 +8,9 @@ struct MobileRootView: View {
     @Environment(\.mobileInterfaceIdiom) private var interfaceIdiom
     @State private var scene: MobileSceneModel
 
-    init(app: MobileAppModel) {
+    init(app: MobileAppModel, scene: MobileSceneModel? = nil) {
         self.app = app
-        _scene = State(initialValue: MobileSceneModel(app: app))
+        _scene = State(initialValue: scene ?? MobileSceneModel(app: app))
     }
 
     var body: some View {
@@ -39,6 +39,7 @@ struct MobileRootView: View {
                         selectedFeature.makeView(app: app, scene: scene, surface: .padSidebar)
                     }
                 }
+                .id(scene.selectedDestination ?? .vault)
             }
         }
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {

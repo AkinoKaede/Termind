@@ -207,7 +207,7 @@ struct MobileCommandGeneratorTests {
         defer { app.close(id) }
 
         #expect(await eventually { workspace.connected })
-        #expect(await eventually { connections.writes.contains(Data((command + "\r").utf8)) })
+        #expect(!connections.writes.contains(Data((command + "\r").utf8)))
         await connections.sendShellEvents([
             .available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/test"),
             .commandStarted(command),
@@ -216,8 +216,41 @@ struct MobileCommandGeneratorTests {
             .commandFinished(0, duration: 0.02),
         ])
 
+        #expect(await eventually { connections.writes.contains(Data((command + "\r").utf8)) })
         #expect(await eventually { app.commandHistory.entries(for: host.id).count == 1 })
         #expect(app.commandHistory.entries(for: host.id).first?.command == "pwd")
+        #expect(workspace.pendingInitialCommand == nil)
+    }
+
+    @Test func snippetStartupCommandWritesOnceAfterSSHConnect() async throws {
+        let connections = MobileSSHCommandConnectionBox()
+        let app = try MobileAppModel(
+            inMemory: true,
+            workspaceConnectionServices: connections.services
+        )
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        try app.library.upsert(identity, passwordUpdate: .replace("test-only"))
+        app.library.upsert(host)
+        app.library.trust(
+            KnownHostEntry(
+                hostname: host.host,
+                port: host.port,
+                algorithm: .ed25519,
+                fingerprint: "SHA256:test"
+            ))
+        let snippet = Snippet(title: "Status", body: "uptime")
+        let id = try #require(app.execute(snippet, on: [host.id]).first)
+        let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
+        defer { app.close(id) }
+
+        #expect(await eventually { workspace.connected })
+        #expect(!connections.writes.contains(Data((snippet.body + "\r").utf8)))
+        await connections.sendShellEvents([
+            .available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/test")
+        ])
+        #expect(await eventually { connections.writes.contains(Data((snippet.body + "\r").utf8)) })
         #expect(workspace.pendingInitialCommand == nil)
     }
 

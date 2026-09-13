@@ -84,11 +84,14 @@ struct MobileShortcutTests {
 
         scene.openSettings()
         scene.selectNextWorkspace()
+        #expect(scene.workspaceID == nil)
+        scene.activatePendingWorkspace()
         #expect(scene.workspaceID == first)
         #expect(scene.selectedDestination == .workspaces)
 
         scene.openSettings()
         scene.selectPreviousWorkspace()
+        scene.activatePendingWorkspace()
         #expect(scene.workspaceID == third)
 
         scene.selectNextWorkspace()
@@ -119,8 +122,10 @@ struct MobileShortcutTests {
         let scene = MobileSceneModel(app: app)
         let otherScene = MobileSceneModel(app: app)
         otherScene.selectWorkspace(second)
+        otherScene.activatePendingWorkspace()
 
         scene.selectWorkspace(first)
+        scene.activatePendingWorkspace()
         #expect(scene.canCloseWorkspace)
         scene.openSettings()
         #expect(!scene.canCloseWorkspace)
@@ -128,6 +133,7 @@ struct MobileShortcutTests {
         #expect(app.workspaces.map(\.id) == [first, second])
 
         scene.selectWorkspace(first)
+        scene.activatePendingWorkspace()
         scene.closeActiveWorkspace()
         #expect(app.workspaces.map(\.id) == [second])
         #expect(scene.workspaceID == nil)

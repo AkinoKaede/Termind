@@ -13,7 +13,11 @@ import struct TermindDomain.Host
 final class MobileSceneModel {
     let id = UUID()
     let assistant: MobileAssistantSceneModel
-    var selectedDestination: MobileDestination? = .vault
+    var selectedDestination: MobileDestination? = .vault {
+        didSet {
+            if selectedDestination != .workspaces { pendingWorkspaceID = nil }
+        }
+    }
     var workspaceID: MobileWorkspace.ID?
     var isConnectionPickerPresented = false
     var isWorkspaceUnavailable = false
@@ -22,6 +26,7 @@ final class MobileSceneModel {
     var assistantLibraryRoute: MobileAssistantLibraryRoute?
 
     @ObservationIgnored private let app: MobileAppModel
+    @ObservationIgnored private var pendingWorkspaceID: MobileWorkspace.ID?
 
     init(app: MobileAppModel) {
         self.app = app
@@ -54,6 +59,7 @@ final class MobileSceneModel {
     }
 
     func openConnectionPicker() {
+        pendingWorkspaceID = nil
         selectedDestination = .workspaces
         workspaceID = nil
         isConnectionPickerPresented = true
@@ -86,6 +92,23 @@ final class MobileSceneModel {
     }
 
     func selectWorkspace(_ id: MobileWorkspace.ID) {
+        guard app.workspaces.contains(where: { $0.id == id }) else { return }
+        if selectedDestination != .workspaces {
+            workspaceID = nil
+            pendingWorkspaceID = id
+            selectedDestination = .workspaces
+            return
+        }
+        presentWorkspace(id)
+    }
+
+    func activatePendingWorkspace() {
+        guard selectedDestination == .workspaces, let id = pendingWorkspaceID else { return }
+        pendingWorkspaceID = nil
+        presentWorkspace(id)
+    }
+
+    private func presentWorkspace(_ id: MobileWorkspace.ID) {
         guard app.workspaces.contains(where: { $0.id == id }) else { return }
         selectedDestination = .workspaces
         workspaceID = id
@@ -145,6 +168,7 @@ final class MobileSceneModel {
 
     func closeWorkspace(_ id: MobileWorkspace.ID) {
         app.close(id)
+        if pendingWorkspaceID == id { pendingWorkspaceID = nil }
         if workspaceID == id { workspaceID = nil }
     }
 
@@ -155,10 +179,14 @@ final class MobileSceneModel {
 
     func closeAllWorkspaces() {
         app.closeAll()
+        pendingWorkspaceID = nil
         workspaceID = nil
     }
 
     func reconcileWorkspaceIDs(_ workspaceIDs: [MobileWorkspace.ID]) {
+        if let pendingWorkspaceID, !workspaceIDs.contains(pendingWorkspaceID) {
+            self.pendingWorkspaceID = nil
+        }
         guard let workspaceID, !workspaceIDs.contains(workspaceID) else { return }
         self.workspaceID = nil
     }

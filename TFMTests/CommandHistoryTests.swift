@@ -183,6 +183,24 @@ struct CommandHistoryTests {
     }
 
     @Test
+    func startupCommandWaitsForTheShellBootstrapBeforeSubmitting() {
+        let session = SSHSessionModel(
+            host: Host(name: "Shell", host: "shell.example"),
+            initialCommand: "uptime"
+        )
+        var submitted = Data()
+        session.inputSink = { submitted.append($0) }
+        session.status = .connected
+
+        #expect(submitted.isEmpty)
+        session.receiveShellIntegrationEvent(
+            .available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/test")
+        )
+
+        #expect(String(decoding: submitted, as: UTF8.self) == "uptime\r")
+    }
+
+    @Test
     func shellLifecycleCompletesTheMatchingTransientHistoryRow() throws {
         let session = SSHSessionModel(host: Host(name: "Shell", host: "shell.example"))
 
