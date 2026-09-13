@@ -32,6 +32,9 @@ struct MobileNavigationParityTests {
         let assistantRows = try #require(
             assistant.components(separatedBy: "private func conversationRow").last?
                 .components(separatedBy: "private func select").first)
+        let conversationActions = try #require(
+            assistant.components(separatedBy: "@ViewBuilder private func actions").last?
+                .components(separatedBy: "private func canChangeHistory").first)
         let workspaceRows = try #require(
             workspaceList.components(separatedBy: "private var workspaceRows").last?
                 .components(separatedBy: "private func statusTint").first)
@@ -62,8 +65,14 @@ struct MobileNavigationParityTests {
         #expect(!assistant.contains("geometry.size.width >= 760"))
         #expect(!assistant.contains("MobileAssistantLibrary(model: model, selected: {})"))
         #expect(assistant.contains(".swipeActions(edge: .trailing, allowsFullSwipe: true)"))
-        #expect(assistant.contains("Button(\"Archive\", systemImage: \"archivebox\")"))
+        #expect(assistant.contains("Button(\"Archive\", systemImage: \"archivebox\", role: .destructive)"))
         #expect(assistant.contains("Button(\"Unarchive\", systemImage: \"arrow.uturn.backward\")"))
+        #expect(currentConversationMenu.contains("if model.conversation.isArchived"))
+        #expect(currentConversationMenu.contains("Button(\"Delete\", systemImage: \"trash\", role: .destructive)"))
+        #expect(conversationActions.contains("if conversation.isArchived"))
+        #expect(conversationActions.contains("Button(\"Delete\", systemImage: \"trash\", role: .destructive)"))
+        #expect(assistantRows.contains("Button(\"Archive\", systemImage: \"archivebox\", role: .destructive)"))
+        #expect(!assistantRows.contains(".tint(.orange)"))
         #expect(!assistant.contains("MobileCardIcon(symbol: conversation.isArchived"))
         #expect(assistant.contains(".foregroundStyle(.secondary)"))
         let conversations = try #require(currentConversationMenu.range(of: "Button(\"Conversations\""))

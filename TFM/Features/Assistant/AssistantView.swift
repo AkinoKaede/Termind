@@ -1244,7 +1244,7 @@ struct AssistantConversationRow: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private var contextMenu: [NativeMenuEntry] {
+    var contextMenu: [NativeMenuEntry] {
         let managementDisabled = conversation.isStreaming || conversation.isCompacting
         var entries: [NativeMenuEntry] = [
             NativeMenuEntry(
@@ -1271,9 +1271,8 @@ struct AssistantConversationRow: View {
                 action: onBeginRename
             )
         )
-        // Archive and Delete are both ways of getting a chat off the list, so
-        // the rule goes above the pair rather than between them — Pin and Rename
-        // above it only change how the chat is listed.
+        // Archive gets an active chat off the list. Permanent deletion is only
+        // offered after the chat has already moved to Archive.
         entries.append(.separator)
         entries.append(
             NativeMenuEntry(
@@ -1287,13 +1286,15 @@ struct AssistantConversationRow: View {
                 )
             }
         )
-        entries.append(
-            NativeMenuEntry(
-                title: localized("Delete"), symbol: MenuSymbol.delete
-            ) {
-                onDelete()
-            }
-        )
+        if conversation.isArchived {
+            entries.append(
+                NativeMenuEntry(
+                    title: localized("Delete"), symbol: MenuSymbol.delete
+                ) {
+                    onDelete()
+                }
+            )
+        }
         return entries
     }
 

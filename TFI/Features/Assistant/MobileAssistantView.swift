@@ -62,18 +62,23 @@ struct MobileAssistantView: View {
                         Task { await model.move(conversation, pinned: !conversation.isPinned) }
                     }
                     .disabled(model.conversation.isEmpty || model.conversation.isArchived)
-                    Button(
-                        model.conversation.isArchived ? "Unarchive" : "Archive",
-                        systemImage: model.conversation.isArchived ? "arrow.uturn.backward" : "archivebox"
-                    ) {
-                        let conversation = model.conversation
-                        Task { await model.archive(conversation, archived: !conversation.isArchived) }
+                    if model.conversation.isArchived {
+                        Button("Unarchive", systemImage: "arrow.uturn.backward") {
+                            let conversation = model.conversation
+                            Task { await model.archive(conversation, archived: false) }
+                        }
+                        .disabled(!canChangeHistory)
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            deleting = model.conversation
+                        }
+                        .disabled(!canChangeHistory)
+                    } else {
+                        Button("Archive", systemImage: "archivebox", role: .destructive) {
+                            let conversation = model.conversation
+                            Task { await model.archive(conversation, archived: true) }
+                        }
+                        .disabled(!canChangeHistory)
                     }
-                    .disabled(!canChangeHistory)
-                    Button("Delete", systemImage: "trash", role: .destructive) {
-                        deleting = model.conversation
-                    }
-                    .disabled(!canChangeHistory)
                 } label: {
                     MobileOverflowMenuLabel("More")
                 }
@@ -348,10 +353,9 @@ struct MobileAssistantLibrary: View {
                 .tint(.accentColor)
                 .disabled(!canChangeHistory(conversation))
             } else {
-                Button("Archive", systemImage: "archivebox") {
+                Button("Archive", systemImage: "archivebox", role: .destructive) {
                     Task { await model.archive(conversation, archived: true) }
                 }
-                .tint(.orange)
                 .disabled(!canChangeHistory(conversation))
             }
         }
@@ -374,14 +378,19 @@ struct MobileAssistantLibrary: View {
                 Task { await model.move(conversation, pinned: !conversation.isPinned) }
             }.disabled(conversation.isStreaming || conversation.isCompacting || conversation.isHistoryChanging)
         }
-        Button(
-            conversation.isArchived ? "Unarchive" : "Archive",
-            systemImage: conversation.isArchived ? "arrow.uturn.backward" : "archivebox"
-        ) {
-            Task { await model.archive(conversation, archived: !conversation.isArchived) }
-        }.disabled(conversation.isStreaming || conversation.isCompacting || conversation.isHistoryChanging)
-        Button("Delete", systemImage: "trash", role: .destructive) { deleting = conversation }
+        if conversation.isArchived {
+            Button("Unarchive", systemImage: "arrow.uturn.backward") {
+                Task { await model.archive(conversation, archived: false) }
+            }
             .disabled(!canChangeHistory(conversation))
+            Button("Delete", systemImage: "trash", role: .destructive) { deleting = conversation }
+                .disabled(!canChangeHistory(conversation))
+        } else {
+            Button("Archive", systemImage: "archivebox", role: .destructive) {
+                Task { await model.archive(conversation, archived: true) }
+            }
+            .disabled(!canChangeHistory(conversation))
+        }
     }
 
     private func canChangeHistory(_ conversation: ConversationModel) -> Bool {
