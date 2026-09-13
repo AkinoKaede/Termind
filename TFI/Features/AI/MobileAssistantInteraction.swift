@@ -39,15 +39,17 @@ struct MobileAssistantInteraction: View {
                 }
             }
         } else if let interaction = conversation.pendingUserInteraction {
-            MobileAssistantAdaptiveHeight {
-                switch interaction {
-                case .sshAuthentication(let request):
+            switch interaction {
+            case .sshAuthentication(let request):
+                MobileAssistantAdaptiveHeight {
                     MobileAssistantAuthenticationForm(request: request, conversation: conversation, hosts: hosts)
-                case .sshHostKey(let request):
-                    MobileAssistantHostKeyForm(request: request, conversation: conversation)
-                case .questions:
-                    questions
                 }
+            case .sshHostKey(let request):
+                MobileAssistantAdaptiveHeight {
+                    MobileAssistantHostKeyForm(request: request, conversation: conversation)
+                }
+            case .questions:
+                questions
             }
         }
     }
@@ -63,9 +65,29 @@ struct MobileAssistantInteraction: View {
                 }
             }
             if let question = conversation.currentUserInputQuestion {
-                questionBlock(question)
-                    .id(question.id)
+                // Match TFM: the decision controls remain reachable while only
+                // the current question gives way to scrolling.
+                ViewThatFits(in: .vertical) {
+                    questionBlock(question)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    scrollingQuestion(question)
+                }
                 footer(for: question)
+            }
+        }
+    }
+
+    private func scrollingQuestion(_ question: AgentUserQuestion) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                questionBlock(question)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .id(question.id)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .onChange(of: question.id, initial: true) { _, id in
+                proxy.scrollTo(id, anchor: .top)
             }
         }
     }
@@ -367,6 +389,8 @@ private struct MobileAssistantAdaptiveHeight<Content: View>: View {
     }
 
     var body: some View {
+        // The Assistant's bottom safe-area inset supplies the real ceiling,
+        // including keyboard avoidance. A local cap wastes usable screen space.
         ViewThatFits(in: .vertical) {
             content
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -376,8 +400,7 @@ private struct MobileAssistantAdaptiveHeight<Content: View>: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .frame(maxWidth: .infinity, maxHeight: 300, alignment: .topLeading)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 

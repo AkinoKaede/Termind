@@ -430,7 +430,8 @@ private struct MobileAssistantSteeringQueue: View {
                 Image(systemName: "xmark")
                     .font(.caption.weight(.bold))
                     .frame(width: 28, height: 28)
-                    .foregroundStyle(.secondary)
+                    // Match the always-visible Permission control on iOS.
+                    .foregroundStyle(Color.primary.opacity(0.75))
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)

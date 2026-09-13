@@ -15,7 +15,8 @@ import UniformTypeIdentifiers
 
 @Suite @MainActor
 struct MobileAssistantTests {
-    @Test func shortUserInputUsesItsNaturalHeightAndLongInputUsesTheCap() throws {
+    @Test func shortUserInputUsesItsNaturalHeightAndLongInputUsesAvailableHeight() throws {
+        let availableHeight: CGFloat = 640
         let shortApp = try MobileAppModel(inMemory: true)
         let shortAssistant = shortApp.assistant.makeSceneModel()
         shortAssistant.conversation.present(
@@ -24,7 +25,8 @@ struct MobileAssistantTests {
             ]))
         let shortHeight = measuredInteractionHeight(
             conversation: shortAssistant.conversation,
-            hosts: shortApp.library
+            hosts: shortApp.library,
+            availableHeight: availableHeight
         )
 
         let longApp = try MobileAppModel(inMemory: true)
@@ -47,16 +49,17 @@ struct MobileAssistantTests {
             ]))
         let longHeight = measuredInteractionHeight(
             conversation: longAssistant.conversation,
-            hosts: longApp.library
+            hosts: longApp.library,
+            availableHeight: availableHeight
         )
 
         #expect(shortHeight > 0)
         #expect(shortHeight < 300)
-        #expect(abs(longHeight - 300) < 0.5)
+        #expect(abs(longHeight - availableHeight) < 0.5)
         #expect(shortHeight < longHeight)
     }
 
-    @Test func longApprovalUsesTheSameHeightCap() async throws {
+    @Test func longApprovalUsesAvailableHeightInsteadOfAFixedCap() async throws {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let conversation = assistant.conversation
@@ -88,9 +91,14 @@ struct MobileAssistantTests {
         let approval = Task { await conversation.requestApproval(request) }
         await Task.yield()
 
-        let height = measuredInteractionHeight(conversation: conversation, hosts: app.library)
+        let availableHeight: CGFloat = 640
+        let height = measuredInteractionHeight(
+            conversation: conversation,
+            hosts: app.library,
+            availableHeight: availableHeight
+        )
 
-        #expect(abs(height - 300) < 0.5)
+        #expect(abs(height - availableHeight) < 0.5)
         conversation.respondToApproval(allow: false)
         if case .deny = await approval.value {
         } else {
@@ -369,13 +377,14 @@ struct MobileAssistantTests {
     private func measuredInteractionHeight(
         conversation: ConversationModel,
         hosts: HostLibraryModel,
-        width: CGFloat = 390
+        width: CGFloat = 390,
+        availableHeight: CGFloat = 1_000
     ) -> CGFloat {
         let controller = UIHostingController(
             rootView: MobileAssistantInteraction(conversation: conversation, hosts: hosts)
                 .environment(\.dynamicTypeSize, .large)
         )
-        return controller.sizeThatFits(in: CGSize(width: width, height: 1_000)).height
+        return controller.sizeThatFits(in: CGSize(width: width, height: availableHeight)).height
     }
 
     private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {

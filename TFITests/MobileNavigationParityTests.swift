@@ -160,11 +160,31 @@ struct MobileNavigationParityTests {
         #expect(!bottomSurfaceContent.contains(".background(Color(uiColor: .systemBackground))"))
         #expect(interaction.contains("conversation.answerUserInputOption(option.id, in: questionID)"))
         #expect(!interaction.contains("conversation.toggleUserInputOption(option.id, in: questionID)"))
-        #expect(interaction.components(separatedBy: "MobileAssistantAdaptiveHeight {").count == 3)
+        #expect(interaction.components(separatedBy: "MobileAssistantAdaptiveHeight {").count == 4)
         #expect(interaction.contains("ViewThatFits(in: .vertical)"))
         #expect(interaction.contains(".scrollBounceBehavior(.basedOnSize)"))
-        #expect(interaction.contains(".frame(maxWidth: .infinity, maxHeight: 300, alignment: .topLeading)"))
+        #expect(!interaction.contains("maxHeight: 300"))
         #expect(!interaction.contains(".frame(maxHeight: 160)"))
+
+        let questions = try #require(
+            interaction.components(separatedBy: "private var questions: some View").last?
+                .components(separatedBy: "private func scrollingQuestion").first
+        )
+        #expect(questions.contains("ViewThatFits(in: .vertical)"))
+        #expect(questions.contains("scrollingQuestion(question)"))
+        if let scrolling = questions.range(of: "scrollingQuestion(question)"),
+            let footer = questions.range(of: "footer(for: question)")
+        {
+            #expect(scrolling.lowerBound < footer.lowerBound)
+        }
+
+        let scrollingQuestion = try #require(
+            interaction.components(separatedBy: "private func scrollingQuestion").last?
+                .components(separatedBy: "@ViewBuilder").first
+        )
+        #expect(scrollingQuestion.contains("ScrollViewReader"))
+        #expect(scrollingQuestion.contains("proxy.scrollTo(id, anchor: .top)"))
+        #expect(!scrollingQuestion.contains("footer(for:"))
 
         let secretField = try #require(
             interaction.components(separatedBy: "private func secretField").last?
@@ -219,6 +239,11 @@ struct MobileNavigationParityTests {
         #expect(steeringQueue.contains("Image(systemName: \"xmark\")"))
         #expect(steeringQueue.contains(".font(.caption.weight(.bold))"))
         #expect(steeringQueue.contains(".frame(width: 28, height: 28)"))
+        let unqueueIcon = try #require(
+            steeringQueue.components(separatedBy: "Image(systemName: \"xmark\")").last?
+                .components(separatedBy: "}").first
+        )
+        #expect(unqueueIcon.contains(".foregroundStyle(Color.primary.opacity(0.75))"))
         #expect(!steeringQueue.contains(".onHover"))
         let desktopSteeringQueue = try #require(
             desktopConversation.components(separatedBy: "struct SteeringQueueView").last)
