@@ -350,8 +350,38 @@ struct MobileNavigationParityTests {
             composer.components(separatedBy: "private var badges").last?
                 .components(separatedBy: "private var modelProviders").first)
         #expect(badges.contains("armedSkillName"))
-        #expect(badges.components(separatedBy: ".labelStyle(.iconOnly)").count == 3)
+        #expect(badges.components(separatedBy: "MobileDismissibleComposerBadge(").count == 3)
         #expect(composer.contains(".symbolRenderingMode(.monochrome)"))
+    }
+
+    @Test func assistantPlanAndSkillBadgesExposeDesktopHoverRemovalAffordance() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+
+        let badge = try #require(
+            composer.components(separatedBy: "private struct MobileDismissibleComposerBadge").last?
+                .components(separatedBy: "struct MobileAssistantComposer").first)
+        #expect(badge.contains("@State private var isHovering = false"))
+        #expect(badge.contains("isHovering ? \"xmark\" : symbol"))
+        #expect(badge.contains(".contentTransition(.symbolEffect(.replace))"))
+        #expect(badge.contains(".mobileComposerControlIcon(opacity: 0.62)"))
+        #expect(badge.contains(".onHover { isHovering = $0 }"))
+        #expect(badge.contains(".help(help)"))
+        #expect(badge.contains(".accessibilityLabel(accessibilityLabel)"))
+
+        let badges = try #require(
+            composer.components(separatedBy: "@ViewBuilder private var badges").last?
+                .components(separatedBy: "private var modelProviders").first)
+        #expect(badges.contains("symbol: \"lightbulb.max\""))
+        #expect(badges.contains("conversation.isPlanning = false"))
+        #expect(badges.contains("Text(\"Plan mode — click to turn off\")"))
+        #expect(badges.contains("Text(\"Plan mode on, turn off\")"))
+        #expect(badges.contains("symbol: \"book.closed\""))
+        #expect(badges.contains("composer.armedSkillName = nil"))
+        #expect(badges.contains("Skill \\(skill) armed, remove"))
     }
 
     @Test func assistantPermissionMenuUsesLeadingCheckmarkAndKeepsItsTriggerVisible() throws {
@@ -439,7 +469,6 @@ struct MobileNavigationParityTests {
             ("private var addMenu", "private var permissionMenu"),
             ("private var permissionMenu", "private var resolvedPermissionMode"),
             ("private var microphoneButton", "@ViewBuilder private var primaryButton"),
-            ("@ViewBuilder private var badges", "private var modelProviders"),
         ] {
             let controls = try #require(
                 composer.components(separatedBy: markers.0).last?
@@ -450,7 +479,12 @@ struct MobileNavigationParityTests {
         let badges = try #require(
             composer.components(separatedBy: "@ViewBuilder private var badges").last?
                 .components(separatedBy: "private var modelProviders").first)
-        #expect(badges.components(separatedBy: ".mobileComposerControlIcon(opacity: 0.62)").count == 3)
+        #expect(badges.components(separatedBy: "MobileDismissibleComposerBadge(").count == 3)
+
+        let dismissibleBadge = try #require(
+            composer.components(separatedBy: "private struct MobileDismissibleComposerBadge").last?
+                .components(separatedBy: "struct MobileAssistantComposer").first)
+        #expect(dismissibleBadge.contains(".mobileComposerControlIcon(opacity: 0.62)"))
 
         let primaryButton = try #require(
             composer.components(separatedBy: "@ViewBuilder private var primaryButton").last?

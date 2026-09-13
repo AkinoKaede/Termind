@@ -26,6 +26,27 @@ extension View {
     }
 }
 
+private struct MobileDismissibleComposerBadge: View {
+    let symbol: String
+    let help: Text
+    let accessibilityLabel: Text
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isHovering ? "xmark" : symbol)
+                .contentTransition(.symbolEffect(.replace))
+                .mobileComposerControlIcon(opacity: 0.62)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .help(help)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
 struct MobileAssistantComposer: View {
     let pro: ProAccessController
     let model: MobileAssistantModel
@@ -480,25 +501,22 @@ struct MobileAssistantComposer: View {
 
     @ViewBuilder private var badges: some View {
         if conversation.isPlanning {
-            Button {
+            MobileDismissibleComposerBadge(
+                symbol: "lightbulb.max",
+                help: Text("Plan mode — click to turn off"),
+                accessibilityLabel: Text("Plan mode on, turn off")
+            ) {
                 conversation.isPlanning = false
-            } label: {
-                Label("Plan", systemImage: "lightbulb.max")
-                    .labelStyle(.iconOnly)
-                    .mobileComposerControlIcon(opacity: 0.62)
             }
-            .buttonStyle(.plain)
         }
         if let skill = composer.armedSkillName {
-            Button {
+            MobileDismissibleComposerBadge(
+                symbol: "book.closed",
+                help: Text("\(skill) will be loaded for this message — click to remove"),
+                accessibilityLabel: Text("Skill \(skill) armed, remove")
+            ) {
                 composer.armedSkillName = nil
-            } label: {
-                Label(skill, systemImage: "book.closed")
-                    .labelStyle(.iconOnly)
-                    .mobileComposerControlIcon(opacity: 0.62)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("Skill \(skill) armed, remove"))
         }
     }
 
