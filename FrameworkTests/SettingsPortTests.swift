@@ -68,6 +68,7 @@ struct SettingsPortTests {
         defer { defaults.removePersistentDomain(forName: domain) }
         SettingsKey.migrateSyncPreferences(in: defaults)
         #expect(defaults.bool(forKey: SettingsKey.iCloudSyncEnabled))
+        #expect(SettingsKey.defaultSettingsSyncEnabled)
         #expect(defaults.object(forKey: SettingsKey.settingsSyncEnabled) == nil)
         defaults.set(true, forKey: SettingsKey.settingsSyncEnabled)
         defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)

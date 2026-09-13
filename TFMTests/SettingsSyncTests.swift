@@ -88,7 +88,7 @@ struct SettingsSyncTests {
     }
 
     @Test
-    func schemaV12MigratesProvidersSkillsAndPreferencesWithoutEnablingSync() throws {
+    func schemaV12MigratesProvidersSkillsAndPreferencesWithoutMaterializingSyncSelection() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("AISyncMigration-\(UUID())")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -123,7 +123,7 @@ struct SettingsSyncTests {
         #expect(!snapshot.webSearch.isEnabled)
         #expect(snapshot.terminal.fontSize == 17)
         #expect(snapshot.terminal.darkCustomConfiguration == "font-family = Menlo")
-        #expect(!defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
+        #expect(defaults.object(forKey: SettingsKey.settingsSyncEnabled) == nil)
     }
 
     @Test
@@ -220,6 +220,7 @@ struct SettingsSyncTests {
     func localEditsAreJournaledWhileDisabledAndNoOpsDoNotAdvanceVersions() throws {
         let (container, store, defaults) = try fixture()
         defer { withExtendedLifetime(container) {} }
+        defaults.set(false, forKey: SettingsKey.settingsSyncEnabled)
         #expect(!defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
         var snapshot = try store.load().configuration
         let provider = provider()
@@ -356,15 +357,15 @@ struct SettingsSyncTests {
         SettingsKey.migrateSyncPreferences(in: defaults)
         #expect(defaults.bool(forKey: SettingsKey.iCloudSyncEnabled))
         #expect(defaults.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool ?? SettingsKey.defaultVaultSyncEnabled)
-        #expect(!defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
-        defaults.set(true, forKey: SettingsKey.settingsSyncEnabled)
+        #expect(defaults.object(forKey: SettingsKey.settingsSyncEnabled) == nil)
         let vault = VaultSyncCoordinator(context: container.mainContext, defaults: defaults)
         let ai = SettingsSyncCoordinator(
             persistence: store,
             secrets: AISecretStore(context: container.mainContext, keychain: SyncTestSecrets()), defaults: defaults)
+        #expect(vault.isEnabled && ai.isEnabled)
         defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
         #expect(!vault.isEnabled && !ai.isEnabled)
-        #expect(defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
+        #expect(defaults.object(forKey: SettingsKey.settingsSyncEnabled) == nil)
         defaults.set(true, forKey: SettingsKey.iCloudSyncEnabled)
         #expect(vault.isEnabled && ai.isEnabled)
         defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
@@ -372,32 +373,42 @@ struct SettingsSyncTests {
     }
 
     @Test
-    func upgradingWithVaultDisabledKeepsMainSyncOffAndVaultPreselected() {
+    func newSettingsDefaultKeepsMainSyncOnWhenVaultWasDisabled() {
         let defaults = UserDefaults(suiteName: "AISyncPreferenceMigration.\(UUID())")!
         defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
+        SettingsKey.migrateSyncPreferences(in: defaults)
+        #expect(defaults.bool(forKey: SettingsKey.iCloudSyncEnabled))
+        #expect(!defaults.bool(forKey: SettingsKey.vaultSyncEnabled))
+        #expect(defaults.object(forKey: SettingsKey.settingsSyncEnabled) == nil)
+        #expect(
+            defaults.object(forKey: SettingsKey.settingsSyncEnabled) as? Bool
+                ?? SettingsKey.defaultSettingsSyncEnabled)
+    }
+
+    @Test
+    func explicitSettingsOptOutRemainsDisabledDuringPreferenceMigration() {
+        let defaults = UserDefaults(suiteName: "AISyncPreferenceOptOutMigration.\(UUID())")!
+        defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
+        defaults.set(false, forKey: SettingsKey.settingsSyncEnabled)
         SettingsKey.migrateSyncPreferences(in: defaults)
         #expect(!defaults.bool(forKey: SettingsKey.iCloudSyncEnabled))
         #expect(defaults.bool(forKey: SettingsKey.vaultSyncEnabled))
         #expect(!defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
-        defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
-        SettingsKey.migrateSyncPreferences(in: defaults)
-        #expect(!defaults.bool(forKey: SettingsKey.vaultSyncEnabled))
     }
 
     @Test
-    func independentSwitchesUseInjectedDefaults() throws {
+    func independentSwitchesUseDefaultsAndHonorExplicitOptOut() throws {
         let (container, store, defaults) = try fixture()
         defaults.set(true, forKey: SettingsKey.vaultSyncEnabled)
         let vault = VaultSyncCoordinator(context: container.mainContext, defaults: defaults)
         let ai = SettingsSyncCoordinator(
             persistence: store,
             secrets: AISecretStore(context: container.mainContext, keychain: SyncTestSecrets()), defaults: defaults)
-        #expect(vault.isEnabled)
-        #expect(!ai.isEnabled)
+        #expect(vault.isEnabled && ai.isEnabled)
         vault.setEnabled(false)
-        #expect(!ai.isEnabled)
-        defaults.set(true, forKey: SettingsKey.settingsSyncEnabled)
         #expect(ai.isEnabled)
+        defaults.set(false, forKey: SettingsKey.settingsSyncEnabled)
+        #expect(!ai.isEnabled)
         #expect(!vault.isEnabled)
         ai.pause()
     }
