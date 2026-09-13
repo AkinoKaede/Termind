@@ -754,6 +754,7 @@ struct MobileNavigationParityTests {
         let purchaseActions = try #require(
             pro.components(separatedBy: "private var purchaseActions").last?
                 .components(separatedBy: "private var showsPurchase").first)
+        #expect(purchaseActions.contains(".frame(maxWidth: .infinity)"))
         #expect(!purchaseActions.contains("secondarySystemGroupedBackground"))
         #expect(!purchaseActions.contains(".overlay"))
     }

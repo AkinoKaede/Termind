@@ -123,6 +123,7 @@ struct MobileProView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 6)
