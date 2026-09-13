@@ -756,9 +756,8 @@ struct MobileWorkspaceNavigationRenderingTests {
                 await navigationController(titled: "SFTP Workspace", in: controller)
             )
             var detail = try #require(navigation.topViewController)
-            #expect(detail.navigationItem.hidesBackButton)
+            #expect(!detail.navigationItem.hidesBackButton)
             #expect(descendant(of: MobileTerminalView.self, in: detail.view) == nil)
-            #expect(descendant(of: MobileInteractivePopGesture.Controller.self, in: detail) != nil)
 
             scene.selectWorkspace(sshID)
             navigation = try #require(
@@ -767,7 +766,6 @@ struct MobileWorkspaceNavigationRenderingTests {
             detail = try #require(navigation.topViewController)
             let terminal = try #require(descendant(of: MobileTerminalView.self, in: detail.view))
             #expect(!detail.navigationItem.hidesBackButton)
-            #expect(descendant(of: MobileInteractivePopGesture.Controller.self, in: detail) == nil)
             #expect(terminal.window != nil)
             #expect(terminal.bounds.width > 0)
             #expect(terminal.bounds.height > 0)
@@ -780,7 +778,6 @@ struct MobileWorkspaceNavigationRenderingTests {
             )
             detail = try #require(navigation.topViewController)
             #expect(!detail.navigationItem.hidesBackButton)
-            #expect(descendant(of: MobileInteractivePopGesture.Controller.self, in: detail) == nil)
             #expect(try #require(renderedPNGData(of: detail)).count > 10_000)
 
             scene.selectWorkspace(sshID)

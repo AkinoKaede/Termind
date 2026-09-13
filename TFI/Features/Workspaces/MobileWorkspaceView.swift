@@ -88,7 +88,6 @@ struct MobileWorkspaceView: View {
             }
             .navigationTitle(workspace.descriptor.title)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(isSFTP)
             .toolbar(.hidden, for: .tabBar)
             .toolbarTitleMenu {
                 ForEach(workspaces) { candidate in
@@ -134,20 +133,17 @@ struct MobileWorkspaceView: View {
             }
         }
         if isSFTP {
-            ToolbarItemGroup(placement: .topBarLeading) {
-                Button("Previous Location", systemImage: "chevron.left") {
-                    Task { await workspace.sftpSession.goBack() }
-                }
-                .labelStyle(.iconOnly)
-                .disabled(!workspace.connected || !workspace.sftpSession.canGoBack)
-                Button("Next Location", systemImage: "chevron.right") {
-                    Task { await workspace.sftpSession.goForward() }
-                }
-                .labelStyle(.iconOnly)
-                .disabled(!workspace.connected || !workspace.sftpSession.canGoForward)
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button("Previous Location", systemImage: "chevron.left") {
+                        Task { await workspace.sftpSession.goBack() }
+                    }
+                    .disabled(!workspace.connected || !workspace.sftpSession.canGoBack)
+                    Button("Next Location", systemImage: "chevron.right") {
+                        Task { await workspace.sftpSession.goForward() }
+                    }
+                    .disabled(!workspace.connected || !workspace.sftpSession.canGoForward)
+                    Divider()
                     Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                     Button("History", systemImage: "clock") { terminalSheet = .sftpHistory }
                     Divider()
@@ -696,9 +692,6 @@ private struct MobileWorkspaceSearchModifier: ViewModifier {
                 )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .background {
-                    MobileInteractivePopGesture().frame(width: 0, height: 0)
-                }
         }
     }
 

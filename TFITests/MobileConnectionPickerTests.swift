@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import TermindDomain
 import Testing
@@ -39,6 +40,41 @@ struct MobileConnectionPickerTests {
         #expect(selections.count == 2)
         #expect(selections.last?.0 == staging.id)
         #expect(selections.last?.1 == .sftp)
+    }
+
+    @Test func emptyWorkspaceHistoryKeepsTheLatestFiveValidConnectionEventsWithoutDeduplication() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app)
+        let repeatedHost = Host(name: "Repeated", host: "repeated.example.invalid")
+        let otherHosts = (0..<4).map {
+            Host(name: "Host \($0)", host: "host-\($0).example.invalid")
+        }
+        app.library.upsert(repeatedHost)
+        for host in otherHosts { app.library.upsert(host) }
+
+        let expectedEntries = try [
+            #require(
+                app.connectionHistory.record(kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 70))),
+            #require(
+                app.connectionHistory.record(kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 60))),
+            #require(
+                app.connectionHistory.record(kind: .sftp, for: otherHosts[0].id, at: Date(timeIntervalSince1970: 50))),
+            #require(
+                app.connectionHistory.record(kind: .ssh, for: otherHosts[1].id, at: Date(timeIntervalSince1970: 40))),
+            #require(
+                app.connectionHistory.record(kind: .sftp, for: otherHosts[2].id, at: Date(timeIntervalSince1970: 30))),
+        ]
+        _ = app.connectionHistory.record(
+            kind: .ssh, for: otherHosts[3].id, at: Date(timeIntervalSince1970: 20))
+        _ = app.connectionHistory.record(
+            kind: .ssh, for: UUID(), at: Date(timeIntervalSince1970: 80))
+
+        let rows = MobileWorkspaceListView(app: app, scene: scene).historyRows
+
+        #expect(rows.count == MobileWorkspaceListView.historyLimit)
+        #expect(rows.map(\.entry.id) == expectedEntries.map(\.id))
+        #expect(rows[0].entry.hostID == rows[1].entry.hostID)
+        #expect(rows[0].entry.kind == rows[1].entry.kind)
     }
 
     @Test func sharedHostPickerUsesConfiguredTitleWithoutHostsHeaderOrProtocolControl() async throws {

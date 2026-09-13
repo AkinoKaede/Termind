@@ -2,7 +2,6 @@ import Foundation
 import TermindApplication
 import TermindDomain
 import Testing
-import UIKit
 
 import struct TermindDomain.Host
 
@@ -215,16 +214,6 @@ struct MobileSFTPSessionTests {
 
         #expect(session.path == "/current")
         #expect(history.entries(for: hostID).map(\.path) == ["/current"])
-    }
-
-    @Test func interactivePopRequiresAParentNavigationDestination() {
-        let root = UIViewController()
-        let controller = MobileInteractivePopGesture.Controller()
-        let navigation = UINavigationController(rootViewController: root)
-
-        #expect(!controller.gestureRecognizerShouldBegin(UIPanGestureRecognizer()))
-        navigation.pushViewController(controller, animated: false)
-        #expect(controller.gestureRecognizerShouldBegin(UIPanGestureRecognizer()))
     }
 
     private func attach(

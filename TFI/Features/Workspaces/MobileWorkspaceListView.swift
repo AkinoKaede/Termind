@@ -1,10 +1,21 @@
 import SwiftUI
+import TermindDomain
 import UIKit
+
+struct MobileConnectionHistoryRow: Identifiable {
+    let entry: ConnectionHistoryEntry
+    let host: Host
+
+    var id: ConnectionHistoryEntry.ID { entry.id }
+}
 
 /// The registered Workspaces destination.
 struct MobileWorkspaceListView: View {
     let app: MobileAppModel
     @Bindable var scene: MobileSceneModel
+    @Environment(\.locale) private var locale
+
+    static let historyLimit = 5
 
     var body: some View {
         List {
@@ -15,7 +26,11 @@ struct MobileWorkspaceListView: View {
                     Label("Transfers", systemImage: "arrow.up.arrow.down")
                 }
             }
-            Section("Workspaces") { workspaceRows }
+            if app.workspaces.isEmpty, !historyRows.isEmpty {
+                Section("History") { historyRowsContent }
+            } else {
+                Section("Workspaces") { workspaceRows }
+            }
         }
         .navigationTitle("Workspaces")
         .toolbar {
@@ -36,7 +51,7 @@ struct MobileWorkspaceListView: View {
                     closeWorkspace: scene.closeWorkspace
                 )
                 // The title menu replaces this pushed detail in place. A new identity tears down
-                // SFTP's native search and back-gesture state before an SSH detail is mounted.
+                // SFTP's native search state before an SSH detail is mounted.
                 .id(workspace.id)
             }
         }
@@ -60,7 +75,7 @@ struct MobileWorkspaceListView: View {
         if app.workspaces.isEmpty {
             ContentUnavailableView(
                 "No Workspaces", systemImage: "terminal",
-                description: Text("Open a host from Vault to start a workspace.")
+                description: Text("Use Connect to start a workspace.")
             )
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -103,6 +118,50 @@ struct MobileWorkspaceListView: View {
                     scene.closeWorkspace(workspace.id)
                 }
             }
+        }
+    }
+
+    var historyRows: [MobileConnectionHistoryRow] {
+        _ = app.connectionHistory.revision
+        return Array(
+            app.connectionHistory.entries().lazy.compactMap { entry in
+                app.library.host(entry.hostID).map { MobileConnectionHistoryRow(entry: entry, host: $0) }
+            }.prefix(Self.historyLimit)
+        )
+    }
+
+    @ViewBuilder
+    private var historyRowsContent: some View {
+        ForEach(historyRows) { row in
+            Button {
+                scene.open(hostID: row.host.id, kind: row.entry.kind)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: row.entry.kind.symbol)
+                        .foregroundStyle(.tint)
+                        .frame(width: 28, height: 28)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
+                        Text(app.library.loginAddress(for: row.host))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer(minLength: 12)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(row.entry.kind.label).font(.caption.weight(.medium))
+                        Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+                .accessibilityElement(children: .combine)
+            }
+            .buttonStyle(.plain)
         }
     }
 

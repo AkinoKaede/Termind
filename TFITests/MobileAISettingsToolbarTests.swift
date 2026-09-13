@@ -55,8 +55,8 @@ struct MobileAISettingsToolbarTests {
                 #expect(!names.contains("History"))
                 #expect(!names.contains("Transfers"))
                 #expect(!names.contains("Close"))
-                #expect(names.contains("Previous Location") == (kind == .sftp))
-                #expect(names.contains("Next Location") == (kind == .sftp))
+                #expect(!names.contains("Previous Location"))
+                #expect(!names.contains("Next Location"))
             }
         }
     }

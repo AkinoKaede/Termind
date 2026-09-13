@@ -15225,23 +15225,6 @@
         }
       }
     },
-    "Open a host from Vault to start a workspace." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "从保险库打开主机以创建工作区。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "從保險庫開啟主機以建立工作區。"
-          }
-        }
-      }
-    },
     "Open a page, chat, workspace, host, or command" : {
       "localizations" : {
         "zh-Hans" : {
@@ -25660,6 +25643,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用已安裝的技能"
+          }
+        }
+      }
+    },
+    "Use Connect to start a workspace." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用“连接”创建工作区。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用「連線」建立工作區。"
           }
         }
       }
