@@ -294,6 +294,8 @@ struct MobileNavigationParityTests {
         #expect(sftp.contains("Button(\"Delete\", systemImage: \"trash\", role: .destructive)"))
         #expect(sftp.contains("MobileSFTPPathBar(session: session, connected: connected)\n            Divider()"))
         #expect(!sftp.contains(".overlay(alignment: .bottom) { Divider()"))
+        #expect(sftp.contains("Text(verbatim: \"..\")"))
+        #expect(!sftp.contains("Text(\"..\")"))
         #expect(sftp.contains("Text(verbatim: \"0\")"))
         #expect(sftp.contains(".hidden()"))
         #expect(sftp.contains(".accessibilityHidden(true)"))

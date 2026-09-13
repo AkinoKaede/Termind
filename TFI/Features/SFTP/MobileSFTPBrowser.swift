@@ -84,7 +84,7 @@ struct MobileSFTPBrowser: View {
                 .font(.system(size: 28))
                 .foregroundStyle(.tint)
                 .frame(width: 34)
-            Text("..").font(.body.weight(.semibold))
+            Text(verbatim: "..").font(.body.weight(.semibold))
             Spacer()
         }
         .padding(.horizontal, 16)
