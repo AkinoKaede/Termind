@@ -381,25 +381,11 @@ private struct MobileAssistantSteeringQueue: View {
 
     @State private var rowsHeight: CGFloat = 0
 
-    private var deliveryStatus: LocalizedStringKey {
-        switch conversation.runState {
-        case .waitingForApproval, .waitingForUser: "Waiting for response"
-        default: "Next step"
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Label("Steering", systemImage: "arrow.turn.down.right")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 8)
-                Text(deliveryStatus)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
+            Label("Steering", systemImage: "arrow.turn.down.right")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -442,8 +428,8 @@ private struct MobileAssistantSteeringQueue: View {
                 }
 
                 Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .bold))
-                    .frame(width: 20, height: 20)
+                    .font(.caption.weight(.bold))
+                    .frame(width: 28, height: 28)
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 8)
@@ -558,6 +544,14 @@ struct MobileAssistantConversation: View {
     }
 
     @ViewBuilder private var bottomSurface: some View {
+        bottomSurfaceContent
+            .padding(12)
+            .frame(maxWidth: 840)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .systemBackground))
+    }
+
+    @ViewBuilder private var bottomSurfaceContent: some View {
         if conversation.isArchived {
             archivedNotice
                 .padding(12)
@@ -566,15 +560,10 @@ struct MobileAssistantConversation: View {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(.primary.opacity(0.08), lineWidth: 1)
                 }
-                .padding(12)
         } else if conversation.pendingApproval != nil || conversation.pendingUserInteraction != nil {
             MobileAssistantInteraction(conversation: conversation, hosts: app.library)
-                .padding(12)
-                .background(Color(uiColor: .systemBackground))
         } else {
             regularInteractionSurface
-                .padding(12)
-                .background(Color(uiColor: .systemBackground))
         }
     }
 

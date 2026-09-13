@@ -140,6 +140,7 @@ struct MobileWorkspaceListView: View {
                     Image(systemName: row.entry.kind.symbol)
                         .foregroundStyle(.tint)
                         .frame(width: 28, height: 28)
+                        .accessibilityLabel(Text(row.entry.kind.label))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
                         Text(app.library.loginAddress(for: row.host))
@@ -149,13 +150,10 @@ struct MobileWorkspaceListView: View {
                             .truncationMode(.middle)
                     }
                     Spacer(minLength: 12)
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(row.entry.kind.label).font(.caption.weight(.medium))
-                        Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)

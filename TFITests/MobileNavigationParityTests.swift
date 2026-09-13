@@ -27,8 +27,11 @@ struct MobileNavigationParityTests {
             assistant.components(separatedBy: "@ViewBuilder private var conversationTitleMenu").last?
                 .components(separatedBy: "private func titleMenuButton").first)
         let bottomSurface = try #require(
-            transcript.components(separatedBy: "@ViewBuilder private var bottomSurface").last?
-                .components(separatedBy: "private var archivedNotice").first)
+            transcript.components(separatedBy: "@ViewBuilder private var bottomSurface: some View {").last?
+                .components(separatedBy: "@ViewBuilder private var bottomSurfaceContent").first)
+        let transcriptRows = try #require(
+            transcript.components(separatedBy: "MobileNativeList(").last?
+                .components(separatedBy: ".safeAreaInset(edge: .bottom").first)
         let assistantRows = try #require(
             assistant.components(separatedBy: "private func conversationRow").last?
                 .components(separatedBy: "private func select").first)
@@ -93,6 +96,7 @@ struct MobileNavigationParityTests {
         #expect(transcript.contains("AssistantTranscriptPresentationState()"))
         #expect(transcript.contains("DisclosureGroup(isExpanded: disclosureBinding"))
         #expect(!transcript.contains("LazyVStack"))
+        #expect(transcriptRows.contains(".frame(maxWidth: 840)"))
         #expect(workRows.contains("if batch.cards.count == 1, let card = batch.cards.first"))
         #expect(workRows.contains("defaultExpanded: true"))
         #expect(workRows.contains("presentation.isExpanded(.toolBatch(batch.id))"))
@@ -110,12 +114,15 @@ struct MobileNavigationParityTests {
         let interaction = try String(
             contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantInteraction.swift"), encoding: .utf8)
         let bottomSurface = try #require(
-            conversation.components(separatedBy: "@ViewBuilder private var bottomSurface").last?
-                .components(separatedBy: "private var archivedNotice").first)
+            conversation.components(separatedBy: "@ViewBuilder private var bottomSurface: some View {").last?
+                .components(separatedBy: "@ViewBuilder private var bottomSurfaceContent").first)
+        let bottomSurfaceContent = try #require(
+            conversation.components(separatedBy: "@ViewBuilder private var bottomSurfaceContent").last?
+                .components(separatedBy: "private var regularInteractionSurface").first)
         let blockingSurface = try #require(
-            bottomSurface.components(separatedBy: "conversation.pendingUserInteraction != nil {").last?
+            bottomSurfaceContent.components(separatedBy: "conversation.pendingUserInteraction != nil {").last?
                 .components(separatedBy: "} else {").first)
-        let composerSurface = try #require(bottomSurface.components(separatedBy: "} else {").last)
+        let composerSurface = try #require(bottomSurfaceContent.components(separatedBy: "} else {").last)
         let regularSurface = try #require(
             conversation.components(separatedBy: "private var regularInteractionSurface").last?
                 .components(separatedBy: "private var archivedNotice").first
@@ -126,13 +133,22 @@ struct MobileNavigationParityTests {
         )
 
         #expect(
-            bottomSurface.contains(
+            bottomSurfaceContent.contains(
                 "conversation.pendingApproval != nil || conversation.pendingUserInteraction != nil"))
+        #expect(bottomSurface.contains("bottomSurfaceContent"))
+        let padding = try #require(bottomSurface.range(of: ".padding(12)"))
+        let widthLimit = try #require(bottomSurface.range(of: ".frame(maxWidth: 840)"))
+        let fullWidth = try #require(bottomSurface.range(of: ".frame(maxWidth: .infinity)"))
+        let background = try #require(
+            bottomSurface.range(of: ".background(Color(uiColor: .systemBackground))"))
+        #expect(padding.lowerBound < widthLimit.lowerBound)
+        #expect(widthLimit.lowerBound < fullWidth.lowerBound)
+        #expect(fullWidth.lowerBound < background.lowerBound)
+        #expect(bottomSurfaceContent.contains("if conversation.isArchived"))
         #expect(blockingSurface.contains("MobileAssistantInteraction("))
         #expect(!blockingSurface.contains("MobileAssistantComposer("))
         #expect(!blockingSurface.contains("MobileAssistantTaskCapsule("))
         #expect(!blockingSurface.contains("MobileAssistantSteeringQueue("))
-        #expect(blockingSurface.contains(".background(Color(uiColor: .systemBackground))"))
         #expect(composerSurface.contains("regularInteractionSurface"))
         #expect(regularSurface.contains("ZStack(alignment: .top)"))
         #expect(regularFlow.contains("MobileAssistantSteeringQueue("))
@@ -141,7 +157,7 @@ struct MobileNavigationParityTests {
         #expect(regularSurface.contains("MobileAssistantTaskCapsule("))
         #expect(regularSurface.contains(".offset(y: -44)"))
         #expect(!composerSurface.contains("MobileAssistantInteraction("))
-        #expect(composerSurface.contains(".background(Color(uiColor: .systemBackground))"))
+        #expect(!bottomSurfaceContent.contains(".background(Color(uiColor: .systemBackground))"))
         #expect(interaction.contains("conversation.answerUserInputOption(option.id, in: questionID)"))
         #expect(!interaction.contains("conversation.toggleUserInputOption(option.id, in: questionID)"))
         #expect(interaction.components(separatedBy: "MobileAssistantAdaptiveHeight {").count == 3)
@@ -186,6 +202,10 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantTranscriptCards.swift"),
             encoding: .utf8
         )
+        let desktopConversation = try String(
+            contentsOf: root.appending(path: "TFM/Features/AI/ConversationTranscriptView.swift"),
+            encoding: .utf8
+        )
 
         #expect(!composer.contains("pendingSteering"))
         #expect(conversation.contains("struct MobileAssistantSteeringQueue"))
@@ -197,7 +217,17 @@ struct MobileNavigationParityTests {
                 .components(separatedBy: "struct MobileAssistantConversation").first
         )
         #expect(steeringQueue.contains("Image(systemName: \"xmark\")"))
+        #expect(steeringQueue.contains(".font(.caption.weight(.bold))"))
+        #expect(steeringQueue.contains(".frame(width: 28, height: 28)"))
         #expect(!steeringQueue.contains(".onHover"))
+        let desktopSteeringQueue = try #require(
+            desktopConversation.components(separatedBy: "struct SteeringQueueView").last)
+        for source in [steeringQueue, desktopSteeringQueue] {
+            #expect(!source.contains("\"Next step\""))
+            #expect(!source.contains("\"Waiting for response\""))
+            #expect(!source.contains("deliveryStatus"))
+            #expect(!source.contains("isWaitingForResponse"))
+        }
         #expect(conversation.contains("struct MobileAssistantTaskCapsule"))
         #expect(conversation.contains("ProgressRing("))
         #expect(conversation.contains(".offset(y: -overlayHeight)"))
@@ -748,6 +778,13 @@ struct MobileNavigationParityTests {
         #expect(workspaceList.contains("description: Text(\"Use Connect to start a workspace.\")"))
         #expect(workspaceList.contains("Section(\"History\")"))
         #expect(workspaceList.contains("static let historyLimit = 5"))
+        let historyRows = try #require(
+            workspaceList.components(separatedBy: "private var historyRowsContent").last?
+                .components(separatedBy: "private func statusTint").first)
+        #expect(historyRows.contains("Image(systemName: row.entry.kind.symbol)"))
+        #expect(historyRows.contains(".accessibilityLabel(Text(row.entry.kind.label))"))
+        #expect(historyRows.contains("Text(row.entry.connectedAt, format: .relative"))
+        #expect(!historyRows.contains("Text(row.entry.kind.label).font"))
         #expect(!workspaceList.contains("Open a host from Vault to start a workspace."))
         #expect(!workspaceList.contains(".buttonStyle(.borderedProminent)"))
         #expect(workspaceList.contains(".buttonStyle(.plain)"))

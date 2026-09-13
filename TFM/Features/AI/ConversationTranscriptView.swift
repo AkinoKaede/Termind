@@ -881,30 +881,11 @@ struct SteeringQueueView: View {
     @State private var rowsHeight: CGFloat = 0
     @State private var hoveredMessageID: PendingSteeringMessage.ID?
 
-    /// The wait has two different causes, and only one of them resolves on its
-    /// own. While a card above is holding the run, saying "next step" would be
-    /// a promise nothing is working towards.
-    private var deliveryStatus: LocalizedStringKey {
-        switch conversation.runState {
-        case .waitingForApproval, .waitingForUser: "Waiting for response"
-        default: "Next step"
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            HStack(spacing: Metrics.Space.s) {
-                Label("Steering", systemImage: "arrow.turn.down.right")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-
-                Spacer(minLength: Metrics.Space.s)
-
-                Text(deliveryStatus)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
+            Label("Steering", systemImage: "arrow.turn.down.right")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
