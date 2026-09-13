@@ -35,6 +35,9 @@ struct MobileWorkspaceListView: View {
                     openSameDirectory: scene.openSameDirectory,
                     closeWorkspace: scene.closeWorkspace
                 )
+                // The title menu replaces this pushed detail in place. A new identity tears down
+                // SFTP's native search and back-gesture state before an SSH detail is mounted.
+                .id(workspace.id)
             }
         }
         .sheet(isPresented: $scene.isConnectionPickerPresented) {

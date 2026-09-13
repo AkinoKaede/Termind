@@ -1,6 +1,7 @@
 import Foundation
 import GhosttyTerminal
 import SwiftData
+import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
@@ -715,6 +716,202 @@ struct MobileLiveActivitySchedulingTests {
         #expect(workspace.connected)
         #expect(receivedID == workspace.id)
         #expect(receivedConnected)
+    }
+}
+
+@Suite(.serialized) @MainActor
+struct MobileWorkspaceNavigationRenderingTests {
+    @Test func switchingFromSFTPRebuildsSSHContentAndConnectionJourney() async throws {
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let app = try MobileAppModel(
+            inMemory: true,
+            workspaceConnectionServices: connections.services
+        )
+        let host = try configureConnectionFixture(in: app)
+        let sftpID = try #require(app.open(hostID: host.id, kind: .sftp))
+        let sshID = try #require(app.open(hostID: host.id, kind: .ssh))
+        let journeyID = try #require(app.open(hostID: host.id, kind: .ssh))
+        defer { app.closeAll() }
+
+        #expect(await eventually { app.workspaces.allSatisfy(\.connected) })
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(app.renameWorkspace(sftpID, to: "SFTP Workspace"))
+        #expect(app.renameWorkspace(sshID, to: "SSH Workspace"))
+        #expect(app.renameWorkspace(journeyID, to: "SSH Journey"))
+
+        let journeyWorkspace = try #require(app.workspaces.first(where: { $0.id == journeyID }))
+        journeyWorkspace.disconnect()
+        journeyWorkspace.journey.begin(
+            host: host,
+            route: app.library.route(for: host),
+            purpose: .sshSession,
+            username: app.library.identity(for: host)?.username
+        )
+        journeyWorkspace.journey.fail("Network unavailable", at: host.id)
+
+        let scene = MobileSceneModel(app: app)
+        scene.selectWorkspace(sftpID)
+        try await withHostedView(MobileWorkspaceNavigationHarness(app: app, scene: scene)) { controller in
+            var navigation = try #require(
+                await navigationController(titled: "SFTP Workspace", in: controller)
+            )
+            var detail = try #require(navigation.topViewController)
+            #expect(detail.navigationItem.hidesBackButton)
+            #expect(descendant(of: MobileTerminalView.self, in: detail.view) == nil)
+            #expect(descendant(of: MobileInteractivePopGesture.Controller.self, in: detail) != nil)
+
+            scene.selectWorkspace(sshID)
+            navigation = try #require(
+                await navigationController(titled: "SSH Workspace", in: controller)
+            )
+            detail = try #require(navigation.topViewController)
+            let terminal = try #require(descendant(of: MobileTerminalView.self, in: detail.view))
+            #expect(!detail.navigationItem.hidesBackButton)
+            #expect(descendant(of: MobileInteractivePopGesture.Controller.self, in: detail) == nil)
+            #expect(terminal.window != nil)
+            #expect(terminal.bounds.width > 0)
+            #expect(terminal.bounds.height > 0)
+
+            scene.selectWorkspace(sftpID)
+            _ = try #require(await navigationController(titled: "SFTP Workspace", in: controller))
+            scene.selectWorkspace(journeyID)
+            navigation = try #require(
+                await navigationController(titled: "SSH Journey", in: controller)
+            )
+            detail = try #require(navigation.topViewController)
+            #expect(!detail.navigationItem.hidesBackButton)
+            #expect(descendant(of: MobileInteractivePopGesture.Controller.self, in: detail) == nil)
+            #expect(try #require(renderedPNGData(of: detail)).count > 10_000)
+
+            scene.selectWorkspace(sshID)
+            _ = try #require(await navigationController(titled: "SSH Workspace", in: controller))
+            scene.selectWorkspace(sftpID)
+            _ = try #require(await navigationController(titled: "SFTP Workspace", in: controller))
+            scene.closeWorkspace(sftpID)
+            _ = try #require(await navigationController(titled: "Workspaces", in: controller))
+            #expect(scene.workspaceID == nil)
+        }
+    }
+
+    private func configureConnectionFixture(in app: MobileAppModel) throws -> TermindDomain.Host {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        var host = TermindDomain.Host(name: "Example", host: "example.invalid")
+        host.identityID = identity.id
+        try app.library.upsert(identity, passwordUpdate: .replace("test-only"))
+        app.library.upsert(host)
+        app.library.trust(
+            KnownHostEntry(
+                hostname: host.host,
+                port: host.port,
+                algorithm: .ed25519,
+                fingerprint: "SHA256:test"
+            )
+        )
+        return host
+    }
+
+    private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
+        for _ in 0..<100 {
+            if condition() { return true }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return false
+    }
+
+    private func withHostedView<Content: View>(
+        _ content: Content,
+        check: (UIViewController) async throws -> Void
+    ) async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousWindow = scene.keyWindow
+        let window = UIWindow(windowScene: scene)
+        let controller = UIHostingController(rootView: content)
+        window.rootViewController = controller
+        window.windowLevel = .alert + 2
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previousWindow?.makeKey()
+        }
+        try await Task.sleep(for: .milliseconds(700))
+        try await check(controller)
+    }
+
+    private func navigationController(
+        titled title: String,
+        in controller: UIViewController
+    ) async -> UINavigationController? {
+        for _ in 0..<50 {
+            if let navigation = descendants(of: UINavigationController.self, in: controller).first(where: {
+                $0.topViewController?.navigationItem.title == title
+            }) {
+                return navigation
+            }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return nil
+    }
+
+    private func descendants<T: UIViewController>(
+        of type: T.Type,
+        in controller: UIViewController
+    ) -> [T] {
+        var pending = [controller]
+        var visited = Set<ObjectIdentifier>()
+        var results: [T] = []
+        while let next = pending.popLast() {
+            guard visited.insert(ObjectIdentifier(next)).inserted else { continue }
+            if let result = next as? T { results.append(result) }
+            pending.append(contentsOf: next.children)
+            if let presented = next.presentedViewController { pending.append(presented) }
+        }
+        return results
+    }
+
+    private func descendant<T: UIViewController>(
+        of type: T.Type,
+        in controller: UIViewController
+    ) -> T? {
+        descendants(of: type, in: controller).first
+    }
+
+    private func descendant<T: UIView>(of type: T.Type, in view: UIView) -> T? {
+        if let result = view as? T { return result }
+        for subview in view.subviews {
+            if let result = descendant(of: type, in: subview) { return result }
+        }
+        return nil
+    }
+
+    private func renderedPNGData(of controller: UIViewController) -> Data? {
+        controller.view.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: controller.view.bounds).image { _ in
+            controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
+        }
+        return image.pngData()
+    }
+}
+
+private struct MobileWorkspaceNavigationHarness: View {
+    let app: MobileAppModel
+    @Bindable var scene: MobileSceneModel
+
+    @ViewBuilder
+    var body: some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationSplitView {
+                Text("Sidebar")
+            } detail: {
+                NavigationStack {
+                    MobileWorkspaceListView(app: app, scene: scene)
+                }
+            }
+        } else {
+            NavigationStack {
+                MobileWorkspaceListView(app: app, scene: scene)
+            }
+        }
     }
 }
 
