@@ -20,6 +20,9 @@ final class MetricsWindowPresenter {
         entries.removeAll { $0.window == nil || $0.window === window }
         entries.append(Entry(window: window, model: model))
     }
+    static func registerWindowCreation(_ createWindow: @escaping () -> Void) {
+        reopen = createWindow
+    }
     static func open() -> Bool {
         for window in NSApp.orderedWindows {
             guard let entry = entries.first(where: { $0.window === window }), let model = entry.model else { continue }
@@ -29,6 +32,20 @@ final class MetricsWindowPresenter {
             NSApp.activate(ignoringOtherApps: true)
             return true
         }
+        return false
+    }
+    /// Returning `true` lets SwiftUI create its initial WindowGroup during a cold launch.
+    /// Once a window has appeared, the retained scene action can create later windows itself.
+    static func handleReopen() -> Bool {
+        handleReopen(openExistingWindow: open, createWindow: reopen)
+    }
+    static func handleReopen(
+        openExistingWindow: () -> Bool,
+        createWindow: (() -> Void)?
+    ) -> Bool {
+        if openExistingWindow() { return false }
+        guard let createWindow else { return true }
+        createWindow()
         return false
     }
     static func quit() { NSApp.terminate(nil) }

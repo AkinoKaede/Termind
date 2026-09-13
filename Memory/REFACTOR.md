@@ -1437,3 +1437,11 @@ out of view files.
 **Result:** Cross-platform policy now has one owner while native lists, cards, menus, selection, and transport
 lifecycle remain platform-specific. No persistence schema, dependency version, remote protocol, or localization key
 changed. The deliberate AppKit/UIKit and complete SSH/SFTP session boundaries remain intact.
+
+## StoreKit annual-subscription addendum — 2026-09-13
+
+The zero-price trial product is retired from sale and retained only as a legacy entitlement reader. New trials are
+optional introductory offers on `com.akinokaede.termind.pro.annual`; their presence, eligibility, duration, price,
+billing period, and expiration all come from StoreKit. Removing the offer in App Store Connect leaves annual
+purchase available and removes every trial claim from the paywall automatically. The former review-demo override
+is deleted because App Review now exercises real subscription metadata.

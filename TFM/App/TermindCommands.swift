@@ -17,9 +17,14 @@ struct TermindCommands: Commands {
     let app: AppModel
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.window) private var window
 
     var body: some Commands {
+        let _ = MetricsWindowPresenter.registerWindowCreation {
+            openWindow(id: "main")
+        }
+
         CommandGroup(replacing: .appSettings) {
             Button("Settings", systemImage: MenuSymbol.settings) { window?.openSettings() }
                 .termindShortcut(",")

@@ -139,6 +139,33 @@ struct MetricsInteractionTests {
         #expect(menu.isVisible)
     }
 
+    @Test
+    func reopenDefersToSwiftUIOnlyUntilAWindowFactoryExists() {
+        var createdWindow = false
+
+        #expect(
+            MetricsWindowPresenter.handleReopen(
+                openExistingWindow: { false },
+                createWindow: nil
+            ))
+        #expect(!createdWindow)
+
+        #expect(
+            !MetricsWindowPresenter.handleReopen(
+                openExistingWindow: { false },
+                createWindow: { createdWindow = true }
+            ))
+        #expect(createdWindow)
+
+        createdWindow = false
+        #expect(
+            !MetricsWindowPresenter.handleReopen(
+                openExistingWindow: { true },
+                createWindow: { createdWindow = true }
+            ))
+        #expect(!createdWindow)
+    }
+
     private func hasTable(_ view: NSView) -> Bool {
         view is NSTableView || view.subviews.contains(where: hasTable)
     }

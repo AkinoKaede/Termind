@@ -271,8 +271,7 @@ struct TermindApp: App {
 
         func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
             guard !flag else { return true }
-            if !MetricsWindowPresenter.open() { MetricsWindowPresenter.reopen?() }
-            return false
+            return MetricsWindowPresenter.handleReopen()
         }
 
         /// Opening at login is for having Termind *available*, not for taking the
