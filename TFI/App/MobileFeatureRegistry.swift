@@ -98,6 +98,7 @@ struct MobileFeatureRegistry {
                             get: { scene.editingHost },
                             set: { scene.editingHost = $0 }
                         ),
+                        activateHost: scene.activateHost,
                         open: scene.open,
                         showsMetrics: surface == .phoneTab,
                         executeSnippet: scene.execute

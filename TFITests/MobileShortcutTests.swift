@@ -72,6 +72,93 @@ struct MobileShortcutTests {
         #expect(scene.assistant.conversation.id != previousConversationID)
     }
 
+    @Test func hostCardActivationReusesTheScenesMostRecentSSHWorkspace() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
+        let first = try #require(app.open(hostID: host.id, kind: .ssh))
+        let second = try #require(app.open(hostID: host.id, kind: .ssh))
+        _ = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+
+        let firstScene = MobileSceneModel(app: app)
+        firstScene.selectWorkspace(first)
+        firstScene.activatePendingWorkspace()
+        firstScene.selectWorkspace(second)
+
+        let secondScene = MobileSceneModel(app: app)
+        secondScene.selectWorkspace(second)
+        secondScene.activatePendingWorkspace()
+        secondScene.selectWorkspace(first)
+
+        let workspaceCount = app.workspaces.count
+        let historyCount = app.connectionHistory.entries(for: host.id).count
+        firstScene.openSettings()
+        firstScene.activateHost(host.id)
+        firstScene.activatePendingWorkspace()
+        secondScene.openSettings()
+        secondScene.activateHost(host.id)
+        secondScene.activatePendingWorkspace()
+
+        #expect(firstScene.workspaceID == second)
+        #expect(secondScene.workspaceID == first)
+        #expect(app.workspaces.count == workspaceCount)
+        #expect(app.connectionHistory.entries(for: host.id).count == historyCount)
+    }
+
+    @Test func hostCardActivationFallsBackToTheNewestMatchingSSHWorkspace() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
+        _ = try #require(app.open(hostID: host.id, kind: .ssh))
+        let newestSSH = try #require(app.open(hostID: host.id, kind: .ssh))
+        _ = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        let scene = MobileSceneModel(app: app)
+
+        scene.activateHost(host.id)
+        scene.activatePendingWorkspace()
+
+        #expect(scene.workspaceID == newestSSH)
+        #expect(app.workspaces.count == 3)
+    }
+
+    @Test func hostCardActivationCreatesSSHWhenOnlySFTPExists() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
+        let sftp = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        let scene = MobileSceneModel(app: app)
+
+        scene.activateHost(host.id)
+        scene.activatePendingWorkspace()
+
+        #expect(app.workspaces.count == 2)
+        #expect(scene.workspaceID != sftp)
+        #expect(scene.activeWorkspace?.descriptor.hostID == host.id)
+        #expect(scene.activeWorkspace?.descriptor.kind == .ssh)
+    }
+
+    @Test func hostCardActivationForgetsAClosedRecentWorkspace() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
+        let first = try #require(app.open(hostID: host.id, kind: .ssh))
+        let second = try #require(app.open(hostID: host.id, kind: .ssh))
+        defer { app.closeAll() }
+        let scene = MobileSceneModel(app: app)
+        scene.selectWorkspace(first)
+        scene.activatePendingWorkspace()
+        scene.selectWorkspace(second)
+
+        scene.closeWorkspace(second)
+        scene.activateHost(host.id)
+
+        #expect(scene.workspaceID == first)
+        #expect(app.workspaces.map(\.id) == [first])
+    }
+
     @Test func workspaceCommandsSelectByIndexAndWrapInBothDirections() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")

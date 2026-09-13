@@ -798,6 +798,12 @@ struct MobileNavigationParityTests {
         #expect(!vault.contains("List {"))
         #expect(vault.contains("app.library.setExpanded(!isExpanded, for: id)"))
         #expect(vault.contains("app.library.setUngroupedExpanded(!isExpanded)"))
+        let hostRow = try #require(vault.components(separatedBy: "private func row(_ host: Host)").last)
+        #expect(hostRow.contains("activateHost(host.id)"))
+        #expect(hostRow.contains("Button(\"SSH\", systemImage: \"terminal\") { open(host.id, .ssh) }"))
+        #expect(hostRow.contains("Button(\"SFTP\", systemImage: \"folder\") { open(host.id, .sftp) }"))
+        #expect(hostRow.contains(".accessibilityHint(\"Open Workspace\")"))
+        #expect(!hostRow.contains(".accessibilityHint(\"Quick Connect with SSH\")"))
 
         let workspaceList = try String(
             contentsOf: root.appending(path: "TFI/Features/Workspaces/MobileWorkspaceListView.swift"),

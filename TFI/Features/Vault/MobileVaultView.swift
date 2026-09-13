@@ -84,6 +84,7 @@ struct MobileVaultView: View {
     @Environment(\.locale) private var locale
 
     let app: MobileAppModel
+    let activateHost: (Host.ID) -> Void
     let open: (UUID, ConnectionHistoryEntry.Kind) -> Void
     let showsMetrics: Bool
     let executeSnippet: (Snippet, [Host.ID]) -> Void
@@ -96,12 +97,14 @@ struct MobileVaultView: View {
     init(
         app: MobileAppModel,
         editingHost: Binding<Host?>,
+        activateHost: @escaping (Host.ID) -> Void,
         open: @escaping (UUID, ConnectionHistoryEntry.Kind) -> Void,
         showsMetrics: Bool = true,
         executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in }
     ) {
         self.app = app
         _editingHost = editingHost
+        self.activateHost = activateHost
         self.open = open
         self.showsMetrics = showsMetrics
         self.executeSnippet = executeSnippet
@@ -405,7 +408,7 @@ struct MobileVaultView: View {
         }
         let tint = host.colorTag.color ?? brand ?? .accentColor
         return MobileActionCard {
-            open(host.id, .ssh)
+            activateHost(host.id)
         } content: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
@@ -439,7 +442,7 @@ struct MobileVaultView: View {
                 }
             }
             .accessibilityElement(children: .combine)
-            .accessibilityHint("Quick Connect with SSH")
+            .accessibilityHint("Open Workspace")
         } actions: {
             Button("SSH", systemImage: "terminal") { open(host.id, .ssh) }
             Button("SFTP", systemImage: "folder") { open(host.id, .sftp) }

@@ -27,6 +27,7 @@ final class MobileSceneModel {
 
     @ObservationIgnored private let app: MobileAppModel
     @ObservationIgnored private var pendingWorkspaceID: MobileWorkspace.ID?
+    @ObservationIgnored private var recentWorkspaceIDs: [MobileWorkspace.ID] = []
 
     init(app: MobileAppModel) {
         self.app = app
@@ -81,6 +82,27 @@ final class MobileSceneModel {
         selectWorkspace(id)
     }
 
+    /// Reuses this scene's most recently selected SSH workspace for the Host.
+    /// Explicit connection actions continue to call `open(hostID:kind:)` so
+    /// users can still create independent SSH and SFTP workspaces.
+    func activateHost(_ hostID: Host.ID) {
+        let matchingIDs = Set(
+            app.workspaces.lazy
+                .filter { $0.descriptor.hostID == hostID && $0.descriptor.kind == .ssh }
+                .map(\.id)
+        )
+        let workspaceID =
+            recentWorkspaceIDs.first(where: matchingIDs.contains)
+            ?? app.workspaces.last(where: {
+                $0.descriptor.hostID == hostID && $0.descriptor.kind == .ssh
+            })?.id
+        guard let workspaceID else {
+            open(hostID: hostID, kind: .ssh)
+            return
+        }
+        selectWorkspace(workspaceID)
+    }
+
     func openSameDirectory(_ launch: MobileWorkspaceDirectoryLaunch) {
         guard let id = app.open(hostID: launch.hostID, kind: launch.kind, initialPath: launch.path) else { return }
         selectWorkspace(id)
@@ -112,6 +134,8 @@ final class MobileSceneModel {
         guard app.workspaces.contains(where: { $0.id == id }) else { return }
         selectedDestination = .workspaces
         workspaceID = id
+        recentWorkspaceIDs.removeAll { $0 == id }
+        recentWorkspaceIDs.insert(id, at: 0)
         app.focusWorkspaceActivity(id)
     }
 
@@ -168,6 +192,7 @@ final class MobileSceneModel {
 
     func closeWorkspace(_ id: MobileWorkspace.ID) {
         app.close(id)
+        recentWorkspaceIDs.removeAll { $0 == id }
         if pendingWorkspaceID == id { pendingWorkspaceID = nil }
         if workspaceID == id { workspaceID = nil }
     }
@@ -179,11 +204,14 @@ final class MobileSceneModel {
 
     func closeAllWorkspaces() {
         app.closeAll()
+        recentWorkspaceIDs.removeAll()
         pendingWorkspaceID = nil
         workspaceID = nil
     }
 
     func reconcileWorkspaceIDs(_ workspaceIDs: [MobileWorkspace.ID]) {
+        let existingIDs = Set(workspaceIDs)
+        recentWorkspaceIDs.removeAll { !existingIDs.contains($0) }
         if let pendingWorkspaceID, !workspaceIDs.contains(pendingWorkspaceID) {
             self.pendingWorkspaceID = nil
         }

@@ -97,7 +97,9 @@ struct MobileCardRenderingTests {
             for scheme in [ColorScheme.light, .dark] {
                 try await capture("vault", language: language, scheme: scheme) {
                     NavigationStack {
-                        MobileVaultView(app: app, editingHost: .constant(nil), open: { _, _ in })
+                        MobileVaultView(
+                            app: app, editingHost: .constant(nil), activateHost: { _ in },
+                            open: { _, _ in })
                     }
                 }
                 try await capture("snippets", language: language, scheme: scheme) {
@@ -153,7 +155,9 @@ struct MobileCardRenderingTests {
             }
             try await capture("large-type", language: language, scheme: .light) {
                 NavigationStack {
-                    MobileVaultView(app: app, editingHost: .constant(nil), open: { _, _ in })
+                    MobileVaultView(
+                        app: app, editingHost: .constant(nil), activateHost: { _ in },
+                        open: { _, _ in })
                 }
                 .environment(\.dynamicTypeSize, .accessibility3)
             }
@@ -171,6 +175,7 @@ struct MobileCardRenderingTests {
                 NavigationStack {
                     MobileVaultView(
                         app: try! MobileAppModel(inMemory: true), editingHost: .constant(nil),
+                        activateHost: { _ in },
                         open: { _, _ in })
                 }
             }
