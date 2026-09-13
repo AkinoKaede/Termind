@@ -272,8 +272,10 @@ deleting restored cards after downgrade; Pro/trial access is unlimited.
 
 The macOS status item/popover is process-owned and receives its model explicitly.
 Closing the last window keeps the process alive while the menu item or monitors need
-it; Quit cancels monitoring. Native sleep/wake, window reopening, input modality, and
-screenshot fixture wiring remain in `TFM/Platform`.
+it; Quit cancels monitoring. System sleep and an inactive login session independently
+suspend monitoring; collection resumes only after the system is awake and the session
+is active, when the Data Protection Keychain is available again. Native lifecycle,
+window reopening, input modality, and screenshot fixture wiring remain in `TFM/Platform`.
 
 ## Settings replication
 

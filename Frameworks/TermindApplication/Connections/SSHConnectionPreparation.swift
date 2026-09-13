@@ -96,27 +96,40 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }
         var result: [SSHCredentials] = []
+        var retrievalFailure: (any Error)?
         if let key = node.key {
             if key.requiresPassphraseEntry, node.submission?.passphrase?.isEmpty != false {
                 throw TermindSSHError.keyPassphraseRequired
             }
-            if let credential = try? secrets.keyCredential(for: key.credentialRef, storage: key.storage) {
-                result.append(
-                    credential.sshCredential(
-                        publicKey: key.publicKey, certificate: key.certificate,
-                        passphraseOverride: node.submission?.passphrase
-                    ))
+            do {
+                if let credential = try secrets.keyCredential(for: key.credentialRef, storage: key.storage) {
+                    result.append(
+                        credential.sshCredential(
+                            publicKey: key.publicKey, certificate: key.certificate,
+                            passphraseOverride: node.submission?.passphrase
+                        ))
+                }
+            } catch {
+                retrievalFailure = error
             }
         }
         try Task.checkCancellation()
         if let password = node.submission?.password {
             result.append(.password(password))
         } else if node.submission == nil || node.submission?.identityID != nil,
-            let identity = node.identity, identity.usesPassword,
-            let password = try? secrets.string(for: identity.credentialRef, storage: identity.passwordStorage)
+            let identity = node.identity, identity.usesPassword
         {
-            result.append(.password(password))
+            do {
+                if let password = try secrets.string(
+                    for: identity.credentialRef, storage: identity.passwordStorage
+                ) {
+                    result.append(.password(password))
+                }
+            } catch {
+                if retrievalFailure == nil { retrievalFailure = error }
+            }
         }
+        if result.isEmpty, let retrievalFailure { throw retrievalFailure }
         guard !result.isEmpty else { throw TermindSSHError.missingCredential }
         return (username, result)
     }

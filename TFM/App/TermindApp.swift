@@ -186,11 +186,11 @@ struct TermindApp: App {
                     app.forwarding.resumeEnabled()
                 }
                 app.serverMetrics.start()
-                metricsSleep.start(app.serverMetrics)
+                metricsActivity.start(app.serverMetrics)
                 metricsMenu.start(app.serverMetrics)
             }
         }
-        private let metricsSleep = MetricsSleepObserver()
+        private let metricsActivity = MetricsActivityObserver()
         private let metricsMenu = MetricsMenuBarController()
         private var didRestoreForwardings = false
         private var quietLaunchObserver: (any NSObjectProtocol)?
@@ -309,7 +309,7 @@ struct TermindApp: App {
         }
 
         func applicationWillTerminate(_ notification: Notification) {
-            metricsSleep.stop()
+            metricsActivity.stop()
             metricsMenu.stop()
             appearanceController.stop()
             app?.shutdownForTermination()

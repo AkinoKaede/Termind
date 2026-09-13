@@ -107,6 +107,34 @@ struct MetricsJourneyTests {
         #expect(server.journey.endpoints.count == 2)
     }
 
+    @Test func temporarySecretStoreFailureRetriesWithoutRequestingAuthentication() async throws {
+        let identity = Identity(
+            name: "Deploy", username: "deploy",
+            credentialRef: "termind.password.test"
+        )
+        var host = TermindDomain.Host(name: "Monitor", host: "example.invalid")
+        host.identityID = identity.id
+        let hosts = HostLibraryModel(
+            hosts: [host], identities: [identity],
+            knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")],
+            secrets: UnavailableMetricsSecrets()
+        )
+        let clock = PortMetricsClock()
+        let model = ServerMetricsModel(
+            hosts: hosts, preferences: PortMetricsPreferences(),
+            makeSampler: { FailingMetricsSampler() }, clock: clock.clock
+        )
+        defer { model.shutdown() }
+
+        #expect(model.add(host))
+        let server = try #require(model.servers.first)
+        try await wait { server.collectionState == .failed && clock.delays.contains(2) }
+
+        #expect(!server.needsAttention)
+        #expect(server.authenticationPrompt == nil)
+        #expect(model.snapshot(for: host.id)?.state == .failed)
+    }
+
     @Test func credentialsContinueTheSameMonitorWithoutSavingAnIdentity() async throws {
         let host = TermindDomain.Host(name: "Monitor", host: "example.invalid")
         let hosts = HostLibraryModel(hosts: [host])
@@ -214,6 +242,31 @@ private actor FailingMetricsSampler: MetricsSampling {
     func sample() async throws -> MetricsSample { throw TermindSSHError.disconnected }
     func gpu() async throws -> NvidiaSnapshot? { nil }
     func disconnect() async {}
+}
+
+private enum UnavailableMetricsSecretError: Error {
+    case locked
+}
+
+private struct UnavailableMetricsSecrets: SecretStoring {
+    func string(for account: String, storage: PasswordStorage) throws -> String? {
+        throw UnavailableMetricsSecretError.locked
+    }
+
+    func setString(_ value: String?, for account: String, storage: PasswordStorage) throws {}
+
+    func keyCredential(
+        for account: String, storage: KeyStorage
+    ) throws -> StoredSSHKeyCredential? {
+        throw UnavailableMetricsSecretError.locked
+    }
+
+    func setKeyCredential(
+        _ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage
+    ) throws {}
+
+    func removePassword(_ account: String, storage: PasswordStorage) throws {}
+    func removeKeyCredential(_ account: String, storage: KeyStorage) throws {}
 }
 
 private nonisolated final class BackgroundResumingMetricsSampler: MetricsSampling, @unchecked Sendable {
