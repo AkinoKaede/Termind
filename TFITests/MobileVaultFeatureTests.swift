@@ -10,6 +10,62 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test func hostProxyEditorAppliesDefaultsPreservesCustomPortsAndValidatesAuthentication() {
+        var host = TermindDomain.Host(name: "Remote", host: "example.invalid")
+        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+
+        host.proxy = MobileHostEditorPolicy.selectProxy(.http, current: nil)
+        #expect(host.proxy?.port == 8080)
+        #expect(!MobileHostEditorPolicy.canSave(host, forwardings: []))
+
+        host.proxy?.hostname = "proxy.example"
+        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+        host.proxy?.port = 0
+        #expect(!MobileHostEditorPolicy.canSave(host, forwardings: []))
+        host.proxy?.port = 8080
+        host.proxy = MobileHostEditorPolicy.selectProxy(.socks5, current: host.proxy)
+        #expect(host.proxy?.port == 1080)
+        #expect(host.proxy?.hostname == "proxy.example")
+
+        host.proxy?.port = 9000
+        host.proxy = MobileHostEditorPolicy.selectProxy(.http, current: host.proxy)
+        #expect(host.proxy?.port == 9000)
+
+        let identity = Identity(
+            name: "Proxy", username: "proxy-user", credentialRef: "termind.password.proxy")
+        host.proxy = MobileHostEditorPolicy.selectProxyIdentity(identity, current: host.proxy)
+        #expect(host.proxy?.identityID == identity.id)
+        #expect(host.proxy?.username == "proxy-user")
+        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+
+        host.proxy?.username = ""
+        #expect(!MobileHostEditorPolicy.canSave(host, forwardings: []))
+        host.proxy = MobileHostEditorPolicy.selectProxyIdentity(nil, current: host.proxy)
+        #expect(host.proxy?.identityID == nil)
+        #expect(host.proxy?.username.isEmpty == true)
+        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+
+        host.proxy = MobileHostEditorPolicy.selectProxy(nil, current: host.proxy)
+        #expect(host.proxy == nil)
+    }
+
+    @Test func proxyIdentityChoicesRequireAnAvailablePasswordOnThisDevice() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let available = Identity(name: "Available", username: "proxy")
+        let missing = Identity(
+            name: "Missing", username: "proxy", credentialRef: "termind.password.missing")
+        let keyOnly = Identity(name: "Key only", username: "proxy", keyID: UUID())
+
+        try app.library.upsert(available, passwordUpdate: .replace("secret"))
+        app.library.upsert(missing)
+        app.library.upsert(keyOnly)
+
+        let storedAvailable = try #require(app.library.identity(available.id))
+        #expect(app.library.isProxyEligibleOnThisDevice(storedAvailable))
+        #expect(!app.library.isProxyEligibleOnThisDevice(missing))
+        #expect(!app.library.isProxyEligibleOnThisDevice(keyOnly))
+    }
+
     @Test func forwardingEnabledIntentUsesInjectedDevicePreferences() throws {
         let suite = "MobileForwardingIntentTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
