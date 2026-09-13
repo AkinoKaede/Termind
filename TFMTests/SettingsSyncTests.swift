@@ -301,7 +301,7 @@ struct SettingsSyncTests {
         defer { withExtendedLifetime(container) {} }
         let before = try store.load().webSearch
         let valid = envelope(.webSearch(.init(isEnabled: false, prefersBuiltIn: false)))
-        var invalid = envelope(.selection(nil))
+        var invalid = envelope(.terminal(TerminalPreferences()))
         invalid.formatVersion = 99
         #expect(throws: (any Error).self) { try store.applyRemote([valid, invalid]) }
         #expect(try store.load().webSearch == before)

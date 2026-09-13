@@ -181,41 +181,49 @@ final class MobileSFTPSessionModel {
     }
 
     func rename(_ file: RemoteFile, to name: String) async throws {
-        guard let fileSystem else { return }
+        guard let fileSystem, let connectionGeneration else { return }
         do {
             try await fileSystem.rename(file, to: name)
+            guard self.connectionGeneration == connectionGeneration else { return }
             await reload()
         } catch {
+            guard self.connectionGeneration == connectionGeneration else { return }
             if handlesConnectionError?(error) != true { throw error }
         }
     }
 
     func setPermissions(_ file: RemoteFile, mode: UInt32) async throws {
-        guard let fileSystem else { return }
+        guard let fileSystem, let connectionGeneration else { return }
         do {
             try await fileSystem.setPermissions(of: file, to: mode)
+            guard self.connectionGeneration == connectionGeneration else { return }
             await reload()
         } catch {
+            guard self.connectionGeneration == connectionGeneration else { return }
             if handlesConnectionError?(error) != true { throw error }
         }
     }
 
     func createDirectory(_ name: String) async {
-        guard let fileSystem else { return }
+        guard let fileSystem, let connectionGeneration else { return }
         do {
             try await fileSystem.createDirectory(named: name, in: path)
+            guard self.connectionGeneration == connectionGeneration else { return }
             await reload()
         } catch {
+            guard self.connectionGeneration == connectionGeneration else { return }
             record(error)
         }
     }
 
     func delete(_ file: RemoteFile) async {
-        guard let fileSystem else { return }
+        guard let fileSystem, let connectionGeneration else { return }
         do {
             try await fileSystem.remove(file)
+            guard self.connectionGeneration == connectionGeneration else { return }
             await reload()
         } catch {
+            guard self.connectionGeneration == connectionGeneration else { return }
             record(error)
         }
     }

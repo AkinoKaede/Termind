@@ -71,8 +71,8 @@ public final class AssistantConversationStore {
     }
 
     public func restore(_ stored: [StoredAgentConversation]) {
-        guard conversations.isEmpty else { return }
-        conversations = stored.map { value in
+        let existingIDs = Set(conversations.map(\.id))
+        let restored = stored.filter { !existingIDs.contains($0.id) }.map { value in
             let conversation = ConversationModel(
                 id: value.id,
                 messages: value.messages.compactMap { message in
@@ -143,6 +143,7 @@ public final class AssistantConversationStore {
             }
             return conversation
         }
+        conversations = restored + conversations
     }
 }
 

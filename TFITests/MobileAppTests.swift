@@ -36,6 +36,28 @@ struct MobileAppTests {
         #expect(try app.hosts.snapshot().value.hosts == [host])
     }
 
+    @Test func assistantNavigationAndDraftsAreSceneLocalWhileConversationsAreShared() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let first = MobileSceneModel(app: app)
+        let second = MobileSceneModel(app: app)
+        first.assistant.conversation.composer.draft = "first draft"
+        second.assistant.conversation.composer.draft = "second draft"
+
+        let conversation = ConversationModel(messages: [ChatMessage(role: .user, text: "Shared")])
+        first.assistant.library.insertAndSelect(conversation)
+
+        #expect(second.assistant.library.conversation(id: conversation.id) === conversation)
+        #expect(second.assistant.library.selectedConversation == nil)
+        #expect(second.assistant.conversation.composer.draft == "second draft")
+
+        second.assistant.select(conversation)
+        first.assistant.newConversation()
+
+        #expect(second.assistant.conversation === conversation)
+        #expect(first.assistant.conversation !== conversation)
+        #expect(first.assistant.conversation.composer.draft.isEmpty)
+    }
+
     @Test func historyModelsUseTheSharedSwiftDataContainer() throws {
         let app = try MobileAppModel(inMemory: true)
         let hostID = UUID()

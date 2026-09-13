@@ -140,7 +140,7 @@ struct MobileFeatureRegistry {
                 AnyView(
                     MobileAssistantView(
                         app: app,
-                        model: app.assistant,
+                        model: scene.assistant,
                         libraryRoute: Binding(
                             get: { scene.assistantLibraryRoute },
                             set: { scene.assistantLibraryRoute = $0 }

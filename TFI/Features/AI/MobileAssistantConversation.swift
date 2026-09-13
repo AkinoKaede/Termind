@@ -459,7 +459,7 @@ private struct MobileAssistantSteeringQueue: View {
 
 struct MobileAssistantConversation: View {
     let app: MobileAppModel
-    let model: MobileAssistantModel
+    let model: MobileAssistantSceneModel
     @Bindable var conversation: ConversationModel
     let composerFocus: FocusState<Bool>.Binding
     let composerFocusRequest: Int?

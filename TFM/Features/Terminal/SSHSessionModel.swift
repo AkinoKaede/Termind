@@ -814,7 +814,7 @@ final class SSHSessionModel: Identifiable {
             },
             shellIntegration: { [weak self] event in
                 Task { @MainActor in
-                    guard let self else { return }
+                    guard let self, self.connectionAttemptID == attemptID else { return }
                     self.receiveShellIntegrationEvent(event)
                 }
             }

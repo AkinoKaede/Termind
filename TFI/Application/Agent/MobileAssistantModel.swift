@@ -5,12 +5,12 @@ import TermindApplication
 import TermindDomain
 import TermindRemoteInfrastructure
 
-/// Application-owned runs, with navigation and drafts independent of each run.
+/// Application-owned Assistant runs and services. Scene-local navigation lives in
+/// `MobileAssistantSceneModel`; only the conversation store is shared here.
 @MainActor
 @Observable
 final class MobileAssistantModel {
     let store = AssistantConversationStore()
-    let library: AssistantLibraryModel
     let speech: SpeechTranscriptionCoordinator
     let configuration: AIConfigurationModel
     let skills: SkillLibraryModel
@@ -21,13 +21,17 @@ final class MobileAssistantModel {
     private let connections: AgentConnectionPool
     private let background: AgentBackgroundCommands
     private let attachmentLoader: ContextAttachmentLoading
+    private var loadTask: Task<Void, Never>?
     private var suspensionTask: Task<Void, Never>?
     private var loaded = false
     private(set) var isSuspending = false
     var error: String?
 
-    var conversation: ConversationModel { library.selectedConversation ?? library.draftConversation }
     var isRunning: Bool { store.conversations.contains { $0.isStreaming } }
+
+    func makeSceneModel() -> MobileAssistantSceneModel {
+        MobileAssistantSceneModel(runtime: self, library: AssistantLibraryModel(store: store))
+    }
 
     init(
         configuration: AIConfigurationModel, repository: any AgentRunPersisting,
@@ -42,7 +46,6 @@ final class MobileAssistantModel {
         self.skills = skills
         self.speech = speech
         self.attachmentLoader = attachmentLoader
-        library = AssistantLibraryModel(store: store)
         operations = AssistantConversationOperations(repository: repository)
         let resolver = hostServices.resolver
         let connections = hostServices.connections
@@ -60,37 +63,49 @@ final class MobileAssistantModel {
                     skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
                     connections: connections, authentication: authentication, background: background)
             }, title: { try await titles.summarize($0) })
-        configure(conversation)
     }
 
     func load() async {
-        guard !loaded else { return }
-        loaded = true
+        if loaded { return }
+        if let loadTask {
+            await loadTask.value
+            return
+        }
+        let loadTask = Task { [weak self] in
+            guard let self else { return }
+            await loadOnce()
+        }
+        self.loadTask = loadTask
+        await loadTask.value
+        self.loadTask = nil
+    }
+
+    private func loadOnce() async {
         do {
-            library.restore(try await repository.loadConversations())
+            store.restore(try await repository.loadConversations())
             store.conversations.forEach(configure)
+            loaded = true
         } catch {
-            loaded = false
             self.error = error.localizedDescription
         }
     }
 
-    private func configure(_ conversation: ConversationModel) { conversation.attachmentLoader = attachmentLoader }
+    fileprivate func configure(_ conversation: ConversationModel) { conversation.attachmentLoader = attachmentLoader }
 
-    func select(_ conversation: ConversationModel) {
+    fileprivate func select(_ conversation: ConversationModel, in library: AssistantLibraryModel) {
         speech.cancelAll()
         library.select(conversation.id)
         configure(conversation)
     }
 
-    func newConversation() {
+    fileprivate func newConversation(in library: AssistantLibraryModel) {
         speech.cancelAll()
         _ = library.resetDraftConversation()
-        configure(conversation)
+        configure(library.draftConversation)
     }
 
-    func send() {
-        let conversation = conversation
+    fileprivate func send(in library: AssistantLibraryModel) {
+        let conversation = library.selectedConversation ?? library.draftConversation
         guard !isSuspending, !conversation.isArchived, !conversation.isHistoryChanging,
             !conversation.isCompacting, conversation.composer.pendingAttachments.isEmpty, authorize()
         else { return }
@@ -127,7 +142,7 @@ final class MobileAssistantModel {
 
     func waitForSuspension() async { await suspensionTask?.value }
 
-    func selectModel(_ value: AIModelRef) {
+    fileprivate func selectModel(_ value: AIModelRef, for conversation: ConversationModel) {
         guard let resolved = configuration.lookup(value) else { return }
         conversation.model = value
         configuration.select(value)
@@ -136,10 +151,15 @@ final class MobileAssistantModel {
         ).clamp(conversation.reasoningEffort)
     }
 
-    func archive(_ conversation: ConversationModel, archived: Bool) async {
+    fileprivate func archive(
+        _ conversation: ConversationModel, archived: Bool, in library: AssistantLibraryModel
+    ) async {
         await perform {
             try await operations.setArchived(archived, conversation: conversation)
-            if archived && conversation.isArchived && self.conversation.id == conversation.id { newConversation() }
+            let selected = library.selectedConversation ?? library.draftConversation
+            if archived && conversation.isArchived && selected.id == conversation.id {
+                newConversation(in: library)
+            }
         }
     }
 
@@ -147,23 +167,28 @@ final class MobileAssistantModel {
         await perform { try await operations.rename(conversation, title: title) }
     }
 
-    func move(_ conversation: ConversationModel, pinned: Bool, before: UUID? = nil) async {
+    fileprivate func move(
+        _ conversation: ConversationModel, pinned: Bool, before: UUID? = nil,
+        in library: AssistantLibraryModel
+    ) async {
         await perform { try await operations.move(conversation, pinned: pinned, before: before, library: library) }
     }
 
-    func delete(_ conversation: ConversationModel) async {
+    fileprivate func delete(_ conversation: ConversationModel, from library: AssistantLibraryModel) async {
         guard !conversation.isStreaming, !conversation.isCompacting else { return }
         await perform {
             let result = try await operations.delete(conversation)
             guard result.deleted else { return }
             library.delete(conversation.id)
             if library.selectedConversation == nil { _ = library.resetDraftConversation() }
-            configure(self.conversation)
+            configure(library.selectedConversation ?? library.draftConversation)
             if let cleanupError = result.cleanupError { error = cleanupError }
         }
     }
 
-    func fork(_ conversation: ConversationModel, at messageID: UUID) async {
+    fileprivate func fork(
+        _ conversation: ConversationModel, at messageID: UUID, in library: AssistantLibraryModel
+    ) async {
         await perform {
             if let fork = try await operations.fork(
                 conversation, at: messageID, title: store.nextForkTitle(for: conversation))
@@ -188,16 +213,85 @@ final class MobileAssistantModel {
         _ = await execution.compact(conversation, instructions: instructions)
     }
 
-    func implement(_ card: AgentPlanCard, in conversation: ConversationModel) {
+    fileprivate func implement(
+        _ card: AgentPlanCard, in conversation: ConversationModel, library: AssistantLibraryModel
+    ) {
         guard !conversation.isArchived, !conversation.isStreaming else { return }
         conversation.resolvePlan(card.id, as: .implemented)
         conversation.isPlanning = false
         conversation.composer.draft = String(localized: "Implement this plan.")
-        select(conversation)
-        send()
+        select(conversation, in: library)
+        send(in: library)
     }
 
     private func perform(_ operation: () async throws -> Void) async {
         do { try await operation() } catch { self.error = error.localizedDescription }
+    }
+}
+
+/// Scene-local Assistant navigation over the app-wide conversation store and run services.
+///
+/// The runtime owns work that must survive navigation. The library owns only the selected
+/// conversation and the New Chat draft, so two iPad windows can navigate independently
+/// without duplicating a running conversation.
+@MainActor
+@Observable
+final class MobileAssistantSceneModel {
+    private let runtime: MobileAssistantModel
+    let library: AssistantLibraryModel
+
+    init(runtime: MobileAssistantModel, library: AssistantLibraryModel? = nil) {
+        self.runtime = runtime
+        self.library = library ?? AssistantLibraryModel(store: runtime.store)
+        runtime.configure(self.library.draftConversation)
+    }
+
+    var conversation: ConversationModel { library.selectedConversation ?? library.draftConversation }
+    var speech: SpeechTranscriptionCoordinator { runtime.speech }
+    var configuration: AIConfigurationModel { runtime.configuration }
+    var skills: SkillLibraryModel { runtime.skills }
+    var isRunning: Bool { runtime.isRunning }
+    var isSuspending: Bool { runtime.isSuspending }
+    var error: String? {
+        get { runtime.error }
+        set { runtime.error = newValue }
+    }
+
+    func load() async { await runtime.load() }
+    func select(_ conversation: ConversationModel) { runtime.select(conversation, in: library) }
+    func newConversation() { runtime.newConversation(in: library) }
+    func send() { runtime.send(in: library) }
+    func selectModel(_ value: AIModelRef) { runtime.selectModel(value, for: conversation) }
+
+    func archive(_ conversation: ConversationModel, archived: Bool) async {
+        await runtime.archive(conversation, archived: archived, in: library)
+    }
+
+    func rename(_ conversation: ConversationModel, title: String) async {
+        await runtime.rename(conversation, title: title)
+    }
+
+    func move(_ conversation: ConversationModel, pinned: Bool, before: UUID? = nil) async {
+        await runtime.move(conversation, pinned: pinned, before: before, in: library)
+    }
+
+    func delete(_ conversation: ConversationModel) async {
+        await runtime.delete(conversation, from: library)
+    }
+
+    func fork(_ conversation: ConversationModel, at messageID: UUID) async {
+        await runtime.fork(conversation, at: messageID, in: library)
+    }
+
+    func edit(_ conversation: ConversationModel, messageID: UUID, text: String) async {
+        await runtime.edit(conversation, messageID: messageID, text: text)
+    }
+
+    func compact(_ conversation: ConversationModel, instructions: String = "") async {
+        await runtime.compact(conversation, instructions: instructions)
+    }
+
+    func implement(_ card: AgentPlanCard, in conversation: ConversationModel) {
+        runtime.implement(card, in: conversation, library: library)
     }
 }

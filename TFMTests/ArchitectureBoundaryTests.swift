@@ -230,6 +230,12 @@ struct ArchitectureBoundaryTests {
         #expect(!root.contains("switch scene.selectedDestination"))
         #expect(features.contains("mutating func register("))
         #expect(features.contains("Duplicate mobile feature registration"))
+        #expect(features.contains("model: scene.assistant"))
+        #expect(!features.contains("model: app.assistant"))
+
+        let scene = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/App/MobileSceneModel.swift"), encoding: .utf8)
+        #expect(scene.contains("let assistant: MobileAssistantSceneModel"))
 
         let descriptor = try String(
             contentsOf: sourceRoot.appending(

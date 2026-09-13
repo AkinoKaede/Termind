@@ -65,11 +65,11 @@ struct MobileShortcutTests {
         #expect(scene.editingHost != nil)
 
         scene.assistantLibraryRoute = .archived
-        let previousConversationID = app.assistant.conversation.id
+        let previousConversationID = scene.assistant.conversation.id
         scene.openNewConversation()
         #expect(scene.selectedDestination == .assistant)
         #expect(scene.assistantLibraryRoute == nil)
-        #expect(app.assistant.conversation.id != previousConversationID)
+        #expect(scene.assistant.conversation.id != previousConversationID)
     }
 
     @Test func workspaceCommandsSelectByIndexAndWrapInBothDirections() throws {

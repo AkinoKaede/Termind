@@ -49,7 +49,7 @@ private struct MobileDismissibleComposerBadge: View {
 
 struct MobileAssistantComposer: View {
     let pro: ProAccessController
-    let model: MobileAssistantModel
+    let model: MobileAssistantSceneModel
     @Bindable var conversation: ConversationModel
     let focus: FocusState<Bool>.Binding?
     let focusRequest: Int?
@@ -76,7 +76,7 @@ struct MobileAssistantComposer: View {
 
     init(
         pro: ProAccessController,
-        model: MobileAssistantModel,
+        model: MobileAssistantSceneModel,
         conversation: ConversationModel,
         focus: FocusState<Bool>.Binding? = nil,
         focusRequest: Int? = nil,
@@ -653,8 +653,8 @@ struct MobileAssistantComposer: View {
                     throw CocoaError(.fileReadCorruptFile)
                 }
                 try Task.checkCancellation()
-                let chip = try await ContextAttachmentImporter.importImage(
-                    data: data, label: String(localized: "Photo"))
+                let chip = try await conversation.attachmentLoader.image(
+                    data, String(localized: "Photo"))
                 try Task.checkCancellation()
                 conversation.finishAttachmentImport(pending.id, with: chip)
             } catch is CancellationError { conversation.cancelAttachmentImport(pending.id) } catch {

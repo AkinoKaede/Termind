@@ -282,8 +282,9 @@ and upgrades do not re-enable it. Pro gates three independent coordinators:
 V13 Settings entity names/defaults are frozen; V14 only adds
 `PersistentTerminalPreferences`; V15 adds the independent Metrics journal/account/
 quarantine. Settings persistence atomically commits data and upload intent. Separate
-records cover providers/models, MCP clients, skills, roles, model selection, Web
-Search, and terminal preferences/custom text. Remote commits refresh models without
+records cover providers/models, MCP clients, skills, roles, Web Search, and terminal
+preferences/custom text. The most recently selected conversation model remains
+device-local. Remote commits refresh models without
 re-entering local mutation. Active Agent runs keep their starting snapshot.
 
 Conversations, approval mode, local MCP listener settings, and unrelated defaults do
@@ -330,8 +331,11 @@ tests/discovery use ephemeral snapshots, cancel on editor/config changes, and ca
 repopulate discarded drafts. Secrets remain in memory until atomic save and roll back
 on metadata failure. Mobile does not start the local MCP listener.
 
-Each mobile scene owns one navigation/command model and publishes it as a focused
-scene value, so hardware-keyboard commands never operate another iPad window. Mobile
+Each mobile scene owns one navigation/command model and one Assistant library model,
+including its selected conversation and New Chat draft. The app-wide Assistant runtime
+and conversation store remain shared so active runs are never duplicated. The scene
+model is published as a focused value, so hardware-keyboard commands never operate
+another iPad window. Mobile
 uses the macOS shortcuts for capabilities that exist on both platforms: navigation,
 connection/creation, terminal Find and Command Generator, Workspace close/switch,
 and Assistant send/stop. Workspace switching never reconnects the session or claims

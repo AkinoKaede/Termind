@@ -406,8 +406,20 @@ final class SFTPSessionModel: Identifiable {
                         }
                     }
                 )
-                try Task.checkCancellation()
-                try await self.resolveInitialPathIfNeeded(using: client)
+                guard !Task.isCancelled, self.connectionAttemptID == attemptID else {
+                    await client.disconnect()
+                    return
+                }
+                do {
+                    try await self.resolveInitialPathIfNeeded(using: client)
+                } catch {
+                    await client.disconnect()
+                    throw error
+                }
+                guard !Task.isCancelled, self.connectionAttemptID == attemptID else {
+                    await client.disconnect()
+                    return
+                }
                 self.connectionJourney.receive(.connected(host.id))
                 self.client = client
                 self.configuration = self.usesEphemeralCredentials ? nil : configuration
@@ -433,8 +445,10 @@ final class SFTPSessionModel: Identifiable {
                 TermindSSHError.missingUsername,
                 TermindSSHError.keyPassphraseRequired
             {
+                guard self.connectionAttemptID == attemptID else { return }
                 self.requestAuthentication(host: host, store: store)
             } catch let error as TermindSSHError where error.shouldRequestAuthentication {
+                guard self.connectionAttemptID == attemptID else { return }
                 let authenticationHost: Host
                 if let id = error.routeHostID, let jump = store.host(id) {
                     authenticationHost = jump
@@ -456,6 +470,7 @@ final class SFTPSessionModel: Identifiable {
                     preserveSubmission: retryNeedsPassphrase && submitted != nil
                 )
             } catch {
+                guard self.connectionAttemptID == attemptID else { return }
                 if self.connection.hasConnectedOnce || reconnecting {
                     self.scheduleReconnect(after: error.localizedDescription, using: store)
                 } else {

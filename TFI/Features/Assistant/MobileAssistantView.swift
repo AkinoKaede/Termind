@@ -18,7 +18,7 @@ enum MobileAssistantLibraryRoute: String, Identifiable, Hashable {
 
 struct MobileAssistantView: View {
     let app: MobileAppModel
-    @Bindable var model: MobileAssistantModel
+    @Bindable var model: MobileAssistantSceneModel
     @Binding var libraryRoute: MobileAssistantLibraryRoute?
     @State private var restoreComposerFocusAfterLibrary = false
     @State private var nextComposerFocusRequest = 0
@@ -30,7 +30,7 @@ struct MobileAssistantView: View {
 
     init(
         app: MobileAppModel,
-        model: MobileAssistantModel,
+        model: MobileAssistantSceneModel,
         libraryRoute: Binding<MobileAssistantLibraryRoute?>
     ) {
         self.app = app
@@ -212,7 +212,7 @@ struct MobileAssistantView: View {
 }
 
 struct MobileAssistantLibrary: View {
-    @Bindable var model: MobileAssistantModel
+    @Bindable var model: MobileAssistantSceneModel
     let route: MobileAssistantLibraryRoute
     let selected: () -> Void
     let showArchived: () -> Void
@@ -220,6 +220,18 @@ struct MobileAssistantLibrary: View {
     @State private var renaming: ConversationModel?
     @State private var title = ""
     @State private var deleting: ConversationModel?
+
+    init(
+        model: MobileAssistantSceneModel,
+        route: MobileAssistantLibraryRoute,
+        selected: @escaping () -> Void,
+        showArchived: @escaping () -> Void
+    ) {
+        self.model = model
+        self.route = route
+        self.selected = selected
+        self.showArchived = showArchived
+    }
 
     private var archived: Bool { route == .archived }
 

@@ -35,6 +35,25 @@ struct AssistantConversationOperationsTests {
         #expect(restored.canEditUserMessage(restored.messages[0].id))
     }
 
+    @Test func restoreMergesHistoryCreatedWhileTheRepositoryWasLoading() {
+        let store = AssistantConversationStore()
+        let live = ConversationModel(messages: [ChatMessage(role: .user, text: "Created while loading")])
+        store.insert(live)
+        let persistedID = UUID()
+        let persistedMessage = AgentTranscriptMessage(role: .user, text: "Persisted history")
+
+        store.restore([
+            StoredAgentConversation(
+                id: persistedID,
+                messages: [persistedMessage],
+                lastRunState: .completed,
+                metadata: StoredAgentConversationMetadata()
+            )
+        ])
+
+        #expect(store.conversations.map(\.id) == [persistedID, live.id])
+    }
+
     @Test func activeRunCannotBeArchivedOrReordered() async throws {
         let (repository, conversation, operations) = try await fixture()
         conversation.handle(.runState(.running))

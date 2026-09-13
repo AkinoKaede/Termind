@@ -17,16 +17,18 @@ import UniformTypeIdentifiers
 struct MobileAssistantTests {
     @Test func shortUserInputUsesItsNaturalHeightAndLongInputUsesTheCap() throws {
         let shortApp = try MobileAppModel(inMemory: true)
-        shortApp.assistant.conversation.present(
+        let shortAssistant = shortApp.assistant.makeSceneModel()
+        shortAssistant.conversation.present(
             AgentUserInputRequest(questions: [
                 AgentUserQuestion(id: "answer", header: "Answer", prompt: "Continue?", kind: .text)
             ]))
         let shortHeight = measuredInteractionHeight(
-            conversation: shortApp.assistant.conversation,
+            conversation: shortAssistant.conversation,
             hosts: shortApp.library
         )
 
         let longApp = try MobileAppModel(inMemory: true)
+        let longAssistant = longApp.assistant.makeSceneModel()
         let options = (0..<16).map { index in
             AgentUserInputOption(
                 id: "option-\(index)",
@@ -34,7 +36,7 @@ struct MobileAssistantTests {
                 detail: "A deliberately detailed explanation that makes this option require another line."
             )
         }
-        longApp.assistant.conversation.present(
+        longAssistant.conversation.present(
             AgentUserInputRequest(questions: [
                 AgentUserQuestion(
                     id: "choice",
@@ -44,7 +46,7 @@ struct MobileAssistantTests {
                 )
             ]))
         let longHeight = measuredInteractionHeight(
-            conversation: longApp.assistant.conversation,
+            conversation: longAssistant.conversation,
             hosts: longApp.library
         )
 
@@ -56,7 +58,8 @@ struct MobileAssistantTests {
 
     @Test func longApprovalUsesTheSameHeightCap() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let conversation = app.assistant.conversation
+        let assistant = app.assistant.makeSceneModel()
+        let conversation = assistant.conversation
         let invocation = AgentToolInvocation(
             runID: UUID(),
             call: AgentToolCall(
@@ -141,7 +144,7 @@ struct MobileAssistantTests {
 
     @Test func changingConversationsPreservesTheirDraftsAndArchiveNavigation() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let model = app.assistant
+        let model = app.assistant.makeSceneModel()
         let first = ConversationModel(messages: [ChatMessage(role: .user, text: "First")])
         let second = ConversationModel(messages: [ChatMessage(role: .user, text: "Second")])
         model.library.insertAndSelect(first)
@@ -157,24 +160,26 @@ struct MobileAssistantTests {
 
     @Test func explicitNewConversationStartsWithAFreshDraft() throws {
         let app = try MobileAppModel(inMemory: true)
-        app.assistant.conversation.composer.draft = "discard this explicit new-chat draft"
+        let assistant = app.assistant.makeSceneModel()
+        assistant.conversation.composer.draft = "discard this explicit new-chat draft"
 
-        app.assistant.newConversation()
+        assistant.newConversation()
 
-        #expect(app.assistant.conversation.isEmpty)
-        #expect(app.assistant.conversation.composer.draft.isEmpty)
+        #expect(assistant.conversation.isEmpty)
+        #expect(assistant.conversation.composer.draft.isEmpty)
     }
 
     @Test func firstNewConversationSendPromotesDraftAndStartsRun() throws {
         let app = try MobileAppModel(inMemory: true)
-        let draft = app.assistant.conversation
+        let assistant = app.assistant.makeSceneModel()
+        let draft = assistant.conversation
         draft.composer.draft = "Why is the service unavailable?"
 
-        app.assistant.send()
+        assistant.send()
 
-        #expect(app.assistant.library.selectedConversation === draft)
-        #expect(app.assistant.library.conversations.map(\.id) == [draft.id])
-        #expect(app.assistant.library.draftConversation !== draft)
+        #expect(assistant.library.selectedConversation === draft)
+        #expect(assistant.library.conversations.map(\.id) == [draft.id])
+        #expect(assistant.library.draftConversation !== draft)
         #expect(draft.composer.draft.isEmpty)
         #expect(draft.messages.map(\.role) == [.user, .assistant])
         #expect(draft.messages.first?.text == "Why is the service unavailable?")
@@ -183,13 +188,14 @@ struct MobileAssistantTests {
 
     @Test func attachmentOnlyFirstSendPromotesTheConversation() throws {
         let app = try MobileAppModel(inMemory: true)
-        let draft = app.assistant.conversation
+        let assistant = app.assistant.makeSceneModel()
+        let draft = assistant.conversation
         draft.attach(ContextChip(kind: .file, label: "service.log", content: "connection refused"))
 
-        app.assistant.send()
+        assistant.send()
 
-        #expect(app.assistant.library.selectedConversation === draft)
-        #expect(app.assistant.library.conversations.map(\.id) == [draft.id])
+        #expect(assistant.library.selectedConversation === draft)
+        #expect(assistant.library.conversations.map(\.id) == [draft.id])
         #expect(draft.messages.map(\.role) == [.user, .assistant])
         #expect(draft.messages.first?.text.isEmpty == true)
         #expect(draft.messages.first?.contextChips.map(\.label) == ["service.log"])
@@ -198,12 +204,13 @@ struct MobileAssistantTests {
 
     @Test func existingConversationSendStillUsesTheDraftExecutionPath() async throws {
         let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel()
         conversation.composer.draft = "Opening question"
-        _ = app.assistant.library.startConversation(conversation)
+        _ = assistant.library.startConversation(conversation)
         conversation.composer.draft = "Follow-up question"
 
-        app.assistant.send()
+        assistant.send()
 
         #expect(conversation.composer.draft.isEmpty)
         #expect(conversation.messages.map(\.text).contains("Follow-up question"))
@@ -217,9 +224,10 @@ struct MobileAssistantTests {
 
     @Test func slashCatalogShowsAlphabetizedCompactPlanAndSkillCommandsOnMobile() throws {
         let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel(messages: [ChatMessage(role: .user, text: "Inspect")])
-        app.assistant.library.insertAndSelect(conversation)
-        let composer = MobileAssistantComposer(pro: app.pro, model: app.assistant, conversation: conversation)
+        assistant.library.insertAndSelect(conversation)
+        let composer = MobileAssistantComposer(pro: app.pro, model: assistant, conversation: conversation)
         let commands = composer.availableCommands
         let first = try #require(commands.first)
         #expect(commands.contains { $0.id == "plan" })
@@ -237,6 +245,7 @@ struct MobileAssistantTests {
 
     @Test func selectingAnExplicitModelRemembersItAndClampsEffort() throws {
         let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
         var reasoning = AIModel(id: "reasoning-model")
         reasoning.abilities.insert(.reasoning)
         reasoning.reasoningProfile = ReasoningProfile(levels: [
@@ -250,21 +259,21 @@ struct MobileAssistantTests {
         let provider = ModelProvider(name: "Test", models: [reasoning, plain])
         app.ai.upsert(provider)
 
-        app.assistant.conversation.reasoningEffort = .low
+        assistant.conversation.reasoningEffort = .low
         let reasoningRef = AIModelRef(modelProviderID: provider.id, modelID: reasoning.id)
-        app.assistant.selectModel(reasoningRef)
-        #expect(app.assistant.conversation.model == reasoningRef)
+        assistant.selectModel(reasoningRef)
+        #expect(assistant.conversation.model == reasoningRef)
         #expect(app.ai.lastSelectedModel == reasoningRef)
-        #expect(app.assistant.conversation.reasoningEffort == .high)
+        #expect(assistant.conversation.reasoningEffort == .high)
 
         let plainRef = AIModelRef(modelProviderID: provider.id, modelID: plain.id)
-        app.assistant.selectModel(plainRef)
-        #expect(app.assistant.conversation.reasoningEffort == .off)
+        assistant.selectModel(plainRef)
+        #expect(assistant.conversation.reasoningEffort == .off)
     }
 
     @Test func assistantDropImporterAcceptsFileURLsAndImageData() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let conversation = app.assistant.conversation
+        let conversation = app.assistant.makeSceneModel().conversation
         let directory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -346,11 +355,12 @@ struct MobileAssistantTests {
 
     @Test func backgroundExpirationBlocksNewRunsUntilCleanupCompletes() async throws {
         let app = try MobileAppModel(inMemory: true)
-        app.assistant.conversation.composer.draft = "preserve"
+        let assistant = app.assistant.makeSceneModel()
+        assistant.conversation.composer.draft = "preserve"
         app.assistant.expireBackground()
         #expect(app.assistant.isSuspending)
-        app.assistant.send()
-        #expect(app.assistant.conversation.composer.draft == "preserve")
+        assistant.send()
+        #expect(assistant.conversation.composer.draft == "preserve")
         await app.assistant.waitForSuspension()
         #expect(!app.assistant.isSuspending)
         #expect(!app.assistant.isRunning)

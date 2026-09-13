@@ -85,9 +85,13 @@ final class MobileWorkspace: Identifiable {
     private(set) var uploadNotice: WorkspaceUploadNotice?
     private var pendingUpload: MobilePendingUpload?
     private var uploadPreparationTask: Task<Void, Never>?
+    private var uploadPreparationID: UUID?
     private var uploadEnqueueTask: Task<Void, Never>?
+    private var uploadEnqueueID: UUID?
     private var uploadNoticeTask: Task<Void, Never>?
+    private var uploadNoticeID: UUID?
     private var remoteTransferPreparationTask: Task<Void, Never>?
+    private var remoteTransferPreparationID: UUID?
     private var pendingDownload: MobilePendingDownload?
     private var pendingRemoteCopy: MobilePendingRemoteCopy?
     let terminalSettings: TerminalSettingsModel
@@ -967,9 +971,17 @@ final class MobileWorkspace: Identifiable {
 
         cancelPendingUpload()
         let connectionGeneration = generation
+        let preparationID = UUID()
+        uploadPreparationID = preparationID
         uploadNotice = .preparing(destination)
         uploadPreparationTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                if uploadPreparationID == preparationID {
+                    uploadPreparationTask = nil
+                    uploadPreparationID = nil
+                }
+            }
             var client: (any SFTPClientProtocol)?
             var ownsClient = false
             do {
@@ -985,7 +997,8 @@ final class MobileWorkspace: Identifiable {
                     ownsClient = true
                 }
                 try Task.checkCancellation()
-                guard generation == connectionGeneration, uploadDestination == destination,
+                guard uploadPreparationID == preparationID,
+                    generation == connectionGeneration, uploadDestination == destination,
                     let client
                 else { throw CancellationError() }
                 let batch = try await SFTPLocalUploadPlanner.prepare(
@@ -994,7 +1007,9 @@ final class MobileWorkspace: Identifiable {
                     client: client
                 )
                 try Task.checkCancellation()
-                guard generation == connectionGeneration, uploadDestination == destination else {
+                guard uploadPreparationID == preparationID,
+                    generation == connectionGeneration, uploadDestination == destination
+                else {
                     throw CancellationError()
                 }
                 guard !batch.isEmpty else {
@@ -1008,7 +1023,6 @@ final class MobileWorkspace: Identifiable {
                     configuration: configuration,
                     connectionGeneration: connectionGeneration
                 )
-                uploadPreparationTask = nil
                 if batch.conflictCount > 0 {
                     uploadNotice = nil
                 } else {
@@ -1016,13 +1030,12 @@ final class MobileWorkspace: Identifiable {
                 }
             } catch is CancellationError {
                 if ownsClient { await client?.disconnect() }
-                uploadNotice = nil
-                uploadPreparationTask = nil
+                if uploadPreparationID == preparationID { uploadNotice = nil }
             } catch {
                 if ownsClient { await client?.disconnect() }
+                guard uploadPreparationID == preparationID else { return }
                 uploadNotice = nil
                 operationError = error.localizedDescription
-                uploadPreparationTask = nil
             }
         }
         return true
@@ -1048,29 +1061,34 @@ final class MobileWorkspace: Identifiable {
         }
         cancelPendingUpload()
         let connectionGeneration = generation
+        let preparationID = UUID()
+        remoteTransferPreparationID = preparationID
         remoteTransferPreparationTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                if remoteTransferPreparationID == preparationID {
+                    remoteTransferPreparationTask = nil
+                    remoteTransferPreparationID = nil
+                }
+            }
             do {
                 let batch = try await SFTPRemoteCopyPlanner.prepare(
                     payload, destination: sftpSession.path,
                     client: sftp, coordinator: transfers
                 )
                 try Task.checkCancellation()
-                guard generation == connectionGeneration else {
-                    remoteTransferPreparationTask = nil
-                    return
-                }
+                guard remoteTransferPreparationID == preparationID,
+                    generation == connectionGeneration
+                else { return }
                 pendingRemoteCopy = MobilePendingRemoteCopy(
                     batch: batch, configuration: configuration,
                     connectionGeneration: connectionGeneration
                 )
-                remoteTransferPreparationTask = nil
                 if batch.conflictCount == 0 { enqueuePendingTransfer(.replace) }
             } catch is CancellationError {
-                remoteTransferPreparationTask = nil
             } catch {
+                guard remoteTransferPreparationID == preparationID else { return }
                 operationError = error.localizedDescription
-                remoteTransferPreparationTask = nil
             }
         }
     }
@@ -1084,28 +1102,33 @@ final class MobileWorkspace: Identifiable {
         }
         cancelPendingUpload()
         let connectionGeneration = generation
+        let preparationID = UUID()
+        remoteTransferPreparationID = preparationID
         remoteTransferPreparationTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                if remoteTransferPreparationID == preparationID {
+                    remoteTransferPreparationTask = nil
+                    remoteTransferPreparationID = nil
+                }
+            }
             do {
                 let batch = try await SFTPRemoteDownloadPlanner.prepare(
                     [file], destination: destination, client: sftp
                 )
                 try Task.checkCancellation()
-                guard generation == connectionGeneration else {
-                    remoteTransferPreparationTask = nil
-                    return
-                }
+                guard remoteTransferPreparationID == preparationID,
+                    generation == connectionGeneration
+                else { return }
                 pendingDownload = MobilePendingDownload(
                     batch: batch, configuration: configuration,
                     connectionGeneration: connectionGeneration
                 )
-                remoteTransferPreparationTask = nil
                 if batch.conflictCount == 0 { enqueuePendingTransfer(.replace) }
             } catch is CancellationError {
-                remoteTransferPreparationTask = nil
             } catch {
+                guard remoteTransferPreparationID == preparationID else { return }
                 operationError = error.localizedDescription
-                remoteTransferPreparationTask = nil
             }
         }
     }
@@ -1154,6 +1177,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func cancelPendingRemoteTransfer() {
+        remoteTransferPreparationID = nil
         remoteTransferPreparationTask?.cancel()
         remoteTransferPreparationTask = nil
         pendingDownload = nil
@@ -1163,9 +1187,18 @@ final class MobileWorkspace: Identifiable {
     func enqueuePendingUpload(_ policy: TransferConflictPolicy) {
         guard let pendingUpload, let transfers else { return }
         self.pendingUpload = nil
+        uploadEnqueueID = nil
         uploadEnqueueTask?.cancel()
+        let enqueueID = UUID()
+        uploadEnqueueID = enqueueID
         uploadEnqueueTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                if uploadEnqueueID == enqueueID {
+                    uploadEnqueueTask = nil
+                    uploadEnqueueID = nil
+                }
+            }
             do {
                 let result = try await SFTPLocalUploadPlanner.enqueue(
                     pendingUpload.batch,
@@ -1185,33 +1218,36 @@ final class MobileWorkspace: Identifiable {
                     }
                 }
                 if pendingUpload.ownsClient { await pendingUpload.client.disconnect() }
-                guard generation == pendingUpload.connectionGeneration else { return }
+                guard uploadEnqueueID == enqueueID,
+                    generation == pendingUpload.connectionGeneration
+                else { return }
                 if result.changedRemoteDirectories, descriptor.kind == .sftp {
                     await sftpSession.openDirectory(sftpSession.path)
                 }
                 showUploadNotice(
                     .queued(pendingUpload.batch.rootCount, pendingUpload.destination)
                 )
-                uploadEnqueueTask = nil
             } catch is CancellationError {
                 if pendingUpload.ownsClient { await pendingUpload.client.disconnect() }
-                uploadNotice = nil
-                uploadEnqueueTask = nil
+                if uploadEnqueueID == enqueueID { uploadNotice = nil }
             } catch {
                 if pendingUpload.ownsClient { await pendingUpload.client.disconnect() }
+                guard uploadEnqueueID == enqueueID else { return }
                 uploadNotice = nil
                 operationError = error.localizedDescription
-                uploadEnqueueTask = nil
             }
         }
     }
 
     func cancelPendingUpload() {
         cancelPendingRemoteTransfer()
+        uploadPreparationID = nil
         uploadPreparationTask?.cancel()
         uploadPreparationTask = nil
+        uploadEnqueueID = nil
         uploadEnqueueTask?.cancel()
         uploadEnqueueTask = nil
+        uploadNoticeID = nil
         uploadNoticeTask?.cancel()
         uploadNoticeTask = nil
         uploadNotice = nil
@@ -1223,13 +1259,19 @@ final class MobileWorkspace: Identifiable {
     }
 
     private func showUploadNotice(_ notice: WorkspaceUploadNotice) {
+        uploadNoticeID = nil
         uploadNoticeTask?.cancel()
+        let noticeID = UUID()
+        uploadNoticeID = noticeID
         uploadNotice = notice
         uploadNoticeTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled, self?.uploadNotice == notice else { return }
+            guard !Task.isCancelled, self?.uploadNoticeID == noticeID,
+                self?.uploadNotice == notice
+            else { return }
             self?.uploadNotice = nil
             self?.uploadNoticeTask = nil
+            self?.uploadNoticeID = nil
         }
     }
 

@@ -13,6 +13,7 @@ struct MobileAssistantRenderingTests {
     @Test func renderUserImageAlignment() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }
         let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel()
         for index in 0..<7 {
             let size =
@@ -45,13 +46,13 @@ struct MobileAssistantRenderingTests {
             )
         }
         conversation.appendUserTurn("Compare these images.")
-        app.assistant.library.insertAndSelect(conversation)
+        assistant.library.insertAndSelect(conversation)
 
         try await capture(
             "user-images",
             language: "en",
             view: NavigationStack {
-                MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
             }
         )
     }
@@ -112,8 +113,9 @@ struct MobileAssistantRenderingTests {
                 }
             }
             let app = try MobileAppModel(inMemory: true)
+            let assistant = app.assistant.makeSceneModel()
             let conversation = ConversationModel.demo(language: try #require(AppLanguage(rawValue: language)))
-            app.assistant.library.insertAndSelect(conversation)
+            assistant.library.insertAndSelect(conversation)
             conversation.composer.draft =
                 switch language {
                 case "zh-Hans": "先检查服务日志。"
@@ -125,26 +127,26 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "chat", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.composer.draft = "/"
             try await capture(
                 "slash", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.composer.draft = "/skill "
             try await capture(
                 "slash-options", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.composer.draft = ""
             conversation.beginCompaction()
             try await capture(
                 "compact-running", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.failCompaction(
                 text("The context service is unavailable.", "上下文服务不可用。", "上下文服務目前無法使用。")
@@ -152,7 +154,7 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "compact-failed", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.endCompaction()
             conversation.appendUserTurn(
@@ -167,14 +169,14 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "compact-completed", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.composer.attachmentImportError = text(
                 "The selected attachment could not be imported.", "无法导入所选附件。", "無法匯入所選附件。")
             try await capture(
                 "attachment-error", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.composer.attachmentImportError = nil
             conversation.handle(
@@ -212,12 +214,12 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "question", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             try await capture(
                 "question-dark", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }
                 .environment(\.locale, Locale(identifier: language))
                 .preferredColorScheme(.dark))
@@ -228,7 +230,7 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "question-custom", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.cancelUserInput()
             conversation.present(
@@ -264,12 +266,12 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "question-multiple", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             try await capture(
                 "question-multiple-large", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }
                 .environment(\.locale, Locale(identifier: language))
                 .environment(\.dynamicTypeSize, .accessibility2))
@@ -287,12 +289,12 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "question-secret", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             try await capture(
                 "question-secret-dark", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }
                 .environment(\.locale, Locale(identifier: language))
                 .preferredColorScheme(.dark))
@@ -302,13 +304,13 @@ struct MobileAssistantRenderingTests {
             try await capture(
                 "archived-chat", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
-            app.assistant.newConversation()
+            assistant.newConversation()
             try await capture(
                 "empty", language: language,
                 view: NavigationStack {
-                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
         }
     }
@@ -317,6 +319,7 @@ struct MobileAssistantRenderingTests {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }
         for language in ["en", "zh-Hans", "zh-Hant"] {
             let app = try MobileAppModel(inMemory: true)
+            let assistant = app.assistant.makeSceneModel()
             let pinned = ConversationModel.demo(language: try #require(AppLanguage(rawValue: language)))
             pinned.isPinned = true
             let ordinary = ConversationModel()
@@ -333,14 +336,14 @@ struct MobileAssistantRenderingTests {
                 case "zh-Hant": "調查資料庫延遲"
                 default: "Investigate database latency"
                 }
-            app.assistant.library.insertAndSelect(pinned)
-            app.assistant.library.insertAndSelect(ordinary)
-            app.assistant.library.insertAndSelect(streaming)
+            assistant.library.insertAndSelect(pinned)
+            assistant.library.insertAndSelect(ordinary)
+            assistant.library.insertAndSelect(streaming)
             try await capture(
                 "conversations", language: language,
                 view: NavigationStack {
                     MobileAssistantLibrary(
-                        model: app.assistant, route: .conversations,
+                        model: assistant, route: .conversations,
                         selected: {}, showArchived: {}
                     ).navigationTitle("Conversations")
                 }.environment(\.locale, Locale(identifier: language)))
@@ -350,7 +353,7 @@ struct MobileAssistantRenderingTests {
                 "archive", language: language,
                 view: NavigationStack {
                     MobileAssistantLibrary(
-                        model: app.assistant, route: .archived,
+                        model: assistant, route: .archived,
                         selected: {}, showArchived: {}
                     ).navigationTitle("Archived")
                 }.environment(\.locale, Locale(identifier: language)))

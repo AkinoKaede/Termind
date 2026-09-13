@@ -12,6 +12,7 @@ import struct TermindDomain.Host
 @Observable
 final class MobileSceneModel {
     let id = UUID()
+    let assistant: MobileAssistantSceneModel
     var selectedDestination: MobileDestination? = .vault
     var workspaceID: MobileWorkspace.ID?
     var isConnectionPickerPresented = false
@@ -24,6 +25,7 @@ final class MobileSceneModel {
 
     init(app: MobileAppModel) {
         self.app = app
+        assistant = app.assistant.makeSceneModel()
     }
 
     var selectedTab: MobileDestination {
@@ -58,7 +60,7 @@ final class MobileSceneModel {
     }
 
     func openNewConversation() {
-        app.assistant.newConversation()
+        assistant.newConversation()
         assistantLibraryRoute = nil
         selectedDestination = .assistant
     }
