@@ -2,13 +2,6 @@ import SwiftUI
 import TermindDomain
 import UIKit
 
-struct MobileConnectionHistoryRow: Identifiable {
-    let entry: ConnectionHistoryEntry
-    let host: Host
-
-    var id: ConnectionHistoryEntry.ID { entry.id }
-}
-
 /// The registered Workspaces destination.
 struct MobileWorkspaceListView: View {
     let app: MobileAppModel
@@ -143,10 +136,10 @@ struct MobileWorkspaceListView: View {
 
     var historyRows: [MobileConnectionHistoryRow] {
         _ = app.connectionHistory.revision
-        return Array(
-            app.connectionHistory.entries().lazy.compactMap { entry in
-                app.library.host(entry.hostID).map { MobileConnectionHistoryRow(entry: entry, host: $0) }
-            }.prefix(Self.historyLimit)
+        return MobileConnectionHistory.rows(
+            entries: app.connectionHistory.entries(),
+            library: app.library,
+            limit: Self.historyLimit
         )
     }
 
@@ -172,7 +165,7 @@ struct MobileWorkspaceListView: View {
                                 .accessibilityHidden(true)
                         }
                         HStack(alignment: .center, spacing: 12) {
-                            Text(app.library.loginAddress(for: row.host))
+                            Text(row.loginAddress)
                                 .font(.caption.monospaced())
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)

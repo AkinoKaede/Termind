@@ -7,9 +7,18 @@ struct MobileRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.mobileInterfaceIdiom) private var interfaceIdiom
     @State private var scene: MobileSceneModel
+    private let pendingQuickAction: MobileHomeScreenQuickAction?
+    private let consumePendingQuickAction: () -> MobileHomeScreenQuickAction?
 
-    init(app: MobileAppModel, scene: MobileSceneModel? = nil) {
+    init(
+        app: MobileAppModel,
+        scene: MobileSceneModel? = nil,
+        pendingQuickAction: MobileHomeScreenQuickAction? = nil,
+        consumePendingQuickAction: @escaping () -> MobileHomeScreenQuickAction? = { nil }
+    ) {
         self.app = app
+        self.pendingQuickAction = pendingQuickAction
+        self.consumePendingQuickAction = consumePendingQuickAction
         _scene = State(initialValue: scene ?? MobileSceneModel(app: app))
     }
 
@@ -50,7 +59,23 @@ struct MobileRootView: View {
                 app.renameWorkspace(workspace.id, to: title)
             }
         }
-        .onChange(of: scenePhase, initial: true) { _, phase in app.sceneChanged(scene.id, phase: phase) }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            app.sceneChanged(scene.id, phase: phase)
+            MobileHomeScreenQuickActions.refresh(app: app)
+        }
+        .onChange(of: app.connectionHistory.revision, initial: true) { _, _ in
+            MobileHomeScreenQuickActions.refresh(app: app)
+        }
+        .onChange(of: app.library.hosts) { _, _ in
+            MobileHomeScreenQuickActions.refresh(app: app)
+        }
+        .onChange(of: app.library.identities) { _, _ in
+            MobileHomeScreenQuickActions.refresh(app: app)
+        }
+        .onChange(of: pendingQuickAction, initial: true) { _, action in
+            guard action != nil, let action = consumePendingQuickAction() else { return }
+            _ = scene.perform(action)
+        }
         .onChange(of: app.pro.hasProAccess) { _, _ in app.reconcileSync() }
         .onChange(of: app.workspaces.map(\.id)) { _, workspaceIDs in
             scene.reconcileWorkspaceIDs(workspaceIDs)

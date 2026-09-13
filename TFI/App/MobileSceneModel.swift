@@ -91,6 +91,24 @@ final class MobileSceneModel {
         selectWorkspace(id)
     }
 
+    @discardableResult
+    func perform(_ quickAction: MobileHomeScreenQuickAction) -> Bool {
+        switch quickAction {
+        case .connect:
+            openConnectionPicker()
+            return true
+        case .history(let hostID, let kind):
+            guard app.library.host(hostID) != nil else {
+                selectedDestination = .workspaces
+                workspaceID = nil
+                isWorkspaceUnavailable = true
+                return false
+            }
+            open(hostID: hostID, kind: kind)
+            return true
+        }
+    }
+
     /// Reuses this scene's most recently selected SSH workspace for the Host.
     /// Explicit connection actions continue to call `open(hostID:kind:)` so
     /// users can still create independent SSH and SFTP workspaces.

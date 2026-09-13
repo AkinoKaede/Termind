@@ -72,6 +72,35 @@ struct MobileShortcutTests {
         #expect(scene.assistant.conversation.id != previousConversationID)
     }
 
+    @Test func homeScreenConnectActionUsesTheWorkspaceConnectionPicker() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app)
+
+        #expect(scene.perform(.connect))
+        #expect(scene.selectedDestination == .workspaces)
+        #expect(scene.workspaceID == nil)
+        #expect(scene.isConnectionPickerPresented)
+    }
+
+    @Test func homeScreenHistoryActionOpensItsProtocolAndReportsAMissingHost() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Files", host: "files.example.invalid")
+        app.library.upsert(host)
+        let scene = MobileSceneModel(app: app)
+        defer { app.closeAll() }
+
+        #expect(scene.perform(.history(hostID: host.id, kind: .sftp)))
+        scene.activatePendingWorkspace()
+        #expect(scene.activeWorkspace?.descriptor.hostID == host.id)
+        #expect(scene.activeWorkspace?.descriptor.kind == .sftp)
+        #expect(app.connectionHistory.entries(for: host.id).map(\.kind) == [.sftp])
+
+        let historyCount = app.connectionHistory.entries().count
+        #expect(!scene.perform(.history(hostID: UUID(), kind: .ssh)))
+        #expect(scene.isWorkspaceUnavailable)
+        #expect(app.connectionHistory.entries().count == historyCount)
+    }
+
     @Test func hostCardActivationReusesTheScenesMostRecentSSHWorkspace() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")

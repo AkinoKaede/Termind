@@ -42,7 +42,7 @@ struct MobileConnectionPickerTests {
         #expect(selections.last?.1 == .sftp)
     }
 
-    @Test func emptyWorkspaceHistoryKeepsTheLatestFiveValidConnectionEventsWithoutDeduplication() throws {
+    @Test func emptyWorkspaceHistoryKeepsTheLatestFiveUniqueHostAndProtocolPairs() throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app)
         let repeatedHost = Host(name: "Repeated", host: "repeated.example.invalid")
@@ -52,11 +52,15 @@ struct MobileConnectionPickerTests {
         app.library.upsert(repeatedHost)
         for host in otherHosts { app.library.upsert(host) }
 
+        let newestSSH = try #require(
+            app.connectionHistory.record(kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 70)))
+        _ = app.connectionHistory.record(
+            kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 60))
+        let newestSFTP = try #require(
+            app.connectionHistory.record(kind: .sftp, for: repeatedHost.id, at: Date(timeIntervalSince1970: 55)))
         let expectedEntries = try [
-            #require(
-                app.connectionHistory.record(kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 70))),
-            #require(
-                app.connectionHistory.record(kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 60))),
+            newestSSH,
+            newestSFTP,
             #require(
                 app.connectionHistory.record(kind: .sftp, for: otherHosts[0].id, at: Date(timeIntervalSince1970: 50))),
             #require(
@@ -74,7 +78,8 @@ struct MobileConnectionPickerTests {
         #expect(rows.count == MobileWorkspaceListView.historyLimit)
         #expect(rows.map(\.entry.id) == expectedEntries.map(\.id))
         #expect(rows[0].entry.hostID == rows[1].entry.hostID)
-        #expect(rows[0].entry.kind == rows[1].entry.kind)
+        #expect(rows[0].entry.kind != rows[1].entry.kind)
+        #expect(Set(rows.map { "\($0.entry.hostID.uuidString):\($0.entry.kind.rawValue)" }).count == rows.count)
     }
 
     @Test func sharedHostPickerUsesConfiguredTitleWithoutHostsHeaderOrProtocolControl() async throws {

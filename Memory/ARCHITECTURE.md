@@ -341,7 +341,11 @@ Each mobile scene owns one navigation/command model and one Assistant library mo
 including its selected conversation and New Chat draft. The app-wide Assistant runtime
 and conversation store remain shared so active runs are never duplicated. The scene
 model is published as a focused value, so hardware-keyboard commands never operate
-another iPad window. Mobile
+another iPad window. Home Screen quick actions enter through a per-window scene
+delegate, are consumed once by that scene's navigation model, and never target another
+iPad window. Connect is static; up to three dynamic history actions derive from the
+shared event log. Workspace History and those actions keep the newest display row per
+Host and connection kind without deleting duplicate persisted events. Mobile
 uses the macOS shortcuts for capabilities that exist on both platforms: navigation,
 connection/creation, terminal Find and Command Generator, Workspace close/switch,
 and Assistant send/stop. Workspace switching never reconnects the session or claims

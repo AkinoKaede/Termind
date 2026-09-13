@@ -4,7 +4,7 @@ import TermindApplication
 
 @main
 struct TermindIOSApp: App {
-    @UIApplicationDelegateAdaptor(MobileCloudNotifications.self) private var notifications
+    @UIApplicationDelegateAdaptor(MobileAppDelegate.self) private var appDelegate
     @AppStorage("mobile.appearance") private var appearance = "system"
     private let launchLanguage = AppLanguage.stored()
     private let startup: Result<MobileAppModel, any Error>
@@ -20,7 +20,7 @@ struct TermindIOSApp: App {
         WindowGroup {
             switch startup {
             case .success(let app):
-                MobileRootView(app: app)
+                MobileQuickActionSceneRoot(app: app)
                     .modelContainer(app.container)
                     .environment(\.mobileInterfaceIdiom, MobileInterfaceIdiom.current)
                     .environment(\.locale, launchLanguage.locale)
@@ -32,5 +32,18 @@ struct TermindIOSApp: App {
             }
         }
         .commands { MobileCommands() }
+    }
+}
+
+private struct MobileQuickActionSceneRoot: View {
+    let app: MobileAppModel
+    @EnvironmentObject private var sceneDelegate: MobileSceneDelegate
+
+    var body: some View {
+        MobileRootView(
+            app: app,
+            pendingQuickAction: sceneDelegate.pendingQuickAction,
+            consumePendingQuickAction: sceneDelegate.consumePendingQuickAction
+        )
     }
 }
