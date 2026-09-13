@@ -709,7 +709,7 @@ struct SFTPBrowserView: View {
                 .font(.system(size: 23, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: 28)
-            Text("..")
+            Text(verbatim: "..")
                 .font(.body.weight(.medium))
             Spacer()
         }

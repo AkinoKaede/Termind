@@ -17,6 +17,18 @@ import struct TermindDomain.Host
 @MainActor
 struct SFTPFeatureTests {
     @Test
+    func parentDirectoryTokenIsNotLocalized() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appending(path: "TFM/Features/SFTP/SFTPBrowserView.swift"), encoding: .utf8)
+
+        #expect(source.contains("Text(verbatim: \"..\")"))
+        #expect(!source.contains("Text(\"..\")"))
+    }
+
+    @Test
     func transferSummaryWeightsProgressByBytesAndCountsFailures() {
         let host = Host(name: "Host", host: "host.example")
         let first = SFTPTransfer(
