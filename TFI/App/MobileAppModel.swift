@@ -59,6 +59,7 @@ final class MobileAppModel {
     let assistant: MobileAssistantModel
     let metrics: MobileMetricsModel
     let pro: ProAccessController
+    let appReview: AppReviewController
     let liveActivities: MobileLiveActivityController
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
     private let defaults: UserDefaults?
@@ -73,7 +74,8 @@ final class MobileAppModel {
         hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
         workspaceConnectionServices: MobileWorkspaceConnectionServices = .live,
-        forwardingDefaults: UserDefaults? = nil
+        forwardingDefaults: UserDefaults? = nil,
+        appReview: AppReviewController = AppReviewController()
     ) throws {
         try self.init(
             dependencies: MobileAppDependencies(
@@ -83,7 +85,8 @@ final class MobileAppModel {
                 forwardingDefaults: forwardingDefaults ?? (inMemory || hosts != nil ? nil : defaults),
                 background: background,
                 workspaceConnections: workspaceConnectionServices,
-                metrics: inMemory || hosts != nil ? .testing : .live
+                metrics: inMemory || hosts != nil ? .testing : .live,
+                appReview: appReview
             ))
     }
 
@@ -95,6 +98,7 @@ final class MobileAppModel {
         let workspaceConnectionServices = dependencies.workspaceConnections
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
+        appReview = dependencies.appReview
         let memoryOnly = inMemory || hosts != nil
         let storeURL = URL.applicationSupportDirectory.appending(path: "Termind.store")
         if !memoryOnly {

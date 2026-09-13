@@ -24,6 +24,7 @@ final class MobileSceneModel {
     var editingHost: Host?
     var renamingWorkspace: MobileWorkspace?
     var assistantLibraryRoute: MobileAssistantLibraryRoute?
+    private(set) var reviewPageID: String?
 
     @ObservationIgnored private let app: MobileAppModel
     @ObservationIgnored private var pendingWorkspaceID: MobileWorkspace.ID?
@@ -57,6 +58,14 @@ final class MobileSceneModel {
 
     func openSettings() {
         selectedDestination = .settings
+    }
+
+    func enterReviewPage(_ id: String) {
+        reviewPageID = id
+    }
+
+    func leaveReviewPage(_ id: String) {
+        if reviewPageID == id { reviewPageID = nil }
     }
 
     func openConnectionPicker() {

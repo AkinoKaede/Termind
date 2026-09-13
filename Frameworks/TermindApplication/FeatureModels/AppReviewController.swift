@@ -1,12 +1,12 @@
 import Foundation
 
-/// One invitation budget for every window. StoreKit reports neither presentation
-/// nor completion, so persisted records describe attempts, never ratings.
+/// One invitation budget for every app surface. StoreKit reports neither
+/// presentation nor completion, so persisted records describe attempts, never ratings.
 @MainActor
-final class AppReviewController {
-    static let reviewURL = URL(string: "https://apps.apple.com/app/id6805856690?action=write-review")!
+public final class AppReviewController {
+    public static let reviewURL = URL(string: "https://apps.apple.com/app/id6805856690?action=write-review")!
 
-    enum Location: Equatable {
+    public enum Location: Equatable {
         case workspace(UUID)
         case reviewPage(String)
         case other
@@ -22,16 +22,22 @@ final class AppReviewController {
         }
     }
 
-    struct Context: Equatable {
-        var location: Location
-        var isActive: Bool
-        var isBlocked: Bool = false
+    public struct Context: Equatable {
+        public var location: Location
+        public var isActive: Bool
+        public var isBlocked: Bool
+
+        public init(location: Location, isActive: Bool, isBlocked: Bool = false) {
+            self.location = location
+            self.isActive = isActive
+            self.isBlocked = isBlocked
+        }
 
         var canRequest: Bool { isActive && !isBlocked && location.isReviewPage }
     }
 
     private struct Pending {
-        let windowID: UUID
+        let surfaceID: UUID
         let deadline: TimeInterval
     }
 
@@ -40,14 +46,14 @@ final class AppReviewController {
     private let now: () -> Date
     private let uptime: () -> TimeInterval
     private let calendar: Calendar
-    let isEnabled: Bool
+    public let isEnabled: Bool
     private var contexts: [UUID: Context] = [:]
-    private var activeWindowID: UUID?
+    private var activeSurfaceID: UUID?
     private var lastTick: TimeInterval?
     private var workspaceSeconds: TimeInterval = 0
     private var pending: Pending?
 
-    init(
+    public init(
         defaults: UserDefaults? = nil, version: String = "",
         isEnabled: Bool = false, now: @escaping () -> Date = Date.init,
         uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
@@ -61,7 +67,7 @@ final class AppReviewController {
         self.calendar = calendar
     }
 
-    static func live() -> AppReviewController {
+    public static func live() -> AppReviewController {
         let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         return AppReviewController(
             defaults: isTesting ? nil : .standard,
@@ -73,23 +79,23 @@ final class AppReviewController {
     /// Called on navigation, native activity changes and foreground timer ticks.
     /// Only a workspace-to-list transition can arm a request; becoming eligible,
     /// dismissing a sheet, or regaining focus alone never does.
-    func update(windowID: UUID, context: Context) {
+    public func update(surfaceID: UUID, context: Context) {
         guard isEnabled else { return }
         accountForWorkspaceTime()
-        let previous = contexts[windowID]
-        contexts[windowID] = context
+        let previous = contexts[surfaceID]
+        contexts[surfaceID] = context
 
         if context.isActive {
-            if activeWindowID != windowID {
+            if activeSurfaceID != surfaceID {
                 pending = nil
-                activeWindowID = windowID
+                activeSurfaceID = surfaceID
             }
             recordActiveDay()
-        } else if activeWindowID == windowID {
-            activeWindowID = nil
+        } else if activeSurfaceID == surfaceID {
+            activeSurfaceID = nil
         }
 
-        if pending?.windowID == windowID,
+        if pending?.surfaceID == surfaceID,
             !context.canRequest || previous?.location != context.location
         {
             pending = nil
@@ -97,47 +103,49 @@ final class AppReviewController {
         if previous?.isActive == true, previous?.location.isWorkspace == true,
             context.canRequest, isEligible
         {
-            pending = Pending(windowID: windowID, deadline: uptime() + 3)
+            pending = Pending(surfaceID: surfaceID, deadline: uptime() + 3)
         }
     }
 
-    func recordInteraction(windowID: UUID) {
-        if pending?.windowID == windowID { pending = nil }
-    }
-
-    func removeWindow(_ windowID: UUID) {
+    public func recordInteraction(surfaceID: UUID) {
         accountForWorkspaceTime()
-        contexts.removeValue(forKey: windowID)
-        if activeWindowID == windowID { activeWindowID = nil }
-        recordInteraction(windowID: windowID)
+        pending = nil
+        if contexts[surfaceID]?.isActive == true { activeSurfaceID = surfaceID }
     }
 
-    func requestIfReady(windowID: UUID, request: () -> Void) {
-        guard let pending, pending.windowID == windowID,
-            uptime() >= pending.deadline, activeWindowID == windowID,
-            contexts[windowID]?.canRequest == true, isEligible
+    public func removeSurface(_ surfaceID: UUID) {
+        accountForWorkspaceTime()
+        contexts.removeValue(forKey: surfaceID)
+        if activeSurfaceID == surfaceID { activeSurfaceID = nil }
+        recordInteraction(surfaceID: surfaceID)
+    }
+
+    public func requestIfReady(surfaceID: UUID, request: () -> Void) {
+        guard let pending, pending.surfaceID == surfaceID,
+            uptime() >= pending.deadline, activeSurfaceID == surfaceID,
+            contexts[surfaceID]?.canRequest == true, isEligible
         else { return }
         self.pending = nil
-        var versions = defaults?.stringArray(forKey: DesktopSettingsKey.reviewRequestedVersions) ?? []
+        var versions = defaults?.stringArray(forKey: SettingsKey.reviewRequestedVersions) ?? []
         versions.append(version)
-        defaults?.set(versions, forKey: DesktopSettingsKey.reviewRequestedVersions)
-        defaults?.set(now(), forKey: DesktopSettingsKey.reviewLastAttempt)
+        defaults?.set(versions, forKey: SettingsKey.reviewRequestedVersions)
+        defaults?.set(now(), forKey: SettingsKey.reviewLastAttempt)
         request()
     }
 
-    func recordManualReview() {
+    public func recordManualReview() {
         pending = nil
-        defaults?.set(now(), forKey: DesktopSettingsKey.reviewLastAttempt)
+        defaults?.set(now(), forKey: SettingsKey.reviewLastAttempt)
     }
 
     private var isEligible: Bool {
         guard isEnabled, !version.isEmpty, workspaceSeconds >= 300,
-            let firstUse = defaults?.object(forKey: DesktopSettingsKey.reviewFirstUse) as? Date,
+            let firstUse = defaults?.object(forKey: SettingsKey.reviewFirstUse) as? Date,
             now().timeIntervalSince(firstUse) >= 7 * 86_400,
-            (defaults?.stringArray(forKey: DesktopSettingsKey.reviewActiveDays)?.count ?? 0) >= 3,
-            !(defaults?.stringArray(forKey: DesktopSettingsKey.reviewRequestedVersions) ?? []).contains(version)
+            (defaults?.stringArray(forKey: SettingsKey.reviewActiveDays)?.count ?? 0) >= 3,
+            !(defaults?.stringArray(forKey: SettingsKey.reviewRequestedVersions) ?? []).contains(version)
         else { return false }
-        if let lastAttempt = defaults?.object(forKey: DesktopSettingsKey.reviewLastAttempt) as? Date {
+        if let lastAttempt = defaults?.object(forKey: SettingsKey.reviewLastAttempt) as? Date {
             return now().timeIntervalSince(lastAttempt) >= 120 * 86_400
         }
         return true
@@ -146,24 +154,24 @@ final class AppReviewController {
     private func accountForWorkspaceTime() {
         let tick = uptime()
         defer { lastTick = tick }
-        guard let lastTick, let activeWindowID,
-            let context = contexts[activeWindowID], context.isActive, context.location.isWorkspace
+        guard let lastTick, let activeSurfaceID,
+            let context = contexts[activeSurfaceID], context.isActive, context.location.isWorkspace
         else { return }
         workspaceSeconds += max(0, tick - lastTick)
     }
 
     private func recordActiveDay() {
         let date = now()
-        if defaults?.object(forKey: DesktopSettingsKey.reviewFirstUse) == nil {
-            defaults?.set(date, forKey: DesktopSettingsKey.reviewFirstUse)
+        if defaults?.object(forKey: SettingsKey.reviewFirstUse) == nil {
+            defaults?.set(date, forKey: SettingsKey.reviewFirstUse)
         }
-        var days = defaults?.stringArray(forKey: DesktopSettingsKey.reviewActiveDays) ?? []
+        var days = defaults?.stringArray(forKey: SettingsKey.reviewActiveDays) ?? []
         // Three distinct local dates prove eligibility; no growing usage log.
         guard days.count < 3 else { return }
         let parts = calendar.dateComponents([.era, .year, .month, .day], from: date)
         let key = "\(parts.era ?? 0)-\(parts.year ?? 0)-\(parts.month ?? 0)-\(parts.day ?? 0)"
         guard !days.contains(key) else { return }
         days.append(key)
-        defaults?.set(days, forKey: DesktopSettingsKey.reviewActiveDays)
+        defaults?.set(days, forKey: SettingsKey.reviewActiveDays)
     }
 }

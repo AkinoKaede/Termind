@@ -84,6 +84,7 @@ struct MobileVaultView: View {
     @Environment(\.locale) private var locale
 
     let app: MobileAppModel
+    let reviewScene: MobileSceneModel?
     let activateHost: (Host.ID) -> Void
     let open: (UUID, ConnectionHistoryEntry.Kind) -> Void
     let showsMetrics: Bool
@@ -96,6 +97,7 @@ struct MobileVaultView: View {
 
     init(
         app: MobileAppModel,
+        reviewScene: MobileSceneModel? = nil,
         editingHost: Binding<Host?>,
         activateHost: @escaping (Host.ID) -> Void,
         open: @escaping (UUID, ConnectionHistoryEntry.Kind) -> Void,
@@ -103,6 +105,7 @@ struct MobileVaultView: View {
         executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in }
     ) {
         self.app = app
+        self.reviewScene = reviewScene
         _editingHost = editingHost
         self.activateHost = activateHost
         self.open = open
@@ -259,6 +262,7 @@ struct MobileVaultView: View {
         } message: {
             Text("Open connections and references to this host will be removed.")
         }
+        .mobileReviewPage("vault.hosts", scene: reviewScene)
     }
 
     @ViewBuilder
@@ -313,14 +317,17 @@ struct MobileVaultView: View {
         MobileVaultLinkGroup {
             vaultLink("Keychain", symbol: "key") {
                 MobileCredentialsView(app: app)
+                    .mobileReviewPage("vault.keychain", scene: reviewScene)
             }
             MobileVaultLinkDivider()
             vaultLink("Snippets", symbol: "curlybraces") {
                 MobileSnippetsView(app: app, execute: executeSnippet)
+                    .mobileReviewPage("vault.snippets", scene: reviewScene)
             }
             MobileVaultLinkDivider()
             vaultLink("Known Hosts", symbol: "touchid") {
                 MobileKnownHostsView(app: app)
+                    .mobileReviewPage("vault.knownHosts", scene: reviewScene)
             }
         }
     }
@@ -357,11 +364,15 @@ struct MobileVaultView: View {
         switch destination {
         case .keychain(let useQuery):
             MobileCredentialsView(app: app, initialQuery: useQuery ? query : "")
+                .mobileReviewPage("vault.keychain", scene: reviewScene)
         case .snippets(let useQuery):
             MobileSnippetsView(
-                app: app, initialQuery: useQuery ? query : "", execute: executeSnippet)
+                app: app, initialQuery: useQuery ? query : "", execute: executeSnippet
+            )
+            .mobileReviewPage("vault.snippets", scene: reviewScene)
         case .knownHosts(let useQuery):
             MobileKnownHostsView(app: app, initialQuery: useQuery ? query : "")
+                .mobileReviewPage("vault.knownHosts", scene: reviewScene)
         case .metrics:
             MobileMetricsView(app: app)
         }

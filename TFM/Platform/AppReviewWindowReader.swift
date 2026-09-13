@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindApplication
 
 /// Native focus and input belong to the window, including controls hosted outside
 /// SwiftUI. A local event monitor observes input without consuming or storing it.
@@ -67,7 +68,7 @@ final class ReviewActivityView: NSView {
                     [weak self] _ in
                     MainActor.assumeIsolated {
                         if let self, name == NSWindow.willBeginSheetNotification {
-                            self.controller.recordInteraction(windowID: self.windowID)
+                            self.controller.recordInteraction(surfaceID: self.windowID)
                         }
                         self?.refresh()
                     }
@@ -93,7 +94,7 @@ final class ReviewActivityView: NSView {
         ) { [weak self] event in
             MainActor.assumeIsolated {
                 if let self, self.window?.isKeyWindow == true {
-                    self.controller.recordInteraction(windowID: self.windowID)
+                    self.controller.recordInteraction(surfaceID: self.windowID)
                 }
             }
             return event
@@ -107,7 +108,7 @@ final class ReviewActivityView: NSView {
                 NSApp.isActive && $0.isKeyWindow && $0.isVisible && !$0.isMiniaturized && !isSleeping
             } ?? false
         controller.update(
-            windowID: windowID,
+            surfaceID: windowID,
             context: .init(
                 location: location, isActive: active,
                 isBlocked: isBlocked || window?.attachedSheet != nil || NSApp.modalWindow != nil
@@ -122,7 +123,7 @@ final class ReviewActivityView: NSView {
                 RunLoop.main.add(timer, forMode: .common)
                 self.timer = timer
             }
-            controller.requestIfReady(windowID: windowID, request: request)
+            controller.requestIfReady(surfaceID: windowID, request: request)
         } else {
             timer?.invalidate()
             timer = nil
@@ -138,6 +139,6 @@ final class ReviewActivityView: NSView {
         sleepObservers.removeAll()
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
-        controller.removeWindow(windowID)
+        controller.removeSurface(windowID)
     }
 }

@@ -79,6 +79,7 @@ struct MobileRootView: View {
                 scene.isWorkspaceUnavailable
                     ? String(localized: "This workspace was closed or its host was removed.") : app.error ?? "")
         }
+        .modifier(MobileAppReviewPresenter(app: app, scene: scene, scenePhase: scenePhase))
 
     }
 

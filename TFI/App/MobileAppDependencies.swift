@@ -10,6 +10,7 @@ struct MobileAppDependencies {
     var background: any MobileBackgroundTaskManaging
     var workspaceConnections: MobileWorkspaceConnectionServices
     var metrics: MobileMetricsServices
+    var appReview: AppReviewController
 
     static func live() -> MobileAppDependencies {
         MobileAppDependencies(
@@ -19,7 +20,8 @@ struct MobileAppDependencies {
             forwardingDefaults: .standard,
             background: MobileBackgroundController(),
             workspaceConnections: .live,
-            metrics: .live
+            metrics: .live,
+            appReview: .live()
         )
     }
 
@@ -29,7 +31,8 @@ struct MobileAppDependencies {
         forwardingDefaults: UserDefaults? = nil,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
         workspaceConnections: MobileWorkspaceConnectionServices = .live,
-        metrics: MobileMetricsServices = .testing
+        metrics: MobileMetricsServices = .testing,
+        appReview: AppReviewController = AppReviewController()
     ) -> MobileAppDependencies {
         MobileAppDependencies(
             hosts: hosts,
@@ -38,7 +41,8 @@ struct MobileAppDependencies {
             forwardingDefaults: forwardingDefaults,
             background: background,
             workspaceConnections: workspaceConnections,
-            metrics: metrics
+            metrics: metrics,
+            appReview: appReview
         )
     }
 }

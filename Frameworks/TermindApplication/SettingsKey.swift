@@ -1,6 +1,12 @@
 import Foundation
 
 public nonisolated enum SettingsKey {
+    // Device-local review invitation history; never included in Settings sync.
+    public static let reviewFirstUse = "app.review.firstUse"
+    public static let reviewActiveDays = "app.review.activeDays"
+    public static let reviewLastAttempt = "app.review.lastAttempt"
+    public static let reviewRequestedVersions = "app.review.requestedVersions"
+
     public static let appLanguage = "app.language"
     public static let defaultICloudSyncEnabled = true
     public static let defaultMetricsSyncEnabled = true

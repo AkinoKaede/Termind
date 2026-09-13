@@ -48,11 +48,18 @@ struct ArchitectureBoundaryTests {
         #expect(!sync.contains("reviewFirstUse"))
         #expect(!sync.contains("reviewLastAttempt"))
         let controller = try String(
-            contentsOf: sourceRoot.appending(path: "App/AppReviewController.swift"), encoding: .utf8
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindApplication/FeatureModels/AppReviewController.swift"), encoding: .utf8
         )
         for forbidden in ["import StoreKit", "import AppKit", "import SwiftUI", "import AgentKit"] {
             #expect(!controller.contains(forbidden))
         }
+        let mobile = try String(
+            contentsOf: sourceRoot.appending(path: "../TFI/Platform/MobileAppReviewWindowReader.swift"),
+            encoding: .utf8
+        )
+        #expect(mobile.contains("ReviewInteractionGestureRecognizer"))
+        #expect(mobile.contains("controller.removeSurface(surfaceID)"))
     }
 
     @Test

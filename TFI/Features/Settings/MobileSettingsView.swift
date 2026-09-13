@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MobileSettingsView: View {
     let app: MobileAppModel
+    var reviewScene: MobileSceneModel? = nil
+
     var body: some View {
         Form {
             Section {
@@ -9,7 +11,7 @@ struct MobileSettingsView: View {
             }
             Section {
                 NavigationLink {
-                    MobileAppSettingsView()
+                    MobileAppSettingsView(appReview: app.appReview, reviewScene: reviewScene)
                 } label: {
                     Label("App", systemImage: "app.badge")
                 }
@@ -34,6 +36,8 @@ struct MobileSettingsView: View {
                     Label("Sync", systemImage: "icloud")
                 }
             }
-        }.navigationTitle("Settings")
+        }
+        .navigationTitle("Settings")
+        .mobileReviewPage("settings", scene: reviewScene)
     }
 }

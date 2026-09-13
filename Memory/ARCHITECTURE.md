@@ -222,8 +222,10 @@ affect Apple's subscription-group eligibility. Entitlement expiration is checked
 activation and at most minutely while active. Current-launch workspace composition
 is not dismantled, but other Pro features and a fresh launch receive no stale grant.
 
-One app-wide `AppReviewController` stores device-local first-use/active-day/version/
-attempt history, never syncs it, and never claims a review was shown. Automatic
+One app-wide shared `AppReviewController` stores device-local first-use/active-day/version/
+attempt history, never syncs it, and never claims a review was shown. Desktop windows
+and mobile scenes use the same surface-based policy; their platform adapters alone own
+native focus, input, pointer, lifecycle, and modal observation. Automatic
 requests require seven elapsed days, three active dates, and five foreground
 workspace minutes, then a three-second quiet transition to a Vault list or Settings
 index/App page. Input, navigation, focus loss, sleep, or modal presentation cancels

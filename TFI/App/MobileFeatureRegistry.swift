@@ -94,6 +94,7 @@ struct MobileFeatureRegistry {
                 AnyView(
                     MobileVaultView(
                         app: app,
+                        reviewScene: scene,
                         editingHost: Binding(
                             get: { scene.editingHost },
                             set: { scene.editingHost = $0 }
@@ -158,8 +159,8 @@ struct MobileFeatureRegistry {
                     MobileFeaturePlacement(surface: .phoneTab, order: 3),
                     MobileFeaturePlacement(surface: .padSidebar, order: 4),
                 ]
-            ) { app, _, _ in
-                AnyView(MobileSettingsView(app: app))
+            ) { app, scene, _ in
+                AnyView(MobileSettingsView(app: app, reviewScene: scene))
             }
         )
         return registry

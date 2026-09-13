@@ -1,5 +1,6 @@
 import StoreKit
 import SwiftUI
+import TermindApplication
 
 struct AppReviewPresenter: ViewModifier {
     @Environment(AppModel.self) private var app

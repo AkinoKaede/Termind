@@ -8,12 +8,6 @@ import TermindApplication
 /// into two preferences that disagree. Everything user-facing that lives in
 /// `UserDefaults` rather than SwiftData is named here.
 nonisolated enum DesktopSettingsKey {
-    // Device-local review invitation history; never included in Settings sync.
-    static let reviewFirstUse = "app.review.firstUse"
-    static let reviewActiveDays = "app.review.activeDays"
-    static let reviewLastAttempt = "app.review.lastAttempt"
-    static let reviewRequestedVersions = "app.review.requestedVersions"
-
     static let showMetricsInMenuBar = "metrics.showInMenuBar"
     /// App-wide appearance. `system` inherits changes from macOS.
     static let appAppearance = "app.appearance"

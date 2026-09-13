@@ -2,6 +2,8 @@ import SwiftUI
 import TermindApplication
 
 struct MobileAppSettingsView: View {
+    var appReview: AppReviewController?
+    var reviewScene: MobileSceneModel?
     @AppStorage("mobile.appearance") private var appearance = "system"
     @AppStorage(SettingsKey.appLanguage) private var language = AppLanguage.system.rawValue
     @State private var launchLanguage = AppLanguage.stored()
@@ -51,9 +53,16 @@ struct MobileAppSettingsView: View {
                 LabeledContent("OpenSSL", value: MobileRuntimeVersions.openSSL)
             }
             Section("Support") {
-                Link(destination: URL(string: "https://apps.apple.com/app/id6805856690?action=write-review")!) {
+                Link(destination: AppReviewController.reviewURL) {
                     Label("Rate on the App Store", systemImage: "star")
                 }
+                .environment(
+                    \.openURL,
+                    OpenURLAction { url in
+                        appReview?.recordManualReview()
+                        return .systemAction(url)
+                    }
+                )
                 Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
                     Label("Support", systemImage: "questionmark.circle")
                 }
@@ -63,5 +72,6 @@ struct MobileAppSettingsView: View {
             }
         }
         .navigationTitle("App")
+        .mobileReviewPage("settings.app", scene: reviewScene)
     }
 }
