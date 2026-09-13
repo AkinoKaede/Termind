@@ -399,14 +399,33 @@ final class MobileAppModel {
             recordsInitialCommandInHistory = true
             initialSFTPPath = nil
         }
+        let duplicateIndex = nextWorkspaceDuplicateIndex(hostID: host.id, kind: kind)
+        let title = duplicateIndex == 0 ? host.name : "\(host.name) (\(duplicateIndex))"
         return MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
+            descriptor: MobileWorkspaceDescriptor(
+                hostID: host.id, title: title, kind: kind, duplicateIndex: duplicateIndex),
             hosts: library, transfers: transfers, terminalSettings: terminalSettings,
             commandHistory: commandHistory, sftpHistory: sftpHistory,
             connectionServices: workspaceConnectionServices,
             initialCommand: initialCommand,
             recordsInitialCommandInHistory: recordsInitialCommandInHistory,
             initialSFTPPath: initialSFTPPath)
+    }
+
+    /// Gives a new workspace the lowest number not already held by the same
+    /// connection kind on the same Host. A manual title does not release the
+    /// allocation; only closing the workspace does.
+    private func nextWorkspaceDuplicateIndex(
+        hostID: Host.ID, kind: ConnectionHistoryEntry.Kind
+    ) -> Int {
+        let taken = Set(
+            workspaces.lazy
+                .filter { $0.descriptor.hostID == hostID && $0.descriptor.kind == kind }
+                .map(\.descriptor.duplicateIndex)
+        )
+        var index = 0
+        while taken.contains(index) { index += 1 }
+        return index
     }
 
     private func addWorkspaces(_ added: [MobileWorkspace]) {

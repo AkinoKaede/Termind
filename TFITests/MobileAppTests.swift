@@ -103,6 +103,49 @@ struct MobileWorkspaceTests {
         #expect(!workspace.rename(to: "Release Shell"))
     }
 
+    @Test func automaticTitlesUseStableLowestFreeNumbersPerHostAndKind() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Server", host: "example.invalid")
+        app.library.upsert(host)
+        defer { app.closeAll() }
+
+        let firstID = try #require(app.open(hostID: host.id, kind: .ssh))
+        let secondID = try #require(
+            app.open(hostID: host.id, kind: .ssh, initialPath: "/srv/releases"))
+        let thirdID = try #require(
+            app.execute(Snippet(title: "Status", body: "uptime"), on: [host.id]).first)
+        let sftpID = try #require(
+            app.open(hostID: host.id, kind: .sftp, initialPath: "/srv/releases"))
+
+        let first = try #require(app.workspaces.first { $0.id == firstID })
+        let second = try #require(app.workspaces.first { $0.id == secondID })
+        let third = try #require(app.workspaces.first { $0.id == thirdID })
+        let sftp = try #require(app.workspaces.first { $0.id == sftpID })
+        #expect([first, second, third].map(\.descriptor.title) == ["Server", "Server (1)", "Server (2)"])
+        #expect([first, second, third].map(\.descriptor.duplicateIndex) == [0, 1, 2])
+        #expect(sftp.descriptor.title == "Server")
+        #expect(sftp.descriptor.duplicateIndex == 0)
+        #expect(third.activitySession.title == "Server (2)")
+
+        #expect(app.renameWorkspace(secondID, to: "Logs"))
+        let fourthID = try #require(app.open(hostID: host.id, kind: .ssh))
+        let fourth = try #require(app.workspaces.first { $0.id == fourthID })
+        #expect(fourth.descriptor.title == "Server (3)")
+
+        app.close(firstID)
+        let recycledBaseID = try #require(app.open(hostID: host.id, kind: .ssh))
+        let recycledBase = try #require(app.workspaces.first { $0.id == recycledBaseID })
+        #expect(recycledBase.descriptor.title == "Server")
+        #expect(second.descriptor.title == "Logs")
+        #expect(third.descriptor.title == "Server (2)")
+        #expect(fourth.descriptor.title == "Server (3)")
+
+        app.close(secondID)
+        let recycledOneID = try #require(app.open(hostID: host.id, kind: .ssh))
+        let recycledOne = try #require(app.workspaces.first { $0.id == recycledOneID })
+        #expect(recycledOne.descriptor.title == "Server (1)")
+    }
+
     @Test func closeAllDisconnectsAndRemovesEveryWorkspaceAndIsRepeatable() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")

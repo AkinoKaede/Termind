@@ -316,8 +316,10 @@ live path exists. Explicit close never retries.
 Initial connection failure and recovery stay in Connection Journey. Background-task
 expiration closes transports but retains intent; foreground resumes existing
 workspaces. Workspaces exist only for the current app process and are never restored
-after relaunch. Host deletion runs the shared outbox saga and cancels sessions,
-transfers, forwarding, and local history.
+after relaunch. Within that process, Workspace titles hold the lowest free index for
+their Host and connection kind; manual names retain the allocation, and closing the
+Workspace releases it without renumbering peers. Host deletion runs the shared outbox
+saga and cancels sessions, transfers, forwarding, and local history.
 
 One serialized Live Activity represents all Workspaces with counts and up to six
 distribution icons. Validated links open a Workspace or list and carry no secrets or
