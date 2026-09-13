@@ -41,6 +41,7 @@ struct MobileCredentialsView: View {
                                     keyEditor = MobileKeyEditorModel(
                                         mode: .edit, credentials: app.credentials, key: key)
                                 }
+                                Divider()
                                 Button("Delete", systemImage: "trash", role: .destructive) { deletingKey = key }
                             }
                         }
@@ -60,6 +61,7 @@ struct MobileCredentialsView: View {
                                 MobileIdentityCredentialCard(identity: identity, credentials: app.credentials)
                             } actions: {
                                 Button("Edit", systemImage: "pencil") { editing = identity }
+                                Divider()
                                 Button("Delete", systemImage: "trash", role: .destructive) {
                                     deletingIdentity = identity
                                 }

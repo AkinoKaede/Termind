@@ -444,6 +444,7 @@ struct MobileVaultView: View {
             Button("SSH", systemImage: "terminal") { open(host.id, .ssh) }
             Button("SFTP", systemImage: "folder") { open(host.id, .sftp) }
             Button("Edit", systemImage: "pencil") { editingHost = host }
+            Divider()
             Button("Delete", systemImage: "trash", role: .destructive) { deletingHost = host }
         }
     }

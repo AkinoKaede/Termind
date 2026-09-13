@@ -35,6 +35,7 @@ struct MobileMetricsView: View {
                             app.metrics.core.setEnabled(!server.selection.enabled, for: server)
                         }
                         Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
+                        Divider()
                         Button("Remove", systemImage: "trash", role: .destructive) { app.metrics.remove(server.id) }
                     }
                 }

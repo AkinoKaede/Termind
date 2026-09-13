@@ -699,7 +699,8 @@ struct MobileNavigationParityTests {
             contentsOf: root.appending(path: "TFI/Features/HostChooser/MobileConnectionPicker.swift"), encoding: .utf8)
         #expect(toolbar.contains("Menu {"))
         #expect(toolbar.contains("Button(\"Close All Workspaces\""))
-        #expect(toolbar.contains("systemImage: \"rectangle.stack.badge.minus\", role: .destructive"))
+        #expect(toolbar.contains("systemImage: \"rectangle.stack.badge.minus\""))
+        #expect(!toolbar.contains("systemImage: \"rectangle.stack.badge.minus\", role: .destructive"))
         #expect(toolbar.contains(".disabled(!hasWorkspaces)"))
         #expect(toolbar.contains("MobileOverflowMenuLabel(\"More\")"))
     }

@@ -126,7 +126,14 @@ struct MobileConnectionPickerTests {
         #expect(toolbar.contains("Button(\"Clear History\", systemImage: \"trash\", role: .destructive"))
         let clearHistory = try #require(toolbar.range(of: "Button(\"Clear History\""))
         let closeAll = try #require(toolbar.range(of: "Button(\"Close All Workspaces\""))
-        #expect(clearHistory.lowerBound < closeAll.lowerBound)
+        let separator = try #require(
+            toolbar.range(
+                of: "Divider()",
+                range: closeAll.upperBound..<clearHistory.lowerBound
+            ))
+        #expect(closeAll.lowerBound < separator.lowerBound)
+        #expect(separator.lowerBound < clearHistory.lowerBound)
+        #expect(!toolbar[closeAll.lowerBound..<separator.lowerBound].contains("role: .destructive"))
         #expect(workspaceList.contains("app.connectionHistory.clearAll()"))
         #expect(workspaceList.contains("\"Clear connection history?\""))
     }

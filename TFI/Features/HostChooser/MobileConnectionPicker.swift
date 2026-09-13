@@ -17,12 +17,13 @@ struct MobileWorkspaceToolbar: ToolbarContent {
             Button("Connect", systemImage: "network", action: connect)
                 .labelStyle(.iconOnly)
             Menu {
-                Button("Clear History", systemImage: "trash", role: .destructive, action: clearHistory)
-                    .disabled(!hasHistory)
-                Button("Close All Workspaces", systemImage: "rectangle.stack.badge.minus", role: .destructive) {
+                Button("Close All Workspaces", systemImage: "rectangle.stack.badge.minus") {
                     closeAll()
                 }
                 .disabled(!hasWorkspaces)
+                Divider()
+                Button("Clear History", systemImage: "trash", role: .destructive, action: clearHistory)
+                    .disabled(!hasHistory)
             } label: {
                 MobileOverflowMenuLabel("More")
             }
