@@ -206,19 +206,21 @@ the model cannot assume an action was never dispatched.
 
 ## Pro access and review invitations
 
-`ProAccessController` owns application-wide StoreKit state. Permanent Pro and the
-14-day free trial are separate non-consumables; only Pro supports Family Sharing.
-Verified StoreKit history, including revoked trial history, determines whether the
-trial was claimed. It expires exactly 14 x 24 hours after `originalPurchaseDate`,
-never restarts on restore, and always yields to a valid permanent entitlement.
-Purchase metadata/activity never replaces existing access.
+`ProAccessController` owns application-wide StoreKit state. Permanent Pro is a
+Family Sharing non-consumable; annual Pro is a Family Sharing auto-renewable
+subscription whose introductory-offer eligibility, free period, billing period,
+localized price, expiration, and renewal state come from StoreKit. Permanent access
+wins over subscription and legacy-trial access. Subscribed, introductory-trial, and
+verified grace-period states grant Pro; billing retry without grace, expiration,
+refund, and revocation do not. Product metadata failure never replaces verified
+access.
 
-Domain's `ProTrial` contains date/history rules only. Infrastructure's per-original-
-transaction `TrialClock` watermark can shorten an observed trial after clock rollback
-but cannot grant eligibility. Legacy local trial proofs are ignored. Expiration is
-checked on activation and at most minutely while active; current-launch workspace
-composition is not dismantled, but a fresh launch receives no stale grant. Review
-demo mode can deny access for presentation only.
+The retired standalone trial product is never fetched or offered. Domain's
+`ProTrial` and Infrastructure's per-original-transaction `TrialClock` remain only to
+honor an unexpired verified legacy transaction; expired legacy history does not
+affect Apple's subscription-group eligibility. Entitlement expiration is checked on
+activation and at most minutely while active. Current-launch workspace composition
+is not dismantled, but other Pro features and a fresh launch receive no stale grant.
 
 One app-wide `AppReviewController` stores device-local first-use/active-day/version/
 attempt history, never syncs it, and never claims a review was shown. Automatic

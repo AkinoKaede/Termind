@@ -22,43 +22,6 @@ struct CommerceConfigurationTests {
         #expect(app.contains(": .live()"))
     }
 
-    @Test @MainActor
-    func reviewDemoCodeOnlySimulatesExpiredAccess() {
-        let suiteName = "CommerceConfigurationTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let access = ProAccessController.testing(
-            status: .trialActive(expiresAt: .distantFuture),
-            reviewDefaults: defaults
-        )
-
-        #expect(!access.activateReviewDemo(using: "incorrect"))
-        #expect(access.hasProAccess)
-        #expect(access.activateReviewDemo(using: " termind-review-2026 "))
-        #expect(access.status == .trialExpired)
-        #expect(!access.hasProAccess)
-        #expect(ProFeature.allCases.allSatisfy { !access.canUse($0) })
-        #expect(access.isReviewDemoModeEnabled)
-
-        let relaunched = ProAccessController.testing(
-            status: .free(trialAvailable: true),
-            reviewDefaults: defaults
-        )
-        #expect(relaunched.isReviewDemoModeEnabled)
-    }
-
-    @Test
-    func reviewDemoControlsStayHiddenUntilExplicitlyUnlocked() throws {
-        let paywallFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "TFM/Features/Commerce/ProPaywallView.swift")
-        let paywall = try String(contentsOf: paywallFile, encoding: .utf8)
-
-        #expect(paywall.contains(".onTapGesture(count: 7)"))
-        #expect(paywall.contains("if isReviewDemoUnlocked || pro.isReviewDemoModeEnabled"))
-    }
-
     @Test
     func appTargetDeclaresInAppPurchaseCapability() throws {
         let projectFile = URL(fileURLWithPath: #filePath)
@@ -89,6 +52,20 @@ struct CommerceConfigurationTests {
         #expect(trial["type"] as? String == "NonConsumable")
         #expect(trial["familyShareable"] as? Bool == false)
         let pro = try #require(products.first { $0["productID"] as? String == ProAccessController.productID })
+        #expect(pro["displayPrice"] as? String == "9.99")
         #expect(pro["familyShareable"] as? Bool == true)
+
+        let groups = try #require(configuration["subscriptionGroups"] as? [[String: Any]])
+        let group = try #require(groups.first)
+        let subscriptions = try #require(group["subscriptions"] as? [[String: Any]])
+        let annual = try #require(
+            subscriptions.first { $0["productID"] as? String == ProAccessController.annualProductID })
+        #expect(annual["displayPrice"] as? String == "3.99")
+        #expect(annual["familyShareable"] as? Bool == true)
+        #expect(annual["recurringSubscriptionPeriod"] as? String == "P1Y")
+        #expect(annual["type"] as? String == "RecurringSubscription")
+        let offer = try #require(annual["introductoryOffer"] as? [String: Any])
+        #expect(offer["paymentMode"] as? String == "free")
+        #expect(offer["subscriptionPeriod"] as? String == "P2W")
     }
 }

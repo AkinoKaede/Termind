@@ -10,14 +10,19 @@
       "internalID" : "2f39bfde-c559-49a9-958f-52aeb1703dc0",
       "localizations" : [
         {
-          "description" : "Unlock multi-pane workspaces, AI Assistant, terminal drop uploads, MCP, and iCloud sync.",
-          "displayName" : "Termind Pro",
+          "description" : "Lifetime AI, MCP, sync & multi-pane access.",
+          "displayName" : "Termind Pro Lifetime",
           "locale" : "en_US"
         },
         {
-          "description" : "永久解锁多窗格工作区、AI助手、终端拖放上传、MCP与iCloud同步。",
-          "displayName" : "Termind Pro",
+          "description" : "永久使用AI、MCP、同步与多窗格功能。",
+          "displayName" : "Termind Pro 永久版",
           "locale" : "zh_CN"
+        },
+        {
+          "description" : "永久使用AI、MCP、同步與多窗格功能。",
+          "displayName" : "Termind Pro 永久版",
+          "locale" : "zh_TW"
         }
       ],
       "productID" : "com.akinokaede.termind.pro",
@@ -38,6 +43,11 @@
           "description" : "免费试用Termind Pro全部功能14天，到期不会自动扣费。",
           "displayName" : "14天试用",
           "locale" : "zh_CN"
+        },
+        {
+          "description" : "免費試用Termind Pro全部功能14天，到期不會自動扣費。",
+          "displayName" : "14天試用",
+          "locale" : "zh_TW"
         }
       ],
       "productID" : "com.akinokaede.termind.pro.trial",
@@ -57,7 +67,69 @@
   ]
   },
   "subscriptionGroups" : [
+    {
+      "id" : "6811502573",
+      "localizations" : [
+        {
+          "description" : "Termind Pro",
+          "displayName" : "Termind Pro",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Termind Pro",
+          "displayName" : "Termind Pro",
+          "locale" : "zh_CN"
+        },
+        {
+          "description" : "Termind Pro",
+          "displayName" : "Termind Pro",
+          "locale" : "zh_TW"
+        }
+      ],
+      "name" : "Termind Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
 
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "3.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "6811502573",
+          "introductoryOffer" : {
+            "internalID" : "25e879e4-25a3-4a56-aac2-873dc34939ab",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
+          "localizations" : [
+            {
+              "description" : "Annual AI, MCP, sync & multi-pane access.",
+              "displayName" : "Termind Pro Annual",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "按年使用AI、MCP、同步与多窗格功能。",
+              "displayName" : "Termind Pro 年度订阅",
+              "locale" : "zh_CN"
+            },
+            {
+              "description" : "按年使用AI、MCP、同步與多窗格功能。",
+              "displayName" : "Termind Pro 年度訂閱",
+              "locale" : "zh_TW"
+            }
+          ],
+          "productID" : "com.akinokaede.termind.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Termind Pro Annual",
+          "subscriptionGroupID" : "6811502573",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
   ],
   "version" : {
     "major" : 3,

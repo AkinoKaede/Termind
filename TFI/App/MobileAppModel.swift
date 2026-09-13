@@ -304,6 +304,7 @@ final class MobileAppModel {
             }
             liveActivities.update(workspaceActivitySessions)
         } else if phase == .active {
+            Task { [weak self] in await self?.pro.refresh() }
             background.finish()
             for workspace in workspaces { workspace.resumeAfterBackground() }
             forwardings.resumeEnabled()

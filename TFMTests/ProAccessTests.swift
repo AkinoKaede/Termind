@@ -60,6 +60,24 @@ struct ProAccessTests {
         #expect(EntitlementStatus.trialActive(expiresAt: .distantFuture).hasProAccess)
         #expect(EntitlementStatus.purchased(.purchased).hasProAccess)
         #expect(EntitlementStatus.purchased(.familyShared).hasProAccess)
+        #expect(
+            EntitlementStatus.subscription(
+                ProSubscriptionStatus(
+                    phase: .introductoryTrial, expiresAt: .distantFuture, willAutoRenew: true,
+                    ownership: .purchased)
+            ).hasProAccess)
+        #expect(
+            EntitlementStatus.subscription(
+                ProSubscriptionStatus(
+                    phase: .gracePeriod, expiresAt: .distantFuture, willAutoRenew: true,
+                    ownership: .purchased)
+            ).hasProAccess)
+        #expect(
+            !EntitlementStatus.subscription(
+                ProSubscriptionStatus(
+                    phase: .billingRetry, expiresAt: .now, willAutoRenew: true,
+                    ownership: .purchased)
+            ).hasProAccess)
         #expect(EntitlementStatus.unrestrictedForTesting.hasProAccess)
     }
 

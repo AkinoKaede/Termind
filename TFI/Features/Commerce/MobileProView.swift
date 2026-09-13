@@ -1,9 +1,14 @@
+import StoreKit
 import SwiftUI
+import TermindDomain
 import TermindInfrastructure
 
 struct MobileProView: View {
     @Bindable var pro: ProAccessController
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
+    @State private var isManagingSubscriptions = false
+    @State private var selectedPlan: ProPurchasePlan = .annual
 
     var body: some View {
         NavigationStack {
@@ -27,7 +32,11 @@ struct MobileProView: View {
             }
         }
         .mobileSheetPresentation()
-        .task { await pro.reloadProducts() }
+        .task {
+            await pro.reloadProducts()
+            if pro.annualProduct == nil, pro.product != nil { selectedPlan = .lifetime }
+        }
+        .manageSubscriptionsSheet(isPresented: $isManagingSubscriptions)
     }
 
     private var hero: some View {
@@ -37,7 +46,7 @@ struct MobileProView: View {
                 .foregroundStyle(.tint)
                 .symbolRenderingMode(.hierarchical)
             Text("Termind Pro").font(.largeTitle.bold())
-            Text("One purchase for AI, more monitored servers, remote MCP tools, and iCloud sync.")
+            Text("Choose annual access or unlock Pro permanently.")
                 .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -53,14 +62,16 @@ struct MobileProView: View {
             statusCard("Free", symbol: "person.crop.circle", tint: .secondary)
         case .trialActive(let expiresAt):
             statusCard(
-                "14-Day Trial", symbol: "clock.fill", tint: .orange,
+                "Legacy Free Trial", symbol: "clock.fill", tint: .orange,
                 detail: Text(expiresAt, format: .dateTime.year().month().day().hour().minute()))
         case .trialExpired:
             statusCard("Trial Ended", symbol: "clock.badge.xmark", tint: .orange)
+        case .subscription(let subscription):
+            subscriptionStatusCard(subscription)
         case .purchased(.purchased):
-            statusCard("Purchased", symbol: "checkmark.seal.fill", tint: .green)
+            statusCard("Lifetime Access", symbol: "checkmark.seal.fill", tint: .green)
         case .purchased(.familyShared):
-            statusCard("Family Shared", symbol: "person.3.fill", tint: .green)
+            statusCard("Lifetime Access · Family Shared", symbol: "person.3.fill", tint: .green)
         case .verificationFailed:
             statusCard(
                 "The App Store could not verify this purchase.",
@@ -90,67 +101,206 @@ struct MobileProView: View {
 
     @ViewBuilder private var purchaseActions: some View {
         if showsPurchaseActions {
-            VStack(spacing: 10) {
-                if pro.isProcessing {
-                    ProgressView("Contacting the App Store…")
-                }
+            VStack(spacing: 8) {
+                if pro.isProcessing { ProgressView("Contacting the App Store…") }
                 if let message = pro.message {
                     Text(message).font(.caption).foregroundStyle(.orange).multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if pro.canStartTrial {
-                    Button {
-                        Task { await pro.startTrial() }
-                    } label: {
-                        Text("Start 14-Day Free Trial").frame(maxWidth: .infinity)
+                if pro.status.canPurchase {
+                    planPicker
+                    Button(action: purchaseSelectedPlan) {
+                        Text(purchaseButtonTitle).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent).controlSize(.large)
-                    Button {
-                        Task { await pro.purchase() }
-                    } label: {
-                        Text(purchaseTitle).frame(maxWidth: .infinity)
+                    .disabled(!pro.canPurchase(selectedPlan))
+                    if let detail = selectedPlanDetail {
+                        Text(detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .buttonStyle(.bordered).controlSize(.large)
-                    .disabled(!pro.canPurchase)
-                } else if showsPurchase {
-                    Button {
-                        Task { await pro.purchase() }
-                    } label: {
-                        Text(purchaseTitle).frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
-                    .disabled(!pro.canPurchase)
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
             .background(.ultraThinMaterial)
         }
     }
 
     private var secondaryActions: some View {
         VStack(spacing: 10) {
+            if canManageSubscription {
+                Button("Manage Subscription") { isManagingSubscriptions = true }
+                    .buttonStyle(.plain).foregroundStyle(.tint)
+            }
             Button("Restore Purchase") { Task { await pro.restorePurchases() } }
                 .buttonStyle(.plain).foregroundStyle(.tint).disabled(pro.isProcessing)
-            Text("Permanent unlock · Supports Apple Family Sharing · AI provider charges are separate")
+            HStack(spacing: 16) {
+                Link("Privacy Policy", destination: URL(string: "https://termind.akinokaede.com/privacy/")!)
+                Link(
+                    "Terms of Use",
+                    destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+            }
+            .font(.caption2)
+            Text("Apple Family Sharing supported · AI provider charges are separate")
                 .font(.caption2).foregroundStyle(.tertiary).multilineTextAlignment(.center)
         }
     }
 
     private var showsPurchaseActions: Bool {
-        pro.isProcessing || pro.message != nil || pro.canStartTrial || showsPurchase
+        pro.isProcessing || pro.message != nil || pro.status.canPurchase
     }
 
-    private var showsPurchase: Bool {
-        guard pro.canPurchase else { return false }
-        if case .loading = pro.status { return false }
-        return true
+    private var planPicker: some View {
+        HStack(spacing: 8) {
+            planCard(
+                .annual,
+                title: "Annual",
+                price: pro.annualDisplayPrice,
+                detail: annualBillingUnit.map { String(localized: "per \($0)") },
+                badge: trialBadge)
+            planCard(
+                .lifetime,
+                title: "Lifetime",
+                price: pro.displayPrice,
+                detail: String(localized: "One-time purchase"),
+                badge: nil)
+        }
     }
 
-    private var purchaseTitle: String {
-        guard let price = pro.displayPrice else { return String(localized: "Buy Termind Pro") }
-        return String(localized: "Buy Termind Pro — \(price)")
+    private func planCard(
+        _ plan: ProPurchasePlan,
+        title: LocalizedStringKey,
+        price: String?,
+        detail: String?,
+        badge: String?
+    ) -> some View {
+        let isSelected = selectedPlan == plan
+        let isAvailable = pro.canPurchase(plan)
+        return Button {
+            selectedPlan = plan
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Text(title).font(.subheadline.weight(.semibold))
+                    Spacer(minLength: 0)
+                    if let badge {
+                        Text(badge)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tint)
+                            .lineLimit(1)
+                    }
+                }
+                Text(price ?? "—").font(.title3.bold()).foregroundStyle(.primary)
+                if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
+            }
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .padding(10)
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.06))
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(
+                        isSelected ? Color.accentColor : Color.secondary.opacity(0.2),
+                        lineWidth: isSelected ? 2 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .disabled(!isAvailable)
+        .opacity(isAvailable ? 1 : 0.55)
+    }
+
+    private var purchaseButtonTitle: String {
+        switch selectedPlan {
+        case .annual:
+            return pro.canStartTrial ? String(localized: "Start Free Trial") : String(localized: "Subscribe Annually")
+        case .lifetime:
+            return String(localized: "Buy Lifetime Access")
+        }
+    }
+
+    private var selectedPlanDetail: String? {
+        switch selectedPlan {
+        case .annual:
+            guard let price = pro.annualDisplayPrice, let billingUnit = annualBillingUnit else { return nil }
+            if pro.canStartTrial, let duration = formatted(pro.annualIntroOfferDuration) {
+                return String(
+                    localized: "\(duration) free, then \(price) per \(billingUnit). Auto-renews until canceled.")
+            }
+            return String(localized: "\(price) per \(billingUnit). Auto-renews until canceled.")
+        case .lifetime:
+            return String(localized: "One payment. No subscription or automatic renewal.")
+        }
+    }
+
+    private var trialBadge: String? {
+        guard pro.canStartTrial, let duration = formatted(pro.annualIntroOfferDuration) else { return nil }
+        return String(localized: "\(duration) free")
+    }
+
+    private var annualBillingUnit: String? {
+        guard let components = pro.annualBillingPeriod else { return nil }
+        if components.year == 1 { return String(localized: "year") }
+        if components.month == 1 { return String(localized: "month") }
+        if components.weekOfYear == 1 { return String(localized: "week") }
+        if components.day == 1 { return String(localized: "day") }
+        return formatted(components)
+    }
+
+    private func purchaseSelectedPlan() {
+        switch selectedPlan {
+        case .annual:
+            Task { await pro.purchaseAnnual() }
+        case .lifetime:
+            Task { await pro.purchaseLifetime() }
+        }
+    }
+
+    private var canManageSubscription: Bool {
+        guard case .subscription(let subscription) = pro.status else { return false }
+        return subscription.ownership == .purchased
+    }
+
+    @ViewBuilder
+    private func subscriptionStatusCard(_ subscription: ProSubscriptionStatus) -> some View {
+        let detail = subscription.expiresAt.map {
+            Text($0, format: .dateTime.year().month().day().hour().minute())
+        }
+        switch subscription.phase {
+        case .introductoryTrial:
+            statusCard("Free Trial", symbol: "clock.fill", tint: .orange, detail: detail)
+        case .subscribed:
+            statusCard(
+                subscription.willAutoRenew == false ? "Annual Access Until" : "Annual Subscription",
+                symbol: "checkmark.seal.fill", tint: .green, detail: detail)
+        case .gracePeriod:
+            statusCard("Billing Grace Period", symbol: "clock.badge.exclamationmark", tint: .orange, detail: detail)
+        case .billingRetry:
+            statusCard(
+                "Billing Issue", symbol: "creditcard.trianglebadge.exclamationmark", tint: .orange,
+                detail: detail)
+        case .expired:
+            statusCard(
+                "Subscription Expired", symbol: "calendar.badge.exclamationmark", tint: .orange,
+                detail: detail)
+        case .revoked:
+            statusCard("Subscription Revoked", symbol: "xmark.seal", tint: .red, detail: detail)
+        }
+    }
+
+    private func formatted(_ components: DateComponents?) -> String? {
+        guard let components else { return nil }
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        formatter.calendar = calendar
+        formatter.unitsStyle = .full
+        formatter.maximumUnitCount = 1
+        return formatter.string(from: components)
     }
 
     private func statusCard(

@@ -1,67 +1,81 @@
 # App Store commerce configuration
 
-Termind Pro and its trial are separate non-consumables. The trial is free, lasts
-14 days, never renews or charges, and does not support Family Sharing.
+Termind Pro offers an annual auto-renewable subscription and a permanent
+non-consumable. Both support Family Sharing. The annual subscription owns its
+introductory free trial; StoreKit metadata and verified transactions are the sole
+sources for eligibility, offer duration, price, billing period, and expiration.
 
 ## Products
 
-| Field | Permanent Pro | Free trial |
+| Field | Annual | Lifetime |
 | --- | --- | --- |
-| Product ID | `com.akinokaede.termind.pro` | `com.akinokaede.termind.pro.trial` |
-| Reference name | Termind Pro Lifetime | Termind Pro 14-Day Trial |
-| Price | Existing regional prices | Free / Tier 0 in every offered region |
-| Family Sharing | Enabled | Disabled |
-| English name | Termind Pro | 14-day Trial |
-| Simplified Chinese name | Termind Pro | 14天试用 |
+| Product ID | `com.akinokaede.termind.pro.annual` | `com.akinokaede.termind.pro` |
+| Reference name | Termind Pro Annual | Termind Pro Lifetime |
+| US price | $3.99/year | $9.99 |
+| Type | Auto-renewable, one year | Non-consumable |
+| Family Sharing | Enabled | Enabled |
+| English name | Termind Pro Annual | Termind Pro Lifetime |
+| Simplified Chinese name | Termind Pro 年度订阅 | Termind Pro 永久版 |
+| Traditional Chinese name | Termind Pro 年度訂閱 | Termind Pro 永久版 |
 
-Trial descriptions:
+Annual descriptions:
 
-- English: `Try all Pro features free for 14 days.`
-- Chinese: `免费试用Termind Pro全部功能14天，到期不会自动扣费。`
+- English: `Annual AI, MCP, sync & multi-pane access.`
+- Simplified Chinese: `按年使用AI、MCP、同步与多窗格功能。`
+- Traditional Chinese: `按年使用AI、MCP、同步與多窗格功能。`
 
-Create the trial in App Store Connect with the exact ID, localizations, free
-pricing, availability, and a review screenshot showing the button, duration,
-gated features, permanent price, and no automatic charge. Submit it with the
-supporting app version and keep Family Sharing off. `StoreKit/Termind.storekit`
-is local test data only; it cannot create or modify the online product.
+Lifetime descriptions:
 
-## App Review note
+- English: `Lifetime AI, MCP, sync & multi-pane access.`
+- Simplified Chinese: `永久使用AI、MCP、同步与多窗格功能。`
+- Traditional Chinese: `永久使用AI、MCP、同步與多窗格功能。`
 
-The free non-consumable trial follows Guideline 3.1.1. Access expires 1,209,600
-seconds after the verified `originalPurchaseDate`; restore never restarts it.
-Permanent Pro is a separate lifetime non-consumable and takes precedence.
+Configure the annual product in one `Termind Pro` subscription group. Its
+introductory offer is free and currently lasts two weeks, but the app never
+hard-codes that duration. Billing Grace Period is 16 days, applies only to
+paid-to-paid renewals, and must be tested in Sandbox before enabling Production.
 
-To demonstrate expiration, tap the Termind Pro heading seven times, open App
-Review Demo, enter `TERMIND-REVIEW-2026`, and choose Show Expired Trial. Demo
-mode can only deny access; exit it to return to real StoreKit state.
+`StoreKit/Termind.storekit` is local test data only. App Store Connect remains the
+source of production product metadata and cannot be changed by the repository.
+
+## Legacy trial compatibility
+
+`com.akinokaede.termind.pro.trial` is retired and must not be fetched or offered.
+Verified historical transactions remain readable so an unexpired legacy trial is
+honored. Expired, revoked, or unverifiable legacy trial history grants nothing and
+does not affect Apple's introductory-offer eligibility for the new subscription
+group. `ProTrial.duration` and `TrialClock` exist only for this compatibility path.
+
+There is no review-demo access override. App Review and release verification use
+the StoreKit configuration, Sandbox accounts, or Apple's review environment.
+
+## Entitlement rules
+
+Permanent access wins over every subscription state. A verified annual transaction
+grants Pro while subscribed, during its introductory trial, or during a verified
+billing grace period. Cancellation keeps access through the verified expiration.
+Billing retry without grace, expiration, upgrade-away, refund, or revocation denies
+access. A current-launch workspace composition is not dismantled when access ends;
+other Pro features and fresh launches use the current entitlement immediately.
+
+Product metadata failure never removes already verified access. macOS and mobile
+refresh on foreground activation, and `Transaction.updates` handles purchases,
+renewals, refunds, revocations, and Ask to Buy completion.
 
 ## Release verification
 
 Automated `StoreKitTrialTests` use `SKTestSession` and the local configuration.
-The shared scheme normally uses real StoreKit. A hosted test may place an approved
-transaction in history without delivering an update, so real listener delivery
-must still be checked in Sandbox.
+Before submission, verify with a new Sandbox account:
 
-With Sandbox testers, verify:
+1. The paywall obtains the localized annual/lifetime prices, annual billing period,
+   introductory-offer eligibility, and offer duration from StoreKit.
+2. Trial purchase, renewal, cancellation, restore, expiration, billing retry, paid-
+   to-paid grace, refund, revocation, Ask to Buy, and transaction updates.
+3. Same-account access across Mac, iPhone, and iPad, plus Family Sharing.
+4. An active legacy trial remains usable, but its expiration does not block the
+   annual introductory offer.
 
-1. English/Chinese paywalls show 14 days, gated features, localized permanent
-   price, and no charge or renewal.
-2. Claim, cancellation, restart, restore, and same-account cross-device behavior;
-   expiration must stay anchored to the original transaction.
-3. Pending approval, metadata failure, purchase failure, restore failure, and
-   transaction-listener recovery without removing already verified access.
-4. Permanent purchase during trial and restore; it must win and keep Family Sharing.
-5. Day 7, just before day 14, and exact-expiration boundaries in automated tests.
-6. Revoked trial history remains claimed. Nonzero price, wrong type, missing Pro
-   price, or trial Family Sharing must block purchase.
-
-StoreKit history is the sole eligibility/start-date source. Previous local
-seven-day trials are ignored and not migrated, so users without Pro may claim the
-new IAP. A UserDefaults high-water mark keyed by original transaction only guards
-ordinary clock rollback; it cannot grant access or prevent account changes. There
-is no licensing server or device fingerprint, and Vault/Keychain sync is unrelated.
-
-References: [Guideline 3.1.1](https://developer.apple.com/app-store/review/guidelines/#in-app-purchase),
-[`originalPurchaseDate`](https://developer.apple.com/documentation/storekit/transaction/originalpurchasedate),
+References: [subscriptions](https://developer.apple.com/app-store/subscriptions/),
+[`isEligibleForIntroOffer`](https://developer.apple.com/documentation/storekit/product/subscriptioninfo/iseligibleforintrooffer),
 [`currentEntitlements`](https://developer.apple.com/documentation/storekit/transaction/currententitlements),
 and [transaction history](https://developer.apple.com/documentation/storekit/transaction/all).

@@ -459,44 +459,74 @@ private struct ProSettings: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        Section("Access") {
-            LabeledContent("Status") { statusLabel }
-            if case .trialActive(let expiresAt) = app.proAccess.status {
-                LabeledContent("Trial Ends") {
-                    Text(expiresAt, format: .dateTime.year().month().day().hour().minute())
+        Group {
+            Section("Access") {
+                LabeledContent("Status") { statusLabel }
+                if let expirationLabel, let expirationDate {
+                    LabeledContent(expirationLabel) {
+                        Text(expirationDate, format: .dateTime.year().month().day().hour().minute())
+                    }
                 }
             }
-        }
 
-        Section("Termind Pro") {
-            Text(
-                "One purchase unlocks multi-pane workspaces, the AI Assistant, terminal drop uploads, MCP, and iCloud sync for your Vault, Metrics, and settings across devices."
-            )
-            .foregroundStyle(.secondary)
-            if app.proAccess.status.canPurchase {
-                Button(purchaseEntryTitle) { app.proAccess.presentPaywall() }
-                    .buttonStyle(.borderedProminent)
+            Section("Termind Pro") {
+                Text(
+                    "Choose annual access or a permanent unlock for multi-pane workspaces, the AI Assistant, terminal uploads, MCP, and iCloud sync."
+                )
+                .foregroundStyle(.secondary)
+                if app.proAccess.status.canPurchase {
+                    Button("View Termind Pro") { app.proAccess.presentPaywall() }
+                        .buttonStyle(.borderedProminent)
+                }
+                if canManageSubscription {
+                    Link(
+                        "Manage Subscription",
+                        destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
+                }
+                Button("Restore Purchase") { Task { await app.proAccess.restorePurchases() } }
+                    .disabled(app.proAccess.isProcessing)
+                if let message = app.proAccess.message {
+                    Text(message).font(.caption).foregroundStyle(.orange)
+                }
             }
-            Button("Restore Purchase") { Task { await app.proAccess.restorePurchases() } }
-                .disabled(app.proAccess.isProcessing)
-            if let message = app.proAccess.message {
-                Text(message).font(.caption).foregroundStyle(.orange)
+
+            Section("Options") {
+                includedFeature("Annual Subscription", systemImage: "calendar")
+                includedFeature("Permanent lifetime unlock", systemImage: "infinity")
+                includedFeature("Apple Family Sharing", systemImage: "person.3")
+                Text("AI provider usage and charges are separate from Termind Pro.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
-
-        Section("Included") {
-            includedFeature("Permanent unlock", systemImage: "infinity")
-            includedFeature("Apple Family Sharing", systemImage: "person.3")
-            includedFeature("No subscription or automatic renewal", systemImage: "checkmark.seal")
-            Text("AI provider usage and charges are separate from Termind Pro.")
-                .font(.caption).foregroundStyle(.secondary)
-        }
-
     }
 
-    private var purchaseEntryTitle: LocalizedStringKey {
-        if case .trialActive = app.proAccess.status { return "Buy Termind Pro" }
-        return "View Termind Pro"
+    private var canManageSubscription: Bool {
+        guard case .subscription(let subscription) = app.proAccess.status else { return false }
+        return subscription.ownership == .purchased
+    }
+
+    private var expirationDate: Date? {
+        switch app.proAccess.status {
+        case .trialActive(let expiresAt): expiresAt
+        case .subscription(let subscription): subscription.expiresAt
+        default: nil
+        }
+    }
+
+    private var expirationLabel: LocalizedStringKey? {
+        switch app.proAccess.status {
+        case .trialActive:
+            "Trial Ends"
+        case .subscription(let subscription):
+            switch subscription.phase {
+            case .introductoryTrial: "Trial Ends"
+            case .subscribed: subscription.willAutoRenew == false ? "Access Ends" : "Renews"
+            case .gracePeriod: "Grace Period Ends"
+            case .billingRetry, .expired, .revoked: "Expired"
+            }
+        default:
+            nil
+        }
     }
 
     private func includedFeature(
@@ -515,12 +545,28 @@ private struct ProSettings: View {
         switch app.proAccess.status {
         case .loading: Label("Checking…", systemImage: "arrow.triangle.2.circlepath")
         case .free: Label("Free", systemImage: "person.crop.circle")
-        case .trialActive: Label("14-Day Trial", systemImage: "clock")
+        case .trialActive: Label("Legacy Free Trial", systemImage: "clock")
         case .trialExpired: Label("Trial Ended", systemImage: "clock.badge.xmark")
-        case .purchased(.purchased): Label("Purchased", systemImage: "checkmark.seal.fill")
-        case .purchased(.familyShared): Label("Family Shared", systemImage: "person.3.fill")
+        case .subscription(let subscription): subscriptionStatusLabel(subscription)
+        case .purchased(.purchased): Label("Lifetime", systemImage: "infinity")
+        case .purchased(.familyShared): Label("Lifetime · Family Shared", systemImage: "person.3.fill")
         case .verificationFailed: Label("Verification Required", systemImage: "exclamationmark.shield")
         case .unrestrictedForTesting: Label("Development Access", systemImage: "hammer")
+        }
+    }
+
+    @ViewBuilder
+    private func subscriptionStatusLabel(_ subscription: ProSubscriptionStatus) -> some View {
+        switch subscription.phase {
+        case .introductoryTrial: Label("Free Trial", systemImage: "clock")
+        case .subscribed:
+            Label(
+                subscription.ownership == .familyShared ? "Annual · Family Shared" : "Annual Subscription",
+                systemImage: subscription.ownership == .familyShared ? "person.3.fill" : "checkmark.seal.fill")
+        case .gracePeriod: Label("Billing Grace Period", systemImage: "clock.badge.exclamationmark")
+        case .billingRetry: Label("Billing Issue", systemImage: "creditcard.trianglebadge.exclamationmark")
+        case .expired: Label("Subscription Expired", systemImage: "calendar.badge.exclamationmark")
+        case .revoked: Label("Subscription Revoked", systemImage: "xmark.seal")
         }
     }
 }

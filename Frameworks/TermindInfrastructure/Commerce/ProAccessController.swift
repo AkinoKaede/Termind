@@ -6,10 +6,9 @@ import TermindDomain
 @Observable
 public final class ProAccessController {
     public static let productID = "com.akinokaede.termind.pro"
+    public static let annualProductID = "com.akinokaede.termind.pro.annual"
+    /// Retained only to honor transactions created by the retired standalone trial.
     public static let trialProductID = "com.akinokaede.termind.pro.trial"
-    public static let reviewDemoCode = "TERMIND-REVIEW-2026"
-
-    private static let reviewDemoDefaultsKey = "commerce.pro.review-demo-expired.v1"
 
     private let defaults: UserDefaults?
     private let now: () -> Date
@@ -18,38 +17,42 @@ public final class ProAccessController {
     private var accessTask: Task<EntitlementStatus, Never>?
     private var metadataTask: Task<Void, Never>?
     private var productsTask: Task<[Product], any Error>?
-    private var trialExpirationTask: Task<Void, Never>?
+    private var entitlementExpirationTask: Task<Void, Never>?
     private var refreshGeneration: UInt64 = 0
     private var metadataError: ProAccessControllerError?
 
     public private(set) var status: EntitlementStatus
+    /// The permanent, non-consumable product. Kept under the existing name for source compatibility.
     public private(set) var product: Product?
-    public private(set) var trialProduct: Product?
+    public private(set) var annualProduct: Product?
+    public private(set) var isEligibleForAnnualIntroOffer: Bool?
     public private(set) var error: ProAccessControllerError?
     public private(set) var isProcessing = false
     public private(set) var pendingProductID: String?
     public private(set) var workspaceCompositionGrantedForLaunch: Bool
-    public private(set) var isReviewDemoModeEnabled: Bool
     public var isPaywallPresented = false
     public var requestedFeature: ProFeature?
 
     public var displayPrice: String? { product?.displayPrice }
-    public var hasProAccess: Bool { status.hasProAccess }
-    public var canPurchase: Bool {
-        status.canPurchase && !isProcessing && pendingProductID != Self.productID
+    public var annualDisplayPrice: String? { annualProduct?.displayPrice }
+    public var annualBillingPeriod: DateComponents? {
+        annualProduct?.subscription.map { Self.dateComponents(for: $0.subscriptionPeriod, count: 1) }
     }
+    public var annualIntroOfferDuration: DateComponents? {
+        guard let offer = Self.freeIntroductoryOffer(for: annualProduct) else { return nil }
+        return Self.dateComponents(for: offer.period, count: offer.periodCount)
+    }
+    public var hasProAccess: Bool { status.hasProAccess }
+    public var canPurchase: Bool { canPurchase(.lifetime) }
+    public var canPurchaseAnnual: Bool { canPurchase(.annual) }
     public var canStartTrial: Bool {
-        status == .free(trialAvailable: true) && !isProcessing
-            && pendingProductID != Self.trialProductID && product != nil
-            && trialProduct.map(Self.isFreeTrialProduct) == true
+        canPurchase(.annual) && isEligibleForAnnualIntroOffer == true
+            && Self.freeIntroductoryOffer(for: annualProduct) != nil
     }
     public var message: String? {
         if let error { return error.localizedDescription }
         if pendingProductID != nil { return ProAccessControllerError.purchasePending.localizedDescription }
-        if status.canPurchase, let metadataError {
-            if metadataError == .trialUnavailable, status != .free(trialAvailable: true) { return nil }
-            return metadataError.localizedDescription
-        }
+        if status.canPurchase, let metadataError { return metadataError.localizedDescription }
         return nil
     }
 
@@ -59,11 +62,8 @@ public final class ProAccessController {
         testing(status: .unrestrictedForTesting)
     }
 
-    public static func testing(
-        status: EntitlementStatus,
-        reviewDefaults: UserDefaults? = nil
-    ) -> ProAccessController {
-        let controller = ProAccessController(defaults: reviewDefaults, observeStore: false)
+    public static func testing(status: EntitlementStatus) -> ProAccessController {
+        let controller = ProAccessController(defaults: nil, observeStore: false)
         controller.status = status
         controller.workspaceCompositionGrantedForLaunch = status.hasProAccess
         return controller
@@ -76,7 +76,6 @@ public final class ProAccessController {
     ) {
         self.defaults = defaults
         self.now = now
-        isReviewDemoModeEnabled = defaults?.bool(forKey: Self.reviewDemoDefaultsKey) ?? false
         status = .loading
         workspaceCompositionGrantedForLaunch = false
         guard observeStore else { return }
@@ -96,12 +95,22 @@ public final class ProAccessController {
         accessTask?.cancel()
         metadataTask?.cancel()
         productsTask?.cancel()
-        trialExpirationTask?.cancel()
+        entitlementExpirationTask?.cancel()
     }
 
     public func canUse(_ feature: ProFeature) -> Bool {
         if feature == .workspaceComposition { return workspaceCompositionGrantedForLaunch }
         return status.hasProAccess
+    }
+
+    public func canPurchase(_ plan: ProPurchasePlan) -> Bool {
+        guard status.canPurchase, !isProcessing else { return false }
+        switch plan {
+        case .annual:
+            return pendingProductID != Self.annualProductID && annualProduct != nil
+        case .lifetime:
+            return pendingProductID != Self.productID && product != nil
+        }
     }
 
     @discardableResult
@@ -117,36 +126,11 @@ public final class ProAccessController {
         isPaywallPresented = true
     }
 
-    @discardableResult
-    public func activateReviewDemo(using code: String) -> Bool {
-        guard code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() == Self.reviewDemoCode else {
-            return false
-        }
-        refreshGeneration &+= 1
-        accessTask?.cancel()
-        accessTask = nil
-        isReviewDemoModeEnabled = true
-        defaults?.set(true, forKey: Self.reviewDemoDefaultsKey)
-        workspaceCompositionGrantedForLaunch = false
-        requestedFeature = nil
-        error = nil
-        apply(.trialExpired)
-        return true
-    }
-
-    public func deactivateReviewDemo() async {
-        disableReviewDemo()
-        await refresh()
-    }
-
     /// StoreKit's local transactions resolve access independently of network product metadata.
     public func refresh() async { await refresh(including: nil) }
 
     private func refresh(including transaction: Transaction?) async {
         if status == .unrestrictedForTesting { return }
-        // Callers awaiting refresh must also wait for a newer, authoritative
-        // transaction refresh. Otherwise a timer/activation can supersede the
-        // purchase preflight while leaving the caller with stale eligibility.
         if accessTask == nil || transaction != nil {
             accessTask?.cancel()
             refreshGeneration &+= 1
@@ -163,17 +147,22 @@ public final class ProAccessController {
         }
         guard accessTask != nil else { return }
         accessTask = nil
-        if case .purchased = resolved {
-            disableReviewDemo()
+        switch resolved {
+        case .purchased:
             pendingProductID = nil
-        } else if case .trialActive = resolved, pendingProductID == Self.trialProductID {
+        case .subscription(let subscription) where subscription.phase.hasProAccess:
+            if pendingProductID == Self.annualProductID { pendingProductID = nil }
+        case .trialActive where pendingProductID == Self.trialProductID:
             pendingProductID = nil
+        default:
+            break
         }
-        apply(isReviewDemoModeEnabled ? .trialExpired : resolved)
+        apply(resolved)
     }
 
-    public func startTrial() async { await purchaseProduct(Self.trialProductID) }
-    public func purchase() async { await purchaseProduct(Self.productID) }
+    /// Purchases the annual subscription. StoreKit applies its introductory offer for eligible accounts.
+    public func purchaseAnnual() async { await purchaseProduct(Self.annualProductID) }
+    public func purchaseLifetime() async { await purchaseProduct(Self.productID) }
 
     private func purchaseProduct(_ id: String) async {
         guard !isProcessing, pendingProductID != id, status.canPurchase else { return }
@@ -182,26 +171,18 @@ public final class ProAccessController {
         defer { isProcessing = false }
         await refresh()
         guard status.canPurchase else { return }
-        if id == Self.trialProductID, status != .free(trialAvailable: true) {
-            if case .trialActive = status {
-                isPaywallPresented = false
-            } else {
-                error = status == .verificationFailed ? .purchaseVerificationFailed : .trialAlreadyUsed
-            }
-            return
-        }
         do {
-            // Recheck metadata immediately before purchase, even if the UI cached it.
             try await fetchProducts()
-            guard let product else { throw ProAccessControllerError.productUnavailable }
             let selected: Product
-            if id == Self.trialProductID {
-                guard let trialProduct, Self.isFreeTrialProduct(trialProduct) else {
-                    throw ProAccessControllerError.trialUnavailable
-                }
-                selected = trialProduct
-            } else {
+            switch id {
+            case Self.annualProductID:
+                guard let annualProduct else { throw ProAccessControllerError.productUnavailable }
+                selected = annualProduct
+            case Self.productID:
+                guard let product else { throw ProAccessControllerError.productUnavailable }
                 selected = product
+            default:
+                throw ProAccessControllerError.productUnavailable
             }
             switch try await selected.purchase() {
             case .success(let verification):
@@ -209,15 +190,9 @@ public final class ProAccessController {
                     error = .purchaseVerificationFailed
                     return
                 }
-                disableReviewDemo()
                 await refresh(including: transaction)
-                // Delivery/denial is resolved before acknowledging the transaction.
                 await transaction.finish()
-                if status.hasProAccess {
-                    isPaywallPresented = false
-                } else if status == .trialExpired {
-                    error = .trialAlreadyUsed
-                }
+                if status.hasProAccess { isPaywallPresented = false }
             case .pending:
                 pendingProductID = id
             case .userCancelled:
@@ -243,8 +218,8 @@ public final class ProAccessController {
             switch status {
             case .purchased, .trialActive:
                 isPaywallPresented = false
-            case .trialExpired:
-                error = .trialAlreadyUsed
+            case .subscription(let subscription) where subscription.phase.hasProAccess:
+                isPaywallPresented = false
             case .verificationFailed:
                 error = .purchaseVerificationFailed
             default:
@@ -260,72 +235,194 @@ public final class ProAccessController {
             try await fetchProducts()
         } catch {
             product = nil
-            trialProduct = nil
+            annualProduct = nil
+            isEligibleForAnnualIntroOffer = nil
             metadataError = .productMetadataUnavailable
         }
     }
 
     private func fetchProducts() async throws {
-        let task = productsTask ?? Task { try await Product.products(for: [Self.productID, Self.trialProductID]) }
+        let task = productsTask ?? Task { try await Product.products(for: [Self.productID, Self.annualProductID]) }
         productsTask = task
         defer { productsTask = nil }
         let loaded = try await task.value
-        product = loaded.first { $0.id == Self.productID && $0.type == .nonConsumable }
-        trialProduct = loaded.first { $0.id == Self.trialProductID }
-        if product == nil {
+        product = loaded.first { Self.isLifetimeProduct($0) }
+        annualProduct = loaded.first { Self.isAnnualSubscription($0) }
+        if let subscription = annualProduct?.subscription,
+            Self.freeIntroductoryOffer(for: annualProduct) != nil
+        {
+            isEligibleForAnnualIntroOffer = await subscription.isEligibleForIntroOffer
+        } else {
+            isEligibleForAnnualIntroOffer = false
+        }
+        if product == nil, annualProduct == nil {
             metadataError = .productUnavailable
-        } else if trialProduct.map(Self.isFreeTrialProduct) != true {
-            metadataError = .trialUnavailable
         } else {
             metadataError = nil
         }
+        if case .free = status {
+            apply(.free(trialAvailable: isEligibleForAnnualIntroOffer == true))
+        }
     }
 
-    public static func isFreeTrialProduct(_ product: Product) -> Bool {
-        product.id == trialProductID && product.type == .nonConsumable && product.price == .zero
-            && !product.isFamilyShareable
+    public static func isLifetimeProduct(_ product: Product) -> Bool {
+        product.id == productID && product.type == .nonConsumable && product.isFamilyShareable
+    }
+
+    public static func isAnnualSubscription(_ product: Product) -> Bool {
+        guard product.id == annualProductID, product.type == .autoRenewable,
+            product.isFamilyShareable, let subscription = product.subscription
+        else { return false }
+        return subscription.subscriptionPeriod.unit == .year && subscription.subscriptionPeriod.value == 1
+    }
+
+    public static func freeIntroductoryOffer(for product: Product?) -> Product.SubscriptionOffer? {
+        guard let offer = product?.subscription?.introductoryOffer,
+            offer.type == .introductory, offer.paymentMode == .freeTrial, offer.price == .zero
+        else { return nil }
+        return offer
     }
 
     private func currentStatus(including update: Transaction?) async -> EntitlementStatus {
-        // The verified purchase/update can arrive before StoreKit's history cache.
+        let lifetimeResult = await currentLifetimeTransaction(including: update)
+        if let lifetime = lifetimeResult.transaction {
+            return .purchased(Self.ownership(of: lifetime))
+        }
+
+        var verificationFailed = lifetimeResult.verificationFailed
+        let annualResult: VerificationResult<Transaction>?
+        if let update, update.productID == Self.annualProductID {
+            annualResult = .verified(update)
+        } else {
+            annualResult = await Transaction.latest(for: Self.annualProductID)
+        }
+        if let annualResult {
+            switch annualResult {
+            case .verified(let transaction):
+                return .subscription(await subscriptionStatus(for: transaction))
+            case .unverified:
+                verificationFailed = true
+            }
+        }
+
+        var legacyTrials: [ProTrial] = []
+        if let update, update.productID == Self.trialProductID {
+            legacyTrials.append(Self.trialRecord(update))
+        }
+        for await result in Transaction.all {
+            if case .verified(let transaction) = result, transaction.productID == Self.trialProductID {
+                legacyTrials.append(Self.trialRecord(transaction))
+            }
+        }
+        if let trial = ProTrial.earliest(legacyTrials) {
+            let legacyStatus = trial.status(at: TrialClock(defaults: defaults).effectiveNow(for: trial, now: now()))
+            if legacyStatus.hasProAccess { return legacyStatus }
+        }
+        return verificationFailed ? .verificationFailed : .free(trialAvailable: isEligibleForAnnualIntroOffer == true)
+    }
+
+    private func currentLifetimeTransaction(
+        including update: Transaction?
+    ) async -> (transaction: Transaction?, verificationFailed: Bool) {
         if let update, update.productID == Self.productID, update.productType == .nonConsumable,
             update.revocationDate == nil
         {
-            return .purchased(update.ownershipType == .familyShared ? .familyShared : .purchased)
+            return (update, false)
         }
         var verificationFailed = false
         for await result in Transaction.currentEntitlements {
             switch result {
             case .verified(let transaction)
-            where transaction.productID == Self.productID && transaction.revocationDate == nil
+            where
+                transaction.productID == Self.productID && transaction.revocationDate == nil
                 && transaction.productType == .nonConsumable
                 && !(update?.productID == Self.productID && update?.revocationDate != nil
                     && update?.originalID == transaction.originalID):
-                return .purchased(transaction.ownershipType == .familyShared ? .familyShared : .purchased)
+                return (transaction, false)
             case .unverified(let transaction, _) where transaction.productID == Self.productID:
                 verificationFailed = true
-            default: break
+            default:
+                break
             }
         }
-        var trials: [ProTrial] = []
-        if let update, update.productID == Self.trialProductID { trials.append(Self.trialRecord(update)) }
-        var trialVerificationFailed = false
-        // Revoked products disappear from currentEntitlements but still count as claimed.
-        for await result in Transaction.all {
-            switch result {
-            case .verified(let transaction) where transaction.productID == Self.trialProductID:
-                trials.append(Self.trialRecord(transaction))
-            case .unverified(let transaction, _) where transaction.productID == Self.trialProductID:
-                trialVerificationFailed = true
-            default: break
+        if let latest = await Transaction.latest(for: Self.productID) {
+            switch latest {
+            case .verified(let transaction)
+            where transaction.revocationDate == nil && transaction.productType == .nonConsumable
+                && !(update?.productID == Self.productID && update?.revocationDate != nil
+                    && update?.originalID == transaction.originalID):
+                return (transaction, false)
+            case .unverified:
+                verificationFailed = true
+            default:
+                break
             }
         }
-        // An unverifiable trial-history entry must never become fresh eligibility.
-        if trialVerificationFailed { return .verificationFailed }
-        guard let trial = ProTrial.earliest(trials) else {
-            return verificationFailed ? .verificationFailed : .free(trialAvailable: true)
+        return (nil, verificationFailed)
+    }
+
+    private func subscriptionStatus(for transaction: Transaction) async -> ProSubscriptionStatus {
+        let ownership = Self.ownership(of: transaction)
+        if transaction.revocationDate != nil || transaction.productType != .autoRenewable {
+            return ProSubscriptionStatus(
+                phase: .revoked, expiresAt: transaction.expirationDate, willAutoRenew: false,
+                ownership: ownership)
         }
-        return trial.status(at: TrialClock(defaults: defaults).effectiveNow(for: trial, now: now()))
+
+        let storeStatus = await transaction.subscriptionStatus
+        let renewalInfo: Product.SubscriptionInfo.RenewalInfo?
+        if let storeStatus, case .verified(let verified) = storeStatus.renewalInfo {
+            renewalInfo = verified
+        } else {
+            renewalInfo = nil
+        }
+
+        if let expiration = transaction.expirationDate, expiration > now(), !transaction.isUpgraded {
+            let phase: ProSubscriptionPhase = Self.isIntroductoryTrial(transaction) ? .introductoryTrial : .subscribed
+            return ProSubscriptionStatus(
+                phase: phase, expiresAt: expiration, willAutoRenew: renewalInfo?.willAutoRenew,
+                ownership: ownership)
+        }
+
+        switch storeStatus?.state {
+        case .inGracePeriod:
+            if let graceExpiration = renewalInfo?.gracePeriodExpirationDate, graceExpiration > now() {
+                return ProSubscriptionStatus(
+                    phase: .gracePeriod, expiresAt: graceExpiration, willAutoRenew: renewalInfo?.willAutoRenew,
+                    ownership: ownership)
+            }
+            return ProSubscriptionStatus(
+                phase: .billingRetry, expiresAt: transaction.expirationDate,
+                willAutoRenew: renewalInfo?.willAutoRenew, ownership: ownership)
+        case .inBillingRetryPeriod:
+            return ProSubscriptionStatus(
+                phase: .billingRetry, expiresAt: transaction.expirationDate,
+                willAutoRenew: renewalInfo?.willAutoRenew, ownership: ownership)
+        case .revoked:
+            return ProSubscriptionStatus(
+                phase: .revoked, expiresAt: transaction.expirationDate, willAutoRenew: false,
+                ownership: ownership)
+        case .subscribed:
+            return ProSubscriptionStatus(
+                phase: .subscribed, expiresAt: transaction.expirationDate,
+                willAutoRenew: renewalInfo?.willAutoRenew, ownership: ownership)
+        case .expired, .none:
+            return ProSubscriptionStatus(
+                phase: .expired, expiresAt: transaction.expirationDate, willAutoRenew: false,
+                ownership: ownership)
+        default:
+            return ProSubscriptionStatus(
+                phase: .expired, expiresAt: transaction.expirationDate, willAutoRenew: false,
+                ownership: ownership)
+        }
+    }
+
+    private static func isIntroductoryTrial(_ transaction: Transaction) -> Bool {
+        transaction.offer?.type == .introductory && transaction.offer?.paymentMode == .freeTrial
+    }
+
+    private static func ownership(of transaction: Transaction) -> ProOwnership {
+        transaction.ownershipType == .familyShared ? .familyShared : .purchased
     }
 
     private static func trialRecord(_ transaction: Transaction) -> ProTrial {
@@ -337,7 +434,8 @@ public final class ProAccessController {
     }
 
     public func handleTransactionUpdate(_ update: VerificationResult<Transaction>) async {
-        guard [Self.productID, Self.trialProductID].contains(update.unsafePayloadValue.productID) else { return }
+        let knownProductIDs = [Self.productID, Self.annualProductID, Self.trialProductID]
+        guard knownProductIDs.contains(update.unsafePayloadValue.productID) else { return }
         if case .verified(let transaction) = update {
             error = nil
             if pendingProductID == transaction.productID { pendingProductID = nil }
@@ -352,10 +450,18 @@ public final class ProAccessController {
     private func apply(_ next: EntitlementStatus) {
         status = next
         if next.hasProAccess { workspaceCompositionGrantedForLaunch = true }
-        trialExpirationTask?.cancel()
-        if case .trialActive(let expiresAt) = next {
-            trialExpirationTask = Task { [weak self] in
-                // Recheck at least once a minute, including clock changes and sleep/wake.
+        entitlementExpirationTask?.cancel()
+        let expiresAt: Date?
+        switch next {
+        case .trialActive(let expiration):
+            expiresAt = expiration
+        case .subscription(let subscription) where subscription.phase.hasProAccess:
+            expiresAt = subscription.expiresAt
+        default:
+            expiresAt = nil
+        }
+        if let expiresAt {
+            entitlementExpirationTask = Task { [weak self] in
                 let remaining = min(60, max(0, expiresAt.timeIntervalSince(self?.now() ?? .now)))
                 try? await Task.sleep(for: .seconds(remaining))
                 guard !Task.isCancelled else { return }
@@ -364,17 +470,24 @@ public final class ProAccessController {
         }
     }
 
-    private func disableReviewDemo() {
-        isReviewDemoModeEnabled = false
-        defaults?.removeObject(forKey: Self.reviewDemoDefaultsKey)
+    private static func dateComponents(for period: Product.SubscriptionPeriod, count: Int) -> DateComponents {
+        let value = period.value * count
+        var components = DateComponents()
+        switch period.unit {
+        case .day: components.day = value
+        case .week: components.weekOfYear = value
+        case .month: components.month = value
+        case .year: components.year = value
+        @unknown default: break
+        }
+        return components
     }
+
 }
 
 public nonisolated enum ProAccessControllerError: LocalizedError, Equatable, Sendable {
     case productUnavailable
     case productMetadataUnavailable
-    case trialUnavailable
-    case trialAlreadyUsed
     case purchaseVerificationFailed
     case purchasePending
     case operationFailed(String)
@@ -386,12 +499,6 @@ public nonisolated enum ProAccessControllerError: LocalizedError, Equatable, Sen
             String(localized: "Termind Pro is not available from the App Store right now.")
         case .productMetadataUnavailable:
             String(localized: "The App Store is temporarily unavailable. You can keep using already unlocked features.")
-        case .trialUnavailable:
-            String(localized: "The free trial is unavailable from the App Store right now. Please try again later.")
-        case .trialAlreadyUsed:
-            String(
-                localized:
-                    "This App Store account has already used the free trial. Restoring it does not restart the trial.")
         case .operationFailed(let description):
             description
         case .purchaseVerificationFailed:
@@ -399,7 +506,7 @@ public nonisolated enum ProAccessControllerError: LocalizedError, Equatable, Sen
         case .purchasePending:
             String(localized: "The purchase is waiting for App Store approval.")
         case .purchaseNotFound:
-            String(localized: "No Termind Pro purchase or free trial was found for this App Store account.")
+            String(localized: "No active Termind Pro purchase or subscription was found for this App Store account.")
         }
     }
 }
