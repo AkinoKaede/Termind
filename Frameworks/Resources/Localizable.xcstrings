@@ -3327,6 +3327,7 @@
       }
     },
     "connected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -3368,6 +3369,7 @@
       }
     },
     "connecting" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5781,6 +5783,7 @@
       }
     },
     "failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -6790,6 +6793,7 @@
       }
     },
     "hosts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -7858,6 +7862,7 @@
       }
     },
     "Local" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12418,6 +12423,7 @@
       }
     },
     "server" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

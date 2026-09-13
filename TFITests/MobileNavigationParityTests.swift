@@ -107,6 +107,14 @@ struct MobileNavigationParityTests {
             bottomSurface.components(separatedBy: "conversation.pendingUserInteraction != nil {").last?
                 .components(separatedBy: "} else {").first)
         let composerSurface = try #require(bottomSurface.components(separatedBy: "} else {").last)
+        let regularSurface = try #require(
+            conversation.components(separatedBy: "private var regularInteractionSurface").last?
+                .components(separatedBy: "private var archivedNotice").first
+        )
+        let regularFlow = try #require(
+            regularSurface.components(separatedBy: "VStack(spacing: 8) {").last?
+                .components(separatedBy: ".zIndex(20)").first
+        )
 
         #expect(
             bottomSurface.contains(
@@ -116,12 +124,13 @@ struct MobileNavigationParityTests {
         #expect(!blockingSurface.contains("MobileAssistantTaskCapsule("))
         #expect(!blockingSurface.contains("MobileAssistantSteeringQueue("))
         #expect(blockingSurface.contains(".background(Color(uiColor: .systemBackground))"))
-        #expect(composerSurface.contains("MobileAssistantComposer("))
-        let task = try #require(composerSurface.range(of: "MobileAssistantTaskCapsule(")?.lowerBound)
-        let steering = try #require(composerSurface.range(of: "MobileAssistantSteeringQueue(")?.lowerBound)
-        let composer = try #require(composerSurface.range(of: "MobileAssistantComposer(")?.lowerBound)
-        #expect(task < steering)
-        #expect(steering < composer)
+        #expect(composerSurface.contains("regularInteractionSurface"))
+        #expect(regularSurface.contains("ZStack(alignment: .top)"))
+        #expect(regularFlow.contains("MobileAssistantSteeringQueue("))
+        #expect(regularFlow.contains("MobileAssistantComposer("))
+        #expect(!regularFlow.contains("MobileAssistantTaskCapsule("))
+        #expect(regularSurface.contains("MobileAssistantTaskCapsule("))
+        #expect(regularSurface.contains(".offset(y: -44)"))
         #expect(!composerSurface.contains("MobileAssistantInteraction("))
         #expect(composerSurface.contains(".background(Color(uiColor: .systemBackground))"))
         #expect(interaction.contains("conversation.answerUserInputOption(option.id, in: questionID)"))
@@ -174,11 +183,19 @@ struct MobileNavigationParityTests {
         #expect(conversation.contains("Label(\"Steering\", systemImage: \"arrow.turn.down.right\")"))
         #expect(conversation.contains("conversation.returnSteeringToDraft(pending.id)"))
         #expect(conversation.contains(".frame(height: min(rowsHeight, 88))"))
+        let steeringQueue = try #require(
+            conversation.components(separatedBy: "private struct MobileAssistantSteeringQueue").last?
+                .components(separatedBy: "struct MobileAssistantConversation").first
+        )
+        #expect(steeringQueue.contains("Image(systemName: \"xmark\")"))
+        #expect(!steeringQueue.contains(".onHover"))
         #expect(conversation.contains("struct MobileAssistantTaskCapsule"))
         #expect(conversation.contains("ProgressRing("))
         #expect(conversation.contains(".offset(y: -overlayHeight)"))
         #expect(conversation.contains(".frame(height: min(rowsHeight, 160))"))
         #expect(conversation.contains("case .inProgress: \"circle.lefthalf.filled\""))
+        #expect(conversation.contains("Color(uiColor: .secondaryLabel)"))
+        #expect(conversation.contains(".strikethrough("))
 
         let wideLayout = try #require(
             cards.components(separatedBy: "ViewThatFits(in: .horizontal) {").last?

@@ -346,8 +346,14 @@ private struct MobileAssistantTaskCapsule: View {
                 .frame(width: 20)
             Text(task.title)
                 .font(.callout)
-                .foregroundStyle(task.status == .completed ? .secondary : .primary)
-                .strikethrough(task.status == .completed, color: .secondary)
+                .foregroundStyle(
+                    task.status == .completed
+                        ? Color(uiColor: .secondaryLabel) : Color(uiColor: .label)
+                )
+                .strikethrough(
+                    task.status == .completed,
+                    color: Color(uiColor: .secondaryLabel)
+                )
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -566,11 +572,15 @@ struct MobileAssistantConversation: View {
                 .padding(12)
                 .background(Color(uiColor: .systemBackground))
         } else {
+            regularInteractionSurface
+                .padding(12)
+                .background(Color(uiColor: .systemBackground))
+        }
+    }
+
+    private var regularInteractionSurface: some View {
+        ZStack(alignment: .top) {
             VStack(spacing: 8) {
-                if !conversation.tasks.isEmpty {
-                    MobileAssistantTaskCapsule(conversation: conversation)
-                        .zIndex(10)
-                }
                 if !conversation.pendingSteering.isEmpty {
                     MobileAssistantSteeringQueue(conversation: conversation)
                 }
@@ -582,10 +592,14 @@ struct MobileAssistantConversation: View {
                     focusRequest: composerFocusRequest,
                     focusRequestHandled: composerFocusRequestHandled
                 )
-                .zIndex(20)
             }
-            .padding(12)
-            .background(Color(uiColor: .systemBackground))
+            .zIndex(20)
+
+            if !conversation.tasks.isEmpty {
+                MobileAssistantTaskCapsule(conversation: conversation)
+                    .offset(y: -44)
+                    .zIndex(10)
+            }
         }
     }
 
