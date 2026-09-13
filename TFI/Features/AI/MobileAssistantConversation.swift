@@ -239,6 +239,218 @@ struct MobileAssistantEditMessageTextEditor: View {
     }
 }
 
+private struct MobileAssistantTaskCapsule: View {
+    let conversation: ConversationModel
+
+    @State private var isExpanded = false
+    @State private var rowsHeight: CGFloat = 0
+    @State private var overlayHeight: CGFloat = 0
+    @State private var availableWidth: CGFloat = 320
+
+    private var isComplete: Bool {
+        conversation.completedTaskCount == conversation.tasks.count
+    }
+
+    var body: some View {
+        capsule
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .top) {
+                if isExpanded {
+                    VStack(spacing: 0) {
+                        list
+                        Color.clear.frame(height: 4)
+                    }
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.height
+                    } action: {
+                        overlayHeight = $0
+                    }
+                    .offset(y: -overlayHeight)
+                    .transition(.opacity)
+                }
+            }
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.width
+            } action: {
+                availableWidth = $0
+            }
+            .animation(.easeOut(duration: 0.12), value: isExpanded)
+    }
+
+    private var capsule: some View {
+        Button {
+            isExpanded.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                ProgressRing(
+                    share: Double(conversation.completedTaskCount)
+                        / Double(max(conversation.tasks.count, 1)),
+                    tint: isComplete ? .green : .accentColor,
+                    diameter: 10,
+                    lineWidth: 1.7
+                )
+                Text("Step \(conversation.completedTaskCount) / \(conversation.tasks.count)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 3)
+            .background(.regularMaterial, in: Capsule())
+            .overlay {
+                Capsule().stroke(.primary.opacity(0.08), lineWidth: 1).allowsHitTesting(false)
+            }
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .frame(minHeight: 44)
+        .accessibilityLabel(
+            Text("Tasks, \(conversation.completedTaskCount) of \(conversation.tasks.count) done")
+        )
+        .accessibilityValue(isExpanded ? Text("Expanded") : Text("Collapsed"))
+    }
+
+    private var list: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(conversation.tasks) { task in
+                    row(task)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.height
+            } action: {
+                rowsHeight = $0
+            }
+        }
+        .frame(height: min(rowsHeight, 160))
+        .scrollBounceBehavior(.basedOnSize)
+        .padding(12)
+        .frame(width: min(availableWidth, 320))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.primary.opacity(0.08), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Tasks"))
+    }
+
+    private func row(_ task: AgentTask) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: symbol(task.status))
+                .font(.caption)
+                .foregroundStyle(tint(task.status))
+                .frame(width: 20)
+            Text(task.title)
+                .font(.callout)
+                .foregroundStyle(task.status == .completed ? .secondary : .primary)
+                .strikethrough(task.status == .completed, color: .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func symbol(_ status: AgentTask.Status) -> String {
+        switch status {
+        case .pending: "circle"
+        case .inProgress: "circle.lefthalf.filled"
+        case .completed: "checkmark.circle.fill"
+        }
+    }
+
+    private func tint(_ status: AgentTask.Status) -> Color {
+        switch status {
+        case .pending: .secondary
+        case .inProgress: .accentColor
+        case .completed: .green
+        }
+    }
+}
+
+private struct MobileAssistantSteeringQueue: View {
+    let conversation: ConversationModel
+
+    @State private var rowsHeight: CGFloat = 0
+
+    private var deliveryStatus: LocalizedStringKey {
+        switch conversation.runState {
+        case .waitingForApproval, .waitingForUser: "Waiting for response"
+        default: "Next step"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Label("Steering", systemImage: "arrow.turn.down.right")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Text(deliveryStatus)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(conversation.pendingSteering) { pending in
+                        row(pending)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.height
+                } action: {
+                    rowsHeight = $0
+                }
+            }
+            .frame(height: min(rowsHeight, 88))
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .mobileAssistantInteractionSurface()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Queued messages"))
+    }
+
+    private func row(_ pending: PendingSteeringMessage) -> some View {
+        Button {
+            conversation.returnSteeringToDraft(pending.id)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(pending.draft)
+                    .font(.callout)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !pending.attachments.isEmpty {
+                    Label("\(pending.attachments.count)", systemImage: "paperclip")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .labelStyle(.titleAndIcon)
+                }
+
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Unqueue message"))
+        .accessibilityHint(Text("Take this back and edit it"))
+    }
+}
+
 struct MobileAssistantConversation: View {
     let app: MobileAppModel
     let model: MobileAssistantModel
@@ -355,7 +567,13 @@ struct MobileAssistantConversation: View {
                 .background(Color(uiColor: .systemBackground))
         } else {
             VStack(spacing: 8) {
-                if !conversation.tasks.isEmpty { taskList }
+                if !conversation.tasks.isEmpty {
+                    MobileAssistantTaskCapsule(conversation: conversation)
+                        .zIndex(10)
+                }
+                if !conversation.pendingSteering.isEmpty {
+                    MobileAssistantSteeringQueue(conversation: conversation)
+                }
                 MobileAssistantComposer(
                     pro: app.pro,
                     model: model,
@@ -364,6 +582,7 @@ struct MobileAssistantConversation: View {
                     focusRequest: composerFocusRequest,
                     focusRequestHandled: composerFocusRequestHandled
                 )
+                .zIndex(20)
             }
             .padding(12)
             .background(Color(uiColor: .systemBackground))
@@ -400,17 +619,6 @@ struct MobileAssistantConversation: View {
         }
         .buttonStyle(.borderedProminent)
         .fixedSize()
-    }
-
-    private var taskList: some View {
-        DisclosureGroup("Tasks") {
-            ForEach(conversation.tasks) { task in
-                Label(task.title, systemImage: task.status == .completed ? "checkmark.circle.fill" : "circle")
-                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-            }
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     @ViewBuilder private func transcriptRow(_ entry: AssistantTranscriptEntry) -> some View {

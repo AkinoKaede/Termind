@@ -39,13 +39,19 @@ struct MobileAssistantPlanRow: View {
                 .onTapGesture { if !expanded { presentation.toggleDisclosure(.plan(card.id)) } }
             if card.outcome == .pending && !readOnly {
                 ViewThatFits(in: .horizontal) {
-                    HStack {
-                        actions
-                        Text("Reply to keep planning").font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        discardButton
+                        Spacer(minLength: 12)
+                        planningHint.fixedSize(horizontal: true, vertical: false)
+                        implementButton
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack { actions }
-                        Text("Reply to keep planning").font(.caption).foregroundStyle(.secondary)
+                        planningHint.fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 12) {
+                            discardButton
+                            Spacer(minLength: 12)
+                            implementButton
+                        }
                     }
                 }
             }
@@ -55,11 +61,17 @@ struct MobileAssistantPlanRow: View {
         .overlay { RoundedRectangle(cornerRadius: 12).stroke(Color(uiColor: .separator), lineWidth: 1) }
     }
 
-    @ViewBuilder private var actions: some View {
+    private var discardButton: some View {
         Button("Discard", role: .destructive, action: discard).frame(minHeight: 44)
-        Spacer(minLength: 12)
+    }
+
+    private var implementButton: some View {
         Button("Implement", systemImage: "play", action: implement)
             .buttonStyle(.borderedProminent).disabled(isStreaming)
+    }
+
+    private var planningHint: some View {
+        Text("Reply to keep planning").font(.caption).foregroundStyle(.secondary)
     }
 
     private var symbol: String {

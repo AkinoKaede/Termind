@@ -6,6 +6,26 @@ import TermindApplication
 import TermindInfrastructure
 import TermindPresentation
 
+private struct MobileAssistantInteractionSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(12)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .stroke(.primary.opacity(0.08), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+    }
+}
+
+extension View {
+    func mobileAssistantInteractionSurface() -> some View {
+        modifier(MobileAssistantInteractionSurface())
+    }
+}
+
 struct MobileAssistantComposer: View {
     let pro: ProAccessController
     let model: MobileAssistantModel
@@ -50,81 +70,72 @@ struct MobileAssistantComposer: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            composerSurface
-            ForEach(conversation.pendingSteering) { pending in
-                HStack {
-                    Text(pending.draft).font(.caption).lineLimit(2)
-                    Spacer()
-                    Button("Edit", systemImage: "pencil") { conversation.returnSteeringToDraft(pending.id) }
+        composerSurface
+            .sheet(isPresented: $contextDetails) { contextDetailsSheet }
+            .fileImporter(
+                isPresented: $files, allowedContentTypes: ContextAttachmentImporter.supportedContentTypes,
+                allowsMultipleSelection: true
+            ) { result in
+                switch result {
+                case .success(let urls): conversation.importAttachmentFiles(urls)
+                case .failure(let error): composer.attachmentImportError = error.localizedDescription
                 }
             }
-        }
-        .sheet(isPresented: $contextDetails) { contextDetailsSheet }
-        .fileImporter(
-            isPresented: $files, allowedContentTypes: ContextAttachmentImporter.supportedContentTypes,
-            allowsMultipleSelection: true
-        ) { result in
-            switch result {
-            case .success(let urls): conversation.importAttachmentFiles(urls)
-            case .failure(let error): composer.attachmentImportError = error.localizedDescription
+            .alert(
+                "Attachment Error",
+                isPresented: Binding(
+                    get: { composer.attachmentImportError != nil },
+                    set: { if !$0 { composer.attachmentImportError = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(composer.attachmentImportError ?? "")
             }
-        }
-        .alert(
-            "Attachment Error",
-            isPresented: Binding(
-                get: { composer.attachmentImportError != nil },
-                set: { if !$0 { composer.attachmentImportError = nil } }
+            .photosPicker(
+                isPresented: $photos, selection: $photoItems,
+                maxSelectionCount: max(1, 20 - composer.attachments.count - composer.pendingAttachments.count),
+                matching: .images
             )
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(composer.attachmentImportError ?? "")
-        }
-        .photosPicker(
-            isPresented: $photos, selection: $photoItems,
-            maxSelectionCount: max(1, 20 - composer.attachments.count - composer.pendingAttachments.count),
-            matching: .images
-        )
-        .onChange(of: photoItems) { _, items in
-            photoTask?.cancel()
-            photoTask = Task { await importPhotos(items) }
-        }
-        .fullScreenCover(isPresented: $camera) {
-            MobileAssistantCamera { data in
-                camera = false
-                if let data { conversation.importAttachmentImages([data], label: String(localized: "Photo")) }
-            }.ignoresSafeArea()
-        }
-        .alert(
-            model.speech.error?.title ?? "Transcription Failed",
-            isPresented: Binding(
-                get: { model.speech.errorOwnerID == conversation.id },
-                set: { if !$0 { model.speech.dismissError(ownerID: conversation.id) } })
-        ) {
-            if model.speech.error?.offersSystemSettings == true {
-                Button("Settings") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                }
+            .onChange(of: photoItems) { _, items in
+                photoTask?.cancel()
+                photoTask = Task { await importPhotos(items) }
             }
-            Button("OK") { model.speech.dismissError(ownerID: conversation.id) }
-        } message: {
-            Text(model.speech.error?.message ?? "")
-        }
-        .onDisappear {
-            photoTask?.cancel()
-            model.speech.cancel(ownerID: conversation.id)
-        }
-        .task(id: focusRequest) {
-            guard let focusRequest else { return }
-            await Task.yield()
-            guard !Task.isCancelled else { return }
-            activeFocus.wrappedValue = true
-            focusRequestHandled(focusRequest)
-        }
-        .onAppear(perform: normalizeReasoningEffort)
-        .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
-        .background { keyboardShortcuts }
+            .fullScreenCover(isPresented: $camera) {
+                MobileAssistantCamera { data in
+                    camera = false
+                    if let data { conversation.importAttachmentImages([data], label: String(localized: "Photo")) }
+                }.ignoresSafeArea()
+            }
+            .alert(
+                model.speech.error?.title ?? "Transcription Failed",
+                isPresented: Binding(
+                    get: { model.speech.errorOwnerID == conversation.id },
+                    set: { if !$0 { model.speech.dismissError(ownerID: conversation.id) } })
+            ) {
+                if model.speech.error?.offersSystemSettings == true {
+                    Button("Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                    }
+                }
+                Button("OK") { model.speech.dismissError(ownerID: conversation.id) }
+            } message: {
+                Text(model.speech.error?.message ?? "")
+            }
+            .onDisappear {
+                photoTask?.cancel()
+                model.speech.cancel(ownerID: conversation.id)
+            }
+            .task(id: focusRequest) {
+                guard let focusRequest else { return }
+                await Task.yield()
+                guard !Task.isCancelled else { return }
+                activeFocus.wrappedValue = true
+                focusRequestHandled(focusRequest)
+            }
+            .onAppear(perform: normalizeReasoningEffort)
+            .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
+            .background { keyboardShortcuts }
     }
 
     private var keyboardShortcuts: some View {
@@ -176,14 +187,7 @@ struct MobileAssistantComposer: View {
             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
             .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: showsTranscriptionControls)
         }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(.primary.opacity(0.08), lineWidth: 1)
-                .allowsHitTesting(false)
-        }
-        .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+        .mobileAssistantInteractionSurface()
         .overlay(alignment: .top) {
             if !slashCompletion.isEmpty, !isSlashPanelDismissed {
                 MobileSlashCommandPanel(

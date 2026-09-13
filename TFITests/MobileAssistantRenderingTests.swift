@@ -201,6 +201,86 @@ struct MobileAssistantRenderingTests {
                 view: NavigationStack {
                     MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
+            try await capture(
+                "question-dark", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                }
+                .environment(\.locale, Locale(identifier: language))
+                .preferredColorScheme(.dark))
+            conversation.setUserInputCustomAnswer(
+                language == "en" ? "A private canary" : "私有金丝雀环境",
+                for: "deployment"
+            )
+            try await capture(
+                "question-custom", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                }.environment(\.locale, Locale(identifier: language)))
+            conversation.cancelUserInput()
+            conversation.present(
+                AgentUserInputRequest(questions: [
+                    AgentUserQuestion(
+                        id: "checks",
+                        header: language == "en" ? "Verification" : "验证",
+                        prompt: language == "en" ? "Which checks should run?" : "应该运行哪些检查？",
+                        kind: .choice(
+                            AgentUserInputChoice(
+                                options: [
+                                    AgentUserInputOption(
+                                        id: "smoke",
+                                        label: language == "en" ? "Smoke tests" : "冒烟测试",
+                                        detail: language == "en" ? "Verify the critical path." : "验证关键路径。",
+                                        isRecommended: true
+                                    ),
+                                    AgentUserInputOption(
+                                        id: "load",
+                                        label: language == "en" ? "Load tests" : "负载测试",
+                                        detail: language == "en" ? "Exercise expected peak traffic." : "模拟预期峰值流量。"
+                                    ),
+                                ],
+                                allowsMultipleAnswers: true,
+                                customPlaceholder: language == "en" ? "Another check…" : "其他检查…"
+                            )
+                        )
+                    )
+                ]))
+            conversation.toggleUserInputOption("smoke", in: "checks")
+            try await capture(
+                "question-multiple", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                }.environment(\.locale, Locale(identifier: language)))
+            try await capture(
+                "question-multiple-large", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                }
+                .environment(\.locale, Locale(identifier: language))
+                .environment(\.dynamicTypeSize, .accessibility2))
+            conversation.cancelUserInput()
+            conversation.present(
+                AgentUserInputRequest(questions: [
+                    AgentUserQuestion(
+                        id: "secret",
+                        header: language == "en" ? "Authentication" : "身份验证",
+                        prompt: language == "en" ? "Enter the one-time secret." : "输入一次性机密。",
+                        kind: .secret
+                    )
+                ]))
+            conversation.secretInputDraft = "rendering-secret"
+            try await capture(
+                "question-secret", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                }.environment(\.locale, Locale(identifier: language)))
+            try await capture(
+                "question-secret-dark", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
+                }
+                .environment(\.locale, Locale(identifier: language))
+                .preferredColorScheme(.dark))
             conversation.cancelUserInput()
             conversation.archivedAt = .now
             conversation.isPinned = false

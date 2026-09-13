@@ -24,6 +24,8 @@ struct MobileShortcutTests {
         #expect(MobileShortcut.previousWorkspace == KeyboardShortcut("[", modifiers: [.command, .shift]))
         #expect(MobileShortcut.send == KeyboardShortcut(.return, modifiers: .command))
         #expect(MobileShortcut.stop == KeyboardShortcut(".", modifiers: .command))
+        #expect(MobileShortcut.formDefault == KeyboardShortcut(.return, modifiers: []))
+        #expect(MobileShortcut.formCancel == KeyboardShortcut(.escape, modifiers: []))
 
         let shortcuts =
             [
@@ -40,6 +42,8 @@ struct MobileShortcutTests {
                 MobileShortcut.previousWorkspace,
                 MobileShortcut.send,
                 MobileShortcut.stop,
+                MobileShortcut.formDefault,
+                MobileShortcut.formCancel,
             ] + (1...9).map(MobileShortcut.workspace)
         #expect(Set(shortcuts).count == shortcuts.count)
     }

@@ -113,19 +113,82 @@ struct MobileNavigationParityTests {
                 "conversation.pendingApproval != nil || conversation.pendingUserInteraction != nil"))
         #expect(blockingSurface.contains("MobileAssistantInteraction("))
         #expect(!blockingSurface.contains("MobileAssistantComposer("))
-        #expect(!blockingSurface.contains("taskList"))
+        #expect(!blockingSurface.contains("MobileAssistantTaskCapsule("))
+        #expect(!blockingSurface.contains("MobileAssistantSteeringQueue("))
         #expect(blockingSurface.contains(".background(Color(uiColor: .systemBackground))"))
         #expect(composerSurface.contains("MobileAssistantComposer("))
-        #expect(composerSurface.contains("taskList"))
+        let task = try #require(composerSurface.range(of: "MobileAssistantTaskCapsule(")?.lowerBound)
+        let steering = try #require(composerSurface.range(of: "MobileAssistantSteeringQueue(")?.lowerBound)
+        let composer = try #require(composerSurface.range(of: "MobileAssistantComposer(")?.lowerBound)
+        #expect(task < steering)
+        #expect(steering < composer)
         #expect(!composerSurface.contains("MobileAssistantInteraction("))
         #expect(composerSurface.contains(".background(Color(uiColor: .systemBackground))"))
-        #expect(interaction.contains("conversation.answerUserInputOption(option.id, in: question.id)"))
-        #expect(!interaction.contains("conversation.toggleUserInputOption(option.id, in: question.id)"))
+        #expect(interaction.contains("conversation.answerUserInputOption(option.id, in: questionID)"))
+        #expect(!interaction.contains("conversation.toggleUserInputOption(option.id, in: questionID)"))
         #expect(interaction.components(separatedBy: "MobileAssistantAdaptiveHeight {").count == 3)
         #expect(interaction.contains("ViewThatFits(in: .vertical)"))
         #expect(interaction.contains(".scrollBounceBehavior(.basedOnSize)"))
         #expect(interaction.contains(".frame(maxWidth: .infinity, maxHeight: 300, alignment: .topLeading)"))
         #expect(!interaction.contains(".frame(maxHeight: 160)"))
+
+        let secretField = try #require(
+            interaction.components(separatedBy: "private func secretField").last?
+                .components(separatedBy: "private func textField").first
+        )
+        #expect(secretField.contains(".submitLabel(isLastQuestion ? .done : .next)"))
+        #expect(secretField.contains(".onSubmit { advanceFromKeyboard(question.id) }"))
+
+        let customRow = try #require(
+            interaction.components(separatedBy: "private func customRow").last?
+                .components(separatedBy: "private func customAnswerField").first
+        )
+        #expect(customRow.contains("HStack(alignment: .center"))
+        #expect(customRow.contains(".submitLabel(isLastQuestion ? .done : .next)"))
+        #expect(customRow.contains(".onSubmit { advanceFromKeyboard(questionID) }"))
+
+        let customField = try #require(
+            interaction.components(separatedBy: "private func customAnswerField").last?
+                .components(separatedBy: "private func footer").first
+        )
+        #expect(!customField.contains("axis: .vertical"))
+    }
+
+    @Test func assistantSteeringTasksAndPlanActionsMatchDesktopHierarchy() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let conversation = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantConversation.swift"),
+            encoding: .utf8
+        )
+        let composer = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantComposer.swift"), encoding: .utf8)
+        let cards = try String(
+            contentsOf: root.appending(path: "TFI/Features/AI/MobileAssistantTranscriptCards.swift"),
+            encoding: .utf8
+        )
+
+        #expect(!composer.contains("pendingSteering"))
+        #expect(conversation.contains("struct MobileAssistantSteeringQueue"))
+        #expect(conversation.contains("Label(\"Steering\", systemImage: \"arrow.turn.down.right\")"))
+        #expect(conversation.contains("conversation.returnSteeringToDraft(pending.id)"))
+        #expect(conversation.contains(".frame(height: min(rowsHeight, 88))"))
+        #expect(conversation.contains("struct MobileAssistantTaskCapsule"))
+        #expect(conversation.contains("ProgressRing("))
+        #expect(conversation.contains(".offset(y: -overlayHeight)"))
+        #expect(conversation.contains(".frame(height: min(rowsHeight, 160))"))
+        #expect(conversation.contains("case .inProgress: \"circle.lefthalf.filled\""))
+
+        let wideLayout = try #require(
+            cards.components(separatedBy: "ViewThatFits(in: .horizontal) {").last?
+                .components(separatedBy: "VStack(alignment: .leading, spacing: 8)").first
+        )
+        let discard = try #require(wideLayout.range(of: "discardButton")?.lowerBound)
+        let hint = try #require(wideLayout.range(of: "planningHint")?.lowerBound)
+        let implement = try #require(wideLayout.range(of: "implementButton")?.lowerBound)
+        #expect(discard < hint)
+        #expect(hint < implement)
     }
 
     @Test func assistantHoistsComposerFocusAndRestoresItOnlyAcrossRequestedNavigation() throws {
