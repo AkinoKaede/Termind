@@ -72,6 +72,7 @@ struct MobileConnectionPickerTests {
         arguments: [
             ("en", "Connect", "More"),
             ("zh-Hans", "连接", "更多"),
+            ("zh-Hant", "連線", "更多"),
         ])
     func workspaceToolbarExposesLocalizedActions(
         language: String, expectedConnectName: String, expectedMoreName: String

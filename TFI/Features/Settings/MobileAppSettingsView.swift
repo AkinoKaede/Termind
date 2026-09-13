@@ -28,7 +28,14 @@ struct MobileAppSettingsView: View {
                     Text("Dark").tag("dark")
                 }
                 Picker("Language", selection: languageSelection) {
-                    ForEach(AppLanguage.allCases) { Text($0.displayName).tag($0) }
+                    ForEach(AppLanguage.allCases) {
+                        Text(
+                            $0.displayName(
+                                deviceRegion: Locale.autoupdatingCurrent.region?.identifier,
+                                canDisplayTaiwanFlag: DeviceCensorship.canDisplayTaiwanFlag
+                            )
+                        ).tag($0)
+                    }
                 }
                 if selectedLanguage != launchLanguage {
                     Text("The new language will be used after Termind relaunches.").font(.caption).foregroundStyle(

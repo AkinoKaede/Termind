@@ -389,7 +389,12 @@ private struct AppSettings: View {
 
             Picker("Language", selection: languageSelection) {
                 ForEach(AppLanguage.allCases) { language in
-                    Text(language.displayName).tag(language)
+                    Text(
+                        language.displayName(
+                            deviceRegion: Locale.autoupdatingCurrent.region?.identifier,
+                            canDisplayTaiwanFlag: DeviceCensorship.canDisplayTaiwanFlag
+                        )
+                    ).tag(language)
                 }
             }
 

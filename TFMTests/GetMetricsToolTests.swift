@@ -216,7 +216,7 @@ struct GetMetricsToolTests {
         let snapshot = MetricsSnapshot(
             capturedAt: now, state: .live, point: MetricsPoint(date: now.addingTimeInterval(-31), cpu: 25, memory: 50))
         let value = AgentJSONValue.object(output(snapshot))
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             let locale = Locale(identifier: language)
             let hostLabel = AppLocalization.string("Host", locale: locale)
             let staleLabel = AppLocalization.string("Cached metrics are stale", locale: locale)

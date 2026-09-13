@@ -31,7 +31,7 @@ struct MobileConnectionJourneyRenderingTests {
         let host = TermindDomain.Host(name: "Production Gateway", host: "gateway.example.invalid")
         let library = HostLibraryModel(hosts: [host])
 
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             for scheme in [ColorScheme.light, .dark] {
                 for state in JourneyFixtureState.allCases {
                     try await capture(

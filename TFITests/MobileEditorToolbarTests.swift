@@ -7,14 +7,20 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileEditorToolbarTests {
-    @Test(arguments: ["en", "zh-Hans"])
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func iconButtonsKeepTheirNamesAndSaveLifecycle(language: String) async throws {
         let state = EditorState()
         try await withEditor(state, language: language) { _, navigation in
             let cancel = try #require(cancelButton(in: navigation))
             let save = try #require(saveButton(in: navigation))
             #expect(accessibleName(cancel) == (language == "en" ? "Cancel" : "取消"))
-            #expect(accessibleName(save) == (language == "en" ? "Save" : "保存"))
+            let expectedSave =
+                switch language {
+                case "zh-Hans": "保存"
+                case "zh-Hant": "儲存"
+                default: "Save"
+                }
+            #expect(accessibleName(save) == expectedSave)
             #expect(cancel.isEnabled)
             #expect(!save.isEnabled)
             state.canSave = true
@@ -121,7 +127,7 @@ struct MobileEditorToolbarTests {
     }
 
     private func saveButton(in navigation: UINavigationController) -> UIBarButtonItem? {
-        toolbarButton(namedOneOf: ["Save", "保存"], in: navigation)
+        toolbarButton(namedOneOf: ["Save", "保存", "儲存"], in: navigation)
     }
 
     private func moreButton(in navigation: UINavigationController) -> UIBarButtonItem? {

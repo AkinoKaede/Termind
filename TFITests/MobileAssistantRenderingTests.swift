@@ -58,10 +58,10 @@ struct MobileAssistantRenderingTests {
 
     @Test func renderTranscriptWorkStates() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             for phase in AssistantTranscriptPreview.Phase.allCases {
                 let group = AssistantTranscriptPreview.work(
-                    language: language == "en" ? .english : .simplifiedChinese, phase: phase
+                    language: try #require(AppLanguage(rawValue: language)), phase: phase
                 )
                 let presentation = AssistantTranscriptPresentationState()
                 presentation.followDefault(true, for: .work(group.id))
@@ -103,11 +103,23 @@ struct MobileAssistantRenderingTests {
 
     @Test func renderNativeAssistant() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
+            func text(_ english: String, _ simplified: String, _ traditional: String) -> String {
+                switch language {
+                case "zh-Hans": simplified
+                case "zh-Hant": traditional
+                default: english
+                }
+            }
             let app = try MobileAppModel(inMemory: true)
-            let conversation = ConversationModel.demo(language: language == "en" ? .english : .simplifiedChinese)
+            let conversation = ConversationModel.demo(language: try #require(AppLanguage(rawValue: language)))
             app.assistant.library.insertAndSelect(conversation)
-            conversation.composer.draft = language == "en" ? "Check the service logs first." : "先检查服务日志。"
+            conversation.composer.draft =
+                switch language {
+                case "zh-Hans": "先检查服务日志。"
+                case "zh-Hant": "先檢查服務日誌。"
+                default: "Check the service logs first."
+                }
             conversation.attach(ContextChip(kind: .file, label: "service.log", content: "Example log"))
             conversation.isPlanning = true
             try await capture(
@@ -135,7 +147,7 @@ struct MobileAssistantRenderingTests {
                     MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.failCompaction(
-                language == "en" ? "The context service is unavailable." : "上下文服务不可用。"
+                text("The context service is unavailable.", "上下文服务不可用。", "上下文服務目前無法使用。")
             )
             try await capture(
                 "compact-failed", language: language,
@@ -144,10 +156,10 @@ struct MobileAssistantRenderingTests {
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.endCompaction()
             conversation.appendUserTurn(
-                language == "en" ? "Preserve the latest service diagnosis." : "保留最新的服务诊断。"
+                text("Preserve the latest service diagnosis.", "保留最新的服务诊断。", "保留最新的服務診斷。")
             )
             let compacted = conversation.applyCompaction(
-                summary: language == "en" ? "Earlier context summary" : "早期上下文摘要",
+                summary: text("Earlier context summary", "早期上下文摘要", "先前的上下文摘要"),
                 cut: conversation.transcript.count
             )
             #expect(compacted != nil)
@@ -157,8 +169,8 @@ struct MobileAssistantRenderingTests {
                 view: NavigationStack {
                     MobileAssistantView(app: app, model: app.assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
-            conversation.composer.attachmentImportError =
-                language == "en" ? "The selected attachment could not be imported." : "无法导入所选附件。"
+            conversation.composer.attachmentImportError = text(
+                "The selected attachment could not be imported.", "无法导入所选附件。", "無法匯入所選附件。")
             try await capture(
                 "attachment-error", language: language,
                 view: NavigationStack {
@@ -169,7 +181,7 @@ struct MobileAssistantRenderingTests {
                 .tasksUpdated([
                     AgentTask(
                         id: "verify",
-                        title: language == "en" ? "Verify the selected approach" : "验证所选方案",
+                        title: text("Verify the selected approach", "验证所选方案", "驗證所選方案"),
                         status: .inProgress
                     )
                 ]))
@@ -177,21 +189,22 @@ struct MobileAssistantRenderingTests {
                 AgentUserInputRequest(questions: [
                     AgentUserQuestion(
                         id: "deployment",
-                        header: language == "en" ? "Deployment" : "部署",
-                        prompt: language == "en" ? "Where should this run?" : "应在哪里运行？",
+                        header: text("Deployment", "部署", "部署"),
+                        prompt: text("Where should this run?", "应在哪里运行？", "應在哪裡執行？"),
                         kind: .choice(
                             AgentUserInputChoice(options: [
                                 AgentUserInputOption(
                                     id: "staging",
-                                    label: language == "en" ? "Staging" : "预发布环境",
-                                    detail: language == "en" ? "Validate before production." : "上线前先验证。",
+                                    label: text("Staging", "预发布环境", "測試環境"),
+                                    detail: text(
+                                        "Validate before production.", "上线前先验证。", "上線前先進行驗證。"),
                                     isRecommended: true
                                 ),
                                 AgentUserInputOption(
                                     id: "production",
-                                    label: language == "en" ? "Production" : "生产环境",
-                                    detail: language == "en"
-                                        ? "Apply directly to live traffic." : "直接应用到线上流量。"
+                                    label: text("Production", "生产环境", "正式環境"),
+                                    detail: text(
+                                        "Apply directly to live traffic.", "直接应用到线上流量。", "直接套用至正式流量。")
                                 ),
                             ]))
                     )
@@ -209,7 +222,7 @@ struct MobileAssistantRenderingTests {
                 .environment(\.locale, Locale(identifier: language))
                 .preferredColorScheme(.dark))
             conversation.setUserInputCustomAnswer(
-                language == "en" ? "A private canary" : "私有金丝雀环境",
+                text("A private canary", "私有金丝雀环境", "私有的金絲雀環境"),
                 for: "deployment"
             )
             try await capture(
@@ -222,25 +235,27 @@ struct MobileAssistantRenderingTests {
                 AgentUserInputRequest(questions: [
                     AgentUserQuestion(
                         id: "checks",
-                        header: language == "en" ? "Verification" : "验证",
-                        prompt: language == "en" ? "Which checks should run?" : "应该运行哪些检查？",
+                        header: text("Verification", "验证", "驗證"),
+                        prompt: text("Which checks should run?", "应该运行哪些检查？", "應執行哪些檢查？"),
                         kind: .choice(
                             AgentUserInputChoice(
                                 options: [
                                     AgentUserInputOption(
                                         id: "smoke",
-                                        label: language == "en" ? "Smoke tests" : "冒烟测试",
-                                        detail: language == "en" ? "Verify the critical path." : "验证关键路径。",
+                                        label: text("Smoke tests", "冒烟测试", "冒煙測試"),
+                                        detail: text(
+                                            "Verify the critical path.", "验证关键路径。", "驗證關鍵路徑。"),
                                         isRecommended: true
                                     ),
                                     AgentUserInputOption(
                                         id: "load",
-                                        label: language == "en" ? "Load tests" : "负载测试",
-                                        detail: language == "en" ? "Exercise expected peak traffic." : "模拟预期峰值流量。"
+                                        label: text("Load tests", "负载测试", "負載測試"),
+                                        detail: text(
+                                            "Exercise expected peak traffic.", "模拟预期峰值流量。", "模擬預期尖峰流量。")
                                     ),
                                 ],
                                 allowsMultipleAnswers: true,
-                                customPlaceholder: language == "en" ? "Another check…" : "其他检查…"
+                                customPlaceholder: text("Another check…", "其他检查…", "其他檢查…")
                             )
                         )
                     )
@@ -263,8 +278,8 @@ struct MobileAssistantRenderingTests {
                 AgentUserInputRequest(questions: [
                     AgentUserQuestion(
                         id: "secret",
-                        header: language == "en" ? "Authentication" : "身份验证",
-                        prompt: language == "en" ? "Enter the one-time secret." : "输入一次性机密。",
+                        header: text("Authentication", "身份验证", "身分驗證"),
+                        prompt: text("Enter the one-time secret.", "输入一次性机密。", "輸入一次性機密資訊。"),
                         kind: .secret
                     )
                 ]))
@@ -300,14 +315,24 @@ struct MobileAssistantRenderingTests {
 
     @Test func renderNativeConversationLibraries() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             let app = try MobileAppModel(inMemory: true)
-            let pinned = ConversationModel.demo(language: language == "en" ? .english : .simplifiedChinese)
+            let pinned = ConversationModel.demo(language: try #require(AppLanguage(rawValue: language)))
             pinned.isPinned = true
             let ordinary = ConversationModel()
-            ordinary.customTitle = language == "en" ? "Review deployment logs" : "检查部署日志"
+            ordinary.customTitle =
+                switch language {
+                case "zh-Hans": "检查部署日志"
+                case "zh-Hant": "檢查部署日誌"
+                default: "Review deployment logs"
+                }
             let streaming = ConversationModel(runState: .running)
-            streaming.customTitle = language == "en" ? "Investigate database latency" : "调查数据库延迟"
+            streaming.customTitle =
+                switch language {
+                case "zh-Hans": "调查数据库延迟"
+                case "zh-Hant": "調查資料庫延遲"
+                default: "Investigate database latency"
+                }
             app.assistant.library.insertAndSelect(pinned)
             app.assistant.library.insertAndSelect(ordinary)
             app.assistant.library.insertAndSelect(streaming)

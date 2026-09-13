@@ -10,8 +10,12 @@ extension HostLibraryModel {
     /// Seed data for P0, so the sidebar and workspace list can be exercised before any
     /// persistence or networking exists.
     static func demo(language: AppLanguage = .english) -> HostLibraryModel {
-        func text(_ en: String, _ zh: String) -> String {
-            language == .simplifiedChinese ? zh : en
+        func text(_ en: String, _ zhHans: String, _ zhHant: String) -> String {
+            switch language {
+            case .simplifiedChinese: zhHans
+            case .traditionalChinese: zhHant
+            case .system, .english: en
+            }
         }
         func distribution(_ id: String) -> DetectedDistribution {
             guard let distribution = DetectedDistribution(id: id) else {
@@ -20,22 +24,22 @@ extension HostLibraryModel {
             return distribution
         }
 
-        let production = HostGroup(name: text("Production", "生产环境"), sortIndex: 0)
-        let staging = HostGroup(name: text("Staging", "预发布环境"), sortIndex: 1)
-        let homelab = HostGroup(name: text("Homelab", "家庭实验室"), sortIndex: 2)
+        let production = HostGroup(name: text("Production", "生产环境", "正式環境"), sortIndex: 0)
+        let staging = HostGroup(name: text("Staging", "预发布环境", "測試環境"), sortIndex: 1)
+        let homelab = HostGroup(name: text("Homelab", "家庭实验室", "家庭實驗室"), sortIndex: 2)
         let edge = HostGroup(
-            name: text("Edge", "边缘节点"), parentID: production.id, sortIndex: 0
+            name: text("Edge", "边缘节点", "邊緣節點"), parentID: production.id, sortIndex: 0
         )
 
         let now = Date(timeIntervalSinceReferenceDate: 776_000_000)
 
         let personalKey = SSHKeyRef(
-            label: text("Personal", "个人"), algorithm: .ed25519,
+            label: text("Personal", "个人", "個人"), algorithm: .ed25519,
             fingerprint: "SHA256:9pKQ2vC0nJ7hR4mXbL1sT8yWfE3dA6uZgN5qOiVxHkM",
             credentialRef: "termind.key.personal", colorTag: .blue
         )
         let workKey = SSHKeyRef(
-            label: text("Work (no sync)", "工作（不同步）"), algorithm: .ecdsa256,
+            label: text("Work (no sync)", "工作（不同步）", "工作（不同步）"), algorithm: .ecdsa256,
             fingerprint: "SHA256:3tBn8xLpQ2wZ7yKvR1mHcE9dS4fJ6uA0gT5iNqOxVbY",
             credentialRef: "termind.key.work",
             storage: .thisDevice, colorTag: .purple
@@ -45,24 +49,24 @@ extension HostLibraryModel {
         // One of each shape, so all four combinations of the two secrets are on
         // screen at P0: key only, key *and* password, password only, neither.
         let deploy = Identity(
-            name: text("Deploy", "部署账号"), username: "deploy", keyID: personalKey.id,
-            notes: text("Production web tier", "生产环境 Web 层"),
+            name: text("Deploy", "部署账号", "部署帳號"), username: "deploy", keyID: personalKey.id,
+            notes: text("Production web tier", "生产环境 Web 层", "正式環境 Web 層"),
             lastUsedAt: now, colorTag: .green
         )
         let postgres = Identity(
-            name: text("Postgres admin", "Postgres 管理员"), username: "postgres",
+            name: text("Postgres admin", "Postgres 管理员", "Postgres 管理員"), username: "postgres",
             credentialRef: "termind.password.postgres", keyID: workKey.id,
-            notes: text("Key to get in, password for sudo", "使用密钥登录，密码用于 sudo"),
+            notes: text("Key to get in, password for sudo", "使用密钥登录，密码用于 sudo", "使用金鑰登入，密碼用於 sudo"),
             lastUsedAt: now.addingTimeInterval(-7_200), colorTag: .orange
         )
         let consoleRoot = Identity(
-            name: text("Console root", "控制台 root"), username: "root",
+            name: text("Console root", "控制台 root", "主控台 root"), username: "root",
             credentialRef: "termind.password.console-root",
-            notes: text("Out-of-band only", "仅限带外管理"), colorTag: .red
+            notes: text("Out-of-band only", "仅限带外管理", "僅限頻外管理"), colorTag: .red
         )
         let unfinished = Identity(
-            name: text("New admin", "新管理员"), username: "admin",
-            notes: text("No secret chosen yet", "尚未选择凭据")
+            name: text("New admin", "新管理员", "新增管理員"), username: "admin",
+            notes: text("No secret chosen yet", "尚未选择凭据", "尚未選擇認證資訊")
         )
 
         // Half the fleet is left without an identity on purpose, so the "not set
@@ -121,35 +125,35 @@ extension HostLibraryModel {
         ]
 
         let diagnostics = SnippetPackage(
-            name: text("Diagnostics", "诊断"), sortIndex: 0
+            name: text("Diagnostics", "诊断", "診斷"), sortIndex: 0
         )
         let webOperations = SnippetPackage(
-            name: text("Web Operations", "Web 运维"),
+            name: text("Web Operations", "Web 运维", "Web 維運"),
             parentID: diagnostics.id, sortIndex: 0
         )
         let snippets = [
             Snippet(
-                title: text("Disk usage by directory", "按目录查看磁盘占用"),
+                title: text("Disk usage by directory", "按目录查看磁盘占用", "依目錄查看磁碟用量"),
                 body: "du -sh /* | sort -h",
                 packageID: diagnostics.id, targetHostIDs: [hosts[0].id],
                 sortIndex: 0
             ),
             Snippet(
-                title: text("Top memory consumers", "内存占用最高的进程"),
+                title: text("Top memory consumers", "内存占用最高的进程", "記憶體用量最高的程序"),
                 body: "ps aux --sort=-%mem | head -20",
                 packageID: diagnostics.id,
                 targetHostIDs: [hosts[0].id, hosts[1].id],
                 sortIndex: 1
             ),
             Snippet(
-                title: text("Tail nginx errors", "持续查看 Nginx 错误"),
+                title: text("Tail nginx errors", "持续查看 Nginx 错误", "持續查看 Nginx 錯誤"),
                 body: "tail -f /var/log/nginx/error.log",
                 packageID: webOperations.id,
                 targetHostIDs: [hosts[0].id, hosts[1].id],
                 sortIndex: 0
             ),
             Snippet(
-                title: text("Listening ports", "监听中的端口"),
+                title: text("Listening ports", "监听中的端口", "監聽中的連接埠"),
                 body: "ss -tulpn", sortIndex: 3
             ),
         ]
@@ -186,11 +190,11 @@ extension HostLibraryModel {
             PortForwardingRule(
                 hostID: db.id, kind: .local, bindPort: 5432,
                 targetHost: "localhost", targetPort: 5432,
-                label: text("Postgres", "Postgres 数据库")
+                label: text("Postgres", "Postgres 数据库", "Postgres 資料庫")
             ),
             PortForwardingRule(
                 hostID: web01.id, kind: .dynamic, bindPort: 1080,
-                label: text("SOCKS proxy", "SOCKS 代理")
+                label: text("SOCKS proxy", "SOCKS 代理", "SOCKS Proxy")
             ),
         ]
 
@@ -213,7 +217,7 @@ extension HostLibraryModel {
                 hostID: web01.id, direction: .upload,
                 localPath: "~/Config/nginx.conf", remotePath: "/etc/nginx/nginx.conf",
                 byteCount: 8_192,
-                state: .failed(text("Permission denied", "权限被拒绝")),
+                state: .failed(text("Permission denied", "权限被拒绝", "權限遭拒")),
                 queuedAt: now.addingTimeInterval(-3_600)
             ),
             SFTPTransfer(
@@ -242,7 +246,7 @@ extension HostLibraryModel {
         store.setStatus(.connecting, for: db.id)
         if let staging = hosts.first(where: { $0.name == "staging-app" }) {
             store.setStatus(
-                .failed(text("Connection refused", "连接被拒绝")), for: staging.id
+                .failed(text("Connection refused", "连接被拒绝", "連線遭拒")), for: staging.id
             )
         }
 

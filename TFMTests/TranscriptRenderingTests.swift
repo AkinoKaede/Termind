@@ -13,11 +13,11 @@ struct TranscriptRenderingTests {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }
         let directory = FileManager.default.temporaryDirectory.appending(path: "assistant-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             for phase in AssistantTranscriptPreview.Phase.allCases {
                 for dark in [false, true] {
                     let group = AssistantTranscriptPreview.work(
-                        language: language == "en" ? .english : .simplifiedChinese, phase: phase
+                        language: try #require(AppLanguage(rawValue: language)), phase: phase
                     )
                     let presentation = TranscriptPresentationState()
                     presentation.disclosures.followDefault(true, for: .work(group.id))

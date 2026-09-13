@@ -1180,6 +1180,7 @@
 			knownRegions = (
 				en,
 				"zh-Hans",
+				"zh-Hant",
 				Base,
 			);
 			mainGroup = TRMD00000000000000000030;
@@ -2506,7 +2507,7 @@
 			repositoryURL = "https://github.com/AkinoKaede/AgentKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.6.2;
+				minimumVersion = 0.6.3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

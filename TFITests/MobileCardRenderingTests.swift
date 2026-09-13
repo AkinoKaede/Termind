@@ -93,7 +93,7 @@ struct MobileCardRenderingTests {
                     kind: .virtual, addresses: ["10.0.0.2"]),
             ])
 
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             for scheme in [ColorScheme.light, .dark] {
                 try await capture("vault", language: language, scheme: scheme) {
                     NavigationStack {

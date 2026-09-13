@@ -29,7 +29,7 @@ import TermindApplication
                     return "Pass --termind-demo only once."
                 case .invalidFormat(let value):
                     return "Invalid Demo argument \(value). Expected "
-                        + "--termind-demo=<hosts|workspace|agent|command|metrics|metrics-detail|app-settings>:<en|zh>."
+                        + "--termind-demo=<hosts|workspace|agent|command|metrics|metrics-detail|app-settings>:<en|zh-Hans|zh-Hant>."
                 case .unknownScene(let value):
                     return
                         "Unknown Demo scene \(value). Expected hosts, workspace, agent, command, metrics, metrics-detail, or app-settings."
@@ -78,7 +78,8 @@ import TermindApplication
             let language: AppLanguage
             switch languageValue {
             case "en": language = .english
-            case "zh": language = .simplifiedChinese
+            case "zh-Hans": language = .simplifiedChinese
+            case "zh-Hant": language = .traditionalChinese
             default: throw ParseError.unknownLanguage(languageValue)
             }
             return Self(scene: scene, language: language)
@@ -135,9 +136,10 @@ import TermindApplication
 
             let session = SSHSessionModel.demo(host: host)
             let pane = Pane(.sshSession(session))
-            pane.customTitle = text(en: "nginx diagnostics", zh: "Nginx 诊断")
+            pane.customTitle = text(en: "nginx diagnostics", zhHans: "Nginx 诊断", zhHant: "Nginx 診斷")
             let workspace = Workspace(pane: pane)
-            workspace.customTitle = text(en: "Production diagnostics", zh: "生产环境诊断")
+            workspace.customTitle = text(
+                en: "Production diagnostics", zhHans: "生产环境诊断", zhHant: "正式環境診斷")
             workspace.focusedPaneID = pane.id
 
             let conversation = ConversationModel.demo(language: language)
@@ -179,12 +181,12 @@ import TermindApplication
             let first = Pane(.sshSession(firstSession))
             first.customTitle =
                 showsCommandResult
-                ? text(en: "nginx logs", zh: "Nginx 日志")
+                ? text(en: "nginx logs", zhHans: "Nginx 日志", zhHant: "Nginx 日誌")
                 : "api-01"
             let sftpSession = SFTPSessionModel.demo(hostID: saved[0].id)
             sftpSession.selection = ["/etc/nginx/nginx.conf"]
             let sftp = Pane(.sftpSession(sftpSession))
-            sftp.customTitle = text(en: "nginx config", zh: "Nginx 配置")
+            sftp.customTitle = text(en: "nginx config", zhHans: "Nginx 配置", zhHant: "Nginx 設定")
             let secondSession =
                 showsCommandResult
                 ? SSHSessionModel.demo(host: saved[1])
@@ -218,8 +220,8 @@ import TermindApplication
             workspace.focusedPaneID = first.id
             workspace.customTitle =
                 showsCommandResult
-                ? text(en: "Log investigation", zh: "日志调查")
-                : text(en: "Production diagnostics", zh: "生产环境诊断")
+                ? text(en: "Log investigation", zhHans: "日志调查", zhHant: "日誌調查")
+                : text(en: "Production diagnostics", zhHans: "生产环境诊断", zhHant: "正式環境診斷")
             workspace.broadcastsInput = !showsCommandResult
             if showsCommandResult {
                 workspace.commandGeneratorState = .inserted(targetCount: 1)
@@ -266,8 +268,12 @@ import TermindApplication
                 ]).joined(separator: "\r\n")
         }
 
-        private func text(en: String, zh: String) -> String {
-            language == .simplifiedChinese ? zh : en
+        private func text(en: String, zhHans: String, zhHant: String) -> String {
+            switch language {
+            case .simplifiedChinese: zhHans
+            case .traditionalChinese: zhHant
+            case .system, .english: en
+            }
         }
     }
 #endif

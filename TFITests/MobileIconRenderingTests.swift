@@ -9,8 +9,8 @@ import struct TermindDomain.Host
 
 @testable import TermindIOS
 
-/// Opt-in native rendering coverage for icon labels in both languages and appearances.
-/// Set TERMIND_ICON_SCREENSHOTS to en or zh-Hans in the test runner environment.
+/// Opt-in native rendering coverage for icon labels in every supported language and appearance.
+/// Set TERMIND_ICON_SCREENSHOTS to en, zh-Hans, or zh-Hant in the test runner environment.
 @Suite(.serialized) @MainActor
 struct MobileIconRenderingTests {
     @Test func terminalKeyboardKeepsItsCompactHeight() {

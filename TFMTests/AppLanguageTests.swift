@@ -32,6 +32,12 @@ struct AppLanguageTests {
         #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hans"])
         #expect(AppLanguage.simplifiedChinese.locale.identifier == "zh-Hans")
         #expect(AppLanguage.simplifiedChinese.displayName == "简体中文")
+
+        AppLanguage.store(.traditionalChinese, in: defaults)
+        #expect(AppLanguage.stored(in: defaults) == .traditionalChinese)
+        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hant"])
+        #expect(AppLanguage.traditionalChinese.locale.identifier == "zh-Hant")
+        #expect(AppLanguage.traditionalChinese.displayName == "繁體中文")
     }
 
     @Test(arguments: ["zh-Hans-CN", "zh-CN", "zh_CN", "zh-Hans-SG", "zh"])
@@ -45,13 +51,41 @@ struct AppLanguageTests {
         #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hans"])
     }
 
-    @Test(arguments: ["zh-Hant", "unsupported"])
-    func nonSimplifiedChinesePreferencesContinueToFollowSystem(identifier: String) throws {
+    @Test(arguments: ["zh-TW", "zh-Hant-TW", "zh-HK", "zh-MO", "unsupported"])
+    func unknownPreferencesContinueToFollowSystemWithoutMigration(identifier: String) throws {
         let defaults = try makeDefaults()
         defaults.set(identifier, forKey: SettingsKey.appLanguage)
 
         #expect(AppLanguage.stored(in: defaults) == .system)
         #expect(defaults.string(forKey: SettingsKey.appLanguage) == identifier)
+    }
+
+    @Test
+    func traditionalChineseDisplayNameRequiresTaiwanRegionAndVisibleFlag() {
+        #expect(
+            AppLanguage.traditionalChinese.displayName(deviceRegion: "TW", canDisplayTaiwanFlag: true)
+                == "正體中文")
+        #expect(
+            AppLanguage.traditionalChinese.displayName(deviceRegion: "TW", canDisplayTaiwanFlag: false)
+                == "繁體中文")
+        #expect(
+            AppLanguage.traditionalChinese.displayName(deviceRegion: "HK", canDisplayTaiwanFlag: true)
+                == "繁體中文")
+        #expect(
+            AppLanguage.traditionalChinese.displayName(deviceRegion: nil, canDisplayTaiwanFlag: false)
+                == "繁體中文")
+        #expect(AppLanguage.english.displayName(deviceRegion: "TW", canDisplayTaiwanFlag: true) == "English")
+    }
+
+    @Test(arguments: ["zh-TW", "zh-Hant-TW", "zh-HK", "zh-MO"])
+    func traditionalChineseSystemLocalesResolveTraditionalCatalog(identifier: String) {
+        #expect(AppLocalization.string("Settings", locale: Locale(identifier: identifier)) == "設定")
+    }
+
+    @Test
+    func simplifiedAndTraditionalChineseCatalogsDoNotCrossFallback() {
+        #expect(AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hans")) == "设置")
+        #expect(AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant")) == "設定")
     }
 
     @Test
@@ -68,7 +102,7 @@ struct AppLanguageTests {
     }
 
     @Test
-    func everyCatalogEntryHasSimplifiedChinese() throws {
+    func everyCatalogEntryHasFinishedChineseTranslations() throws {
         let repository = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
         for name in ["Localizable", "InfoPlist"] {
@@ -82,12 +116,14 @@ struct AppLanguageTests {
                 let entry = try #require(value as? [String: Any])
                 if entry["shouldTranslate"] as? Bool == false { continue }
                 let localizations = try #require(entry["localizations"] as? [String: Any])
-                let chinese = try #require(localizations["zh-Hans"] as? [String: Any])
-                let units = localizedUnits(in: chinese)
-                #expect(!units.isEmpty, "No translated values: \(key)")
-                for unit in units {
-                    #expect(unit["state"] as? String == "translated", "Incomplete: \(key)")
-                    #expect(!(unit["value"] as? String ?? "").isEmpty || key.isEmpty)
+                for language in ["zh-Hans", "zh-Hant"] {
+                    let chinese = try #require(localizations[language] as? [String: Any])
+                    let units = localizedUnits(in: chinese)
+                    #expect(!units.isEmpty, "No translated values for \(language): \(key)")
+                    for unit in units {
+                        #expect(unit["state"] as? String == "translated", "Incomplete \(language): \(key)")
+                        #expect(!(unit["value"] as? String ?? "").isEmpty || key.isEmpty)
+                    }
                 }
             }
         }
@@ -110,16 +146,18 @@ struct AppLanguageTests {
         for (key, arguments) in interpolations.sorted(by: { $0.key < $1.key }) {
             let entry = try #require(strings[key] as? [String: Any], "Missing forwarding template: \(key)")
             let localizations = try #require(entry["localizations"] as? [String: Any])
-            let chinese = try #require(localizations["zh-Hans"] as? [String: Any])
-            let unit = try #require(chinese["stringUnit"] as? [String: Any])
-            let translation = try #require(unit["value"] as? String)
-            let placeholders = translation.matches(of: /%(?:[1-9][0-9]*\$)?@/)
-            #expect(placeholders.count == arguments.count, "Placeholder mismatch: \(key)")
-            let rendered = String(format: translation, arguments: arguments)
-            var remaining = rendered[...]
-            for argument in arguments {
-                let range = try #require(remaining.range(of: argument), "Lost or reordered value: \(key)")
-                remaining = remaining[range.upperBound...]
+            for language in ["zh-Hans", "zh-Hant"] {
+                let chinese = try #require(localizations[language] as? [String: Any])
+                let unit = try #require(chinese["stringUnit"] as? [String: Any])
+                let translation = try #require(unit["value"] as? String)
+                let placeholders = translation.matches(of: /%(?:[1-9][0-9]*\$)?@/)
+                #expect(placeholders.count == arguments.count, "Placeholder mismatch: \(language) \(key)")
+                let rendered = String(format: translation, arguments: arguments)
+                var remaining = rendered[...]
+                for argument in arguments {
+                    let range = try #require(remaining.range(of: argument), "Lost value: \(language) \(key)")
+                    remaining = remaining[range.upperBound...]
+                }
             }
         }
     }
@@ -143,10 +181,19 @@ struct AppLanguageTests {
             let entry = try #require(strings[key] as? [String: Any])
             let localizations = try #require(entry["localizations"] as? [String: Any])
             let english = try #require(localizations["en"] as? [String: Any])
-            let chinese = try #require(localizations["zh-Hans"] as? [String: Any])
             #expect(pluralForms(in: english).keys.sorted() == ["one", "other"])
-            #expect(pluralForms(in: chinese).keys.sorted() == ["other"])
+            for language in ["zh-Hans", "zh-Hant"] {
+                let chinese = try #require(localizations[language] as? [String: Any])
+                #expect(pluralForms(in: chinese).keys.sorted() == ["other"])
+            }
         }
+    }
+
+    @Test
+    func taiwanFlagColorDetectionHandlesColorGrayscaleAndMissingPixels() {
+        #expect(DeviceCensorship.containsColoredPixel([255, 0, 0, 255]))
+        #expect(!DeviceCensorship.containsColoredPixel([128, 128, 128, 255]))
+        #expect(!DeviceCensorship.containsColoredPixel([]))
     }
 
     private func localizedUnits(in value: [String: Any]) -> [[String: Any]] {

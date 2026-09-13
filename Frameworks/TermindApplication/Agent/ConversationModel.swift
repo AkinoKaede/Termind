@@ -2661,15 +2661,20 @@ extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 
 extension ConversationModel {
     public static func demo(language: AppLanguage = .english) -> ConversationModel {
-        func text(_ en: String, _ zh: String) -> String {
-            language == .simplifiedChinese ? zh : en
+        func text(_ en: String, _ zhHans: String, _ zhHant: String) -> String {
+            switch language {
+            case .simplifiedChinese: zhHans
+            case .traditionalChinese: zhHant
+            case .system, .english: en
+            }
         }
         let now = Date(timeIntervalSinceReferenceDate: 809_020_800)
         let user = ChatMessage(
             role: .user,
             text: text(
                 "Find the cause of the 502 responses. Inspect only—do not change configuration.",
-                "查明 502 响应的原因。仅检查，不要更改配置。"
+                "查明 502 响应的原因。仅检查，不要更改配置。",
+                "找出 502 回應的原因。僅進行檢查，不要變更設定。"
             ),
             createdAt: now.addingTimeInterval(-18)
         )
@@ -2677,14 +2682,15 @@ extension ConversationModel {
             role: .assistant,
             text: text(
                 "The upstream service is not listening on `127.0.0.1:8080`. Nginx itself is healthy, and no configuration was changed. Start the upstream service, then verify `/health` before considering a reload.",
-                "上游服务没有监听 `127.0.0.1:8080`。Nginx 本身运行正常，且没有更改任何配置。请先启动上游服务并验证 `/health`，再考虑重新加载。"
+                "上游服务没有监听 `127.0.0.1:8080`。Nginx 本身运行正常，且没有更改任何配置。请先启动上游服务并验证 `/health`，再考虑重新加载。",
+                "上游服務未監聽 `127.0.0.1:8080`。Nginx 本身運作正常，且未變更任何設定。請先啟動上游服務並驗證 `/health`，再考慮重新載入。"
             ),
             createdAt: now
         )
         let runID = UUID()
         let descriptor = AgentToolDescriptor(
             name: "ssh_exec",
-            summary: text("Run a command on a remote host.", "在远程主机上运行命令。"),
+            summary: text("Run a command on a remote host.", "在远程主机上运行命令。", "在遠端主機上執行指令。"),
             inputSchema: .object([:]), target: .host, safety: .locallyReadOnly,
             concurrency: .parallel,
             presentation: AgentToolDescriptor.Presentation(
@@ -2721,7 +2727,7 @@ extension ConversationModel {
                 )
             ]
         )
-        conversation.customTitle = text("Diagnose 502 responses", "诊断 502 响应")
+        conversation.customTitle = text("Diagnose 502 responses", "诊断 502 响应", "診斷 502 回應")
         conversation.messages = [
             user, answer,
         ]

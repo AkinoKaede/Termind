@@ -80,7 +80,7 @@ struct MetricsPresentationTests {
                     memoryUtilization: 9, encoder: 0, decoder: 0, fan: nil, vbios: "95.02.3C.00.01"
                 ),
             ])
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             for expanded in [false, true] {
                 let content = MetricsGPUSection(server: server, initiallyExpanded: expanded)
                     .frame(width: 324, alignment: .leading)
@@ -103,7 +103,7 @@ struct MetricsPresentationTests {
     }
 
     @Test
-    func compactCardsRenderInBothLanguagesAndAppearances() throws {
+    func compactCardsRenderInEveryLanguageAndAppearance() throws {
         let hosts = HostLibraryModel()
         let model = ServerMetricsModel(
             hosts: hosts, preferences: PreviewMetricsPreferences(),
@@ -117,7 +117,7 @@ struct MetricsPresentationTests {
             diskRead: 89_000_000, diskWrite: 161_000, networkReceive: 32_000, networkSend: 18_000
         )
         server.gpuState = .unavailable
-        for language in ["en", "zh-Hans"] {
+        for language in ["en", "zh-Hans", "zh-Hant"] {
             for dark in [false, true] {
                 let content = ServerMetricsCard(
                     server: server, model: model, compact: true, inspect: {}, openTerminal: {}

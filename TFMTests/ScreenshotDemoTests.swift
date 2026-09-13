@@ -16,7 +16,8 @@ import TermindRemoteInfrastructure
         func parsesEverySceneAndLanguageCombination() throws {
             let languages: [(argument: String, language: AppLanguage)] = [
                 ("en", .english),
-                ("zh", .simplifiedChinese),
+                ("zh-Hans", .simplifiedChinese),
+                ("zh-Hant", .traditionalChinese),
             ]
 
             for scene in ScreenshotDemoConfiguration.Scene.allCases {
@@ -68,9 +69,14 @@ import TermindRemoteInfrastructure
                     "Termind", "--termind-demo=hosts:fr",
                 ])
             }
+            #expect(throws: ScreenshotDemoConfiguration.ParseError.unknownLanguage("zh")) {
+                try ScreenshotDemoConfiguration.parse(arguments: [
+                    "Termind", "--termind-demo=hosts:zh",
+                ])
+            }
             #expect(throws: ScreenshotDemoConfiguration.ParseError.duplicateArguments) {
                 try ScreenshotDemoConfiguration.parse(arguments: [
-                    "Termind", "--termind-demo=hosts:en", "--termind-demo=hosts:zh",
+                    "Termind", "--termind-demo=hosts:en", "--termind-demo=hosts:zh-Hans",
                 ])
             }
         }
@@ -89,8 +95,8 @@ import TermindRemoteInfrastructure
         }
 
         @Test
-        func appSettingsSceneUsesTheProductionSettingsRouteInBothLanguages() {
-            for language in [AppLanguage.english, .simplifiedChinese] {
+        func appSettingsSceneUsesTheProductionSettingsRouteInEveryLanguage() {
+            for language in [AppLanguage.english, .simplifiedChinese, .traditionalChinese] {
                 let configuration = ScreenshotDemoConfiguration(scene: .appSettings, language: language)
                 let window = configuration.makeWindow(hosts: .demo())
                 #expect(window.selectedDestination == .settings)

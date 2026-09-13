@@ -17,9 +17,14 @@
             group.run.finishedAt = phase == .results ? now : nil
             group.run.state = phase == .results ? .completed : .running
             let reasoning =
-                language == .simplifiedChinese
-                ? "**检查上游服务。**\n先读取 `nginx` 日志，再核对监听端口；暂不更改配置。"
-                : "**Inspect the upstream service.**\nRead the `nginx` logs, then check listening ports before changing configuration."
+                switch language {
+                case .simplifiedChinese:
+                    "**检查上游服务。**\n先读取 `nginx` 日志，再核对监听端口；暂不更改配置。"
+                case .traditionalChinese:
+                    "**檢查上游服務。**\n先讀取 `nginx` 日誌，再核對監聽連接埠；暫不變更設定。"
+                case .system, .english:
+                    "**Inspect the upstream service.**\nRead the `nginx` logs, then check listening ports before changing configuration."
+                }
             if phase == .thinking {
                 let block = AgentReasoningBlock(text: reasoning, createdAt: now)
                 group.items = [.reasoning(block)]
@@ -32,10 +37,15 @@
                     callID: cards[0].invocation.call.id,
                     content: "Active: active (running)\nMain PID: 421 (nginx)"
                 )
+                let failure =
+                    switch language {
+                    case .simplifiedChinese: "连接上游服务失败：连接被拒绝。"
+                    case .traditionalChinese: "連線至上游服務失敗：連線遭拒。"
+                    case .system, .english: "connect() failed: connection refused"
+                    }
                 cards[1].result = AgentToolResult(
                     callID: cards[1].invocation.call.id,
-                    content: language == .simplifiedChinese
-                        ? "连接上游服务失败：连接被拒绝。" : "connect() failed: connection refused",
+                    content: failure,
                     isError: phase == .results
                 )
                 group.items = [
