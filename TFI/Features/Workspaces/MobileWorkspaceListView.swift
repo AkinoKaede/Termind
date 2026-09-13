@@ -14,6 +14,7 @@ struct MobileWorkspaceListView: View {
     let app: MobileAppModel
     @Bindable var scene: MobileSceneModel
     @Environment(\.locale) private var locale
+    @State private var clearingHistory = false
 
     static let historyLimit = 5
 
@@ -36,9 +37,23 @@ struct MobileWorkspaceListView: View {
         .toolbar {
             MobileWorkspaceToolbar(
                 hasWorkspaces: !app.workspaces.isEmpty,
+                hasHistory: !app.connectionHistory.entries().isEmpty,
                 closeAll: scene.closeAllWorkspaces,
+                clearHistory: { clearingHistory = true },
                 connect: scene.openConnectionPicker
             )
+        }
+        .confirmationDialog(
+            "Clear connection history?",
+            isPresented: $clearingHistory,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                app.connectionHistory.clearAll()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes all connection history without deleting any Hosts.")
         }
         .navigationDestination(item: $scene.workspaceID) { id in
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
@@ -142,24 +157,52 @@ struct MobileWorkspaceListView: View {
                         .frame(width: 28, height: 28)
                         .accessibilityLabel(Text(row.entry.kind.label))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
-                        Text(app.library.loginAddress(for: row.host))
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                        HStack(alignment: .center, spacing: 12) {
+                            Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
+                            Spacer(minLength: 12)
+                            Text(row.entry.kind.label)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .accessibilityHidden(true)
+                        }
+                        HStack(alignment: .center, spacing: 12) {
+                            Text(app.library.loginAddress(for: row.host))
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer(minLength: 12)
+                            Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
-                    Spacer(minLength: 12)
-                    Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
                 .accessibilityElement(children: .combine)
             }
             .buttonStyle(.plain)
+            .contextMenu {
+                Button("SSH", systemImage: "terminal") {
+                    scene.open(hostID: row.host.id, kind: .ssh)
+                }
+                Button("SFTP", systemImage: "folder") {
+                    scene.open(hostID: row.host.id, kind: .sftp)
+                }
+                Divider()
+                Button("Delete", systemImage: "trash", role: .destructive) {
+                    app.connectionHistory.delete(row.entry.id)
+                }
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button("Delete", systemImage: "trash", role: .destructive) {
+                    app.connectionHistory.delete(row.entry.id)
+                }
+            }
         }
     }
 

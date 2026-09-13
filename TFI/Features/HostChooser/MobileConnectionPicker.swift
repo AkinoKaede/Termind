@@ -7,7 +7,9 @@ import struct TermindDomain.Host
 
 struct MobileWorkspaceToolbar: ToolbarContent {
     let hasWorkspaces: Bool
+    let hasHistory: Bool
     let closeAll: () -> Void
+    let clearHistory: () -> Void
     let connect: () -> Void
 
     var body: some ToolbarContent {
@@ -15,6 +17,8 @@ struct MobileWorkspaceToolbar: ToolbarContent {
             Button("Connect", systemImage: "network", action: connect)
                 .labelStyle(.iconOnly)
             Menu {
+                Button("Clear History", systemImage: "trash", role: .destructive, action: clearHistory)
+                    .disabled(!hasHistory)
                 Button("Close All Workspaces", systemImage: "rectangle.stack.badge.minus", role: .destructive) {
                     closeAll()
                 }
