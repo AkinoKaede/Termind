@@ -12,6 +12,26 @@ import Testing
 @MainActor
 struct AppAppearanceTests {
     @Test
+    func transcriptProminentForegroundIsWhiteInAquaAndBlackInDarkAqua() throws {
+        for (appearanceName, expectedWhite) in [
+            (NSAppearance.Name.aqua, true),
+            (.darkAqua, false),
+        ] {
+            let appearance = try #require(NSAppearance(named: appearanceName))
+            let color = try #require(
+                TermindColor.resolvedTranscriptProminentForeground(for: appearance)
+                    .usingColorSpace(.deviceRGB)
+            )
+            let expected: CGFloat = expectedWhite ? 1 : 0
+
+            #expect(abs(color.redComponent - expected) < 0.001)
+            #expect(abs(color.greenComponent - expected) < 0.001)
+            #expect(abs(color.blueComponent - expected) < 0.001)
+            #expect(abs(color.alphaComponent - 1) < 0.001)
+        }
+    }
+
+    @Test
     func missingAndInvalidPreferencesFollowSystem() throws {
         try withDefaults { defaults in
             #expect(AppAppearance.stored(in: defaults) == .system)

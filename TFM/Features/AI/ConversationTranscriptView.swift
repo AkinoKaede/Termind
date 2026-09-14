@@ -7,6 +7,13 @@ import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
+extension View {
+    fileprivate func transcriptProminentButtonStyle() -> some View {
+        buttonStyle(.borderedProminent)
+            .foregroundStyle(TermindColor.transcriptProminentForeground)
+    }
+}
+
 private struct ConversationAttachmentDropModifier: ViewModifier {
     let conversation: ConversationModel
     let isEnabled: Bool
@@ -198,7 +205,7 @@ struct ConversationView: View {
             Button("Unarchive") {
                 window.setAssistantArchived(conversation.id, archived: false)
             }
-            .buttonStyle(.borderedProminent)
+            .transcriptProminentButtonStyle()
         }
     }
 
@@ -572,7 +579,7 @@ private struct AgentApprovalCard: View {
                 Button("Allow Once") {
                     conversation.respondToApproval(request.id, allow: true)
                 }
-                .buttonStyle(.borderedProminent)
+                .transcriptProminentButtonStyle()
                 .accessibilityIdentifier("AssistantApproval.AllowOnce")
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -772,7 +779,7 @@ private struct AgentUserInputCard: View {
                 Button(isLastQuestion ? "Submit" : "Next") {
                     conversation.advanceUserInputQuestion()
                 }
-                .buttonStyle(.borderedProminent)
+                .transcriptProminentButtonStyle()
                 .keyboardShortcut(.defaultAction)
                 .disabled(!conversation.canAdvanceUserInput)
             }

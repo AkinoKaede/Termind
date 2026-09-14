@@ -337,6 +337,9 @@ enum TermindColor {
     static var selectedForeground: Color {
         Color(nsColor: .alternateSelectedControlTextColor)
     }
+    static var transcriptProminentForeground: Color {
+        Color(nsColor: nativeTranscriptProminentForeground)
+    }
     static var separator: Color { Color(nsColor: .separatorColor) }
     static var shadow: Color { Color(nsColor: .shadowColor) }
 
@@ -348,7 +351,15 @@ enum TermindColor {
     static var danger: Color { Color(nsColor: .systemRed) }
 
     static var nativeAccent: NSColor { .controlAccentColor }
-    static var nativeSelectedForeground: NSColor { .alternateSelectedControlTextColor }
+    static var nativeTranscriptProminentForeground: NSColor {
+        NSColor(name: nil) { appearance in
+            resolvedTranscriptProminentForeground(for: appearance)
+        }
+    }
+
+    static func resolvedTranscriptProminentForeground(for appearance: NSAppearance) -> NSColor {
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? .black : .white
+    }
 
     /// CALayer stores a concrete `CGColor`; assigning a named dynamic NSColor
     /// directly can resolve it against the wrong appearance (or to clear while

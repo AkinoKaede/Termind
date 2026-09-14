@@ -1057,6 +1057,7 @@ private enum NativeTranscriptFactory {
                 bordered: true,
                 prominent: true
             )
+            implement.identifier = NSUserInterfaceItemIdentifier("Transcript.PlanImplement")
             implement.isEnabled = !context.configuration.isConversationStreaming
             implement.handler = { context.actions.implementPlan(card) }
             actions.addArrangedSubview(discard)
@@ -1698,6 +1699,7 @@ private final class NativeMarkdownView: NSView {
                 bordered: true,
                 prominent: true
             )
+            run.identifier = NSUserInterfaceItemIdentifier("Transcript.MarkdownShellRun")
             run.isEnabled = actions.enabled
             run.bezelColor = assessment.risk == .destructive ? .systemRed : .controlAccentColor
             run.handler = { [weak run] in
@@ -2485,6 +2487,7 @@ private final class NativeMessageEditor: NSView, NSTextViewDelegate {
         cancel.contentTintColor = .secondaryLabelColor
         cancel.handler = { [weak self] in self?.onCancel() }
         let send = NativeButton(title: String(localized: "Send"), bordered: true, prominent: true)
+        send.identifier = NSUserInterfaceItemIdentifier("Transcript.UserEditorSend")
         send.handler = { [weak self] in
             guard let self else { return }
             onCommit(textView.string)
@@ -2805,7 +2808,10 @@ private final class NativeCard: NSView {
 @MainActor
 private class NativeButton: NSButton {
     var handler: (() -> Void)?
+    private let usesProminentStyle: Bool
+
     init(title: String = "", bordered: Bool = false, prominent: Bool = false) {
+        usesProminentStyle = prominent
         super.init(frame: .zero)
         self.title = title
         bezelStyle = bordered ? .rounded : .inline
@@ -2813,14 +2819,7 @@ private class NativeButton: NSButton {
         controlSize = .small
         if prominent {
             bezelColor = .controlAccentColor
-            contentTintColor = TermindColor.nativeSelectedForeground
-            attributedTitle = NSAttributedString(
-                string: title,
-                attributes: [
-                    .font: font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize),
-                    .foregroundColor: TermindColor.nativeSelectedForeground,
-                ]
-            )
+            updateProminentForeground()
         }
         target = self
         action = #selector(run)
@@ -2836,6 +2835,25 @@ private class NativeButton: NSButton {
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        if usesProminentStyle { updateProminentForeground() }
+    }
+
+    private func updateProminentForeground() {
+        let foreground = TermindColor.resolvedTranscriptProminentForeground(
+            for: effectiveAppearance
+        )
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize),
+            .foregroundColor: foreground,
+        ]
+        contentTintColor = foreground
+        attributedTitle = NSAttributedString(string: title, attributes: attributes)
+        attributedAlternateTitle = NSAttributedString(string: title, attributes: attributes)
+    }
+
     @objc private func run() { handler?() }
 }
 

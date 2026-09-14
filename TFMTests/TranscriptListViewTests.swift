@@ -649,6 +649,77 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
+    func nativeTranscriptProminentButtonsInvertTheirForegroundWithAppearance() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let presentation = TranscriptPresentationState()
+        let userID = UUID()
+        let plan = AgentPlan(
+            title: "Implementation plan",
+            body: "Apply the requested change.",
+            scratchPath: "/tmp/plan.md"
+        )
+        let commandID = UUID()
+        let markdownID = UUID()
+        listView.appearance = NSAppearance(named: .aqua)
+        listView.frame = CGRect(x: 0, y: 0, width: 520, height: 2_000)
+        presentation.beginEditingMessage(userID, text: "Edited message")
+
+        update(
+            coordinator,
+            listView,
+            entries: [
+                user(id: userID, text: "Original message"),
+                TranscriptEntry(
+                    id: plan.id,
+                    content: .plan(AgentPlanCard(plan: plan))
+                ),
+                TranscriptEntry(
+                    id: commandID,
+                    content: .command(
+                        SuggestedCommand(
+                            id: commandID,
+                            command: "pwd",
+                            explanation: "Show the current directory."
+                        )
+                    )
+                ),
+                assistant(
+                    id: markdownID,
+                    text: "```bash\nrm -rf /tmp/termind-prominent-button-test\n```"
+                ),
+            ],
+            presentation: presentation,
+            isCompact: false,
+            showsTerminalActions: true,
+            actions: .init(canDeliverCommand: { true })
+        )
+        listView.layoutSubtreeIfNeeded()
+
+        let buttonLocations = [
+            (userID, "Transcript.UserEditorSend"),
+            (plan.id, "Transcript.PlanImplement"),
+            (commandID, "Transcript.CommandCardRun"),
+            (markdownID, "Transcript.MarkdownShellRun"),
+        ]
+        let buttons = try buttonLocations.map { rowID, identifier in
+            let row = try #require(listView.rowView(for: rowID))
+            return try #require(descendant(in: row, identifier: identifier) as? NSButton)
+        }
+
+        for button in buttons {
+            try expectProminentForeground(button, component: 1)
+        }
+
+        listView.appearance = NSAppearance(named: .darkAqua)
+        listView.layoutSubtreeIfNeeded()
+
+        for button in buttons {
+            try expectProminentForeground(button, component: 0)
+        }
+    }
+
+    @Test
     func userImagesAndChipsSitOutsideAndAboveTheTextBubble() throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
@@ -1276,6 +1347,30 @@ struct TranscriptListViewBridgeTests {
             queue.append(contentsOf: view.subviews)
         }
         return nil
+    }
+
+    private func expectProminentForeground(_ button: NSButton, component: CGFloat) throws {
+        let titleColor = try #require(
+            button.attributedTitle.attribute(
+                .foregroundColor,
+                at: 0,
+                effectiveRange: nil
+            ) as? NSColor
+        )
+        let alternateTitleColor = try #require(
+            button.attributedAlternateTitle.attribute(
+                .foregroundColor,
+                at: 0,
+                effectiveRange: nil
+            ) as? NSColor
+        )
+        for color in [try #require(button.contentTintColor), titleColor, alternateTitleColor] {
+            let rgb = try #require(color.usingColorSpace(.deviceRGB))
+            #expect(abs(rgb.redComponent - component) < 0.001)
+            #expect(abs(rgb.greenComponent - component) < 0.001)
+            #expect(abs(rgb.blueComponent - component) < 0.001)
+            #expect(abs(rgb.alphaComponent - 1) < 0.001)
+        }
     }
 
     private func work(id: UUID, state: AgentRunState) -> TranscriptEntry {
