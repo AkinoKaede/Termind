@@ -934,6 +934,63 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
+    func messageRowsTrackMouseMovementAcrossContentGapAndSideWhitespace() throws {
+        for isCompact in [true, false] {
+            for entry in [
+                user(id: UUID(), text: "User message"),
+                assistant(id: UUID(), text: "Assistant message"),
+            ] {
+                let coordinator = TranscriptListView.Coordinator()
+                let listView = coordinator.makeListView()
+                listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
+
+                update(
+                    coordinator,
+                    listView,
+                    entries: [entry],
+                    isCompact: isCompact
+                )
+                listView.layoutSubtreeIfNeeded()
+
+                let row = try #require(listView.rowView(for: entry.id))
+                let actions = try #require(
+                    descendant(in: row, identifier: "Transcript.MessageActions")
+                )
+                let contentIdentifier =
+                    entry.kind == .user
+                    ? "Transcript.UserBubble" : "Transcript.AssistantMarkdown"
+                let content = try #require(
+                    descendant(in: row, identifier: contentIdentifier)
+                )
+                let contentFrame = row.convert(content.bounds, from: content)
+                let actionsFrame = row.convert(actions.bounds, from: actions)
+
+                row.updateTrackingAreas()
+                let tracking = try #require(
+                    row.trackingAreas.first { $0.options.contains(.mouseMoved) }
+                )
+                #expect(tracking.options.contains(.inVisibleRect))
+                #expect(row.bounds.width == listView.bounds.width)
+                #expect(contentFrame.minX > row.bounds.minX)
+                #expect(contentFrame.maxX < row.bounds.maxX)
+                #expect(
+                    abs(
+                        actionsFrame.minY - contentFrame.maxY
+                            - Metrics.Chat.blockSpacing
+                    ) <= 1
+                )
+
+                let gap = CGPoint(x: row.bounds.midX, y: contentFrame.maxY + 1)
+                row.mouseMoved(with: try #require(pointerEvent(at: gap)))
+                #expect(actions.alphaValue == 1)
+
+                row.mouseExited(with: try #require(pointerEvent()))
+                #expect(actions.alphaValue == 0)
+            }
+        }
+    }
+
+    @Test
     func hoverSurvivesTheRefreshThatAddsCompletedMessageActions() throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
@@ -1197,10 +1254,10 @@ struct TranscriptListViewBridgeTests {
         )
     }
 
-    private func pointerEvent() -> NSEvent? {
+    private func pointerEvent(at location: CGPoint = .zero) -> NSEvent? {
         NSEvent.mouseEvent(
             with: .mouseMoved,
-            location: .zero,
+            location: location,
             modifierFlags: [],
             timestamp: 0,
             windowNumber: 0,

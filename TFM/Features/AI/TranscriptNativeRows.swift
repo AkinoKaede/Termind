@@ -288,7 +288,7 @@ class TranscriptNativeRow: ListRowView {
         super.updateTrackingAreas()
         if let tracking { removeTrackingArea(tracking) }
         var options: NSTrackingArea.Options = [
-            .activeInKeyWindow, .inVisibleRect, .mouseEnteredAndExited,
+            .activeInKeyWindow, .inVisibleRect, .mouseEnteredAndExited, .mouseMoved,
         ]
         if currentPointerIsInside == true { options.insert(.assumeInside) }
         let area = NSTrackingArea(
@@ -319,6 +319,11 @@ class TranscriptNativeRow: ListRowView {
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
         setHoverVisible(false)
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        setHoverVisible(true)
     }
 
     private func setHoverVisible(_ visible: Bool) {
