@@ -197,7 +197,8 @@ their structured continuation fields. `sftp_read` streams UTF-8 line windows; it
 Terminal suggestion definitions remain stable across surfaces. The executor checks
 availability from the most recently delivered user snapshot before preflight; merely
 changing focus does not change the active run's capabilities. Provider tool/schema JSON
-is deterministic. Official OpenAI requests use a conversation cache key, Anthropic uses
+is deterministic. Responses and Chat Completions requests use a conversation cache key
+without hostname restrictions; Anthropic uses
 short-lived system/message cache breakpoints, and Gemini retains implicit caching.
 Cache read/write usage is normalized without adding cached tokens twice to input totals.
 
