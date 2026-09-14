@@ -65,7 +65,7 @@ struct AgentToolProgressTests {
         let tool = AnyAgentTool(
             descriptor: AgentToolDescriptor(
                 name: "slow", summary: "slow", inputSchema: emptySchema,
-                target: .local, safety: .locallyReadOnly, concurrency: .parallel
+                target: .local, approvalPolicy: .approve, concurrency: .parallel
             )
         ) { invocation, context in
             context.report(AgentToolResult(callID: invocation.call.id, content: "10 of 20"))
@@ -105,7 +105,7 @@ struct AgentToolProgressTests {
         )
         let descriptor = AgentToolDescriptor(
             name: "slow", summary: "slow", inputSchema: emptySchema,
-            target: .local, safety: .locallyReadOnly
+            target: .local, approvalPolicy: .approve
         )
         conversation.handle(.toolProposed(invocation, descriptor))
         conversation.handle(.toolStarted(invocation))

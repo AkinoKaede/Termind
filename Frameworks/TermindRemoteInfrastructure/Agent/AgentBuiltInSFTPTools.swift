@@ -8,7 +8,7 @@ import struct TermindDomain.Host
 nonisolated public protocol SFTPToolDefinition: AgentToolDefinition, AgentToolSchemaBuilding {
     static var name: String { get }
     static var summary: String { get }
-    static var safety: AgentToolDescriptor.Safety { get }
+    static var approvalPolicy: AgentToolDescriptor.ApprovalPolicy { get }
     static var concurrency: AgentToolDescriptor.Concurrency { get }
     static var extraProperties: [String: AgentJSONValue] { get }
     static var extraRequired: [String] { get }
@@ -23,7 +23,7 @@ nonisolated public protocol SFTPToolDefinition: AgentToolDefinition, AgentToolSc
 
 nonisolated extension SFTPToolDefinition {
     public static var concurrency: AgentToolDescriptor.Concurrency {
-        safety == .locallyReadOnly ? .parallel : .sequential
+        approvalPolicy == .approve ? .parallel : .sequential
     }
     public static var extraProperties: [String: AgentJSONValue] { [:] }
     public static var extraRequired: [String] { [] }
@@ -36,7 +36,7 @@ nonisolated extension SFTPToolDefinition {
         return Self.descriptor(
             Self.name, Self.summary, properties: properties,
             required: ["host_id", "path"] + Self.extraRequired,
-            target: .host, safety: Self.safety, concurrency: Self.concurrency,
+            target: .host, approvalPolicy: Self.approvalPolicy, concurrency: Self.concurrency,
             presentation: Self.presentation
         )
     }
@@ -46,7 +46,7 @@ nonisolated extension SFTPToolDefinition {
         let arguments = try Arguments(invocation)
         checked.targetHostID = try arguments.uuid("host_id")
         _ = try AgentToolSupport.normalizeRemotePath(arguments.string("path"))
-        return AgentToolPreflight(invocation: checked, safety: Self.safety)
+        return AgentToolPreflight(invocation: checked, approvalPolicy: Self.approvalPolicy)
     }
 
     public func execute(
@@ -69,7 +69,7 @@ nonisolated extension SFTPToolDefinition {
 nonisolated public struct SFTPListTool: SFTPToolDefinition {
     public static let name = "sftp_list"
     public static let summary = "List a remote directory."
-    public static let safety: AgentToolDescriptor.Safety = .locallyReadOnly
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .approve
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.sftp_list", present: present
     )
@@ -96,7 +96,7 @@ nonisolated public struct SFTPListTool: SFTPToolDefinition {
 nonisolated public struct SFTPStatTool: SFTPToolDefinition {
     public static let name = "sftp_stat"
     public static let summary = "Read remote file metadata."
-    public static let safety: AgentToolDescriptor.Safety = .locallyReadOnly
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .approve
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.sftp_stat", present: present
     )
@@ -123,7 +123,7 @@ nonisolated public struct SFTPStatTool: SFTPToolDefinition {
 nonisolated public struct SFTPReadTool: SFTPToolDefinition {
     public static let name = "sftp_read"
     public static let summary = "Read a bounded UTF-8 remote file inline."
-    public static let safety: AgentToolDescriptor.Safety = .locallyReadOnly
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .approve
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.sftp_read", present: present
     )
@@ -157,7 +157,7 @@ nonisolated public struct SFTPReadTool: SFTPToolDefinition {
 nonisolated public struct SFTPWriteTool: SFTPToolDefinition {
     public static let name = "sftp_write"
     public static let summary = "Write a bounded UTF-8 remote file atomically."
-    public static let safety: AgentToolDescriptor.Safety = .requiresAuthorization
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .ask
     public static let extraProperties = ["content": string(max: 131_072), "overwrite": boolean()]
     public static let extraRequired = ["content"]
     public static let presenter = AgentToolDetailPresenter(
@@ -190,7 +190,7 @@ nonisolated public struct SFTPWriteTool: SFTPToolDefinition {
 nonisolated public struct SFTPMkdirTool: SFTPToolDefinition {
     public static let name = "sftp_mkdir"
     public static let summary = "Create a remote directory."
-    public static let safety: AgentToolDescriptor.Safety = .requiresAuthorization
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .ask
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.sftp_mkdir", present: present,
         presentArguments: presentArguments
@@ -219,7 +219,7 @@ nonisolated public struct SFTPMkdirTool: SFTPToolDefinition {
 nonisolated public struct SFTPMoveTool: SFTPToolDefinition {
     public static let name = "sftp_move"
     public static let summary = "Move or rename a remote path."
-    public static let safety: AgentToolDescriptor.Safety = .requiresAuthorization
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .ask
     public static let extraProperties = ["destination": string(max: 4_096), "overwrite": boolean()]
     public static let extraRequired = ["destination"]
     public static let presenter = AgentToolDetailPresenter(
@@ -256,7 +256,7 @@ nonisolated public struct SFTPMoveTool: SFTPToolDefinition {
 nonisolated public struct SFTPChmodTool: SFTPToolDefinition {
     public static let name = "sftp_chmod"
     public static let summary = "Change remote POSIX permissions."
-    public static let safety: AgentToolDescriptor.Safety = .requiresAuthorization
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .ask
     public static let extraProperties = ["mode": string(max: 4)]
     public static let extraRequired = ["mode"]
     public static let presenter = AgentToolDetailPresenter(
@@ -292,7 +292,7 @@ nonisolated public struct SFTPChmodTool: SFTPToolDefinition {
 nonisolated public struct SFTPDeleteTool: SFTPToolDefinition {
     public static let name = "sftp_delete"
     public static let summary = "Permanently delete one remote file or empty directory."
-    public static let safety: AgentToolDescriptor.Safety = .requiresAuthorization
+    public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .ask
     public static let extraProperties = ["kind": enumeration(["file", "directory"])]
     public static let extraRequired = ["kind"]
     public static let presenter = AgentToolDetailPresenter(

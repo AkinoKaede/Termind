@@ -18,8 +18,8 @@ struct WebSearchTests {
         let tool = WebSearchTool(web: stubClient())
         #expect(tool.descriptor.name == "web_search")
         #expect(tool.descriptor.target == .network)
-        #expect(tool.descriptor.safety == .locallyReadOnly)
-        #expect(try await tool.preflight(invocation(query: "swift")).safety == .locallyReadOnly)
+        #expect(tool.descriptor.approvalPolicy == .approve)
+        #expect(try await tool.preflight(invocation(query: "swift")).approvalPolicy == .approve)
 
         await #expect(throws: AgentToolError.self) {
             try await tool.preflight(
@@ -73,7 +73,7 @@ struct WebSearchTests {
         let descriptor = AgentToolDescriptor(
             name: "web_search", summary: "Web search run by the model provider.",
             inputSchema: .object(["type": .string("object")]),
-            target: .network, safety: .locallyReadOnly
+            target: .network, approvalPolicy: .approve
         )
         conversation.handle(.toolProposed(invocation, descriptor))
         conversation.handle(
@@ -96,7 +96,7 @@ struct WebSearchTests {
         let descriptor = AgentToolDescriptor(
             name: "web_search", summary: "Search the public web.",
             inputSchema: .object(["type": .string("object")]),
-            target: .network, safety: .locallyReadOnly
+            target: .network, approvalPolicy: .approve
         )
         conversation.handle(.toolProposed(invocation, descriptor))
         conversation.handle(

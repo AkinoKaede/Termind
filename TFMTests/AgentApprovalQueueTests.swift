@@ -63,7 +63,7 @@ private func gatedTool(_ name: String, log: CallLog) -> AnyAgentTool {
     AnyAgentTool(
         descriptor: AgentToolDescriptor(
             name: name, summary: name, inputSchema: queueSchema,
-            target: .host, safety: .requiresAuthorization, concurrency: .parallel
+            target: .host, approvalPolicy: .ask, concurrency: .parallel
         )
     ) { invocation, _ in
         await log.start(name)
@@ -77,7 +77,7 @@ private func hangingTool(_ name: String, log: CallLog) -> AnyAgentTool {
     AnyAgentTool(
         descriptor: AgentToolDescriptor(
             name: name, summary: name, inputSchema: queueSchema,
-            target: .local, safety: .locallyReadOnly, concurrency: .parallel
+            target: .local, approvalPolicy: .approve, concurrency: .parallel
         )
     ) { invocation, _ in
         await log.start(name)
@@ -203,7 +203,7 @@ struct AgentApprovalQueueTests {
             invocation: invocation,
             descriptor: AgentToolDescriptor(
                 name: "review", summary: "review", inputSchema: queueSchema,
-                target: .host, safety: .requiresAuthorization
+                target: .host, approvalPolicy: .ask
             ),
             userIntent: "go"
         )

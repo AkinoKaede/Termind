@@ -83,7 +83,7 @@ struct MobileAssistantTests {
                 summary: "Write data",
                 inputSchema: .object([:]),
                 target: .local,
-                safety: .requiresAuthorization
+                approvalPolicy: .ask
             ),
             userIntent: "Update the requested data",
             localReasons: (0..<8).map { "Reason \($0) requires confirmation." }

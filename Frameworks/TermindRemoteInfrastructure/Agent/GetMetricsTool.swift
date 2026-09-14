@@ -25,7 +25,7 @@ nonisolated public struct GetMetricsTool: AgentToolDefinition, AgentToolSchemaBu
                         "type": .string("string"),
                         "enum": .array(Self.sections.sorted().map(AgentJSONValue.string)),
                     ]), max: 4),
-            ], required: ["host_id"], target: .host, safety: .locallyReadOnly, concurrency: .parallel,
+            ], required: ["host_id"], target: .host, approvalPolicy: .approve, concurrency: .parallel,
             presentation: .init(
                 symbol: "gauge.with.dots.needle.67percent", activity: .semanticLabel(.metrics),
                 output: .json, actionKind: .read
@@ -38,7 +38,7 @@ nonisolated public struct GetMetricsTool: AgentToolDefinition, AgentToolSchemaBu
         let arguments = try Arguments(invocation)
         checked.targetHostID = try arguments.uuid("host_id")
         _ = try Self.includes(arguments)
-        return AgentToolPreflight(invocation: checked, safety: .locallyReadOnly)
+        return AgentToolPreflight(invocation: checked, approvalPolicy: .approve)
     }
 
     public func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws

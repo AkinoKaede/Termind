@@ -165,8 +165,8 @@ tool capability receive no tools; only recognized chat-purpose models appear in
 conversation pickers, and unknown purpose values safely default to chat.
 
 A batch is concurrent only if every call is parallel. Preflight may tighten this:
-`ssh_exec` is parallel only when local command classification proves it safe; MCP
-destructive hints or Ask First make a call sequential. Results always enter the
+`ssh_exec` is parallel only when local command classification proves it safe; an MCP
+destructive hint makes a call sequential. Results always enter the
 transcript in model order, and every call gets an answer even after cancellation or
 refusal. Approvals/questions are queued one at a time; state derives from outstanding
 work. Authorization is a structural executor stage and cannot be removed by hooks.
@@ -176,14 +176,17 @@ commands, then applies argument- and subcommand-aware rules. Only explicitly pro
 read forms are locally read-only; unknown tools, options, embedded programs, excessive
 complexity, and unsupported shell syntax fail closed to a state-changing assessment.
 
-Permission modes share all validation:
+Every call has an approval policy before the run's permission mode is consulted:
 
-- Ask for approval allows proven `locallyReadOnly`/`locallyContained` work and asks
-  for everything else.
-- Approve for me sends other actions to Security Review; missing credentials,
+- Deny refuses every permission mode while keeping the tool registered and visible
+  to the model; Approve runs without another approval step.
+- Ask for approval sends Ask calls to the user. Approve for me sends them to Security
+  Review; missing credentials,
   timeout, transport failure, or malformed review fails closed and is recorded.
-- Full access skips action approval/review but retains host-key, secret, schema,
+- Full access pre-approves Ask calls but retains host-key, secret, schema,
   path, fetch, sandbox, and capability boundaries.
+- Termind downgrades Approve to Ask for MCP tools carrying a destructive hint. MCP
+  tools otherwise follow Deny, Ask, or Approve in both acting and planning runs.
 
 Skills are trusted procedures only because users install them through Settings;
 tools, MCP servers, and fetched pages cannot write or enable them. `allowed-tools`

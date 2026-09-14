@@ -87,7 +87,7 @@ private struct MCPServerRow: View {
             if server.tools.isEmpty {
                 CardChip(text: String(localized: "Not Connected"), symbol: "questionmark.circle")
             } else {
-                CardChip(text: "\(server.enabledTools.count)/\(server.tools.count)", symbol: "wrench.and.screwdriver")
+                CardChip(text: "\(server.tools.count)", symbol: "wrench.and.screwdriver")
             }
 
             Toggle("", isOn: enabled)

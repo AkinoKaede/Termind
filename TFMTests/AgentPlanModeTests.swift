@@ -45,13 +45,14 @@ private let emptySchema = AgentJSONValue.object([
 
 private func spyTool(
     _ name: String,
-    safety: AgentToolDescriptor.Safety,
+    approvalPolicy: AgentToolDescriptor.ApprovalPolicy,
+    target: AgentToolDescriptor.Target = .local,
     ran: RanFlag
 ) -> AnyAgentTool {
     AnyAgentTool(
         descriptor: AgentToolDescriptor(
             name: name, summary: name, inputSchema: emptySchema,
-            target: .local, safety: safety, concurrency: .parallel
+            target: target, approvalPolicy: approvalPolicy, concurrency: .parallel
         ),
         execute: { invocation, _ in
             await ran.mark()
@@ -61,7 +62,7 @@ private func spyTool(
 }
 
 /// An `ssh_exec` stand-in whose preflight is the real one: the classifier
-/// decides its safety, exactly as `AgentBuiltInSSHTools` does.
+/// decides its approval policy, exactly as `AgentBuiltInSSHTools` does.
 private func execTool(ran: RanFlag) -> AnyAgentTool {
     let schema = AgentJSONValue.object([
         "type": .string("object"),
@@ -72,14 +73,14 @@ private func execTool(ran: RanFlag) -> AnyAgentTool {
     return AnyAgentTool(
         descriptor: AgentToolDescriptor(
             name: TermindAgentPolicy.sshExecToolName, summary: "exec",
-            inputSchema: schema, target: .host, safety: .requiresAuthorization
+            inputSchema: schema, target: .host, approvalPolicy: .ask
         ),
         preflight: { invocation in
             let command = invocation.call.arguments.objectValue?["command"]?.stringValue ?? ""
             let safe = CommandRiskClassifier.assess(command).risk == .safe
             return AgentToolPreflight(
                 invocation: invocation,
-                safety: safe ? .locallyReadOnly : .requiresAuthorization
+                approvalPolicy: safe ? .approve : .ask
             )
         },
         execute: { invocation, _ in
@@ -148,7 +149,7 @@ struct AgentPlanModeTests {
     func planModeRefusesAToolThatChangesSomethingOutsideTermind() async {
         let ran = RanFlag()
         let events = await drain(
-            tools: [spyTool("sftp_write", safety: .requiresAuthorization, ran: ran)],
+            tools: [spyTool("sftp_write", approvalPolicy: .ask, ran: ran)],
             turns: callingTurns(["sftp_write"]), isPlanning: true
         )
 
@@ -163,7 +164,7 @@ struct AgentPlanModeTests {
     func theSameToolRunsOnceThePostureIsOff() async {
         let ran = RanFlag()
         _ = await drain(
-            tools: [spyTool("sftp_write", safety: .requiresAuthorization, ran: ran)],
+            tools: [spyTool("sftp_write", approvalPolicy: .ask, ran: ran)],
             turns: callingTurns(["sftp_write"]), isPlanning: false
         )
 
@@ -174,7 +175,7 @@ struct AgentPlanModeTests {
     func readsAreUntouchedWhilePlanning() async {
         let ran = RanFlag()
         let events = await drain(
-            tools: [spyTool("sftp_read", safety: .locallyReadOnly, ran: ran)],
+            tools: [spyTool("sftp_read", approvalPolicy: .approve, ran: ran)],
             turns: callingTurns(["sftp_read"]), isPlanning: true
         )
 
@@ -188,7 +189,7 @@ struct AgentPlanModeTests {
     func containedWritesAreAllowedSoThePlanCanBeDrafted() async {
         let ran = RanFlag()
         _ = await drain(
-            tools: [spyTool("scratch_edit", safety: .locallyContained, ran: ran)],
+            tools: [spyTool("scratch_edit", approvalPolicy: .approve, ran: ran)],
             turns: callingTurns(["scratch_edit"]), isPlanning: true
         )
 
@@ -236,6 +237,28 @@ struct AgentPlanModeTests {
     }
 
     @Test
+    func mcpPoliciesRemainAuthoritativeWhilePlanning() async {
+        let asked = RanFlag()
+        let approved = RanFlag()
+        let denied = RanFlag()
+        let events = await drain(
+            tools: [
+                spyTool("mcp_ask", approvalPolicy: .ask, target: .mcp, ran: asked),
+                spyTool("mcp_approve", approvalPolicy: .approve, target: .mcp, ran: approved),
+                spyTool("mcp_deny", approvalPolicy: .deny, target: .mcp, ran: denied),
+            ],
+            turns: callingTurns(["mcp_ask", "mcp_approve", "mcp_deny"]),
+            isPlanning: true
+        )
+
+        #expect(await asked.didRun)
+        #expect(await approved.didRun)
+        #expect(await denied.didRun == false)
+        #expect(results(events).count == 3)
+        #expect(results(events).contains { $0.isApprovalPolicyDenied })
+    }
+
+    @Test
     @MainActor
     func sshExecPreflightUsesClassifierForApprovalAndConcurrency() async throws {
         let host = Host(name: "Host", host: "host.example")
@@ -268,12 +291,12 @@ struct AgentPlanModeTests {
         }
 
         let read = try await tool.preflight(invocation("systemctl status nginx"))
-        #expect(read.safety == .locallyReadOnly)
+        #expect(read.approvalPolicy == .approve)
         #expect(read.concurrency == .parallel)
         #expect(read.reasons.isEmpty)
 
         let write = try await tool.preflight(invocation("systemctl restart nginx"))
-        #expect(write.safety == .requiresAuthorization)
+        #expect(write.approvalPolicy == .ask)
         #expect(write.concurrency == .sequential)
         #expect(!write.reasons.isEmpty)
     }
@@ -318,21 +341,21 @@ struct AgentPlanModeTests {
     func askingTheUserIsNotBlockedWhilePlanning() async {
         let ran = RanFlag()
         _ = await drain(
-            tools: [spyTool("request_user_input", safety: .locallyReadOnly, ran: ran)],
+            tools: [spyTool("request_user_input", approvalPolicy: .approve, ran: ran)],
             turns: callingTurns(["request_user_input"]), isPlanning: true
         )
 
         #expect(await ran.didRun)
     }
 
-    /// Blocked by name rather than by safety: `manage_tasks` changes nothing, so
-    /// the safety gate has no reason to stop it, and it still has no business
+    /// Blocked by name rather than by approval policy: `manage_tasks` changes
+    /// nothing, so the approval gate has no reason to stop it, and it still has no business
     /// running before anything has been agreed to.
     @Test
     func theTaskListIsRefusedWhilePlanningEvenThoughItIsReadOnly() async {
         let ran = RanFlag()
         let events = await drain(
-            tools: [spyTool("manage_tasks", safety: .locallyReadOnly, ran: ran)],
+            tools: [spyTool("manage_tasks", approvalPolicy: .approve, ran: ran)],
             turns: callingTurns(["manage_tasks"]), isPlanning: true
         )
 
@@ -344,7 +367,7 @@ struct AgentPlanModeTests {
     func theTaskListRunsOutsidePlanMode() async {
         let ran = RanFlag()
         _ = await drain(
-            tools: [spyTool("manage_tasks", safety: .locallyReadOnly, ran: ran)],
+            tools: [spyTool("manage_tasks", approvalPolicy: .approve, ran: ran)],
             turns: callingTurns(["manage_tasks"]), isPlanning: false
         )
 
@@ -359,8 +382,8 @@ struct AgentPlanModeTests {
         let ran = RanFlag()
         let events = await drain(
             tools: [
-                spyTool("sftp_read", safety: .locallyReadOnly, ran: ran),
-                spyTool("sftp_write", safety: .requiresAuthorization, ran: ran),
+                spyTool("sftp_read", approvalPolicy: .approve, ran: ran),
+                spyTool("sftp_write", approvalPolicy: .ask, ran: ran),
             ],
             turns: callingTurns(["sftp_read", "sftp_write"]), isPlanning: true
         )
@@ -377,7 +400,7 @@ struct AgentPlanModeTests {
             tools: [
                 spyTool(
                     AgentPlanModeHook.presentPlanToolName,
-                    safety: .locallyReadOnly, ran: ran
+                    approvalPolicy: .approve, ran: ran
                 )
             ],
             turns: callingTurns([AgentPlanModeHook.presentPlanToolName]),
@@ -401,7 +424,7 @@ struct AgentPlanModeTests {
             tools: [
                 spyTool(
                     AgentPlanModeHook.presentPlanToolName,
-                    safety: .locallyReadOnly, ran: ran
+                    approvalPolicy: .approve, ran: ran
                 )
             ],
             turns: callingTurns([AgentPlanModeHook.presentPlanToolName]),

@@ -385,7 +385,7 @@ struct ChatComposerStateTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "lookup", summary: "lookup", inputSchema: .object([:]),
-                    target: .local, safety: .locallyReadOnly
+                    target: .local, approvalPolicy: .approve
                 )))
         conversation.handle(.toolStarted(invocation))
 
@@ -425,7 +425,7 @@ struct ChatComposerStateTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "lookup", summary: "lookup", inputSchema: .object([:]),
-                    target: .local, safety: .locallyReadOnly
+                    target: .local, approvalPolicy: .approve
                 )))
 
         let after = try #require(conversation.workGroups.first)
@@ -466,7 +466,7 @@ struct ChatComposerStateTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "lookup", summary: "lookup", inputSchema: .object([:]),
-                    target: .local, safety: .locallyReadOnly
+                    target: .local, approvalPolicy: .approve
                 )))
 
         let next = AgentTranscriptMessage(role: .assistant)
@@ -568,7 +568,7 @@ struct ChatComposerStateTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "lookup", summary: "lookup", inputSchema: .object([:]),
-                    target: .local, safety: .locallyReadOnly
+                    target: .local, approvalPolicy: .approve
                 )))
         conversation.handle(
             .toolFinished(
@@ -755,7 +755,7 @@ struct ChatComposerStateTests {
                     "required": .array([.string("query")]),
                     "additionalProperties": .bool(false),
                 ]),
-                target: .local, safety: .locallyReadOnly
+                target: .local, approvalPolicy: .approve
             )
         ) { invocation, _ in
             #expect(invocation.call.arguments == .object(["query": .string("hosts")]))
@@ -809,7 +809,7 @@ struct ChatComposerStateTests {
                     "required": .array([.string("query")]),
                     "additionalProperties": .bool(false),
                 ]),
-                target: .local, safety: .locallyReadOnly
+                target: .local, approvalPolicy: .approve
             )
         ) { invocation, _ in
             AgentToolResult(callID: invocation.call.id, content: "host-a")
@@ -857,7 +857,7 @@ struct ChatComposerStateTests {
                     "type": .string("object"), "properties": .object([:]),
                     "required": .array([]), "additionalProperties": .bool(false),
                 ]),
-                target: .local, safety: .locallyReadOnly
+                target: .local, approvalPolicy: .approve
             )
         ) { invocation, _ in
             await probe.markStarted()
@@ -925,7 +925,7 @@ struct ChatComposerStateTests {
                                 "type": .string("object"), "properties": .object([:]),
                                 "required": .array([]), "additionalProperties": .bool(false),
                             ]),
-                            target: .local, safety: .locallyReadOnly
+                            target: .local, approvalPolicy: .approve
                         )
                     ) { invocation, _ in
                         AgentToolResult(callID: invocation.call.id, content: "host-a")
@@ -970,7 +970,7 @@ struct ChatComposerStateTests {
                 )))
         let descriptor = AgentToolDescriptor(
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
+            target: .local, approvalPolicy: .approve
         )
         let source = AgentTranscriptMessage(
             role: .assistant,
@@ -1042,7 +1042,7 @@ struct ChatComposerStateTests {
         conversation.handle(.messageStarted(source))
         let descriptor = AgentToolDescriptor(
             name: "web_search", summary: "search", inputSchema: .object([:]),
-            target: .network, safety: .locallyReadOnly
+            target: .network, approvalPolicy: .approve
         )
         let invocations = ["first", "second"].map { id in
             AgentToolInvocation(
@@ -1106,7 +1106,7 @@ struct ChatComposerStateTests {
 
         let descriptor = AgentToolDescriptor(
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
+            target: .local, approvalPolicy: .approve
         )
         let invocations = ["first", "second"].enumerated().map { offset, callID in
             AgentToolInvocation(
@@ -1179,7 +1179,7 @@ struct ChatComposerStateTests {
 
         let descriptor = AgentToolDescriptor(
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
+            target: .local, approvalPolicy: .approve
         )
         for (offset, call) in source.toolCalls.enumerated() {
             conversation.handle(
@@ -1399,7 +1399,7 @@ struct ChatComposerStateTests {
                                 "type": .string("object"), "properties": .object([:]),
                                 "required": .array([]), "additionalProperties": .bool(false),
                             ]),
-                            target: .local, safety: .locallyReadOnly
+                            target: .local, approvalPolicy: .approve
                         )
                     ) { invocation, _ in
                         AgentToolResult(callID: invocation.call.id, content: "ok")
@@ -1460,7 +1460,7 @@ struct ChatComposerStateTests {
                                 "type": .string("object"), "properties": .object([:]),
                                 "required": .array([]), "additionalProperties": .bool(false),
                             ]),
-                            target: .local, safety: .locallyReadOnly
+                            target: .local, approvalPolicy: .approve
                         )
                     ) { invocation, _ in
                         AgentToolResult(callID: invocation.call.id, content: "ok")
@@ -1513,7 +1513,7 @@ struct ChatComposerStateTests {
                 )))
         let lookup = AgentToolDescriptor(
             name: "lookup", summary: "lookup", inputSchema: .object([:]),
-            target: .local, safety: .locallyReadOnly
+            target: .local, approvalPolicy: .approve
         )
         let suggestion = AnyAgentTool(TerminalSuggestTool()).descriptor
         #expect(suggestion.presentation?.groupsWithAdjacentTools == false)
@@ -1701,7 +1701,7 @@ struct ChatComposerStateTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "web_search", summary: "Provider search",
-                    inputSchema: .object([:]), target: .network, safety: .locallyReadOnly
+                    inputSchema: .object([:]), target: .network, approvalPolicy: .approve
                 )))
         conversation.handle(
             .toolFinished(
@@ -2144,7 +2144,7 @@ struct ChatComposerStateTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "lookup", summary: "Lookup", inputSchema: .object([:]),
-                    target: .local, safety: .locallyReadOnly
+                    target: .local, approvalPolicy: .approve
                 )))
         conversation.handle(
             .toolFinished(
@@ -2197,7 +2197,7 @@ struct ChatComposerStateTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "lookup", summary: "Lookup", inputSchema: .object([:]),
-                    target: .local, safety: .locallyReadOnly
+                    target: .local, approvalPolicy: .approve
                 )))
         #expect(conversation.workGroups.count == 1)
 

@@ -33,7 +33,7 @@ struct AIProviderPersistenceTests {
                 title: "Search", readOnlyHint: true, destructiveHint: false,
                 idempotentHint: true, openWorldHint: false
             ),
-            accessPolicy: .followPermissions
+            accessPolicy: .approve
         )
         let server = MCPServer(
             name: "Work Gateway",
@@ -73,7 +73,7 @@ struct AIProviderPersistenceTests {
         let container = try makeContainer("MCPRediscovery")
         var server = MCPServer(name: "Gateway")
         server.tools = [
-            MCPTool(id: "existing", accessPolicy: .followPermissions)
+            MCPTool(id: "existing", accessPolicy: .approve)
         ]
         let store = AIConfigurationModel(
             modelContext: container.mainContext, persistsSecrets: false
@@ -90,8 +90,8 @@ struct AIProviderPersistenceTests {
             modelContext: container.mainContext, persistsSecrets: false
         )
         let tools = try #require(reloaded.mcpServer(server.id)?.tools)
-        #expect(tools.first { $0.id == "existing" }?.accessPolicy == .followPermissions)
-        #expect(tools.first { $0.id == "new" }?.accessPolicy == .alwaysAsk)
+        #expect(tools.first { $0.id == "existing" }?.accessPolicy == .approve)
+        #expect(tools.first { $0.id == "new" }?.accessPolicy == .ask)
         #expect(reloaded.mcpServer(server.id)?.negotiatedVersion == "2025-06-18")
         #expect(reloaded.mcpServer(server.id)?.lastConnectedAt != nil)
     }

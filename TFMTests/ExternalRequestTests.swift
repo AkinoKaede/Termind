@@ -516,7 +516,7 @@ private func descriptor(name: String, readOnly: Bool) -> AgentToolDescriptor {
     AgentToolDescriptor(
         name: name, summary: name,
         inputSchema: .object(["type": .string("object")]), target: .host,
-        safety: readOnly ? .locallyReadOnly : .requiresAuthorization
+        approvalPolicy: readOnly ? .approve : .ask
     )
 }
 

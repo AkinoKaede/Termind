@@ -154,7 +154,7 @@ struct AgentInterruptedRunRecoveryTests {
                         invocation: invocation,
                         descriptor: AgentToolDescriptor(
                             name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
-                            target: .host, safety: .requiresAuthorization
+                            target: .host, approvalPolicy: .ask
                         ),
                         state: "started", result: nil
                     )

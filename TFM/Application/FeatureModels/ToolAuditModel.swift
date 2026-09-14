@@ -111,7 +111,7 @@ final class ToolAuditModel {
             hostID: hostID,
             hostDisplayName: hostID.flatMap(hostName),
             summary: Self.summary(for: invocation.call),
-            risk: Self.risk(for: invocation.call, descriptor: descriptor),
+            risk: Self.risk(for: invocation.call),
             bytesWritten: Self.bytesWritten(for: invocation.call),
             startedAt: invocation.createdAt
         )
@@ -210,9 +210,7 @@ final class ToolAuditModel {
         return content.lengthOfBytes(using: .utf8)
     }
 
-    private static func risk(
-        for call: AgentToolCall, descriptor: AgentToolDescriptor
-    ) -> ExternalToolCall.Risk {
+    private static func risk(for call: AgentToolCall) -> ExternalToolCall.Risk {
         if call.name == "ssh_exec",
             let command = call.arguments.objectValue?["command"]?.stringValue
         {
@@ -222,7 +220,12 @@ final class ToolAuditModel {
             case .destructive: return .destructive
             }
         }
-        if descriptor.safety.isAutoAllowed { return .readOnly }
+        if [
+            "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
+            "sftp_list", "sftp_stat", "sftp_read",
+        ].contains(call.name) {
+            return .readOnly
+        }
         return call.name == "sftp_delete" ? .destructive : .modifiesState
     }
 }

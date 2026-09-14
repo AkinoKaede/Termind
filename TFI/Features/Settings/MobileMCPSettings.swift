@@ -146,8 +146,8 @@ private struct MobileMCPStatusBadge: View {
             Text("Disabled")
         case .notConnected:
             Text("Not Connected")
-        case .tools(let enabled, let total):
-            Text("\(enabled)/\(total) tools")
+        case .tools(let count):
+            Text("\(count) tools")
         }
     }
 
@@ -164,7 +164,7 @@ nonisolated enum MobileMCPServerStatus: Equatable {
     case conflict
     case disabled
     case notConnected
-    case tools(enabled: Int, total: Int)
+    case tools(count: Int)
 
     init(server: MCPServer, hasNamespaceConflict: Bool) {
         if hasNamespaceConflict {
@@ -174,7 +174,7 @@ nonisolated enum MobileMCPServerStatus: Equatable {
         } else if server.lastConnectedAt == nil {
             self = .notConnected
         } else {
-            self = .tools(enabled: server.enabledTools.count, total: server.tools.count)
+            self = .tools(count: server.tools.count)
         }
     }
 }
@@ -261,14 +261,16 @@ struct MobileMCPEditor: View {
                             Text(tool.summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                         }
                         Picker("Permission", selection: $tool.accessPolicy) {
-                            Text("Disabled").tag(MCPTool.AccessPolicy.disabled)
-                            Text("Always Ask").tag(MCPTool.AccessPolicy.alwaysAsk)
-                            Text("Follow Permissions").tag(MCPTool.AccessPolicy.followPermissions)
+                            Text("Deny").tag(AgentToolDescriptor.ApprovalPolicy.deny)
+                            Text("Ask").tag(AgentToolDescriptor.ApprovalPolicy.ask)
+                            Text("Approve")
+                                .tag(AgentToolDescriptor.ApprovalPolicy.approve)
+                                .disabled(!tool.allowsTermindPreapproval)
                         }
                     }
                 }
                 Text(
-                    "Always Ask requires approval for every call. Follow Permissions uses the conversation's permission mode and safety checks."
+                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval and is unavailable for tools marked destructive."
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }

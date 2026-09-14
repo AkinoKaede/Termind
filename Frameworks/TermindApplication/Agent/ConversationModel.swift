@@ -2438,7 +2438,9 @@ public final class ConversationModel: Identifiable {
                 // an error to the *model*, which is what makes the turn
                 // replayable, but the card kept being relabelled `Failed` the
                 // instant it was refused, so `denied` never reached the screen.
-                if card.state != .denied {
+                if result.isApprovalPolicyDenied {
+                    card.state = .denied
+                } else if card.state != .denied {
                     if result.isInterrupted {
                         card.state = .interrupted
                     } else {
@@ -2691,7 +2693,7 @@ extension ConversationModel {
         let descriptor = AgentToolDescriptor(
             name: "ssh_exec",
             summary: text("Run a command on a remote host.", "在远程主机上运行命令。", "在遠端主機上執行指令。"),
-            inputSchema: .object([:]), target: .host, safety: .locallyReadOnly,
+            inputSchema: .object([:]), target: .host, approvalPolicy: .approve,
             concurrency: .parallel,
             presentation: AgentToolDescriptor.Presentation(
                 symbol: "apple.terminal", activity: .argument(key: "command", fallback: "command"),

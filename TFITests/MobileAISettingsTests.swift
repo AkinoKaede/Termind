@@ -186,7 +186,7 @@ struct MobileAISettingsTests {
 
     @Test func mcpDiscoveryUsesDraftAndPreservesPermissionsUntilSave() async throws {
         var tool = MCPTool(id: "existing")
-        tool.accessPolicy = .disabled
+        tool.accessPolicy = .deny
         let server = MCPServer(name: "Gateway", namespaceID: "", url: "https://original.invalid/mcp", tools: [tool])
         let ai = AIConfigurationModel()
         let editor = MobileMCPEditorModel(
@@ -203,10 +203,10 @@ struct MobileAISettingsTests {
         editor.connect()
         while editor.running { await Task.yield() }
         #expect(ai.mcpServers.isEmpty)
-        #expect(editor.draft.tools.map(\.accessPolicy) == [.disabled, .alwaysAsk])
+        #expect(editor.draft.tools.map(\.accessPolicy) == [.deny, .ask])
         try editor.save()
         #expect(ai.mcpServer(server.id)?.namespaceID == "gateway")
-        #expect(ai.mcpServer(server.id)?.tools.map(\.accessPolicy) == [.disabled, .alwaysAsk])
+        #expect(ai.mcpServer(server.id)?.tools.map(\.accessPolicy) == [.deny, .ask])
     }
 
     @Test func mcpCancellationAndRemoteDeletionCannotRestoreResults() async {
@@ -345,12 +345,11 @@ struct MobileAISettingsTests {
 
         server.isEnabled = true
         server.lastConnectedAt = Date(timeIntervalSince1970: 1)
-        var disabled = MCPTool(id: "disabled")
-        disabled.accessPolicy = .disabled
-        server.tools = [MCPTool(id: "active"), disabled]
+        let denied = MCPTool(id: "denied", accessPolicy: .deny)
+        server.tools = [MCPTool(id: "active"), denied]
         #expect(
             MobileMCPServerStatus(server: server, hasNamespaceConflict: false)
-                == .tools(enabled: 1, total: 2))
+                == .tools(count: 2))
     }
 }
 

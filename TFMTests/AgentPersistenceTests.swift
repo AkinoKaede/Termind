@@ -43,7 +43,7 @@ struct AgentPersistenceTests {
         )
         let descriptor = AgentToolDescriptor(
             name: call.name, summary: "Search", inputSchema: .object([:]),
-            target: .network, safety: .locallyReadOnly, presentation: presentation
+            target: .network, approvalPolicy: .approve, presentation: presentation
         )
         var result = AgentToolResult(
             callID: call.id,
@@ -307,7 +307,7 @@ struct AgentPersistenceTests {
         )
         let descriptor = AgentToolDescriptor(
             name: "web_search", summary: "Search", inputSchema: .object([:]),
-            target: .network, safety: .locallyReadOnly
+            target: .network, approvalPolicy: .approve
         )
         try await repository.record(.toolProposed(invocation, descriptor), runID: snapshot.id)
         try await repository.record(
@@ -357,7 +357,7 @@ struct AgentPersistenceTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
-                    target: .host, safety: .requiresAuthorization
+                    target: .host, approvalPolicy: .ask
                 )),
             runID: snapshot.id
         )
@@ -423,7 +423,7 @@ struct AgentPersistenceTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "fetch", summary: "fetch", inputSchema: .object([:]),
-                    target: .network, safety: .locallyReadOnly
+                    target: .network, approvalPolicy: .approve
                 )),
             runID: snapshot.id
         )
@@ -610,7 +610,7 @@ struct AgentPersistenceTests {
                 invocation,
                 AgentToolDescriptor(
                     name: "ssh_exec", summary: "exec", inputSchema: .object([:]),
-                    target: .host, safety: .requiresAuthorization
+                    target: .host, approvalPolicy: .ask
                 )),
             runID: invocation.runID
         )
@@ -651,7 +651,7 @@ struct AgentPersistenceTests {
             invocation: invocation,
             descriptor: AgentToolDescriptor(
                 name: "list_hosts", summary: "List", inputSchema: .object([:]),
-                target: .local, safety: .locallyReadOnly
+                target: .local, approvalPolicy: .approve
             ),
             userIntent: "List hosts"
         )

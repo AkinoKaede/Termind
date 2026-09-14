@@ -308,7 +308,7 @@ struct AgentBackgroundCommandTests {
         #expect(wait != nil)
         // It reads a buffer and a task. Nothing it does reaches the host, so
         // stopping to ask permission for it would be asking about nothing.
-        #expect(wait?.descriptor.safety == .locallyReadOnly)
+        #expect(wait?.descriptor.approvalPolicy == .approve)
         #expect(wait?.descriptor.concurrency == .parallel)
         // No kill: closing a channel does not stop a remote process, so a tool
         // by that name would promise what it cannot do.

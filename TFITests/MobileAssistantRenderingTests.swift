@@ -197,7 +197,7 @@ struct MobileAssistantRenderingTests {
                     summary: "Write a file",
                     inputSchema: .object([:]),
                     target: .local,
-                    safety: .requiresAuthorization
+                    approvalPolicy: .ask
                 ),
                 userIntent: text(
                     "Enable maintenance mode.", "启用维护模式。", "啟用維護模式。"),

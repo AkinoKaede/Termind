@@ -245,7 +245,7 @@ struct MCPServerEditorPage: View {
         } footer: {
             if !server.tools.isEmpty {
                 Text(
-                    "Always Ask requires approval for every call. Follow Permissions uses the conversation's permission mode and safety checks."
+                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval and is unavailable for tools marked destructive."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -338,10 +338,7 @@ struct MCPServerEditorPage: View {
 
 // MARK: - Tool row
 
-/// One discovered tool, with its two switches.
-///
-/// "Ask First" rather than "Requires Approval": the label describes what will
-/// happen to you, not the internal state.
+/// One discovered tool and the local policy applied when the model calls it.
 private struct ToolRow: View {
     let tool: MCPTool
     let serverID: MCPServer.ID
@@ -375,8 +372,10 @@ private struct ToolRow: View {
             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
 
             Picker("Permission", selection: permission) {
-                ForEach(MCPTool.AccessPolicy.allCases) { option in
-                    Text(option.displayName).tag(option)
+                ForEach(AgentToolDescriptor.ApprovalPolicy.allCases) { option in
+                    Text(option.displayName)
+                        .tag(option)
+                        .disabled(option == .approve && !tool.allowsTermindPreapproval)
                 }
             }
             .labelsHidden()
@@ -389,7 +388,7 @@ private struct ToolRow: View {
         .help(Text(tool.summary.isEmpty ? qualifiedToolName : tool.summary))
     }
 
-    private var permission: Binding<MCPTool.AccessPolicy> {
+    private var permission: Binding<AgentToolDescriptor.ApprovalPolicy> {
         Binding(
             get: { tool.accessPolicy },
             set: { policy in
@@ -399,12 +398,12 @@ private struct ToolRow: View {
     }
 }
 
-extension MCPTool.AccessPolicy {
+extension AgentToolDescriptor.ApprovalPolicy {
     fileprivate var displayName: LocalizedStringKey {
         switch self {
-        case .disabled: "Disabled"
-        case .alwaysAsk: "Always Ask"
-        case .followPermissions: "Follow Permissions"
+        case .deny: "Deny"
+        case .ask: "Ask"
+        case .approve: "Approve"
         }
     }
 }

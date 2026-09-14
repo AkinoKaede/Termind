@@ -231,7 +231,7 @@ struct AgentRuntimeTests {
                     "type": .string("object"), "properties": .object([:]),
                     "required": .array([]), "additionalProperties": .bool(false),
                 ]),
-                target: .local, safety: .locallyReadOnly
+                target: .local, approvalPolicy: .approve
             )
         ) { invocation, _ in
             AgentToolResult(callID: invocation.call.id, content: "ok")
@@ -313,7 +313,7 @@ struct AgentRuntimeTests {
                 descriptor: AgentToolDescriptor(
                     name: name, summary: name,
                     inputSchema: .object(["type": .string("object")]),
-                    target: .local, safety: .locallyReadOnly
+                    target: .local, approvalPolicy: .approve
                 )
             ) { invocation, _ in
                 await recorder.append(name)
@@ -341,7 +341,7 @@ struct AgentRuntimeTests {
             descriptor: AgentToolDescriptor(
                 name: "wait", summary: "wait",
                 inputSchema: .object(["type": .string("object")]),
-                target: .local, safety: .locallyReadOnly
+                target: .local, approvalPolicy: .approve
             )
         ) { invocation, _ in
             await gate.beginAndWait()
@@ -501,7 +501,7 @@ struct AgentRuntimeTests {
                     "required": .array([.string("path")]),
                     "additionalProperties": .bool(false),
                 ]),
-                target: .host, safety: .requiresAuthorization
+                target: .host, approvalPolicy: .ask
             )
         ) { invocation, _ in
             await executions.increment()
@@ -542,7 +542,7 @@ struct AgentRuntimeTests {
                     "type": .string("object"), "properties": .object([:]),
                     "required": .array([]), "additionalProperties": .bool(false),
                 ]),
-                target: .host, safety: .locallyReadOnly
+                target: .host, approvalPolicy: .approve
             )
         ) { invocation, _ in
             #expect(invocation.call.arguments == .object([:]))
@@ -581,7 +581,7 @@ struct AgentRuntimeTests {
                     "type": .string("object"), "properties": .object([:]),
                     "required": .array([]), "additionalProperties": .bool(false),
                 ]),
-                target: .host, safety: .locallyReadOnly
+                target: .host, approvalPolicy: .approve
             )
         ) { invocation, _ in
             #expect(invocation.call.arguments == .object([:]))
@@ -604,7 +604,7 @@ struct AgentRuntimeTests {
     func approvalModesRouteOnlyApproveForMeToReviewer() async {
         let descriptor = AgentToolDescriptor(
             name: "write", summary: "write", inputSchema: .object([:]),
-            target: .host, safety: .requiresAuthorization
+            target: .host, approvalPolicy: .ask
         )
         let invocation = AgentToolInvocation(
             runID: UUID(), call: AgentToolCall(id: "1", name: "write", arguments: .object([:]))
@@ -654,20 +654,20 @@ struct AgentRuntimeTests {
                     "type": .string("object"), "properties": .object([:]),
                     "required": .array([]), "additionalProperties": .bool(false),
                 ]),
-                target: .network, safety: .locallyReadOnly
+                target: .network, approvalPolicy: .approve
             )
             let tool = AnyAgentTool(
                 descriptor: descriptor,
                 preflight: { invocation in
                     AgentToolPreflight(
-                        invocation: invocation, safety: .locallyReadOnly,
+                        invocation: invocation, approvalPolicy: .approve,
                         executionMetadata: ["scope": .string("public")]
                     )
                 },
                 execute: { invocation, context in
                     #expect(context.preflightMetadata["scope"] == .string("public"))
                     var escalation = descriptor
-                    escalation.safety = .requiresAuthorization
+                    escalation.approvalPolicy = .ask
                     let decision = await context.authorize(
                         AgentApprovalRequest(
                             invocation: invocation, descriptor: escalation,
@@ -709,7 +709,7 @@ struct AgentRuntimeTests {
     func reviewerFailureAndCriticalRiskFailClosed() async {
         let descriptor = AgentToolDescriptor(
             name: "delete", summary: "delete", inputSchema: .object([:]),
-            target: .host, safety: .requiresAuthorization
+            target: .host, approvalPolicy: .ask
         )
         let request = AgentApprovalRequest(
             invocation: AgentToolInvocation(
@@ -750,7 +750,7 @@ struct AgentRuntimeTests {
             ),
             descriptor: AgentToolDescriptor(
                 name: "write", summary: "write", inputSchema: .object([:]),
-                target: .host, safety: .requiresAuthorization
+                target: .host, approvalPolicy: .ask
             ),
             userIntent: "change it"
         )
@@ -826,7 +826,7 @@ struct AgentRuntimeTests {
                         "type": .string("object"), "properties": .object([:]),
                         "required": .array([]), "additionalProperties": .bool(false),
                     ]),
-                    target: .host, safety: .locallyReadOnly
+                    target: .host, approvalPolicy: .approve
                 )
             ) { invocation, _ in
                 await executed.append(origin)
@@ -873,7 +873,7 @@ struct AgentRuntimeTests {
                             "type": .string("object"), "properties": .object([:]),
                             "required": .array([]), "additionalProperties": .bool(false),
                         ]),
-                        target: .local, safety: .locallyReadOnly
+                        target: .local, approvalPolicy: .approve
                     )
                 ) { invocation, _ in
                     AgentToolResult(callID: invocation.call.id, content: "ok")
@@ -917,30 +917,24 @@ struct AgentRuntimeTests {
     }
 
     @Test
-    func mcpToolAccessPoliciesControlExposureAndApproval() throws {
+    func mcpToolAccessPoliciesControlApprovalWithoutHidingTools() throws {
         var server = MCPServer(name: "Gateway")
+        var destructive = MCPTool(id: "destructive", accessPolicy: .ask)
+        destructive.annotations.destructiveHint = true
         server.tools = [
-            MCPTool(id: "disabled", accessPolicy: .disabled),
-            MCPTool(id: "always-ask", accessPolicy: .alwaysAsk),
-            MCPTool(id: "follow-permissions", accessPolicy: .followPermissions),
+            MCPTool(id: "denied", accessPolicy: .deny),
+            MCPTool(id: "asked", accessPolicy: .ask),
+            MCPTool(id: "approved", accessPolicy: .approve),
+            destructive,
         ]
 
         let descriptors = AgentMCPTools.make(servers: [(server: server, bearerToken: nil)])
             .map(\.descriptor)
-        #expect(descriptors.count == 2)
-        #expect(!descriptors.contains { $0.name == "disabled" })
-
-        let alwaysAsk = try #require(descriptors.first { $0.name == "always-ask" })
-        #expect(alwaysAsk.safety == .requiresAuthorization)
-        #expect(alwaysAsk.alwaysAskUser)
-        #expect(alwaysAsk.concurrency == .sequential)
-
-        let followPermissions = try #require(
-            descriptors.first { $0.name == "follow-permissions" }
-        )
-        #expect(followPermissions.safety == .requiresAuthorization)
-        #expect(!followPermissions.alwaysAskUser)
-        #expect(followPermissions.concurrency == .parallel)
+        #expect(descriptors.count == 4)
+        #expect(descriptors.first { $0.name == "denied" }?.approvalPolicy == .deny)
+        #expect(descriptors.first { $0.name == "asked" }?.approvalPolicy == .ask)
+        #expect(descriptors.first { $0.name == "approved" }?.approvalPolicy == .approve)
+        #expect(descriptors.first { $0.name == "destructive" }?.concurrency == .sequential)
     }
 
     @Test
@@ -984,7 +978,7 @@ private func hangingTool(_ gate: AsyncGate, onCancel: Recorder? = nil) -> AnyAge
                 "type": .string("object"), "properties": .object([:]),
                 "required": .array([]), "additionalProperties": .bool(false),
             ]),
-            target: .local, safety: .locallyReadOnly, concurrency: .parallel
+            target: .local, approvalPolicy: .approve, concurrency: .parallel
         )
     ) { invocation, _ in
         await gate.begin()

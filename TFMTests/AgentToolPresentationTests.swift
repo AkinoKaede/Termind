@@ -37,7 +37,7 @@ struct AgentToolPresentationTests {
             descriptor: AgentToolDescriptor(
                 name: "ssh_exec", summary: "Execute over SSH",
                 inputSchema: .object([:]), target: .host,
-                safety: .requiresAuthorization,
+                approvalPolicy: .ask,
                 presentation: .init(
                     symbol: "terminal",
                     activity: .semanticArgument(key: "command", fallback: .sshCommand),
@@ -89,7 +89,7 @@ struct AgentToolPresentationTests {
             descriptor: AgentToolDescriptor(
                 name: "remote_tool", summary: "Remote tool",
                 inputSchema: .object([:]), target: .mcp,
-                safety: .requiresAuthorization
+                approvalPolicy: .ask
             ),
             userIntent: "Run it"
         )
@@ -862,7 +862,7 @@ struct AgentToolPresentationTests {
             descriptor: AgentToolDescriptor(
                 name: name, summary: name,
                 inputSchema: .object(["type": .string("object")]),
-                target: target, safety: .locallyReadOnly, presentation: presentation
+                target: target, approvalPolicy: .approve, presentation: presentation
             )
         )
     }

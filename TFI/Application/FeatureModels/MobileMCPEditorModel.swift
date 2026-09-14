@@ -16,7 +16,7 @@ final class MobileMCPEditorModel {
     private let discover: Discover
     private var task: Task<Void, Never>?
     private var generation = UUID()
-    private var policies: [String: MCPTool.AccessPolicy] = [:]
+    private var policies: [String: AgentToolDescriptor.ApprovalPolicy] = [:]
 
     init(
         ai: AIConfigurationModel, server: MCPServer,
@@ -77,7 +77,8 @@ final class MobileMCPEditorModel {
                 var seen = Set<String>()
                 draft.tools = outcome.tools.filter { seen.insert($0.id).inserted }.map {
                     var tool = $0
-                    tool.accessPolicy = policies[tool.id] ?? .alwaysAsk
+                    tool.accessPolicy = policies[tool.id] ?? .ask
+                    tool.enforceTermindApprovalPolicy()
                     return tool
                 }
                 draft.negotiatedVersion = outcome.protocolVersion

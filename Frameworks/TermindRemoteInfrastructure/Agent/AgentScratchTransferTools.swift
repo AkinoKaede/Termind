@@ -28,7 +28,7 @@ nonisolated public struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaB
                 "host_id": Self.string(), "remote_path": Self.string(max: 4_096),
                 "scratch_path": Self.string(max: AgentScratchWorkspace.Limits.pathBytes),
             ], required: ["host_id", "remote_path", "scratch_path"], target: .host,
-            safety: .locallyContained, concurrency: .parallel,
+            approvalPolicy: .approve, concurrency: .parallel,
             presentation: .init(
                 symbol: "arrow.down.doc",
                 activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
@@ -43,7 +43,7 @@ nonisolated public struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaB
         checked.targetHostID = try arguments.uuid("host_id")
         _ = try AgentToolSupport.normalizeRemotePath(arguments.string("remote_path"))
         _ = try AgentScratchWorkspace.normalize(arguments.string("scratch_path"))
-        return AgentToolPreflight(invocation: checked, safety: .locallyContained)
+        return AgentToolPreflight(invocation: checked, approvalPolicy: .approve)
     }
 
     public func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
@@ -97,7 +97,7 @@ nonisolated public struct ScratchPushTool: AgentToolDefinition, AgentToolSchemaB
                 "scratch_path": Self.string(max: AgentScratchWorkspace.Limits.pathBytes),
                 "remote_path": Self.string(max: 4_096), "overwrite": Self.boolean(),
             ], required: ["host_id", "scratch_path", "remote_path"], target: .host,
-            safety: .requiresAuthorization,
+            approvalPolicy: .ask,
             presentation: .init(
                 symbol: "arrow.up.doc",
                 activity: .semanticArgument(key: "remote_path", fallback: .remoteFile),
@@ -114,7 +114,7 @@ nonisolated public struct ScratchPushTool: AgentToolDefinition, AgentToolSchemaB
         let staged = try arguments.string("scratch_path")
         let file = try await workspace.data(at: staged)
         return AgentToolPreflight(
-            invocation: checked, safety: .requiresAuthorization,
+            invocation: checked, approvalPolicy: .ask,
             reasons: Self.evidence(path: staged, file: file),
             executionMetadata: ["scratch_sha256": .string(file.sha256)]
         )

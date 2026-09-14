@@ -328,9 +328,7 @@ struct LoadSkillToolTests {
     @Test
     func readsNothingAndSoNeedsNoApproval() {
         let descriptor = LoadSkillTool(skills: catalog).descriptor
-        #expect(descriptor.safety == .locallyReadOnly)
-        #expect(descriptor.safety.isAutoAllowed)
-        #expect(descriptor.safety.isAllowedWhilePlanning)
+        #expect(descriptor.approvalPolicy == .approve)
         #expect(descriptor.concurrency == .parallel)
         #expect(descriptor.target == .local)
     }

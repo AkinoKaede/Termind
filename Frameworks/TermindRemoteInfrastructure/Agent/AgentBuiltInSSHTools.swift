@@ -12,7 +12,7 @@ nonisolated public struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBui
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
             "list_hosts", "List Vault and temporary Termind SSH targets without credentials.",
-            properties: [:], required: [], target: .host, safety: .locallyReadOnly,
+            properties: [:], required: [], target: .host, approvalPolicy: .approve,
             concurrency: .parallel,
             presentation: .init(
                 symbol: "server.rack", activity: .semanticLabel(.hosts), output: .json,
@@ -65,7 +65,7 @@ nonisolated public struct SSHWaitTool: AgentToolDefinition, AgentToolSchemaBuild
                 "handle": Self.string(max: 64),
                 "timeout_seconds": Self.integer(min: 1, max: 900),
             ],
-            required: ["handle"], target: .host, safety: .locallyReadOnly,
+            required: ["handle"], target: .host, approvalPolicy: .approve,
             concurrency: .parallel,
             presentation: .init(
                 symbol: "clock.arrow.circlepath", activity: .semanticLabel(.remoteCommand),
@@ -119,7 +119,7 @@ nonisolated public struct TerminalSuggestTool: AgentToolDefinition, AgentToolSch
                 "command": Self.string(max: 32_768),
                 "explanation": Self.string(max: 4_096),
             ],
-            required: ["command"], target: .user, safety: .locallyReadOnly,
+            required: ["command"], target: .user, approvalPolicy: .approve,
             concurrency: .parallel,
             presentation: .init(
                 symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command),
@@ -247,7 +247,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                 "timeout_seconds": Self.integer(min: 1, max: 900),
                 "stdin": Self.string(max: 131_072), "secret_handle": Self.string(),
                 "stdin_purpose": Self.string(max: 256),
-            ], required: ["host_id", "command"], target: .host, safety: .requiresAuthorization,
+            ], required: ["host_id", "command"], target: .host, approvalPolicy: .ask,
             presentation: .init(
                 symbol: "terminal",
                 activity: .semanticArgument(key: "command", fallback: .sshCommand),
@@ -291,11 +291,11 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
         let safe = assessment.risk == .safe
         return AgentToolPreflight(
             invocation: checked,
-            safety: safe ? .locallyReadOnly : .requiresAuthorization,
+            approvalPolicy: safe ? .approve : .ask,
             reasons: assessment.reasons,
             // Whether a command may run beside another is a property of
             // the command, not of `ssh_exec`, and it is decided by the
-            // same locally-proven evidence that just decided `safety`.
+            // same locally-proven evidence that just decided `approvalPolicy`.
             // A command the classifier cannot vouch for makes its whole
             // turn serial, so nothing observes the host while it is
             // being changed.

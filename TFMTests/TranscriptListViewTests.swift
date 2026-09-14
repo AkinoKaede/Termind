@@ -964,7 +964,7 @@ struct TranscriptListViewBridgeTests {
             invocation: invocation,
             descriptor: AgentToolDescriptor(
                 name: "lookup", summary: "lookup", inputSchema: .object([:]),
-                target: .local, safety: .locallyReadOnly
+                target: .local, approvalPolicy: .approve
             )
         )
         card.state = .running

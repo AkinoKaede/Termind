@@ -621,7 +621,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             name: row.toolName, summary: row.toolName,
             inputSchema: .object(["type": .string("object")]),
             target: row.targetHostID == nil ? .local : .host,
-            safety: .requiresAuthorization, presentation: result?.toolPresentation
+            approvalPolicy: .ask, presentation: result?.toolPresentation
         )
         let review = reviews.filter { $0.invocationID == row.id }
             .sorted { $0.createdAt < $1.createdAt }

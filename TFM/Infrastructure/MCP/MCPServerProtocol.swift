@@ -365,7 +365,10 @@ actor MCPServerProtocol {
     }
 
     private static func toolJSON(_ descriptor: AgentToolDescriptor) -> AgentJSONValue {
-        let readOnly = descriptor.safety.isAutoAllowed
+        let readOnly = [
+            "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
+            "sftp_list", "sftp_stat", "sftp_read",
+        ].contains(descriptor.name)
         let destructive = ["ssh_exec", "sftp_write", "sftp_move", "sftp_chmod", "sftp_delete"]
             .contains(descriptor.name)
         let openWorld = !["list_hosts", "ssh_wait", "request_user_secret"]

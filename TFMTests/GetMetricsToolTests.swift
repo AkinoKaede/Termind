@@ -173,7 +173,7 @@ struct GetMetricsToolTests {
         let invocation = AgentToolInvocation(runID: UUID(), call: call)
         let checked = try await tool.preflight(invocation)
         #expect(checked.invocation.targetHostID == host.id)
-        #expect(tool.descriptor.safety == .locallyReadOnly)
+        #expect(tool.descriptor.approvalPolicy == .approve)
         #expect(tool.descriptor.concurrency == .parallel)
         let decision = await AgentPlanModeHook(isPlanning: true).willExecute(
             AgentToolCallContext(

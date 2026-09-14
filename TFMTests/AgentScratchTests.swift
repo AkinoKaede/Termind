@@ -472,12 +472,10 @@ struct AgentScratchTests {
         }
     }
 
-    // MARK: - Safety
+    // MARK: - Approval policy
 
-    /// `.locallyContained` has to mean the same thing in every mode, or it is just
-    /// `.requiresAuthorization` with extra steps.
     @Test
-    func containedActionsSkipTheGateInEveryPermissionMode() async {
+    func approvedActionsSkipTheGateInEveryPermissionMode() async {
         for mode in AgentPermissionMode.allCases {
             let reviewer = CountingSecurityReviewer()
             let broker = AgentApprovalBroker(
@@ -485,24 +483,22 @@ struct AgentScratchTests {
                 manualApproval: { _ in .deny("a person was asked") }
             )
             let allowed = await broker.authorize(
-                Fixture.request(safety: .locallyContained), mode: mode
+                Fixture.request(approvalPolicy: .approve), mode: mode
             )
-            #expect(allowed == .allow, "\(mode) gated a contained action")
-            #expect(await reviewer.count == 0, "\(mode) sent a contained action to review")
+            #expect(allowed == .allow, "\(mode) gated an approved action")
+            #expect(await reviewer.count == 0, "\(mode) sent an approved action to review")
         }
     }
 
-    /// The other half of the claim: adding a third case widened nothing. An action
-    /// that needs authorization still reaches whichever gate the mode nominates.
     @Test
-    func remoteWritesStillReachTheGate() async {
+    func askedRemoteWritesReachTheSelectedGate() async {
         let asked = CountingSecurityReviewer()
         let manual = AgentApprovalBroker(
             reviewer: asked, manualApproval: { _ in .deny("denied by the user") }
         )
         #expect(
             await manual.authorize(
-                Fixture.request(safety: .requiresAuthorization), mode: .askForApproval
+                Fixture.request(approvalPolicy: .ask), mode: .askForApproval
             ) == .deny("denied by the user")
         )
         // Ask for approval asks the person, not the reviewer.
@@ -515,17 +511,10 @@ struct AgentScratchTests {
         )
         #expect(
             await automatic.authorize(
-                Fixture.request(safety: .requiresAuthorization), mode: .approveForMe
+                Fixture.request(approvalPolicy: .ask), mode: .approveForMe
             ) == .allow
         )
         #expect(await reviewed.count == 1)
-    }
-
-    @Test
-    func autoAllowIsAPropertyOfTheCaseAndNotOfTheCallSite() {
-        #expect(AgentToolDescriptor.Safety.locallyReadOnly.isAutoAllowed)
-        #expect(AgentToolDescriptor.Safety.locallyContained.isAutoAllowed)
-        #expect(!AgentToolDescriptor.Safety.requiresAuthorization.isAutoAllowed)
     }
 
     // MARK: - Registry
@@ -573,19 +562,10 @@ struct AgentScratchTests {
                 "scratch_copy", "scratch_delete", "scratch_diff", "scratch_list", "scratch_move",
                 "scratch_read", "scratch_replace", "scratch_search", "scratch_write",
             ])
-        // Every purely local tool is parallel, and only the ones that change
-        // something claim to.
+        // Every purely local scratch tool is parallel and pre-approved.
         #expect(local.allSatisfy { $0.descriptor.concurrency == .parallel })
         #expect(local.allSatisfy { $0.descriptor.target == .local })
-        #expect(
-            local.filter { $0.descriptor.safety == .locallyContained }
-                .map(\.descriptor.name).sorted()
-                == [
-                    "scratch_copy", "scratch_delete", "scratch_move", "scratch_replace",
-                    "scratch_write",
-                ]
-        )
-        #expect(!local.contains { $0.descriptor.safety == .requiresAuthorization })
+        #expect(local.allSatisfy { $0.descriptor.approvalPolicy == .approve })
         let search = try #require(local.first { $0.descriptor.name == "scratch_search" })
         let properties = search.descriptor.inputSchema.objectValue?["properties"]?.objectValue
         #expect(
@@ -604,12 +584,12 @@ struct AgentScratchTests {
         #expect(transfer.count == 2)
         #expect(transfer.allSatisfy { $0.descriptor.target == .host })
         #expect(
-            transfer.first { $0.descriptor.name == "scratch_push" }?.descriptor.safety
-                == .requiresAuthorization
+            transfer.first { $0.descriptor.name == "scratch_push" }?.descriptor.approvalPolicy
+                == .ask
         )
         #expect(
-            transfer.first { $0.descriptor.name == "scratch_pull" }?.descriptor.safety
-                == .locallyContained
+            transfer.first { $0.descriptor.name == "scratch_pull" }?.descriptor.approvalPolicy
+                == .approve
         )
         // A pull is a remote read landing in contained storage and may overlap
         // anything; a push changes a host and takes its turn serial.
@@ -628,7 +608,7 @@ struct AgentScratchTests {
         let withWeb = Fixture.scratchTools(workspace: workspace, web: Fixture.web())
         let fetch = try #require(withWeb.first { $0.descriptor.name == "scratch_fetch" })
         #expect(fetch.descriptor.target == .network)
-        #expect(fetch.descriptor.safety == .locallyContained)
+        #expect(fetch.descriptor.approvalPolicy == .approve)
         #expect(fetch.descriptor.concurrency == .parallel)
     }
 
@@ -644,7 +624,7 @@ struct AgentScratchTests {
         let properties = fetch?.inputSchema.objectValue?["properties"]?.objectValue ?? [:]
         #expect(properties["scratch_path"] == nil)
         #expect(properties.keys.sorted() == ["format", "url"])
-        #expect(fetch?.safety == .locallyReadOnly)
+        #expect(fetch?.approvalPolicy == .approve)
         #expect(!tools.contains { $0.descriptor.name.hasPrefix("scratch_") })
     }
 
@@ -780,7 +760,7 @@ struct AgentScratchTests {
         let preflight = try await tool.preflight(invocation)
         let reasons = preflight.reasons.joined(separator: "\n")
 
-        #expect(preflight.safety == .requiresAuthorization)
+        #expect(preflight.approvalPolicy == .ask)
         #expect(preflight.invocation.targetHostID == Fixture.hostID)
         #expect(reasons.contains("app.conf"))
         #expect(reasons.contains("\(body.utf8.count) bytes"))
@@ -1126,13 +1106,15 @@ private enum Fixture {
         )
     }
 
-    static func request(safety: AgentToolDescriptor.Safety) -> AgentApprovalRequest {
+    static func request(
+        approvalPolicy: AgentToolDescriptor.ApprovalPolicy
+    ) -> AgentApprovalRequest {
         AgentApprovalRequest(
             invocation: invocation("t", [:]),
             descriptor: AgentToolDescriptor(
                 name: "t", summary: "t",
                 inputSchema: .object(["type": .string("object")]),
-                target: .local, safety: safety
+                target: .local, approvalPolicy: approvalPolicy
             ),
             userIntent: "do the thing"
         )

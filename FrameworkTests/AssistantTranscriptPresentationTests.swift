@@ -148,6 +148,21 @@ struct AssistantTranscriptPresentationTests {
         #expect(conversation.transcript.count == 1)
     }
 
+    @Test func approvalPolicyDenialFinishesAsDeniedRatherThanFailed() {
+        let value = card(state: .proposed)
+        let conversation = ConversationModel()
+        conversation.handle(.toolProposed(value.invocation, value.descriptor))
+        conversation.handle(
+            .toolFinished(
+                value.invocation,
+                AgentToolResult(
+                    callID: value.invocation.call.id, content: "Denied", isError: true,
+                    metadata: [AgentToolResult.approvalPolicyDeniedKey: .bool(true)]
+                )))
+
+        #expect(conversation.toolCards.first?.state == .denied)
+    }
+
     @Test func resultProjectionUsesTheInjectedPresenterAndRetainsFullCopyOutput() throws {
         var value = card(state: .completed)
         value.result = AgentToolResult(callID: value.invocation.call.id, content: "{\"answer\":42}")
@@ -193,7 +208,7 @@ struct AssistantTranscriptPresentationTests {
                 runID: UUID(), call: .init(id: UUID().uuidString, name: "inspect", arguments: .object([:]))),
             descriptor: .init(
                 name: "inspect", summary: "Inspect", inputSchema: .object([:]), target: .host,
-                safety: .locallyReadOnly, concurrency: .parallel),
+                approvalPolicy: .approve, concurrency: .parallel),
             state: state
         )
     }

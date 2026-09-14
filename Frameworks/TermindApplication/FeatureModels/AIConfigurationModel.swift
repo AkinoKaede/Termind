@@ -86,7 +86,7 @@ public final class AIConfigurationModel {
         self.webSearchPersistence = webSearchPersistence
         self.modelProviders = modelProviders
         self.endpoints = endpoints
-        self.mcpServers = mcpServers
+        self.mcpServers = mcpServers.map { $0.enforcingTermindApprovalPolicies() }
         self.roles = roles
         self.lastSelectedModel = lastSelectedModel
         self.lastSelectedPermissionMode =
@@ -110,7 +110,7 @@ public final class AIConfigurationModel {
             self.endpoints = loaded.endpoints
             self.roles = loaded.roles
             self.lastSelectedModel = loaded.lastSelectedModel
-            self.mcpServers = loaded.mcpServers
+            self.mcpServers = loaded.mcpServers.map { $0.enforcingTermindApprovalPolicies() }
         } catch {
             storageError = error.localizedDescription
         }
@@ -238,10 +238,11 @@ public final class AIConfigurationModel {
             }
     }
 
-    /// Every tool the model may be offered: enabled tools on enabled servers.
+    /// Every discovered tool on enabled servers. Denied tools stay visible to
+    /// the model so an attempted call receives an explicit policy refusal.
     public var availableTools: [(server: MCPServer, tool: MCPTool)] {
         usableMCPServers.flatMap { server in
-            server.enabledTools.map { (server, $0) }
+            server.tools.map { (server, $0) }
         }
     }
 
@@ -277,7 +278,7 @@ public final class AIConfigurationModel {
         endpoints = snapshot.endpoints
         roles = snapshot.roles
         lastSelectedModel = localSelection.flatMap { lookup($0) == nil ? nil : $0 }
-        mcpServers = snapshot.mcpServers
+        mcpServers = snapshot.mcpServers.map { $0.enforcingTermindApprovalPolicies() }
         mcpStatuses = mcpStatuses.filter { id, _ in
             previousServers[id] == mcpServers.first { $0.id == id }
         }
@@ -556,6 +557,7 @@ public final class AIConfigurationModel {
     // MARK: - MCP writes
 
     public func upsert(_ server: MCPServer) {
+        let server = server.enforcingTermindApprovalPolicies()
         mutatePersistedState {
             if let index = mcpServers.firstIndex(where: { $0.id == server.id }) {
                 mcpServers[index] = server
@@ -605,9 +607,9 @@ public final class AIConfigurationModel {
             )
 
             mcpServers[index].tools = discovered.map { tool in
-                guard let old = previous[tool.id] else { return tool }
                 var merged = tool
-                merged.accessPolicy = old.accessPolicy
+                if let old = previous[tool.id] { merged.accessPolicy = old.accessPolicy }
+                merged.enforceTermindApprovalPolicy()
                 return merged
             }
             mcpServers[index].negotiatedVersion = version
@@ -616,9 +618,12 @@ public final class AIConfigurationModel {
     }
 
     public func setToolAccessPolicy(
-        _ policy: MCPTool.AccessPolicy, tool toolID: String, on serverID: MCPServer.ID
+        _ policy: AgentToolDescriptor.ApprovalPolicy, tool toolID: String, on serverID: MCPServer.ID
     ) {
-        mutate(toolID, on: serverID) { $0.accessPolicy = policy }
+        mutate(toolID, on: serverID) {
+            $0.accessPolicy = policy
+            $0.enforceTermindApprovalPolicy()
+        }
     }
 
     private func mutate(

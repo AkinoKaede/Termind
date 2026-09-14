@@ -111,7 +111,7 @@ struct ScrubberWebClientTests {
                 "url": .string("http://192.168.1.1/admin")
             ])
         let preflight = try await FetchTool(web: fixtureClient()).preflight(invocation)
-        #expect(preflight.safety == .locallyReadOnly)
+        #expect(preflight.approvalPolicy == .approve)
         #expect(preflight.reasons.isEmpty)
     }
 

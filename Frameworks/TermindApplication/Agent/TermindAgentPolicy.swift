@@ -42,9 +42,9 @@ nonisolated public enum TermindAgentPolicy {
         user's approval; one that destroys something is refused outright. SFTP reads, fetch and \
         search all work.
 
-        What is refused is changing anything: writing or deleting remote files, pushing from \
-        the scratch workspace, and every MCP tool. Do not attempt those, and never describe an \
-        action as taken — you have taken none.
+        Direct remote file writes, deletes, and pushes from the scratch workspace are refused. \
+        MCP tools follow their saved policy: Deny refuses the call, Ask sends it through the \
+        conversation's approval mode, and Approve runs it without another approval step.
 
         Draft the plan in the scratch workspace with scratch_write, and revise it there with \
         scratch_replace rather than rewriting it. That way a revision costs a diff instead of \
@@ -78,7 +78,7 @@ nonisolated public enum TermindAgentPolicy {
             version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0")
     }
 
-    /// Plan mode with the one rule the runtime cannot write for us.
+    /// Plan mode with the host rules the runtime cannot write for us.
     ///
     /// `ssh_exec` is judged on what the command would *do*, not on who has to
     /// authorize it — and that difference is the point of the mode rather than a
@@ -88,15 +88,18 @@ nonisolated public enum TermindAgentPolicy {
     /// Refusing those would leave the agent guessing at the state it is supposed
     /// to be planning against, which is worse than useless.
     ///
-    /// So the bar is *destructive*, not *provably safe*. A command the classifier
+    /// So the SSH bar is *destructive*, not *provably safe*. A command the classifier
     /// cannot vouch for still meets the approval gate exactly as it would outside
     /// plan mode — the user sees it under Ask for approval, Security Review sees
     /// it under Approve for me. Full access skips that, as it does everywhere
-    /// else; plan mode is a posture, not a sandbox, and the one thing it refuses
-    /// outright even there is a command that destroys something.
+    /// else; plan mode is a posture, not a sandbox, and the one SSH command it
+    /// refuses outright even there is one that destroys something. MCP calls
+    /// also proceed to the ordinary approval gate, where their saved Deny, Ask,
+    /// or Approve policy remains authoritative.
     public static func planModeHook(isPlanning: Bool) -> AgentPlanModeHook {
         var hook = AgentPlanModeHook(isPlanning: isPlanning)
         hook.hostDecision = { context in
+            if context.descriptor.target == .mcp { return .proceed }
             guard context.invocation.call.name == sshExecToolName else { return nil }
             let command =
                 context.invocation.call.arguments
