@@ -130,6 +130,7 @@ public struct AssistantApprovalDetails: View {
                         }
                     }
                     .padding(.top, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 } label: {
                     HStack(spacing: 6) {
                         Label("Safety details", systemImage: "exclamationmark.triangle")
@@ -139,9 +140,11 @@ public struct AssistantApprovalDetails: View {
                     }
                     .font(.caption.weight(.medium))
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("AssistantApproval.SafetyDetails")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityIdentifier("AssistantApproval.Details")
     }
 }
