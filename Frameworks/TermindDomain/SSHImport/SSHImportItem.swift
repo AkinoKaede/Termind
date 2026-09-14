@@ -12,7 +12,8 @@ public nonisolated enum SSHImportCategory: String, CaseIterable, Identifiable, S
     }
 }
 
-/// Public metadata only. The reader retains private material behind item IDs.
+/// Public metadata only. The reader resolves private material from short-lived
+/// source descriptors behind item IDs when commit needs it.
 public nonisolated struct SSHImportItem: Identifiable, Sendable {
     public var id = UUID()
     public var category: SSHImportCategory
@@ -102,11 +103,13 @@ public nonisolated struct SSHConfigLine: Sendable {
 }
 
 public nonisolated enum SSHImportSourceError: LocalizedError, Equatable {
-    case expectedFile, expectedFolder
+    case expectedFile, expectedFolder, unsupportedKnownHostsContent, sourceChanged
     public var errorDescription: String? {
         switch self {
         case .expectedFile: String(localized: "Choose or drop a single known_hosts file.")
         case .expectedFolder: String(localized: "Choose or drop a single .ssh folder.")
+        case .unsupportedKnownHostsContent: String(localized: "The selected file does not contain Known Hosts records.")
+        case .sourceChanged: String(localized: "An imported private key changed or became unavailable. Scan again.")
         }
     }
 }

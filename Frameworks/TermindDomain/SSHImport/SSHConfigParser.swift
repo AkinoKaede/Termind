@@ -7,6 +7,7 @@ public nonisolated struct SSHConfigParser {
     public let home: URL
     public let username: String
     public let files: [String: String]
+    public let entryPaths: [String]
     public var externalPaths: Set<String> = []
     public var diagnostics: [SSHImportItem] = []
 
@@ -32,43 +33,60 @@ public nonisolated struct SSHConfigParser {
     }
 
     public mutating func parse() -> [SSHImportItem] {
-        let config = root.appendingPathComponent("config").path
-        guard files[config] != nil else { return [] }
-        var aliases: [String] = []
-        discover(config, stack: [], aliases: &aliases)
         var result: [SSHImportItem] = []
-        for alias in aliases {
-            var state = Evaluation()
-            state.warnings = diagnostics.map { $0.source + ": " + $0.issue }
-            evaluate(config, alias: alias, stack: [], state: &state)
-            var host = SSHImportedHost(
-                alias: alias, hostname: state.values["hostname"] ?? alias, username: state.values["user"] ?? username)
-            host.hostname = host.hostname.replacingOccurrences(of: "%h", with: alias).replacingOccurrences(
-                of: "%n", with: alias)
-            var issue = ""
-            if let value = state.values["port"] {
-                if let port = Int(value), (1...65_535).contains(port) {
-                    host.port = port
-                } else {
-                    issue = String(localized: "Invalid SSH port.")
+        for config in rootEntryPaths() {
+            var aliases: [String] = []
+            discover(config, stack: [], aliases: &aliases)
+            for alias in aliases {
+                var state = Evaluation()
+                state.warnings = diagnostics.map { $0.source + ": " + $0.issue }
+                evaluate(config, alias: alias, stack: [], state: &state)
+                var host = SSHImportedHost(
+                    alias: alias, hostname: state.values["hostname"] ?? alias,
+                    username: state.values["user"] ?? username)
+                host.hostname = host.hostname.replacingOccurrences(of: "%h", with: alias).replacingOccurrences(
+                    of: "%n", with: alias)
+                var issue = ""
+                if let value = state.values["port"] {
+                    if let port = Int(value), (1...65_535).contains(port) {
+                        host.port = port
+                    } else {
+                        issue = String(localized: "Invalid SSH port.")
+                    }
                 }
+                let identities =
+                    state.identities.isEmpty
+                    ? ["~/.ssh/id_rsa", "~/.ssh/id_ecdsa", "~/.ssh/id_ed25519"] : state.identities
+                host.usesDefaultIdentityFiles = state.identities.isEmpty
+                host.identityPaths = identities.filter { $0 != "none" }.map { expandedPath($0, host: host) }
+                host.certificatePaths = state.certificates.filter { $0 != "none" }.map { expandedPath($0, host: host) }
+                if let jump = state.values["proxyjump"], jump != "none" {
+                    host.jumps = jump.split(separator: ",").map(String.init)
+                }
+                let source = state.source.isEmpty ? config : state.source
+                result.append(
+                    SSHImportItem(
+                        category: .hosts, name: alias, source: source,
+                        issue: issue, warnings: state.warnings, host: host))
             }
-            let identities =
-                state.identities.isEmpty
-                ? ["~/.ssh/id_rsa", "~/.ssh/id_ecdsa", "~/.ssh/id_ed25519"] : state.identities
-            host.usesDefaultIdentityFiles = state.identities.isEmpty
-            host.identityPaths = identities.filter { $0 != "none" }.map { expandedPath($0, host: host) }
-            host.certificatePaths = state.certificates.filter { $0 != "none" }.map { expandedPath($0, host: host) }
-            if let jump = state.values["proxyjump"], jump != "none" {
-                host.jumps = jump.split(separator: ",").map(String.init)
-            }
-            let source = state.source.isEmpty ? config : state.source
-            result.append(
-                SSHImportItem(
-                    category: .hosts, name: alias, source: source,
-                    issue: issue, warnings: state.warnings, host: host))
         }
         return result + diagnostics
+    }
+
+    /// A recursively discovered Include fragment is evaluated through its
+    /// parent, not a second time as an independent configuration root.
+    private mutating func rootEntryPaths() -> [String] {
+        let candidates = entryPaths.filter { files[$0] != nil }
+        guard !candidates.isEmpty else { return [] }
+        let candidateSet = Set(candidates)
+        var included: Set<String> = []
+        for path in candidates {
+            for line in lines(path) where line.keyword == "include" {
+                included.formUnion(includes(line).filter { candidateSet.contains($0) })
+            }
+        }
+        let roots = candidates.filter { !included.contains($0) }
+        return (roots.isEmpty ? candidates : roots).sorted()
     }
 
     private struct Evaluation {
@@ -189,13 +207,15 @@ public nonisolated struct SSHConfigParser {
         }
     }
     public init(
-        root: URL, home: URL, username: String, files: [String: String], externalPaths: Set<String> = [],
+        root: URL, home: URL, username: String, files: [String: String], entryPaths: [String]? = nil,
+        externalPaths: Set<String> = [],
         diagnostics: [SSHImportItem] = []
     ) {
         self.root = root
         self.home = home
         self.username = username
         self.files = files
+        self.entryPaths = entryPaths ?? [root.appendingPathComponent("config").path]
         self.externalPaths = externalPaths
         self.diagnostics = diagnostics
     }

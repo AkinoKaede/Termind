@@ -2656,6 +2656,23 @@
         }
       }
     },
+    "An imported private key changed or became unavailable. Scan again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入的私钥已更改或不可用，请重新扫描。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯入的私鑰已變更或無法使用，請重新掃描。"
+          }
+        }
+      }
+    },
     "Annual" : {
       "localizations" : {
         "zh-Hans" : {
@@ -23476,6 +23493,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫存工作區"
+          }
+        }
+      }
+    },
+    "The selected file does not contain Known Hosts records." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选文件不包含Known Hosts记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所選檔案不包含Known Hosts記錄。"
           }
         }
       }

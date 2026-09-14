@@ -345,7 +345,9 @@ private actor MobileImportFixture: SSHImportReading {
     let items: [SSHImportItem]
     init(items: [SSHImportItem]) { self.items = items }
     func scan(root: URL, knownHostsOnly: Bool, grants: [URL]) -> [SSHImportItem] { items }
-    func unlock(id: UUID, name: String, passphrase: String) throws -> SSHKeyRef { throw CocoaError(.coderInvalidValue) }
+    func unlock(id: UUID, name: String, passphrase: String) throws -> [SSHImportItem] {
+        throw CocoaError(.coderInvalidValue)
+    }
     func credentials(for ids: Set<UUID>) -> [UUID: StoredSSHKeyCredential] { [:] }
     func discard() {}
 }

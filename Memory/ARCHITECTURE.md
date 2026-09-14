@@ -70,11 +70,13 @@ Known Hosts is independent of Host records: editing or deleting a Host does not
 change trust. Plain and OpenSSH `|1|` hashed endpoints share one matcher; hashed
 records keep their wire `hostname`, and their separate port field is ignored.
 
-SSH imports stage selectable public metadata in a window-owned model while the
-actor reader holds private keys until commit/cancel. Picking and drag-and-drop use
-the same scoped validation; config parsing never executes commands. Commit writes
-new credentials before one Vault save, cleans them up on failure, never overwrites
-existing records, and never clears an existing trust mismatch.
+SSH imports recursively classify files by content and stage only selectable public
+metadata in a window-owned model. The actor reader retains scoped source descriptors
+and content digests, never private-key text or passphrases; it rereads selected keys
+transiently at unlock/commit and fails closed if a source changed. Picking and
+drag-and-drop use the same scoped validation; config parsing never executes commands.
+Commit writes new credentials before one Vault save, cleans them up on failure, never
+overwrites existing records, and never clears an existing trust mismatch.
 
 App appearance is a global UserDefaults preference applied by the macOS app
 delegate through `NSApplication.appearance`; following System clears the override.

@@ -80,9 +80,9 @@ struct SSHUserCertificateTests {
         let certificate = try makeEd25519Certificate(
             publicKey: material.publicKey, type: 1, validAfter: 0, validBefore: UInt64.max)
         try material.privateKey.write(to: root.appendingPathComponent("deploy"), atomically: true, encoding: .utf8)
-        try certificate.write(to: root.appendingPathComponent("user-cert.pub"), atomically: true, encoding: .utf8)
+        try certificate.write(to: root.appendingPathComponent("identity.paper"), atomically: true, encoding: .utf8)
         try
-            "Host certified\nIdentityFile ~/.ssh/deploy\nCertificateFile ~/.ssh/user-cert.pub\nHost plain\nIdentityFile ~/.ssh/deploy"
+            "Host certified\nIdentityFile ~/.ssh/deploy\nCertificateFile ~/.ssh/identity.paper\nHost plain\nIdentityFile ~/.ssh/deploy"
             .write(
                 to: root.appendingPathComponent("config"), atomically: true, encoding: .utf8)
         let model = SSHImportModel(library: HostLibraryModel(), reader: SSHImportReader())
@@ -91,6 +91,30 @@ struct SSHUserCertificateTests {
         let plain = try #require(model.items.first { $0.name == "plain" })
         #expect(model.chosenKey(for: certified)?.certificate == certificate)
         #expect(model.chosenKey(for: plain)?.certificate == "")
+        #expect(model.canImport)
+    }
+
+    @Test
+    @MainActor
+    func encryptedKeyMatchesCertificateByContentAfterUnlock() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("SSHCertificateImport-\(UUID())")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: "password")
+        let certificate = try makeEd25519Certificate(
+            publicKey: material.publicKey, type: 1, validAfter: 0, validBefore: UInt64.max)
+        try material.privateKey.write(to: root.appendingPathComponent("opaque.one"), atomically: true, encoding: .utf8)
+        try certificate.write(to: root.appendingPathComponent("opaque.two"), atomically: true, encoding: .utf8)
+        try "Host certified\nIdentityFile ~/.ssh/opaque.one\nCertificateFile ~/.ssh/opaque.two".write(
+            to: root.appendingPathComponent("opaque.three"), atomically: true, encoding: .utf8)
+        let model = SSHImportModel(library: HostLibraryModel(), reader: SSHImportReader())
+
+        await model.scan(root, knownHostsOnly: false)
+        let lockedID = try #require(model.items.first(where: \.requiresPassphrase)?.id)
+        await model.unlock(lockedID, passphrase: "password")
+
+        let host = try #require(model.items.first(where: { $0.host != nil }))
+        #expect(model.chosenKey(for: host)?.certificate == certificate)
         #expect(model.canImport)
     }
 

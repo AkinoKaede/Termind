@@ -105,6 +105,86 @@ struct SSHImportTests {
     }
 
     @Test
+    func contentClassifierDoesNotUseFilenames() throws {
+        let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        #expect(SSHImportParser.contentKind(material.privateKey) == .privateKey)
+        #expect(SSHImportParser.contentKind("example.invalid \(material.publicKey)") == .knownHosts)
+        #expect(SSHImportParser.contentKind("Host app\n  HostName app.invalid") == .configuration)
+        #expect(SSHImportParser.contentKind("ordinary notes") == .unknown)
+    }
+
+    @Test
+    func folderRecursivelyFindsRenamedContentAndDoesNotReparseIncludes() async throws {
+        let url = try root()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let pieces = url.appendingPathComponent("pieces", isDirectory: true)
+        let secrets = url.appendingPathComponent("secrets", isDirectory: true)
+        try FileManager.default.createDirectory(at: pieces, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: secrets, withIntermediateDirectories: true)
+        let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        try "Include pieces/*".write(
+            to: url.appendingPathComponent("entry.anything"), atomically: true, encoding: .utf8)
+        try "Host app\n HostName app.invalid\n User deploy\n IdentityFile secrets/credential.data".write(
+            to: pieces.appendingPathComponent("fragment.notes"), atomically: true, encoding: .utf8)
+        try material.privateKey.write(
+            to: secrets.appendingPathComponent("credential.data"), atomically: true, encoding: .utf8)
+        try "app.invalid \(material.publicKey)".write(
+            to: pieces.appendingPathComponent("trust.random"), atomically: true, encoding: .utf8)
+
+        let rows = try await SSHImportReader().scan(root: url, knownHostsOnly: false)
+
+        #expect(rows.compactMap(\.host).map(\.alias) == ["app"])
+        #expect(rows.compactMap(\.key).count == 1)
+        #expect(rows.compactMap(\.knownHost).count == 1)
+    }
+
+    @Test
+    func standaloneKnownHostsRejectsOtherSSHContentButAcceptsComments() async throws {
+        let url = try root()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let file = url.appendingPathComponent("arbitrary-name")
+        let reader = SSHImportReader()
+        try "Host app\nHostName app.invalid".write(to: file, atomically: true, encoding: .utf8)
+        await #expect(throws: SSHImportSourceError.unsupportedKnownHostsContent) {
+            _ = try await reader.scan(root: file, knownHostsOnly: true)
+        }
+        try "# intentionally empty\n".write(to: file, atomically: true, encoding: .utf8)
+        #expect(try await reader.scan(root: file, knownHostsOnly: true).isEmpty)
+    }
+
+    @Test
+    func privateKeyIsRereadAndDigestCheckedAtCommitBoundary() async throws {
+        let url = try root()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let first = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        let second = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        let file = url.appendingPathComponent("credential")
+        try first.privateKey.write(to: file, atomically: true, encoding: .utf8)
+        let reader = SSHImportReader()
+        let rows = try await reader.scan(root: url, knownHostsOnly: false)
+        let id = try #require(rows.compactMap(\.key).first?.id)
+
+        try second.privateKey.write(to: file, atomically: true, encoding: .utf8)
+
+        await #expect(throws: SSHImportSourceError.sourceChanged) {
+            _ = try await reader.credentials(for: [id])
+        }
+    }
+
+    @Test
+    func importPreviewKeepsItemsAsDirectFormRows() throws {
+        let sourceRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(
+            contentsOf: sourceRoot.appendingPathComponent("TFM/Features/SSHImport/SSHImportView.swift"),
+            encoding: .utf8)
+
+        #expect(source.contains("Form {"))
+        #expect(source.contains(".formStyle(.grouped)"))
+        #expect(source.contains("ForEach(model.items.filter"))
+        #expect(!source.contains("private func categorySection"))
+    }
+
+    @Test
     func droppedSourcesUseTheSameTypeValidationAsTheFilePicker() async throws {
         let url = try root()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -163,8 +243,13 @@ struct SSHImportTests {
             to: url.appendingPathComponent("config"), atomically: true, encoding: .utf8)
         try "prod.example \(material.publicKey)".write(
             to: url.appendingPathComponent("known_hosts"), atomically: true, encoding: .utf8)
-        let store = HostLibraryModel()
+        let group = HostGroup(name: "Imported")
+        let store = HostLibraryModel(groups: [group])
         let model = SSHImportModel(library: store, reader: SSHImportReader())
+        model.hostGroupID = group.id
+        model.hostColor = .teal
+        model.hostTags = ["production", "ssh"]
+        model.keyColor = .purple
         await model.scan(url, knownHostsOnly: false)
         #expect(model.selectedItems().count == 3)
         #expect(store.hosts.isEmpty && store.keys.isEmpty)
@@ -174,6 +259,10 @@ struct SSHImportTests {
         #expect(store.hosts.count == 1 && store.keys.count == 1 && store.knownHosts.count == 1)
         let identity = try #require(store.identities.first)
         #expect(identity.username == "deploy" && identity.keyID == store.keys.first?.id)
+        #expect(store.hosts.first?.groupID == group.id)
+        #expect(store.hosts.first?.colorTag == .teal)
+        #expect(store.hosts.first?.tags == ["production", "ssh"])
+        #expect(store.keys.first?.colorTag == .purple)
         #expect(store.keyAvailability(for: try #require(store.keys.first)) == .available)
         let again = SSHImportModel(library: store, reader: SSHImportReader())
         await again.scan(url, knownHostsOnly: false)

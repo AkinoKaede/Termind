@@ -8,6 +8,10 @@ public final class SSHImportModel {
     public var items: [SSHImportItem] = []
     public var expanded = Set(SSHImportCategory.allCases)
     public var storage: KeyStorage = .iCloud
+    public var keyColor: TagColor = .none
+    public var hostGroupID: HostGroup.ID?
+    public var hostColor: TagColor = .none
+    public var hostTags: [String] = []
     public private(set) var isWorking = false
     public private(set) var error: String?
     public private(set) var completed = false
@@ -169,10 +173,12 @@ public final class SSHImportModel {
         items.filter { (category == nil || $0.category == category) && selectable($0) }
     }
     public func setSelected(_ selected: Bool, category: SSHImportCategory? = nil) {
-        for index in items.indices
-        where selectable(items[index]) && (category == nil || items[index].category == category) {
-            items[index].selected = selected
+        var updated = items
+        for index in updated.indices
+        where selectable(updated[index]) && (category == nil || updated[index].category == category) {
+            updated[index].selected = selected
         }
+        items = updated
     }
 
     public func keyOptions(for item: SSHImportItem) -> [SSHKeyRef] {
@@ -280,14 +286,26 @@ public final class SSHImportModel {
     public func unlock(_ id: UUID, passphrase: String) async {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         isWorking = true
+        error = nil
         defer { isWorking = false }
         do {
-            items[index].key = try await reader.unlock(id: id, name: items[index].name, passphrase: passphrase)
-            items[index].requiresPassphrase = false
-            items[index].issue = ""
+            let previous = items[index]
+            var replacements = try await reader.unlock(id: id, name: previous.name, passphrase: passphrase)
+            guard !replacements.isEmpty, replacements.allSatisfy({ $0.category == .keys && $0.key != nil }) else {
+                throw CocoaError(.coderInvalidValue)
+            }
+            for replacementIndex in replacements.indices {
+                replacements[replacementIndex].selected = previous.selected
+                replacements[replacementIndex].acceptedWarnings = previous.acceptedWarnings
+            }
+            items.replaceSubrange(index...index, with: replacements)
             refreshDuplicates()
         } catch {
-            items[index].issue = String(localized: "The key or passphrase is invalid. Retry or deselect this key.")
+            if let sourceError = error as? SSHImportSourceError {
+                self.error = sourceError.localizedDescription
+            } else {
+                items[index].issue = String(localized: "The key or passphrase is invalid. Retry or deselect this key.")
+            }
         }
     }
 
@@ -325,6 +343,7 @@ public final class SSHImportModel {
         batch.keys = selectedItems(.keys).compactMap { item in
             guard var key = item.key else { return nil }
             key.storage = storage
+            key.colorTag = keyColor
             return key
         }
         batch.knownHosts = selectedItems(.knownHosts).compactMap(\.knownHost)
@@ -365,7 +384,8 @@ public final class SSHImportModel {
             }
             let host = Host(
                 id: item.id, name: item.name, host: imported.hostname, port: imported.port,
-                identityID: identity.id, jumpHostID: jumpID)
+                identityID: identity.id, jumpHostID: jumpID, groupID: hostGroupID,
+                tags: hostTags, colorTag: hostColor)
             built[item.id] = host
             return host
         }

@@ -1,7 +1,83 @@
 import CryptoKit
 import Foundation
 
+public nonisolated enum SSHImportContentKind: Equatable, Sendable {
+    case privateKey
+    case userCertificate
+    case knownHosts
+    case configuration
+    case unknown
+}
+
 public nonisolated enum SSHImportParser {
+    private static let privateKeyHeaders = [
+        "-----BEGIN OPENSSH PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----",
+        "-----BEGIN EC PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----",
+        "-----BEGIN ENCRYPTED PRIVATE KEY-----", "-----BEGIN DSA PRIVATE KEY-----",
+    ]
+
+    /// Classifies OpenSSH text by syntax rather than by the path that contains it.
+    /// Private material wins before the line-oriented formats so a PEM body can
+    /// never be mistaken for a configuration file.
+    public static func contentKind(_ text: String) -> SSHImportContentKind {
+        if privateKeyHeaders.contains(where: { text.hasPrefix($0) }) { return .privateKey }
+
+        let meaningful = text.components(separatedBy: .newlines).compactMap { raw -> [String]? in
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { return nil }
+            return (try? tokens(raw)).flatMap { $0.isEmpty ? nil : $0 }
+        }
+        guard !meaningful.isEmpty else { return .unknown }
+
+        if meaningful.contains(where: { fields in
+            fields.first?.contains("-cert-v01@openssh.com") == true && fields.count >= 2
+        }) {
+            return .userCertificate
+        }
+        if meaningful.contains(where: resemblesKnownHostRecord) { return .knownHosts }
+        if meaningful.contains(where: { fields in
+            fields.first.map { configurationKeywords.contains($0.lowercased()) } == true
+        }) {
+            return .configuration
+        }
+        return .unknown
+    }
+
+    private static func resemblesKnownHostRecord(_ fields: [String]) -> Bool {
+        let algorithmIndex = fields.first?.hasPrefix("@") == true ? 2 : 1
+        guard fields.indices.contains(algorithmIndex), fields.indices.contains(algorithmIndex + 1) else {
+            return false
+        }
+        let algorithm = fields[algorithmIndex]
+        return algorithm.hasPrefix("ssh-") || algorithm.hasPrefix("ecdsa-") || algorithm.hasPrefix("sk-")
+    }
+
+    /// Includes the directives Termind evaluates plus common OpenSSH options.
+    /// Seeing any of these is enough to treat the file as configuration; the
+    /// parser still reports unsupported directives as warnings.
+    private static let configurationKeywords: Set<String> = [
+        "addkeystoagent", "addressfamily", "batchmode", "bindaddress", "bindinterface",
+        "canonicaldomains", "canonicalizefallbacklocal", "canonicalizehostname", "canonicalizemaxdots",
+        "canonicalizepermittedcnames", "casignaturealgorithms", "certificatefile", "checkhostip", "ciphers",
+        "clearallforwardings", "compression", "connectionattempts", "connecttimeout", "controlmaster",
+        "controlpath", "controlpersist", "dynamicforward", "enableescapecommandline", "enablesshkeysign",
+        "escapechar", "exitonforwardfailure", "fingerprinthash", "forkafterauthentication", "forwardagent",
+        "forwardx11", "forwardx11timeout", "forwardx11trusted", "gatewayports", "globalknownhostsfile",
+        "gssapiauthentication", "gssapidelegatecredentials", "hashknownhosts", "host", "hostbasedauthentication",
+        "hostkeyalgorithms", "hostname", "identitiesonly", "identityagent", "identityfile", "ignoreunknown",
+        "include", "ipqos", "kbdinteractiveauthentication", "kexalgorithms", "knownhostscommand", "localcommand",
+        "localforward", "loglevel", "logverbose", "macs", "match", "nohostauthenticationforlocalhost",
+        "numberofpasswordprompts", "obscurekeystroketiming", "passwordauthentication", "permitlocalcommand",
+        "permitremoteopen", "pkcs11provider", "port", "preferredauthentications", "proxycommand", "proxyjump",
+        "proxyusefdpass", "pubkeyacceptedalgorithms", "pubkeyauthentication", "remoteforward",
+        "rekeylimit", "requesttty", "requiredrsasize", "sendenv", "serveralivecountmax", "serveraliveinterval",
+        "sessiontype",
+        "setenv", "stdinnull", "streamlocalbindmask", "streamlocalbindunlink", "stricthostkeychecking",
+        "syslogfacility",
+        "tcpkeepalive", "tunnel", "tunneldevice", "updatehostkeys", "user", "userknownhostsfile", "verifyhostkeydns",
+        "visualhostkey", "xauthlocation",
+    ]
+
     /// Tokenizes OpenSSH's quoted arguments without invoking a shell.
     public static func tokens(_ line: String) throws -> [String] {
         var result: [String] = []

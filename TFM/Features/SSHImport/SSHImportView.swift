@@ -22,6 +22,7 @@ struct SSHImportView: View {
 }
 
 private struct SSHImportContent: View {
+    @Environment(AppModel.self) private var app
     @Bindable var model: SSHImportModel
     let knownHostsOnly: Bool
     let close: () -> Void
@@ -49,7 +50,25 @@ private struct SSHImportContent: View {
                         sourcePicker
                     }
                     if !knownHostsOnly {
+                        Section("Hosts") {
+                            Picker("Group", selection: $model.hostGroupID) {
+                                Text("None").tag(HostGroup.ID?.none)
+                                ForEach(app.hostLibrary.groups) { group in
+                                    Text(group.name).tag(HostGroup.ID?.some(group.id))
+                                }
+                            }
+                            LabeledContent("Color") {
+                                ColorTagPicker(selection: $model.hostColor, layout: .compact)
+                            }
+                            VStack(alignment: .leading, spacing: Metrics.Space.s) {
+                                Text("Tags")
+                                TagField(tags: $model.hostTags, suggestions: app.hostLibrary.allTags)
+                            }
+                        }
                         Section("Keys") {
+                            LabeledContent("Color") {
+                                ColorTagPicker(selection: $model.keyColor, layout: .compact)
+                            }
                             Picker("Store in", selection: $model.storage) {
                                 Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                                 Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
@@ -63,7 +82,13 @@ private struct SSHImportContent: View {
                         ForEach(SSHImportCategory.allCases) { category in
                             if model.items.contains(where: { $0.category == category }) {
                                 Section {
-                                    categorySection(category)
+                                    categoryHeader(category)
+                                    if model.expanded.contains(category) {
+                                        ForEach(model.items.filter { $0.category == category }) { item in
+                                            itemRow(binding(for: item))
+                                                .id(item.id)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -189,27 +214,29 @@ private struct SSHImportContent: View {
         .disabled(total == 0)
     }
 
-    private func categorySection(_ category: SSHImportCategory) -> some View {
-        VStack(spacing: Metrics.Space.m) {
-            HStack {
-                Button {
-                    if model.expanded.contains(category) {
-                        model.expanded.remove(category)
-                    } else {
-                        model.expanded.insert(category)
-                    }
-                } label: {
-                    Image(systemName: model.expanded.contains(category) ? "chevron.down" : "chevron.right")
+    private func categoryHeader(_ category: SSHImportCategory) -> some View {
+        HStack {
+            Button {
+                if model.expanded.contains(category) {
+                    model.expanded.remove(category)
+                } else {
+                    model.expanded.insert(category)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(category.title)
-                selectionButton(category: category, title: category.title)
-            }.font(.headline)
-            if model.expanded.contains(category) {
-                ForEach($model.items) { $item in
-                    if item.category == category { itemRow($item) }
-                }
+            } label: {
+                Image(systemName: model.expanded.contains(category) ? "chevron.down" : "chevron.right")
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(category.title)
+            selectionButton(category: category, title: category.title)
+        }.font(.headline)
+    }
+
+    private func binding(for item: SSHImportItem) -> Binding<SSHImportItem> {
+        Binding {
+            model.items.first(where: { $0.id == item.id }) ?? item
+        } set: { updated in
+            guard let index = model.items.firstIndex(where: { $0.id == item.id }) else { return }
+            model.items[index] = updated
         }
     }
 
@@ -273,8 +300,13 @@ private struct SSHImportContent: View {
             }
             if item.requiresPassphrase {
                 SecureField(
-                    "Passphrase", text: Binding(get: { passphrases[item.id] ?? "" }, set: { passphrases[item.id] = $0 })
+                    "Passphrase",
+                    text: Binding(get: { passphrases[item.id] ?? "" }, set: { passphrases[item.id] = $0 }),
+                    prompt: Text("Passphrase")
                 )
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, Metrics.Space.m)
                 Button("Unlock Key") {
                     let passphrase = passphrases.removeValue(forKey: item.id) ?? ""
                     Task { await model.unlock(item.id, passphrase: passphrase) }
@@ -299,7 +331,6 @@ private struct SSHImportContent: View {
             if let issue = model.problem(for: item, includeWarningReminder: false), item.existingID == nil {
                 Text(issue).font(.caption).foregroundStyle(item.unavailable ? Color.secondary : Color.orange)
             }
-            Divider()
         }
     }
 }
