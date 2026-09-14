@@ -161,7 +161,8 @@ nonisolated public struct SFTPWriteTool: SFTPToolDefinition {
     public static let extraProperties = ["content": string(max: 131_072), "overwrite": boolean()]
     public static let extraRequired = ["content"]
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.sftp_write", present: present
+        id: "builtin.sftp_write", present: present,
+        presentArguments: presentArguments
     )
     public static let presentation = AgentToolDescriptor.Presentation(
         symbol: "square.and.pencil",
@@ -191,7 +192,8 @@ nonisolated public struct SFTPMkdirTool: SFTPToolDefinition {
     public static let summary = "Create a remote directory."
     public static let safety: AgentToolDescriptor.Safety = .requiresAuthorization
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.sftp_mkdir", present: present
+        id: "builtin.sftp_mkdir", present: present,
+        presentArguments: presentArguments
     )
     public static let presentation = AgentToolDescriptor.Presentation(
         symbol: "folder.badge.plus",
@@ -221,7 +223,8 @@ nonisolated public struct SFTPMoveTool: SFTPToolDefinition {
     public static let extraProperties = ["destination": string(max: 4_096), "overwrite": boolean()]
     public static let extraRequired = ["destination"]
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.sftp_move", present: present
+        id: "builtin.sftp_move", present: present,
+        presentArguments: presentArguments
     )
     public static let presentation = AgentToolDescriptor.Presentation(
         symbol: "arrow.right", activity: .semanticArgument(key: "path", fallback: .remoteFile),
@@ -257,7 +260,8 @@ nonisolated public struct SFTPChmodTool: SFTPToolDefinition {
     public static let extraProperties = ["mode": string(max: 4)]
     public static let extraRequired = ["mode"]
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.sftp_chmod", present: present
+        id: "builtin.sftp_chmod", present: present,
+        presentArguments: presentArguments
     )
     public static let presentation = AgentToolDescriptor.Presentation(
         symbol: "lock", activity: .semanticArgument(key: "path", fallback: .remoteFile),
@@ -292,7 +296,8 @@ nonisolated public struct SFTPDeleteTool: SFTPToolDefinition {
     public static let extraProperties = ["kind": enumeration(["file", "directory"])]
     public static let extraRequired = ["kind"]
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.sftp_delete", present: present
+        id: "builtin.sftp_delete", present: present,
+        presentArguments: presentArguments
     )
     public static let presentation = AgentToolDescriptor.Presentation(
         symbol: "trash", activity: .semanticArgument(key: "path", fallback: .remoteFile),
@@ -403,6 +408,20 @@ nonisolated extension SFTPWriteTool {
             return items
         }
     }
+
+    public static func presentArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items = SFTPToolPresentation.pathArguments(input)
+        if let content = input.arguments["content"]?.stringValue {
+            items.append(F.text("Content", content, locale: input.locale))
+        }
+        SFTPToolPresentation.appendBoolean(
+            &items, label: "Overwrite", value: input.arguments["overwrite"],
+            locale: input.locale)
+        return items
+    }
 }
 nonisolated extension SFTPMkdirTool {
     public static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
@@ -412,6 +431,12 @@ nonisolated extension SFTPMkdirTool {
                 "Directory created", locale: input.locale
             )
         )
+    }
+
+    public static func presentArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        SFTPToolPresentation.pathArguments(input)
     }
 }
 nonisolated extension SFTPMoveTool {
@@ -428,6 +453,23 @@ nonisolated extension SFTPMoveTool {
             return items
         }
     }
+
+    public static func presentArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(
+            &items, "Source", input.arguments["path"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        F.appendField(
+            &items, "Destination", input.arguments["destination"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        SFTPToolPresentation.appendBoolean(
+            &items, label: "Overwrite", value: input.arguments["overwrite"],
+            locale: input.locale)
+        return items
+    }
 }
 nonisolated extension SFTPChmodTool {
     public static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
@@ -442,6 +484,17 @@ nonisolated extension SFTPChmodTool {
                 locale: input.locale, monospaced: true)
             return items
         }
+    }
+
+    public static func presentArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items = SFTPToolPresentation.pathArguments(input)
+        F.appendField(
+            &items, "Permissions", input.arguments["mode"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        return items
     }
 }
 nonisolated extension SFTPDeleteTool {
@@ -464,9 +517,48 @@ nonisolated extension SFTPDeleteTool {
             return items
         }
     }
+
+    public static func presentArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items = SFTPToolPresentation.pathArguments(input)
+        F.appendField(
+            &items, "Kind",
+            input.arguments["kind"]?.stringValue.map {
+                F.kindLabel($0, locale: input.locale)
+            }, locale: input.locale)
+        return items
+    }
 }
 
 nonisolated public enum SFTPToolPresentation {
+    public static func pathArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(
+            &items, "Path", input.arguments["path"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        return items
+    }
+
+    public static func appendBoolean(
+        _ items: inout [AgentToolDetail.Item],
+        label: String.LocalizationValue,
+        value: AgentJSONValue?,
+        locale: Locale
+    ) {
+        guard let value = value?.boolValue else { return }
+        items.append(
+            AgentToolDetailFormatting.field(
+                label,
+                AgentToolDetailFormatting.localized(value ? "Yes" : "No", locale: locale),
+                locale: locale
+            ))
+    }
+
     public static func remoteFileRow(
         _ value: AgentJSONValue, locale: Locale
     ) -> AgentToolDetail.ListRow? {

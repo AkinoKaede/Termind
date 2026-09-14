@@ -130,10 +130,10 @@ struct AssistantTranscriptPresentationTests {
         let request = AgentApprovalRequest(
             invocation: value.invocation, descriptor: value.descriptor, userIntent: "Inspect")
         let answer = Task { await conversation.requestApproval(request) }
-        defer { conversation.respondToApproval(allow: false) }
+        defer { conversation.respondToApproval(request.id, allow: false) }
         for _ in 0..<100 where conversation.pendingApprovals.isEmpty { await Task.yield() }
         _ = try #require(conversation.pendingApprovals.first)
-        conversation.respondToApproval(allow: false)
+        conversation.respondToApproval(request.id, allow: false)
         _ = await answer.value
         conversation.handle(.toolProposed(value.invocation, value.descriptor))
         conversation.handle(.approvalRequested(request))

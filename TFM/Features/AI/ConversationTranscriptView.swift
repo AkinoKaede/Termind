@@ -3,6 +3,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
@@ -525,36 +526,75 @@ private struct AgentApprovalCard: View {
     let request: AgentApprovalRequest
     let conversation: ConversationModel
 
+    @Environment(AppModel.self) private var app
+    @Environment(\.locale) private var locale
+    @State private var showsSafetyDetails = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.s) {
+        let presentation = AgentToolPresentation.approval(
+            for: request,
+            presenter: TermindAgentTools.presenter(for: request.descriptor),
+            hostName: request.invocation.targetHostID.map(hostName),
+            locale: locale
+        )
+        return VStack(alignment: .leading, spacing: Metrics.Space.m) {
             HStack {
                 Label("Approval required", systemImage: "hand.raised.fill").font(.headline)
                 Spacer()
                 QueueDepthLabel(remaining: conversation.pendingApprovals.count)
             }
-            Text(request.descriptor.qualifiedName).font(.callout.weight(.semibold))
-            if let host = request.invocation.targetHostID {
-                Text("Host: \(host.uuidString)").font(.caption).foregroundStyle(.secondary)
+
+            HStack(alignment: .firstTextBaseline, spacing: Metrics.Space.s) {
+                Image(systemName: presentation.symbol)
+                    .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+                Text(presentation.title)
+                    .font(.callout.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text(AgentSensitiveDataRedactor.redactedJSON(request.invocation.call.arguments).encodedString)
-                .font(.caption.monospaced()).textSelection(.enabled)
-            ForEach(request.localReasons, id: \.self) {
-                Text($0).font(.caption).foregroundStyle(.orange)
+
+            ViewThatFits(in: .vertical) {
+                approvalDetails(presentation)
+                    .fixedSize(horizontal: false, vertical: true)
+                ScrollView {
+                    approvalDetails(presentation)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .scrollBounceBehavior(.basedOnSize)
             }
+
             HStack {
-                Button("Deny", role: .destructive) { conversation.respondToApproval(allow: false) }
-                    .keyboardShortcut(.cancelAction)
+                Button("Deny", role: .destructive) {
+                    conversation.respondToApproval(request.id, allow: false)
+                }
+                .accessibilityIdentifier("AssistantApproval.Deny")
                 Spacer()
-                Button("Allow Once") { conversation.respondToApproval(allow: true) }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
+                Button("Allow Once") {
+                    conversation.respondToApproval(request.id, allow: true)
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("AssistantApproval.AllowOnce")
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("AssistantApproval.Card")
         .activeFormKeyboardActions(
             isDefaultEnabled: true,
-            onDefault: { conversation.respondToApproval(allow: true) },
-            onCancel: { conversation.respondToApproval(allow: false) }
+            onDefault: { conversation.respondToApproval(request.id, allow: true) },
+            onCancel: { conversation.respondToApproval(request.id, allow: false) }
         )
+    }
+
+    private func approvalDetails(_ presentation: AgentApprovalPresentation) -> some View {
+        AssistantApprovalDetails(
+            detail: presentation.detail,
+            reasons: request.localReasons,
+            showsSafetyDetails: $showsSafetyDetails
+        )
+    }
+
+    private func hostName(_ id: UUID) -> String {
+        app.hostLibrary.host(id)?.name ?? String(id.uuidString.prefix(8))
     }
 }
 

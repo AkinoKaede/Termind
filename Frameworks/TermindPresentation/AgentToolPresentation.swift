@@ -23,6 +23,34 @@ nonisolated public enum AgentToolPresentation {
         return card.descriptor.presentation?.symbol ?? "wrench.and.screwdriver"
     }
 
+    /// The live, user-only projection of a call waiting for approval.
+    ///
+    /// Approval is the one place where the person needs to inspect exactly
+    /// what will be sent. Its arguments therefore remain unredacted here; the
+    /// projection is derived from the in-memory request and is never attached
+    /// to the durable tool card or model transcript.
+    public static func approval(
+        for request: AgentApprovalRequest,
+        presenter: AgentToolDetailPresenter? = nil,
+        hostName: String? = nil,
+        locale: Locale = .current
+    ) -> AgentApprovalPresentation {
+        let card = AgentToolCard(
+            invocation: request.invocation,
+            descriptor: request.descriptor,
+            state: .waitingForApproval
+        )
+        return AgentApprovalPresentation(
+            symbol: symbol(for: card),
+            title: summary(for: card, hostName: hostName, locale: locale),
+            detail: AgentToolDetail(
+                items: approvalArgumentItems(
+                    request.invocation.call.arguments, presenter: presenter,
+                    hidesHostID: hostName != nil, locale: locale)
+            )
+        )
+    }
+
     /// While work is live, use the icon of the tool(s) still in flight. After
     /// completion, a homogeneous batch keeps its tool icon; mixed batches use
     /// the generic tools symbol.
@@ -276,6 +304,33 @@ nonisolated public enum AgentToolPresentation {
             displayed: displayed, full: full,
             isShortened: true, omittedCharacters: omitted
         )
+    }
+
+    private static func approvalArgumentItems(
+        _ arguments: AgentJSONValue,
+        presenter: AgentToolDetailPresenter?,
+        hidesHostID: Bool,
+        locale: Locale
+    ) -> [AgentToolDetail.Item] {
+        guard let object = arguments.objectValue else {
+            return [
+                .text(
+                    .init(
+                        title: localized("Arguments", locale: locale),
+                        text: arguments.encodedString,
+                        style: .monospaced
+                    ))
+            ]
+        }
+
+        var visible = object
+        if hidesHostID { visible.removeValue(forKey: "host_id") }
+        if let projected = presenter?.presentArguments(
+            .init(arguments: visible, locale: locale)
+        ) {
+            return projected
+        }
+        return AgentToolDetailFormatting.genericItems(.object(visible), locale: locale)
     }
 
     private static func renderedPreview(

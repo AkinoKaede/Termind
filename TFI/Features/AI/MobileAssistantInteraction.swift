@@ -2,11 +2,14 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindPresentation
+import TermindRemoteInfrastructure
 
 struct MobileAssistantInteraction: View {
     @Bindable var conversation: ConversationModel
     let hosts: HostLibraryModel
     @FocusState private var focusedInput: InputFocus?
+    @Environment(\.locale) private var locale
+    @State private var expandedApprovalID: UUID?
 
     private enum InputFocus: Hashable {
         case text(String)
@@ -19,25 +22,7 @@ struct MobileAssistantInteraction: View {
         if let approval = conversation.pendingApproval,
             conversation.pendingUserInteraction.map({ approval.invocation.createdAt <= $0.createdAt }) ?? true
         {
-            MobileAssistantAdaptiveHeight {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Approval Required").font(.headline)
-                    Text(approval.descriptor.name).font(.callout.monospaced())
-                    Text(approval.invocation.call.arguments.displayText).font(.caption.monospaced()).textSelection(
-                        .enabled
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    ForEach(approval.localReasons, id: \.self) { Text($0).font(.caption) }
-                    HStack {
-                        Button("Deny", systemImage: "xmark", role: .cancel) {
-                            conversation.respondToApproval(allow: false)
-                        }
-                        Spacer()
-                        Button("Allow", systemImage: "checkmark") { conversation.respondToApproval(allow: true) }
-                            .buttonStyle(.borderedProminent)
-                    }
-                }
-            }
+            approvalCard(approval)
         } else if let interaction = conversation.pendingUserInteraction {
             switch interaction {
             case .sshAuthentication(let request):
@@ -52,6 +37,84 @@ struct MobileAssistantInteraction: View {
                 questions
             }
         }
+    }
+
+    private func approvalCard(_ approval: AgentApprovalRequest) -> some View {
+        let presentation = AgentToolPresentation.approval(
+            for: approval,
+            presenter: TermindAgentTools.presenter(for: approval.descriptor),
+            hostName: approval.invocation.targetHostID.map(hostName),
+            locale: locale
+        )
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Approval required", systemImage: "hand.raised.fill")
+                    .font(.headline)
+                Spacer()
+                if conversation.pendingApprovals.count > 1 {
+                    Text("1 of \(conversation.pendingApprovals.count)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: presentation.symbol)
+                    .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+                Text(presentation.title)
+                    .font(.callout.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ViewThatFits(in: .vertical) {
+                approvalDetails(presentation, approval: approval)
+                    .fixedSize(horizontal: false, vertical: true)
+                ScrollView {
+                    approvalDetails(presentation, approval: approval)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
+
+            HStack {
+                Button("Deny", systemImage: "xmark", role: .cancel) {
+                    conversation.respondToApproval(approval.id, allow: false)
+                }
+                .accessibilityIdentifier("AssistantApproval.Deny")
+                Spacer()
+                Button("Allow Once", systemImage: "checkmark") {
+                    conversation.respondToApproval(approval.id, allow: true)
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("AssistantApproval.AllowOnce")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("AssistantApproval.Card")
+    }
+
+    private func approvalDetails(
+        _ presentation: AgentApprovalPresentation,
+        approval: AgentApprovalRequest
+    ) -> some View {
+        AssistantApprovalDetails(
+            detail: presentation.detail,
+            reasons: approval.localReasons,
+            showsSafetyDetails: safetyDetailsBinding(for: approval.id)
+        )
+    }
+
+    private func safetyDetailsBinding(for approvalID: UUID) -> Binding<Bool> {
+        Binding(
+            get: { expandedApprovalID == approvalID },
+            set: { expandedApprovalID = $0 ? approvalID : nil }
+        )
+    }
+
+    private func hostName(_ id: UUID) -> String {
+        hosts.host(id)?.name ?? String(id.uuidString.prefix(8))
     }
 
     private var questions: some View {

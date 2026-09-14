@@ -5,9 +5,16 @@ public struct AssistantToolDetails: View {
     private let items: [AgentToolDetail.Item]
     private let isError: Bool
     private let copy: ((String) -> Void)?
-    public init(items: [AgentToolDetail.Item], isError: Bool = false, copy: ((String) -> Void)? = nil) {
+    private let shortensText: Bool
+    public init(
+        items: [AgentToolDetail.Item],
+        isError: Bool = false,
+        shortensText: Bool = true,
+        copy: ((String) -> Void)? = nil
+    ) {
         self.items = items
         self.isError = isError
+        self.shortensText = shortensText
         self.copy = copy
     }
     public var body: some View {
@@ -31,12 +38,13 @@ public struct AssistantToolDetails: View {
         case .message(let text, let tint): Text(text).foregroundStyle(color(tint))
         case .text(let block):
             if let title = block.title { Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary) }
-            let preview = AgentToolPresentation.preview(block.text)
+            let preview = shortensText ? AgentToolPresentation.preview(block.text) : nil
             ScrollView(.horizontal) {
-                Text(preview.displayed).font(block.style == .monospaced ? .caption.monospaced() : .caption)
+                Text(preview?.displayed ?? block.text)
+                    .font(block.style == .monospaced ? .caption.monospaced() : .caption)
                     .foregroundStyle(isError ? Color.red : .secondary)
             }
-            if preview.isShortened {
+            if let preview, preview.isShortened {
                 HStack {
                     Text("Output shortened for display").font(.caption2).foregroundStyle(.secondary)
                     if let copy {
@@ -88,5 +96,64 @@ public struct AssistantToolDetails: View {
         case .success: .green
         case .failure: .red
         }
+    }
+}
+
+/// The shared body of the macOS and mobile approval cards.
+/// Tool arguments remain fully visible; only the safety explanation is folded.
+public struct AssistantApprovalDetails: View {
+    private let detail: AgentToolDetail
+    private let reasons: [String]
+    @Binding private var showsSafetyDetails: Bool
+
+    public init(
+        detail: AgentToolDetail,
+        reasons: [String],
+        showsSafetyDetails: Binding<Bool>
+    ) {
+        self.detail = detail
+        self.reasons = reasons
+        _showsSafetyDetails = showsSafetyDetails
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            AssistantToolDetails(items: detail.items, shortensText: false)
+            if !reasons.isEmpty {
+                DisclosureGroup(isExpanded: $showsSafetyDetails) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(reasons, id: \.self) { reason in
+                            Text(reason)
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .padding(.top, 4)
+                } label: {
+                    HStack(spacing: 6) {
+                        Label("Safety details", systemImage: "exclamationmark.triangle")
+                        Text(reasons.count, format: .number)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption.weight(.medium))
+                }
+                .accessibilityIdentifier("AssistantApproval.SafetyDetails")
+            }
+        }
+        .accessibilityIdentifier("AssistantApproval.Details")
+    }
+}
+
+public nonisolated struct AgentApprovalPresentation: Equatable, Sendable {
+    public let symbol: String
+    public let title: String
+    public let detail: AgentToolDetail
+
+    public init(symbol: String, title: String, detail: AgentToolDetail) {
+        self.symbol = symbol
+        self.title = title
+        self.detail = detail
     }
 }

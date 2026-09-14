@@ -188,7 +188,10 @@ library only after confirmation.
 Tools never receive the interactive PTY. SSH exec uses a dedicated channel and file
 operations use run-scoped SFTP. User-entered secrets are single-use handles bound to
 run/tool/host/purpose; plaintext never enters model input, reviews, events, logs, or
-SwiftData. Fetch permits proven public HTTP(S) reads, revalidates DNS on every
+SwiftData. A live approval is the deliberate user-review boundary: while it is pending,
+the local UI projects the invocation's original arguments through the registered tool
+presenter so the person can inspect exactly what will run. That projection is neither
+recorded nor reused after the decision. Fetch permits proven public HTTP(S) reads, revalidates DNS on every
 redirect, reauthorizes entry into a restricted origin, follows explicit headers like
 `curl -H -L`, and redacts sensitive values. Remote MCP metadata can tighten but never
 relax local safety.

@@ -1942,8 +1942,8 @@ public final class ConversationModel: Identifiable {
         return await withCheckedContinuation { approvalWaiters[request.id] = $0 }
     }
 
-    public func respondToApproval(allow: Bool) {
-        guard !pendingApprovals.isEmpty else { return }
+    public func respondToApproval(_ requestID: UUID, allow: Bool) {
+        guard pendingApprovals.first?.id == requestID else { return }
         let request = pendingApprovals.removeFirst()
         let decision: AgentApprovalDecision =
             allow

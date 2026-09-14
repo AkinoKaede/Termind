@@ -3,6 +3,15 @@ import ListViewKit
 import SwiftUI
 import TermindApplication
 
+nonisolated enum AssistantSidebarEscapePolicy {
+    static func shouldCloseConversation(
+        hasConversation: Bool,
+        hasBlockingInteraction: Bool
+    ) -> Bool {
+        hasConversation && !hasBlockingInteraction
+    }
+}
+
 /// Assistant's conversation navigator inside the window's shared sidebar: the
 /// chat list, over a bar holding the two things you do to the list itself.
 ///
@@ -134,6 +143,13 @@ struct AssistantPanelView: View {
         let dropConversation =
             window.sidebarAssistantConversation
             ?? window.sidebar.assistantDraft
+        // Capture this render's state so an Escape which resolves the form
+        // cannot fall through to Back after the resolution synchronously
+        // removes the pending request.
+        let blocksSidebarEscape =
+            window.sidebarAssistantConversation.map {
+                $0.pendingApproval != nil || $0.pendingUserInteraction != nil
+            } ?? false
 
         return VStack(spacing: 0) {
             Group {
@@ -170,7 +186,12 @@ struct AssistantPanelView: View {
             isEnabled: isFocusedOnWorkspace
         )
         .onKeyPress(.escape, phases: .down) { _ in
-            guard window.sidebar.assistantConversationID != nil else { return .ignored }
+            guard
+                AssistantSidebarEscapePolicy.shouldCloseConversation(
+                    hasConversation: window.sidebar.assistantConversationID != nil,
+                    hasBlockingInteraction: blocksSidebarEscape
+                )
+            else { return .ignored }
             window.closeAssistantInSidebar()
             return .handled
         }
@@ -235,7 +256,6 @@ struct AssistantPanelView: View {
                         .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .keyboardShortcut(.cancelAction)
                 .help(Text("Back to Chats"))
 
                 Text(conversation.derivedTitle)

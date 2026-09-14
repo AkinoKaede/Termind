@@ -81,7 +81,10 @@ nonisolated public struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaB
 }
 
 nonisolated public struct ScratchPushTool: AgentToolDefinition, AgentToolSchemaBuilding {
-    public static let presenter = AgentToolDetailPresenter(id: "builtin.scratch_push", present: present)
+    public static let presenter = AgentToolDetailPresenter(
+        id: "builtin.scratch_push", present: present,
+        presentArguments: presentArguments
+    )
     public let workspace: AgentScratchWorkspace
     public let pool: AgentConnectionPool
     public let authentication: AgentSSHAuthenticationRegistry
@@ -220,5 +223,22 @@ nonisolated extension ScratchPushTool {
             items.append(F.field("Result", F.localized("Written", locale: input.locale), locale: input.locale))
             return items
         }
+    }
+
+    public static func presentArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items: [AgentToolDetail.Item] = []
+        F.appendField(
+            &items, "Scratch path", input.arguments["scratch_path"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        F.appendField(
+            &items, "Remote path", input.arguments["remote_path"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        SFTPToolPresentation.appendBoolean(
+            &items, label: "Overwrite", value: input.arguments["overwrite"],
+            locale: input.locale)
+        return items
     }
 }

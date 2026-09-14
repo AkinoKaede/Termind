@@ -244,6 +244,25 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func sidebarEscapeYieldsToAVisibleDecisionForm() {
+        #expect(
+            !AssistantSidebarEscapePolicy.shouldCloseConversation(
+                hasConversation: true,
+                hasBlockingInteraction: true
+            ))
+        #expect(
+            AssistantSidebarEscapePolicy.shouldCloseConversation(
+                hasConversation: true,
+                hasBlockingInteraction: false
+            ))
+        #expect(
+            !AssistantSidebarEscapePolicy.shouldCloseConversation(
+                hasConversation: false,
+                hasBlockingInteraction: false
+            ))
+    }
+
+    @Test
     func reasoningEffortDefaultsToMedium() {
         #expect(ConversationModel().reasoningEffort == .medium)
     }

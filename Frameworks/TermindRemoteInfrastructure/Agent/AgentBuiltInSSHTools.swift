@@ -230,7 +230,10 @@ nonisolated extension AgentToolSupport {
 }
 
 nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuilding {
-    public static let presenter = AgentToolDetailPresenter(id: "builtin.ssh_exec", present: present)
+    public static let presenter = AgentToolDetailPresenter(
+        id: "builtin.ssh_exec", present: present,
+        presentArguments: presentArguments
+    )
     public let authentication: AgentSSHAuthenticationRegistry
     public let pool: AgentConnectionPool
     public let background: AgentBackgroundCommands
@@ -474,6 +477,33 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
 nonisolated extension SSHExecTool {
     public static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
         SSHCommandPresentation.present(input)
+    }
+
+    public static func presentArguments(
+        _ input: AgentToolArgumentDetailInput
+    ) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items: [AgentToolDetail.Item] = []
+        if let command = input.arguments["command"]?.stringValue {
+            items.append(F.text("Command", command, locale: input.locale))
+        }
+        F.appendField(
+            &items, "Working directory", input.arguments["cwd"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        if let seconds = input.arguments["timeout_seconds"]?.integerValue {
+            items.append(
+                F.field("Timeout", "\(seconds)s", locale: input.locale, monospaced: true))
+        }
+        if let standardInput = input.arguments["stdin"]?.stringValue {
+            items.append(F.text("Input", standardInput, locale: input.locale))
+        }
+        F.appendField(
+            &items, "Secret handle", input.arguments["secret_handle"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        F.appendField(
+            &items, "Purpose", input.arguments["stdin_purpose"]?.stringValue,
+            locale: input.locale)
+        return items
     }
 }
 

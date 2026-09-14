@@ -15,6 +15,87 @@ import struct TermindDomain.Host
 @Suite
 struct AgentToolPresentationTests {
     @Test
+    func approvalUsesTheRegisteredToolArgumentProjectionWithoutRedactingIt() throws {
+        let hostID = UUID()
+        let command = "sudo deploy --token=visible-to-the-user"
+        let request = AgentApprovalRequest(
+            invocation: AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(
+                    id: "approval",
+                    name: "ssh_exec",
+                    arguments: .object([
+                        "host_id": .string(hostID.uuidString),
+                        "command": .string(command),
+                        "stdin": .string("password=hunter2"),
+                        "secret_handle": .string("one-shot-handle"),
+                        "stdin_purpose": .string("sudo password"),
+                    ])
+                ),
+                targetHostID: hostID
+            ),
+            descriptor: AgentToolDescriptor(
+                name: "ssh_exec", summary: "Execute over SSH",
+                inputSchema: .object([:]), target: .host,
+                safety: .requiresAuthorization,
+                presentation: .init(
+                    symbol: "terminal",
+                    activity: .semanticArgument(key: "command", fallback: .sshCommand),
+                    actionKind: .run
+                )
+            ),
+            userIntent: "Deploy"
+        )
+
+        let presentation = AgentToolPresentation.approval(
+            for: request,
+            presenter: SSHExecTool.presenter,
+            hostName: "Production",
+            locale: Locale(identifier: "en")
+        )
+
+        #expect(presentation.symbol == "terminal")
+        #expect(presentation.title.contains("Production"))
+        #expect(!presentation.title.contains(hostID.uuidString))
+        #expect(
+            presentation.detail.items == [
+                .text(.init(title: "Command", text: command, style: .monospaced)),
+                .text(.init(title: "Input", text: "password=hunter2", style: .monospaced)),
+                .field(.init(label: "Secret handle", value: "one-shot-handle", isMonospaced: true)),
+                .field(.init(label: "Purpose", value: "sudo password")),
+            ]
+        )
+    }
+
+    @Test
+    func approvalFallsBackToGenericFieldsForAnUnregisteredTool() {
+        let request = AgentApprovalRequest(
+            invocation: AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(
+                    id: "approval", name: "remote_tool",
+                    arguments: .object(["password": .string("hunter2")])
+                )
+            ),
+            descriptor: AgentToolDescriptor(
+                name: "remote_tool", summary: "Remote tool",
+                inputSchema: .object([:]), target: .mcp,
+                safety: .requiresAuthorization
+            ),
+            userIntent: "Run it"
+        )
+
+        let presentation = AgentToolPresentation.approval(
+            for: request, locale: Locale(identifier: "en")
+        )
+        #expect(
+            presentation.detail.items == [
+                .field(.init(label: "Password", value: "hunter2"))
+            ]
+        )
+    }
+
+    @Test
     func userInputDetailShowsOneQuestionAndAnswerFieldPerLine() throws {
         let arguments: [String: AgentJSONValue] = [
             "questions": .array([

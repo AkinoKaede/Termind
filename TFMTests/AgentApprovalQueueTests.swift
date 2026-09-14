@@ -121,9 +121,19 @@ struct AgentApprovalQueueTests {
         #expect(conversation.pendingApproval?.id == conversation.pendingApprovals.first?.id)
         #expect(conversation.runState == .waitingForApproval)
 
-        conversation.respondToApproval(allow: true)
+        guard let firstID = conversation.pendingApproval?.id else {
+            Issue.record("Expected the first approval")
+            return
+        }
+        conversation.respondToApproval(firstID, allow: true)
         await wait { conversation.pendingApprovals.count == 1 }
-        conversation.respondToApproval(allow: true)
+        conversation.respondToApproval(firstID, allow: false)
+        #expect(conversation.pendingApprovals.count == 1)
+        guard let secondID = conversation.pendingApproval?.id else {
+            Issue.record("Expected the second approval")
+            return
+        }
+        conversation.respondToApproval(secondID, allow: true)
         await waitForTerminal(conversation)
 
         #expect(await log.finished.sorted() == ["first", "second"])
@@ -155,9 +165,17 @@ struct AgentApprovalQueueTests {
             ))
 
         await wait { conversation.pendingApprovals.count == 2 }
-        conversation.respondToApproval(allow: false)
+        guard let firstID = conversation.pendingApproval?.id else {
+            Issue.record("Expected the first approval")
+            return
+        }
+        conversation.respondToApproval(firstID, allow: false)
         await wait { conversation.pendingApprovals.count == 1 }
-        conversation.respondToApproval(allow: true)
+        guard let secondID = conversation.pendingApproval?.id else {
+            Issue.record("Expected the second approval")
+            return
+        }
+        conversation.respondToApproval(secondID, allow: true)
         await waitForTerminal(conversation)
 
         #expect(await log.finished == ["allowed"])

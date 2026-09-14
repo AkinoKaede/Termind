@@ -99,7 +99,7 @@ struct MobileAssistantTests {
         )
 
         #expect(abs(height - availableHeight) < 0.5)
-        conversation.respondToApproval(allow: false)
+        conversation.respondToApproval(request.id, allow: false)
         if case .deny = await approval.value {
         } else {
             Issue.record("Expected the approval request to be denied during cleanup")
