@@ -206,7 +206,7 @@ struct AgentPlanModeTests {
         let ran = RanFlag()
         let events = await drain(
             tools: [execTool(ran: ran)],
-            turns: execTurns("systemctl list-timers --all"), isPlanning: true
+            turns: execTurns("vendorctl inspect"), isPlanning: true
         )
 
         #expect(await ran.didRun)
@@ -235,9 +235,51 @@ struct AgentPlanModeTests {
         #expect(await ran.didRun)
     }
 
-    /// The commands a plan is usually built from. Each was `.caution` before —
-    /// "not a recognised read-only command" — which meant a prompt outside plan
-    /// mode and a refusal inside it.
+    @Test
+    @MainActor
+    func sshExecPreflightUsesClassifierForApprovalAndConcurrency() async throws {
+        let host = Host(name: "Host", host: "host.example")
+        let hosts = AgentHostResolver(store: HostLibraryModel(hosts: [host]))
+        let pool = AgentConnectionPool(
+            configuration: { _ in throw AgentToolError.invalidHost },
+            routeFingerprint: { _ in "" },
+            openExec: { _ in throw AgentToolError.invalidHost },
+            openSFTP: { _ in throw AgentToolError.invalidHost },
+            sweepInterval: nil
+        )
+        let tool = SSHExecTool(
+            authentication: AgentSSHAuthenticationRegistry(resolver: hosts),
+            pool: pool,
+            background: AgentBackgroundCommands(sweepInterval: nil)
+        )
+
+        func invocation(_ command: String) -> AgentToolInvocation {
+            AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(
+                    id: UUID().uuidString,
+                    name: TermindAgentPolicy.sshExecToolName,
+                    arguments: .object([
+                        "host_id": .string(host.id.uuidString),
+                        "command": .string(command),
+                    ])
+                )
+            )
+        }
+
+        let read = try await tool.preflight(invocation("systemctl status nginx"))
+        #expect(read.safety == .locallyReadOnly)
+        #expect(read.concurrency == .parallel)
+        #expect(read.reasons.isEmpty)
+
+        let write = try await tool.preflight(invocation("systemctl restart nginx"))
+        #expect(write.safety == .requiresAuthorization)
+        #expect(write.concurrency == .sequential)
+        #expect(!write.reasons.isEmpty)
+    }
+
+    /// The commands a plan is usually built from. They are classified locally
+    /// as reads, so they can skip approval and run in parallel across hosts.
     @Test
     func ordinaryInspectionCommandsAreProvenReadOnly() {
         let commands = [

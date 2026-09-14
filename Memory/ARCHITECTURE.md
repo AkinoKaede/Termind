@@ -168,6 +168,11 @@ transcript in model order, and every call gets an answer even after cancellation
 refusal. Approvals/questions are queued one at a time; state derives from outstanding
 work. Authorization is a structural executor stage and cannot be removed by hooks.
 
+Command classification recursively unwraps supported shell wrappers and static nested
+commands, then applies argument- and subcommand-aware rules. Only explicitly proven
+read forms are locally read-only; unknown tools, options, embedded programs, excessive
+complexity, and unsupported shell syntax fail closed to a state-changing assessment.
+
 Permission modes share all validation:
 
 - Ask for approval allows proven `locallyReadOnly`/`locallyContained` work and asks

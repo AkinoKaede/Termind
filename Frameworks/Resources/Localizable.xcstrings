@@ -17,6 +17,150 @@
         }
       }
     },
+    "`%@` changes system, file, or external state." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`%@`会更改系统、文件或外部状态。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`%@`會更改系統、檔案或外部狀態。"
+          }
+        }
+      }
+    },
+    "Command analysis exceeded the supported complexity limit." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令分析超出了支持的复杂度限制。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指令分析超出了支援的複雜度限制。"
+          }
+        }
+      }
+    },
+    "Caution" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "谨慎"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "謹慎"
+          }
+        }
+      }
+    },
+    "Contains shell syntax that cannot be proven read-only." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含无法证明为只读的Shell语法。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含無法證明為唯讀的Shell語法。"
+          }
+        }
+      }
+    },
+    "Force-overwrites `%@`." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制覆盖`%@`。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制覆寫`%@`。"
+          }
+        }
+      }
+    },
+    "Runs a command on another host." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在另一台主机上运行命令。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在另一台主機上執行指令。"
+          }
+        }
+      }
+    },
+    "Stops, disables, or removes service state." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止、禁用或移除服务状态。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止、停用或移除服務狀態。"
+          }
+        }
+      }
+    },
+    "Writes directly to a device or kernel control path." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接写入设备或内核控制路径。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接寫入裝置或核心控制路徑。"
+          }
+        }
+      }
+    },
+    "Writes to `%@`." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入`%@`。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寫入`%@`。"
+          }
+        }
+      }
+    },
     " Copy" : {
       "localizations" : {
         "zh-Hans" : {
