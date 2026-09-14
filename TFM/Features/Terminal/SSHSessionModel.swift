@@ -573,8 +573,8 @@ final class SSHSessionModel: Identifiable {
         connection.clearHostKeyPrompt()
         connectionTask?.cancel()
         status = reconnecting ? .reconnecting : .connecting
-        connectionTask = Task { [weak self] in
-            guard let self else { return }
+        connectionTask = Task { [weak self, weak store] in
+            guard let self, let store else { return }
             do {
                 try await openSSH(
                     host: host, username: username, credentials: credentials,

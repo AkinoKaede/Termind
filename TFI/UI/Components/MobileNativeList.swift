@@ -214,8 +214,6 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             }
         }
 
-        @_optimize(none) deinit {}
-
         func update(
             listView: ListView<Item>, items newItems: [Item], renderer: @escaping Renderer,
             onSelect: ((Item) -> Void)?,

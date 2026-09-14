@@ -7696,7 +7696,6 @@
       }
     },
     "Discard Changes" : {
-      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -7713,7 +7712,6 @@
       }
     },
     "Discard Changes?" : {
-      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

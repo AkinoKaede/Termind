@@ -42,9 +42,6 @@ where
     private var colorScheme = ColorScheme.light
     private var items: [Item] = []
 
-    // Swift 6.3.3's optimizer can crash while synthesizing generic deinit.
-    @_optimize(none) deinit {}
-
     @discardableResult
     func update(
         _ listView: ListView<Item>, items newItems: [Item], renderer: @escaping Renderer,

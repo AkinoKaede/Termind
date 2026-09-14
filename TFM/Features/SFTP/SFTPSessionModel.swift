@@ -347,8 +347,8 @@ final class SFTPSessionModel: Identifiable {
         hint =
             reconnecting
             ? String(localized: "Reconnecting") : String(localized: "Connecting")
-        connectionTask = Task { [weak self] in
-            guard let self else { return }
+        connectionTask = Task { [weak self, weak store] in
+            guard let self, let store else { return }
             do {
                 let configuration: SSHConnectionConfiguration
                 if let suppliedAuthentication {

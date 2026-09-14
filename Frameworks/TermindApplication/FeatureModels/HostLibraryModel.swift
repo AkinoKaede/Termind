@@ -9,7 +9,7 @@ import struct TermindDomain.Host
 /// Core host metadata is backed by SwiftData in the app and projected into value
 /// types for the views. Previews can still construct an in-memory store directly.
 @Observable
-public final class HostLibraryModel {
+public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var hosts: [Host] = []
     public private(set) var groups: [HostGroup] = []
     public private(set) var keys: [SSHKeyRef] = []

@@ -552,8 +552,8 @@ final class MobileWorkspace: Identifiable {
             self?.generation == $0
         }
         connection.clearHostKeyPrompt()
-        attempt = Task { [weak self] in
-            guard let self else { return }
+        attempt = Task { [weak self, weak hosts] in
+            guard let self, let hosts else { return }
             defer { if generation == token { busy = false } }
             guard generation == token, !Task.isCancelled else { return }
             do {

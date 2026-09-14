@@ -53,19 +53,18 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         // The POSIX helper reads os-release as inert assignment text instead of
         // sourcing it. Its output precedes the shell marker, so a missing `sh`
         // still leaves the original shell-only bootstrap path usable.
-        startCommand = Data(
-            (" command sh -c 'f=; did=; dlike=; dver=; "
-                + "[ -r /etc/os-release ] && f=/etc/os-release; "
-                + "[ -z \"$f\" ] && [ -r /usr/lib/os-release ] && f=/usr/lib/os-release; "
-                + "if [ -n \"$f\" ]; then while IFS= read -r line; do case \"$line\" in "
-                + "ID=*) did=${line#ID=} ;; ID_LIKE=*) dlike=${line#ID_LIKE=} ;; "
-                + "VERSION_ID=*) dver=${line#VERSION_ID=} ;; esac; "
-                + "done < \"$f\"; fi; kn=$(uname -s 2>/dev/null); "
-                + "kr=$(uname -r 2>/dev/null); ka=$(uname -m 2>/dev/null); "
-                + "printf \"\\n__TRMD_%s_SYSTEM__%s|%s|%s|%s|%s|%s__\\n\" "
-                + "\"$1\" \"$did\" \"$dlike\" \"$dver\" \"$kn\" \"$kr\" \"$ka\"' sh '\(token)'; "
-                + "printf '\\n__TRMD_%s_SHELL__%s__\\n' '\(token)' \"$SHELL\"\n").utf8
-        )
+        var probeCommand = " command sh -c 'f=; did=; dlike=; dver=; "
+        probeCommand += "[ -r /etc/os-release ] && f=/etc/os-release; "
+        probeCommand += "[ -z \"$f\" ] && [ -r /usr/lib/os-release ] && f=/usr/lib/os-release; "
+        probeCommand += "if [ -n \"$f\" ]; then while IFS= read -r line; do case \"$line\" in "
+        probeCommand += "ID=*) did=${line#ID=} ;; ID_LIKE=*) dlike=${line#ID_LIKE=} ;; "
+        probeCommand += "VERSION_ID=*) dver=${line#VERSION_ID=} ;; esac; "
+        probeCommand += "done < \"$f\"; fi; kn=$(uname -s 2>/dev/null); "
+        probeCommand += "kr=$(uname -r 2>/dev/null); ka=$(uname -m 2>/dev/null); "
+        probeCommand += "printf \"\\n__TRMD_%s_SYSTEM__%s|%s|%s|%s|%s|%s__\\n\" "
+        probeCommand += "\"$1\" \"$did\" \"$dlike\" \"$dver\" \"$kn\" \"$kr\" \"$ka\"' sh '\(token)'; "
+        probeCommand += "printf '\\n__TRMD_%s_SHELL__%s__\\n' '\(token)' \"$SHELL\"\n"
+        startCommand = Data(probeCommand.utf8)
         deadline = now + Self.responseTimeout
     }
 

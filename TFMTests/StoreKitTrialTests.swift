@@ -50,8 +50,8 @@ struct StoreKitTrialTests {
     @Test
     func lifetimePurchaseTakesPrecedenceOverAnnualSubscription() async throws {
         let fixture = try Fixture()
-        try await fixture.session.buyProduct(identifier: ProAccessController.annualProductID)
-        try await fixture.session.buyProduct(identifier: ProAccessController.lifetimeProductID)
+        try await fixture.purchase(ProAccessController.annualProductID)
+        try await fixture.purchase(ProAccessController.lifetimeProductID)
         let access = fixture.controller()
         await access.refresh()
 
@@ -63,7 +63,7 @@ struct StoreKitTrialTests {
     @Test
     func cancellationAndNetworkFailuresDoNotRemoveAnnualAccess() async throws {
         let fixture = try Fixture()
-        try await fixture.session.buyProduct(identifier: ProAccessController.annualProductID)
+        try await fixture.purchase(ProAccessController.annualProductID)
         let access = fixture.controller()
         await access.refresh()
         let active = access.status
@@ -110,12 +110,14 @@ struct StoreKitTrialTests {
     @Test
     func unverifiedAnnualTransactionNeverGrantsAccess() async throws {
         let fixture = try Fixture()
-        try await fixture.session.buyProduct(identifier: ProAccessController.annualProductID)
         try await fixture.session.setSimulatedError(.verification(.invalidSignature), forAPI: .verification)
         let access = fixture.controller()
         await access.refresh()
+        await access.reloadProducts()
+        await access.purchaseAnnual()
 
-        #expect(access.status == .verificationFailed)
+        #expect(access.error == .purchaseVerificationFailed)
+        await access.refresh()
         #expect(!access.hasProAccess)
     }
 
@@ -190,6 +192,30 @@ struct StoreKitTrialTests {
 
         func controller(now: @escaping () -> Date = { .now }) -> ProAccessController {
             ProAccessController(now: now, observeStore: false)
+        }
+
+        func purchase(_ identifier: Product.ID) async throws {
+            let updates = Task {
+                for await _ in Transaction.updates {
+                    guard !Task.isCancelled else { return }
+                }
+            }
+            defer { updates.cancel() }
+            await Task.yield()
+            let products = try await Product.products(for: [identifier])
+            let product = try #require(products.first { $0.id == identifier })
+            let result = try await product.purchase()
+            guard case .success(let verification) = result else {
+                Issue.record("StoreKit did not complete the \(identifier) purchase: \(result)")
+                return
+            }
+            let transaction = try verification.payloadValue
+            await transaction.finish()
+            for _ in 0..<100 {
+                if await Transaction.latest(for: identifier) != nil { return }
+                try await Task.sleep(for: .milliseconds(50))
+            }
+            Issue.record("StoreKit did not publish the \(identifier) transaction")
         }
 
         static func modifiedConfiguration(_ name: String) throws -> URL {

@@ -17,11 +17,6 @@ final class ManagedChooserState<ID: Hashable> {
         self.selected = selected
     }
 
-    // Swift 6.3.3's EarlyPerfInliner crashes while synthesizing this generic
-    // class's optimized destructor. Keeping just the destructor unoptimized
-    // preserves normal release optimization for the chooser and the app.
-    @_optimize(none) deinit {}
-
     func activate(_ id: ID) {
         cursor = id
         switch mode {

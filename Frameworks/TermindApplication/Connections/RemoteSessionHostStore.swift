@@ -44,8 +44,6 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func upsert(_ host: Host)
 }
 
-extension HostLibraryModel: RemoteSessionHostStore {}
-
 extension RemoteSessionHostStore {
     public func expectedHostKeys(
         for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]

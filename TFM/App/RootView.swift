@@ -160,7 +160,8 @@ struct RootView: View {
             window.refreshSessionContext()
             window.reconcileSidebarMode()
         }
-        .onAppear {
+        .onAppear { [weak app] in
+            guard let app else { return }
             window.proAccess = app.proAccess
             window.connectionCoordinator = app.connections
             window.hostStore = app.hostLibrary

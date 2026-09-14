@@ -13,7 +13,7 @@ struct TerminalCommandDraftControllerTests {
                 writes.append(data)
             }
         }
-        await Task.yield()
+        while !controller.hasPendingRequest { await Task.yield() }
 
         await #expect(throws: TerminalDraftError.self) {
             try await controller.read(isAvailable: true) { _ in }
@@ -39,7 +39,7 @@ struct TerminalCommandDraftControllerTests {
         let read = Task {
             try await controller.read(isAvailable: true) { _ in }
         }
-        await Task.yield()
+        while !controller.hasPendingRequest { await Task.yield() }
 
         controller.cancel(CancellationError())
 
