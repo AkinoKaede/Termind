@@ -550,7 +550,7 @@ private struct AgentApprovalCard: View {
                     .accessibilityHidden(true)
                 Text(presentation.title)
                     .font(.callout.weight(.medium))
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
             }
 
             ViewThatFits(in: .vertical) {
@@ -575,6 +575,8 @@ private struct AgentApprovalCard: View {
                 .buttonStyle(.borderedProminent)
                 .accessibilityIdentifier("AssistantApproval.AllowOnce")
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .layoutPriority(2)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("AssistantApproval.Card")

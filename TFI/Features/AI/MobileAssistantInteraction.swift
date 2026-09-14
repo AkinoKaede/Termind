@@ -72,7 +72,7 @@ struct MobileAssistantInteraction: View {
                     .accessibilityHidden(true)
                 Text(presentation.title)
                     .font(.callout.weight(.medium))
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
             }
 
             ViewThatFits(in: .vertical) {
@@ -99,6 +99,8 @@ struct MobileAssistantInteraction: View {
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("AssistantApproval.AllowOnce")
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .layoutPriority(2)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)

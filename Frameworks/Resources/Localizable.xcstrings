@@ -2935,6 +2935,23 @@
         }
       }
     },
+    "Approval action target: %@ %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在%2$@上%1$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在%2$@上%1$@"
+          }
+        }
+      }
+    },
     "Approval required" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2951,18 +2968,36 @@
         }
       }
     },
-    "Arguments" : {
+    "Approval tool action target: %@ %@ %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "参数"
+            "value" : "在%3$@上%1$@%2$@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "參數"
+            "value" : "在%3$@上%1$@%2$@"
+          }
+        }
+      }
+    },
+    "Approval tool action: %@ %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@"
           }
         }
       }
@@ -3011,6 +3046,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已封存的對話為唯讀。"
+          }
+        }
+      }
+    },
+    "Arguments" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "參數"
           }
         }
       }
@@ -10793,6 +10845,7 @@
       }
     },
     "Host: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -19038,6 +19091,7 @@
       }
     },
     "Safety details" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

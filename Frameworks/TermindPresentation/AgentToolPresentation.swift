@@ -42,13 +42,72 @@ nonisolated public enum AgentToolPresentation {
         )
         return AgentApprovalPresentation(
             symbol: symbol(for: card),
-            title: summary(for: card, hostName: hostName, locale: locale),
+            title: approvalSummary(for: card, hostName: hostName, locale: locale),
             detail: AgentToolDetail(
                 items: approvalArgumentItems(
                     request.invocation.call.arguments, presenter: presenter,
                     hidesHostID: hostName != nil, locale: locale)
             )
         )
+    }
+
+    /// Approval chrome already communicates that the call is waiting. Keep its
+    /// action title short and move argument values into the reviewable detail
+    /// below, where long commands and paths can scroll without hiding actions.
+    private static func approvalSummary(
+        for card: AgentToolCard,
+        hostName: String?,
+        locale: Locale
+    ) -> String {
+        let activity = approvalActivity(for: card, locale: locale)
+        guard let kind = actionKind(for: card) else {
+            let action = localized("Run \(activity)", locale: locale)
+            guard let hostName, !hostName.isEmpty else { return action }
+            if isChinese(locale) {
+                return localized("Approval action target: \(action) \(hostName)", locale: locale)
+            }
+            return "\(action) on \(hostName)"
+        }
+
+        let action = localizedActionVerb(kind, locale: locale)
+        if isChinese(locale) {
+            guard let hostName, !hostName.isEmpty else {
+                return localized("Approval tool action: \(action) \(activity)", locale: locale)
+            }
+            return localized(
+                "Approval tool action target: \(action) \(activity) \(hostName)",
+                locale: locale
+            )
+        }
+
+        let rendered =
+            uppercaseFirst(actionName(kind, form: .infinitive, locale: locale))
+            + (activity.isEmpty ? "" : " \(activity)")
+        guard let hostName, !hostName.isEmpty else { return rendered }
+        return "\(rendered) on \(hostName)"
+    }
+
+    private static func approvalActivity(
+        for card: AgentToolCard,
+        locale: Locale
+    ) -> String {
+        guard let presentation = card.descriptor.presentation else {
+            return humanized(card.descriptor.qualifiedName)
+        }
+        switch presentation.activity {
+        case .label(let label):
+            return legacyActivity(
+                label, descriptorName: card.descriptor.name, locale: locale
+            )
+        case .argument(_, let fallback):
+            return legacyActivity(
+                fallback, descriptorName: card.descriptor.name, locale: locale
+            )
+        case .arrayCount, .localizedArrayCount, .semanticArrayCount:
+            return operation(for: card, locale: locale).text
+        case .semanticLabel(let kind), .semanticArgument(_, let kind):
+            return activityName(kind, locale: locale)
+        }
     }
 
     /// While work is live, use the icon of the tool(s) still in flight. After
@@ -1102,6 +1161,11 @@ nonisolated public enum AgentToolPresentation {
     private static func lowercaseFirst(_ text: String) -> String {
         guard let first = text.first else { return text }
         return first.lowercased() + String(text.dropFirst())
+    }
+
+    private static func uppercaseFirst(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return first.uppercased() + String(text.dropFirst())
     }
 
     public static func tint(for state: AgentToolCard.State) -> BatchTint {
