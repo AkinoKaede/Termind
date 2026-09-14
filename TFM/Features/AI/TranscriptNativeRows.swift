@@ -1282,19 +1282,6 @@ private enum NativeTranscriptFactory {
             )
             stack.addArrangedSubview(explanation)
         }
-        if !assessment.reasons.isEmpty {
-            let reasons = NativeStack.vertical(spacing: Metrics.Space.xxs)
-            reasons.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardReasons")
-            for reason in assessment.reasons {
-                reasons.addArrangedSubview(
-                    NativeLabel(
-                        "• \(reason)",
-                        font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
-                        color: nativeRiskColor(assessment.risk)
-                    ))
-            }
-            stack.addArrangedSubview(reasons)
-        }
         let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
         actions.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardActions")
         if context.configuration.showsTerminalActions {
@@ -1701,14 +1688,6 @@ private final class NativeMarkdownView: NSView {
                 ),
                 selectable: true
             ))
-        for reason in assessment.reasons {
-            stack.addArrangedSubview(
-                NativeLabel(
-                    "• \(reason)",
-                    font: .systemFont(ofSize: NSFont.smallSystemFontSize),
-                    color: nativeRiskColor(assessment.risk)
-                ))
-        }
         let row = NativeStack.horizontal()
         if !command.contains("\n") {
             let insert = NativeButton(title: String(localized: "Insert"))
