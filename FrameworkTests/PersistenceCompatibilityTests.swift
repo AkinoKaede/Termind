@@ -65,6 +65,6 @@ struct PersistenceCompatibilityTests {
         try first.mainContext.save()
         #expect(try second.mainContext.fetchCount(FetchDescriptor<PersistentHostGroup>()) == 0)
         #expect(Set(first.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
-        #expect(TermindMigrationPlan.schemas.count == 15)
+        #expect(TermindMigrationPlan.schemas.count == 16)
     }
 }

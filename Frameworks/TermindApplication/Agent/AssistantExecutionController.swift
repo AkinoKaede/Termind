@@ -50,7 +50,10 @@ public final class AssistantExecutionController {
         // The *returned* text, not `draft`: attachments are folded in there, and
         // running on the pre-fold string would show the model a turn that does
         // not match the one the conversation recorded.
-        let prompt = conversation.appendUserTurnContent(draft)
+        let prompt = conversation.appendUserTurnContent(
+            draft,
+            contextSnapshot: contextSnapshot(
+                for: conversation, context: context, includesTerminalSuggestion: includesTerminalSuggestion))
         conversation.composer.draft = ""
         // Compaction happens *after* the turn is recorded and before the run,
         // so the message the user just typed is inside the kept window rather
@@ -90,7 +93,7 @@ public final class AssistantExecutionController {
         authoredPrompt: String? = nil,
         promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
-        context: SessionContext = .none,
+        context: SessionContext? = nil,
         includesTerminalSuggestion: Bool = false
     ) {
         guard authorize() else { return }
@@ -132,7 +135,7 @@ public final class AssistantExecutionController {
         let model = AgentProviderClient(
             provider: chat.provider, model: chat.model, secret: secret,
             reasoning: conversation.reasoningEffort,
-            webSearch: nativeSearch
+            webSearch: nativeSearch, promptCacheKey: conversation.id.uuidString
         )
         let reviewer: (any SecurityReviewing)? = {
             guard mode == .approveForMe, let review = ai.resolve(.securityReview) else { return nil }
@@ -188,7 +191,11 @@ public final class AssistantExecutionController {
         conversation.noteToolSchemas(registry.descriptors)
         // Read once, here: the posture a run enforces is the one it started
         // under, and the user is free to leave plan mode while it is thinking.
-        let isPlanning = conversation.isPlanning
+        let frozenContext =
+            lastUserTurn?.contextSnapshot
+            ?? contextSnapshot(
+                for: conversation, context: context ?? .none, includesTerminalSuggestion: includesTerminalSuggestion)
+        let isPlanning = frozenContext.planContract != nil
         // The catalog reaches the model boundary through the pipeline rather
         // than through the system prompt, so the prompt stays byte-identical for
         // every run and the provider's prefix cache survives a skill being
@@ -198,6 +205,14 @@ public final class AssistantExecutionController {
         // delivers in need smoothing before they reach a view. A surface that
         // only records events would leave this off — see `AgentStreamPacing`.
         configuration.streamPacing = .animated
+        configuration.outputProjection = AgentToolOutputProjection(
+            workspace: AgentScratchWorkspace(
+                conversationID: conversation.id, applicationName: TermindAgentPolicy.scratchDirectoryName))
+        configuration.contextSnapshot = { session, planning in
+            AgentTurnContextSnapshot(
+                sessionContext: session, skillCatalog: skillCatalog.isEmpty ? nil : skillCatalog.catalogBlock,
+                planContract: planning ? TermindAgentPolicy.planContract : nil)
+        }
         configuration.contextPipeline = { sessionContext, promptID, planning in
             AgentContextPipeline.chat(
                 sessionContext: sessionContext, before: promptID,
@@ -232,9 +247,23 @@ public final class AssistantExecutionController {
                 permissionMode: mode, isPlanning: isPlanning,
                 systemPrompt: TermindAgentPolicy.systemPrompt,
                 priorMessages: conversation.pendingPriorMessages,
-                sessionContext: context.modelContext
+                sessionContext: frozenContext.sessionContext, contextSnapshot: frozenContext
             ))
         scheduleTitle(for: conversation)
+    }
+
+    public func contextSnapshot(
+        for conversation: ConversationModel, context: SessionContext, includesTerminalSuggestion: Bool
+    ) -> AgentTurnContextSnapshot {
+        let catalog =
+            ai.resolve(conversation: conversation.model)?.model.abilities.contains(.toolCall) == true
+            ? skills.catalog : AgentSkillCatalog()
+        return AgentTurnContextSnapshot(
+            sessionContext: context.modelContext,
+            skillCatalog: catalog.isEmpty ? nil : catalog.catalogBlock,
+            planContract: conversation.isPlanning ? TermindAgentPolicy.planContract : nil,
+            toolAvailability: ["terminal_suggest": includesTerminalSuggestion]
+        )
     }
 
     /// Which of the two web-search paths this turn gets, resolved once so the

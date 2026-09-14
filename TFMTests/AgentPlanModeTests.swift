@@ -487,10 +487,10 @@ struct AgentPlanModeTests {
             planContract: TermindAgentPolicy.planContract
         )(context)
 
-        #expect(planned.messages.count == 2)
-        #expect(planned.messages[0].text == TermindAgentPolicy.planContract)
-        #expect(planned.messages[0].text != AgentPlanContractInjection.contract)
-        #expect(planned.messages[0].text.contains("ssh_exec"))
+        #expect(planned.messages.count == 4)
+        #expect(planned.messages[2].text == TermindAgentPolicy.planContract)
+        #expect(planned.messages[2].text != AgentPlanContractInjection.contract)
+        #expect(planned.messages[2].text.contains("ssh_exec"))
     }
 
     // MARK: - Task arguments

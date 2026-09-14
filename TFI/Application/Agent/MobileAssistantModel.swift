@@ -201,7 +201,12 @@ final class MobileAssistantModel {
 
     func edit(_ conversation: ConversationModel, messageID: UUID, text: String) async {
         await perform {
-            guard let prompt = try await operations.edit(conversation, messageID: messageID, text: text) else { return }
+            guard
+                let prompt = try await operations.edit(
+                    conversation, messageID: messageID, text: text,
+                    contextSnapshot: execution.contextSnapshot(
+                        for: conversation, context: .none, includesTerminalSuggestion: false))
+            else { return }
             execution.startAgentRun(
                 conversation, promptID: prompt.id, prompt: prompt.text,
                 authoredPrompt: prompt.authoredText, promptImages: prompt.images,

@@ -1,3 +1,4 @@
+import AgentKit
 import CSSH2
 import Darwin
 import Foundation
@@ -81,6 +82,7 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws
+    func readTextPage(at path: String, offset: Int, limit: Int) async throws -> AgentTextPage
     func disconnect() async
     func homeDirectory() async throws -> String
     func uploadFile(
@@ -122,6 +124,13 @@ nonisolated extension SFTPClientProtocol {
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
         try await connect(using: configuration, progress: progress)
+    }
+
+    public func readTextPage(at path: String, offset: Int, limit: Int) async throws -> AgentTextPage {
+        let data = try await readFile(at: path, maximumBytes: AgentScratchWorkspace.Limits.fileBytes)
+        var reader = try AgentTextPageReader(offset: offset, limit: limit)
+        try reader.append(data)
+        return try reader.finish()
     }
 
     public func readFile(at path: String, maximumBytes: Int) async throws -> Data {
@@ -214,6 +223,10 @@ public actor SFTPClient: SFTPClientProtocol {
 
     public func readFile(at path: String, maximumBytes: Int) async throws -> Data {
         try await worker.readFile(at: path, maximumBytes: maximumBytes)
+    }
+
+    public func readTextPage(at path: String, offset: Int, limit: Int) async throws -> AgentTextPage {
+        try await worker.readTextPage(at: path, offset: offset, limit: limit)
     }
 
     public func writeFile(_ data: Data, at path: String, overwrite: Bool) async throws {
@@ -460,6 +473,34 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
             }
             if libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE { return nil }
             throw self.error("Unable to inspect \(path)")
+        }
+    }
+
+    public func readTextPage(at path: String, offset: Int, limit: Int) async throws -> AgentTextPage {
+        try Task.checkCancellation()
+        let cancellation = TransferCancellationToken()
+        return try await withTaskCancellationHandler {
+            try await queue.perform {
+                var reader = try AgentTextPageReader(offset: offset, limit: limit)
+                return try self.withRemoteReadHandle(at: path) { handle in
+                    var buffer = [CChar](repeating: 0, count: 16 * 1_024)
+                    while !reader.isComplete {
+                        guard !cancellation.isCancelled else { throw CancellationError() }
+                        let count = libssh2_sftp_read(handle, &buffer, buffer.count)
+                        if count > 0 {
+                            try reader.append(Data(bytes: buffer, count: count))
+                        } else if count == 0 {
+                            break
+                        } else {
+                            throw self.error("Unable to read \(path)")
+                        }
+                    }
+                    guard !cancellation.isCancelled else { throw CancellationError() }
+                    return try reader.finish()
+                }
+            }
+        } onCancel: {
+            cancellation.cancel()
         }
     }
 

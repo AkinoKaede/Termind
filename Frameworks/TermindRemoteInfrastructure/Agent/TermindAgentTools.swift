@@ -91,8 +91,8 @@ nonisolated public enum TermindAgentTools {
             )
         },
         .init(SSHWaitTool.self) { SSHWaitTool(background: $0.background) },
-        .init(TerminalSuggestTool.self) {
-            $0.includesTerminalSuggestion ? TerminalSuggestTool() : nil
+        .init(TerminalSuggestTool.self) { _ in
+            TerminalSuggestTool()
         },
         .init(SFTPListTool.self) {
             SFTPListTool(authentication: $0.authentication, connections: $0.connections)

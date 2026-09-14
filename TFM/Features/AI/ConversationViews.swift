@@ -939,7 +939,8 @@ struct ComposerView: View {
             return
         }
         if conversation.isStreaming {
-            conversation.submitSteeringDraft()
+            conversation.submitSteeringDraft(
+                context: sessionContext, includesTerminalSuggestion: includesTerminalSuggestion)
             return
         }
         if let onSend {

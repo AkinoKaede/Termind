@@ -65,6 +65,12 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             insertContextAttachments(for: message)
             inserted = true
         }
+        // A user row may already exist (editing or interrupted preparation) before
+        // the run freezes its context. Add its backing once without rewriting history.
+        let replayIDs = Set(try context.fetch(FetchDescriptor<PersistentAgentMessageReplay>()).map(\.messageID))
+        for message in durableMessages where !replayIDs.contains(message.id) {
+            insertReplay(for: message)
+        }
         guard inserted || context.hasChanges else { return }
         try context.save()
     }
@@ -153,6 +159,9 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         )
         let runs = try context.fetch(FetchDescriptor<PersistentAgentRun>())
         let messages = try context.fetch(FetchDescriptor<PersistentAgentMessage>())
+        let replayByMessage = Dictionary(
+            uniqueKeysWithValues:
+                try context.fetch(FetchDescriptor<PersistentAgentMessageReplay>()).map { ($0.messageID, $0) })
         let compactionRows = try context.fetch(FetchDescriptor<PersistentAgentCompaction>())
         let attachmentRows = try context.fetch(
             FetchDescriptor<PersistentAgentContextAttachments>()
@@ -216,6 +225,8 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                         toolCalls: calls,
                         toolCallID: row.toolCallID, toolName: row.toolName,
                         isError: row.isError, isCompaction: row.isCompaction,
+                        contextSnapshot: replayByMessage[row.id]?.contextSnapshot,
+                        modelText: replayByMessage[row.id]?.modelText,
                         createdAt: row.createdAt
                     )
                 }
@@ -383,6 +394,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     replacement, runID: replacementRun.id, sequence: 0
                 ))
             insertContextAttachments(for: replacement)
+            insertReplay(for: replacement)
 
             let descriptor = FetchDescriptor<PersistentAgentConversation>(
                 predicate: #Predicate { $0.id == id }
@@ -460,6 +472,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                         sequence: sequence
                     ))
                 insertContextAttachments(for: message)
+                insertReplay(for: message)
             }
             for record in value.compactions {
                 context.insert(PersistentAgentCompaction(record, conversationID: value.id))
@@ -514,8 +527,15 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let messageIDs = Set(messages.map(\.id))
         for row in try context.fetch(FetchDescriptor<PersistentAgentContextAttachments>())
         where messageIDs.contains(row.messageID) { context.delete(row) }
+        for row in try context.fetch(FetchDescriptor<PersistentAgentMessageReplay>())
+        where messageIDs.contains(row.messageID) { context.delete(row) }
         for row in messages { context.delete(row) }
         for row in runs { context.delete(row) }
+    }
+
+    private func insertReplay(for message: AgentTranscriptMessage) {
+        guard message.contextSnapshot != nil || message.modelText != nil else { return }
+        context.insert(PersistentAgentMessageReplay(message))
     }
 
     private func insertContextAttachments(for message: AgentTranscriptMessage) {
@@ -572,8 +592,11 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 guard let stored = results.last(where: { $0.callID == call.id }) else { continue }
                 recovered.append(
                     AgentTranscriptMessage(
+                        id: AgentTranscriptMessage.toolResultID(runID: stored.runID, callID: call.id),
                         role: .tool, text: stored.content, toolCallID: call.id,
-                        toolName: names[call.id] ?? call.name, isError: stored.isError
+                        toolName: names[call.id] ?? call.name, isError: stored.isError,
+                        modelText: (try? JSONDecoder().decode([String: AgentJSONValue].self, from: stored.metadataData))?[
+                            AgentToolResult.modelContentKey]?.stringValue
                     ))
             }
         }

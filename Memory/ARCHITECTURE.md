@@ -21,7 +21,7 @@ The agent runtime is the separately versioned `AgentKit` package.
 - `TermindPresentation` owns reusable SwiftUI content, presentation policy,
   Ghostty themes, and the `TerminalPreferences` bridge. It depends only on
   Application and Domain; native surfaces, transports, and lifetimes stay in apps.
-- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V15
+- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V16
   schema, migration plan, and container factory. It never depends on an app target.
 - `TFM` and `TFI` own platform UI, adapters, and lifecycle orchestration. Both use
   `App`, `Application`, `Design`, `DesignSystem`, `Features`, `Infrastructure`,
@@ -176,6 +176,30 @@ preflight, card creation, hooks, authorization, then execution, and
 OpenAI Responses/Chat Completions, Anthropic Messages, and Gemini. Models without
 tool capability receive no tools; only recognized chat-purpose models appear in
 conversation pickers, and unknown purpose values safely default to chat.
+
+User messages carry immutable, hidden `AgentTurnContextSnapshot` metadata. Session
+facts, skill catalogs, plan contracts, and surface-tool availability are captured on
+submission, including steering and edits. Live surface state still belongs to the
+window. Replay emits an initial baseline and then only changed blocks at their original
+message boundaries; missing legacy snapshots are unknown, never reconstructed from the
+current terminal. Leaving a session or mode emits an explicit clearing transition.
+Retries retain their snapshot, forks copy it, and compaction retains context facts while
+establishing a new baseline. V16 adds independent `PersistentAgentMessageReplay` rows;
+V1-V15 message definitions remain unchanged. Deletion and truncation remove the backing.
+
+Tool model output is projected once before `toolFinished`, including a bounded preview
+and a scratch capture reference for oversized results. Result metadata preserves the
+projection across crash recovery; message backing preserves it across replay. Earlier
+results are never shortened merely because another tool finishes. Paged reads retain
+their structured continuation fields. `sftp_read` streams UTF-8 line windows; it and
+`scratch_read` report only complete returned lines and a truthful next offset.
+
+Terminal suggestion definitions remain stable across surfaces. The executor checks
+availability from the most recently delivered user snapshot before preflight; merely
+changing focus does not change the active run's capabilities. Provider tool/schema JSON
+is deterministic. Official OpenAI requests use a conversation cache key, Anthropic uses
+short-lived system/message cache breakpoints, and Gemini retains implicit caching.
+Cache read/write usage is normalized without adding cached tokens twice to input totals.
 
 A batch is concurrent only if every call is parallel. Preflight may tighten this:
 `ssh_exec` is parallel only when local command classification proves it safe; an MCP

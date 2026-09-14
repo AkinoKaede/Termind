@@ -285,15 +285,15 @@ struct AgentRuntimeTests {
                     && block.contains("distribution_id: alpine")
                     && block.contains("kernel_release: 6.6.44-0-lts")
                     && block.contains("architecture: aarch64")
-                    && request.messages[index + 1].text == "inspect"
+                    && request.messages[index...].contains { $0.text == "inspect" }
             })
 
-        // Present in what is sent, absent from what is kept — otherwise it would
-        // be replayed, and restore would project it into the user's own bubble.
+        // The snapshot is durable metadata; the visible user text stays authored.
         let id = try! #require(runID)
         let saved = try! #require(await repository.snapshot(id)).messages
         #expect(saved.contains { $0.text == "inspect" })
         #expect(!saved.contains { $0.text.contains("Session context") })
+        #expect(saved.first { $0.text == "inspect" }?.contextSnapshot?.sessionContext == context.modelContext)
     }
 
     @Test

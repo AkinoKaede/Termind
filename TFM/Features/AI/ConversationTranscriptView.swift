@@ -345,7 +345,9 @@ private struct ConversationTranscriptSurface: View {
                     conversation.resolvePlan(card.id, as: .implemented)
                     let prompt = ConversationModel.implementationPrompt(for: card.plan)
                     conversation.appendUserTurn(prompt)
-                    app.startAgentRun(conversation, prompt: prompt)
+                    app.startAgentRun(
+                        conversation, prompt: prompt, context: sessionContext,
+                        includesTerminalSuggestion: showsTerminalActions)
                 },
                 canDeliverCommand: {
                     guard let workspace = window.selectedWorkspace else { return false }

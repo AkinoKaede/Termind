@@ -338,7 +338,7 @@ final class AppModel {
         _ conversation: ConversationModel, promptID: UUID? = nil, prompt: String? = nil,
         authoredPrompt: String? = nil, promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
-        context: SessionContext = .none, includesTerminalSuggestion: Bool = false
+        context: SessionContext? = nil, includesTerminalSuggestion: Bool = false
     ) {
         assistantExecution.startAgentRun(
             conversation, promptID: promptID, prompt: prompt,
@@ -520,7 +520,12 @@ final class AppModel {
         guard let conversation = conversation(id) else { return }
         Task { [weak window] in
             do {
-                guard let prompt = try await assistantOperations.edit(conversation, messageID: messageID, text: value)
+                guard
+                    let prompt = try await assistantOperations.edit(
+                        conversation, messageID: messageID, text: value,
+                        contextSnapshot: assistantExecution.contextSnapshot(
+                            for: conversation, context: context,
+                            includesTerminalSuggestion: includesTerminalSuggestion))
                 else { return }
                 startAgentRun(
                     conversation, promptID: prompt.id, prompt: prompt.text,

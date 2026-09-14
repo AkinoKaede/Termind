@@ -1712,7 +1712,9 @@ public final class ConversationModel: Identifiable {
     }
 
     @discardableResult
-    public func appendUserTurnContent(_ text: String) -> ComposedUserTurn {
+    public func appendUserTurnContent(_ text: String, contextSnapshot: AgentTurnContextSnapshot? = nil)
+        -> ComposedUserTurn
+    {
         let composed = composed(text)
         let messageID = UUID()
         let contextChips = composer.attachments.map {
@@ -1734,7 +1736,7 @@ public final class ConversationModel: Identifiable {
             AgentTranscriptMessage(
                 id: messageID, role: .user, text: composed.text,
                 authoredText: text, images: composed.images,
-                contextAttachments: composed.contextAttachments
+                contextAttachments: composed.contextAttachments, contextSnapshot: contextSnapshot
             )
         )
         if let message = transcript.last {
@@ -1803,7 +1805,14 @@ public final class ConversationModel: Identifiable {
     /// Takes ownership of a run before it can emit its first event. Keeping the
     /// runtime and its consumer together prevents an immediately-completing
     /// provider response from racing the UI attachment path.
+    public private(set) var activeContextSnapshot: AgentTurnContextSnapshot?
+
     public func start(runtime: AgentRuntime, request: AgentRunRequest) {
+        activeContextSnapshot = request.contextSnapshot
+        if let index = transcript.firstIndex(where: { $0.id == request.promptID }) {
+            transcript[index].contextSnapshot = request.contextSnapshot
+            contextEstimateTracker.upsert(transcript[index])
+        }
         self.runtime = runtime
         reportedRunState = .running
         runtimeGeneration &+= 1
@@ -1871,15 +1880,18 @@ public final class ConversationModel: Identifiable {
     /// later be shown a conversation that never happened. The bubble appears
     /// when the runtime reports the message delivered, which is where the model
     /// really saw it.
-    public func submitSteeringDraft() {
+    public func submitSteeringDraft(context: SessionContext = .none, includesTerminalSuggestion: Bool = false) {
         let text = composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSendDraft, let runtime else { return }
         let composed = composed(text)
+        var snapshot = activeContextSnapshot?.withSessionContext(context.modelContext)
+        snapshot?.toolAvailability = ["terminal_suggest": includesTerminalSuggestion]
         let pending = PendingSteeringMessage(
             draft: text, attachments: composer.attachments,
             message: AgentTranscriptMessage(
                 role: .user, text: composed.text, authoredText: text,
-                images: composed.images, contextAttachments: composed.contextAttachments
+                images: composed.images, contextAttachments: composed.contextAttachments,
+                contextSnapshot: snapshot
             )
         )
         pendingSteering.append(pending)
@@ -2370,6 +2382,7 @@ public final class ConversationModel: Identifiable {
         // the conversation — in both lists, at the position the run put it, and
         // no longer in the queue the composer is drawing.
         case .steeringDelivered(let message):
+            activeContextSnapshot = message.contextSnapshot
             if let activeRunID { messageRunIDs[message.id] = activeRunID }
             let pending = pendingSteering.first(where: { $0.id == message.id })
             let visibleText = pending?.draft ?? ContextChip.visiblePrompt(in: message.text)
@@ -2455,8 +2468,9 @@ public final class ConversationModel: Identifiable {
             // on the *next* request. See `AgentToolResult.isProviderNative`.
             guard !result.isProviderNative else { break }
             let message = AgentTranscriptMessage(
+                id: AgentTranscriptMessage.toolResultID(runID: invocation.runID, callID: result.callID),
                 role: .tool, text: result.content, toolCallID: result.callID,
-                toolName: invocation.call.name, isError: result.isError
+                toolName: invocation.call.name, isError: result.isError, modelText: result.modelContent
             )
             transcript.append(message)
             contextEstimateTracker.upsert(message)

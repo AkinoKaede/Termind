@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import TermindDomain
 import TermindInfrastructure
 import Testing
 
@@ -182,6 +183,34 @@ struct AgentSteeringTests {
 
         #expect(conversation.pendingSteering.isEmpty)
         #expect(conversation.composer.draft == "hello")
+    }
+
+    @Test
+    func steeringCapturesTheSendingTerminalAndDoesNotChangeTheRunningContextUntilDelivery() {
+        let conversation = ConversationModel()
+        let first = AgentTurnContextSnapshot(
+            sessionContext: "host A", skillCatalog: "fixed skills", planContract: "fixed mode")
+        conversation.start(
+            runtime: AgentRuntime(
+                model: HangingAgentModel(), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "start", permissionMode: .askForApproval,
+                contextSnapshot: first))
+        conversation.composer.draft = "inspect here"
+        conversation.submitSteeringDraft(
+            context: SessionContext(hostName: "B", workingDirectory: "/srv"),
+            includesTerminalSuggestion: true)
+        let queued = try! #require(conversation.pendingSteering.first?.message)
+        #expect(conversation.activeContextSnapshot == first)
+        #expect(queued.contextSnapshot?.sessionContext?.contains("host_name: B") == true)
+        #expect(queued.contextSnapshot?.skillCatalog == first.skillCatalog)
+        #expect(queued.contextSnapshot?.planContract == first.planContract)
+        conversation.handle(.steeringDelivered(queued))
+        #expect(conversation.activeContextSnapshot == queued.contextSnapshot)
+        #expect(conversation.transcript.last?.text == "inspect here")
+        conversation.stop()
     }
 
     private func startRun(_ conversation: ConversationModel) {

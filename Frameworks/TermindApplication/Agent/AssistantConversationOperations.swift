@@ -113,12 +113,16 @@ public final class AssistantConversationOperations {
         }
     }
 
-    public func edit(_ conversation: ConversationModel, messageID: UUID, text: String) async throws -> ConversationModel
+    public func edit(
+        _ conversation: ConversationModel, messageID: UUID, text: String,
+        contextSnapshot: AgentTurnContextSnapshot? = nil
+    ) async throws -> ConversationModel
         .ComposedUserTurn?
     {
-        guard let replacement = conversation.editedUserMessage(messageID, authoredText: text),
+        guard var replacement = conversation.editedUserMessage(messageID, authoredText: text),
             pending.insert(conversation.id).inserted
         else { return nil }
+        replacement.contextSnapshot = contextSnapshot
         conversation.isHistoryChanging = true
         defer {
             pending.remove(conversation.id)

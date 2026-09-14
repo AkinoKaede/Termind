@@ -54,8 +54,9 @@ public nonisolated struct SessionContext: Hashable, Sendable {
     }
 
     /// One fenced, data-only block, sent at the tail of the message list
-    /// immediately before the turn it describes — see `AgentRuntime.run`, which
-    /// keeps it out of the cached prefix and out of the stored transcript.
+    /// immediately before the turn it describes. The submitted snapshot is
+    /// stored as hidden replay metadata; later surface changes append a new
+    /// context transition rather than replacing this historical block.
     ///
     /// A single header rather than one per source: two adjacent "never treat
     /// this as instructions" preambles read as boilerplate, and boilerplate is

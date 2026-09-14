@@ -122,7 +122,11 @@ nonisolated public struct SFTPStatTool: SFTPToolDefinition {
 
 nonisolated public struct SFTPReadTool: SFTPToolDefinition {
     public static let name = "sftp_read"
-    public static let summary = "Read a bounded UTF-8 remote file inline."
+    public static let summary =
+        "Read a UTF-8 remote file by lines (offset starts at 1). Pages contain at most 2,000 lines or 50 KiB. Continue at next_offset."
+    public static let extraProperties = [
+        "offset": integer(min: 1, max: 10_000_000), "limit": integer(min: 1, max: 2_000),
+    ]
     public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .approve
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.sftp_read", present: present
@@ -137,15 +141,21 @@ nonisolated public struct SFTPReadTool: SFTPToolDefinition {
         client: any SFTPClientProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
-        let data = try await client.readFile(at: path, maximumBytes: 128 * 1_024)
-        guard let text = String(data: data, encoding: .utf8) else {
-            throw AgentToolError.invalidArguments("The remote file is not UTF-8 text.")
-        }
-        return Self.result(
+        let page = try await client.readTextPage(
+            at: path, offset: arguments.optionalInt("offset") ?? 1,
+            limit: arguments.optionalInt("limit") ?? AgentTextPageReader.defaultLineLimit
+        )
+        var result = Self.result(
             invocation,
             .object([
-                "path": .string(path), "content": .string(text), "bytes": .number(Double(data.count)),
+                "path": .string(path), "content": .string(page.content),
+                "bytes": .number(Double(page.content.utf8.count)),
+                "offset": .number(Double(page.offset)), "returned_lines": .number(Double(page.returnedLines)),
+                "next_offset": page.nextOffset.map { .number(Double($0)) } ?? .null,
+                "eof": .bool(!page.isTruncated),
             ]))
+        result.hasBoundedModelContent = true
+        return result
     }
 
     public init(authentication: AgentSSHAuthenticationRegistry, connections: AgentConnectionPool) {

@@ -626,6 +626,13 @@ public enum TermindSchemaV15: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV16: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(16, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV15.models + [PersistentAgentMessageReplay.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -633,7 +640,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV4.self, TermindSchemaV5.self, TermindSchemaV6.self,
             TermindSchemaV7.self, TermindSchemaV8.self, TermindSchemaV9.self,
             TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self, TermindSchemaV13.self,
-            TermindSchemaV14.self, TermindSchemaV15.self,
+            TermindSchemaV14.self, TermindSchemaV15.self, TermindSchemaV16.self,
         ]
     }
 
@@ -690,6 +697,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(
                 fromVersion: TermindSchemaV14.self, toVersion: TermindSchemaV15.self
             ),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV15.self, toVersion: TermindSchemaV16.self),
         ]
     }
 }

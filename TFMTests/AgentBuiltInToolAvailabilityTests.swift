@@ -15,7 +15,7 @@ import Testing
 @MainActor
 struct AgentBuiltInToolAvailabilityTests {
     @Test
-    func terminalSuggestionIsRegisteredOnlyWhenTheSurfaceOptsIn() {
+    func terminalSuggestionDefinitionIsStableAcrossSurfaces() {
         let hosts = AgentHostResolver(store: HostLibraryModel())
         let connections = AgentConnectionPool(
             configuration: { _ in throw AgentToolError.invalidHost },
@@ -38,7 +38,8 @@ struct AgentBuiltInToolAvailabilityTests {
 
         #expect(mainAssistant.contains { $0.name == "get_metrics" })
         #expect(workspaceSidebar.contains { $0.name == "get_metrics" })
-        #expect(!mainAssistant.contains { $0.name == "terminal_suggest" })
+        #expect(mainAssistant.contains { $0.name == "terminal_suggest" })
+        #expect(mainAssistant == workspaceSidebar)
         #expect(workspaceSidebar.contains { $0.name == "terminal_suggest" })
     }
 
