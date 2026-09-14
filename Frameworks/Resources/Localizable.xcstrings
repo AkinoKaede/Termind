@@ -2951,23 +2951,6 @@
         }
       }
     },
-    "Approval Required" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "需要批准"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "需要核准"
-          }
-        }
-      }
-    },
     "Arguments" : {
       "localizations" : {
         "zh-Hans" : {

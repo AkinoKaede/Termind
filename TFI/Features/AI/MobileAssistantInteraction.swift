@@ -23,18 +23,30 @@ struct MobileAssistantInteraction: View {
             conversation.pendingUserInteraction.map({ approval.invocation.createdAt <= $0.createdAt }) ?? true
         {
             approvalCard(approval)
+                .mobileAssistantInteractionSurface()
         } else if let interaction = conversation.pendingUserInteraction {
             switch interaction {
             case .sshAuthentication(let request):
                 MobileAssistantAdaptiveHeight {
-                    MobileAssistantAuthenticationForm(request: request, conversation: conversation, hosts: hosts)
+                    VStack(alignment: .leading, spacing: 8) {
+                        MobileAssistantQueueDepthLabel(remaining: conversation.pendingSSHAuthentications.count)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        MobileAssistantAuthenticationForm(request: request, conversation: conversation, hosts: hosts)
+                    }
                 }
+                .mobileAssistantInteractionSurface()
             case .sshHostKey(let request):
                 MobileAssistantAdaptiveHeight {
-                    MobileAssistantHostKeyForm(request: request, conversation: conversation)
+                    VStack(alignment: .leading, spacing: 8) {
+                        MobileAssistantQueueDepthLabel(remaining: conversation.pendingSSHHostKeys.count)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        MobileAssistantHostKeyForm(request: request, conversation: conversation)
+                    }
                 }
+                .mobileAssistantInteractionSurface()
             case .questions:
                 questions
+                    .mobileAssistantInteractionSurface()
             }
         }
     }
@@ -51,11 +63,7 @@ struct MobileAssistantInteraction: View {
                 Label("Approval required", systemImage: "hand.raised.fill")
                     .font(.headline)
                 Spacer()
-                if conversation.pendingApprovals.count > 1 {
-                    Text("1 of \(conversation.pendingApprovals.count)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
+                MobileAssistantQueueDepthLabel(remaining: conversation.pendingApprovals.count)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -78,15 +86,17 @@ struct MobileAssistantInteraction: View {
             }
 
             HStack {
-                Button("Deny", systemImage: "xmark", role: .cancel) {
+                Button("Deny", systemImage: "xmark", role: .destructive) {
                     conversation.respondToApproval(approval.id, allow: false)
                 }
+                .frame(minHeight: 44)
                 .accessibilityIdentifier("AssistantApproval.Deny")
                 Spacer()
                 Button("Allow Once", systemImage: "checkmark") {
                     conversation.respondToApproval(approval.id, allow: true)
                 }
                 .buttonStyle(.borderedProminent)
+                .frame(minHeight: 44)
                 .accessibilityIdentifier("AssistantApproval.AllowOnce")
             }
         }
@@ -122,9 +132,7 @@ struct MobileAssistantInteraction: View {
             if conversation.pendingUserInputs.count > 1 {
                 HStack {
                     Spacer()
-                    Text("1 of \(conversation.pendingUserInputs.count)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                    MobileAssistantQueueDepthLabel(remaining: conversation.pendingUserInputs.count)
                 }
             }
             if let question = conversation.currentUserInputQuestion {
@@ -375,6 +383,7 @@ struct MobileAssistantInteraction: View {
         .buttonStyle(.borderedProminent)
         .keyboardShortcut(MobileShortcut.formDefault)
         .disabled(!conversation.canAdvanceUserInput)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var questionProgress: some View {
@@ -410,6 +419,18 @@ struct MobileAssistantInteraction: View {
         Binding(
             get: { conversation.userInputDraft(for: id).text },
             set: { conversation.setUserInputCustomAnswer($0, for: id) })
+    }
+}
+
+private struct MobileAssistantQueueDepthLabel: View {
+    let remaining: Int
+
+    var body: some View {
+        if remaining > 1 {
+            Text("1 of \(remaining)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -497,13 +518,5 @@ private struct MobileAssistantHostKeyForm: View {
             trust: request.allowsPersistentTrust ? { conversation.respondToSSHHostKey(.trustAndContinue) } : nil,
             deny: { conversation.respondToSSHHostKey(.deny) }, usesContainerChrome: false
         ).id(request.id)
-    }
-}
-
-extension AgentJSONValue {
-    var displayText: String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return (try? encoder.encode(self)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
     }
 }

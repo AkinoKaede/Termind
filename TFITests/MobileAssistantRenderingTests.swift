@@ -2,6 +2,7 @@ import AgentKit
 import Foundation
 import SwiftUI
 import TermindApplication
+import TermindDomain
 import TermindPresentation
 import Testing
 import UIKit
@@ -179,6 +180,60 @@ struct MobileAssistantRenderingTests {
                     MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                 }.environment(\.locale, Locale(identifier: language)))
             conversation.composer.attachmentImportError = nil
+            let approvalRequest = AgentApprovalRequest(
+                invocation: AgentToolInvocation(
+                    runID: UUID(),
+                    call: AgentToolCall(
+                        id: "render-approval",
+                        name: "write",
+                        arguments: .object([
+                            "path": .string("/srv/app/config.json"),
+                            "content": .string("{\"maintenance\":true}"),
+                        ])
+                    )
+                ),
+                descriptor: AgentToolDescriptor(
+                    name: "write",
+                    summary: "Write a file",
+                    inputSchema: .object([:]),
+                    target: .local,
+                    safety: .requiresAuthorization
+                ),
+                userIntent: text(
+                    "Enable maintenance mode.", "启用维护模式。", "啟用維護模式。"),
+                localReasons: [
+                    text(
+                        "This action changes a local file.",
+                        "此操作会修改本地文件。",
+                        "此操作會修改本機檔案。"
+                    )
+                ]
+            )
+            let approval = Task { await conversation.requestApproval(approvalRequest) }
+            for _ in 0..<100 where conversation.pendingApproval == nil { await Task.yield() }
+            _ = try #require(conversation.pendingApproval)
+            try await capture(
+                "approval", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
+                }.environment(\.locale, Locale(identifier: language)))
+            try await capture(
+                "approval-dark", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
+                }
+                .environment(\.locale, Locale(identifier: language))
+                .preferredColorScheme(.dark))
+            try await capture(
+                "approval-large", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
+                }
+                .environment(\.locale, Locale(identifier: language))
+                .environment(\.dynamicTypeSize, .accessibility2))
+            conversation.respondToApproval(approvalRequest.id, allow: false)
+            _ = await approval.value
+
             conversation.handle(
                 .tasksUpdated([
                     AgentTask(
@@ -299,6 +354,57 @@ struct MobileAssistantRenderingTests {
                 .environment(\.locale, Locale(identifier: language))
                 .preferredColorScheme(.dark))
             conversation.cancelUserInput()
+
+            let authenticationRequest = AgentSSHAuthenticationRequest(
+                invocationID: UUID(),
+                hostID: UUID(),
+                displayName: text("Production", "生产服务器", "正式環境伺服器"),
+                address: "prod.example.com",
+                mode: .identity,
+                username: "deploy"
+            )
+            let authentication = Task {
+                await conversation.requestSSHAuthentication(authenticationRequest)
+            }
+            for _ in 0..<100 where conversation.pendingSSHAuthentication == nil { await Task.yield() }
+            _ = try #require(conversation.pendingSSHAuthentication)
+            try await capture(
+                "ssh-authentication", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
+                }.environment(\.locale, Locale(identifier: language)))
+            conversation.respondToSSHAuthentication(.cancelled)
+            _ = await authentication.value
+
+            let observation = SSHHostKeyObservation(
+                hostname: "prod.example.com",
+                port: 22,
+                algorithm: .ed25519,
+                fingerprint: "SHA256:W8RAGx7gKfJxHk2m7M8y5XoQn4tS9cA6bP3dL1uV0eE"
+            )
+            let hostKeyRequest = AgentSSHHostKeyRequest(
+                invocationID: UUID(),
+                hostID: UUID(),
+                displayName: text("Production", "生产服务器", "正式環境伺服器"),
+                address: "prod.example.com",
+                prompt: SSHHostKeyPrompt(observation: observation, kind: .firstUse),
+                allowsPersistentTrust: true
+            )
+            let hostKey = Task {
+                await conversation.requestSSHHostKeyConfirmation(hostKeyRequest)
+            }
+            for _ in 0..<100 where conversation.pendingSSHHostKey == nil { await Task.yield() }
+            _ = try #require(conversation.pendingSSHHostKey)
+            try await capture(
+                "ssh-host-key-dark", language: language,
+                view: NavigationStack {
+                    MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
+                }
+                .environment(\.locale, Locale(identifier: language))
+                .preferredColorScheme(.dark))
+            conversation.respondToSSHHostKey(.deny)
+            _ = await hostKey.value
+
             conversation.archivedAt = .now
             conversation.isPinned = false
             try await capture(
